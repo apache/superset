@@ -84,9 +84,11 @@ and wait for the `superset_node` container to finish building the assets.
 
 #### Configuring Docker Compose
 
-The following is for users who want to configure how Superset starts up in Docker Compose; otherwise, you can skip to the next section.
+The following is for users who want to configure how Superset runs in Docker Compose; otherwise, you can skip to the next section.
 
-You can configure the Docker Compose settings for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
+You can install additional python packages and apply config overrides by following the steps mentioned in [docker/README.md](https://github.com/apache/superset/tree/master/docker#configuration)
+
+You can configure the Docker Compose environment varirables for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
 
 One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init` container will load example data and visualizations into the database and Superset. These examples are quite helpful for most people, but probably unnecessary for experienced users. The loading process can sometimes take a few minutes and a good amount of CPU, so you may want to disable it on a resource-constrained device.
 

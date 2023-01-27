@@ -97,6 +97,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -113,6 +114,15 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
+
+const ChartWrapper = styled.div`
+  overflow: hidden;
+  position: relative;
+
+  &.dashboard-chart--overflowable {
+    overflow: visible;
+  }
+`;
 
 const ChartOverlay = styled.div`
   position: absolute;
@@ -190,7 +200,9 @@ class Chart extends React.Component {
 
       if (
         nextProps.width !== this.props.width ||
-        nextProps.height !== this.props.height
+        nextProps.height !== this.props.height ||
+        nextProps.width !== this.state.width ||
+        nextProps.height !== this.state.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
@@ -397,6 +409,8 @@ class Chart extends React.Component {
       postTransformProps,
       datasetsStatus,
       isInView,
+      emitCrossFilters,
+      logEvent,
     } = this.props;
 
     const { width } = this.state;
@@ -426,6 +440,7 @@ class Chart extends React.Component {
           filterId: id,
         })
       : {};
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -446,6 +461,7 @@ class Chart extends React.Component {
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           logExploreChart={this.logExploreChart}
+          logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
           exportFullCSV={this.exportFullCSV}
@@ -484,7 +500,7 @@ class Chart extends React.Component {
           />
         )}
 
-        <div
+        <ChartWrapper
           className={cx(
             'dashboard-chart',
             isOverflowable && 'dashboard-chart--overflowable',
@@ -527,8 +543,9 @@ class Chart extends React.Component {
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
             isInView={isInView}
+            emitCrossFilters={emitCrossFilters}
           />
-        </div>
+        </ChartWrapper>
       </SliceContainer>
     );
   }

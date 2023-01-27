@@ -48,9 +48,13 @@ export default function EchartsTimeseries({
   onContextMenu,
   xValueFormatter,
   xAxis,
+  refs,
+  emitCrossFilters,
 }: TimeseriesChartTransformedProps) {
-  const { emitFilter, stack } = formData;
+  const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
+  // eslint-disable-next-line no-param-reassign
+  refs.echartRef = echartRef;
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -106,7 +110,7 @@ export default function EchartsTimeseries({
 
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
       const groupbyValues = values.map(value => labelMap[value]);
@@ -137,7 +141,7 @@ export default function EchartsTimeseries({
         },
       });
     },
-    [groupby, labelMap, setDataMask, emitFilter],
+    [groupby, labelMap, setDataMask, emitCrossFilters],
   );
 
   const eventHandlers: EventHandlers = {
@@ -256,7 +260,7 @@ export default function EchartsTimeseries({
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
       <Echart
-        ref={echartRef}
+        refs={refs}
         height={height - extraControlHeight}
         width={width}
         echartOptions={echartOptions}

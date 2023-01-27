@@ -24,17 +24,20 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.orm import Session
 
-from superset import app
+from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.dashboards.permalink.commands.create import (
     CreateDashboardPermalinkCommand,
 )
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
+    ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
     ReportScheduleDataFrameFailedError,
@@ -45,6 +48,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
+    ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
@@ -65,7 +69,7 @@ from superset.reports.models import (
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
-from superset.reports.utils import get_executor
+from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
@@ -102,7 +106,6 @@ class BaseReportState:
         Update the report schedule state et al. and reflect the change in the execution
         log.
         """
-
         self.update_report_schedule(state)
         self.create_log(error_message)
 
@@ -198,7 +201,11 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -228,7 +235,11 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -237,7 +248,7 @@ class BaseReportState:
 
         try:
             logger.info("Getting chart from %s as user %s", url, user.username)
-            csv_data = get_chart_csv_data(url, auth_cookies)
+            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
@@ -253,7 +264,11 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        user = get_executor(self._report_schedule)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -384,9 +399,9 @@ class BaseReportState:
         """
         Sends a notification to all recipients
 
-        :raises: NotificationError
+        :raises: CommandException
         """
-        notification_errors: List[NotificationError] = []
+        notification_errors: List[SupersetError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -398,19 +413,32 @@ class BaseReportState:
                     )
                 else:
                     notification.send()
-            except NotificationError as ex:
-                # collect notification errors but keep processing them
-                notification_errors.append(ex)
+            except (NotificationError, SupersetException) as ex:
+                # collect errors but keep processing them
+                notification_errors.append(
+                    SupersetError(
+                        message=ex.message,
+                        error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                        level=ErrorLevel.ERROR
+                        if ex.status >= 500
+                        else ErrorLevel.WARNING,
+                    )
+                )
         if notification_errors:
-            # raise errors separately so that we can utilize error status codes
+            # log all errors but raise based on the most severe
             for error in notification_errors:
-                raise error
+                logger.warning(str(error))
+
+            if any(error.level == ErrorLevel.ERROR for error in notification_errors):
+                raise ReportScheduleSystemErrorsException(errors=notification_errors)
+            if any(error.level == ErrorLevel.WARNING for error in notification_errors):
+                raise ReportScheduleClientErrorsException(errors=notification_errors)
 
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
-        :raises: NotificationError
+        :raises: CommandException
         """
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
@@ -419,7 +447,7 @@ class BaseReportState:
         """
         Creates and sends a notification for an error, to all recipients
 
-        :raises: NotificationError
+        :raises: CommandException
         """
         header_data = self._get_log_data()
         logger.info(
@@ -517,25 +545,34 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except Exception as first_ex:
+        except (SupersetErrorsException, Exception) as first_ex:
+            error_message = str(first_ex)
+            if isinstance(first_ex, SupersetErrorsException):
+                error_message = ";".join([error.message for error in first_ex.errors])
+
             self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=str(first_ex)
+                ReportState.ERROR, error_message=error_message
             )
+
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
+                second_error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
                 try:
                     self.send_error(
                         f"Error occurred for {self._report_schedule.type}:"
                         f" {self._report_schedule.name}",
                         str(first_ex),
                     )
-                    self.update_report_schedule_and_log(
-                        ReportState.ERROR,
-                        error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+
+                except SupersetErrorsException as second_ex:
+                    second_error_message = ";".join(
+                        [error.message for error in second_ex.errors]
                     )
                 except Exception as second_ex:  # pylint: disable=broad-except
+                    second_error_message = str(second_ex)
+                finally:
                     self.update_report_schedule_and_log(
-                        ReportState.ERROR, error_message=str(second_ex)
+                        ReportState.ERROR, error_message=second_error_message
                     )
             raise first_ex
 
@@ -667,12 +704,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                user = get_executor(self._model)
+                _, username = get_executor(
+                    executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                    model=self._model,
+                )
+                user = security_manager.find_user(username)
                 with override_user(user):
                     logger.info(
                         "Running report schedule %s as user %s",
                         self._execution_id,
-                        user.username,
+                        username,
                     )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm

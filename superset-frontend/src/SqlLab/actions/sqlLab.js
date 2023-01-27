@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -229,11 +229,13 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
+    const sqlEditorId = results?.query?.sqlEditorId;
     const sync =
+      sqlEditorId &&
       !query.isDataPreview &&
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
         ? SupersetClient.put({
-            endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
+            endpoint: encodeURI(`/tabstateview/${sqlEditorId}`),
             postPayload: { latest_query_id: query.id },
           })
         : Promise.resolve();
@@ -448,9 +450,9 @@ export function validateQuery(queryEditor, sql) {
 export function postStopQuery(query) {
   return function (dispatch) {
     return SupersetClient.post({
-      endpoint: '/superset/stop_query/',
-      postPayload: { client_id: query.id },
-      stringify: false,
+      endpoint: '/api/v1/query/stop',
+      body: JSON.stringify({ client_id: query.id }),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
@@ -1365,6 +1367,7 @@ export function popStoredQuery(urlId) {
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
+            templateParams: json.templateParams,
           }),
         ),
       )
@@ -1409,17 +1412,18 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
-      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
     })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.name}`,
-            dbId: json.database.id,
-            schema: json.schema,
+            name: `Query ${json.result.name}`,
+            dbId: json.result.database.id,
+            schema: json.result.schema,
             autorun: sql !== undefined,
-            sql: sql || json.select_star,
+            sql: sql || json.result.select_star,
           }),
         ),
       )

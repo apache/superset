@@ -39,10 +39,12 @@ export default function EchartsMixedTimeseries({
   groupbyB,
   selectedValues,
   formData,
+  emitCrossFilters,
   seriesBreakdown,
   onContextMenu,
   xValueFormatter,
   xAxis,
+  refs,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -51,17 +53,14 @@ export default function EchartsMixedTimeseries({
 
   const handleChange = useCallback(
     (values: string[], seriesIndex: number) => {
-      const emitFilter = isFirstQuery(seriesIndex)
-        ? formData.emitFilter
-        : formData.emitFilterB;
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
       const currentGroupBy = isFirstQuery(seriesIndex) ? groupby : groupbyB;
       const currentLabelMap = isFirstQuery(seriesIndex) ? labelMap : labelMapB;
       const groupbyValues = values
-        .map(value => currentLabelMap[value])
+        .map(value => currentLabelMap?.[value])
         .filter(value => !!value);
 
       setDataMask({
@@ -100,7 +99,7 @@ export default function EchartsMixedTimeseries({
   const eventHandlers: EventHandlers = {
     click: props => {
       const { seriesName, seriesIndex } = props;
-      const values: string[] = Object.values(selectedValues);
+      const values: string[] = Object.values(selectedValues || {});
       if (values.includes(seriesName)) {
         handleChange(
           values.filter(v => v !== seriesName),
@@ -162,6 +161,7 @@ export default function EchartsMixedTimeseries({
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

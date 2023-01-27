@@ -21,7 +21,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
-import { bootstrapData } from 'src/preamble';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
@@ -33,6 +33,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { embeddedApi } from './api';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
+const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
   if (debugMode) {

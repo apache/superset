@@ -142,6 +142,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "select_star",
         "owners.id",
         "owners.username",
         "owners.first_name",
@@ -217,7 +218,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     openapi_spec_tag = "Datasets"
 
-    filter_rel_fields = {
+    base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
@@ -240,6 +241,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
     )
+
+    list_outer_default_load = True
+    show_outer_default_load = True
 
     @expose("/", methods=["POST"])
     @protect()

@@ -17,13 +17,13 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
 import { isString } from 'lodash';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { getErrorText } from 'src/utils/getClientErrorObject';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   DashboardInfo,
-  FilterBarLocation,
+  FilterBarOrientation,
   RootState,
 } from 'src/dashboard/types';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
@@ -120,16 +120,27 @@ export const setChartConfiguration =
     }
   };
 
-export const SET_FILTER_BAR_LOCATION = 'SET_FILTER_BAR_LOCATION';
-export interface SetFilterBarLocation {
-  type: typeof SET_FILTER_BAR_LOCATION;
-  filterBarLocation: FilterBarLocation;
+export const SET_FILTER_BAR_ORIENTATION = 'SET_FILTER_BAR_ORIENTATION';
+export interface SetFilterBarOrientation {
+  type: typeof SET_FILTER_BAR_ORIENTATION;
+  filterBarOrientation: FilterBarOrientation;
 }
-export function setFilterBarLocation(filterBarLocation: FilterBarLocation) {
-  return { type: SET_FILTER_BAR_LOCATION, filterBarLocation };
+export function setFilterBarOrientation(
+  filterBarOrientation: FilterBarOrientation,
+) {
+  return { type: SET_FILTER_BAR_ORIENTATION, filterBarOrientation };
 }
 
-export function saveFilterBarLocation(location: FilterBarLocation) {
+export const SET_CROSS_FILTERS_ENABLED = 'SET_CROSS_FILTERS_ENABLED';
+export interface SetCrossFiltersEnabled {
+  type: typeof SET_CROSS_FILTERS_ENABLED;
+  crossFiltersEnabled: boolean;
+}
+export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
+  return { type: SET_CROSS_FILTERS_ENABLED, crossFiltersEnabled };
+}
+
+export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
     const updateDashboard = makeApi<
@@ -143,33 +154,56 @@ export function saveFilterBarLocation(location: FilterBarLocation) {
       const response = await updateDashboard({
         json_metadata: JSON.stringify({
           ...metadata,
-          filter_bar_location: location,
+          filter_bar_orientation: orientation,
         }),
       });
       const updatedDashboard = response.result;
       const lastModifiedTime = response.last_modified_time;
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
-        if (metadata.filter_bar_location) {
-          dispatch(setFilterBarLocation(metadata.filter_bar_location));
+        if (metadata.filter_bar_orientation) {
+          dispatch(setFilterBarOrientation(metadata.filter_bar_orientation));
         }
       }
       if (lastModifiedTime) {
         dispatch(onSave(lastModifiedTime));
       }
     } catch (errorObject) {
-      const { error, message } = await getClientErrorObject(errorObject);
-      let errorText = t('Sorry, an unknown error occurred.');
+      const errorText = await getErrorText(errorObject, 'dashboard');
+      dispatch(addDangerToast(errorText));
+      throw errorObject;
+    }
+  };
+}
 
-      if (error) {
-        errorText = t(
-          'Sorry, there was an error saving this dashboard: %s',
-          error,
-        );
+export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { id, metadata } = getState().dashboardInfo;
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: Partial<DashboardInfo>; last_modified_time: number }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          cross_filters_enabled: crossFiltersEnabled,
+        }),
+      });
+      const updatedDashboard = response.result;
+      const lastModifiedTime = response.last_modified_time;
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        dispatch(setCrossFiltersEnabled(metadata.cross_filters_enabled));
       }
-      if (typeof message === 'string' && message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
       }
+    } catch (errorObject) {
+      const errorText = await getErrorText(errorObject, 'dashboard');
       dispatch(addDangerToast(errorText));
       throw errorObject;
     }

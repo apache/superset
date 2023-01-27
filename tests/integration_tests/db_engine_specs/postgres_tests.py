@@ -45,11 +45,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         inspector.get_table_names = mock.Mock(return_value=["schema.table", "table_2"])
         inspector.get_foreign_table_names = mock.Mock(return_value=["table_3"])
 
-        pg_result_expected = ["schema.table", "table_2", "table_3"]
+        pg_result_expected = {"schema.table", "table_2", "table_3"}
         pg_result = PostgresEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertListEqual(pg_result_expected, pg_result)
+        assert pg_result_expected == pg_result
 
     def test_time_exp_literal_no_grain(self):
         """
@@ -178,7 +178,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
 
         cursor = mock.Mock()
         cursor.fetchone.return_value = (
-            "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
+            "Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",
         )
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)

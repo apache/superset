@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormColumn,
-  QueryFormData,
-} from '@superset-ui/core';
-import { EChartTransformedProps } from '../types';
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+} from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type AxisTickLineStyle = {
@@ -52,7 +52,6 @@ export type EchartsGaugeFormData = QueryFormData & {
   intervals: string;
   intervalColorIndices: string;
   valueFormatter: string;
-  emitFilter: boolean;
 };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
@@ -76,14 +75,14 @@ export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
   intervals: '',
   intervalColorIndices: '',
   valueFormatter: '{value}',
-  emitFilter: false,
 };
 
 export interface EchartsGaugeChartProps
-  extends ChartProps<EchartsGaugeFormData> {
+  extends BaseChartProps<EchartsGaugeFormData> {
   formData: EchartsGaugeFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 export type GaugeChartTransformedProps =
-  EChartTransformedProps<EchartsGaugeFormData>;
+  BaseTransformedProps<EchartsGaugeFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

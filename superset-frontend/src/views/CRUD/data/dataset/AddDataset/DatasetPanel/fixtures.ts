@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
 import { ITableColumn } from './types';
 
 export const exampleColumns: ITableColumn[] = [
@@ -30,5 +31,18 @@ export const exampleColumns: ITableColumn[] = [
   {
     name: 'birth_date',
     type: 'DATE',
+  },
+];
+
+export const exampleDataset: DatasetObject[] = [
+  {
+    db: {
+      id: 1,
+      database_name: 'test_database',
+      owners: [1],
+    },
+    schema: 'test_schema',
+    dataset_name: 'example_dataset',
+    table_name: 'example_table',
   },
 ];

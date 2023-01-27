@@ -43,8 +43,10 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -142,6 +144,7 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -164,7 +167,6 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
-    emitFilter,
     sliceId,
     showTotal,
   }: EchartsPieFormData = {
@@ -172,6 +174,7 @@ export default function transformProps(
     ...DEFAULT_PIE_FORM_DATA,
     ...formData,
   };
+  const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -300,8 +303,8 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      ...defaultTooltip,
       trigger: 'item',
       formatter: (params: any) =>
         formatPieLabel({
@@ -336,10 +339,11 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
     labelMap,
     groupby,
     selectedValues,
     onContextMenu,
+    refs,
+    emitCrossFilters,
   };
 }

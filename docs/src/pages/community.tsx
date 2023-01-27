@@ -23,7 +23,7 @@ import Layout from '@theme/Layout';
 
 const links = [
   [
-    'https://join.slack.com/t/apache-superset/shared_invite/zt-16jvzmoi8-sI7jKWp~xc2zYRe~NqiY9Q',
+    'http://bit.ly/join-superset-slack',
     'Slack',
     'interact with other Superset users and community members',
   ],
@@ -36,6 +36,11 @@ const links = [
     'https://lists.apache.org/list.html?dev@superset.apache.org',
     'dev@ Mailing List',
     'participate in conversations with committers and contributors',
+  ],
+  [
+    'https://calendar.google.com/calendar/u/2?cid=c3VwZXJzZXQuY29tbWl0dGVyc0BnbWFpbC5jb20',
+    'Superset Community Calendar',
+    'join us for working group sessions and other community gatherings',
   ],
   [
     'https://stackoverflow.com/questions/tagged/superset+apache-superset',

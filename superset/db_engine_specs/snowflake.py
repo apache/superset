@@ -31,8 +31,9 @@ from marshmallow import fields, Schema
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
+from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BasicPropertiesType
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -118,6 +119,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ),
     }
 
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Add a user agent to be used in the requests.
+        """
+        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        connect_args.setdefault("application", USER_AGENT)
+
+        return extra
+
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
@@ -148,7 +162,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return f"TO_DATE('{dttm.date().isoformat()}')"
         if tt == utils.TemporalType.DATETIME:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if utils.TemporalType.TIMESTAMP in tt:
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
         return None
 

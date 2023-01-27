@@ -636,14 +636,31 @@ def postprocess_columns(session: Session) -> None:
         return
 
     def get_joined_tables(offset, limit):
+
+        # Import aliased from sqlalchemy
+        from sqlalchemy.orm import aliased
+
+        # Create alias of NewColumn
+        new_column_alias = aliased(NewColumn)
+        # Get subquery and give it the alias "sl_colums_2"
+        subquery = (
+            session.query(new_column_alias)
+            .offset(offset)
+            .limit(limit)
+            .subquery("sl_columns_2")
+        )
+
         return (
             sa.join(
-                session.query(NewColumn)
-                .offset(offset)
-                .limit(limit)
-                .subquery("sl_columns"),
+                subquery,
+                NewColumn,
+                # Use column id from subquery
+                subquery.c.id == NewColumn.id,
+            )
+            .join(
                 dataset_column_association_table,
-                dataset_column_association_table.c.column_id == NewColumn.id,
+                # Use column id from subquery
+                dataset_column_association_table.c.column_id == subquery.c.id,
             )
             .join(
                 NewDataset,
@@ -661,12 +678,14 @@ def postprocess_columns(session: Session) -> None:
             .join(Database, Database.id == NewDataset.database_id)
             .join(
                 TableColumn,
-                TableColumn.uuid == NewColumn.uuid,
+                # Use column uuid from subquery
+                TableColumn.uuid == subquery.c.uuid,
                 isouter=True,
             )
             .join(
                 SqlMetric,
-                SqlMetric.uuid == NewColumn.uuid,
+                # Use column uuid from subquery
+                SqlMetric.uuid == subquery.c.uuid,
                 isouter=True,
             )
         )

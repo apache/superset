@@ -134,10 +134,10 @@ const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [

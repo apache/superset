@@ -30,11 +30,12 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData,
+    emitCrossFilters,
+    refs,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -72,6 +73,7 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

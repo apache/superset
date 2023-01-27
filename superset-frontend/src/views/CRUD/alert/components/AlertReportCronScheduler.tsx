@@ -80,7 +80,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
           </div>
           <div className="inline-container add-margin">
             <Radio data-test="input" value="input" />
-            <span className="input-label">CRON Schedule</span>
+            <span className="input-label">{t('CRON Schedule')}</span>
             <StyledInputContainer
               data-test="input-content"
               className="styled-input"
