@@ -125,7 +125,7 @@ function WorldMap(element, props) {
     if (!val) {
       return;
     }
-    if (key === filterState.value) {
+    if (val === filterState.value) {
       val = null;
     }
 
@@ -235,7 +235,7 @@ function WorldMap(element, props) {
       .on('click', handleClick);
   }
 
-  if (filterState.selectedValues) {
+  if (filterState.selectedValues?.length > 0) {
     d3.selectAll('path.datamaps-subunit')
       .filter(
         countryFeature =>
