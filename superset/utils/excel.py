@@ -14,34 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
-from typing import Set
+import io
+from typing import Any
+
+import pandas as pd
 
 
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
+def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
+    output = io.BytesIO()
+    # pylint: disable=abstract-class-instantiated
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, **kwargs)
 
-    CSV = "csv"
-    JSON = "json"
-    XLSX = "xlsx"
-
-    @classmethod
-    def table_like(cls) -> Set["ChartDataResultFormat"]:
-        return {cls.CSV} | {cls.XLSX}
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-    DRILL_DETAIL = "drill_detail"
+    return output.getvalue()
