@@ -41,22 +41,15 @@ const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
 
-beforeEach(() => {
-  fetchMock.get('glob:*/api/v1/database/**', { result: [] });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
-  fetchMock.get('glob:*/api/v1/database/*/tables/*', {
-    count: 1,
-    result: [
-      {
-        label: 'ab_user',
-        value: 'ab_user',
-      },
-    ],
-  });
-});
-
-afterEach(() => {
-  fetchMock.restore();
+fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
+fetchMock.get('glob:*/api/v1/database/*/tables/*', {
+  count: 1,
+  result: [
+    {
+      label: 'ab_user',
+      value: 'ab_user',
+    },
+  ],
 });
 
 const renderAndWait = (props, store) =>

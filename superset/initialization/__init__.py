@@ -46,6 +46,7 @@ from superset.extensions import (
     profiling,
     results_backend_manager,
     ssh_manager_factory,
+    stats_logger_manager,
     talisman,
 )
 from superset.security import SupersetSecurityManager
@@ -419,6 +420,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_auth_provider()
         self.configure_async_queries()
         self.configure_ssh_manager()
+        self.configure_stats_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -478,6 +480,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_ssh_manager(self) -> None:
         ssh_manager_factory.init_app(self.superset_app)
+
+    def configure_stats_manager(self) -> None:
+        stats_logger_manager.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

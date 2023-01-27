@@ -41,6 +41,7 @@ const MENU_KEYS = {
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
   EXPORT_TO_JSON: 'export_to_json',
+  EXPORT_TO_XLSX: 'export_to_xlsx',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
@@ -165,6 +166,16 @@ export const useExploreAdditionalActionsMenu = (
     [latestQueryFormData],
   );
 
+  const exportExcel = useCallback(
+    () =>
+      exportChart({
+        formData: latestQueryFormData,
+        resultType: 'results',
+        resultFormat: 'xlsx',
+      }),
+    [latestQueryFormData],
+  );
+
   const copyLink = useCallback(async () => {
     try {
       if (!latestQueryFormData) {
@@ -199,6 +210,11 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           setOpenSubmenus([]);
 
+          break;
+        case MENU_KEYS.EXPORT_TO_XLSX:
+          exportExcel();
+          setIsDropdownVisible(false);
+          setOpenSubmenus([]);
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
@@ -311,6 +327,12 @@ export const useExploreAdditionalActionsMenu = (
             icon={<Icons.FileImageOutlined css={iconReset} />}
           >
             {t('Download as image')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_XLSX}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
+            {t('Export to Excel')}
           </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>

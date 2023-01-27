@@ -14,34 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
-from typing import Set
+from flask import Flask
+
+from superset.stats_logger import BaseStatsLogger
 
 
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
+class BaseStatsLoggerManager:
+    def __init__(self) -> None:
+        self._stats_logger = BaseStatsLogger()
 
-    CSV = "csv"
-    JSON = "json"
-    XLSX = "xlsx"
+    def init_app(self, app: Flask) -> None:
+        self._stats_logger = app.config["STATS_LOGGER"]
 
-    @classmethod
-    def table_like(cls) -> Set["ChartDataResultFormat"]:
-        return {cls.CSV} | {cls.XLSX}
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-    DRILL_DETAIL = "drill_detail"
+    @property
+    def instance(self) -> BaseStatsLogger:
+        return self._stats_logger
