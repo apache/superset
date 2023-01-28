@@ -83,8 +83,8 @@ def test_datasource_find_by_ids_skip_base_filter(session_with_data: Session) -> 
     )
 
     assert result
-    assert [1] == map(lambda x: x.id, result)
-    assert ["my_sqla_table"] == map(lambda x: x.table_name, result)
+    assert [1] == list(map(lambda x: x.id, result))
+    assert ["my_sqla_table"] == list(map(lambda x: x.table_name, result))
     assert isinstance(result[0], SqlaTable)
 
 def test_datasource_find_by_ids_skip_base_filter_not_found(session_with_data: Session) -> None:
