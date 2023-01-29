@@ -39,8 +39,6 @@ from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
-    ReportScheduleCsvFailedError,
-    ReportScheduleCsvTimeout,
     ReportScheduleDataFrameFailedError,
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
@@ -73,7 +71,7 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
-from superset.utils.csv import df_to_csv, get_chart_csv_data, get_chart_dataframe
+from superset.utils.csv import df_to_csv, get_chart_dataframe
 from superset.utils.excel import df_to_excel
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -259,7 +257,7 @@ class BaseReportState:
                 f"Failed generating dataframe {str(ex)}"
             ) from ex
         if dataframe is None:
-            raise ReportScheduleCsvFailedError()
+            raise ReportScheduleDataFrameFailedError()
         return dataframe
 
     def _update_query_context(self) -> None:
@@ -277,7 +275,7 @@ class BaseReportState:
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
         ) as ex:
-            raise ReportScheduleCsvFailedError(
+            raise ReportScheduleDataFrameFailedError(
                 "Unable to fetch data because the chart has no query context "
                 "saved, and an error occurred when fetching it via a screenshot. "
                 "Please try loading the chart and saving it again."
