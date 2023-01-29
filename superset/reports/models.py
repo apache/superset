@@ -16,6 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
+from typing import Set
 
 from cron_descriptor import get_description
 from flask_appbuilder import Model
