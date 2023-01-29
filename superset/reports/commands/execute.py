@@ -235,6 +235,9 @@ class BaseReportState:
         return [image]
 
     def _get_data(self) -> pd.DataFrame:
+        """
+        Return data as a Pandas dataframe, to embed in notifications as a table.
+        """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
             executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
@@ -323,11 +326,12 @@ class BaseReportState:
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif self._report_schedule.report_format in ReportDataFormat.table_like:
-                dataframe = self._get_data()
+                df = self._get_data()
+                data = None
                 if self._report_schedule.report_format == ReportDataFormat.CSV:
-                    data = df_to_csv(dataframe)
+                    data = df_to_csv(df)
                 elif self._report_schedule.report_format == ReportDataFormat.XLSX:
-                    data = df_to_excel(dataframe)
+                    data = df_to_excel(df)
 
                 if not data:
                     error_text = "Unexpected missing data"
