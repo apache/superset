@@ -480,7 +480,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {recoverFlash && (
         <ConfirmationModal
           description={t(
-            'This action will recover your selected flash object.',
+            'This action will recover the selected flash object and the ownership will be transferred to you',
           )}
           onConfirm={() => {
             if (recoverFlash) {
