@@ -76,6 +76,10 @@ class ReportDataFormat(str, enum.Enum):
     XLSX = "XLSX"
     TEXT = "TEXT"
 
+    @classmethod
+    def table_like(cls) -> Set["ReportDataFormat"]:
+        return {cls.CSV} | {cls.XLSX}
+
 
 class ReportCreationMethod(str, enum.Enum):
     CHARTS = "charts"

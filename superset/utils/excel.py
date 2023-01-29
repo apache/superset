@@ -20,7 +20,7 @@ from typing import Any
 import pandas as pd
 
 
-def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
+def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> bytes:
     output = io.BytesIO()
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
