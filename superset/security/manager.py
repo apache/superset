@@ -406,8 +406,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        return f"""This endpoint requires the datasource {datasource.name}, database or
-            `all_datasource_access` permission"""
+        return (
+            f"This endpoint requires the datasource {datasource.name}, "
+            "database or `all_datasource_access` permission"
+        )
 
     @staticmethod
     def get_datasource_access_link(  # pylint: disable=unused-argument
