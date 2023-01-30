@@ -351,7 +351,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'query',
           'database',

@@ -1412,7 +1412,7 @@ export function popQuery(queryId) {
           dbId: queryData.database.id,
           schema: queryData.schema,
           sql: queryData.sql,
-          name: `Copy of ${queryData.tab_name}`,
+          name: t('Copy of %s', queryData.tab_name),
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1422,6 +1422,7 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
@@ -1429,7 +1430,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.result.name}`,
+            name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
             autorun: sql !== undefined,

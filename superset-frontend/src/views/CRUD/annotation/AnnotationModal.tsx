@@ -304,6 +304,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           <span className="required">*</span>
         </div>
         <RangePicker
+          placeholder={[t('Start date'), t('End date')]}
           format="YYYY-MM-DD HH:mm"
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}

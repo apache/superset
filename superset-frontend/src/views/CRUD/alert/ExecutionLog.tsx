@@ -159,13 +159,23 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     [isReportEnabled],
   );
   const path = `/${isReportEnabled ? 'report' : 'alert'}/list/`;
+  const ALERT_TEXT = t('Alert');
+  const REPORT_TEXT = t('Report');
+
   return (
     <>
       <SubMenu
         name={
           <StyledHeader>
             <span>
-              {alertResource?.type} {alertResource?.name}
+              {alertResource
+                ? alertResource.type === 'Alert'
+                  ? `${ALERT_TEXT}:`
+                  : alertResource.type === 'Report'
+                  ? `${REPORT_TEXT}:`
+                  : null
+                : null}{' '}
+              {alertResource?.name}
             </span>
             <span>
               <Link to={path}>{t('Back to all')}</Link>

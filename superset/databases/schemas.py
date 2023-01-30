@@ -52,7 +52,7 @@ cache_timeout_description = (
 )
 expose_in_sqllab_description = "Expose this database to SQLLab"
 allow_run_async_description = (
-    "Operate the database in asynchronous mode, meaning  "
+    "Operate the database in asynchronous mode, meaning "
     "that the queries are executed on remote workers as opposed "
     "to on the web server itself. "
     "This assumes that you have a Celery worker setup as well "

@@ -56,33 +56,39 @@ export interface OperatorType {
 export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   [key in Operators]: OperatorType;
 } = {
-  [Operators.EQUALS]: { display: 'Equal to (=)', operation: '==' },
-  [Operators.NOT_EQUALS]: { display: 'Not equal to (≠)', operation: '!=' },
-  [Operators.LESS_THAN]: { display: 'Less than (<)', operation: '<' },
+  [Operators.EQUALS]: { display: t('Equal to (=)'), operation: '==' },
+  [Operators.NOT_EQUALS]: { display: t('Not equal to (≠)'), operation: '!=' },
+  [Operators.LESS_THAN]: { display: t('Less than (<)'), operation: '<' },
   [Operators.LESS_THAN_OR_EQUAL]: {
-    display: 'Less or equal (<=)',
+    display: t('Less or equal (<=)'),
     operation: '<=',
   },
-  [Operators.GREATER_THAN]: { display: 'Greater than (>)', operation: '>' },
+  [Operators.GREATER_THAN]: { display: t('Greater than (>)'), operation: '>' },
   [Operators.GREATER_THAN_OR_EQUAL]: {
-    display: 'Greater or equal (>=)',
+    display: t('Greater or equal (>=)'),
     operation: '>=',
   },
-  [Operators.IN]: { display: 'In', operation: 'IN' },
-  [Operators.NOT_IN]: { display: 'Not in', operation: 'NOT IN' },
-  [Operators.LIKE]: { display: 'Like', operation: 'LIKE' },
-  [Operators.ILIKE]: { display: 'Like (case insensitive)', operation: 'ILIKE' },
-  [Operators.REGEX]: { display: 'Regex', operation: 'REGEX' },
-  [Operators.IS_NOT_NULL]: { display: 'Is not null', operation: 'IS NOT NULL' },
-  [Operators.IS_NULL]: { display: 'Is null', operation: 'IS NULL' },
+  [Operators.IN]: { display: t('In'), operation: 'IN' },
+  [Operators.NOT_IN]: { display: t('Not in'), operation: 'NOT IN' },
+  [Operators.LIKE]: { display: t('Like'), operation: 'LIKE' },
+  [Operators.ILIKE]: {
+    display: t('Like (case insensitive)'),
+    operation: 'ILIKE',
+  },
+  [Operators.REGEX]: { display: t('Regex'), operation: 'REGEX' },
+  [Operators.IS_NOT_NULL]: {
+    display: t('Is not null'),
+    operation: 'IS NOT NULL',
+  },
+  [Operators.IS_NULL]: { display: t('Is null'), operation: 'IS NULL' },
   [Operators.LATEST_PARTITION]: {
-    display: 'use latest_partition template',
+    display: t('use latest_partition template'),
     operation: 'LATEST PARTITION',
   },
-  [Operators.IS_TRUE]: { display: 'Is true', operation: '==' },
-  [Operators.IS_FALSE]: { display: 'Is false', operation: '==' },
+  [Operators.IS_TRUE]: { display: t('Is true'), operation: '==' },
+  [Operators.IS_FALSE]: { display: t('Is false'), operation: '==' },
   [Operators.TEMPORAL_RANGE]: {
-    display: 'TEMPORAL_RANGE',
+    display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
   },
 };
