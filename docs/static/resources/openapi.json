@@ -61,6 +61,94 @@
         },
         "description": "Not found"
       },
+      "410": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "items": {
+                    "properties": {
+                      "error_type": {
+                        "enum": [
+                          "FRONTEND_CSRF_ERROR",
+                          "FRONTEND_NETWORK_ERROR",
+                          "FRONTEND_TIMEOUT_ERROR",
+                          "GENERIC_DB_ENGINE_ERROR",
+                          "COLUMN_DOES_NOT_EXIST_ERROR",
+                          "TABLE_DOES_NOT_EXIST_ERROR",
+                          "SCHEMA_DOES_NOT_EXIST_ERROR",
+                          "CONNECTION_INVALID_USERNAME_ERROR",
+                          "CONNECTION_INVALID_PASSWORD_ERROR",
+                          "CONNECTION_INVALID_HOSTNAME_ERROR",
+                          "CONNECTION_PORT_CLOSED_ERROR",
+                          "CONNECTION_INVALID_PORT_ERROR",
+                          "CONNECTION_HOST_DOWN_ERROR",
+                          "CONNECTION_ACCESS_DENIED_ERROR",
+                          "CONNECTION_UNKNOWN_DATABASE_ERROR",
+                          "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+                          "CONNECTION_MISSING_PARAMETERS_ERROR",
+                          "OBJECT_DOES_NOT_EXIST_ERROR",
+                          "SYNTAX_ERROR",
+                          "CONNECTION_DATABASE_TIMEOUT",
+                          "VIZ_GET_DF_ERROR",
+                          "UNKNOWN_DATASOURCE_TYPE_ERROR",
+                          "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
+                          "TABLE_SECURITY_ACCESS_ERROR",
+                          "DATASOURCE_SECURITY_ACCESS_ERROR",
+                          "DATABASE_SECURITY_ACCESS_ERROR",
+                          "QUERY_SECURITY_ACCESS_ERROR",
+                          "MISSING_OWNERSHIP_ERROR",
+                          "USER_ACTIVITY_SECURITY_ACCESS_ERROR",
+                          "BACKEND_TIMEOUT_ERROR",
+                          "DATABASE_NOT_FOUND_ERROR",
+                          "MISSING_TEMPLATE_PARAMS_ERROR",
+                          "INVALID_TEMPLATE_PARAMS_ERROR",
+                          "RESULTS_BACKEND_NOT_CONFIGURED_ERROR",
+                          "DML_NOT_ALLOWED_ERROR",
+                          "INVALID_CTAS_QUERY_ERROR",
+                          "INVALID_CVAS_QUERY_ERROR",
+                          "SQLLAB_TIMEOUT_ERROR",
+                          "RESULTS_BACKEND_ERROR",
+                          "ASYNC_WORKERS_ERROR",
+                          "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
+                          "GENERIC_COMMAND_ERROR",
+                          "GENERIC_BACKEND_ERROR",
+                          "INVALID_PAYLOAD_FORMAT_ERROR",
+                          "INVALID_PAYLOAD_SCHEMA_ERROR",
+                          "REPORT_NOTIFICATION_ERROR"
+                        ],
+                        "type": "string"
+                      },
+                      "extra": {
+                        "type": "object"
+                      },
+                      "level": {
+                        "enum": [
+                          "info",
+                          "warning",
+                          "error"
+                        ],
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "Gone"
+      },
       "422": {
         "content": {
           "application/json": {
@@ -746,7 +834,7 @@
             "type": "array"
           },
           "metrics": {
-            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metrics which are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. When metrics is undefined or null, the query is executed without a groupby. However, when metrics is an array (length >= 0), a groupby clause is added to the query.",
+            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. When metrics is undefined or null, the query is executed without a groupby. However, when metrics is an array (length >= 0), a groupby clause is added to the query.",
             "items": {},
             "nullable": true,
             "type": "array"
@@ -1309,7 +1397,7 @@
             "type": "boolean"
           },
           "metrics": {
-            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metrics which are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
             "items": {},
             "nullable": true,
             "type": "array"
@@ -1680,7 +1768,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1695,7 +1783,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1742,10 +1830,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "params": {
             "nullable": true,
@@ -1809,6 +1897,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1821,6 +1913,23 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -1843,27 +1952,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -1968,7 +2056,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2075,7 +2163,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2472,7 +2560,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2487,7 +2575,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2534,10 +2622,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "params": {
             "nullable": true,
@@ -2601,6 +2689,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2613,6 +2705,23 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2635,27 +2744,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "ChartRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -2760,7 +2848,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2867,7 +2955,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -5125,7 +5213,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5168,7 +5256,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "schema": {
             "maxLength": 255,
@@ -5212,23 +5300,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5245,6 +5316,23 @@
         "required": [
           "first_name",
           "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
           "username"
         ],
         "type": "object"
@@ -5516,6 +5604,71 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ExecutePayloadSchema": {
+        "properties": {
+          "client_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ctas_method": {
+            "nullable": true,
+            "type": "string"
+          },
+          "database_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "expand_data": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "json": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "queryLimit": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "runAsync": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "select_as_cta": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "sql_editor_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tab": {
+            "nullable": true,
+            "type": "string"
+          },
+          "templateParams": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tmp_table_name": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_id",
+          "sql"
+        ],
         "type": "object"
       },
       "ExploreContextSchema": {
@@ -5970,6 +6123,45 @@
         },
         "type": "object"
       },
+      "QueryExecutionResponseSchema": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "data": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expanded_columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "query": {
+            "$ref": "#/components/schemas/QueryResult"
+          },
+          "query_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "selected_columns": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "QueryRestApi.get": {
         "properties": {
           "changed_on": {
@@ -6170,203 +6362,177 @@
         },
         "type": "object"
       },
-      "RLSRestApi.get": {
+      "QueryResult": {
         "properties": {
-          "clause": {
-            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+          "changedOn": {
+            "format": "date-time",
             "type": "string"
           },
-          "description": {
-            "description": "Detailed description",
+          "changed_on": {
             "type": "string"
           },
-          "filter_type": {
-            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
-            "enum": [
-              "Regular",
-              "Base"
-            ],
+          "ctas": {
+            "type": "boolean"
+          },
+          "db": {
             "type": "string"
           },
-          "group_key": {
-            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
-            "type": "string"
-          },
-          "id": {
-            "description": "Unique if of rls filter",
+          "dbId": {
             "format": "int32",
             "type": "integer"
           },
-          "name": {
-            "description": "Name of rls filter",
+          "endDttm": {
+            "format": "float",
+            "type": "number"
+          },
+          "errorMessage": {
+            "nullable": true,
             "type": "string"
           },
-          "roles": {
-            "items": {
-              "$ref": "#/components/schemas/Roles1"
-            },
-            "type": "array"
-          },
-          "tables": {
-            "items": {
-              "$ref": "#/components/schemas/Tables"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "RLSRestApi.get_list": {
-        "properties": {
-          "changed_on_delta_humanized": {
-            "readOnly": true
-          },
-          "clause": {
-            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+          "executedSql": {
             "type": "string"
           },
-          "description": {
-            "description": "Detailed description",
-            "type": "string"
-          },
-          "filter_type": {
-            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
-            "enum": [
-              "Regular",
-              "Base"
-            ],
-            "type": "string"
-          },
-          "group_key": {
-            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
-            "type": "string"
+          "extra": {
+            "type": "object"
           },
           "id": {
-            "description": "Unique if of rls filter",
+            "type": "string"
+          },
+          "limit": {
             "format": "int32",
             "type": "integer"
           },
-          "name": {
-            "description": "Name of rls filter",
+          "limitingFactor": {
             "type": "string"
           },
-          "roles": {
-            "items": {
-              "$ref": "#/components/schemas/Roles1"
-            },
-            "type": "array"
+          "progress": {
+            "format": "int32",
+            "type": "integer"
           },
-          "tables": {
+          "queryId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "resultsKey": {
+            "type": "string"
+          },
+          "rows": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "serverId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "sqlEditorId": {
+            "type": "string"
+          },
+          "startDttm": {
+            "format": "float",
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "tempSchema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tempTable": {
+            "nullable": true,
+            "type": "string"
+          },
+          "trackingUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "userId": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivity": {
+        "properties": {
+          "action": {
+            "description": "Action taken describing type of activity",
+            "type": "string"
+          },
+          "item_title": {
+            "description": "Title of item",
+            "type": "string"
+          },
+          "item_type": {
+            "description": "Type of item, e.g. slice or dashboard",
+            "type": "string"
+          },
+          "item_url": {
+            "description": "URL to item",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time of activity, in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivityResponseSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of recent activity objects",
             "items": {
-              "$ref": "#/components/schemas/Tables"
+              "$ref": "#/components/schemas/RecentActivity"
             },
             "type": "array"
           }
         },
         "type": "object"
       },
-      "RLSRestApi.post": {
+      "RecentActivitySchema": {
         "properties": {
-          "clause": {
-            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+          "action": {
+            "description": "Action taken describing type of activity",
             "type": "string"
           },
-          "description": {
-            "description": "Detailed description",
-            "nullable": true,
+          "item_title": {
+            "description": "Title of item",
             "type": "string"
           },
-          "filter_type": {
-            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
-            "enum": [
-              "Regular",
-              "Base"
-            ],
+          "item_type": {
+            "description": "Type of item, e.g. slice or dashboard",
             "type": "string"
           },
-          "group_key": {
-            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
-            "nullable": true,
+          "item_url": {
+            "description": "URL to item",
             "type": "string"
           },
-          "name": {
-            "description": "Name of rls filter",
-            "maxLength": 255,
-            "minLength": 1,
+          "time": {
+            "description": "Time of activity, in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
             "type": "string"
-          },
-          "roles": {
-            "description": "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.",
-            "items": {
-              "format": "int32",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "tables": {
-            "description": "These are the tables this filter will be applied to.",
-            "items": {
-              "format": "int32",
-              "type": "integer"
-            },
-            "minItems": 1,
-            "type": "array"
-          }
-        },
-        "required": [
-          "clause",
-          "filter_type",
-          "name",
-          "roles",
-          "tables"
-        ],
-        "type": "object"
-      },
-      "RLSRestApi.put": {
-        "properties": {
-          "clause": {
-            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
-            "type": "string"
-          },
-          "description": {
-            "description": "Detailed description",
-            "nullable": true,
-            "type": "string"
-          },
-          "filter_type": {
-            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
-            "enum": [
-              "Regular",
-              "Base"
-            ],
-            "type": "string"
-          },
-          "group_key": {
-            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "description": "Name of rls filter",
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "roles": {
-            "description": "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.",
-            "items": {
-              "format": "int32",
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "tables": {
-            "description": "These are the tables this filter will be applied to.",
-            "items": {
-              "format": "int32",
-              "type": "integer"
-            },
-            "type": "array"
           }
         },
         "type": "object"
@@ -8427,18 +8593,6 @@
         },
         "type": "object"
       },
-      "Roles1": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "SavedQueryRestApi.get": {
         "properties": {
           "changed_on_delta_humanized": {
@@ -8944,21 +9098,6 @@
         },
         "type": "object"
       },
-      "Tables": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "schema": {
-            "type": "string"
-          },
-          "table_name": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "TemporaryCachePostSchema": {
         "properties": {
           "value": {
@@ -9297,6 +9436,26 @@
         },
         "type": "object"
       },
+      "get_recent_activity_schema": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "distinct": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "number"
+          },
+          "page_size": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "get_related_schema": {
         "properties": {
           "filter": {
@@ -9346,6 +9505,17 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "sql_lab_get_results_schema": {
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
         "type": "object"
       },
       "thumbnail_query_schema": {
@@ -17163,6 +17333,65 @@
         ]
       }
     },
+    "/api/v1/log/recent_activity/{user_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The id of the user",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_recent_activity_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentActivityResponseSchema"
+                }
+              }
+            },
+            "description": "A List of recent activity objects"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get recent activity data for a user",
+        "tags": [
+          "LogRestApi"
+        ]
+      }
+    },
     "/api/v1/log/{pk}": {
       "get": {
         "description": "Get an item model",
@@ -18567,590 +18796,6 @@
         ]
       }
     },
-    "/api/v1/rowlevelsecurity/": {
-      "delete": {
-        "description": "Deletes multiple RLS rules in a bulk operation.",
-        "parameters": [
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_delete_ids_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "RLS Rule bulk delete"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      },
-      "get": {
-        "description": "Get a list of models",
-        "parameters": [
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_list_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "count": {
-                      "description": "The total record count on the backend",
-                      "type": "number"
-                    },
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "list_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "list_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "List Items",
-                      "type": "string"
-                    },
-                    "order_columns": {
-                      "description": "A list of allowed columns to sort",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "result": {
-                      "description": "The result from the get list query",
-                      "items": {
-                        "$ref": "#/components/schemas/RLSRestApi.get_list"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Items from Model"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      },
-      "post": {
-        "description": "Create a new RLS Rule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RLSRestApi.post"
-              }
-            }
-          },
-          "description": "RLS schema",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "result": {
-                      "$ref": "#/components/schemas/RLSRestApi.post"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "RLS Rule added"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      }
-    },
-    "/api/v1/rowlevelsecurity/_info": {
-      "get": {
-        "description": "Get metadata information about this API resource",
-        "parameters": [
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_info_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "add_columns": {
-                      "type": "object"
-                    },
-                    "edit_columns": {
-                      "type": "object"
-                    },
-                    "filters": {
-                      "properties": {
-                        "column_name": {
-                          "items": {
-                            "properties": {
-                              "name": {
-                                "description": "The filter name. Will be translated by babel",
-                                "type": "string"
-                              },
-                              "operator": {
-                                "description": "The filter operation key to use on list filters",
-                                "type": "string"
-                              }
-                            },
-                            "type": "object"
-                          },
-                          "type": "array"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "permissions": {
-                      "description": "The user permissions for this API resource",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Item from Model"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      }
-    },
-    "/api/v1/rowlevelsecurity/related/{column_name}": {
-      "get": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "column_name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_related_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RelatedResponseSchema"
-                }
-              }
-            },
-            "description": "Related column data"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      }
-    },
-    "/api/v1/rowlevelsecurity/{pk}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Item deleted"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      },
-      "get": {
-        "description": "Get an item model",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_item_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "id": {
-                      "description": "The item id",
-                      "type": "string"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "result": {
-                      "$ref": "#/components/schemas/RLSRestApi.get"
-                    },
-                    "show_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "show_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "Show Item Details",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Item from Model"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      },
-      "put": {
-        "description": "Updates an RLS Rule",
-        "parameters": [
-          {
-            "description": "The Rule pk",
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RLSRestApi.put"
-              }
-            }
-          },
-          "description": "RLS schema",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "result": {
-                      "$ref": "#/components/schemas/RLSRestApi.put"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Rule changed"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "Row Level Security"
-        ]
-      }
-    },
     "/api/v1/saved_query/": {
       "delete": {
         "description": "Deletes multiple saved queries in a bulk operation.",
@@ -20090,6 +19735,123 @@
         ],
         "tags": [
           "Security"
+        ]
+      }
+    },
+    "/api/v1/sqllab/execute/": {
+      "post": {
+        "description": "Starts the execution of a SQL query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutePayloadSchema"
+              }
+            }
+          },
+          "description": "SQL query and params",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "Query execution result"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "Query execution result, query still running"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/results/": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sql_lab_get_results_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryExecutionResponseSchema"
+                }
+              }
+            },
+            "description": "SQL query execution result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "410": {
+            "$ref": "#/components/responses/410"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Gets the result of a SQL query execution",
+        "tags": [
+          "SQL Lab"
         ]
       }
     },
