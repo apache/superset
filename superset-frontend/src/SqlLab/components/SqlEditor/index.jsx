@@ -319,7 +319,7 @@ const SqlEditor = ({
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          dispatch(addNewQueryEditor(queryEditor));
+          dispatch(addNewQueryEditor());
         },
       },
       {
