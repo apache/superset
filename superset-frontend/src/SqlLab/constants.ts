@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+
 export const STATE_TYPE_MAP = {
   offline: 'danger',
   failed: 'danger',
@@ -26,12 +28,30 @@ export const STATE_TYPE_MAP = {
   success: 'success',
 };
 
+export const STATE_TYPE_MAP_LOCALIZED = {
+  offline: t('offline'),
+  failed: t('failed'),
+  pending: t('pending'),
+  fetching: t('fetching'),
+  running: t('running'),
+  stopped: t('stopped'),
+  success: t('success'),
+};
+
 export const STATUS_OPTIONS = {
   success: 'success',
   failed: 'failed',
   running: 'running',
   offline: 'offline',
   pending: 'pending',
+};
+
+export const STATUS_OPTIONS_LOCALIZED = {
+  success: t('success'),
+  failed: t('failed'),
+  running: t('running'),
+  offline: t('offline'),
+  pending: t('pending'),
 };
 
 export const TIME_OPTIONS = [

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
 
 export type SizeOption = [number, string];
@@ -34,7 +35,7 @@ function DefaultSelectRenderer({
 }: SelectPageSizeRendererProps) {
   return (
     <span className="dt-select-page-size form-inline">
-      Show{' '}
+      {t('Show')}{' '}
       <select
         className="form-control input-sm"
         value={current}
@@ -54,7 +55,7 @@ function DefaultSelectRenderer({
           );
         })}
       </select>{' '}
-      entries
+      {t('entries')}
     </span>
   );
 }
