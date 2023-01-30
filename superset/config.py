@@ -329,7 +329,6 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 
 AUTH_TYPE = AUTH_OID
 
-
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", CHANGE_ME_SECRET_KEY)
 OIDC_CLIENT_SECRETS = os.getenv(
     "KC_OIDC_CLIENT_SECRETS_PATH", os.path.abspath(os.getcwd()) + "/client-secret.json"

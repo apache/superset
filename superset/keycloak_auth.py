@@ -58,6 +58,9 @@ class AuthOIDCView(AuthOIDView):
                 if user is False:
                     raise Exception("User creation failed.")
 
+                if user is False:
+                    raise Exception("User creation failed.")
+
             login_user(user, remember=False)
             return redirect(self.appbuilder.get_url_for_index)
 
