@@ -147,6 +147,14 @@ If a different sort option is needed, consider adding it as a reusable sort func
 
 ---
 
+### Cell Content Selectors
+
+For many use cases, a cell's content for a certain column can be derived from a single property on the row's data record. In such cases, set the `dataIndex` key of the column definition to the property name. You can then optionally set a `render` function on the column definition to configure how the specified property value will be rendered (see below). When a `dataIndex` is set, the first argument of the `render` function is the property value.
+
+In some use cases, it may be necessary to derive a cell's content from multiple properties on the row's data record. This can be achieved by omitting the `dataIndex` and instead providing only a `render` function in the column definition. The `render` function's second argument is the full row record, allowing you to combine multiple properties from the row record into one final value. While selection logic is often data-specific and may not be a good candidate for reusability, it is still encouraged to encapsulate how derived values are then displayed into reusable cell renderers when possible as described below.
+
+---
+
 ### Cell Content Renderers
 
 By default, each column will render the value as simple text. Often you will want to show formatted values, such as a numeric column showing as currency, or a more complex component such as a button or action menu as a cell value.
@@ -154,8 +162,7 @@ Cell Renderers are React components provided to the optional `render` attribute 
 
 <Story id="design-system-components-table-examples--cell-renderers" />
 
-For convenience and consistency, the Table component provides pre-built Cell Renderers for:
-The following data types can be displayed in table cells.
+For convenience and consistency, the Table component provides pre-built Cell Renderers for displaying the following data types in table cells:
 
 - Text (default)
 - [Button Cell](./?path=/docs/design-system-components-table-cell-renderers-buttoncell--basic)
@@ -196,7 +203,7 @@ NOTE: Pagination controls will only display when the data for the table has more
 The table can be configured for async data fetching to get partial data sets while showing pagination controls that let the user navigate through data.
 To override the default paging, which uses `data.length` to determine the record count, populate the `recordCount` prop with the total number of records
 contained in the dataset on the server being paged through. When the user navigates through the paged data it will invoke the `onChange` callback
-function enabling data fetching to occur when the user changes the page.
+function enabling data fetching to occur when the user changes the page. Page numbers are 1-indexed in the Table component.
 
 <Story id="design-system-components-table-examples--server-pagination" />
 
