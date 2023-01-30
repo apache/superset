@@ -35,7 +35,7 @@ describe('SqlLab query panel', () => {
 
     cy.intercept({
       method: 'POST',
-      url: '/superset/sql_json/',
+      url: '/api/v1/sqllab/execute/',
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
@@ -148,7 +148,7 @@ describe('SqlLab query panel', () => {
   });
 
   it('Create a chart from a query', () => {
-    cy.intercept('/superset/sql_json/').as('queryFinished');
+    cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
 

@@ -96,7 +96,7 @@ def run_sql(
 ):
     db_id = get_example_database().id
     return test_client.post(
-        "/superset/sql_json/",
+        "/api/v1/sqllab/execute/",
         json=dict(
             database_id=db_id,
             sql=sql,
