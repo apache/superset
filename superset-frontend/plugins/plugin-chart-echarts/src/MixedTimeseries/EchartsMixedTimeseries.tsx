@@ -39,6 +39,7 @@ export default function EchartsMixedTimeseries({
   groupbyB,
   selectedValues,
   formData,
+  emitCrossFilters,
   seriesBreakdown,
   onContextMenu,
   xValueFormatter,
@@ -52,10 +53,7 @@ export default function EchartsMixedTimeseries({
 
   const handleChange = useCallback(
     (values: string[], seriesIndex: number) => {
-      const emitFilter = isFirstQuery(seriesIndex)
-        ? formData.emitFilter
-        : formData.emitFilterB;
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 

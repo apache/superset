@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 import backoff
-from flask_appbuilder.api import expose, protect, request, safe
+from flask_appbuilder.api import expose, protect, request, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import db, event_logger
@@ -29,6 +30,7 @@ from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import (
     openapi_spec_methods_override,
+    queries_get_updated_since_schema,
     QuerySchema,
     StopQuerySchema,
 )
@@ -59,6 +61,11 @@ class QueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "stop_query",
+        "get_updated_since",
+    }
+
+    apispec_parameter_schemas = {
+        "queries_get_updated_since_schema": queries_get_updated_since_schema,
     }
 
     list_columns = [
@@ -141,6 +148,59 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
+
+    @expose("/updated_since")
+    @protect()
+    @safe
+    @rison(queries_get_updated_since_schema)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".get_updated_since",
+        log_to_statsd=False,
+    )
+    def get_updated_since(self, **kwargs: Any) -> FlaskResponse:
+        """Get a list of queries that changed after last_updated_ms
+        ---
+        get:
+          summary: Get a list of queries that changed after last_updated_ms
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/queries_get_updated_since_schema'
+          responses:
+            200:
+              description: Queries list
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        description: >-
+                          A List of queries that changed after last_updated_ms
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            last_updated_ms = kwargs["rison"].get("last_updated_ms", 0)
+            queries = QueryDAO.get_queries_changed_after(last_updated_ms)
+            payload = [q.to_dict() for q in queries]
+            return self.response(200, result=payload)
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/stop", methods=["POST"])
     @protect()

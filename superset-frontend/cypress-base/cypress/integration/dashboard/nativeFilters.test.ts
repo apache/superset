@@ -128,6 +128,7 @@ function prepareDashboardFilters(
         label_colors: {},
         shared_label_colors: {},
         color_scheme_domain: [],
+        cross_filters_enabled: false,
         positions: {
           DASHBOARD_VERSION_KEY: 'v2',
           ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
@@ -203,9 +204,10 @@ function openVerticalFilterBar() {
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
   cy.wait(250);
-  cy.getBySel('dropdown-selectable-info')
+  cy.getBySel('dropdown-selectable-icon-submenu')
     .contains('Orientation of filter bar')
-    .should('exist');
+    .should('exist')
+    .trigger('mouseover');
 
   if (orientation === 'vertical') {
     cy.get('.ant-dropdown-menu-item-selected')
@@ -234,14 +236,6 @@ function openMoreFilters(intercetFilterState = true) {
 }
 
 describe('Horizontal FilterBar', () => {
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
@@ -412,10 +406,6 @@ describe('Horizontal FilterBar', () => {
 });
 
 describe('Native filters', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);

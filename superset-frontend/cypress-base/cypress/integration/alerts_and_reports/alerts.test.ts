@@ -23,10 +23,6 @@ describe('Alert list view', () => {
     cy.visit(ALERT_LIST);
   });
 
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should load alert lists', () => {
     cy.getBySel('listview-table').should('be.visible');
     cy.getBySel('sort-header').eq(1).contains('Last run');

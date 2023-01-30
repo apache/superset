@@ -27,7 +27,6 @@ import { WORLD_HEALTH_CHARTS } from './utils';
 
 describe.skip('Dashboard filter', () => {
   before(() => {
-    cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 

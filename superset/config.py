@@ -322,21 +322,27 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-#AUTH_TYPE = AUTH_DB
+# AUTH_TYPE = AUTH_DB
 
 # Keycloak configuration
 
 AUTH_TYPE = AUTH_OID
 
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", CHANGE_ME_SECRET_KEY)
-OIDC_CLIENT_SECRETS = os.getenv("KC_OIDC_CLIENT_SECRETS_PATH", os.path.abspath(os.getcwd()) + '/client-secret.json')
-OIDC_ID_TOKEN_COOKIE_SECURE = str_to_bool(os.getenv("KC_OIDC_ID_TOKEN_COOKIE_SECURE", "false"))
-OIDC_REQUIRE_VERIFIED_EMAIL = str_to_bool(os.getenv("KC_OIDC_REQUIRE_VERIFIED_EMAIL", "false"))
+OIDC_CLIENT_SECRETS = os.getenv(
+    "KC_OIDC_CLIENT_SECRETS_PATH", os.path.abspath(os.getcwd()) + "/client-secret.json"
+)
+OIDC_ID_TOKEN_COOKIE_SECURE = str_to_bool(
+    os.getenv("KC_OIDC_ID_TOKEN_COOKIE_SECURE", "false")
+)
+OIDC_REQUIRE_VERIFIED_EMAIL = str_to_bool(
+    os.getenv("KC_OIDC_REQUIRE_VERIFIED_EMAIL", "false")
+)
 OIDC_OPENID_REALM = os.getenv("KC_OIDC_OPENID_REALM", "neos")
-OIDC_INTROSPECTION_AUTH_METHOD = 'client_secret_post'
+OIDC_INTROSPECTION_AUTH_METHOD = "client_secret_post"
 CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
 AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = 'Gamma'
+AUTH_USER_REGISTRATION_ROLE = "Gamma"
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
@@ -765,6 +771,11 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # method.
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
+
+# Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
+# method.
+# note: index option should not be overridden
+EXCEL_EXPORT = {"encoding": "utf-8"}
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -1381,16 +1392,15 @@ TALISMAN_CONFIG = {
 }
 
 # It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `filter_rel_fields`
-# on `RLSRestApi`. Example:
+# dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
+# `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:
 #
 # from flask_appbuilder.models.sqla import filters
-
-# RLS_BASE_RELATED_FIELD_FILTERS = {
-#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#     "roles": [["name", filters.FilterContains, "Admin"]]
+# RLS_FORM_QUERY_REL_FIELDS = {
+#     "roles": [["name", filters.FilterStartsWith, "RlsRole"]]
+#     "tables": [["table_name", filters.FilterContains, "rls"]]
 # }
-RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
+RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 
 #
 # Flask session cookie options
@@ -1591,7 +1601,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

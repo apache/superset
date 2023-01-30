@@ -21,7 +21,7 @@ import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-  renderBigIntStrToNumber,
+  convertBigIntStrToNumber,
 } from 'src/components/FilterableTable';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -334,17 +334,17 @@ describe('FilterableTable sorting - RTL', () => {
 });
 
 test('renders bigInt value in a number format', () => {
-  expect(renderBigIntStrToNumber('123')).toBe('123');
-  expect(renderBigIntStrToNumber('some string value')).toBe(
+  expect(convertBigIntStrToNumber('123')).toBe('123');
+  expect(convertBigIntStrToNumber('some string value')).toBe(
     'some string value',
   );
-  expect(renderBigIntStrToNumber('{ a: 123 }')).toBe('{ a: 123 }');
-  expect(renderBigIntStrToNumber('"Not a Number"')).toBe('"Not a Number"');
+  expect(convertBigIntStrToNumber('{ a: 123 }')).toBe('{ a: 123 }');
+  expect(convertBigIntStrToNumber('"Not a Number"')).toBe('"Not a Number"');
   // trim quotes for bigint string format
-  expect(renderBigIntStrToNumber('"-12345678901234567890"')).toBe(
+  expect(convertBigIntStrToNumber('"-12345678901234567890"')).toBe(
     '-12345678901234567890',
   );
-  expect(renderBigIntStrToNumber('"12345678901234567890"')).toBe(
+  expect(convertBigIntStrToNumber('"12345678901234567890"')).toBe(
     '12345678901234567890',
   );
 });

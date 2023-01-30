@@ -34,6 +34,7 @@ from tests.unit_tests.fixtures.common import dttm
         ("DATE", "TO_DATE('2019-01-02')"),
         ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
         ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_NTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
     ],
 )
 def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:
@@ -77,11 +78,11 @@ def test_extract_errors() -> None:
         )
     ]
 
-    msg = "syntax error line 1 at position 10 unexpected 'limmmited'."
+    msg = "syntax error line 1 at position 10 unexpected 'limited'."
     result = SnowflakeEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
-            message='Please check your query for syntax errors at or near "limmmited". Then, try running your query again.',
+            message='Please check your query for syntax errors at or near "limited". Then, try running your query again.',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={

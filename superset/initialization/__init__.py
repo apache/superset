@@ -46,6 +46,7 @@ from superset.extensions import (
     profiling,
     results_backend_manager,
     ssh_manager_factory,
+    stats_logger_manager,
     talisman,
 )
 from superset.security import SupersetSecurityManager
@@ -123,7 +124,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityView,
+            RowLevelSecurityFiltersModelView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -137,6 +138,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
         from superset.explore.api import ExploreRestApi
@@ -147,7 +149,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
-        from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
@@ -207,6 +208,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(DatasourceRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
@@ -216,7 +218,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
-        appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
@@ -281,6 +282,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
+        )
+        appbuilder.add_view(
+            RowLevelSecurityFiltersModelView,
+            "Row Level Security",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
         #
@@ -403,16 +412,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
         )
 
-        appbuilder.add_view(
-            RowLevelSecurityView,
-            "Row Level Security",
-            href="/rowlevelsecurity/list/",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
-        )
-
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -423,6 +422,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_auth_provider()
         self.configure_async_queries()
         self.configure_ssh_manager()
+        self.configure_stats_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -482,6 +482,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_ssh_manager(self) -> None:
         ssh_manager_factory.init_app(self.superset_app)
+
+    def configure_stats_manager(self) -> None:
+        stats_logger_manager.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

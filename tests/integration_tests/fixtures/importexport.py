@@ -350,6 +350,7 @@ database_config: Dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
+    "allow_dml": True,
     "allow_run_async": False,
     "cache_timeout": None,
     "database_name": "imported_database",
