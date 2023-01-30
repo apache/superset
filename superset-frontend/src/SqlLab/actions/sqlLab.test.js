@@ -433,15 +433,21 @@ describe('async actions', () => {
           {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
-              ...defaultQueryEditor,
               id: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query ${
                 store.getState().sqlLab.queryEditors.length + 1
               }`,
+              dbId: defaultQueryEditor.dbId,
+              schema: defaultQueryEditor.schema,
+              autorun: false,
+              queryLimit:
+                defaultQueryEditor.queryLimit ||
+                initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
             },
           },
         ];
-        const request = actions.addNewQueryEditor(defaultQueryEditor);
+        const request = actions.addNewQueryEditor();
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
         });
