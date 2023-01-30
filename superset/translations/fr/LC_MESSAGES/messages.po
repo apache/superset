@@ -14426,6 +14426,22 @@ msgstr ""
 msgid "Don't refresh"
 msgstr "Ne pas actualiser"
 
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "10 seconds"
+msgstr "10 secondes"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "6 hours"
+msgstr "6 heures"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "12 hours"
+msgstr "12 heures"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "24 hours"
+msgstr "24 heures"
+
 #: superset-frontend/src/dashboard/components/Header/index.jsx:409
 msgid "Your dashboard is too large. Please reduce its size before saving it."
 msgstr ""

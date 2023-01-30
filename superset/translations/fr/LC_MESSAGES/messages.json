@@ -1580,6 +1580,9 @@
       "Use this to define a static color for all circles": [
         "Utiliser ceci pour définir une couleur statique pour tous les cercles"
       ],
+      "Linear Color Scheme": ["Schéma de couleurs linéaire"],
+      "all": ["Tous"],
+      "5 seconds": ["5 secondes"],
       "30 seconds": ["30 secondes"],
       "1 minute": ["1 minute"],
       "5 minutes": ["5 minutes"],
@@ -3217,6 +3220,10 @@
         "Ce tableau de bord est en train de se rafraîchir automatiquement. Le prochain rafraîchissement sera dans %s."
       ],
       "Don't refresh": ["Ne pas actualiser"],
+      "10 seconds": ["10 secondes"],
+      "6 hours": ["6 heures"],
+      "12 hours": ["12 heures"],
+      "24 hours": ["24 heures"],
       "Your dashboard is too large. Please reduce its size before saving it.": [
         "Votre tableau de bord est trop gros.Merci de réduire sa taille avant de sauvegarder."
       ],
@@ -3741,8 +3748,8 @@
       "previous calendar week": ["semaine calendaire précédente"],
       "previous calendar month": ["mois calendaire précédent"],
       "previous calendar year": ["année calendaire précédente"],
-      "Seconds %s": ["Secondes %s"],
-      "Minutes %s": ["Minutes %s"],
+      "Seconds %s": ["%s secondes"],
+      "Minutes %s": ["%s minutes "],
       "Hours %s": ["Heures %s"],
       "Days %s": ["Jours %s"],
       "Weeks %s": ["Semaines %s"],
