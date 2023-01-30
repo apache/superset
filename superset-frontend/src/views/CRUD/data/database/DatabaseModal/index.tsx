@@ -63,6 +63,7 @@ import {
   ExtraJson,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
+import { omit } from 'lodash';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -374,21 +375,21 @@ export function dbReducer(
       };
     case ActionType.setSSHTunnelLoginMethod:
       if (action.payload.login_method === AuthType.privateKey) {
-        const { password, ...rest } = trimmedState?.ssh_tunnel ?? {};
         return {
           ...trimmedState,
           ssh_tunnel: {
-            ...rest,
+            ...omit(trimmedState?.ssh_tunnel, ['password']),
           },
         };
       }
       if (action.payload.login_method === AuthType.password) {
-        const { private_key, private_key_password, ...rest } =
-          trimmedState?.ssh_tunnel ?? {};
         return {
           ...trimmedState,
           ssh_tunnel: {
-            ...rest,
+            ...omit(trimmedState?.ssh_tunnel, [
+              'private_key',
+              'private_key_password',
+            ]),
           },
         };
       }
