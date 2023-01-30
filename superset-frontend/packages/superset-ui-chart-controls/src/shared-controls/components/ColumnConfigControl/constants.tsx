@@ -81,7 +81,7 @@ const columnWidth: ControlFormItemSpec<'InputNumber'> = {
     "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space",
   ),
   width: 120,
-  placeholder: 'auto',
+  placeholder: t('auto'),
   debounceDelay: 400,
   validators: [validateNumber],
 };

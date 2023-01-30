@@ -1216,7 +1216,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           required
           validationMethods={{ onBlur: () => {} }}
           errorMessage={validationErrors?.confirm_overwrite}
-          label={t(`TYPE "OVERWRITE" TO CONFIRM`)}
+          label={t('Type "%s" to confirm', t('OVERWRITE'))}
           onChange={confirmOverwrite}
           css={formScrollableStyles}
         />
@@ -1615,7 +1615,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <Alert
                 closable={false}
                 css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                message="Additional fields may be required"
+                message={t('Additional fields may be required')}
                 showIcon
                 description={
                   <>

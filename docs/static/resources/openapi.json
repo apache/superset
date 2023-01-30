@@ -345,7 +345,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -356,7 +356,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -502,13 +502,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "end_dttm": {
             "format": "date-time",
@@ -1768,7 +1768,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1783,7 +1783,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1830,10 +1830,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "params": {
             "nullable": true,
@@ -1904,11 +1904,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -1917,6 +1922,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -1942,16 +1951,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -1960,10 +1964,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2560,7 +2560,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2575,7 +2575,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2622,10 +2622,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "params": {
             "nullable": true,
@@ -2696,11 +2696,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -2709,6 +2714,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2734,16 +2743,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -2752,10 +2756,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -3027,13 +3027,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -3400,7 +3400,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3415,7 +3415,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -3441,7 +3441,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "position_json": {
             "nullable": true,
@@ -3489,32 +3489,6 @@
       },
       "DashboardRestApi.get_list.User": {
         "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.User1": {
-        "properties": {
           "email": {
             "maxLength": 64,
             "type": "string"
@@ -3544,7 +3518,7 @@
         ],
         "type": "object"
       },
-      "DashboardRestApi.get_list.User2": {
+      "DashboardRestApi.get_list.User1": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3562,6 +3536,32 @@
         "required": [
           "first_name",
           "last_name"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -4056,7 +4056,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4169,7 +4169,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4881,7 +4881,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -4959,7 +4959,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "schema": {
             "maxLength": 255,
@@ -5156,23 +5156,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5190,6 +5173,23 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -5604,6 +5604,29 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "EstimateQueryCostSchema": {
+        "properties": {
+          "database_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "template_params": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "database_id",
+          "sql"
+        ],
         "type": "object"
       },
       "ExecutePayloadSchema": {
@@ -6933,7 +6956,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
           },
           "changed_on": {
             "format": "date-time",
@@ -6949,7 +6972,7 @@
             "type": "integer"
           },
           "created_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -6999,7 +7022,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -7043,6 +7066,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -7059,10 +7086,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -16686,6 +16709,99 @@
         ]
       }
     },
+    "/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The type of datasource",
+            "in": "path",
+            "name": "datasource_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The id of the datasource",
+            "in": "path",
+            "name": "datasource_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The name of the column to get values for",
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A List of distinct values for the column"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get possible values for a datasource column",
+        "tags": [
+          "Datasources"
+        ]
+      }
+    },
     "/api/v1/embedded_dashboard/{uuid}": {
       "get": {
         "description": "Get a report schedule log",
@@ -19735,6 +19851,62 @@
         ],
         "tags": [
           "Security"
+        ]
+      }
+    },
+    "/api/v1/sqllab/estimate/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateQueryCostSchema"
+              }
+            }
+          },
+          "description": "SQL query and params",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Query estimation result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Estimates the SQL query execution cost",
+        "tags": [
+          "SQL Lab"
         ]
       }
     },

@@ -80,6 +80,7 @@ class SqlLabRestApi(BaseSupersetApi):
     }
     openapi_spec_tag = "SQL Lab"
     openapi_spec_component_schemas = (
+        EstimateQueryCostSchema,
         ExecutePayloadSchema,
         QueryExecutionResponseSchema,
     )
@@ -87,13 +88,13 @@ class SqlLabRestApi(BaseSupersetApi):
     @expose("/estimate/", methods=["POST"])
     @protect()
     @statsd_metrics
+    @requires_json
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".estimate_query_cost",
         log_to_statsd=False,
     )
-    @requires_json
-    def estimate_query_cost(self, **kwargs: Any) -> Response:
+    def estimate_query_cost(self) -> Response:
         """Estimates the SQL query execution cost
         ---
         post:
