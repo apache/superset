@@ -177,6 +177,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       content: renderSaveDialog(),
       onOk: onConfirmSave,
       icon: null,
+      okText: t('OK'),
+      cancelText: t('Cancel'),
     });
   };
 
