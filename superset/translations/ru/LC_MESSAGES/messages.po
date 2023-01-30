@@ -13243,6 +13243,12 @@ msgstr ""
 "Изменение этих настроек будет влиять на все графики, использующие этот "
 "датасет, включая графики других пользователей."
 
+#: superset/views/core.py:2222
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1383
 msgid "Sync columns from source"
 msgstr "Синхронизировать столбцы из источника"

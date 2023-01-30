@@ -3351,6 +3351,55 @@
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
         "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
       ],
+      "The port is closed.": ["Порт закрыт."],
+      "The port number is invalid.": ["Недействительный порт."],
+      "The primary metric is used to define the arc segment sizes": [
+        "Основная мера используется для определения размера сегмента дуги"
+      ],
+      "The provided `rows` argument is not a valid integer.": [""],
+      "The query associated with the results was deleted.": [
+        "Запрос, связанный с результатами, был удален."
+      ],
+      "The query associated with these results could not be found. You need to re-run the original query.": [
+        ""
+      ],
+      "The query contains one or more malformed template parameters.": [""],
+      "The query couldn't be loaded": ["Запрос невозможно загрузить"],
+      "The query has a syntax error.": ["Запрос имеет синтаксическую ошибку."],
+      "The query returned no data": ["Запрос не вернул данных"],
+      "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        "Запрос был прерван после %(sqllab_timeout)s секунд. Он мог быть слишком сложным, или база данных находилась под большой нагрузкой."
+      ],
+      "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
+        ""
+      ],
+      "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
+        "Радиус маркеров (не находящихся в кластере). Выберите числовой столбец или `Автоматически`, который отмасштабирует маркеры по наибольшему маркеру."
+      ],
+      "The report has been created": ["Рассылка создана"],
+      "The results backend no longer has the data from the query.": [
+        "Сервер не сохранил данные из этого запроса."
+      ],
+      "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
+        "Данные, сохраненные на сервере, имели другой формат, и не могут быть распознаны."
+      ],
+      "The rich tooltip shows a list of all series for that point in time": [
+        "Расширенная всплывающая подсказка показывает список всех категорий для этой точки."
+      ],
+      "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.": [
+        ""
+      ],
+      "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
+        ""
+      ],
+      "The schema was deleted or renamed in the database.": [
+        "Схема была удалена или переименована в базе данных."
+      ],
+      "The size of the square cell, in pixels": [
+        "Размер квадратной ячейки (в пикселях)"
+      ],
+      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
+        ""
       "Warning": ["Предупреждение"],
       "Optional warning about use of this metric": [
         "Необязательное предупреждение об использовании этой меры"

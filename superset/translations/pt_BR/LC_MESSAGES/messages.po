@@ -13383,6 +13383,12 @@ msgstr "Erro %s"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:164
 msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
+#: superset-frontend/src/components/Datasource/DatasourceModal.tsx:164
+msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
 "                Be mindful that changing settings\n"

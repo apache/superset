@@ -13571,6 +13571,15 @@ msgstr "Propriétaire du graphique : %s"
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:83
 #, fuzzy, python-format
 msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+"Erreur au chargement de cette visu. Les requêtes s'interrompent au bout "
+"de %s secondes."
+
+#: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:83
+#, fuzzy, python-format
+msgid ""
 "%(message)s\n"
 "This may be triggered by: \n"
 "%(issues)s"
@@ -13626,15 +13635,6 @@ msgid ""
 msgstr ""
 "Erreur au chargement de cette visu. Les requêtes s'interrompent au bout "
 "de %s secondes."
-
-#: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:52
-#, python-format
-msgid ""
-"We’re having trouble loading these results. Queries are set to timeout "
-"after %s second."
-msgstr ""
-"Erreur au chargement de ces résultats. Les requêtes s'interrompent au "
-"bout de %s secondes."
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:93
 #, fuzzy, python-format

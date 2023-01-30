@@ -13251,6 +13251,12 @@ msgstr "レポート名"
 msgid "Include a description that will be sent with your report"
 msgstr ""
 
+#: superset/views/core.py:2280
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/components/ReportModal/index.tsx:303
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr ""

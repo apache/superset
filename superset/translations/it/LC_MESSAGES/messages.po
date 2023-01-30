@@ -14369,6 +14369,12 @@ msgstr ""
 msgid "Rebuild"
 msgstr ""
 
+#: superset/views/core.py:2280
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FiltersHeader.tsx:88
 #, fuzzy, python-format
 msgid "Filters (%d)"

@@ -90,6 +90,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       value={value}
       options={loadDatasetOptions}
       onChange={onChange}
+      notFoundContent={t('No compatible datasets found')}
     />
   );
 };

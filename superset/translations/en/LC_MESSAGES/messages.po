@@ -14521,6 +14521,12 @@ msgstr ""
 msgid " a dashboard OR "
 msgstr ""
 
+#: superset/views/core.py:2280
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/explore/components/SaveModal.tsx:355
 msgid "create"
 msgstr ""

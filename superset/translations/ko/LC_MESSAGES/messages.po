@@ -14031,6 +14031,12 @@ msgstr ""
 msgid "Empty row"
 msgstr ""
 
+#: superset/views/core.py:2280
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:192
 msgid "You can"
 msgstr ""

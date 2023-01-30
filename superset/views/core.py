@@ -20,12 +20,11 @@ from __future__ import annotations
 import logging
 import re
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import humanize
 import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
@@ -41,7 +40,6 @@ from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import functions as func
 
 from superset import (
     app,
@@ -98,7 +96,7 @@ from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
-from superset.models.core import Database, FavStar, Log
+from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -109,8 +107,8 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
-from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
@@ -155,6 +153,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.log.dao import LogDAO
 from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
@@ -506,6 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/slice_json/<int:slice_id>")
     @etag_cache()
     @check_resource_permissions(check_slice_perms)
+    @deprecated()
     def slice_json(self, slice_id: int) -> FlaskResponse:
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
@@ -529,6 +529,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/annotation_json/<int:layer_id>")
+    @deprecated()
     def annotation_json(  # pylint: disable=no-self-use
         self, layer_id: int
     ) -> FlaskResponse:
@@ -998,6 +999,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
+    @deprecated()
     def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
     ) -> FlaskResponse:
@@ -1438,9 +1440,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
-    def recent_activity(  # pylint: disable=too-many-locals
-        self, user_id: int
-    ) -> FlaskResponse:
+    @deprecated()
+    def recent_activity(self, user_id: int) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
@@ -1452,96 +1453,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # whether to get distinct subjects
         distinct = request.args.get("distinct") != "false"
 
-        has_subject_title = or_(
-            and_(
-                Dashboard.dashboard_title is not None,
-                Dashboard.dashboard_title != "",
-            ),
-            and_(Slice.slice_name is not None, Slice.slice_name != ""),
-        )
+        payload = LogDAO.get_recent_activity(user_id, actions, distinct, 0, limit)
 
-        if distinct:
-            one_year_ago = datetime.today() - timedelta(days=365)
-            subqry = (
-                db.session.query(
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Log.action,
-                    func.max(Log.dttm).label("dttm"),
-                )
-                .group_by(Log.dashboard_id, Log.slice_id, Log.action)
-                .filter(
-                    and_(
-                        Log.action.in_(actions),
-                        Log.user_id == user_id,
-                        # limit to one year of data to improve performance
-                        Log.dttm > one_year_ago,
-                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
-                    )
-                )
-                .subquery()
-            )
-            qry = (
-                db.session.query(
-                    subqry,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
-                .outerjoin(
-                    Slice,
-                    Slice.id == subqry.c.slice_id,
-                )
-                .filter(has_subject_title)
-                .order_by(subqry.c.dttm.desc())
-                .limit(limit)
-            )
-        else:
-            qry = (
-                db.session.query(
-                    Log.dttm,
-                    Log.action,
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
-                .outerjoin(Slice, Slice.id == Log.slice_id)
-                .filter(has_subject_title)
-                .order_by(Log.dttm.desc())
-                .limit(limit)
-            )
-
-        payload = []
-        for log in qry.all():
-            item_url = None
-            item_title = None
-            item_type = None
-            if log.dashboard_id:
-                item_type = "dashboard"
-                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
-                item_title = log.dashboard_title
-            elif log.slice_id:
-                slc = Slice(id=log.slice_id, slice_name=log.slice_name)
-                item_type = "slice"
-                item_url = slc.slice_url
-                item_title = slc.chart
-
-            payload.append(
-                {
-                    "action": log.action,
-                    "item_type": item_type,
-                    "item_url": item_url,
-                    "item_title": item_title,
-                    "time": log.dttm,
-                    "time_delta_humanized": humanize.naturaltime(
-                        datetime.now() - log.dttm
-                    ),
-                }
-            )
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
@@ -2177,6 +2090,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/results/<key>/")
     @event_logger.log_this
+    @deprecated()
     def results(self, key: str) -> FlaskResponse:
         return self.results_exec(key)
 
@@ -2220,7 +2134,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
-                        "The query associated with these results could not be find. "
+                        "The query associated with these results could not be found. "
                         "You need to re-run the original query."
                     ),
                     error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
@@ -2400,6 +2314,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
+    @deprecated()
     def sql_json(self) -> FlaskResponse:
         errors = SqlJsonPayloadSchema().validate(request.json)
         if errors:
@@ -2439,7 +2354,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
+            config.get("SQLLAB_CTAS_NO_LIMIT"),
             log_params,
         )
 
@@ -2573,6 +2488,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/queries/<float:last_updated_ms>")
     @expose("/queries/<int:last_updated_ms>")
+    @deprecated()
     def queries(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
         """
         Get the updated queries.

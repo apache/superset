@@ -15372,6 +15372,16 @@ msgid ""
 " the filters list?"
 msgstr ""
 
+#: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:309
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
+#: superset/sqllab/query_render.py:113
+msgid "The query contains one or more malformed template parameters."
+msgstr ""
+
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:500
 #, fuzzy
 msgid "Are you sure you want to remove the last temporal filter?"

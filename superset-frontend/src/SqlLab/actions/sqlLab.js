@@ -17,6 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
+import rison from 'rison';
 import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
@@ -128,22 +129,10 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     sqlLab: { unsavedQueryEditor },
   } = rootState;
   const id = key ?? queryEditor.id;
-  const updatedQueryEditor = {
+  return {
     ...queryEditor,
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
-
-  if (
-    'schema' in updatedQueryEditor &&
-    !updatedQueryEditor.schemaOptions?.find(
-      ({ value }) => value === updatedQueryEditor.schema,
-    )
-  ) {
-    // remove the deprecated schema option
-    delete updatedQueryEditor.schema;
-  }
-
-  return updatedQueryEditor;
 }
 
 export function resetState() {
@@ -317,8 +306,13 @@ export function fetchQueryResults(query, displayLimit) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
 
+    const queryParams = rison.encode({
+      key: query.resultsKey,
+      rows: displayLimit || null,
+    });
+
     return SupersetClient.get({
-      endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
+      endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
       parseMethod: 'json-bigint',
     })
       .then(({ json }) => dispatch(querySuccess(query, json)))
@@ -359,7 +353,7 @@ export function runQuery(query) {
 
     const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${search}`,
+      endpoint: `/api/v1/sqllab/execute/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'json-bigint',
@@ -371,7 +365,11 @@ export function runQuery(query) {
       })
       .catch(response =>
         getClientErrorObject(response).then(error => {
-          let message = error.error || error.statusText || t('Unknown error');
+          let message =
+            error.error ||
+            error.message ||
+            error.statusText ||
+            t('Unknown error');
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
@@ -1414,7 +1412,7 @@ export function popQuery(queryId) {
           dbId: queryData.database.id,
           schema: queryData.schema,
           sql: queryData.sql,
-          name: `Copy of ${queryData.tab_name}`,
+          name: t('Copy of %s', queryData.tab_name),
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1424,6 +1422,7 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
@@ -1431,7 +1430,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.result.name}`,
+            name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
             autorun: sql !== undefined,

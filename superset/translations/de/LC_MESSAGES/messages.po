@@ -13584,6 +13584,15 @@ msgstr ""
 "diesen Datensatz verwenden, einschließlich Diagramme, die anderen "
 "Personen gehören."
 
+#: superset/views/core.py:2297
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+"Die mit diesen Ergebnissen verknüpfte Abfrage konnte nicht gefunden "
+"werden. Sie müssen die ursprüngliche Abfrage erneut ausführen."
+
+
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1383
 msgid "Sync columns from source"
 msgstr "Spalten aus der Quelle synchronisieren"

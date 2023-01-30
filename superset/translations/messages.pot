@@ -14516,6 +14516,12 @@ msgstr ""
 msgid "Select a dashboard"
 msgstr ""
 
+#: superset/views/core.py:2280
+msgid ""
+"The query associated with these results could not be found. You need to "
+"re-run the original query."
+msgstr ""
+
 #: superset-frontend/src/explore/components/SaveModal.tsx:353
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:135
 msgid "Select"

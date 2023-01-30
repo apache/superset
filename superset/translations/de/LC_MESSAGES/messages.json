@@ -3540,6 +3540,22 @@
       "Warning": ["Warnung"],
       "Optional warning about use of this metric": [
         "Optionale Warnung zur Verwendung dieser Metrik"
+      "The port is closed.": ["Der Port ist geschlossen."],
+      "The port must be a whole number less than or equal to 65535.": [
+        "Der Port muss eine ganze Zahl kleiner oder gleich 65535 sein."
+      ],
+      "The port number is invalid.": ["Die Port-Nummer ist ungültig."],
+      "The primary metric is used to define the arc segment sizes": [
+        "Die primäre Metrik wird verwendet, um die Bogensegmentgrößen zu definieren"
+      ],
+      "The provided `rows` argument is not a valid integer.": [
+        "Das angegebene Argument 'rows' ist keine gültige ganze Zahl."
+      ],
+      "The query associated with the results was deleted.": [
+        "Die den Ergebnissen zugeordnete Abfrage wurde gelöscht."
+      ],
+      "The query associated with these results could not be found. You need to re-run the original query.": [
+        "Die mit diesen Ergebnissen verknüpfte Abfrage konnte nicht gefunden werden. Sie müssen die ursprüngliche Abfrage erneut ausführen."
       ],
       "Be careful.": ["Seien Sie vorsichtig."],
       "Changing these settings will affect all charts using this dataset, including charts owned by other people.": [

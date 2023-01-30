@@ -193,11 +193,11 @@ const SSHTunnelForm = ({
                     data-test="ssh-tunnel-password-input"
                     iconRender={visible =>
                       visible ? (
-                        <Tooltip title="Hide password.">
+                        <Tooltip title={t('Hide password.')}>
                           <EyeInvisibleOutlined />
                         </Tooltip>
                       ) : (
-                        <Tooltip title="Show password.">
+                        <Tooltip title={t('Show password.')}>
                           <EyeOutlined />
                         </Tooltip>
                       )

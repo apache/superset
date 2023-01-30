@@ -30,10 +30,7 @@ import {
   shouldUseLegacyApi,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import {
-  requiresQuery,
-  ANNOTATION_SOURCE_TYPES,
-} from 'src/modules/AnnotationTypes';
+import { requiresQuery } from 'src/modules/AnnotationTypes';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
@@ -290,26 +287,35 @@ export function runAnnotationQuery({
         : undefined;
     }
 
-    const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
-    const url = getAnnotationJsonUrl(
-      annotation.value,
-      sliceFormData,
-      isNative,
-      force,
-    );
+    const url = getAnnotationJsonUrl(annotation.value, force);
     const controller = new AbortController();
     const { signal } = controller;
 
     dispatch(annotationQueryStarted(annotation, controller, sliceKey));
 
-    return SupersetClient.get({
+    const annotationIndex = fd?.annotation_layers?.findIndex(
+      it => it.name === annotation.name,
+    );
+    if (annotationIndex >= 0) {
+      fd.annotation_layers[annotationIndex].overrides = sliceFormData;
+    }
+
+    return SupersetClient.post({
       url,
       signal,
       timeout: timeout * 1000,
+      headers: { 'Content-Type': 'application/json' },
+      jsonPayload: buildV1ChartDataPayload({
+        formData: fd,
+        force,
+        resultFormat: 'json',
+        resultType: 'full',
+      }),
     })
-      .then(({ json }) =>
-        dispatch(annotationQuerySuccess(annotation, json, sliceKey)),
-      )
+      .then(({ json }) => {
+        const data = json?.result?.[0]?.annotation_data?.[annotation.name];
+        return dispatch(annotationQuerySuccess(annotation, { data }, sliceKey));
+      })
       .catch(response =>
         getClientErrorObject(response).then(err => {
           if (err.statusText === 'timeout') {

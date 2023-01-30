@@ -52,7 +52,7 @@ cache_timeout_description = (
 )
 expose_in_sqllab_description = "Expose this database to SQLLab"
 allow_run_async_description = (
-    "Operate the database in asynchronous mode, meaning  "
+    "Operate the database in asynchronous mode, meaning "
     "that the queries are executed on remote workers as opposed "
     "to on the web server itself. "
     "This assumes that you have a Celery worker setup as well "
@@ -683,6 +683,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
+    allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
