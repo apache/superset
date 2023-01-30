@@ -112,4 +112,6 @@ messages.mo
 docker/requirements-local.txt
 
 cache/
+
+# NEOS
 client-secret.json

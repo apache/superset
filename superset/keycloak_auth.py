@@ -1,7 +1,9 @@
+import logging
 from urllib.parse import quote
 
 from flask import redirect, request
 from flask_appbuilder import AppBuilder
+from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.security.manager import AUTH_OID
 from flask_appbuilder.security.views import AuthOIDView
 from flask_appbuilder.views import expose
@@ -10,6 +12,8 @@ from flask_oidc import OpenIDConnect
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from superset.security import SupersetSecurityManager
+
+logger = logging.getLogger(__name__)
 
 
 class OIDCSecurityManager(SupersetSecurityManager):
@@ -28,6 +32,10 @@ class AuthOIDCView(AuthOIDView):
 
         @self.appbuilder.sm.oid.require_login
         def handle_login() -> WerkzeugResponse:
+            email = oidc.user_getfield("email")
+            logger.info(email)
+            user = sm.auth_user_oid(oidc.user_getfield("email"))
+            logger.info(user)
             user = sm.auth_user_oid(oidc.user_getfield("email"))
 
             if user is None:
@@ -44,8 +52,11 @@ class AuthOIDCView(AuthOIDView):
                     info.get("given_name"),
                     info.get("family_name"),
                     info.get("email"),
-                    sm.find_role("Gamma"),
+                    sm.find_role("Admin"),
                 )
+
+                if user is False:
+                    raise Exception("User creation failed.")
 
             login_user(user, remember=False)
             return redirect(self.appbuilder.get_url_for_index)

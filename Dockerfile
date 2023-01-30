@@ -73,6 +73,7 @@ COPY setup.py MANIFEST.in README.md /app/
 COPY superset-frontend/package.json /app/superset-frontend/
 
 RUN cd /app \
+    && mkdir -p /mnt/config-maps \
     && mkdir -p superset/static \
     && touch superset/static/version_info.json \
     && pip install --no-cache -r requirements/local.txt
