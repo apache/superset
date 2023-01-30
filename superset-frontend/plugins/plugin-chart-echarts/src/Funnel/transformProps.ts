@@ -92,6 +92,7 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
@@ -110,7 +111,6 @@ export default function transformProps(
     numberFormat,
     showLabels,
     showLegend,
-    emitFilter,
     sliceId,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
@@ -238,7 +238,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap,
     groupby,
     selectedValues,

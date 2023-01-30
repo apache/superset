@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../assets/stylesheets/less/variables.less';
 
-@import './builder.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './grid.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+
+export const isCrossFiltersEnabled = (
+  metadataCrossFiltersEnabled: boolean | undefined,
+): boolean =>
+  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);

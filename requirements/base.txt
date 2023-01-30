@@ -292,6 +292,8 @@ wtforms==2.3.3
     #   wtforms-json
 wtforms-json==0.3.3
     # via apache-superset
+xlsxwriter==3.0.7
+    # via apache-superset
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

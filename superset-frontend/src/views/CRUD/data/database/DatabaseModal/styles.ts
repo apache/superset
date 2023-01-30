@@ -605,12 +605,6 @@ export const StyledCatalogTable = styled.div`
     width: 95%;
   }
 
-  .catalog-delete {
-    align-self: center;
-    background: ${({ theme }) => theme.colors.grayscale.light4};
-    margin: 5px 5px 8px 5px;
-  }
-
   .catalog-add-btn {
     width: 95%;
   }

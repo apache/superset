@@ -74,7 +74,7 @@ class TestQueryContext(SupersetTestCase):
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
 
-            # check basic properies
+            # check basic properties
             self.assertEqual(query.extras, payload_query["extras"])
             self.assertEqual(query.filter, payload_query["filters"])
             self.assertEqual(query.columns, payload_query["columns"])

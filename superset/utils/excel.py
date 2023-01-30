@@ -14,10 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
+from typing import Any
 
-from superset.connectors.sqla.models import RowLevelSecurityFilter
-from superset.dao.base import BaseDAO
+import pandas as pd
 
 
-class RLSDAO(BaseDAO):
-    model_cls = RowLevelSecurityFilter
+def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
+    output = io.BytesIO()
+    # pylint: disable=abstract-class-instantiated
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, **kwargs)
+
+    return output.getvalue()

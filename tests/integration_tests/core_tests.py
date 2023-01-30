@@ -1619,7 +1619,7 @@ class TestCore(SupersetTestCase):
         Handle injected exceptions from the db mutator
         """
 
-        # Assert we can handle a custom excetion at the mutator level
+        # Assert we can handle a custom exception at the mutator level
         exception = SupersetException("Error message")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()

@@ -42,9 +42,9 @@ import {
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
-import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
+import { SqlLabGlobalStyles } from './SqlLabGlobalStyles';
 
 setupApp();
 setupExtensions();
@@ -141,6 +141,7 @@ const Application = () => (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <GlobalStyles />
+        <SqlLabGlobalStyles />
         <App />
       </ThemeProvider>
     </Provider>

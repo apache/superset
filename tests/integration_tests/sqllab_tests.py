@@ -91,7 +91,7 @@ class TestSqlLab(SupersetTestCase):
         data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
         self.assertLess(0, len(data["data"]))
 
-        data = self.run_sql("SELECT * FROM unexistant_table", "2")
+        data = self.run_sql("SELECT * FROM nonexistent_table", "2")
         if backend() == "presto":
             assert (
                 data["errors"][0]["error_type"]

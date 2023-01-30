@@ -464,6 +464,7 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
       filterboxMigrationState,
+      logEvent,
     } = this.props;
 
     const userCanEdit =
@@ -679,6 +680,7 @@ class Header extends React.PureComponent {
               filterboxMigrationState={filterboxMigrationState}
               isDropdownVisible={this.state.isDropdownVisible}
               setIsDropdownVisible={this.setIsDropdownVisible}
+              logEvent={logEvent}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}

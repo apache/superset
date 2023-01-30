@@ -77,6 +77,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -112,6 +113,10 @@ const Styles = styled.div`
 
     .pivot_table tbody tr {
       font-feature-settings: 'tnum' 1;
+    }
+
+    .alert {
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
