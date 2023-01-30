@@ -3398,8 +3398,7 @@
       "The size of the square cell, in pixels": [
         "Размер квадратной ячейки (в пикселях)"
       ],
-      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
-        ""
+      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [""],
       "Warning": ["Предупреждение"],
       "Optional warning about use of this metric": [
         "Необязательное предупреждение об использовании этой меры"

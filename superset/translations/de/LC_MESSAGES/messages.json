@@ -3539,7 +3539,7 @@
       ],
       "Warning": ["Warnung"],
       "Optional warning about use of this metric": [
-        "Optionale Warnung zur Verwendung dieser Metrik"
+        "Optionale Warnung zur Verwendung dieser Metrik"],
       "The port is closed.": ["Der Port ist geschlossen."],
       "The port must be a whole number less than or equal to 65535.": [
         "Der Port muss eine ganze Zahl kleiner oder gleich 65535 sein."
