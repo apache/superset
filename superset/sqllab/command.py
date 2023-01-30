@@ -16,8 +16,8 @@
 # under the License.
 # pylint: disable=too-few-public-methods, too-many-arguments
 from __future__ import annotations
-import copy
 
+import copy
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
