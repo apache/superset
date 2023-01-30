@@ -157,7 +157,7 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
   ({ theme, height }) => `
     .ant-table-body {
       overflow: auto;
-      height: ${height ? `${height}px` : undefined};
+       ${height ? `height: ${height}px;` : undefined}
     }
 
     th.ant-table-cell {
