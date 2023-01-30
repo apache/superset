@@ -928,7 +928,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela a ser criada neste esquema"
       ],
-      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas como o utilizador atualmente conectado que deve ter permissão para as executar. <br/> Se hive e hive.server2.enable.doAs estiver habilitado, serão executadas as queries como conta de serviço, mas deve personificar o utilizador atualmente conectado recorrendo à propriedade hive.server2.proxy.user."
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -1114,15 +1114,6 @@
       "It seems you don't have access to any database": [
         "Parece que não tem acesso a nenhuma base de dados"
       ],
-      "An error occurred when refreshing queries": [
-        "Ocorreu um erro ao criar a origem dos dados"
-      ],
-      "Filter by user": ["Valor de filtro"],
-      "Filter by database": ["Selecione uma base de dados"],
-      "Query search string": ["Pesquisa de Query"],
-      "[From]-": ["[A partir de]-"],
-      "[To]-": ["[Para]-"],
-      "Filter by status": ["Valor de filtro"],
       "Edit": ["Editar"],
       "view results": ["ver resultados"],
       "Data preview": ["Pré-visualização de dados"],
@@ -1148,7 +1139,6 @@
       "Run Selection": ["Executar a query selecionada"],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
-      "Stop running (Ctrl + e)": [""],
       "Run query (Ctrl + Return)": [""],
       "Save & Explore": ["Grave uma visualização"],
       "Overwrite & Explore": ["Substitua a visualização %s"],
@@ -2188,7 +2178,7 @@
       "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [
         "Personificar o utilizador conectado"
       ],
-      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas como o utilizador atualmente conectado que deve ter permissão para as executar. <br/> Se hive e hive.server2.enable.doAs estiver habilitado, serão executadas as queries como conta de serviço, mas deve personificar o utilizador atualmente conectado recorrendo à propriedade hive.server2.proxy.user."
       ],
       "Allow Data Upload": [""],

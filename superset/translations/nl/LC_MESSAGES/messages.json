@@ -2,6 +2,7 @@
   "domain": "superset",
   "locale_data": {
     "superset": {
+      "22": [""],
       "": {
         "domain": "superset",
         "plural_forms": "nplurals=2; plural=(n != 1)",
@@ -80,6 +81,7 @@
       "The port number is invalid.": [""],
       "Failed to start remote query on a worker.": [""],
       "The database was deleted.": [""],
+      "Custom SQL fields cannot contain sub-queries.": [""],
       "Invalid certificate": ["Ongeldig certificaat"],
       "Unsafe return type for function %(func)s: %(value_type)s": [
         "Onveilig terugkeertype voor functie %(func)s: %(value_type)s"
@@ -128,9 +130,6 @@
         "Bij gebruik van ‘Group By’ bent u beperkt tot het gebruik van één meeteenheid"
       ],
       "Pivot Table": ["Draaitabel"],
-      "Please choose at least one 'Group by' field ": [
-        "Kies ten minste één veld ‘Groeperen op’ "
-      ],
       "Please choose at least one metric": ["Kies ten minste één meeteenheid"],
       "Group By' and 'Columns' can't overlap": [
         "‘Group By’ en ‘Kolommen’ kunnen elkaar niet overlappen"
@@ -242,6 +241,7 @@
         "Tijdreeks - Nightingale Rose grafiek"
       ],
       "Partition Diagram": ["Partition Diagram"],
+      "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Deleted %(num)d annotation layer": [
         "%(num)d Aantekeningenlaag verwijderd",
         "%(num)d aantekeninglagen verwijderd"
@@ -339,7 +339,6 @@
       "There are associated alerts or reports": [
         "Er zijn geassocieerde waarschuwingen of rapporten"
       ],
-      "You don't have access to this chart.": [""],
       "Changing this chart is forbidden": [
         "Het is verboden deze grafiek te wijzigen"
       ],
@@ -352,11 +351,12 @@
       "Chart has no query context saved. Please save the chart again.": [""],
       "Request is incorrect: %(error)s": ["Verzoek is onjuist: %(error)s"],
       "Request is not JSON": ["Verzoek is geen JSON"],
-      "Empty query result": [""],
+      "Error: %(error)s": [""],
       "Owners are invalid": ["Eigenaren zijn ongeldig"],
       "Some roles do not exist": ["Sommige rollen bestaan niet"],
-      "Dataset does not exist": ["Dataset bestaat niet"],
+      "Datasource type is invalid": [""],
       "Invalid result type: %(result_type)s": [""],
+      "A time column must be specified when using a Time Comparison.": [""],
       "The chart does not exist": ["De grafiek bestaat niet"],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
         ""
@@ -369,92 +369,6 @@
       ],
       "Unsupported post processing operation: %(operation)s": [
         "Niet-ondersteunde nabewerking: %(operation)s"
-      ],
-      "Datasource id not found: %(id)s": [""],
-      "Adding new datasource [{}]": ["Nieuwe databron toevoegen [{}]"],
-      "Refreshing datasource [{}]": ["Vernieuwen datasource [{}]"],
-      "Metric(s) {} must be aggregations.": [
-        "Meeteenheid(en) {} moeten aggregaties zijn."
-      ],
-      "Unsupported extraction function: ": [
-        "Niet ondersteunde extractie functie: "
-      ],
-      "Columns": ["Kolommen"],
-      "Show Druid Column": ["Druid kolom tonen"],
-      "Add Druid Column": ["Druid kolom toevoegen"],
-      "Edit Druid Column": ["Druid kolom bewerken"],
-      "Column": ["Kolom"],
-      "Type": ["Type"],
-      "Datasource": ["Gegevensbron"],
-      "Groupable": ["Groepeerbaar"],
-      "Filterable": ["Filterbaar"],
-      "Whether this column is exposed in the `Filters` section of the explore view.": [
-        ""
-      ],
-      "Metrics": ["Meeteenheden"],
-      "Show Druid Metric": ["Toon Druid meeteenheid"],
-      "Add Druid Metric": ["Voeg Druid meeteenheid toe"],
-      "Edit Druid Metric": ["Bewerk Druid meeteenheid"],
-      "Metric": ["Meeteenheid"],
-      "Description": ["Omschrijving"],
-      "Verbose Name": ["Verklarende naam"],
-      "JSON": ["JSON"],
-      "Druid Datasource": ["Druid Databron"],
-      "Warning Message": ["Waarschuwing"],
-      "Druid Clusters": ["Druid Clusters"],
-      "Show Druid Cluster": ["Toon Druid Cluster"],
-      "Add Druid Cluster": ["Voeg Druid Cluster toe"],
-      "Edit Druid Cluster": ["Bewerk Druid Cluster"],
-      "Cluster Name": ["Cluster Naam"],
-      "Broker Host": ["Broker gastheer"],
-      "Broker Port": ["Broker Poort"],
-      "Broker Username": ["Broker Gebruikersnaam"],
-      "Broker Password": ["Broker Wachtwoord"],
-      "Broker Endpoint": ["Broker Eindpunt"],
-      "Cache Timeout": ["Cache Timeout"],
-      "Metadata Last Refreshed": ["Laatst bijgewerkte metadata"],
-      "Duration (in seconds) of the caching timeout for this cluster. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
-        ""
-      ],
-      "Druid supports basic authentication. See [auth](http://druid.io/docs/latest/design/auth.html) and druid-basic-security extension": [
-        ""
-      ],
-      "Druid Datasources": ["Druid Databronnen"],
-      "Show Druid Datasource": ["Toon Druid Databron"],
-      "Add Druid Datasource": ["Voeg Druid Databron toe"],
-      "Edit Druid Datasource": ["Bewerk Druid Databron"],
-      "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
-        ""
-      ],
-      "Timezone offset (in hours) for this datasource": [
-        "Tijdzone-offset (in uren) voor deze databron"
-      ],
-      "Time expression to use as a predicate when retrieving distinct values to populate the filter component. Only applies when `Enable Filter Select` is on. If you enter `7 days ago`, the distinct list of values in the filter will be populated based on the distinct value over the past week": [
-        ""
-      ],
-      "Whether to populate the filter's dropdown in the explore view's filter section with a list of distinct values fetched from the backend on the fly": [
-        ""
-      ],
-      "Redirects to this endpoint when clicking on the datasource from the datasource list": [
-        "Gaat naar dit eindpunt wanneer op de databron in de databron-lijst wordt geklikt"
-      ],
-      "Duration (in seconds) of the caching timeout for this datasource. A timeout of 0 indicates that the cache never expires. Note this defaults to the cluster timeout if undefined.": [
-        ""
-      ],
-      "Associated Charts": ["Gerelateerde grafieken"],
-      "Data Source": ["Data bron"],
-      "Cluster": ["Cluster"],
-      "Owners": ["Eigenaars"],
-      "Is Hidden": ["Is verborgen"],
-      "Enable Filter Select": ["Inschakelen Filter Keuze"],
-      "Default Endpoint": ["Standaard eindpunt"],
-      "Time Offset": ["Tijd Offset"],
-      "Datasource Name": ["Databron Naam"],
-      "Fetch Values From": ["Waarden ophalen uit"],
-      "Changed By": ["Gewijzigd door"],
-      "Modified": ["Gewijzigd"],
-      "Refreshed metadata from cluster [{}]": [
-        "Vernieuwde metadata van cluster [{}]"
       ],
       "Error in jinja expression in fetch values predicate: %(msg)s": [
         "Fout in jinja expressie in fetch values predicate: %(msg)s"
@@ -514,58 +428,50 @@
       "Only single queries supported": [
         "Alleen enkelvoudige query’s worden ondersteund"
       ],
+      "Columns": ["Kolommen"],
       "Show Column": ["Toon Kolom"],
       "Add Column": ["Kolom toevoegen"],
       "Edit Column": ["Kolom toevoegen"],
       "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
         ""
       ],
+      "Whether this column is exposed in the `Filters` section of the explore view.": [
+        ""
+      ],
       "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
         ""
       ],
+      "Column": ["Kolom"],
+      "Verbose Name": ["Verklarende naam"],
+      "Description": ["Omschrijving"],
+      "Groupable": ["Groepeerbaar"],
+      "Filterable": ["Filterbaar"],
       "Table": ["Tabel"],
       "Expression": ["Expressie"],
       "Is temporal": ["Is tijdelijk"],
       "Datetime Format": ["Datumtijd Formaat"],
+      "Type": ["Type"],
+      "Business Data Type": [""],
       "Invalid date/timestamp format": ["Ongeldig datum/tijdstempel formaat"],
+      "Metrics": ["Meeteenheden"],
       "Show Metric": ["Toon meeteenheid"],
       "Add Metric": ["Voeg meeteenheid toe"],
       "Edit Metric": ["Bewerk meeteenheid"],
+      "Metric": ["Meeteenheid"],
       "SQL Expression": ["SQL Expressie"],
       "D3 Format": ["D3 Formaat"],
       "Extra": ["Extra"],
-      "Row level security filter": ["Beveiligingsfilter op rijniveau"],
-      "Show Row level security filter": [
-        "Toon beveiligingsfilter op rijniveau"
-      ],
-      "Add Row level security filter": [
-        "Voeg beveiligingsfilter op rijniveau toe"
-      ],
-      "Edit Row level security filter": [
-        "Bewerk Rij niveau beveiligingsfilter"
-      ],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        ""
-      ],
-      "These are the tables this filter will be applied to.": [
-        "Dit zijn de tabellen waarop dit filter zal worden toegepast."
-      ],
-      "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
-        ""
-      ],
-      "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
-        ""
-      ],
-      "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).": [
-        ""
-      ],
+      "Warning Message": ["Waarschuwing"],
       "Tables": ["Tabellen"],
-      "Roles": ["Rollen"],
-      "Clause": ["Clausule"],
-      "Creator": ["Maker"],
       "Show Table": ["Toon tabel"],
       "Import a table definition": ["Importeer een tabeldefinitie"],
       "Edit Table": ["Bewerk tabel"],
+      "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
+        ""
+      ],
+      "Timezone offset (in hours) for this datasource": [
+        "Tijdzone-offset (in uren) voor deze databron"
+      ],
       "Name of the table that exists in the source database": [
         "Naam van de tabel die bestaat in de brondatabase"
       ],
@@ -581,6 +487,9 @@
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
+      "Whether to populate the filter's dropdown in the explore view's filter section with a list of distinct values fetched from the backend on the fly": [
+        ""
+      ],
       "Whether the table was generated by the 'Visualize' flow in SQL Lab": [
         "Geeft aan of de tabel werd gegenereerd door de “Visualize” stroom in SQL Lab"
       ],
@@ -590,34 +499,24 @@
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
         ""
       ],
+      "Associated Charts": ["Gerelateerde grafieken"],
+      "Changed By": ["Gewijzigd door"],
       "Database": ["Database"],
       "Last Changed": ["Laatste wijziging"],
+      "Enable Filter Select": ["Inschakelen Filter Keuze"],
       "Schema": ["Schema"],
+      "Default Endpoint": ["Standaard eindpunt"],
       "Offset": ["Offset"],
+      "Cache Timeout": ["Cache Timeout"],
       "Table Name": ["Tabel Naam"],
       "Fetch Values Predicate": ["Waarden ophalen Predicaat"],
+      "Owners": ["Eigenaars"],
       "Main Datetime Column": ["Kolom Hoofd Datumtijd"],
       "SQL Lab View": ["SQL Lab View"],
       "Template parameters": ["Template parameters"],
+      "Modified": ["Gewijzigd"],
       "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it.": [
         ""
-      ],
-      "Refresh Metadata": ["Metagegevens vernieuwen"],
-      "Refresh column metadata": ["Kolom metagegevens verversen"],
-      "Metadata refreshed for the following table(s): %(tables)s": [
-        "Metagegevens ververst voor de volgende tabel(len): %(tables)s"
-      ],
-      "The following tables added new columns: %(tables)s": [
-        "De volgende tabellen hebben nieuwe kolommen toegevoegd: %(tables)s"
-      ],
-      "The following tables removed columns: %(tables)s": [
-        "De volgende tabellen verwijderden kolommen: %(tables)s"
-      ],
-      "The following tables update column metadata: %(tables)s": [
-        "De volgende tabellen werken de kolommetagegevens bij: %(tables)s"
-      ],
-      "Unable to refresh metadata for the following table(s): %(tables)s": [
-        "Kan metagegevens voor de volgende tabel(len) niet vernieuwen: %(tables)s"
       ],
       "Deleted %(num)d css template": [
         "Verwijderde %(num)d css sjabloon",
@@ -627,6 +526,7 @@
         "CSS sjabloon kon niet worden verwijderd."
       ],
       "CSS template not found.": ["CSS sjabloon niet gevonden."],
+      "Dataset schema is invalid, caused by: %(error)s": [""],
       "Deleted %(num)d dashboard": [
         "Verwijderde %(num)d dashboard",
         "Verwijderde %(num)d dashboards"
@@ -659,8 +559,10 @@
         "Je hebt geen toegang tot dit dashboard."
       ],
       "No data in file": ["Geen gegevens in het bestand"],
+      "An error occurred while creating the value.": [""],
+      "An error occurred while accessing the value.": [""],
       "Table name undefined": ["Tabelnaam niet gedefinieerd"],
-      "Invalid connection string, a valid string usually follows: driver://user:password@database-host/database-name": [
+      "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name": [
         ""
       ],
       "Field cannot be decoded by JSON. %(msg)s": [
@@ -669,14 +571,11 @@
       "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid.": [
         "De metadata_params in Extra veld is niet correct geconfigureerd. De sleutel %(key)s is ongeldig."
       ],
-      "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
-        ""
-      ],
       "An engine must be specified when passing individual parameters to a database.": [
         ""
       ],
-      "Engine \"%(engine)s\" is not a valid engine.": [
-        "Engine “%(engine)s” is geen geldige engine."
+      "Engine spec \"InvalidEngine\" does not support being configured via individual parameters.": [
+        ""
       ],
       "Database parameters are invalid.": [
         "Database parameters zijn ongeldig."
@@ -708,6 +607,7 @@
       "Unexpected error occurred, please check your logs for details": [
         "Er is een onverwachte fout opgetreden, controleer uw logs voor details"
       ],
+      "No validator found (configured for the engine)": [""],
       "Import database failed for an unknown reason": [
         "Import database mislukt om een onbekende reden"
       ],
@@ -716,6 +616,10 @@
       ],
       "Engine \"%(engine)s\" cannot be configured through parameters.": [""],
       "Database is offline.": [""],
+      "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
+        "%(validator)s was niet in staat om uw query te controleren.\nControleer uw query opnieuw.\nUitzondering: %(ex)s"
+      ],
+      "No validator named {} found (configured for the {} engine)": [""],
       "Deleted %(num)d dataset": [
         "Verwijderde %(num)d dataset",
         "Verwijderde %(num)d datasets"
@@ -726,6 +630,7 @@
       "Changing this dataset is forbidden.": [
         "Het is verboden deze dataset te wijzigen."
       ],
+      "The database was not found.": [""],
       "Dataset %(name)s already exists": ["Dataset %(name)s bestaat al"],
       "Database not allowed to change": ["Database mag niet wijzigen"],
       "One or more columns do not exist": ["Een of meer kolommen bestaan niet"],
@@ -745,6 +650,7 @@
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
         ""
       ],
+      "Dataset does not exist": ["Dataset bestaat niet"],
       "Dataset parameters are invalid.": ["Dataset parameters zijn ongeldig."],
       "Dataset could not be created.": ["Dataset kon niet worden aangemaakt."],
       "Dataset could not be updated.": ["Dataset kon niet worden bijgewerkt."],
@@ -758,7 +664,6 @@
       "Import dataset failed for an unknown reason": [
         "Import dataset mislukt om een onbekende reden"
       ],
-      "You don't have access to this dataset.": [""],
       "Dataset metric not found.": ["Dataset meeteenheid niet gevonden."],
       "Dataset metric delete failed.": [
         "Dataset meetgegevens verwijderen mislukt."
@@ -766,7 +671,6 @@
       "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.": [
         ""
       ],
-      "Original value": ["Originele waarde"],
       "Second": ["Seconde"],
       "5 second": [""],
       "30 second": [""],
@@ -793,7 +697,7 @@
       "Database name": ["Database naam"],
       "Additional parameters": [""],
       "Use an encrypted connection to the database": [""],
-      "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
+      "Unable to connect. Verify that the following roles are set on the service account: \"BigQuery Data Viewer\", \"BigQuery Metadata Viewer\", \"BigQuery Job User\" and the following permissions are set \"bigquery.readsessions.create\", \"bigquery.readsessions.getData\"": [
         ""
       ],
       "The table \"%(table)s\" does not exist. A valid table must be used to run this query.": [
@@ -805,6 +709,7 @@
       "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.": [
         ""
       ],
+      "We can't seem to resolve the column \"%(column_name)s\"": [""],
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         ""
       ],
@@ -856,40 +761,32 @@
         ""
       ],
       "%(object)s does not exist in this database.": [""],
-      "We can't seem to resolve the column \"%(column_name)s\"": [""],
+      "Form data not found in cache, reverting to chart metadata.": [""],
+      "Form data not found in cache, reverting to dataset metadata.": [""],
+      "[Missing Dataset]": ["[Missing Dataset]"],
       "Home": ["Home"],
-      "Annotation Layers": ["Aantekeningen Lagen"],
-      "Manage": ["Beheer"],
+      "Data": ["Gegevens"],
       "Dashboards": ["Dashboards"],
       "Charts": ["Grafieken"],
+      "Datasets": ["Datasets"],
       "Plugins": ["Plugins"],
+      "Manage": ["Beheer"],
       "CSS Templates": ["CSS-sjablonen"],
-      "Row Level Security": [""],
-      "Security": ["Beveiliging"],
       "Import Dashboards": ["Dashboards importeren"],
-      "SQL Editor": ["SQL-editor"],
       "SQL Lab": ["SQL-lab"],
+      "SQL": ["SQL"],
       "Saved Queries": ["Opgeslagen Queries"],
       "Query History": ["Query Geschiedenis"],
-      "Databases": ["Databases"],
-      "Data": ["Gegevens"],
-      "Datasets": ["Datasets"],
       "Action Log": ["Actie Log"],
-      "Dashboard Emails": ["Dashboard E-mails"],
-      "Chart Email Schedules": ["E-mail schema’s grafieken"],
-      "Alerts": ["Waarschuwingen"],
+      "Security": ["Beveiliging"],
       "Alerts & Reports": ["Waarschuwingen en rapporten"],
+      "Annotation Layers": ["Aantekeningen Lagen"],
       "Access requests": ["Toegangsverzoeken"],
-      "Scan New Datasources": ["Scan Nieuwe Databronnen"],
-      "Refresh Druid Metadata": ["Druid metagegevens vernieuwen"],
-      "An error occurred while creating the value.": [""],
-      "An error occurred while accessing the value.": [""],
+      "Row Level Security": [""],
       "An error occurred while deleting the value.": [""],
       "An error occurred while updating the value.": [""],
       "You don't have permission to modify the value.": [""],
-      "Temporal expression not supported for type: %(col_type)s": [
-        "Tijdelijke uitdrukking niet ondersteund voor type: %(col_type)s"
-      ],
+      "Invalid permalink key": [""],
       "Deleted %(num)d saved query": [
         "%(num)d opgeslagen query verwijderd",
         "%(num)d opgeslagen zoekopdrachten verwijderd"
@@ -915,6 +812,7 @@
       "Alert query returned more than one column. %s columns returned": [
         "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
       ],
+      "Invalid tab ids: %s(tab_ids)": [""],
       "Dashboard does not exist": ["Het dashboard bestaat niet"],
       "Chart does not exist": ["Grafiek bestaat niet"],
       "Database is required for alerts": [
@@ -965,6 +863,7 @@
       "Report Schedule reached a working timeout.": [
         "Rapportage planning heeft een werk time-out bereikt."
       ],
+      "Resource already has an attached report.": [""],
       "Alert query returned more than one row.": [
         "Alert query retourneerde meer dan één rij."
       ],
@@ -995,9 +894,6 @@
       ],
       "Alert ended grace period.": ["Waarschuwing beëindigd grace period."],
       "Alert on grace period": ["Waarschuwing tijdens grace period"],
-      "Report Schedule sellenium user not found": [
-        "Rapport Schema sellenium gebruiker niet gevonden"
-      ],
       "Report Schedule state not found": [
         "Rapport Schedule state niet gevonden"
       ],
@@ -1011,7 +907,7 @@
       "\n            Error: %(text)s\n            ": [
         "\n            Fout: %(text)s\n            "
       ],
-      "Explore in Superset": [""],
+      "EMAIL_REPORTS_CTA": [""],
       "%(name)s.csv": ["%(name)s.csv"],
       "%(prefix)s %(title)s": ["%(prefix)s %(title)s"],
       "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
@@ -1024,6 +920,9 @@
       "The database referenced in this query was not found. Please contact an administrator for further assistance or try again.": [
         ""
       ],
+      "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
+        ""
+      ],
       "The parameter %(parameters)s in your query is undefined.": [
         "",
         "The following parameters in your query are undefined: %(parameters)s."
@@ -1032,27 +931,6 @@
       "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again.": [
         ""
       ],
-      "\n        *%(name)s*\n\n        <%(url)s|Explore in Superset>\n        ": [
-        "\n        *%(name)s*\n\n        <%(url)s|Verken in Superset>\n        "
-      ],
-      "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>": [
-        "<b><a href=“%(url)s”>Verken in Superset</a></b><p></p>"
-      ],
-      "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
-        "\n            <b><a href=“%(url)s”>Verken in Superset</a></b><p></p>\n            <img src=“cid:%(msgid)s”>\n            "
-      ],
-      "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
-        "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Verken in Superset>\n        "
-      ],
-      "[Alert] %(label)s": ["[Alert] %(label)s"],
-      "New": ["Nieuw"],
-      "SQL Query": ["SQL Query"],
-      "Chart": ["Grafiek"],
-      "Dashboard": ["Dashboard"],
-      "Profile": ["Profiel"],
-      "Info": ["Info"],
-      "Logout": ["Afmelden"],
-      "Login": ["Aanmelden"],
       "Record Count": ["Record Aantal"],
       "No records found": ["Geen gegevens gevonden"],
       "Filter List": ["Filter Lijst"],
@@ -1075,7 +953,7 @@
         "[Superset] Toegang tot de gegevensbron %(name)s werd verleend"
       ],
       "Unsupported clause type: %(clause)s": [""],
-      "Invalid metric object": [""],
+      "Invalid metric object: %(metric)s": [""],
       "Unable to find such a holiday: [%(holiday)s]": [
         "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
       ],
@@ -1142,46 +1020,9 @@
       "User": ["Gebruiker"],
       "User Roles": ["Gebruikersrollen"],
       "Database URL": ["Database URL"],
+      "Datasource": ["Gegevensbron"],
       "Roles to grant": ["Toe te kennen rollen"],
       "Created On": ["Gecreëerd op"],
-      "List Observations": ["Lijst van waarnemingen"],
-      "Show Observation": ["Toon Waarneming"],
-      "Error Message": ["Foutmelding"],
-      "Log Retentions (days)": ["Log Retentie (dagen)"],
-      "A semicolon ';' delimited list of email addresses": [
-        "Een puntkomma ‘;’ afgebakende lijst van e-mailadressen"
-      ],
-      "How long to keep the logs around for this alert": [
-        "Hoe lang moet ik de logs bewaren voor deze waarschuwing"
-      ],
-      "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        ""
-      ],
-      "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
-        ""
-      ],
-      "This feature is deprecated and will be removed on 2.0. Take a look at the replacement feature <a href='https://superset.apache.org/docs/installation/alerts-reports'>Alerts & Reports documentation</a>": [
-        ""
-      ],
-      "annotation start time or end time is required.": [
-        "begintijd of eindtijd van de aantekening is vereist."
-      ],
-      "Annotation end time must be no earlier than start time.": [
-        "De eindtijd van de aantekening mag niet vroeger zijn dan de begintijd."
-      ],
-      "Annotations": ["Aantekeningen"],
-      "Show Annotation": ["Toon Aantekening"],
-      "Add Annotation": ["Voeg Aantekening toe"],
-      "Edit Annotation": ["Bewerk Aantekening"],
-      "Layer": ["Laag"],
-      "Label": ["Label"],
-      "Start": ["Start"],
-      "End": ["Einde"],
-      "JSON Metadata": ["JSON Metadata"],
-      "Show Annotation Layer": ["Toon Aantekeningen Laag"],
-      "Add Annotation Layer": ["Voeg Aantekeningen Laag toe"],
-      "Edit Annotation Layer": ["Bewerk Aantenekening Laag"],
-      "Name": ["Naam"],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "De tabel [%{table}s] kon niet worden gevonden, controleer uw databaseverbinding, schema en tabelnaam, fout: {}"
       ],
@@ -1210,25 +1051,17 @@
       "You have no permission to approve this request": [
         "Je hebt geen toestemming om dit verzoek goed te keuren"
       ],
-      "You don't have the rights to ": ["Je hebt niet de rechten om "],
-      "download as csv": [""],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
         "Kan dashboard niet importeren: %(db_error)s.\nZorg ervoor dat u de database aanmaakt voordat u het dashboard importeert."
       ],
       "An unknown error occurred. Please contact your Superset administrator": [
         "Er is een onbekende fout opgetreden. Neem contact op met uw Superset-beheerder"
       ],
-      "Form data not found in cache, reverting to chart metadata.": [""],
-      "Form data not found in cache, reverting to dataset metadata.": [""],
-      "[Missing Dataset]": ["[Missing Dataset]"],
-      "alter this ": ["wijzig dit "],
-      "chart": ["grafiek"],
-      "create a ": ["maak een "],
+      "Error: %(msg)s": [""],
       "Explore - %(table)s": ["Verken - %(table)s"],
       "Explore": ["Verken"],
       "Chart [{}] has been saved": ["Grafiek [{}] is opgeslagen"],
       "Chart [{}] has been overwritten": ["Grafiek [{}] is overschreven"],
-      "dashboard": ["dashboard"],
       "Chart [{}] was added to dashboard [{}]": [
         "Grafiek [{}] werd toegevoegd aan dashboard [{}]"
       ],
@@ -1251,13 +1084,7 @@
       "Table %(table)s wasn't found in the database %(db)s": [
         "Tabwl %(table)s werd niet gevonden in de database %(db)s"
       ],
-      "Can't find user, please ask your admin to create one.": [""],
-      "Can't find DruidCluster": [""],
       "One or more required fields are missing in the request. Please try again, and if the problem persists conctact your administrator.": [
-        ""
-      ],
-      "The database was not found.": [""],
-      "You are not authorized to fetch samples from this table. If you think this is an error, please reach out to your administrator.": [
         ""
       ],
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
@@ -1273,9 +1100,6 @@
         ""
       ],
       "The provided `rows` argument is not a valid integer.": [""],
-      "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
-        "%(validator)s was niet in staat om uw query te controleren.\nControleer uw query opnieuw.\nUitzondering: %(ex)s"
-      ],
       "%(user)s's profile": ["%(user)s’s profiel"],
       "Show CSS Template": ["Toon CSS Template"],
       "Add CSS Template": ["Voeg CSS Template toe"],
@@ -1292,33 +1116,6 @@
       "Custom Plugin": ["Custom Plugin"],
       "Add a Plugin": ["Voeg een Plugin toe"],
       "Edit Plugin": ["Bewerk Plugin"],
-      "Schedule Email Reports for Dashboards": [
-        "E-mailrapporten voor dashboards plannen"
-      ],
-      "Manage Email Reports for Dashboards": [
-        "Beheer e-mailrapporten voor dashboards"
-      ],
-      "Changed On": ["Gewijzigd op"],
-      "Active": ["Actief"],
-      "Crontab": ["Crontab"],
-      "Recipients": ["Ontvangers"],
-      "Slack Channel": ["Slack Kanaal"],
-      "Deliver As Group": ["Lever als Groep"],
-      "Delivery Type": ["Type levering"],
-      "Schedule Email Reports for Charts": [
-        "E-mailrapporten voor grafieken plannen"
-      ],
-      "Manage Email Reports for Charts": [
-        "Beheer e-mailrapporten voor grafieken"
-      ],
-      "Email Format": ["Email Formaat"],
-      "List Saved Query": ["Lijst Opgeslagen Query"],
-      "Show Saved Query": ["Toon Opgeslagen Query"],
-      "Add Saved Query": ["Voeg Opgeslagen Query toe"],
-      "Edit Saved Query": ["Bewerk Opgeslagen Query"],
-      "End Time": ["Eindtijd"],
-      "Pop Tab Link": ["Pop Tab Link"],
-      "Changed on": ["Gewijzigd op"],
       "The dataset associated with this chart no longer exists": [
         "De dataset die bij deze grafiek hoort bestaat niet meer"
       ],
@@ -1333,8 +1130,11 @@
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Duur (in seconden) van de caching timeout voor deze grafiek. Merk op dat dit standaard de datasource/tabel timeout is indien ongedefinieerd."
       ],
+      "Creator": ["Maker"],
       "Last Modified": ["Laatst gewijzigd"],
       "Parameters": ["Parameters"],
+      "Chart": ["Grafiek"],
+      "Name": ["Naam"],
       "Visualization Type": ["Type visualisatie"],
       "Show Dashboard": ["Toon Dashboard"],
       "Add Dashboard": ["Voeg Dashboard toe"],
@@ -1360,93 +1160,52 @@
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
         "Bepaalt of dit dashboard al dan niet zichtbaar is in de lijst van alle dashboards"
       ],
+      "Dashboard": ["Dashboard"],
       "Title": ["Titel"],
       "Slug": ["Slug"],
+      "Roles": ["Rollen"],
       "Published": ["Gepubliceerd"],
       "Position JSON": ["Positie JSON"],
       "CSS": ["CSS"],
+      "JSON Metadata": ["JSON Metadata"],
       "Export": ["Export"],
       "Export dashboards?": ["Export dashboards?"],
-      "Name of table to be created from csv data.": [
-        "Naam van de tabel die op basis van csv-gegevens moet worden gemaakt."
-      ],
-      "CSV File": ["CSV Bestand"],
-      "Select a CSV file to be uploaded to a database.": [
-        "Selecteer een CSV-bestand dat moet worden geüpload naar een database."
-      ],
       "Only the following file extensions are allowed: %(allowed_extensions)s": [
         "Alleen de volgende bestandsextensies zijn toegestaan: %(allowed_extensions)s"
       ],
-      "Specify a schema (if database flavor supports this).": [
-        "Geef een schema op (als de databasesmaak dit ondersteunt)."
-      ],
+      "Table name cannot contain a schema": [""],
+      "Select a database to upload the file to": [""],
       "Delimiter": ["Scheidingsteken"],
-      "Delimiter used by CSV file (for whitespace use \\s+).": [
-        "Scheidingsteken dat door het CSV-bestand wordt gebruikt (gebruik voor spaties “s+)."
-      ],
-      "Table Exists": ["De tabel bestaat reeds"],
-      "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
-        ""
-      ],
+      ",": [""],
+      ".": [""],
+      "Other": [""],
       "Fail": ["Fout"],
       "Replace": ["Vervang"],
       "Append": ["Voeg toe"],
-      "Header Row": ["Koptekst rij"],
-      "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
+      "Skip Initial Space": ["Eerste spatie overslaan"],
+      "Skip Blank Lines": ["Blanco regels overslaan"],
+      "Decimal Character": ["Decimaal teken"],
+      "Json list of the values that should be treated as null. Examples: [\"\"] for empty strings, [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports only a single value": [
         ""
       ],
       "Index Column": ["Index Kolom"],
-      "Column to use as the row labels of the dataframe. Leave empty if no index column.": [
+      "Column to use as the row labels of the dataframe. Leave empty if no index column": [
         ""
-      ],
-      "Mangle Duplicate Columns": ["Dubbele kolommen verwijderen"],
-      "Specify duplicate columns as \"X.0, X.1\".": [
-        "Specificeer dubbele kolommen als “X.0, X.1”."
-      ],
-      "Use Columns": [""],
-      "Json list of the column names that should be read. If not None, only these columns will be read from the file.": [
-        ""
-      ],
-      "Skip Initial Space": ["Eerste spatie overslaan"],
-      "Skip spaces after delimiter.": [
-        "Spaties overslaan na het scheidingsteken."
-      ],
-      "Skip Rows": ["Rijen overslaan"],
-      "Number of rows to skip at start of file.": [
-        "Aantal rijen om over te slaan aan het begin van het bestand."
-      ],
-      "Rows to Read": ["Te lezen rijen"],
-      "Number of rows of file to read.": [
-        "Aantal rijen van het te lezen bestand."
-      ],
-      "Skip Blank Lines": ["Blanco regels overslaan"],
-      "Skip blank lines rather than interpreting them as NaN values.": [
-        "Sla lege regels over in plaats van ze te interpreteren als NaN waarden."
-      ],
-      "Parse Dates": ["Bereken Data"],
-      "A comma separated list of columns that should be parsed as dates.": [
-        "Een door komma’s gescheiden lijst van kolommen die als datums moeten worden geparseerd."
-      ],
-      "Infer Datetime Format": ["Afleiden Datetime Formaat"],
-      "Use Pandas to interpret the datetime format automatically.": [
-        "Gebruik Pandas om het datetime formaat automatisch te interpreteren."
-      ],
-      "Decimal Character": ["Decimaal teken"],
-      "Character to interpret as decimal point.": [
-        "Teken te interpreteren als decimaalteken."
       ],
       "Dataframe Index": ["Dataframe Index"],
-      "Write dataframe index as a column.": [
-        "Schrijf dataframe index als een kolom."
-      ],
       "Column Label(s)": ["Kolom Label(s)"],
-      "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
+      "Column label for index column(s). If None is given and Dataframe Index is checked, Index Names are used": [
         ""
       ],
-      "Null values": ["Nul waarden"],
-      "Json list of the values that should be treated as null. Examples: [\"\"], [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports only single value. Use [\"\"] for empty string.": [
+      "If duplicate columns are not overridden, they will be presented as \"X.1, X.2 ...X.x\"": [
         ""
       ],
+      "Header Row": ["Koptekst rij"],
+      "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row": [
+        ""
+      ],
+      "Rows to Read": ["Te lezen rijen"],
+      "Skip Rows": ["Rijen overslaan"],
       "Name of table to be created from excel data.": [
         "Naam van de tabel die moet worden aangemaakt op basis van excel-gegevens."
       ],
@@ -1458,9 +1217,54 @@
       "Strings used for sheet names (default is the first sheet).": [
         "Strings gebruikt voor bladnamen (standaard is het eerste blad)."
       ],
+      "Specify a schema (if database flavor supports this).": [
+        "Geef een schema op (als de databasesmaak dit ondersteunt)."
+      ],
+      "Table Exists": ["De tabel bestaat reeds"],
+      "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
+        ""
+      ],
+      "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
+        ""
+      ],
+      "Column to use as the row labels of the dataframe. Leave empty if no index column.": [
+        ""
+      ],
+      "Mangle Duplicate Columns": ["Dubbele kolommen verwijderen"],
+      "Specify duplicate columns as \"X.0, X.1\".": [
+        "Specificeer dubbele kolommen als “X.0, X.1”."
+      ],
+      "Number of rows to skip at start of file.": [
+        "Aantal rijen om over te slaan aan het begin van het bestand."
+      ],
+      "Number of rows of file to read.": [
+        "Aantal rijen van het te lezen bestand."
+      ],
+      "Parse Dates": ["Bereken Data"],
+      "A comma separated list of columns that should be parsed as dates.": [
+        "Een door komma’s gescheiden lijst van kolommen die als datums moeten worden geparseerd."
+      ],
+      "Character to interpret as decimal point.": [
+        "Teken te interpreteren als decimaalteken."
+      ],
+      "Write dataframe index as a column.": [
+        "Schrijf dataframe index als een kolom."
+      ],
+      "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
+        ""
+      ],
+      "Null values": ["Nul waarden"],
+      "Json list of the values that should be treated as null. Examples: [\"\"], [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports only single value. Use [\"\"] for empty string.": [
+        ""
+      ],
       "Name of table to be created from columnar data.": [""],
       "Columnar File": [""],
       "Select a Columnar file to be uploaded to a database.": [""],
+      "Use Columns": [""],
+      "Json list of the column names that should be read. If not None, only these columns will be read from the file.": [
+        ""
+      ],
+      "Databases": ["Databases"],
       "Show Database": ["Toon Database"],
       "Add Database": ["Voeg Database toe"],
       "Edit Database": ["Bewerk Database"],
@@ -1483,9 +1287,6 @@
       "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         ""
       ],
-      "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
-        ""
-      ],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         ""
       ],
@@ -1504,9 +1305,6 @@
       "Async Execution": ["Async uitvoering"],
       "Impersonate the logged on user": ["De aangemelde gebruiker imiteren"],
       "Allow Csv Upload": ["Csv upload toestaan"],
-      "Allow Multi Schema Metadata Fetch": [
-        "Sta Multi Schema Metadata Fetch toe"
-      ],
       "Backend": ["Backend"],
       "Extra field cannot be decoded by JSON. %(msg)s": [
         "Extra veld kan niet gedecodeerd worden door JSON. %(msg)s"
@@ -1518,9 +1316,6 @@
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": [
         ""
       ],
-      "You cannot specify a namespace both in the name of the table: \"%(csv_table.table)s\" and in the schema field: \"%(csv_table.schema)s\". Please remove one": [
-        ""
-      ],
       "Unable to upload CSV file \"%(filename)s\" to table \"%(table_name)s\" in database \"%(db_name)s\". Error message: %(error_msg)s": [
         ""
       ],
@@ -1529,9 +1324,6 @@
       ],
       "Excel to Database configuration": ["Excel naar Database configuratie"],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
-        ""
-      ],
-      "You cannot specify a namespace both in the name of the table: \"%(excel_table.table)s\" and in the schema field: \"%(excel_table.schema)s\". Please remove one": [
         ""
       ],
       "Unable to upload Excel file \"%(filename)s\" to table \"%(table_name)s\" in database \"%(db_name)s\". Error message: %(error_msg)s": [
@@ -1547,9 +1339,6 @@
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": [
         ""
       ],
-      "You cannot specify a namespace both in the name of the table: \"%(columnar_table.table)s\" and in the schema field: \"%(columnar_table.schema)s\". Please remove one": [
-        ""
-      ],
       "Unable to upload Columnar file \"%(filename)s\" to table \"%(table_name)s\" in database \"%(db_name)s\". Error message: %(error_msg)s": [
         ""
       ],
@@ -1557,6 +1346,9 @@
         ""
       ],
       "Request missing data field.": ["Verzoek om ontbrekend data veld."],
+      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
+        ""
+      ],
       "Duplicate column name(s): %(columns)s": [
         "Dubbele kolomnaam (of -namen): %(columns)s"
       ],
@@ -1566,10 +1358,18 @@
       "Edit Log": ["Bewerk Log"],
       "Action": ["Actie"],
       "dttm": ["dttm"],
+      "JSON": ["JSON"],
+      "List Saved Query": ["Lijst Opgeslagen Query"],
+      "Show Saved Query": ["Toon Opgeslagen Query"],
+      "Add Saved Query": ["Voeg Opgeslagen Query toe"],
+      "Edit Saved Query": ["Bewerk Opgeslagen Query"],
+      "Label": ["Label"],
+      "End Time": ["Eindtijd"],
+      "Pop Tab Link": ["Pop Tab Link"],
+      "Changed on": ["Gewijzigd op"],
       "Time Range": [""],
       "Time Column": [""],
       "Time Grain": [""],
-      "Origin": [""],
       "Time Granularity": [""],
       "Time": ["Tijd"],
       "A reference to the [Time] configuration, taking granularity into account": [
@@ -1584,10 +1384,12 @@
         "Het veranderen van deze controleknop heeft onmiddellijk effect"
       ],
       "Show info tooltip": [""],
-      "column name: %s": [""],
-      "verbose name: %s": [""],
-      "metric name: %s": [""],
-      "label name: %s": [""],
+      "SQL expression": ["SQL expressie"],
+      "function type icon": [""],
+      "string type icon": [""],
+      "numeric type icon": [""],
+      "boolean type icon": [""],
+      "temporal type icon": [""],
       "Advanced analytics": ["Geavanceerde analytics"],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "Dit onderdeel bevat opties die geavanceerde analytische nabewerking van queryresultaten mogelijk maken"
@@ -1608,19 +1410,42 @@
       ],
       "Time comparison": ["Tijdsvergelijking"],
       "Time shift": ["Time shift"],
+      "1 day ago": [""],
+      "1 week ago": [""],
+      "28 days ago": [""],
+      "52 weeks ago": [""],
+      "1 year ago": [""],
+      "104 weeks ago": [""],
+      "2 years ago": [""],
+      "156 weeks ago": [""],
+      "3 years ago": [""],
       "Overlay one or more timeseries from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is supported.": [
         ""
       ],
       "Calculation type": ["Soort berekening"],
+      "Difference": [""],
+      "Percentage change": [""],
+      "Ratio": [""],
       "How to display time shifts: as individual lines; as the difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
         ""
       ],
       "Resample": [""],
       "Rule": ["Regel"],
+      "1 minutely frequency": [""],
+      "1 calendar day frequency": [""],
+      "7 calendar day frequency": [""],
+      "1 month start frequency": [""],
+      "1 month end frequency": [""],
       "Pandas resample rule": ["Pandas resample regel"],
       "Fill method": [""],
+      "Null imputation": [""],
+      "Linear interpolation": [""],
+      "Forward values": [""],
+      "Backward values": [""],
       "Pandas resample method": ["Pandas resample methode"],
       "Annotations and Layers": [""],
+      "Left": [""],
+      "Top": [""],
       "Chart Title": [""],
       "X Axis": ["X As"],
       "X Axis Title": [""],
@@ -1629,6 +1454,7 @@
       "Y Axis Title": [""],
       "Y AXIS TITLE MARGIN": [""],
       "Y AXIS TITLE POSITION": [""],
+      "Query": ["Query"],
       "Predictive Analytics": [""],
       "Enable forecast": [""],
       "Enable forecasting": [""],
@@ -1636,12 +1462,17 @@
       "How many periods into the future do we want to predict": [""],
       "Confidence interval": [""],
       "Width of the confidence interval. Should be between 0 and 1": [""],
+      "Yearly seasonality": [""],
+      "Yes": ["Ja"],
+      "No": ["Nee"],
       "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
         ""
       ],
+      "Weekly seasonality": [""],
       "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
         ""
       ],
+      "Daily seasonality": [""],
       "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.": [
         ""
       ],
@@ -1659,15 +1490,16 @@
       "Extra parameters that any plugins can choose to set for use in Jinja templated queries": [
         ""
       ],
-      "Time range endpoints": ["Time range endpoints"],
-      "Time range endpoints (SIP-15)": ["Time range endpoints (SIP-15)"],
       "Color Scheme": [""],
-      "Group by": ["Groep per"],
-      "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
+      "Enable dashboard cross filters": [""],
+      "Contribution Mode": [""],
+      "Row": ["Rij"],
+      "Series": ["Series"],
+      "X-Axis Sort By": [""],
+      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
         ""
       ],
       "One or many columns to pivot as columns": [""],
-      "Series": ["Series"],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
         ""
       ],
@@ -1700,11 +1532,11 @@
         ""
       ],
       "Drop temporal column here": [""],
-      "Emit dashboard cross filters": [""],
-      "Emit dashboard cross filters.": [""],
-      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
-        ""
-      ],
+      "Drop a temporal column here or click": [""],
+      "Y-axis": [""],
+      "Dimension to use on y-axis.": [""],
+      "X-axis": [""],
+      "Dimension to use on x-axis.": [""],
       "The type of visualization to display": [
         "Het type visualisatie dat moet worden weergegeven"
       ],
@@ -1713,36 +1545,37 @@
         "Gebruik dit om een statische kleur te definiëren voor alle cirkels"
       ],
       "Linear Color Scheme": [""],
-      "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`": [
-        "Definieert de oorsprong waar de time buckets beginnen, accepteert natuurlijke datums als in `nu`, `zondag` of `1970-01-01`"
-      ],
+      "30 seconds": ["30 seconden"],
+      "1 minute": ["1 minuut"],
+      "5 minutes": ["5 minuten"],
+      "30 minutes": ["30 minuten"],
+      "1 hour": ["1 uur"],
+      "week": ["week"],
+      "month": ["maand"],
+      "year": ["jaar"],
       "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`": [
         ""
       ],
       "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
         ""
       ],
-      "No filter": [""],
       "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
         ""
       ],
       "Row limit": ["Rij limiet"],
       "Limits the number of rows that get displayed.": [""],
+      "Sort Descending": [""],
+      "Whether to sort descending or ascending": [
+        "Aflopend of oplopend sorteren"
+      ],
       "Series limit": ["Serie limiet"],
       "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
         ""
       ],
       "Y Axis Format": ["Y-as Formaat"],
-      "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
-        ""
-      ],
       "Time format": [""],
       "The color scheme for rendering chart": [
         "Het kleurenschema voor de rendering grafiek"
-      ],
-      "Sort descending": ["Sorteer aflopend"],
-      "Whether to sort descending or ascending. Takes effect only when \"Sort by\" is set": [
-        ""
       ],
       "Show less columns": [""],
       "Show all columns": [""],
@@ -1759,7 +1592,6 @@
       ],
       "Text align": [""],
       "Horizontal alignment": [""],
-      "Left": [""],
       "Center": [""],
       "Right": [""],
       "Show cell bars": [""],
@@ -1772,15 +1604,19 @@
       "Whether to colorize numeric values by if they are positive or negative": [
         ""
       ],
+      "Truncate Cells": [""],
+      "Truncate long cells to the \"min width\" set above": [""],
       "Small number format": [""],
       "D3 number format for numbers between -1.0 and 1.0, useful when you want to have different siginificant digits for small and large numbers": [
         ""
       ],
       "D3 format syntax: https://github.com/d3/d3-format": [""],
       "Adaptive formatting": [""],
+      "Original value": ["Originele waarde"],
       "Duration in ms (66000 => 1m 6s)": [""],
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "D3 time format syntax: https://github.com/d3/d3-time-format": [""],
+      "Stack Trace:": [""],
       "No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.": [
         ""
       ],
@@ -1789,8 +1625,9 @@
       "is expected to be an integer": [""],
       "is expected to be a number": [""],
       "cannot be empty": [""],
-      "Query": ["Query"],
       "Domain": [""],
+      "hour": ["uur"],
+      "day": ["dag"],
       "The time unit used for the grouping of blocks": [""],
       "Subdomain": [""],
       "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain": [
@@ -1885,13 +1722,6 @@
       ],
       "Event Flow": [""],
       "Progressive": [""],
-      "Link Length": [""],
-      "Link length in the force layout": [""],
-      "Charge": [""],
-      "Charge in the force layout": [""],
-      "Source / Target": [""],
-      "Choose a source and a target": [""],
-      "Force-directed Graph": [""],
       "Axis ascending": [""],
       "Axis descending": [""],
       "Metric ascending": [""],
@@ -1902,13 +1732,20 @@
       "YScale Interval": [""],
       "Number of steps to take between ticks when displaying the Y scale": [""],
       "Rendering": [""],
+      "pixelated (Sharp)": [""],
+      "auto (Smooth)": [""],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
         ""
       ],
       "Normalize Across": [""],
-      "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
+      "x": [""],
+      "y": [""],
+      "Color will be shaded based the normalized (0% to 100%) value of a given cell against the other cells in the selected range: ": [
         ""
       ],
+      "x: values are normalized within each column": [""],
+      "y: values are normalized within each row": [""],
+      "heatmap: values are normalized across the entire heatmap": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Bottom Margin": [""],
@@ -1950,10 +1787,6 @@
         ""
       ],
       "Population age data": [""],
-      "Sort Descending": [""],
-      "Whether to sort descending or ascending": [
-        "Aflopend of oplopend sorteren"
-      ],
       "Contribution": ["Bijdrage"],
       "Compute the contribution to the total": [
         "Bereken de bijdrage aan het totaal"
@@ -1968,6 +1801,9 @@
         ""
       ],
       "Horizon Chart": [""],
+      "Dark Cyan": [""],
+      "Gold": [""],
+      "Dim Gray": [""],
       "Longitude": [""],
       "Column containing longitude data": [""],
       "Latitude": [""],
@@ -1982,6 +1818,7 @@
         ""
       ],
       "Point Radius Unit": [""],
+      "Pixels": [""],
       "The unit of measure for the specified point radius": [""],
       "Labelling": [""],
       "label": [""],
@@ -1989,6 +1826,10 @@
         ""
       ],
       "Cluster label aggregator": [""],
+      "sum": [""],
+      "mean": [""],
+      "std": [""],
+      "var": [""],
       "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
         ""
       ],
@@ -1996,6 +1837,10 @@
       "Live render": [""],
       "Points and clusters will update as the viewport is being changed": [""],
       "Map Style": [""],
+      "Streets": [""],
+      "Dark": [""],
+      "Satellite Streets": [""],
+      "Outdoors": [""],
       "Base layer map style": [""],
       "Opacity": ["Opaciteit"],
       "Opacity of all clusters, points, and labels. Between 0 and 1.": [""],
@@ -2048,7 +1893,6 @@
       "Mean of values over specified period": [""],
       "Aggregate Sum": [""],
       "Sum of values over specified period": [""],
-      "Difference": [""],
       "Metric change in value from `since` to `until`": [""],
       "Percent Change": [""],
       "Metric percent change in value from `since` to `until`": [""],
@@ -2076,11 +1920,22 @@
       ],
       "Rolling Window": [""],
       "Rolling Function": [""],
+      "cumsum": [""],
       "Min Periods": [""],
       "Time Comparison": [""],
       "Time Shift": [""],
-      "Python Functions": [""],
+      "30 days": ["30 dagen"],
+      "1T": [""],
+      "1H": [""],
+      "1D": [""],
+      "7D": [""],
+      "1M": [""],
+      "1AS": [""],
       "Method": ["Methode"],
+      "asfreq": [""],
+      "bfill": [""],
+      "ffill": [""],
+      "median": [""],
       "Part of a Whole": [""],
       "Compare the same summarized metric across multiple groups.": [""],
       "Partition Chart": [""],
@@ -2102,6 +1957,7 @@
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
         ""
       ],
+      "Pivot Table (legacy)": [""],
       "Use Area Proportions": [""],
       "Check if the Rose Chart should use segment area instead of segment radius for proportioning": [
         ""
@@ -2112,6 +1968,8 @@
       "Nightingale Rose Chart": [""],
       "Advanced-Analytics": [""],
       "Multi-Layers": [""],
+      "Source / Target": [""],
+      "Choose a source and a target": [""],
       "Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.": [
         ""
       ],
@@ -2142,22 +2000,29 @@
       ],
       "Sunburst Chart": [""],
       "Multi-Levels": [""],
-      "Ratio": [""],
       "Target aspect ratio for treemap tiles.": [""],
       "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
         ""
       ],
+      "Treemap (legacy)": [""],
+      "Unable to process right-click on %s. Check you chart configuration.": [
+        ""
+      ],
       "Country Field Type": [""],
+      "code International Olympic Committee (cioc)": [""],
+      "code ISO 3166-1 alpha-2 (cca2)": [""],
+      "code ISO 3166-1 alpha-3 (cca3)": [""],
       "The country code standard that Superset should expect to find in the [country] column": [
         ""
       ],
       "Show Bubbles": [""],
       "Whether to display bubbles on top of countries": [""],
       "Max Bubble Size": [""],
+      "Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette": [
+        ""
+      ],
       "Country Column": [""],
       "3 letter code of the country": [""],
-      "Metric for Color": [""],
-      "Metric that defines the color of the country": [""],
       "Metric that defines the size of the bubble": [""],
       "Bubble Color": [""],
       "Country Color Scheme": [""],
@@ -2167,70 +2032,57 @@
       "Multi-Dimensions": [""],
       "Multi-Variables": [""],
       "Popular": [""],
-      "deck.gl charts": [""],
       "Pick a set of deck.gl charts to layer on top of one another": [""],
       "Select charts": [""],
       "Error while fetching charts": [""],
       "Compose multiple layers together to form complex visuals.": [""],
-      "deck.gl Multiple Layers": [""],
       "deckGL": [""],
       "Data has no time steps": [""],
-      "Start Longitude & Latitude": [""],
       "Point to your spatial columns": [""],
-      "End Longitude & Latitude": [""],
-      "Arc": [""],
-      "Target Color": [""],
-      "Color of the target location": [""],
       "Categorical Color": [""],
       "Pick a dimension from which categorical colors are defined": [""],
-      "Stroke Width": [""],
       "Advanced": ["Geavanceerd"],
       "Plot the distance (like flight paths) between origin and destination.": [
         ""
       ],
-      "deck.gl Arc": [""],
       "3D": [""],
       "Web": [""],
-      "GeoJson Settings": [""],
       "Point Radius Scale": [""],
       "The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts).": [
         ""
       ],
-      "deck.gl Geojson": [""],
       "Height": ["Hoogte"],
       "Metric used to control height": [""],
       "Visualize geospatial data like 3D buildings, landscapes, or objects in grid view.": [
         ""
       ],
-      "deck.gl Grid": [""],
       "Experimental": [""],
       "Dynamic Aggregation Function": [""],
       "The function to use when aggregating points into groups": [""],
+      "p1": [""],
+      "p5": [""],
+      "p95": [""],
+      "p99": [""],
       "Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.": [
         ""
       ],
-      "deck.gl 3D Hexagon": [""],
+      "Polyline": [""],
       "Visualizes connected points, which form a path, on a map.": [""],
-      "deck.gl Path": [""],
-      "Polygon Column": [""],
-      "Polygon Encoding": [""],
-      "Elevation": [""],
-      "Polygon Settings": [""],
       "Opacity, expects values between 0 and 100": [""],
       "Number of buckets to group data": [""],
       "How many buckets should the data be grouped in.": [""],
       "Bucket break points": [""],
       "List of n+1 values for bucketing metric into n buckets.": [""],
-      "Emit Filter Events": [""],
       "Whether to apply filter when items are clicked": [""],
-      "Multiple filtering": [""],
       "Allow sending multiple polygons as a filter event": [""],
       "Visualizes geographic areas from your data as polygons on a Mapbox rendered map. Polygons can be colored using a metric.": [
         ""
       ],
-      "deck.gl Polygon": [""],
+      "Category": [""],
       "Point Size": [""],
       "Point Unit": [""],
+      "Radius in kilometers": [""],
+      "Radius in miles": [""],
       "Minimum Radius": [""],
       "Minimum radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this minimum radius.": [
         ""
@@ -2239,18 +2091,13 @@
       "Maxium radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this maximum radius.": [
         ""
       ],
-      "Point Color": [""],
       "A map that takes rendering circles with a variable radius at latitude/longitude coordinates": [
         ""
       ],
-      "deck.gl Scatterplot": [""],
-      "Grid": [""],
-      "Weight": [""],
       "Metric used as a weight for the grid's coloring": [""],
       "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale": [
         ""
       ],
-      "deck.gl Screen Grid": [""],
       "For more information about objects are in context in the scope of this function, refer to the": [
         ""
       ],
@@ -2262,8 +2109,6 @@
       "Whether to ignore locations that are null": [""],
       "Auto Zoom": [""],
       "When checked, the map will zoom to your data after each query": [""],
-      "Dimension": [""],
-      "Select a dimension": [""],
       "Extra data for JS": [""],
       "List of extra columns made available in Javascript functions": [""],
       "Javascript data interceptor": [""],
@@ -2278,35 +2123,24 @@
       "Define a function that returns a URL to navigate to when user clicks": [
         ""
       ],
-      "Legend Format": [""],
       "Choose the format for legend values": [""],
-      "Legend Position": [""],
-      "Choose the position of the legend": [""],
-      "Lines column": [""],
+      "Top right": [""],
+      "Bottom left": [""],
+      "Bottom right": [""],
       "The database columns that contains lines information": [""],
       "Line width": ["Lijndikte"],
-      "The width of the lines": [""],
-      "Fill Color": [""],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
         ""
       ],
-      "Stroke Color": [""],
-      "Filled": [""],
-      "Whether to fill the objects": [""],
       "Stroked": [""],
-      "Whether to display the stroke": [""],
-      "Extruded": [""],
       "Grid Size": [""],
       "Defines the grid size in pixels": [""],
       "Parameters related to the view and perspective on the map": [""],
-      "Longitude & Latitude": [""],
       "Fixed point radius": [""],
       "Multiplier": [""],
       "Factor to multiply the metric by": [""],
       "Lines encoding": [""],
-      "The encoding format of the lines": [""],
-      "Reverse Lat & Long": [""],
-      "GeoJson Column": [""],
+      "geohash (square)": [""],
       "Select the geojson column": [""],
       "Right Axis Format": [""],
       "Show Markers": [""],
@@ -2315,6 +2149,8 @@
       "Whether to display the min and max values of the Y-axis": [""],
       "Y 2 bounds": [""],
       "Line Style": [""],
+      "cardinal": [""],
+      "step-before": [""],
       "Line interpolation as defined by d3.js": [""],
       "Show Range Filter": [""],
       "Whether to display the time range interactive selector": [""],
@@ -2343,6 +2179,7 @@
       ],
       "You cannot use 45° tick layout along with the time range filter": [""],
       "Stacked Style": [""],
+      "stack": [""],
       "Evolution": [""],
       "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
         ""
@@ -2351,15 +2188,17 @@
       "Stacked style": [""],
       "Video game consoles": [""],
       "Vehicle Types": [""],
-      "Area Chart": [""],
+      "Area Chart (legacy)": [""],
       "Continuous": [""],
       "Line": [""],
       "nvd3": [""],
       "Deprecated": [""],
+      "Metric used to order the limit if a series limit is present. If undefined reverts to the first metric (where appropriate).": [
+        ""
+      ],
       "Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.": [
         ""
       ],
-      "Time-series Bar Chart": [""],
       "Bar": [""],
       "Vertical": [""],
       "Box Plot": [""],
@@ -2395,6 +2234,7 @@
       "Compares metrics from different categories using bars. Bar lengths are used to indicate the magnitude of each value and color is used to differentiate groups.": [
         ""
       ],
+      "Bar Chart (legacy)": [""],
       "Bar Chart": [""],
       "Additive": [""],
       "Discrete": [""],
@@ -2411,7 +2251,7 @@
       "Send range filter events to other charts": [""],
       "Classic chart that visualizes how metrics change over time.": [""],
       "Battery level over time": [""],
-      "Line Chart": [""],
+      "Line Chart (legacy)": [""],
       "Prefix metric name with slice name": [""],
       "Y Axis Left": [""],
       "Left Axis chart(s)": [""],
@@ -2424,6 +2264,11 @@
       ],
       "Multiple Line Charts": [""],
       "Label Type": [""],
+      "Value": ["Waarde"],
+      "Percentage": [""],
+      "Category and Value": [""],
+      "Category and Percentage": [""],
+      "Category, Value and Percentage": [""],
       "What should be shown on the label?": [""],
       "Donut": [""],
       "Do you want a donut or a pie?": [""],
@@ -2435,15 +2280,22 @@
       "Put the labels outside the pie?": [""],
       "Pie Chart": [""],
       "Frequency": [""],
+      "Year (freq=AS)": [""],
+      "Day (freq=D)": [""],
+      "4 weeks (freq=4W-MON)": [""],
       "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
         ""
       ],
       "Time-series Period Pivot": [""],
+      "Stack": [""],
       "Show legend": [""],
       "Whether to display a legend for the chart": [""],
       "Margin": [""],
       "Additional padding for legend.": [""],
+      "Scroll": [""],
+      "Plain": [""],
       "Legend type": [""],
+      "Bottom": [""],
       "Show Value": [""],
       "Show series values on the chart": [""],
       "Stack series": [""],
@@ -2452,10 +2304,6 @@
       "Only show the total value on the stacked chart, and not show on the selected category": [
         ""
       ],
-      "X-axis": [""],
-      "Dimension to use on x-axis.": [""],
-      "Y-axis": [""],
-      "Dimension to use on y-axis.": [""],
       "Percentage threshold": [""],
       "Minimum threshold in percentage points for showing labels.": [""],
       "Rich tooltip": [""],
@@ -2484,7 +2332,6 @@
       "Subheader Font Size": [""],
       "Subheader": [""],
       "Description text that shows up below your Big Number": [""],
-      "Force date format": [""],
       "Use date formatting even when metric value is not a timestamp": [""],
       "Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.": [
         ""
@@ -2513,11 +2360,12 @@
       ],
       "Whisker/outlier options": [""],
       "Determines how whiskers and outliers are calculated.": [""],
+      "Min/max (no outliers)": [""],
+      "2/98 percentiles": [""],
+      "9/91 percentiles": [""],
       "Categories to group by on the x-axis.": [""],
       "Distribute across": [""],
-      "Columns to calculate distribution across. Defaults to temporal column if left empty.": [
-        ""
-      ],
+      "Columns to calculate distribution across.": [""],
       "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
         ""
       ],
@@ -2633,6 +2481,10 @@
       "Graph Chart": [""],
       "Structural": [""],
       "Series type": [""],
+      "Smooth Line": [""],
+      "Step - start": [""],
+      "Step - middle": [""],
+      "Step - end": [""],
       "Series chart type (line, bar etc)": [""],
       "Area chart": [""],
       "Draw area under curves. Only applicable for line types.": [""],
@@ -2662,13 +2514,17 @@
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
       "Logarithmic scale on secondary y-axis": [""],
-      "Visualize two different time series using the same x-axis time range. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
+      "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
+        ""
+      ],
+      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
       "Mixed Time-Series": [""],
       "Put the labels outside of the pie?": [""],
       "Label Line": [""],
       "Draw line from Pie to label when labels outside?": [""],
+      "Whether to display the aggregate count": [""],
       "Pie shape": [""],
       "Outer Radius": [""],
       "Outer edge of Pie chart": [""],
@@ -2677,6 +2533,7 @@
       "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
         ""
       ],
+      "Total: %s": [""],
       "The maximum value of metrics. It is an optional configuration": [""],
       "Label position": [""],
       "Radar": [""],
@@ -2688,41 +2545,52 @@
         ""
       ],
       "Radar Chart": [""],
-      "Contribution Mode": [""],
-      "Calculate contribution per series or row": [""],
-      "Series Style": [""],
-      "Area chart opacity": [""],
-      "Opacity of Area Chart. Also applies to confidence band.": [""],
-      "Marker Size": [""],
       "Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
       "Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
-      "Generic Chart": [""],
       "Time-series Chart": [""],
+      "zoom area": [""],
+      "restore zoom": [""],
+      "Series Style": [""],
+      "Area chart opacity": [""],
+      "Opacity of Area Chart. Also applies to confidence band.": [""],
+      "Marker Size": [""],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
         ""
       ],
       "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
         ""
       ],
-      "Area Chart v2": [""],
+      "Area Chart": [""],
       "Time-series Area Chart": [""],
-      "It’s not recommended to truncate y-axis in Bar chart.": [""],
+      "AXIS TITLE MARGIN": [""],
+      "AXIS TITLE POSITION": [""],
+      "Rotate axis label": [""],
+      "Logarithmic axis": [""],
+      "Draw split lines for minor axis ticks": [""],
+      "Truncate Axis": [""],
+      "It’s not recommended to truncate axis in Bar chart.": [""],
+      "Axis Bounds": [""],
+      "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Chart Orientation": [""],
+      "Horizontal": [""],
       "Bar Charts are used to show metrics as a series of bars.": [""],
       "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
         ""
       ],
-      "Bar Chart v2": [""],
-      "Time-series Bar Chart v2": [""],
+      "Time-series Bar Chart": [""],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         ""
       ],
       "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         ""
       ],
+      "Line Chart": [""],
       "Time-series Line Chart": [""],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         ""
@@ -2738,9 +2606,10 @@
       "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         ""
       ],
-      "Smooth Line": [""],
       "Time-series Smooth Line": [""],
       "Step type": [""],
+      "Start": ["Start"],
+      "End": ["Einde"],
       "Defines whether the step should appear at the beginning, middle or end between two data points": [
         ""
       ],
@@ -2801,17 +2670,58 @@
       "Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.": [
         ""
       ],
-      "Treemap v2": [""],
+      "page_size.all": [""],
+      "Loading...": ["Bezig met laden…"],
+      "Write a handlebars template to render the data": [""],
+      "must have a value": [""],
+      "A handlebars template that is applied to the data": [""],
+      "Include time": [""],
+      "Whether to include the time granularity as defined in the time section": [
+        ""
+      ],
+      "Percentage metrics": [""],
+      "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
+        ""
+      ],
+      "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
+        ""
+      ],
+      "Ordering": [""],
+      "Order results by selected columns": [""],
+      "Sort descending": ["Sorteer aflopend"],
+      "Server pagination": [""],
+      "Enable server side pagination of results (experimental feature)": [""],
+      "Server Page Length": [""],
+      "Rows per page, 0 means no pagination": [""],
+      "Query mode": [""],
+      "Group By, Metrics or Percentage Metrics must have a value": [""],
+      "You need to configure HTML sanitization to use CSS": [""],
+      "CSS Styles": [""],
+      "CSS applied to the chart": [""],
       "Columns to group by on the columns": [""],
       "Rows": ["Rijen"],
       "Columns to group by on the rows": [""],
       "Apply metrics on": [""],
       "Use metrics as a top level group for columns or for rows": [""],
-      "Cell limit": [""],
       "Limits the number of cells that get retrieved.": [""],
       "Metric used to define how the top series are sorted if a series or cell limit is present. If undefined reverts to the first metric (where appropriate).": [
         ""
       ],
+      "Count Unique Values": [""],
+      "Sum": [""],
+      "Median": [""],
+      "Sample Variance": [""],
+      "Sample Standard Deviation": [""],
+      "Minimum": [""],
+      "Maximum": [""],
+      "First": [""],
+      "Last": [""],
+      "Sum as Fraction of Total": [""],
+      "Sum as Fraction of Rows": [""],
+      "Sum as Fraction of Columns": [""],
+      "Count as Fraction of Total": [""],
+      "Count as Fraction of Rows": [""],
+      "Count as Fraction of Columns": [""],
       "Show rows total": [""],
       "Display row level total": [""],
       "Show columns total": [""],
@@ -2833,8 +2743,6 @@
       "Change order of columns.": [""],
       "By key: use column names as sorting key": [""],
       "Rows subtotal position": [""],
-      "Top": [""],
-      "Bottom": [""],
       "Position of row level subtotal": [""],
       "Columns subtotal position": [""],
       "Position of column level subtotal": [""],
@@ -2843,39 +2751,24 @@
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         ""
       ],
-      "Pivot Table v2": [""],
+      "Subtotal": [""],
+      "Total": [""],
       "Unknown input format": [""],
       "search.num_records": [""],
       "page_size.show": [""],
       "page_size.entries": [""],
+      "Shift + Click to sort by multiple columns": [""],
       "Totals": [""],
-      "page_size.all": [""],
-      "Group By, Metrics or Percentage Metrics must have a value": [""],
-      "Query mode": [""],
-      "must have a value": [""],
-      "Percentage metrics": [""],
-      "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
-        ""
-      ],
-      "Ordering": [""],
-      "Order results by selected columns": [""],
-      "Server pagination": [""],
-      "Enable server side pagination of results (experimental feature)": [""],
-      "Server Page Length": [""],
-      "Rows per page, 0 means no pagination": [""],
-      "Include time": [""],
-      "Whether to include the time granularity as defined in the time section": [
-        ""
-      ],
-      "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
-        ""
-      ],
       "Timestamp format": [""],
       "Page length": [""],
       "Search box": [""],
       "Whether to include a client-side search box": [""],
       "Cell bars": [""],
       "Whether to align background charts with both positive and negative values at 0": [
+        ""
+      ],
+      "Allow columns to be rearranged": [""],
+      "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.": [
         ""
       ],
       "Customize columns": [""],
@@ -2894,7 +2787,6 @@
       "Visualizes the words in a column that appear the most often. Bigger font corresponds to higher frequency.": [
         ""
       ],
-      "Add item": ["Voeg item toe"],
       "The query couldn't be loaded": ["De query kon niet geladen worden"],
       "Your query has been scheduled. To see details of your query, navigate to Saved queries": [
         "Uw zoekopdracht is ingepland. Om de details van uw zoekopdracht te zien, navigeert u naar Opgeslagen zoekopdrachten"
@@ -2944,13 +2836,9 @@
       "An error occurred while setting the tab autorun. Please contact your administrator.": [
         "Er is een fout opgetreden bij het instellen van het tabblad autorun. Neem contact op met uw beheerder."
       ],
-      "An error occurred while setting the tab title. Please contact your administrator.": [
-        "Er is een fout opgetreden bij het instellen van de tabbladtitel. Neem contact op met uw beheerder."
-      ],
       "Your query could not be saved": [
         "Uw zoekopdracht kon niet worden opgeslagen"
       ],
-      "Your query was not properly saved": [""],
       "Your query was saved": ["Uw zoekopdracht werd opgeslagen"],
       "Your query was updated": ["Uw zoekopdracht werd bijgewerkt"],
       "Your query could not be updated": [
@@ -2990,6 +2878,8 @@
       "SQL Lab uses your browser's local storage to store queries and results.\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\nTo keep SQL Lab from crashing, please delete some query tabs.\nYou can re-access these queries by using the Save feature before you delete the tab.\nNote that you will need to close other SQL Lab windows before you do this.": [
         ""
       ],
+      "Primary key": [""],
+      "Foreign key": [""],
       "Estimate selected query cost": [
         "Kostenraming van de geselecteerde zoekopdracht"
       ],
@@ -3004,38 +2894,23 @@
       ],
       "Source SQL": ["Bron SQL"],
       "Executed SQL": [""],
-      "SQL": ["SQL"],
-      "No query history yet...": ["Nog geen zoekgeschiedenis…"],
-      "An error occurred when refreshing queries": [
-        "Er is een fout opgetreden bij het vernieuwen van de queries"
-      ],
-      "It seems you don't have access to any database": [
-        "Het lijkt erop dat je geen toegang hebt tot een database"
-      ],
-      "Filter by user": ["Filter op gebruiker"],
-      "Filter by database": ["Filter op database"],
-      "Query search string": ["Query zoek string"],
-      "[From]-": ["[From]-"],
-      "[To]-": ["[To]-"],
-      "Filter by status": ["Filter op status"],
       "Success": ["Succes"],
       "Failed": ["Mislukt"],
       "Running": ["Running"],
-      "Fetching": [""],
       "Offline": ["Offline"],
       "Scheduled": ["Gepland"],
       "Unknown Status": [""],
       "Edit": ["Bewerk"],
-      "View results": ["Resultaten weergeven"],
       "Data preview": ["Data preview"],
       "Overwrite text in the editor with a query on this table": [
         "Overschrijf tekst in de editor met een query op deze tabel"
       ],
       "Run query in a new tab": ["Query uitvoeren in een nieuw tabblad"],
       "Remove query from log": ["Verwijder de query uit de log"],
-      "An error occurred saving dataset": [
-        "Er is een fout opgetreden bij het opslaan van dataset"
-      ],
+      "Unable to create chart without a query id.": [""],
+      "Save & Explore": ["Opslaan en verkennen"],
+      "Overwrite & Explore": ["Overschrijven en verkennen"],
+      "Save this query as a virtual dataset to continue exploring": [""],
       "Download to CSV": ["Download naar CSV"],
       "Copy to Clipboard": ["Kopieer naar Klembord"],
       "Too many columns to filter": [""],
@@ -3055,6 +2930,8 @@
       ],
       "%(rows)d rows returned": [""],
       "The number of rows displayed is limited to %s by the dropdown.": [""],
+      "Track job": ["Track job"],
+      "See query details": [""],
       "Query was stopped": ["Query is gestopt"],
       "Database error": ["Database fout"],
       "was created": ["werd gecreëerd"],
@@ -3062,25 +2939,27 @@
       "The query returned no data": ["De query leverde geen gegevens op"],
       "Fetch data preview": ["Gegevens ophalen preview"],
       "Refetch results": ["Resultaten opnieuw ophalen"],
-      "Track job": ["Track job"],
       "Stop": ["Stop"],
       "Run selection": ["Selectie uitvoeren"],
       "Run": ["Uitvoeren"],
       "Stop running (Ctrl + x)": ["Stop de uitvoering (Ctrl + x)"],
-      "Stop running (Ctrl + e)": ["Stop de uitvoering (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Query uitvoeren (Ctrl + Return)"],
-      "Save & Explore": ["Opslaan en verkennen"],
-      "Overwrite & Explore": ["Overschrijven en verkennen"],
-      "Undefined": ["Ongedefinieerd"],
       "Save": ["Opslaan"],
+      "An error occurred saving dataset": [
+        "Er is een fout opgetreden bij het opslaan van dataset"
+      ],
+      "Save or Overwrite Dataset": [""],
+      "Back": [""],
+      "Save as new": ["Opslaan als nieuw"],
+      "Undefined": ["Ongedefinieerd"],
       "Save as": ["Opslaan als"],
       "Save query": ["Zoekopdracht opslaan"],
-      "Save as new": ["Opslaan als nieuw"],
       "Update": ["Update"],
       "Label for your query": ["Label voor uw zoekopdracht"],
       "Write a description for your query": [
         "Schrijf een omschrijving voor uw zoekopdracht."
       ],
+      "Submit": [""],
       "Schedule query": ["Query planning"],
       "Schedule": ["Planning"],
       "There was an error with your request": [
@@ -3099,15 +2978,11 @@
       "No stored results found, you need to re-run your query": [
         "Geen opgeslagen resultaten gevonden, u moet uw query opnieuw uitvoeren"
       ],
-      "Run a query to display results here": [
-        "Voer een query uit om de resultaten hier weer te geven"
-      ],
       "Preview: `%s`": ["Preview: `%s`"],
       "Results": ["Resultaten"],
       "Query history": ["Geschiedenis van de opzoeking"],
       "Run query": ["Zoekopdracht uitvoeren"],
       "New tab": ["Nieuw tabblad"],
-      "Untitled query": ["Naamloze zoekopdracht"],
       "Stop query": ["Query stoppen"],
       "Schedule the query periodically": ["Plan de zoekopdracht periodiek"],
       "You must run the query successfully first": [
@@ -3119,29 +2994,33 @@
       "Estimate the cost before running a query": [
         "Kostenraming voordat een query wordt uitgevoerd"
       ],
+      "Specify name to CREATE VIEW AS schema in: public": [""],
+      "Specify name to CREATE TABLE AS schema in: public": [""],
+      "Select a database to write a query": [""],
+      "Choose one of the available databases from the panel on the left.": [""],
+      "Create": ["Maak"],
       "Collapse table preview": [""],
       "Expand table preview": [""],
       "Reset state": ["Reset status"],
       "Enter a new title for the tab": [
         "Voer een nieuwe titel in voor het tabblad"
       ],
-      "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n": [
-        ""
-      ],
-      "Untitled Query %s": ["Naamloze Query %s"],
       "Close tab": ["Tabblad sluiten"],
       "Rename tab": ["Tabblad hernoemen"],
       "Expand tool bar": ["Werkbalk uitbreiden"],
       "Hide tool bar": ["Verberg werkbalk"],
       "Close all other tabs": ["Sluit alle andere tabbladen"],
       "Duplicate tab": ["Tabblad Dupliceren"],
+      "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n": [
+        ""
+      ],
       "New tab (Ctrl + q)": ["Nieuw tabblad (Ctrl + q)"],
       "New tab (Ctrl + t)": ["Nieuw tabblad (Ctrl + t)"],
+      "Add a new tab to create SQL Query": [""],
       "Copy partition query to clipboard": [
         "Kopieer partitie query naar klembord"
       ],
       "latest partition:": ["laatste partitie:"],
-      "Keys for table": ["Sleutels voor tabel"],
       "View keys & indexes (%s)": ["Bekijk sleutels & indexen (%s)"],
       "Original table column order": ["Originele tabel kolom volgorde"],
       "Sort columns alphabetically": ["Sorteer kolommen alfabetisch"],
@@ -3151,25 +3030,30 @@
       "Show CREATE VIEW statement": ["Toon CREATE VIEW statement"],
       "CREATE VIEW statement": ["CREATE VIEW statement"],
       "Remove table preview": ["Verwijder tabel preview"],
+      "below (example:": [""],
+      "), and they become available in your SQL (example:": [""],
+      "by using": [""],
       "Edit template parameters": ["Bewerk template parameters"],
       "Parameters ": [""],
       "Invalid JSON": ["Ongeldige JSON"],
-      "Create a new chart": ["Maak een nieuwe grafiek"],
-      "Choose a dataset": ["Kies een dataset"],
-      "Dataset": ["Dataset"],
-      "Instructions to add a dataset are available in the Superset tutorial.": [
-        ""
-      ],
-      "Choose chart type": [""],
-      "Please select both a Dataset and a Chart type to proceed": [""],
-      "Create new chart": ["Maak een nieuwe grafiek"],
-      "Drag and drop values into highlighted field(s) on the left control panel and run query": [
-        ""
-      ],
-      "Select values in highlighted field(s) on the left control panel and run query": [
-        ""
-      ],
+      "Untitled query": ["Naamloze zoekopdracht"],
+      "%s%s": ["%s%s"],
+      "Control": [""],
+      "Before": [""],
+      "After": [""],
+      "Click to see difference": ["Klik om het verschil te zien"],
+      "Altered": ["Gewijzigd"],
+      "Chart changes": ["Veranderingen in de grafiek"],
+      "Select ...": ["Selecteer …"],
+      "Loaded data cached": ["Geladen gegevens in de cache"],
+      "Loaded from cache": ["Geladen uit de cache"],
+      "Click to force-refresh": ["Klik om te herladen"],
       "Add required control values to preview chart": [""],
+      "Your chart is ready to go!": [""],
+      "Click on \"Create chart\" button in the control panel on the left to preview a visualization or": [
+        ""
+      ],
+      "click here": [""],
       "No results were returned for this query": [""],
       "Make sure that the controls are configured properly and the datasource contains data for the selected time range": [
         ""
@@ -3180,18 +3064,22 @@
       "Updating chart was stopped": [""],
       "An error occurred while rendering the visualization: %s": [""],
       "Network error.": [""],
-      "Click to see difference": ["Klik om het verschil te zien"],
-      "Altered": ["Gewijzigd"],
-      "Chart changes": ["Veranderingen in de grafiek"],
-      "Superset chart": ["Superset grafiek"],
-      "Check out this chart in dashboard:": [
-        "Kijk naar deze grafiek in het dashboard:"
+      "Drill to detail": [""],
+      "Drill to detail is disabled because this chart does not group data by dimension value.": [
+        ""
       ],
-      "Select ...": ["Selecteer …"],
-      "Loaded data cached": ["Geladen gegevens in de cache"],
-      "Loaded from cache": ["Geladen uit de cache"],
-      "Click to force-refresh": ["Klik om te herladen"],
-      "cached": ["cached"],
+      "Drill to detail by": [""],
+      "Drill to detail by value is not yet supported for this chart type.": [
+        ""
+      ],
+      "Right-click on a dimension value to drill to detail by that value.": [
+        ""
+      ],
+      "Close": ["Sluit"],
+      "Drill to detail: %s": [""],
+      "No rows were returned for this dataset": [""],
+      "Not available": [""],
+      "Copy": [""],
       "Copy to clipboard": ["Kopieer naar klembord"],
       "Copied to clipboard!": ["Gekopieerd naar het klembord!"],
       "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [
@@ -3205,11 +3093,6 @@
       "day of the week": ["dag van de week"],
       "every hour": ["elk uur"],
       "every minute": [""],
-      "year": ["jaar"],
-      "month": ["maand"],
-      "week": ["week"],
-      "day": ["dag"],
-      "hour": ["uur"],
       "minute": ["minuut"],
       "reboot": ["herstart"],
       "Every": ["Elke"],
@@ -3271,12 +3154,13 @@
       ],
       "dataset": ["dataset"],
       "Connection": [""],
-      "Change dataset": ["Wijzig dataset"],
+      "Proceed": [""],
       "Warning!": ["Waarschuwing!"],
       "Search / Filter": ["Zoek / Filter"],
+      "Add item": ["Voeg item toe"],
+      "BOOLEAN": [""],
       "Physical (table or view)": ["Fysiek (tabel of overzicht)"],
       "Virtual (SQL)": ["Virtueel (SQL)"],
-      "SQL expression": ["SQL expressie"],
       "Data type": ["Data type"],
       "Datetime format": ["Datetime formaat"],
       "The pattern of timestamp format. For strings use ": [
@@ -3298,7 +3182,6 @@
       "Certification details": ["Details certificering"],
       "Details of the certification": ["Details van de certificering"],
       "Is dimension": ["Is dimensie"],
-      "Default datetime": [""],
       "Is filterable": ["Kan gefilterd worden"],
       "Select owners": [""],
       "Modified columns: %s": ["Gewijzigde kolommen: %s"],
@@ -3347,9 +3230,6 @@
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
         ""
       ],
-      "The JSON metric or post aggregation definition.": [
-        "De JSON metrische of postaggregatiedefinitie."
-      ],
       "Physical": ["Fysiek"],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
         ""
@@ -3366,6 +3246,7 @@
       "Calculated columns": ["Berekende kolommen"],
       "Settings": ["Instellingen"],
       "The dataset has been saved": ["De dataset is opgeslagen"],
+      "Error": [""],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         "De dataset configuratie die hier wordt getoond\n                heeft invloed op alle grafieken die deze dataset gebruiken.\n                Wees je ervan bewust dat het veranderen van instellingen\n                hier invloed kan hebben op andere grafieken\n                op ongewenste manieren."
       ],
@@ -3375,6 +3256,9 @@
       "Confirm save": ["Opslaan bevestigen"],
       "Edit Dataset ": ["Bewerk Dataset "],
       "Use legacy datasource editor": ["Gebruik de legacy datasource editor"],
+      "This dataset is managed externally, and can't be edited in Superset": [
+        ""
+      ],
       "DELETE": ["VERWIJDER"],
       "delete": ["verwijder"],
       "Type \"%s\" to confirm": ["Type “%s” om te bevestigen"],
@@ -3382,6 +3266,9 @@
       "You don't have the rights to alter this title.": [
         "Je hebt niet de rechten om deze titel te veranderen."
       ],
+      "No databases match your search": [""],
+      "There are no databases available": [""],
+      "here": [""],
       "Unexpected error": ["Onverwachte fout"],
       "This may be triggered by:": ["Dit kan veroorzaakt worden door:"],
       "Please reach out to the Chart Owner for assistance.": [
@@ -3394,7 +3281,6 @@
       "See more": ["Zie meer"],
       "See less": ["Zie minder"],
       "Copy message": ["Kopieer bericht"],
-      "Close": ["Sluit"],
       "This was triggered by:": ["Dit werd veroorzaakt door:"],
       "Did you mean:": ["Bedoelde je:"],
       "%(suggestion)s instead of \"%(undefinedParameter)s?\"": [
@@ -3413,49 +3299,65 @@
         "Klik om voorkeur aan te geven/voorkeur te verwijderen"
       ],
       "Cell content": ["Cel inhoud"],
+      "Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions: ": [
+        ""
+      ],
       "OVERWRITE": ["OVERSCHRIJVEN"],
       "Overwrite": ["Overschrijven"],
       "Import": ["Importeer"],
       "Import %s": ["Importeer %s"],
       "Last Updated %s": ["Laatst bijgewerkt %s"],
       "Sort": [""],
+      "+ %s more": [""],
       "%s Selected": ["%s Geselecteerd"],
       "Deselect all": ["Alles deselecteren"],
+      "No results match your filter criteria": [""],
+      "Try different criteria to display results.": [""],
       "No Data": ["Geen Data"],
       "%s-%s of %s": ["%s-%s van %s"],
       "Type a value": [""],
       "Filter": [""],
       "Select or type a value": [""],
+      "Last modified": ["Laatst gewijzigd"],
+      "Modified by": ["Gewijzigd door"],
+      "Created by": ["Gecreëerd door"],
+      "Created on": ["Gemaakt op"],
+      "Tags": [""],
       "OK": ["OK"],
-      "An error occurred while fetching dashboards": [""],
-      "Search all dashboards": [""],
-      "Edit Email Report": [""],
-      "New Email Report": [""],
+      "Menu actions trigger": [""],
+      "Weekly Report for %s": [""],
+      "Edit email report": [""],
       "Add": ["Voeg toe"],
-      "Message Content": [""],
+      "Message content": ["Inhoud van het bericht"],
       "Text embedded in email": [""],
       "Image (PNG) embedded in email": [""],
       "Formatted CSV attached in email": [""],
-      "Weekly Report": [""],
       "Include a description that will be sent with your report": [""],
-      "Scheduled reports will be sent to your email as a PNG": [""],
-      "0 12 * * 1": [""],
+      "A screenshot of the dashboard will be sent to your email at": [""],
       "Timezone": [""],
+      "Failed to update report": [""],
+      "Failed to create report": [""],
       "Email reports active": [""],
-      "Edit email report": [""],
       "Delete email report": [""],
+      "Set up an email report": [""],
+      "Schedule email report": [""],
       "This action will permanently delete %s.": [
         "Deze actie zal %s permanent verwijderen."
       ],
       "Delete Report?": [""],
-      "Loading...": ["Bezig met laden…"],
+      "Reset": [""],
+      "Invert current page": [""],
+      "Click to cancel sorting": [""],
       "Access to user activity data is restricted": [""],
       "There was an error loading the tables": [""],
       "See table schema": ["Zie tabel schema"],
       "Select table or type table name": ["Selecteer tabel of type tabelnaam"],
       "Force refresh table list": ["Forceer vernieuwen tabel lijst"],
       "Timezone selector": [""],
-      "%s%s": ["%s%s"],
+      "Sorry, there was an error saving this dashboard: %s": [""],
+      "You do not have permission to edit this dashboard": [
+        "U hebt geen toestemming om dit dashboard te bewerken"
+      ],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         ""
       ],
@@ -3476,33 +3378,45 @@
       "You do not have permissions to edit this dashboard.": [
         "U hebt geen rechten om dit dashboard te bewerken."
       ],
-      "[ untitled dashboard ]": [""],
       "This dashboard was saved successfully.": [
         "Dit dashboard is succesvol opgeslagen."
       ],
-      "Sorry, an unknown error occurred": [""],
-      "Sorry, there was an error saving this dashboard: %s": [""],
-      "You do not have permission to edit this dashboard": [
-        "U hebt geen toestemming om dit dashboard te bewerken"
-      ],
+      "Please confirm the overwrite values.": [""],
       "Could not fetch all saved charts": [
         "Kon niet alle opgeslagen grafieken ophalen"
       ],
       "Sorry there was an error fetching saved charts: ": [
         "Sorry er was een fout bij het ophalen van de opgeslagen grafieken: "
       ],
-      "Visualization": ["Visualisatie"],
-      "Data source": ["Data bron"],
-      "Added": ["Toegevoegd"],
-      "Components": ["Componenten"],
       "Any color palette selected here will override the colors applied to this dashboard's individual charts": [
         "Elk kleurenpalet dat hier wordt geselecteerd zal de kleuren overschrijven die worden toegepast op de individuele grafieken van dit dashboard"
       ],
       "You have unsaved changes.": ["Je hebt niet opgeslagen wijzigingen."],
-      "Drag and drop components and charts to the dashboard": [""],
-      "You can create new charts or use existing ones from the panel on the right": [
+      "Changes saved.": [""],
+      "Disable embedding?": [""],
+      "This will remove your current embed configuration.": [""],
+      "Embedding deactivated.": [""],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
         ""
       ],
+      "Configure this dashboard to embed it into an external web application.": [
+        ""
+      ],
+      "For further instructions, consult the": [""],
+      "Superset Embedded SDK documentation.": [""],
+      "Allowed Domains (comma separated)": [""],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        ""
+      ],
+      "Enable embedding": [""],
+      "Drag and drop components and charts to the dashboard": [""],
+      "You can create a new chart or use existing ones from the panel on the right": [
+        ""
+      ],
+      "Create a new chart": ["Maak een nieuwe grafiek"],
+      "Drag and drop components to this tab": [""],
+      "There are no components added to this tab": [""],
+      "You can add the components in the edit mode.": [""],
       "Ready to review filters in this dashboard?": [""],
       "Remind me in 24 hours": [""],
       "Start Review": [""],
@@ -3515,17 +3429,6 @@
       "Delete this container and save to remove this message.": [
         "Verwijder deze container en sla op om dit bericht te verwijderen."
       ],
-      "Don't refresh": ["Vernieuw niet"],
-      "10 seconds": ["10 seconden"],
-      "30 seconds": ["30 seconden"],
-      "1 minute": ["1 minuut"],
-      "5 minutes": ["5 minuten"],
-      "30 minutes": ["30 minuten"],
-      "1 hour": ["1 uur"],
-      "6 hours": ["6 uren"],
-      "12 hours": ["12 uren"],
-      "24 hours": ["24 uren"],
-      "Refresh interval saved": [""],
       "Refresh interval": ["Interval vernieuwen"],
       "Refresh frequency": ["Frequentie vernieuwen"],
       "Are you sure you want to proceed?": [
@@ -3540,12 +3443,20 @@
       "Save as:": ["Opslaan als:"],
       "[dashboard name]": ["[dashboard naam]"],
       "also copy (duplicate) charts": ["kopieer ook (duplicate) grafieken"],
+      "Create new chart": ["Maak een nieuwe grafiek"],
       "Filter your charts": ["Filter je grafieken"],
       "Sort by %s": [""],
+      "Added": ["Toegevoegd"],
+      "Viz type": ["Viz type"],
+      "Dataset": ["Dataset"],
+      "Superset chart": ["Superset grafiek"],
+      "Check out this chart in dashboard:": [
+        "Kijk naar deze grafiek in het dashboard:"
+      ],
+      "Layout elements": [""],
       "Cross Filter Scoping": ["Filteroverschrijdende scoping"],
       "Load a CSS template": ["Laad een CSS sjabloon"],
       "Live CSS editor": ["Live CSS editor"],
-      "There are no charts added to this dashboard": [""],
       "Go to the edit mode to configure the dashboard and add charts": [""],
       "Applied Cross Filters (%d)": ["Toegepaste dwarsfilters (%d)"],
       "Applied Filters (%d)": ["Toegepaste filters (%d)"],
@@ -3557,30 +3468,28 @@
       "Your dashboard is too large. Please reduce its size before saving it.": [
         ""
       ],
-      "Schedule email report": [""],
-      "Discard changes": ["Wijzigingen weggooien"],
+      "Redo the action": [""],
       "Edit dashboard": ["Bewerk dashboard"],
       "An error occurred while fetching available CSS templates": [
         "Er is een fout opgetreden tijdens het ophalen van beschikbare CSS templates"
       ],
-      "Data refreshed": [""],
       "Superset dashboard": ["Superset dashboard"],
       "Check out this dashboard: ": ["Kijk naar dit dashboard:"],
-      "Copy dashboard URL": ["Kopieer dashboard URL"],
-      "Share dashboard by email": ["Deel dashboard via e-mail"],
       "Refresh dashboard": ["Vernieuw dashboard"],
-      "Set auto-refresh interval": ["Stel auto-refresh in"],
-      "Set filter mapping": ["Filter toewijzing instellen"],
-      "Edit dashboard properties": ["Bewerk dashboard eigenschappen"],
-      "Edit CSS": ["Bewerk CSS"],
-      "Download as image": ["Download als afbeelding"],
       "Exit fullscreen": [""],
       "Enter fullscreen": [""],
+      "Edit properties": ["Eigenschappen bewerken"],
+      "Edit CSS": ["Bewerk CSS"],
+      "Download as image": ["Download als afbeelding"],
+      "Share": ["Deel"],
+      "Set filter mapping": ["Filter toewijzing instellen"],
+      "Set auto-refresh interval": ["Stel auto-refresh in"],
+      "Scroll down to the bottom to enable overwriting changes. ": [""],
+      "Yes, overwrite changes": [""],
       "Apply": ["Toepassen"],
       "A valid color scheme is required": [
         "Een geldig kleurenschema is vereist"
       ],
-      "Dashboard properties updated": [""],
       "The dashboard has been saved": ["Het dashboard is opgeslagen"],
       "Access": ["Toegang"],
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
@@ -3591,6 +3500,9 @@
         ""
       ],
       "Dashboard properties": ["Dashboard eigenschappen"],
+      "This dashboard is managed externally, and can't be edited in Superset": [
+        ""
+      ],
       "Basic information": ["Basis informatie"],
       "URL slug": ["URL slag"],
       "A readable URL for your dashboard": [
@@ -3600,6 +3512,8 @@
       "Person or group that has certified this dashboard.": [""],
       "Any additional detail to show in the certification tooltip.": [""],
       "JSON metadata": ["JSON metadata"],
+      "Please DO NOT overwrite the \"filter_scopes\" key.": [""],
+      "Use \"%(menuName)s\" menu instead.": [""],
       "This dashboard is not published, it will not show up in the list of dashboards. Click here to publish this dashboard.": [
         "Dit dashboard is niet gepubliceerd, het verschijnt niet in de lijst van dashboards. Klik hier om dit dashboard te publiceren."
       ],
@@ -3621,18 +3535,11 @@
       "Cached %s": ["Cached %s"],
       "Fetched %s": ["Opgehaald %s"],
       "Query %s: %s": [""],
-      "Minimize chart": ["Grafiek verkleinen"],
-      "Maximize chart": ["Maximaliseer grafiek"],
       "Force refresh": ["Vernieuwen forceren"],
-      "Toggle chart description": ["Toggle grafiek omschrijving"],
-      "View chart in Explore": ["Bekijk de grafiek in Verkenner"],
       "View query": ["Bekijk zoekopdracht"],
-      "Copy chart URL": ["URL van grafiek kopiëren"],
+      "Cross-filter scoping": ["Cross-filter scoping"],
       "Share chart by email": ["Deel grafiek per e-mail"],
       "Check out this chart: ": [""],
-      "Export CSV": ["Export CSV"],
-      "Export full CSV": [""],
-      "Cross-filter scoping": ["Cross-filter scoping"],
       "Search...": ["Zoek…"],
       "No filter is selected.": ["Er is geen filter geselecteerd."],
       "Editing 1 filter:": ["Bewerk 1 filter:"],
@@ -3643,30 +3550,39 @@
       ],
       "Expand all": ["Alles uitklappen"],
       "Collapse all": ["Alles inklappen"],
-      "An error occurred while opening Explore": [""],
       "This markdown component has an error.": [
         "Deze markdown component heeft een fout."
       ],
       "This markdown component has an error. Please revert your recent changes.": [
         ""
       ],
+      "Empty row": [""],
+      "or use existing ones from the panel on the right": [""],
+      "You can add the components in the": [""],
+      "edit mode": [""],
       "Delete dashboard tab?": ["Dashboard tabblad verwijderen?"],
+      "Deleting a tab will remove all content within it. You may still reverse this action with the": [
+        ""
+      ],
+      "button (cmd + z) until you save your changes.": [""],
+      "CANCEL": ["ANNULEER"],
       "Divider": ["Verdeler"],
       "Header": ["Header"],
-      "Row": ["Rij"],
+      "Text": [""],
       "Tabs": ["Tabs"],
       "Preview": ["Preview"],
       "Sorry, something went wrong. Try again later.": [
         "Sorry, er ging iets mis. Probeer het later nog eens."
       ],
+      "Add/Edit Filters": [""],
       "All filters (%(filterCount)d)": [""],
       "No filters are currently added": [""],
       "Click the button above to add a filter to the dashboard": [""],
       "Filter sets (%(filterSetCount)d)": [""],
-      "Apply filters": [""],
       "Clear all": ["Wis alles"],
-      "Select parent filters": ["Selecteer parent filters"],
-      "Filters out of scope (%d)": [""],
+      "Orientation of filter bar": [""],
+      "Vertical (Left)": [""],
+      "Horizontal (Top)": [""],
       "Check configuration": ["Check configuratie"],
       "Cannot load filter": ["Kan filter niet laden"],
       "Editing filter set:": ["Filterset bewerken:"],
@@ -3687,34 +3603,36 @@
         "Filter metadata veranderd in dashboard. Het zal niet worden toegepast."
       ],
       "Please filter set name": ["Filter setnaam a.u.b."],
-      "Create": ["Maak"],
       "Create new filter set": ["Maak een nieuwe filterset"],
       "New filter set": ["Nieuwe filterset"],
       "Please apply filter changes": [""],
       "Unknown value": [""],
-      "Add/Edit Filters": [""],
+      "Filters out of scope (%d)": [""],
       "Dependent on": [""],
       "Filter only displays values relevant to selections made in other filters.": [
         ""
       ],
+      "All charts": ["Alle grafieken"],
       "Scope": [""],
       "Filter type": [""],
-      "All charts": ["Alle grafieken"],
       "Title is required": [""],
       "(Removed)": ["(Verwijderd)"],
       "Undo?": ["Ongedaan maken?"],
       "Add filters and dividers": [""],
-      "Add and edit filters": [""],
-      "Cannot create cyclic hierarchy": [""],
+      "Cyclic dependency detected": [""],
       "Column select": [""],
       "Select a column": [""],
       "No compatible columns found": [""],
       "Value is required": [""],
+      "(deleted or invalid type)": [""],
+      "Add filter": ["Filter toevoegen"],
+      "Values are dependent on other filters": [""],
+      "Values selected in other filters will affect the filter options to only show relevant values": [
+        ""
+      ],
+      "Values dependent on": [""],
       "Scoping": ["Scoping"],
-      "Filter Configuration": [""],
-      "Filter Settings": [""],
       "Select filter": [""],
-      "Value": ["Waarde"],
       "Range filter": [""],
       "Numerical range": [""],
       "Time filter": [""],
@@ -3722,16 +3640,16 @@
       "Time column": [""],
       "Time grain": [""],
       "Group By": [""],
+      "Group by": ["Groep per"],
       "Pre-filter is required": [""],
-      "(deleted)": [""],
-      "Parent filter": ["Parent filter"],
       "Filter name": ["Filter naam"],
       "Name is required": ["Naam is vereist"],
       "Filter Type": ["Filter Type"],
       "Datasets do not contain a temporal column": [""],
+      "Dashboard time range filters apply to temporal columns defined in\n          the filter section of each chart. Add temporal columns to the chart\n          filters to have this dashboard filter impact those charts.": [
+        ""
+      ],
       "Dataset is required": ["Dataset is vereist"],
-      "Filter is hierarchical": [""],
-      "Parent filter is required": [""],
       "Pre-filter available values": [""],
       "Pre-filter": [""],
       "Optional time column if time range should apply to another column than the default time column": [
@@ -3747,9 +3665,7 @@
       "Sort metric": ["Sorteer meeteenheid"],
       "Single Value": [""],
       "Single value type": [""],
-      "Minimum": [""],
       "Exact": [""],
-      "Maximum": [""],
       "Filter has default value": [""],
       "Default Value": ["Default Value"],
       "Default value is required": [""],
@@ -3790,10 +3706,19 @@
       "Transparent": [""],
       "White": [""],
       "All filters": ["Alle filters"],
+      "Click to edit %s in a new tab": [""],
       "Medium": [""],
       "Tab title": ["Titel tabblad"],
+      "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly.": [
+        ""
+      ],
+      "Failed to load chart data": [""],
+      "Failed to load chart data.": [""],
       "Time granularity": [""],
-      "Visualization type": ["Type visualisatie"],
+      "Duration in ms (100.40008 => 100ms 400µs 80ns)": [""],
+      "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
+        ""
+      ],
       "Fixed color": ["Vaste kleur"],
       "Right axis metric": ["Meeteenheid rechteras"],
       "Linear color scheme": ["Lineair kleurenpalet"],
@@ -3801,13 +3726,26 @@
       "One or many controls to pivot as columns": [
         "Een of meer bedieningsinstrumenten om als kolommen te pivoteren"
       ],
+      "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`,`1 day` or `56 weeks`": [
+        ""
+      ],
+      "No filter": [""],
       "Bubble size": ["Bubbelgrootte"],
+      "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
+        ""
+      ],
       "Color scheme": ["Kleurenschema"],
       "An error occurred while starring this chart": [""],
-      "GROUP BY": [""],
       "Use this section if you want a query that aggregates": [""],
-      "NOT GROUPED BY": [""],
       "Use this section if you want to query atomic rows": [""],
+      "The X-axis is not on the filters list": [""],
+      "The X-axis is not on the filters list which will prevent it from being used in\n            time range filters in dashboards. Would you like to add it to the filters list?": [
+        ""
+      ],
+      "This filter is the last temporal filter. If you proceed,\n          this chart won't be affected by time range filters in dashboards.": [
+        ""
+      ],
+      "This section contains validation errors": [""],
       "Keep control settings?": [""],
       "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.": [
         ""
@@ -3819,48 +3757,42 @@
         ""
       ],
       "Customize": ["Pas aan"],
-      "Width": ["Breedte"],
-      "Copy chart URL to clipboard": ["Kopieer grafiek URL naar klembord"],
-      "Sorry, your browser does not support copying.": [
-        "Sorry, uw browser ondersteunt het kopiëren niet."
+      "Generating link, please wait..": [""],
+      "Chart height": [""],
+      "Chart type requires a dataset": [""],
+      "This chart type is not supported when using an unsaved query as a chart source. ": [
+        ""
       ],
-      "Superset Chart": ["Superset Grafiek"],
-      "Export to .JSON format": ["Exporteer naar .JSON formaat"],
-      "Export to .CSV format": ["Exporteer naar .CSV-formaat"],
-      "rows": ["rijen"],
-      "Limit reached": ["Limiet bereikt"],
-      "**Select** a dashboard OR **create** a new one": [
-        "**Selecteer** een dashboard OF **maak** een nieuw dashboard aan"
+      " to visualize your data.": [""],
+      "Required control values have been removed": [""],
+      "Your chart is not up to date": [""],
+      "You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the \"Update chart\" button or": [
+        ""
       ],
-      "Please enter a chart name": ["Voer een grafieknaam in"],
-      "Save chart": ["Grafiek opslaan"],
-      "Save & go to dashboard": ["Opslaan en naar dashboard gaan"],
-      "Save as new chart": ["Opslaan als nieuwe grafiek"],
       "Save (Overwrite)": ["Opslaan (overschrijven)"],
-      "Save as ...": ["Opslaan als …"],
       "Chart name": ["Grafiek naam"],
+      "A reusable dataset will be saved with your chart.": [""],
       "Add to dashboard": ["Toevoegen aan het dashboard"],
       "Select a dashboard": [""],
-      "Copy": [""],
-      "rows retrieved": ["opgehaalde rijen"],
+      "Select": [""],
+      "Save & go to dashboard": ["Opslaan en naar dashboard gaan"],
+      "Save as new chart": ["Opslaan als nieuwe grafiek"],
+      "Save chart": ["Grafiek opslaan"],
       "Formatted date": [""],
       "Column Formatting": [""],
-      "No samples were returned for this query": [""],
-      "No results": [""],
-      "Run a query to display samples": [""],
-      "Run a query to display results": [""],
-      "Sorry, an error occurred": [""],
-      "View samples": ["Bekijk voorbeelden"],
+      "N/A": [""],
+      "Expand data panel": [""],
+      "No samples were returned for this dataset": [""],
       "Search Metrics & Columns": ["Zoek meeteenheden & kolommen"],
       "Showing %s of %s": ["Weergave %s van %s"],
       "Show less...": [""],
       "Show all...": [""],
       "Show Less...": [""],
-      "New chart": ["Nieuwe grafiek"],
-      "Edit properties": ["Eigenschappen bewerken"],
-      "Run in SQL Lab": ["Uitvoeren in SQL Lab"],
-      "%s - untitled": ["%s - zonder titel"],
-      "Edit chart properties": ["Grafiek eigenschappen bewerken"],
+      "Unable to retrieve dashboard colors": [""],
+      "You can preview the list of dashboards in the chart settings dropdown.": [
+        ""
+      ],
+      "Add required control values to save chart": [""],
       "Controls labeled ": [""],
       "Control labeled ": ["Controle gelabeld "],
       "Open Datasource tab": ["Open Datasource tab"],
@@ -3869,7 +3801,7 @@
       "You do not have permission to edit this chart": [
         "U heeft geen toestemming om deze grafiek te bewerken"
       ],
-      "Chart properties updated": [""],
+      "This chart is managed externally, and can't be edited in Superset": [""],
       "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
         ""
       ],
@@ -3881,6 +3813,7 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         ""
       ],
+      "Limit reached": ["Limiet bereikt"],
       "Invalid lat/long configuration.": [
         "Ongeldige breedtegraad/lengtegraad configuratie."
       ],
@@ -3896,10 +3829,19 @@
       "textarea": ["tekstveld"],
       "in modal": ["in modal"],
       "Sorry, An error occurred": ["Sorry, er is een fout opgetreden"],
+      "Open in SQL Lab": ["Open in SQL Lab"],
       "Failed to verify select options: %s": [
         "Mislukt bij het verifiëren van geselecteerde opties: %s"
       ],
+      "Annotation layer": ["Aantekeningenlaag"],
+      "Use another existing chart as a source for annotations and overlays.\n          Your chart must be one of these visualization types: [%s]": [
+        ""
+      ],
+      "Expects a formula with depending time parameter 'x'\n        in milliseconds since epoch. mathjs is used to evaluate the formulas.\n        Example: '2x+5'": [
+        ""
+      ],
       "Annotation layer value": [""],
+      "Bad formula.": [""],
       "Annotation Slice Configuration": ["Configuratie van Aantekening sectie"],
       "This section allows you to configure how to use the slice\n               to generate annotations.": [
         "In dit gedeelte kunt u configureren hoe u de slice gebruikt\n               om aantekeningen te genereren."
@@ -3918,14 +3860,27 @@
       "Pick one or more columns that should be shown in the annotation. If you don't select a column all of them will be shown.": [
         ""
       ],
+      "This controls whether the \"time_range\" field from the current\n                  view should be passed down to the chart containing the annotation data.": [
+        ""
+      ],
+      "This controls whether the time grain field from the current\n                  view should be passed down to the chart containing the annotation data.": [
+        ""
+      ],
+      "Time delta in natural language\n                  (example:  24 hours, 7 days, 56 weeks, 365 days)": [
+        ""
+      ],
       "Display configuration": ["Weergave configuratie"],
       "Configure your how you overlay is displayed here.": [
         "Configureer hier hoe uw overlay wordt weergegeven."
       ],
       "Annotation layer stroke": [""],
       "Style": ["Stijl"],
+      "Solid": [""],
+      "Long dashed": [""],
       "Annotation layer opacity": [""],
       "Color": ["Kleur"],
+      "Automatic Color": [""],
+      "Shows or hides markers for the time series": [""],
       "Layer configuration": ["Laagconfiguratie"],
       "Configure the basics of your Annotation Layer.": [
         "Configureer de basis van uw Aantekeningenlaag."
@@ -3938,19 +3893,19 @@
       "Choose the annotation layer type": ["Kies het aantekeningenlaagtype"],
       "Annotation source type": [""],
       "Choose the source of your annotations": [""],
-      "Annotation Source": [""],
       "Remove": ["Verwijder"],
       "Edit annotation layer": ["Bewerk de aantekeningenlaag"],
       "Add annotation layer": ["Aantekeningenlaag toevoegen"],
       "Empty collection": ["Lege verzameling"],
       "Add an item": ["Voeg een item toe"],
       "Remove item": ["Item verwijderen"],
-      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
+      "This color scheme is being overriden by custom label colors.\n    Check the JSON metadata in the Advanced settings": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
+      "The color scheme is determined by the related dashboard.\n        Edit the color scheme in the dashboard properties.": [
         ""
       ],
+      "dashboard": ["dashboard"],
       "Dashboard scheme": [""],
       "Select color scheme": [""],
       "Select scheme": [""],
@@ -3969,16 +3924,17 @@
       "Target value": [""],
       "Select column": [""],
       "Edit dataset": ["Bewerk de dataset"],
+      "You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.": [
+        ""
+      ],
       "View in SQL Lab": ["Bekijk in SQL Lab"],
-      "More dataset related options": ["Meer dataset gerelateerde opties"],
-      "Missing URL parameters": [""],
+      "Query preview": ["Query preview"],
       "The URL is missing the dataset_id or slice_id parameters.": [""],
       "The dataset linked to this chart may have been deleted.": [
         "De aan deze grafiek gekoppelde dataset is mogelijk verwijderd."
       ],
       "RANGE TYPE": ["BEREIK TYPE"],
       "Actual time range": ["Reële tijdspanne"],
-      "CANCEL": ["ANNULEER"],
       "APPLY": ["TOEPASSEN"],
       "Edit time range": ["Bewerk tijdspanne"],
       "Configure Advanced Time Range ": [
@@ -4017,7 +3973,6 @@
       "Get the specify date for the holiday": [
         "Zoek de specifieke datum voor de vakantie"
       ],
-      "Last": [""],
       "Previous": ["Vorige"],
       "Custom": [""],
       "last day": [""],
@@ -4036,8 +3991,6 @@
       "Months %s": [""],
       "Quarters %s": [""],
       "Years %s": [""],
-      "Before": [""],
-      "After": [""],
       "Specific Date/Time": [""],
       "Relative Date/Time": [""],
       "Now": [""],
@@ -4045,21 +3998,24 @@
       "Saved expressions": [""],
       "Saved": ["Opgeslagen"],
       "%s column(s)": ["%s kolom(men)"],
-      "No temporal columns found": [""],
       "No saved expressions found": [""],
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
       "Add calculated columns to dataset in \"Edit datasource\" modal": [""],
+      " to mark a column as a time column": [""],
       "Simple": ["Eenvoudig"],
       "Mark a column as temporal in \"Edit datasource\" modal": [""],
       "Custom SQL": ["Custom SQL"],
       "My column": [""],
+      "This filter might be incompatible with current dataset": [""],
+      "This column might be incompatible with current dataset": [""],
       "Drop a column here or click": [""],
       "Drop column here": [""],
       "Click to edit label": [""],
       "Drop columns/metrics here or click": [""],
       "Drop columns or metrics here": [""],
+      "This metric might be incompatible with current dataset": [""],
       "Drop a column/metric here or click": [""],
       "Drop column or metric here": [""],
       "Drop columns here": [""],
@@ -4086,16 +4042,11 @@
         "De gebruiker moet een waarde voor deze filter kiezen"
       ],
       "Filter configuration": ["Filter configuratie"],
-      "Add filter": ["Filter toevoegen"],
-      "Custom SQL ad-hoc filters are not available for the native Druid connector": [
-        ""
-      ],
       "%s option(s)": ["%s optie(s)"],
       "Select subject": [""],
       "No such column found. To filter on a metric, try the Custom SQL tab.": [
         "Geen dergelijke kolom gevonden. Om te filteren op een meeteenheid, probeer het Custom SQL tabblad."
       ],
-      "%s column(s) and metric(s)": ["%s kolom(men) en meeteenhe(i)d(en)"],
       "To filter on a metric, use Custom SQL tab.": [
         "Om te filteren op een meeteenheid, gebruikt u het tabblad Aangepaste SQL."
       ],
@@ -4116,52 +4067,71 @@
       "Select saved metrics": [""],
       "%s saved metric(s)": ["%s opgeslagen meeteenhe(i)d(en)"],
       "Saved metric": ["Opgeslagen meeteenheid"],
-      "No saved metrics found": [""],
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
       "column": ["kolom"],
       "aggregate": ["aggregaat"],
-      "Custom SQL ad-hoc metrics are not available for the native Druid connector": [
-        ""
-      ],
       "Custom SQL ad-hoc metrics are not enabled for this dataset": [""],
       "Error while fetching data: %s": [""],
       "Time series columns": ["Time series kolommen"],
-      "Other": [""],
+      "Sparkline": [""],
+      "Period average": [""],
+      "Column header tooltip": [""],
+      "Type of comparison, value difference or percentage": [""],
+      "Width": ["Breedte"],
+      "Width of the sparkline": [""],
+      "Height of the sparkline": [""],
+      "Number of periods to compare against": [""],
+      "Number of periods to ratio against": [""],
+      "Show Y-axis": [""],
+      "Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.": [
+        ""
+      ],
+      "Y-axis bounds": [""],
+      "Manually set min/max values for the y-axis.": [""],
+      "Color bounds": [""],
+      "Number bounds used for color encoding from red to blue.\n               Reverse the numbers for blue to red. To get pure red or blue,\n               you can enter either only min or max.": [
+        ""
+      ],
+      "Optional d3 number format string": [""],
+      "Number format string": [""],
+      "Optional d3 date format string": [""],
+      "Select Viz Type": [""],
+      "Currently rendered: %s": [""],
       "Recommended tags": [""],
-      "Category": [""],
-      "Tags": [""],
       "Search all charts": [""],
       "No description available.": [""],
       "Examples": ["Voorbeelden"],
       "This visualization type is not supported.": [
         "Dit visualisatietype wordt niet ondersteund."
       ],
-      "Select Viz Type": [""],
-      "Click to change visualization type": [
-        "Klik om van visualisatietype te veranderen"
-      ],
       "Select a visualization type": ["Selecteer een visualisatie type"],
-      "Select": [""],
+      "No results found": ["Geen resultaten gevonden"],
+      "Superset Chart": ["Superset Grafiek"],
+      "New chart": ["Nieuwe grafiek"],
+      "Edit chart properties": ["Grafiek eigenschappen bewerken"],
+      "Export to original .CSV": [""],
+      "Export to pivoted .CSV": [""],
+      "test": [""],
+      "Embed code": [""],
+      "Run in SQL Lab": ["Uitvoeren in SQL Lab"],
       "Code": ["Code"],
       "Markup type": ["Opmaaktype(Markup type)"],
       "Pick your favorite markup language": [
         "Kies uw favoriete opmaaktaal (markup language)"
       ],
       "Put your code here": ["Plaats je code hier"],
-      "Chart type": ["Toe grafiek"],
       "URL parameters": ["URL parameters"],
       "Extra parameters for use in jinja templated queries": [
         "Extra parameters voor gebruik in jinja templated queries"
       ],
       "Annotations and layers": ["Aantekeningen en lagen"],
-      "Python functions": ["Python functies"],
+      "Annotation layers": ["Aantekeningenlagen"],
       "My beautiful colors": [""],
       "No columns": ["Geen kolommen"],
       "%s option": ["%s optie"],
       "UI Configuration": [""],
       "Can select multiple values": [""],
-      "Filter value is required": [""],
       "User must select a value before applying the filter": [""],
       "Group By filter plugin": [""],
       "Chosen non-numeric column": ["Gekozen niet-numerieke kolom"],
@@ -4179,6 +4149,47 @@
       "No time columns": ["Geen tijdskolommen"],
       "Time column filter plugin": [""],
       "Time grain filter plugin": [""],
+      "Choose a dataset": ["Kies een dataset"],
+      "Choose chart type": [""],
+      "Please select both a Dataset and a Chart type to proceed": [""],
+      "Please confirm": ["Gelieve te bevestigen"],
+      "Are you sure you want to delete": [
+        "Weet je zeker dat je wilt verwijderen"
+      ],
+      "Modified %s": [""],
+      "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
+        ""
+      ],
+      "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
+        ""
+      ],
+      "chart": ["grafiek"],
+      "There was an issue deleting the selected charts: %s": [
+        "Er was een probleem met het verwijderen van de geselecteerde grafieken: %s"
+      ],
+      "An error occurred while fetching dashboards": [""],
+      "Visualization type": ["Type visualisatie"],
+      "Actions": ["Acties"],
+      "Favorite": ["Favoriet"],
+      "Any": ["Elke"],
+      "Owner": ["Eigenaar"],
+      "All": ["Alle"],
+      "An error occurred while fetching chart owners values: %s": [
+        "Er is een fout opgetreden tijdens het ophalen van de grafiek eigenaars waarden: %s"
+      ],
+      "An error occurred while fetching chart created by values: %s": [
+        "Er is een fout opgetreden tijdens het ophalen van de grafiek gemaakt door waarden: %s"
+      ],
+      "Chart type": ["Toe grafiek"],
+      "Certified": [""],
+      "Alphabetical": ["Alfabetisch"],
+      "Recently modified": ["Recent gewijzigd"],
+      "Least recently modified": ["Meest recente wijziging"],
+      "Bulk select": ["Selecteer in bulk"],
+      "Import charts": ["Import grafieken "],
+      "Are you sure you want to delete the selected charts?": [
+        "Weet je zeker dat je de geselecteerde grafieken wilt verwijderen?"
+      ],
       "Favorites": ["Favorieten"],
       "Created content": ["Aangemaakte content"],
       "Recent activity": ["Recente activiteit"],
@@ -4195,14 +4206,16 @@
         "Profielfoto geleverd door Gravatar"
       ],
       "joined": ["joined"],
-      "id:": ["id:"],
       "There was an issue fetching reports attached to this dashboard.": [""],
       "The report has been created": [""],
-      "An error occurred while editing this report.": [""],
       "We were unable to active or deactivate this report.": [""],
       "Your report could not be deleted": [""],
       "Deleted: %s": ["Verwijderd: %s"],
       "Image download failed, please refresh and try again.": [""],
+      "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
+        ""
+      ],
+      "Invalid input": [""],
       "Unexpected error: ": [""],
       "(no description, click to see stack trace)": [""],
       "Issue 1000 - The dataset is too large to query.": [""],
@@ -4214,6 +4227,9 @@
       "There was an error fetching the favorite status: %s": [""],
       "There was an error saving the favorite status: %s": [""],
       "Link Copied!": ["Link gekopieerd!"],
+      "Sorry, your browser does not support copying.": [
+        "Sorry, uw browser ondersteunt het kopiëren niet."
+      ],
       "Connection looks good!": [""],
       "ERROR: %s": [""],
       "There was an error fetching your recent activity:": [
@@ -4226,7 +4242,6 @@
         "Er was een probleem met het verwijderen van %s: %s"
       ],
       "Working": [""],
-      "Error": [""],
       "Not triggered": [""],
       "On Grace": [""],
       "report": ["rapport"],
@@ -4238,19 +4253,17 @@
       ],
       "Last run": ["Laatste run"],
       "Notification method": ["Methode voor kennisgeving"],
+      "Active": ["Actief"],
       "Execution log": ["Uitvoeringslog"],
-      "Actions": ["Acties"],
-      "Bulk select": ["Selecteer in bulk"],
       "No %s yet": ["Nog geen %s"],
-      "Created by": ["Gecreëerd door"],
       "An error occurred while fetching created by values: %s": [
         "Er is een fout opgetreden tijdens het ophalen van gecreeerd door waarden: %s"
       ],
       "Status": ["Status"],
       "Alerts & reports": ["Waarschuwingen & rapporten"],
+      "Alerts": ["Waarschuwingen"],
       "Reports": ["Rapporten"],
       "Delete %s?": ["%s verwijderen?"],
-      "Please confirm": ["Gelieve te bevestigen"],
       "Are you sure you want to delete the selected %s?": [
         "Weet u zeker dat u de geselecteerde %s wilt verwijderen?"
       ],
@@ -4261,7 +4274,6 @@
       "== (Is equal)": ["== (Is gelijk)"],
       "!= (Is not equal)": ["!= (Is niet gelijk)"],
       "Not null": ["Not null"],
-      "30 days": ["30 dagen"],
       "60 days": ["60 dagen"],
       "90 days": ["90 dagen"],
       "Add notification method": ["Meldingsmethode toevoegen"],
@@ -4273,6 +4285,7 @@
       "Report name": ["Naam rapport"],
       "Alert name": ["Naam van de waarschuwing"],
       "Alert condition": ["Naam waarschuwingsconditie"],
+      "SQL Query": ["SQL Query"],
       "Trigger Alert If...": ["Trigger waarschuwing als…"],
       "Condition": [""],
       "Threshold value should be double precision number": [""],
@@ -4283,7 +4296,6 @@
       "Working timeout": ["Time-out"],
       "Time in seconds": ["Tijd in seconden"],
       "Grace period": ["Grace periode"],
-      "Message content": ["Inhoud van het bericht"],
       "Send as PNG": [""],
       "Send as CSV": [""],
       "Send as text": [""],
@@ -4294,6 +4306,7 @@
       "Start at (UTC)": ["Start op (UTC)"],
       "Duration": ["Duur"],
       "Error message": ["Foutmelding"],
+      "Back to all": [""],
       "CRON expression": ["CRON expressie"],
       "Report sent": ["Rapport verzonden"],
       "Alert triggered, notification sent": [
@@ -4320,12 +4333,6 @@
       "Delete annotation": ["Aantekening verwijderen"],
       "Annotation": ["Aantekening"],
       "No annotation yet": ["Nog geen aantekeningen"],
-      "Annotation Layer ${annotationLayerName}": [
-        "Aantekening Laag ${annotationLayerName}"
-      ],
-      "Are you sure you want to delete ${annotationCurrentlyDeleting?.short_descr}?": [
-        ""
-      ],
       "Delete Annotation?": ["Aantekening verwijderen?"],
       "Are you sure you want to delete the selected annotations?": [
         "Weet u zeker dat u de geselecteerde aantekeningen wilt verwijderen?"
@@ -4340,21 +4347,15 @@
         "Omschrijving (dit is te zien in de lijst)"
       ],
       "annotation_layer": ["annotation_layer"],
-      "Annotation template updated": [""],
-      "Annotation template created": [""],
       "Edit annotation layer properties": [
         "Eigenschappen aantekeningenlaag bewerken"
       ],
       "Annotation layer name": ["Naam aantekeningenlaag"],
-      "Annotation layers": ["Aantekeningenlagen"],
       "There was an issue deleting the selected layers: %s": [
         "Er was een probleem met het verwijderen van de geselecteerde lagen: %s"
       ],
-      "Last modified": ["Laatst gewijzigd"],
-      "Created on": ["Gemaakt op"],
       "Edit template": ["Bewerk template"],
       "Delete template": ["Verwijder template"],
-      "Annotation layer": ["Aantekeningenlaag"],
       "An error occurred while fetching dataset datasource values: %s": [
         "Er is een fout opgetreden bij het ophalen van dataset datasource waarden: %s"
       ],
@@ -4365,42 +4366,6 @@
       "Delete Layer?": ["Laag verwijderen?"],
       "Are you sure you want to delete the selected layers?": [
         "Weet je zeker dat je de geselecteerde lagen wilt verwijderen?"
-      ],
-      "Are you sure you want to delete": [
-        "Weet je zeker dat je wilt verwijderen"
-      ],
-      "Modified %s": [""],
-      "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
-        ""
-      ],
-      "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
-        ""
-      ],
-      "Chart imported": [""],
-      "There was an issue deleting the selected charts: %s": [
-        "Er was een probleem met het verwijderen van de geselecteerde grafieken: %s"
-      ],
-      "Modified by": ["Gewijzigd door"],
-      "Favorite": ["Favoriet"],
-      "Any": ["Elke"],
-      "Yes": ["Ja"],
-      "No": ["Nee"],
-      "Owner": ["Eigenaar"],
-      "All": ["Alle"],
-      "An error occurred while fetching chart owners values: %s": [
-        "Er is een fout opgetreden tijdens het ophalen van de grafiek eigenaars waarden: %s"
-      ],
-      "An error occurred while fetching chart created by values: %s": [
-        "Er is een fout opgetreden tijdens het ophalen van de grafiek gemaakt door waarden: %s"
-      ],
-      "Viz type": ["Viz type"],
-      "Certified": [""],
-      "Alphabetical": ["Alfabetisch"],
-      "Recently modified": ["Recent gewijzigd"],
-      "Least recently modified": ["Meest recente wijziging"],
-      "Import charts": ["Import grafieken "],
-      "Are you sure you want to delete the selected charts?": [
-        "Weet je zeker dat je de geselecteerde grafieken wilt verwijderen?"
       ],
       "css_template": ["css_template"],
       "Edit CSS template properties": ["Bewerk CSS template eigenschappen"],
@@ -4428,7 +4393,6 @@
       "You are importing one or more dashboards that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         "Je importeert een of meer dashboards die al bestaan. Overschrijven kan ertoe leiden dat je een deel van je werk verloren gaat. Weet je zeker dat je wilt overschrijven?"
       ],
-      "Dashboard imported": [""],
       "An error occurred while fetching dashboards: %s": [
         "Er is een fout opgetreden tijdens het ophalen van dashboards: %s"
       ],
@@ -4446,18 +4410,11 @@
       ],
       "Saved queries": ["Opgeslagen queries"],
       "SQL Copied!": ["SQL gekopieerd!"],
-      "The passwords for the databases below are needed in order to import them. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
-        ""
-      ],
-      "You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
-        "Je importeert een of meer databases die al bestaan. Overschrijven kan ertoe leiden dat een deel van je werk verloren gaat. Weet je zeker dat je wilt overschrijven?"
-      ],
       "database": ["database"],
-      "Database imported": [""],
       "An error occurred while fetching database related data: %s": [
         "Er is een fout opgetreden tijdens het ophalen van databasegerelateerde gegevens: %s"
       ],
-      "Import databases": ["Importeer databases"],
+      "Upload columnar file": [""],
       "Asynchronous query execution": ["Asynchrone uitvoering van query’s"],
       "AQE": ["AQE"],
       "Allow data manipulation language": ["Sta data manipulatie taal toe"],
@@ -4468,6 +4425,7 @@
         ""
       ],
       "Delete Database?": ["Database verwijderen?"],
+      "Adjust how this database will interact with SQL Lab.": [""],
       "Expose database in SQL Lab": [""],
       "Allow this database to be queried in SQL Lab": [
         "Sta toe dat deze database wordt opgevraagd in SQL Lab"
@@ -4494,6 +4452,11 @@
       "When enabled, users are able to visualize SQL Lab results in Explore.": [
         ""
       ],
+      "Disable SQL Lab data preview queries": [""],
+      "Disable data preview when fetching table metadata in SQL Lab.  Useful to avoid browser performance issues when using  databases with very wide tables.": [
+        ""
+      ],
+      "Performance": [""],
       "Chart cache timeout": ["Grafiek cache timeout"],
       "Enter duration in seconds": [""],
       "Schema cache timeout": [""],
@@ -4519,20 +4482,14 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         ""
       ],
-      "Schemas allowed for CSV upload": [""],
-      "A comma-separated list of schemas that CSVs are allowed to upload to.": [
-        ""
-      ],
       "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)": [
         ""
       ],
       "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         ""
       ],
-      "Allow data upload": ["Sta upload van gegevens toe"],
-      "If selected, please set the schemas allowed for data upload in Extra.": [
-        "Indien geselecteerd, gelieve de toegestane schema’s voor data upload in te stellen in Extra."
-      ],
+      "Schemas allowed for File upload": [""],
+      "Additional settings.": [""],
       "Metadata Parameters": [""],
       "The metadata_params object gets unpacked into the sqlalchemy.MetaData call.": [
         ""
@@ -4546,6 +4503,24 @@
       "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
         ""
       ],
+      "STEP %(stepCurr)s OF %(stepLast)s": [""],
+      "Enter Primary Credentials": [""],
+      "Need help? Learn how to connect your database": [""],
+      "Create a dataset to begin visualizing your data as a chart or go to\n          SQL Lab to query your data.": [
+        ""
+      ],
+      "Enter the required %(dbModelName)s credentials": [""],
+      "Need help? Learn more about": [""],
+      "connecting to %(dbModelName)s.": [""],
+      "SSH Tunnel configuration parameters": [""],
+      "SSH Host": [""],
+      "e.g. 127.0.0.1": [""],
+      "SSH Port": [""],
+      "e.g. Analytics": [""],
+      "Private Key & Password": [""],
+      "e.g. ********": [""],
+      "Private Key": [""],
+      "Paste Private Key here": [""],
       "Display Name": ["Toon naam"],
       "Name your database": [""],
       "Pick a name to help you identify this database.": [
@@ -4557,29 +4532,11 @@
       "Refer to the": [""],
       "for more information on how to structure your URI.": [""],
       "Test connection": ["Test connectie"],
-      "Missing Required Fields": [""],
-      "Please complete all required fields.": [""],
-      "Could not verify the host": [""],
-      "The host is invalid. Please verify that this field is entered correctly.": [
-        ""
-      ],
-      "Port is closed": [""],
-      "Please verify that port is open to connect.": [""],
-      "Invalid Port Number": [""],
-      "The port must be a whole number less than or equal to 65535.": [""],
-      "Invalid account information": [""],
-      "Either the username or password is incorrect.": [""],
-      "Incorrect Fields": [""],
-      "Please make sure all fields are filled out correctly": [""],
-      "URL could not be identified": [""],
-      "The URL could not be identified. Please check for typos and make sure that \"Type of google sheet allowed\" selection matches the input": [
-        ""
-      ],
       "Please enter a SQLAlchemy URI to test": [
         "Voer een SQLAlchemy URI in om te testen"
       ],
-      "Database settings updated": [""],
-      "Database connected": [""],
+      "e.g. xy12345.us-east-2.aws": [""],
+      "e.g. world_population": [""],
       "Sorry there was an error fetching database information: %s": [
         "Sorry er is een fout opgetreden bij het ophalen van database informatie: %s"
       ],
@@ -4593,13 +4550,24 @@
       "Any databases that allow connections via SQL Alchemy URIs can be added. Learn about how to connect a database driver ": [
         ""
       ],
-      "here": [""],
-      "Back": [""],
       "Connect": [""],
       "Finish": [""],
+      "This database is managed externally, and can't be edited in Superset": [
+        ""
+      ],
+      "The passwords for the databases below are needed in order to import them. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.": [
+        ""
+      ],
+      "You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
+        "Je importeert een of meer databases die al bestaan. Overschrijven kan ertoe leiden dat een deel van je werk verloren gaat. Weet je zeker dat je wilt overschrijven?"
+      ],
       "Database Creation Error": [""],
-      "Edit database": ["Bewerk database"],
+      "We are unable to connect to your database. Click \"See more\" for database-provided information that may help troubleshoot the issue.": [
+        ""
+      ],
+      "QUERY DATA IN SQL LAB": [""],
       "Connect a database": [""],
+      "Edit database": ["Bewerk database"],
       "Connect this database using the dynamic form instead": [""],
       "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
         ""
@@ -4614,14 +4582,13 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "e.g. 127.0.0.1": [""],
       "Host": [""],
       "e.g. 5432": [""],
-      "e.g. world_population": [""],
-      "Copy the name of the  database you are trying to connect to.": [""],
-      "e.g. Analytics": [""],
-      "e.g. ********": [""],
-      "Pick a nickname for this database to display as in Superset.": [""],
+      "e.g. sql/protocolv1/o/12345": [""],
+      "Copy the name of the  HTTP Path of your cluster.": [""],
+      "Copy the name of the database you are trying to connect to.": [""],
+      "Access token": [""],
+      "Pick a nickname for how the database will display in Superset.": [""],
       "e.g. param1=value1&param2=value2": [""],
       "Additional Parameters": [""],
       "Add additional custom parameters": [""],
@@ -4646,8 +4613,8 @@
       "Copy the account name of that database you are trying to connect to.": [
         ""
       ],
+      "Add Dataset and Create Chart": [""],
       "Add dataset": ["Voeg dataset toe"],
-      "Dataset imported": [""],
       "An error occurred while fetching dataset related data": [
         "Er is een fout opgetreden tijdens het ophalen van dataset gerelateerde gegevens"
       ],
@@ -4688,6 +4655,24 @@
       "You are importing one or more datasets that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         ""
       ],
+      "This table already has a dataset associated with it. You can only associate one dataset with a table.\n": [
+        ""
+      ],
+      "This table already has a dataset": [""],
+      "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
+        ""
+      ],
+      "create dataset from SQL query": [""],
+      " to open SQL Lab. From there you can save the query as a dataset.": [""],
+      "This database table does not contain any data. Please select a different table.": [
+        ""
+      ],
+      "Unable to load columns for the selected table. Please select a different table.": [
+        ""
+      ],
+      "Select a database table and create dataset": [""],
+      "Table loading": [""],
+      "Try selecting a different schema": [""],
       "There was an issue previewing the selected query. %s": [
         "Er was een probleem met het bekijken van de geselecteerde query. %s"
       ],
@@ -4700,9 +4685,7 @@
       ],
       "An error occurred while fetching user values: %s": [""],
       "Search by query text": ["Zoek op querytekst"],
-      "Query preview": ["Query preview"],
       "Next": ["Volgende"],
-      "Open in SQL Lab": ["Open in SQL Lab"],
       "User query": ["User query"],
       "Executed query": ["Uitgevoerde query"],
       "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
@@ -4732,6 +4715,25 @@
       ],
       "queries": ["queries"],
       "Query name": ["Query naam"],
+      "Clause": ["Clausule"],
+      "Regular": [""],
+      "Rule added": [""],
+      "Add Rule": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+        ""
+      ],
+      "These are the tables this filter will be applied to.": [
+        "Dit zijn de tabellen waarop dit filter zal worden toegepast."
+      ],
+      "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
+        ""
+      ],
+      "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
+        ""
+      ],
+      "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).": [
+        ""
+      ],
       "[Untitled]": ["[Untitled]"],
       "Unknown": ["Onbekend"],
       "Viewed %s": [""],
@@ -4751,54 +4753,41 @@
       "Recently created charts, dashboards, and saved queries will appear here": [
         "Recent gemaakte grafieken, dashboards en opgeslagen queries verschijnen hier"
       ],
-      "Example %(tableName)s will appear here": [""],
+      "%(other)s %(tableName)s will appear here": [""],
       "Recently edited charts, dashboards, and saved queries will appear here": [
         "Recent bewerkte grafieken, dashboards en opgeslagen queries verschijnen hier"
       ],
       "SQL query": ["SQL query"],
-      "${tableName\n                      .split('')\n                      .slice(0, tableName.length - 1)\n                      .join('')}\n                    ": [
-        "${tableName\n                      .split(‘’)\n                      .slice(0, tableName.length - 1)\n                      .join(‘’)}\n                    "
-      ],
       "You don't have any favorites yet!": ["Je hebt nog geen favorieten!"],
       "See all %(tableName)s": [""],
       "query": ["query"],
-      "Share": ["Deel"],
       "Ran %s": [""],
       "There was an issue fetching your recent activity: %s": [
         "Er was een probleem bij het ophalen van uw recente activiteit: %s"
       ],
-      "There was an issues fetching your dashboards: %s": [
-        "Er was een probleem met het ophalen van uw dashboards: %s"
-      ],
-      "There was an issues fetching your chart: %s": [
-        "Er was een probleem met het ophalen van je grafiek: %s"
-      ],
-      "There was an issues fetching your saved queries: %s": [
-        "Er was een probleem met het ophalen van uw opgeslagen zoekopdrachten: %s"
-      ],
+      "Thumbnails": [""],
       "Recents": ["Recente"],
-      "Upload a CSV": ["Upload CSV"],
-      "Upload a Columnar File": [""],
-      "Upload Excel": ["Upload Excel"],
+      "Connect Google Sheet": [""],
+      "Upload columnar file to database": [""],
+      "Upload Excel file to database": [""],
+      "Enable 'Allow file uploads to database' in any database's settings": [
+        ""
+      ],
+      "Profile": ["Profiel"],
+      "Info": ["Info"],
+      "Logout": ["Afmelden"],
       "About": ["Over"],
       "Powered by Apache Superset": [""],
+      "SHA": [""],
       "Documentation": [""],
       "Report a bug": [""],
+      "Login": ["Aanmelden"],
       "Select start and end date": ["Selecteer begin- en einddatum"],
       "Type or Select [%s]": ["Type of selecteer [%s]"],
-      "No results found": ["Geen resultaten gevonden"],
       "Tools": [""],
       "Filter box": ["Filter box"],
       "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
         ""
-      ],
-      "Show Druid granularity dropdown": ["Toon Druid granularity dropdown"],
-      "Check to include Druid granularity dropdown": [
-        "Vink aan om Druïde granulariteit dropdown op te nemen"
-      ],
-      "Show Druid time origin": ["Toon Druid time origin"],
-      "Check to include time origin dropdown": [
-        "Vink aan om tijd oorsprong dropdown op te nemen"
       ],
       "Filters configuration": ["Filters configuratie"],
       "Filter configuration for the filter box": [
@@ -4812,11 +4801,8 @@
       "Check to apply filters instantly as they change instead of displaying [Apply] button": [
         "Vink aan om filters onmiddellijk toe te passen als ze veranderen in plaats van de [Toepassen] knop weer te geven"
       ],
-      "Show SQL time grain dropdown": [""],
       "Show time grain dropdown": [""],
-      "Check to include SQL time grain dropdown": [""],
       "Check to include time grain dropdown": [""],
-      "Show SQL time column": ["Toon SQL time column"],
       "Show time column": [""],
       "Check to include time column dropdown": [
         "Vink aan om tijdkolom dropdown op te nemen"
@@ -4833,7 +4819,6 @@
       "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
         ""
       ],
-      "Text": [""],
       "We have the following keys: %s": [""]
     }
   }
