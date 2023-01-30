@@ -24,7 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
@@ -71,7 +70,6 @@ class SqlLabRestApi(BaseSupersetApi):
 
     class_permission_name = "Query"
 
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
 
