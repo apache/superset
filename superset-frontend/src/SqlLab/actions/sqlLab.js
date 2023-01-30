@@ -17,6 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
+import rison from 'rison';
 import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
@@ -305,8 +306,13 @@ export function fetchQueryResults(query, displayLimit) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
 
+    const queryParams = rison.encode({
+      key: query.resultsKey,
+      rows: displayLimit || null,
+    });
+
     return SupersetClient.get({
-      endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
+      endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
       parseMethod: 'json-bigint',
     })
       .then(({ json }) => dispatch(querySuccess(query, json)))
@@ -347,7 +353,7 @@ export function runQuery(query) {
 
     const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${search}`,
+      endpoint: `/api/v1/sqllab/execute/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'json-bigint',
@@ -359,7 +365,11 @@ export function runQuery(query) {
       })
       .catch(response =>
         getClientErrorObject(response).then(error => {
-          let message = error.error || error.statusText || t('Unknown error');
+          let message =
+            error.error ||
+            error.message ||
+            error.statusText ||
+            t('Unknown error');
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }

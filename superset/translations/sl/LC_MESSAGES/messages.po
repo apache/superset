@@ -3254,7 +3254,7 @@ msgstr ""
 
 #: superset/views/core.py:2207
 msgid ""
-"The query associated with these results could not be find. You need to re-run the "
+"The query associated with these results could not be found. You need to re-run the "
 "original query."
 msgstr ""
 "Poizvedbe, povezane s temi rezultati, ni bilo mogoče najti. Ponovno morate "

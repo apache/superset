@@ -1380,7 +1380,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "Impossible de récupérer les données depuis le backend. Rejouez la requête originale."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "La requête associée à ces résultats n'a pu être trouvée. Rejouez la requête originale."
       ],
       "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
