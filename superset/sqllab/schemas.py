@@ -25,6 +25,13 @@ sql_lab_get_results_schema = {
 }
 
 
+class EstimateQueryCostSchema(Schema):
+    database_id = fields.Integer(required=True)
+    sql = fields.String(required=True)
+    template_params = fields.Dict(keys=fields.String())
+    schema = fields.String(allow_none=True)
+
+
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)

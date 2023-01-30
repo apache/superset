@@ -18,12 +18,13 @@ import logging
 from typing import Any, cast, Dict, Optional
 
 import simplejson as json
-from flask import request
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
@@ -31,6 +32,7 @@ from superset.models.sql_lab import Query
 from superset.queries.dao import QueryDAO
 from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.commands.estimate import QueryEstimationCommand
 from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
 from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
@@ -40,6 +42,7 @@ from superset.sqllab.exceptions import (
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
+    EstimateQueryCostSchema,
     ExecutePayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
@@ -68,6 +71,8 @@ class SqlLabRestApi(BaseSupersetApi):
 
     class_permission_name = "Query"
 
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
 
     apispec_parameter_schemas = {
@@ -78,6 +83,58 @@ class SqlLabRestApi(BaseSupersetApi):
         ExecutePayloadSchema,
         QueryExecutionResponseSchema,
     )
+
+    @expose("/estimate/", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".estimate_query_cost",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def estimate_query_cost(self, **kwargs: Any) -> Response:
+        """Estimates the SQL query execution cost
+        ---
+        post:
+          summary: >-
+            Estimates the SQL query execution cost
+          requestBody:
+            description: SQL query and params
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/EstimateQueryCostSchema'
+          responses:
+            200:
+              description: Query estimation result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.estimate_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        command = QueryEstimationCommand(model)
+        result = command.run()
+        return self.response(200, result=result)
 
     @expose("/results/")
     @protect()

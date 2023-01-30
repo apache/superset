@@ -142,6 +142,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_ssh_tunnel": "write",
     "get_updated_since": "read",
     "stop_query": "read",
+    "estimate_query_cost": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
