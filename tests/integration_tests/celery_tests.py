@@ -237,7 +237,9 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
 
     query = get_query_by_id(result["query"]["serverId"])
     assert (
-        sqlparse.format(f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}").strip()
+        sqlparse.format(
+            f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+        ).strip()
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
@@ -279,7 +281,9 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     )
 
     assert (
-        sqlparse.format(f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}").strip()
+        sqlparse.format(
+            f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+        ).strip()
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
