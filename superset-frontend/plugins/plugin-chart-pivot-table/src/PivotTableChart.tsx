@@ -29,6 +29,7 @@ import {
   useTheme,
   isAdhocColumn,
   BinaryQueryObjectFilterClause,
+  t,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -55,7 +56,7 @@ const PivotTableWrapper = styled.div`
   overflow: auto;
 `;
 
-const METRIC_KEY = 'metric';
+const METRIC_KEY = t('metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
