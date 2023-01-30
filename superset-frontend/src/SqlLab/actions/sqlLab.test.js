@@ -55,13 +55,13 @@ describe('async actions', () => {
 
   afterEach(fetchMock.resetHistory);
 
-  const fetchQueryEndpoint = 'glob:*/superset/results/*';
+  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
     fetchQueryEndpoint,
     JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
   );
 
-  const runQueryEndpoint = 'glob:*/superset/sql_json/';
+  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
@@ -280,7 +280,8 @@ describe('async actions', () => {
     };
 
     it('makes the fetch request', async () => {
-      const runQueryEndpointWithParams = 'glob:*/superset/sql_json/?foo=bar';
+      const runQueryEndpointWithParams =
+        'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
         runQueryEndpointWithParams,
         `{ "data": ${mockBigNumber} }`,

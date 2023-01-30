@@ -107,8 +107,8 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
-from superset.sqllab.command import CommandResult, ExecuteSqlCommand
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
@@ -2090,6 +2090,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/results/<key>/")
     @event_logger.log_this
+    @deprecated()
     def results(self, key: str) -> FlaskResponse:
         return self.results_exec(key)
 
@@ -2133,7 +2134,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
-                        "The query associated with these results could not be find. "
+                        "The query associated with these results could not be found. "
                         "You need to re-run the original query."
                     ),
                     error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
@@ -2313,6 +2314,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
+    @deprecated()
     def sql_json(self) -> FlaskResponse:
         errors = SqlJsonPayloadSchema().validate(request.json)
         if errors:
@@ -2352,7 +2354,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
+            config.get("SQLLAB_CTAS_NO_LIMIT"),
             log_params,
         )
 
