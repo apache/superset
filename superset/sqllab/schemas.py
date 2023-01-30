@@ -24,6 +24,14 @@ sql_lab_get_results_schema = {
     "required": ["key"],
 }
 
+sql_lab_export_csv_schema = {
+    "type": "object",
+    "properties": {
+        "client_id": {"type": "string"},
+    },
+    "required": ["client_id"],
+}
+
 
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
