@@ -14,20 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.dremio import DremioEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class TestDremioDbEngineSpec(TestDbEngineSpec):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
+from datetime import datetime
+from typing import Optional
 
-        self.assertEqual(
-            DremioEngineSpec.convert_dttm("DATE", dttm),
-            "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
-        )
+import pytest
 
-        self.assertEqual(
-            DremioEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
-        )
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        (
+            "TimeStamp",
+            "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)",
+        ),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.hive import HiveEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

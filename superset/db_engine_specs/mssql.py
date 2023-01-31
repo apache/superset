@@ -20,10 +20,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 from flask_babel import gettext as __
+from sqlalchemy import types
+from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import SupersetErrorType
-from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +72,13 @@ class MssqlEngineSpec(BaseEngineSpec):
         "1969-12-29T00:00:00Z/P1W": "DATEADD(WEEK,"
         " DATEDIFF(WEEK, 0, DATEADD(DAY, -1, {col})), 0)",
     }
+    column_type_mappings = (
+        (
+            re.compile(r"^smalldatetime.*", re.IGNORECASE),
+            SMALLDATETIME(),
+            GenericDataType.TEMPORAL,
+        ),
+    )
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
@@ -108,15 +117,16 @@ class MssqlEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
-        if tt == utils.TemporalType.DATETIME:
-            datetime_formatted = dttm.isoformat(timespec="milliseconds")
-            return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
-        if tt == utils.TemporalType.SMALLDATETIME:
+        if isinstance(sqla_type, SMALLDATETIME):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
             return f"""CONVERT(SMALLDATETIME, '{datetime_formatted}', 20)"""
+        if isinstance(sqla_type, types.DateTime):
+            datetime_formatted = dttm.isoformat(timespec="milliseconds")
+            return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
         return None
 
     @classmethod

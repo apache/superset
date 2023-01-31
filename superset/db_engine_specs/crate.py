@@ -14,11 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -53,12 +56,13 @@ class CrateEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.TIMESTAMP:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"{dttm.timestamp() * 1000}"
         return None
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
+    def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
         if orm_col.type == "TIMESTAMP":
             orm_col.python_date_format = "epoch_ms"
