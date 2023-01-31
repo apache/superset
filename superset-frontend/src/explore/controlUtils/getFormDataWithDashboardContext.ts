@@ -173,6 +173,25 @@ const mergeNativeFiltersToFormData = (
   return nativeFiltersData;
 };
 
+const applyTimeRangeFilters = (
+  dashboardFormData: JsonObject,
+  adhocFilters: AdhocFilter[],
+) => {
+  const extraFormData = dashboardFormData.extra_form_data || {};
+  if ('time_range' in extraFormData) {
+    return adhocFilters.map((filter: SimpleAdhocFilter) => {
+      if (filter.operator === 'TEMPORAL_RANGE') {
+        return {
+          ...filter,
+          comparator: extraFormData.time_range,
+        };
+      }
+      return filter;
+    });
+  }
+  return adhocFilters;
+};
+
 export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
@@ -194,14 +213,18 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: removeAdhocFilterDuplicates([
-          ...ensureIsArray(exploreFormData[key]),
-          ...ensureIsArray(filterBoxData[key]),
-          ...ensureIsArray(nativeFiltersData[key]),
-        ]),
+        [key]: applyTimeRangeFilters(
+          dashboardContextFormData,
+          removeAdhocFilterDuplicates([
+            ...ensureIsArray(exploreFormData[key]),
+            ...ensureIsArray(filterBoxData[key]),
+            ...ensureIsArray(nativeFiltersData[key]),
+          ]),
+        ),
       }),
       {},
     );
+
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
