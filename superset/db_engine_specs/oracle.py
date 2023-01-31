@@ -17,8 +17,9 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.utils import core as utils
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -44,15 +45,16 @@ class OracleEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == utils.TemporalType.DATETIME:
-            datetime_formatted = dttm.isoformat(timespec="seconds")
-            return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TO_TIMESTAMP('{dttm
                 .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+        if isinstance(sqla_type, types.DateTime):
+            datetime_formatted = dttm.isoformat(timespec="seconds")
+            return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""
         return None
 
     @classmethod

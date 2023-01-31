@@ -14,95 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from textwrap import dedent
+from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
 import pytest
 from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 
 from superset.utils.core import GenericDataType
-from tests.unit_tests.db_engine_specs.utils import assert_column_spec
-
-
-def test_get_text_clause_with_colon() -> None:
-    """
-    Make sure text clauses are correctly escaped
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    text_clause = BaseEngineSpec.get_text_clause(
-        "SELECT foo FROM tbl WHERE foo = '123:456')"
-    )
-    assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
-
-
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
+from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
-    "original,expected",
+    "target_type,expected_result",
     [
+        ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
         (
-            dedent(
-                """
-with currency as
-(
-select 'INR' as cur
-)
-select * from currency
-"""
-            ),
-            None,
+            "DateTime",
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
         ),
         (
-            "SELECT 1 as cnt",
-            None,
+            "TimeStamp",
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
         ),
-        (
-            dedent(
-                """
-select 'INR' as cur
-union
-select 'AUD' as cur
-union
-select 'USD' as cur
-"""
-            ),
-            None,
-        ),
+        ("UnknownType", None),
     ],
 )
-def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
-    from superset.db_engine_specs.base import BaseEngineSpec
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
-    actual = BaseEngineSpec.get_cte_query(original)
-    assert actual == expected
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
@@ -114,12 +62,15 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
         ("DECIMAL", types.Numeric, None, GenericDataType.NUMERIC, False),
         ("NUMERIC", types.Numeric, None, GenericDataType.NUMERIC, False),
         ("REAL", types.REAL, None, GenericDataType.NUMERIC, False),
-        ("DOUBLE PRECISION", types.Float, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE PRECISION", DOUBLE_PRECISION, None, GenericDataType.NUMERIC, False),
         ("MONEY", types.Numeric, None, GenericDataType.NUMERIC, False),
         # String
         ("CHAR", types.String, None, GenericDataType.STRING, False),
         ("VARCHAR", types.String, None, GenericDataType.STRING, False),
         ("TEXT", types.String, None, GenericDataType.STRING, False),
+        ("ARRAY", types.String, None, GenericDataType.STRING, False),
+        ("ENUM", ENUM, None, GenericDataType.STRING, False),
+        ("JSON", JSON, None, GenericDataType.STRING, False),
         # Temporal
         ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
         ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
@@ -135,6 +86,6 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)

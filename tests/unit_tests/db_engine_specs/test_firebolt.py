@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 from datetime import datetime
 from typing import Optional
 
@@ -27,14 +28,30 @@ from tests.unit_tests.fixtures.common import dttm
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("text", "'2019-01-02 03:04:05'"),
-        ("dateTime", "'2019-01-02 03:04:05'"),
-        ("unknowntype", None),
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        (
+            "DateTime",
+            "CAST('2019-01-02T03:04:05' AS DATETIME)",
+        ),
+        (
+            "TimeStamp",
+            "CAST('2019-01-02T03:04:05' AS TIMESTAMP)",
+        ),
+        ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec as spec
+    from superset.db_engine_specs.firebolt import FireboltEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_epoch_to_dttm() -> None:
+    from superset.db_engine_specs.firebolt import FireboltEngineSpec
+
+    assert (
+        FireboltEngineSpec.epoch_to_dttm().format(col="timestamp_column")
+        == "from_unixtime(timestamp_column)"
+    )
