@@ -427,7 +427,7 @@ function SavedQueryList({
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'saved_query',
           'database',

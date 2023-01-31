@@ -162,7 +162,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return f"TO_DATE('{dttm.date().isoformat()}')"
         if tt == utils.TemporalType.DATETIME:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if utils.TemporalType.TIMESTAMP in tt:
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
         return None
 

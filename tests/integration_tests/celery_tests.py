@@ -96,7 +96,7 @@ def run_sql(
 ):
     db_id = get_example_database().id
     return test_client.post(
-        "/superset/sql_json/",
+        "/api/v1/sqllab/execute/",
         json=dict(
             database_id=db_id,
             sql=sql,
@@ -111,7 +111,7 @@ def run_sql(
 
 def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
     """Drop table if it exists, works on any DB"""
-    sql = f"DROP {table_type} IF EXISTS  {table_name}"
+    sql = f"DROP {table_type} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine_with_context() as engine:
         engine.execute(sql)

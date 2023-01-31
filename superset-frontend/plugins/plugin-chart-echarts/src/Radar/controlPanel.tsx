@@ -31,7 +31,6 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   sharedControls,
-  emitFilterControl,
   ControlFormItemSpec,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -51,7 +50,7 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
       'The maximum value of metrics. It is an optional configuration',
     ),
     width: 120,
-    placeholder: 'auto',
+    placeholder: t('auto'),
     debounceDelay: 400,
     validators: [validateNumber],
   },
@@ -68,7 +67,6 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['timeseries_limit_metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',

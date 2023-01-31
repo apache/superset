@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
@@ -142,7 +144,7 @@ export const SLOW_DEBOUNCE = 500;
 /**
  * Display null as `N/A`
  */
-export const NULL_DISPLAY = 'N/A';
+export const NULL_DISPLAY = t('N/A');
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   flash_messages: [],

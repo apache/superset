@@ -20,7 +20,6 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Visualization > Line', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

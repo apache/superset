@@ -4506,7 +4506,7 @@
       "The query associated with the results was deleted.": [
         "Запрос, связанный с результатами, был удален."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         ""
       ],
       "The query contains one or more malformed template parameters.": [""],

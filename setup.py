@@ -80,7 +80,7 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=3.3.2",
+        "cryptography>=39.0.0,<40",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.1.3, <2.2",
         "flask-appbuilder>=4.1.6, <5.0.0",
@@ -124,6 +124,7 @@ setup(
         "typing-extensions>=4, <5",
         "wtforms>=2.3.3, <2.4",
         "wtforms-json",
+        "xlsxwriter>=3.0.7, <3.1",
     ],
     extras_require={
         "athena": ["pyathena[pandas]>=2, <3"],

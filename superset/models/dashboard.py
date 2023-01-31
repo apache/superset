@@ -20,7 +20,7 @@ import json
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
@@ -176,6 +176,11 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @property
     def url(self) -> str:
         return f"/superset/dashboard/{self.slug or self.id}/"
+
+    @staticmethod
+    def get_url(id_: int, slug: Optional[str] = None) -> str:
+        # To be able to generate URL's without instanciating a Dashboard object
+        return f"/superset/dashboard/{slug or id_}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
