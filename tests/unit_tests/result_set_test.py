@@ -98,10 +98,10 @@ def test_stringify_with_null_integers():
 
     expected = np.array(
         [
-            array(['"foo"', '"foo"', '"foo"'], dtype=object),
-            array(['"bar"', '"bar"', '"bar"'], dtype=object),
+            array(["foo", "foo", "foo"], dtype=object),
+            array(["bar", "bar", "bar"], dtype=object),
             array([None, None, None], dtype=object),
-            array([None, "true", None], dtype=object),
+            array([None, "True", None], dtype=object),
         ]
     )
 
@@ -132,10 +132,10 @@ def test_stringify_with_null_timestamps():
 
     expected = np.array(
         [
-            array(['"foo"', '"foo"', '"foo"'], dtype=object),
-            array(['"bar"', '"bar"', '"bar"'], dtype=object),
+            array(["foo", "foo", "foo"], dtype=object),
+            array(["bar", "bar", "bar"], dtype=object),
             array([None, None, None], dtype=object),
-            array([None, "true", None], dtype=object),
+            array([None, "True", None], dtype=object),
         ]
     )
 

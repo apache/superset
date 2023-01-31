@@ -1299,7 +1299,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "Podatkov ni bilo mogoče pridobiti iz zalednega sistema rezultatov. Ponovno morate zagnati izvorno poizvedbo."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "Poizvedbe, povezane s temi rezultati, ni bilo mogoče najti. Ponovno morate zagnati izvorno poizvedbo."
       ],
       "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [

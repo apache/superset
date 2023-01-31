@@ -652,7 +652,10 @@ export function maxUndoHistoryToast() {
 
     return dispatch(
       addWarningToast(
-        `You have used all ${historyLength} undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.`,
+        t(
+          'You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.',
+          { historyLength },
+        ),
       ),
     );
   };

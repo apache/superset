@@ -55,7 +55,87 @@ def test_df_to_records_NaT_type() -> None:
 
     assert df_to_records(df) == [
         {"date": None},
-        {"date": '"2023-01-06T20:50:31.749000+00:00"'},
+        {"date": "2023-01-06 20:50:31.749000+00:00"},
+    ]
+
+
+def test_df_to_records_mixed_emoji_type() -> None:
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    data = [
+        ("What's up?", "This is a string text", 1),
+        ("What's up?", "This is a string with an 😍 added", 2),
+        ("What's up?", NaT, 3),
+        ("What's up?", "Last emoji 😁", 4),
+    ]
+
+    cursor_descr: DbapiDescription = [
+        ("question", "varchar", None, None, None, None, False),
+        ("response", "varchar", None, None, None, None, False),
+        ("count", "integer", None, None, None, None, False),
+    ]
+
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"question": "What's up?", "response": "This is a string text", "count": 1},
+        {
+            "question": "What's up?",
+            "response": "This is a string with an 😍 added",
+            "count": 2,
+        },
+        {
+            "question": "What's up?",
+            "response": None,
+            "count": 3,
+        },
+        {
+            "question": "What's up?",
+            "response": "Last emoji 😁",
+            "count": 4,
+        },
+    ]
+
+
+def test_df_to_records_mixed_accent_type() -> None:
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    data = [
+        ("What's up?", "This is a string text", 1),
+        ("What's up?", "This is a string with áccent", 2),
+        ("What's up?", NaT, 3),
+        ("What's up?", "móre áccent", 4),
+    ]
+
+    cursor_descr: DbapiDescription = [
+        ("question", "varchar", None, None, None, None, False),
+        ("response", "varchar", None, None, None, None, False),
+        ("count", "integer", None, None, None, None, False),
+    ]
+
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"question": "What's up?", "response": "This is a string text", "count": 1},
+        {
+            "question": "What's up?",
+            "response": "This is a string with áccent",
+            "count": 2,
+        },
+        {
+            "question": "What's up?",
+            "response": None,
+            "count": 3,
+        },
+        {
+            "question": "What's up?",
+            "response": "móre áccent",
+            "count": 4,
+        },
     ]
 
 
