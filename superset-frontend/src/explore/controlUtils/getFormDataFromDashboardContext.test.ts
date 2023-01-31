@@ -48,6 +48,14 @@ const getExploreFormData = (overrides: JsonObject = {}) => ({
       sqlExpression: "city = 'Warsaw'",
       filterOptionName: '567',
     },
+    {
+      clause: 'WHERE' as const,
+      expressionType: 'SIMPLE' as const,
+      operator: 'TEMPORAL_RANGE' as const,
+      subject: 'ds',
+      comparator: 'No filter',
+      filterOptionName: '678',
+    },
   ],
   adhoc_filters_b: [
     {
@@ -157,6 +165,14 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       comparator: null,
       sqlExpression: "city = 'Warsaw'",
       filterOptionName: '567',
+    },
+    {
+      clause: 'WHERE',
+      expressionType: 'SIMPLE',
+      operator: 'TEMPORAL_RANGE',
+      subject: 'ds',
+      comparator: 'Last month',
+      filterOptionName: expect.any(String),
     },
     {
       clause: 'WHERE',
@@ -279,7 +295,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
   ...overrides,
 });
 
-it('merges dashboard context form data with explore form data', () => {
+test('merges dashboard context form data with explore form data', () => {
   const fullFormData = getFormDataWithDashboardContext(
     getExploreFormData(),
     getDashboardFormData(),
