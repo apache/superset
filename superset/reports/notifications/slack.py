@@ -60,12 +60,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             else ""
         )
         template = __(
-            """*<%(link)s | %(name)s>*
->%(description)s
-
->Message: %(msg_content)s
-
->%(table)s
+            """>*<%(link)s | %(name)s>* \n_%(description)s_ \n*Message Content:* \n%(msg_content)s \n%(table)s
 """,
             name=self._content.name,
             description=self._content.description or "",
@@ -75,13 +70,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         if all([url is not None, url != ""]):
             template = __(
-                """*<%(link)s | %(name)s>*
-
->%(description)s
-
-><%(url)s|Explore in Careem Insights>
-
->%(table)s
+                """>*<%(link)s | %(name)s>* \n _%(description)s_ \n<%(url)s|Explore in Careem Insights> \n%(table)s
 """,
                 name=self._content.name,
                 description=self._content.description or "",
