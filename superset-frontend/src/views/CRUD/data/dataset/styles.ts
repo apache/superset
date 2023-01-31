@@ -62,6 +62,7 @@ export const PanelRow = styled(Row)`
 export const FooterRow = styled(Row)`
   flex: 0 0 auto;
   height: ${({ theme }) => theme.gridUnit * 16}px;
+  z-index: 0;
 `;
 
 export const StyledLayoutHeader = styled.div`

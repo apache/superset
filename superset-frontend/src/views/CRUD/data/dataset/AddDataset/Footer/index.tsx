@@ -106,7 +106,7 @@ function Footer({
     }
   };
 
-  const CREATE_DATASET_TEXT = t('Create Dataset and Create Chart');
+  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||

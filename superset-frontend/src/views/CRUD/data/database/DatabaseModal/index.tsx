@@ -656,6 +656,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const redirectURL = (url: string) => {
+    /* TODO (lyndsiWilliams): This check and passing history
+      as a prop can be removed once SQL Lab is in the SPA */
     if (!isEmpty(history)) {
       history?.push(url);
     } else {
