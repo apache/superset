@@ -189,9 +189,10 @@ const config: ControlPanelConfig = {
             controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
-    groupby: {
+    columns: {
       label: t('Hierarchy'),
-      description: t('This defines the level of the hierarchy'),
+      description: t(`Sets the hierarchy levels of the chart. Each level is
+        represented by one ring with the innermost circle as the top of the hierarchy.`),
     },
   },
   formDataOverrides: formData => ({
