@@ -28,6 +28,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
+    "@ant-design/icons": "^5.0.0",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^17.0.2",
