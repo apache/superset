@@ -272,3 +272,13 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
+    
+    @classmethod
+    def get_create_view(
+        cls, database: "Database", schema: Optional[str], table: str
+    ) -> Optional[str]:
+        from trino.exceptions import TrinoUserError
+        try:
+            return super(cls, cls).get_create_view(database, schema, table)
+        except TrinoUserError:
+            return None
