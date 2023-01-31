@@ -63,7 +63,7 @@ import {
   ExtraJson,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
-import { omit } from 'lodash';
+import { pick } from 'lodash';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -373,12 +373,25 @@ export function dbReducer(
           [action.payload.name]: action.payload.value,
         },
       };
-    case ActionType.setSSHTunnelLoginMethod:
+    case ActionType.setSSHTunnelLoginMethod: {
+      let ssh_tunnel = {};
+      if (trimmedState?.ssh_tunnel) {
+        // remove any attributes that are considered sensitive
+        ssh_tunnel = pick(trimmedState.ssh_tunnel, [
+          'id',
+          'server_address',
+          'server_port',
+          'username',
+        ]);
+      }
       if (action.payload.login_method === AuthType.privateKey) {
         return {
           ...trimmedState,
           ssh_tunnel: {
-            ...omit(trimmedState?.ssh_tunnel, ['password']),
+            private_key: trimmedState?.ssh_tunnel?.private_key,
+            private_key_password:
+              trimmedState?.ssh_tunnel?.private_key_password,
+            ...ssh_tunnel,
           },
         };
       }
@@ -386,16 +399,15 @@ export function dbReducer(
         return {
           ...trimmedState,
           ssh_tunnel: {
-            ...omit(trimmedState?.ssh_tunnel, [
-              'private_key',
-              'private_key_password',
-            ]),
+            password: trimmedState?.ssh_tunnel?.password,
+            ...ssh_tunnel,
           },
         };
       }
       return {
         ...trimmedState,
       };
+    }
     case ActionType.removeSSHTunnelConfig:
       return {
         ...trimmedState,
