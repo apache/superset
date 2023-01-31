@@ -27,14 +27,15 @@ from tests.unit_tests.fixtures.common import dttm
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("text", "'2019-01-02 03:04:05'"),
-        ("dateTime", "'2019-01-02 03:04:05'"),
-        ("unknowntype", None),
+        ("Date", "DATE '2019-01-02'"),
+        ("DateTime", "DATETIME '2019-01-02 03:04:05.678900'"),
+        ("Timestamp", "TIMESTAMP '2019-01-02T03:04:05.678900'"),
+        ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec as spec
+    from superset.db_engine_specs.rockset import RocksetEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)

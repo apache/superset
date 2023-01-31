@@ -27,14 +27,14 @@ from tests.unit_tests.fixtures.common import dttm
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("text", "'2019-01-02 03:04:05'"),
-        ("dateTime", "'2019-01-02 03:04:05'"),
-        ("unknowntype", None),
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        ("TimeStamp", "CAST('2019-01-02 03:04:05' AS TIMESTAMP)"),
+        ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec as spec
+    from superset.db_engine_specs.kylin import KylinEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)

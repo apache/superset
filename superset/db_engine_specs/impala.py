@@ -21,13 +21,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask import current_app
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
 from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
 # Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
@@ -59,10 +59,11 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 
