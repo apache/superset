@@ -149,7 +149,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         if all([url is not None, url != ""]):
             url_renderer = f"""<b><a href="{url}">{call_to_action}</a></b><p></p>"""
         if self._content.msg_content:
-            msgContent = f"""<p><strong> Message Content: <strong>{" ".join(self._content.msg_content.split())}</p>"""
+            msgContent = f"""<p><strong> Message Content: </strong>{" ".join(self._content.msg_content.split())}</p>"""
         body = textwrap.dedent(
             f"""
             <html>
@@ -170,7 +170,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 </style>
               </head>
               <body>
-                <div><strong>Description:<strong>{description}</div>
+                <div><strong>Description:</strong>{description}</div>
                 <br>
                 {url_renderer}
                 {msgContent}
