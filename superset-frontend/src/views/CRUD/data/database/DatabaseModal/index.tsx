@@ -137,6 +137,7 @@ interface DatabaseModalProps {
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
   dbEngine: string | undefined; // if included goto step 2 with engine already set
+  history?: any;
 }
 
 export enum ActionType {
@@ -521,6 +522,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   show,
   databaseId,
   dbEngine,
+  history,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -651,6 +653,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setPasswords({});
     setConfirmedOverwrite(false);
     onHide();
+  };
+
+  const redirectURL = (url: string) => {
+    /* TODO (lyndsiWilliams): This check and passing history
+      as a prop can be removed once SQL Lab is in the SPA */
+    if (!isEmpty(history)) {
+      history?.push(url);
+    } else {
+      window.location.href = url;
+    }
   };
 
   // Database import logic
@@ -1345,23 +1357,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
-        // eslint-disable-next-line no-return-assign
         buttonStyle="secondary"
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          window.location.href = '/tablemodelview/list#create';
+          redirectURL('/dataset/add/');
         }}
       >
         {t('CREATE DATASET')}
       </Button>
       <Button
         buttonStyle="secondary"
-        // eslint-disable-next-line no-return-assign
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          window.location.href = `/superset/sqllab/?db=true`;
+          redirectURL(`/superset/sqllab/?db=true`);
         }}
       >
         {t('QUERY DATA IN SQL LAB')}
