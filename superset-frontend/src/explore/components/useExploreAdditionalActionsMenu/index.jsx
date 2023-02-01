@@ -313,7 +313,7 @@ export const useExploreAdditionalActionsMenu = (
               icon={<Icons.FileOutlined css={iconReset} />}
               disabled={!canDownloadCSV}
             >
-              {t('test')}
+              {t('Export to .CSV')}
             </Menu.Item>
           )}
           <Menu.Item
