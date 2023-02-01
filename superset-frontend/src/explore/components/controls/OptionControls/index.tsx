@@ -308,10 +308,7 @@ export const OptionControlLabel = ({
       <CloseContainer
         role="button"
         data-test="remove-control-button"
-        onClick={e => {
-          e.stopPropagation();
-          onRemove();
-        }}
+        onClick={onRemove}
       >
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
