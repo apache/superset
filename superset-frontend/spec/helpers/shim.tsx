@@ -23,7 +23,7 @@ import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import 'jest-enzyme';
 import jQuery from 'jquery';
 import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
+import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';

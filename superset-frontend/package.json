@@ -280,6 +280,7 @@
     "@types/yargs": "12 - 15",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@wojtekmaj/enzyme-adapter-react-17": "^0.8.0",
     "babel-jest": "^26.6.3",
     "babel-loader": "^8.3.0",
     "babel-plugin-dynamic-import-node": "^2.3.3",
