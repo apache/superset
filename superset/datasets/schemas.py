@@ -228,6 +228,17 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
+class GetOrCreateDatasetSchema(Schema):
+    table_name = fields.String(required=True, description="Name of table")
+    database_id = fields.Integer(
+        required=True, description="ID of database table belongs to"
+    )
+    schema = fields.String(
+        description="The schema the table belongs to", allow_none=True
+    )
+    template_params = fields.String(description="Template params for the table")
+
+
 class DatasetSchema(SQLAlchemyAutoSchema):
     """
     Schema for the ``Dataset`` model.

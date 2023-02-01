@@ -1513,7 +1513,7 @@ export function createCtasDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
-      endpoint: '/api/v1/datasource/table/get_or_create/',
+      endpoint: '/api/v1/dataset/get_or_create/',
       jsonPayload: vizOptions,
     })
       .then(({ json }) => {

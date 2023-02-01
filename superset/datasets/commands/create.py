@@ -32,6 +32,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.extensions import db
+from superset.views.base import create_table_permissions
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
+            create_table_permissions(dataset)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)

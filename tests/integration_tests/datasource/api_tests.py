@@ -22,8 +22,6 @@ import pytest
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DatasourceTypeNotSupportedError
-from superset.datasource.commands.exceptions import GetTableFromDatabaseFailedError
-from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -137,76 +135,3 @@ class TestDatasourceApi(SupersetTestCase):
             response["message"],
             "Unable to get column values for datasource type: sl_table",
         )
-
-    @pytest.mark.usefixtures("app_context", "virtual_dataset")
-    def test_get_or_create_table_already_exists(self):
-        self.login(username="admin")
-        rv = self.client.post(
-            "api/v1/datasource/table/get_or_create/",
-            json={
-                "table_name": "virtual_dataset",
-                "database_id": get_example_database().id,
-            },
-        )
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["result"], {"table_id": self.get_virtual_dataset().id}
-        )
-
-    def test_get_or_create_table_database_not_found(self):
-        self.login(username="admin")
-        rv = self.client.post(
-            "api/v1/datasource/table/get_or_create/",
-            json={"table_name": "virtual_dataset", "database_id": 999},
-        )
-        self.assertEqual(rv.status_code, 404)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["message"], "Database not found.")
-
-    @patch("superset.datasource.commands.create_table.CreateSqlaTableCommand.run")
-    def test_get_or_create_table_get_table_fails(self, run_command_mock):
-        run_command_mock.side_effect = GetTableFromDatabaseFailedError
-        self.login(username="admin")
-        rv = self.client.post(
-            "api/v1/datasource/table/get_or_create/",
-            json={"table_name": "tbl", "database_id": get_example_database().id},
-        )
-        self.assertEqual(rv.status_code, 400)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response["message"],
-            "Table could not be found, please check your "
-            "database connection, schema, and table name",
-        )
-
-    def test_get_or_create_table_creates_table(self):
-        self.login(username="admin")
-
-        examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
-            engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
-
-        rv = self.client.post(
-            "api/v1/datasource/table/get_or_create/",
-            json={
-                "table_name": "test_create_sqla_table_api",
-                "database_id": examples_db.id,
-                "template_params": '{"param": 1}',
-            },
-        )
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="test_create_sqla_table_api")
-            .one()
-        )
-        self.assertEqual(response["result"], {"table_id": table.id})
-        self.assertEqual(table.template_params, '{"param": 1}')
-
-        db.session.delete(table)
-        with examples_db.get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE test_create_sqla_table_api")
-        db.session.commit()

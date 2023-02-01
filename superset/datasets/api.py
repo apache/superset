@@ -28,7 +28,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
+from superset import db, event_logger, is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
@@ -61,6 +61,7 @@ from superset.datasets.schemas import (
     DatasetRelatedObjectsResponse,
     get_delete_ids_schema,
     get_export_ids_schema,
+    GetOrCreateDatasetSchema,
 )
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
@@ -93,6 +94,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "refresh",
         "related_objects",
         "duplicate",
+        "get_or_create_dataset",
     }
     list_columns = [
         "id",
@@ -240,6 +242,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
+        GetOrCreateDatasetSchema,
     )
 
     list_outer_default_load = True
@@ -877,3 +880,74 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/get_or_create/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".get_or_create_dataset",
+        log_to_statsd=False,
+    )
+    def get_or_create_dataset(self) -> Response:
+        """Retrieve a dataset by name, or create it if it does not exist
+        ---
+        post:
+          summary: Retrieve a table by name, or create it if it does not exist
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/GetOrCreateDatasetSchema'
+          responses:
+            200:
+              description: The ID of the table
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          table_id:
+                            type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = GetOrCreateDatasetSchema().load(request.json)
+        except ValidationError as ex:
+            return self.response(400, message=ex.messages)
+        table_name = body["table_name"]
+        database_id = body["database_id"]
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+        if not table:
+            body["database"] = database_id
+            try:
+                table = CreateDatasetCommand(body).run()
+            except DatasetInvalidError as ex:
+                return self.response_422(message=ex.normalized_messages())
+            except DatasetCreateFailedError as ex:
+                logger.error(
+                    "Error creating model %s: %s",
+                    self.__class__.__name__,
+                    str(ex),
+                    exc_info=True,
+                )
+                return self.response_422(message=ex.message)
+
+        payload = {"table_id": table.id}
+        return self.response(200, result=payload)
