@@ -97,7 +97,11 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           name="time_range"
           onChange={handleTimeRangeChange}
           onOpenPopover={() => setFilterActive(true)}
-          onClosePopover={() => setFilterActive(false)}
+          onClosePopover={() => {
+            setFilterActive(false);
+            unsetHoveredFilter();
+            unsetFocusedFilter();
+          }}
           isOverflowingFilterBar={isOverflowingFilterBar}
         />
       </ControlContainer>
