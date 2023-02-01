@@ -78,6 +78,9 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
   };
 }
 
+/**
+ * Retrieves all pages of dataset results
+ */
 export const useGetDatasetsList = () => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
 
