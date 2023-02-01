@@ -92,7 +92,6 @@ class Api(BaseSupersetView):
         return json.dumps(form_data)
 
     @api
-    @protect
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
