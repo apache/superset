@@ -190,7 +190,7 @@ export default function LeftPanel({
     (url: string) => {
       SupersetClient.get({ url })
         .then(({ json }) => {
-          const options: TableOption[] = json.options.map((table: Table) => {
+          const options: TableOption[] = json.result.map((table: Table) => {
             const option: TableOption = {
               value: table.value,
               label: <TableOption table={table} />,
