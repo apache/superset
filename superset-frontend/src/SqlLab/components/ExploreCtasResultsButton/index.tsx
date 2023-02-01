@@ -48,10 +48,10 @@ const ExploreCtasResultsButton = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const buildVizOptions = {
-    datasourceName: table,
+    table_name: table,
     schema,
-    dbId,
-    templateParams,
+    database_id: dbId,
+    template_params: templateParams,
   };
 
   const visualize = () => {

@@ -16,11 +16,18 @@
 # under the License.
 import logging
 
+from flask import request
 from flask_appbuilder.api import expose, protect, safe
+from marshmallow import ValidationError
 
 from superset import app, db, event_logger
+from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.databases.commands.exceptions import DatabaseNotFoundError
+from superset.datasource.commands.create_table import CreateSqlaTableCommand
+from superset.datasource.commands.exceptions import GetTableFromDatabaseFailedError
 from superset.datasource.dao import DatasourceDAO
+from superset.datasource.schemas import GetOrCreateTableSchema
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
@@ -34,6 +41,77 @@ class DatasourceRestApi(BaseSupersetApi):
     class_permission_name = "Datasource"
     resource_name = "datasource"
     openapi_spec_tag = "Datasources"
+
+    openapi_spec_component_schemas = (GetOrCreateTableSchema,)
+
+    @expose("/table/get_or_create/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".get_or_create_table",
+        log_to_statsd=False,
+    )
+    def get_or_create_table(self) -> FlaskResponse:
+        """Retrieve a table by name, or create it if it does not exist
+        ---
+        post:
+          summary: Retrieve a table by name, or create it if it does not exist
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/GetOrCreateTableSchema'
+          responses:
+            200:
+              description: The ID of the table
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          table_id:
+                            type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = GetOrCreateTableSchema().load(request.json)
+        except ValidationError as ex:
+            return self.response(400, message=ex.messages)
+        table_name = body["table_name"]
+        database_id = body["database_id"]
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+        if not table:
+            try:
+                table = CreateSqlaTableCommand(
+                    table_name,
+                    database_id,
+                    body.get("schema"),
+                    body.get("template_params"),
+                ).run()
+            except DatabaseNotFoundError as ex:
+                return self.response(404, message=ex.message)
+            except GetTableFromDatabaseFailedError as ex:
+                return self.response(400, message=ex.message)
+
+        payload = {"table_id": table.id}
+        return self.response(200, result=payload)
 
     @expose(
         "/<datasource_type>/<int:datasource_id>/column/<column_name>/values/",

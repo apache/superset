@@ -1918,6 +1918,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/get_or_create_table/", methods=["POST"])
     @event_logger.log_this
+    @deprecated()
     def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Gets or creates a table object with attributes passed to the API.
 
@@ -1947,6 +1948,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 table.schema = data.get("schema")
                 table.template_params = data.get("templateParams")
                 # needed for the table validation.
+                # fn can be deleted when this endpoint is removed
                 validate_sqlatable(table)
 
             db.session.add(table)
