@@ -185,7 +185,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={`${t('Keys for table')} ${table.name}`}
+          modalTitle={t('Keys for table %(tableName)', {
+            tableName: table.name,
+          })}
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}

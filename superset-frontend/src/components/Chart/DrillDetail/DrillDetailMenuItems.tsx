@@ -204,8 +204,7 @@ const DrillDetailMenuItems = ({
               key={`drill-detail-filter-${i}`}
               onClick={openModal.bind(null, [filter])}
             >
-              {`${t('Drill to detail by')} `}
-              <Filter>{filter.formattedVal}</Filter>
+              {t('Drill to detail by')} <Filter>{filter.formattedVal}</Filter>
             </Menu.Item>
           ))}
           {filters.length > 1 && (
@@ -214,8 +213,7 @@ const DrillDetailMenuItems = ({
               key="drill-detail-filter-all"
               onClick={openModal.bind(null, filters)}
             >
-              {`${t('Drill to detail by')} `}
-              <Filter>{t('all')}</Filter>
+              {t('Drill to detail by')} <Filter>{t('all')}</Filter>
             </Menu.Item>
           )}
         </div>

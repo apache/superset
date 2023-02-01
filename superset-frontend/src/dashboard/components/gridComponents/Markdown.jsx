@@ -73,6 +73,7 @@ const propTypes = {
 
 const defaultProps = {};
 
+// TODO: localize
 const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
 ## ✨Header 2
 ### ✨Header 3

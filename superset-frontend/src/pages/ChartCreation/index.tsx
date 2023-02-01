@@ -350,8 +350,7 @@ export class ChartCreation extends React.PureComponent<
           target="_blank"
           data-test="add-chart-new-dataset-instructions"
         >
-          {`${t('view instructions')} `}
-          <i className="fa fa-external-link" />
+          {t('view instructions')} <i className="fa fa-external-link" />
         </a>
         .
       </span>
@@ -362,8 +361,7 @@ export class ChartCreation extends React.PureComponent<
           rel="noopener noreferrer"
           target="_blank"
         >
-          {`${t('View instructions')} `}
-          <i className="fa fa-external-link" />
+          {t('view instructions')} <i className="fa fa-external-link" />
         </a>
         .
       </span>

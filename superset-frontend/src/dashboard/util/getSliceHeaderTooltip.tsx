@@ -33,7 +33,7 @@ export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
     : t('Click to edit chart.');
   const secondLine = t(
     'Use %s to open in a new tab.',
-    isMac ? '⌘ + click' : 'ctrl + click',
+    isMac ? t('⌘ + click') : t('ctrl + click'),
   );
   return (
     <>

@@ -137,9 +137,10 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              // eslint-disable-next-line prefer-template
+              description: `${D3_FORMAT_DOCS} ${t(
+                'Only applies when "Label Type" is set to show values.',
+              )}`,
             },
           },
         ],
