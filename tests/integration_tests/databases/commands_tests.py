@@ -31,17 +31,20 @@ from superset.databases.commands.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
+    DatabaseTablesUnexpectedError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
+from superset.databases.commands.tables import TablesDatabaseCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorsException,
+    SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -886,3 +889,74 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
             },
         ),
     ]
+
+
+class TestTablesDatabaseCommand(SupersetTestCase):
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
+        mock_find_by_id.return_value = None
+        command = TablesDatabaseCommand(1, "test", False)
+
+        with pytest.raises(DatabaseNotFoundError) as excinfo:
+            command.run()
+            assert str(excinfo.value) == ("Database not found.")
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_superset_exception(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        if database.backend == "mysql":
+            return
+
+        mock_find_by_id.return_value = database
+        mock_can_access_database.side_effect = SupersetException("Test Error")
+        mock_g.user = security_manager.find_user("admin")
+
+        command = TablesDatabaseCommand(database.id, "main", False)
+        with pytest.raises(SupersetException) as excinfo:
+            command.run()
+            assert str(excinfo.value) == "Test Error"
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_exception(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.side_effect = Exception("Test Error")
+        mock_g.user = security_manager.find_user("admin")
+
+        command = TablesDatabaseCommand(database.id, "main", False)
+        with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:
+            command.run()
+            assert (
+                str(excinfo.value)
+                == "Unexpected error occurred, please check your logs for details"
+            )
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_list_tables(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        schema_name = self.default_schema_backend_map[database.backend]
+        if database.backend == "postgresql" or database.backend == "mysql":
+            return
+
+        command = TablesDatabaseCommand(database.id, schema_name, False)
+        result = command.run()
+
+        assert result["count"] > 0
+        assert len(result["result"]) > 0
+        assert len(result["result"]) == result["count"]

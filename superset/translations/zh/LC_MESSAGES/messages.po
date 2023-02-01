@@ -240,6 +240,44 @@ msgstr "此数据库只允许使用 `SELECT` 语句"
 
 #: superset/sql_lab.py:301
 #, python-format
+msgid "%s option"
+msgstr "%s 个选项"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:252
+#, python-format
+msgid "%s option(s)"
+msgstr "%s 个选项"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:320
+#, python-format
+msgid "%s saved metric(s)"
+msgstr "%s 列与计量指标"
+
+#: superset-frontend/src/components/URLShortLinkButton/index.jsx:59
+#: superset-frontend/src/explore/components/ExploreActionButtons.tsx:123
+#, python-format
+msgid "%s%s"
+msgstr "%s%s"
+
+#: superset-frontend/src/components/ListView/ListView.tsx:419
+#: superset-frontend/src/components/TableView/TableView.tsx:237
+#, python-format
+msgid "%s-%s of %s"
+msgstr "%s-%s 总计 %s"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:110
+msgid "(Removed)"
+msgstr "(已删除)"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:637
+msgid "(deleted)"
+msgstr "删除"
+
+#: superset-frontend/src/utils/getClientErrorObject.ts:56
+msgid "(no description, click to see stack trace)"
+msgstr "无描述，单击可查看堆栈跟踪"
+
+#: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:168
 msgid ""
 "The query was killed after %(sqllab_timeout)s seconds. It might be too "
 "complex, or the database might be under heavy load."
@@ -19605,3 +19643,44 @@ msgstr ""
 msgid "We have the following keys: %s"
 msgstr ""
 
+msgid "Upload CSV"
+msgstr "上传CSV"
+
+msgid "Upload columnar file"
+msgstr "上传列级文件"
+
+msgid "Upload Excel file"
+msgstr "上传Excel"
+
+msgid "Handlebars"
+msgstr "句柄图"
+
+msgid "deck.gl Arc"
+msgstr "圆弧图"
+
+msgid "Import database from file"
+msgstr "从文件中导入数据库"
+
+msgid "Select a database to connect"
+msgstr "选择将要连接的数据库"
+
+msgid "Select a database to write a query"
+msgstr "选择要写入查询的数据库"
+
+msgid "Choose one of the available databases from the panel on the left."
+msgstr "从左侧的面板中选择一个可用的数据库"
+
+msgid "Add a new tab"
+msgstr "添加新的标签页"
+
+msgid "There are no databases available"
+msgstr "没有可用的数据库"
+
+msgid "No databases match your search"
+msgstr "没有与您的搜索匹配的数据库"
+
+msgid "Manage your databases"
+msgstr "管理你的数据库"
+
+msgid "here"
+msgstr "这里"

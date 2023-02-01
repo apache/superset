@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
+import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
@@ -245,9 +246,11 @@ describe('RTL', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
       render(
-        <QueryParamProvider>
-          <SavedQueryList />
-        </QueryParamProvider>,
+        <BrowserRouter>
+          <QueryParamProvider>
+            <SavedQueryList />
+          </QueryParamProvider>
+        </BrowserRouter>,
         { useRedux: true },
       );
     });

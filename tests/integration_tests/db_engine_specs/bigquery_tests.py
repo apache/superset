@@ -48,23 +48,6 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             actual = BigQueryEngineSpec.make_label_compatible(column(original).name)
             self.assertEqual(actual, expected)
 
-    def test_convert_dttm(self):
-        """
-        DB Eng Specs (bigquery): Test conversion to date time
-        """
-        dttm = self.get_dttm()
-        test_cases = {
-            "DATE": "CAST('2019-01-02' AS DATE)",
-            "DATETIME": "CAST('2019-01-02T03:04:05.678900' AS DATETIME)",
-            "TIMESTAMP": "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)",
-            "TIME": "CAST('03:04:05.678900' AS TIME)",
-            "UNKNOWNTYPE": None,
-        }
-
-        for target_type, expected in test_cases.items():
-            actual = BigQueryEngineSpec.convert_dttm(target_type, dttm)
-            self.assertEqual(actual, expected)
-
     def test_timegrain_expressions(self):
         """
         DB Eng Specs (bigquery): Test time grain expressions

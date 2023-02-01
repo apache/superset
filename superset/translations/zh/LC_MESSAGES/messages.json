@@ -2921,6 +2921,107 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         "有权处理该图表的用户列表。可按名称或用户名搜索。"
       ],
+      "Invalid filter operation type: %(op)s": ["选择框的操作类型无效: %(op)s"],
+      "Invalid geodetic string": ["无效的 geodetic 字符串"],
+      "Invalid geohash string": ["无效的geohash字符串"],
+      "Invalid lat/long configuration.": ["错误的经纬度配置。"],
+      "Invalid longitude/latitude": ["无效的经度/纬度"],
+      "Invalid metric object": ["无效的指标对象"],
+      "Invalid numpy function: %(operator)s": ["无效的numpy函数：%(operator)s"],
+      "Invalid options for %(rolling_type)s: %(options)s": [
+        "%(rolling_type)s 的选项无效：%(options)s"
+      ],
+      "Invalid result type: %(result_type)s": [
+        "无效的结果类型：%(result_type)s"
+      ],
+      "Invalid rolling_type: %(type)s": ["无效的滚动类型：%(type)s"],
+      "Invalid spatial point encountered: %s": ["遇到无效的空间点：%s"],
+      "Inverse selection": ["反选"],
+      "Is Hidden": ["隐藏"],
+      "Is certified": ["已认证"],
+      "Is dimension": ["维度"],
+      "Is favorite": ["收藏"],
+      "Is filterable": ["可被过滤"],
+      "Is temporal": ["时间条件"],
+      "Issue 1000 - The dataset is too large to query.": [
+        "Issue 1000 - 数据集太大，无法进行查询。"
+      ],
+      "Issue 1001 - The database is under an unusual load.": [
+        "Issue 1001 - 数据库负载异常。"
+      ],
+      "It seems you don't have access to any database": [
+        "貌似您没有访问到任何数据库"
+      ],
+      "It’s not recommended to truncate y-axis in Bar chart.": [
+        "不建议截断柱状图中的y轴。"
+      ],
+      "JAN": ["一月"],
+      "JSON": ["JSON"],
+      "JSON Metadata": ["JSON 元数据"],
+      "JSON metadata": ["JSON 元数据"],
+      "JSON string containing additional connection configuration. This is used to provide connection information for systems like Hive, Presto and BigQuery which do not conform to the username:password syntax normally used by SQLAlchemy.": [
+        "包含附加连接配置的JSON字符串。它用于为配置单元、Presto和BigQuery等系统提供连接信息，这些系统不符合SQLAlChemy通常使用的用户名：密码语法。"
+      ],
+      "JUL": ["七月"],
+      "JUN": ["六月"],
+      "January": ["一月"],
+      "Json list of the column names that should be read. If not None, only these columns will be read from the file.": [
+        "Json应读取的列名列表。如果不是“无”，则仅从文件中读取这些列"
+      ],
+      "Json list of the values that should be treated as null. Examples: [\"\"], [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports only single value. Use [\"\"] for empty string.": [
+        "应视为null的值的Json列表。例如：[\"\"], [\"None\", \"N/A\"], [\"nan\", \"null\"]。警告：Hive数据库仅支持单个值。用 [\"\"] 代表空字符串。"
+      ],
+      "July": ["七月"],
+      "June": ["六月"],
+      "KPI": ["指标"],
+      "Keep editing": ["继续编辑"],
+      "Keys for table": ["表的键"],
+      "Label": ["标签"],
+      "Label Line": ["标签线"],
+      "Label Type": ["标签类型"],
+      "Label for your query": ["为您的查询设置标签"],
+      "Label position": ["标签位置"],
+      "Label threshold": ["标签阈值"],
+      "Labelling": ["标签"],
+      "Labels": ["标签"],
+      "Labels for the marker lines": ["标记线的标签"],
+      "Labels for the markers": ["标记的标签"],
+      "Labels for the ranges": ["范围的标签"],
+      "Large": ["大"],
+      "Last": ["上一"],
+      "Last Changed": ["更新时间"],
+      "Last Modified": ["最后修改"],
+      "Last Updated %s": ["上次更新 %s"],
+      "Last available value seen on %s": [" %s 最后一个可用值"],
+      "Last modified": ["最后修改"],
+      "Last modified by %s": ["上次修改人 %s"],
+      "Last run": ["上次执行"],
+      "Latitude": ["纬度"],
+      "Latitude of default viewport": ["默认视口纬度"],
+      "Layer": ["层"],
+      "Layer configuration": ["配置Layer"],
+      "Layout": ["布局"],
+      "Layout type of graph": ["图形的布局类型"],
+      "Layout type of tree": ["树的布局类型"],
+      "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
+        "表示少于此数量的事件的叶节点最初将隐藏在可视化中"
+      ],
+      "Least recently modified": ["最远修改"],
+      "Left": ["左边"],
+      "Left Axis Format": ["左轴格式化"],
+      "Left Axis Metric": ["左轴指标"],
+      "Left Axis chart(s)": ["左轴图表"],
+      "Left Margin": ["左边距"],
+      "Left margin, in pixels, allowing for more room for axis labels": [
+        "左边距，以像素为单位，为轴标签留出更多空间"
+      ],
+      "Left to Right": ["从左到右"],
+      "Left value": ["左值"],
+      "Legacy": ["遗产"],
+      "Legend": ["图示"],
+      "Legend type": ["图示类型"],
+      "Lift percent precision": ["提升百分比精度"],
+      "Light mode": ["光模式"],
       "Limit reached": ["达到限制"],
       "Invalid lat/long configuration.": ["错误的经纬度配置。"],
       "Reverse lat/long ": ["经纬度互换"],
@@ -3673,6 +3774,117 @@
       "URL": ["URL 地址"],
       "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
         "模板链接，可以包含{{度量}}或来自控件的其他值。"
+      ],
+      "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
+        "这个字段执行Superset视图时，意味着Superset将以子查询的形式对字符串运行查询。"
+      ],
+      "This filter doesn't exist in dashboard. It will not be applied.": [
+        "此过滤器在仪表板中不存在。它不会被应用。"
+      ],
+      "This filter set is identical to: \"%s\"": ["此过滤器集等同于: \"%s\" "],
+      "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).": [
+        "这是将会添加到WHERE子句的条件。例如，要仅返回特定客户端的行，可以使用子句 `client_id = 9` 定义常规过滤。若要在用户不属于RLS过滤角色的情况下不显示行，可以使用子句 `1 = 0`（始终为false）创建基本过滤。"
+      ],
+      "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
+        "这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置"
+      ],
+      "This markdown component has an error.": ["此 markdown 组件有错误。"],
+      "This markdown component has an error. Please revert your recent changes.": [
+        "此 markdown 组件有错误。请还原最近的更改。"
+      ],
+      "This may be triggered by:": ["这可能由以下因素触发："],
+      "This query took %s seconds to run, ": ["这个查询使用了 %s 秒去执行，"],
+      "This section allows you to configure how to use the slice\n               to generate annotations.": [
+        "此部分允许您配置如何使用切片生成注释。"
+      ],
+      "This section contains options that allow for advanced analytical post processing of query results": [
+        "本节包含允许对查询结果进行高级分析处理后的选项。"
+      ],
+      "This value should be greater than the left target value": [
+        "这个值应该大于左边的目标值"
+      ],
+      "This value should be smaller than the right target value": [
+        "这个值应该小于正确的目标值"
+      ],
+      "This visualization type is not supported.": ["选择可视化类型"],
+      "This was triggered by:": ["这是由以下因素引发的："],
+      "Threshold alpha level for determining significance": [
+        "确定重要性的阈值α水平"
+      ],
+      "Thursday": ["星期四"],
+      "Time": ["时间"],
+      "Time Column": ["时间列"],
+      "Time Comparison": ["时间比对"],
+      "Time Format": ["时间格式"],
+      "Time Grain": ["时间粒度（Grain）"],
+      "Time Granularity": ["时间粒度（Granularity）"],
+      "Time Offset": ["时间偏移"],
+      "Time Range": ["时间范围"],
+      "Time Series": ["时间序列"],
+      "Time Series - Bar Chart": ["时间序列 - 柱状图"],
+      "Time Series - Dual Axis Line Chart": ["时间序列-双轴线图"],
+      "Time Series - Line Chart": ["时间序列-折线图"],
+      "Time Series - Multiple Line Charts": ["时间序列-多线图"],
+      "Time Series - Nightingale Rose Chart": ["时间序列 - 南丁格尔玫瑰图"],
+      "Time Series - Paired t-test": ["时间序列 - 配对t检验"],
+      "Time Series - Percent Change": ["时间序列 - 百分比变化"],
+      "Time Series - Period Pivot": ["时间序列 - 周期透视表"],
+      "Time Series - Stacked": ["时间序列 - 堆积图"],
+      "Time Series Options": ["时间序列的列"],
+      "Time Shift": ["时间偏移"],
+      "Time Table View": ["时间表视图"],
+      "Time column": ["时间列"],
+      "Time column \"%(col)s\" does not exist in dataset": [
+        "时间列 \"%(col)s\" 在数据集中不存在"
+      ],
+      "Time column filter plugin": ["选择过滤器"],
+      "Time comparison": ["时间比较"],
+      "Time delta is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
+        "时间是模糊的。"
+      ],
+      "Time expression to use as a predicate when retrieving distinct values to populate the filter component. Only applies when `Enable Filter Select` is on. If you enter `7 days ago`, the distinct list of values in the filter will be populated based on the distinct value over the past week": [
+        "当检索不同的值以填充过滤器组件时，时间表达式用作条件。只适用于`启用过滤器选择`。如果您输入`7天前`，将根据过去一周的不同值来填充ilter中不同的值列表"
+      ],
+      "Time filter": ["日期过滤器"],
+      "Time format": ["时间格式"],
+      "Time grain": ["时间粒度（grain）"],
+      "Time grain filter plugin": ["范围过滤器"],
+      "Time grain missing": ["时间粒度缺失"],
+      "Time granularity": ["时间粒度（granularity）"],
+      "Time in seconds": ["时间（秒）"],
+      "Time range": ["时间范围"],
+      "Time range endpoints": ["时间范围端点"],
+      "Time range endpoints (SIP-15)": ["时间范围端点 (SIP-15)"],
+      "Time related form attributes": ["时间相关的表单属性"],
+      "Time series columns": ["时间序列的列"],
+      "Time shift": ["时间偏移"],
+      "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
+        "时间字符串是模糊的。"
+      ],
+      "Time-series Area Chart": ["时间序列条形图"],
+      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
+        "时间序列面积图与折线图相似，因为它们表示具有相同比例的变量，但面积图将度量叠加在一起。超级集中的面积图可以是流式、堆栈式或展开式"
+      ],
+      "Time-series Bar Chart": ["时间序列-条形图"],
+      "Time-series Bar Chart v2": ["时间序列条形图 v2"],
+      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
+        "时间序列条形图用于显示指标随时间的变化"
+      ],
+      "Time-series Chart": ["时间序列图"],
+      "Time-series Line Chart": ["时间序列折线图"],
+      "Time-series Percent Change": ["时间序列-百分比变化"],
+      "Time-series Period Pivot": ["时间序列-周期轴"],
+      "Time-series Scatter Plot": ["时间序列散点图"],
+      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
+        "时间序列散点图在水平轴上以线性单位表示时间，点按顺序连接。它显示了两个变量之间的统计关系"
+      ],
+      "Time-series Smooth Line": ["时间序列光滑曲线图"],
+      "Time-series Smooth-line is a variation of line chart. Without angles and hard edges, Smooth-line looks more smarter and more professional.": [
+        "时间序列平滑线是折线图的变体。没有角度和硬边，平滑线看起来更聪明、更专业。"
+      ],
+      "Time-series Stepped Line": ["时间序列阶梯图"],
+      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
+        "“时间序列步进折线图（也称为步进图）是折线图的一种变体，但线条在数据点之间形成一系列步进。当您希望显示不规则间隔发生的变化时，步进图可能很有用。”"
       ],
       "Time-series Table": ["时间序列-表格"],
       "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
