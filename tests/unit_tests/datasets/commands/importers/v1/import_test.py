@@ -20,14 +20,14 @@ import copy
 import json
 import re
 import uuid
-import pytest
 from typing import Any, Dict
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
+import pytest
 from flask import current_app
 from sqlalchemy.orm.session import Session
 
-from datasets.commands.exceptions import DatasetUnAllowedDataURI
+from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.datasets.commands.importers.v1.utils import validate_data_uri
 
 
@@ -352,11 +352,11 @@ def test_import_column_allowed_data_url(request: Mock, session: Session) -> None
     Test importing a dataset when using data key to fetch data from a URL.
     """
     import io
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
-
 
     request.urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
 
@@ -418,6 +418,7 @@ def test_import_column_allowed_data_url(request: Mock, session: Session) -> None
         "SELECT * FROM my_table"
     ).fetchall()
 
+
 def test_import_dataset_managed_externally(session: Session) -> None:
     """
     Test importing a dataset that is managed externally.
@@ -444,20 +445,35 @@ def test_import_dataset_managed_externally(session: Session) -> None:
     assert sqla_table.external_url == "https://example.org/my_table"
 
 
-
 @pytest.mark.parametrize(
     "allowed_urls, data_uri, expected, exception_class",
     [
         ([r".*"], "https://some-url/data.csv", True, None),
-        ([r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
-         "https://host1.domain1.com/data.csv", True, None),
-        ([r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
-         "https://host2.domain1.com/data.csv", True, None),
-        ([r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
-         "https://host1.domain2.com/data.csv", True, None),
-        ([r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
-         "https://host1.domain3.com/data.csv", False, DatasetUnAllowedDataURI),
-        ([], "https://host1.domain3.com/data.csv", False, DatasetUnAllowedDataURI),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain1.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host2.domain1.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain2.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain3.com/data.csv",
+            False,
+            DatasetForbiddenDataURI,
+        ),
+        ([], "https://host1.domain3.com/data.csv", False, DatasetForbiddenDataURI),
         (["*"], "https://host1.domain3.com/data.csv", False, re.error),
     ],
 )

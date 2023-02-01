@@ -193,5 +193,5 @@ class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
 
 
-class DatasetUnAllowedDataURI(ForbiddenError):
+class DatasetForbiddenDataURI(ForbiddenError):
     message = _("Data URI is not allowed.")

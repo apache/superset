@@ -29,7 +29,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.commands.exceptions import DatasetUnAllowedDataURI
+from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def validate_data_uri(data_uri: str) -> None:
             raise
         if match:
             return
-    raise DatasetUnAllowedDataURI()
+    raise DatasetForbiddenDataURI()
 
 
 def import_dataset(
