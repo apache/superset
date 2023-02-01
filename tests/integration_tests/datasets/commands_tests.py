@@ -19,8 +19,8 @@ from typing import Any, List
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy.exc import SQLAlchemyError
 import yaml
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
