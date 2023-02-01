@@ -85,6 +85,7 @@ ColumnTypeMapping = Tuple[
 
 logger = logging.getLogger()
 
+
 class TimeGrain(NamedTuple):
     name: str  # TODO: redundant field, remove
     label: str
