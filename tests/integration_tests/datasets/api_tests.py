@@ -475,6 +475,7 @@ class TestDatasetApi(SupersetTestCase):
             "can_write",
             "can_export",
             "can_duplicate",
+            "can_get_or_create_dataset",
         }
 
     def test_create_dataset_item(self):
