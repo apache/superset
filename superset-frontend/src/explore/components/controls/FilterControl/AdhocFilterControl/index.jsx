@@ -121,7 +121,10 @@ class AdhocFilterControl extends React.Component {
         sections={this.props.sections}
         operators={this.props.operators}
         datasource={this.props.datasource}
-        onRemoveFilter={() => this.onRemoveFilter(index)}
+        onRemoveFilter={e => {
+          e.stopPropagation();
+          this.onRemoveFilter(index);
+        }}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.values)}
         partitionColumn={this.state.partitionColumn}
@@ -195,6 +198,7 @@ class AdhocFilterControl extends React.Component {
   onRemoveFilter(index) {
     const { confirmDeletion } = this.props;
     const { values } = this.state;
+    const { removeFilter } = this;
     if (confirmDeletion) {
       const { confirmationText, confirmationTitle, triggerCondition } =
         confirmDeletion;
@@ -203,7 +207,7 @@ class AdhocFilterControl extends React.Component {
           title: confirmationTitle,
           content: confirmationText,
           onOk() {
-            this.removeFilter(index);
+            removeFilter(index);
           },
         });
         return;
