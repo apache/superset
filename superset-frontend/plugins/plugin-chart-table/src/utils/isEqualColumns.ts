@@ -38,6 +38,8 @@ export default function isEqualColumns(
     JSON.stringify(a.formData.extraFilters || null) ===
       JSON.stringify(b.formData.extraFilters || null) &&
     JSON.stringify(a.formData.extraFormData || null) ===
-      JSON.stringify(b.formData.extraFormData || null)
+      JSON.stringify(b.formData.extraFormData || null) &&
+    JSON.stringify(a.formData.urlLink || null) ===
+      JSON.stringify(b.formData.urlLink || null)
   );
 }

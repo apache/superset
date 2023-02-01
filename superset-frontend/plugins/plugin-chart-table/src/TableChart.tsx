@@ -226,6 +226,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
+    columnUrlLinks,
     allowRearrangeColumns = false,
     onContextMenu,
     emitCrossFilters,
@@ -389,6 +390,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (isMetric || isRawRecords) &&
         getValueRange(key, alignPositiveNegative);
 
+      const hasColumnUrlLinks = columnUrlLinks?.length;
       let className = '';
       if (emitCrossFilters) {
         className += ' dt-is-filter';
@@ -400,7 +402,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({ value }: { value: DataRecordValue }) => {
+        Cell: ({
+          value,
+          row,
+        }: {
+          value: DataRecordValue;
+          row: { original: DataRecord };
+        }) => {
           const [isHtml, text] = formatColumnValue(column, value);
           const html = isHtml ? { __html: text } : undefined;
 
@@ -415,6 +423,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }
+              });
+          }
+
+          let urlLinkHref;
+          let linkTextString;
+          if (hasColumnUrlLinks) {
+            columnUrlLinks!
+              .filter(formatter => formatter.column === column.key)
+              .forEach(formatter => {
+                urlLinkHref = formatter.getTextFromValues(
+                  value as number,
+                  row.original,
+                );
+                linkTextString = formatter.linkText;
               });
           }
 
@@ -477,6 +499,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             }
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
+          }
+          if (urlLinkHref) {
+            return (
+              <StyledCell {...cellProps}>
+                <a target="_blank" href={urlLinkHref} rel="noreferrer">
+                  {linkTextString}
+                </a>
+              </StyledCell>
+            );
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
@@ -571,6 +602,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       totals,
       columnColorFormatters,
       columnOrderToggle,
+      columnUrlLinks,
     ],
   );
 

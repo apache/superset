@@ -532,6 +532,27 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'url_link',
+            config: {
+              type: 'UrlLinkControl',
+              renderTrigger: true,
+              label: t('Url Link'),
+              description: t('Add a new column, that can config a link'),
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(_explore, _, chart) {
+                const { colnames } = chart?.queriesResponse?.[0] ?? {};
+
+                return {
+                  colnames,
+                };
+              },
+            },
+          },
+        ],
       ],
     },
   ],

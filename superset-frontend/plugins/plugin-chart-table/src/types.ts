@@ -32,9 +32,17 @@ import {
   SetDataMaskHook,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
-import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  ColumnConfig,
+  UrlLinks,
+} from '@superset-ui/chart-controls';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
+export type RowValueFormatter = (
+  value: DataRecordValue,
+  row: DataRecord,
+) => string;
 
 export interface DataColumnMeta {
   // `key` is what is called `label` in the input props
@@ -42,7 +50,11 @@ export interface DataColumnMeta {
   // `label` is verbose column name used for rendering
   label: string;
   dataType: GenericDataType;
-  formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | RowValueFormatter;
   isMetric?: boolean;
   isPercentMetric?: boolean;
   isNumeric?: boolean;
@@ -110,6 +122,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  columnUrlLinks?: UrlLinks;
   allowRearrangeColumns?: boolean;
   onContextMenu?: (
     clientX: number,
