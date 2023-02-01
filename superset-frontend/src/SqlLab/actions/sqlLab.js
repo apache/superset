@@ -598,16 +598,44 @@ export function addQueryEditor(queryEditor) {
   };
 }
 
-export function addNewQueryEditor(queryEditor) {
+export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: { queryEditors },
+      sqlLab: {
+        queryEditors,
+        tabHistory,
+        unsavedQueryEditor,
+        defaultDbId,
+        databases,
+      },
+      common,
     } = getState();
+    const activeQueryEditor = queryEditors.find(
+      qe => qe.id === tabHistory[tabHistory.length - 1],
+    );
+    const dbIds = Object.values(databases).map(database => database.id);
+    const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
+    const { dbId, schema, queryLimit, autorun } = {
+      ...queryEditors[0],
+      ...activeQueryEditor,
+      ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
+        unsavedQueryEditor),
+    };
+    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? ''
+      : t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
+        );
+
     const name = newQueryTabName(queryEditors || []);
 
     return dispatch(
       addQueryEditor({
-        ...queryEditor,
+        dbId: dbId || defaultDbId || firstDbId,
+        schema: schema ?? null,
+        autorun: autorun ?? false,
+        sql: `${warning}SELECT ...`,
+        queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
       }),
     );

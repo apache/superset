@@ -57,10 +57,10 @@ def boxplot(
     """
 
     def quartile1(series: Series) -> float:
-        return np.nanpercentile(series, 25, interpolation="midpoint")  # type: ignore
+        return np.nanpercentile(series, 25, method="midpoint")
 
     def quartile3(series: Series) -> float:
-        return np.nanpercentile(series, 75, interpolation="midpoint")  # type: ignore
+        return np.nanpercentile(series, 75, method="midpoint")
 
     if whisker_type == PostProcessingBoxplotWhiskerType.TUKEY:
 

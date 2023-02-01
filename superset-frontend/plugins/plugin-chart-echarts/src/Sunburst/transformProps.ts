@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   CategoricalColorNamespace,
+  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -26,21 +26,23 @@ import {
   getTimeFormatter,
   NumberFormats,
   NumberFormatter,
+  SupersetTheme,
   t,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
-import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { OpacityEnum } from '../constants';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
 import {
   EchartsSunburstChartProps,
   EchartsSunburstLabelType,
+  NodeItemOption,
   SunburstTransformedProps,
 } from './types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -96,6 +98,7 @@ export function formatTooltip({
   totalValue,
   metricLabel,
   secondaryMetricLabel,
+  theme,
 }: {
   params: CallbackDataParams & {
     treePathInfo: {
@@ -109,9 +112,9 @@ export function formatTooltip({
   totalValue: number;
   metricLabel: string;
   secondaryMetricLabel?: string;
+  theme: SupersetTheme;
 }): string {
   const { data, treePathInfo = [] } = params;
-  treePathInfo.shift();
   const node = data as TreeNode;
   const formattedValue = numberFormatter(node.value);
   const formattedSecondaryValue = numberFormatter(node.secondaryValue);
@@ -121,33 +124,43 @@ export function formatTooltip({
     node.secondaryValue / node.value,
   );
   const absolutePercentage = percentFormatter(node.value / totalValue);
-  const parentNode = treePathInfo[treePathInfo.length - 1];
+  const parentNode =
+    treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
+
   const result = [
-    `<div style="font-size: 14px;font-weight: 600">${absolutePercentage} of total</div>`,
+    `<div style="
+      font-size: ${theme.typography.sizes.m}px;
+      color: ${theme.colors.grayscale.base}"
+     >`,
+    `<div style="font-weight: ${theme.typography.weights.bold}">
+      ${node.name}
+     </div>`,
+    `<div">
+      ${absolutePercentage} of total
+     </div>`,
   ];
   if (parentNode) {
     const conditionalPercentage = percentFormatter(
       node.value / parentNode.value,
     );
     result.push(`
-    <div style="font-size: 12px;">
-      ${conditionalPercentage} of parent
+    <div>
+      ${conditionalPercentage} of ${parentNode.name}
     </div>`);
   }
   result.push(
-    `<div style="color: '#666666'">
+    `<div>
     ${metricLabel}: ${formattedValue}${
       colorByCategory
         ? ''
         : `, ${secondaryMetricLabel}: ${formattedSecondaryValue}`
     }
-    </div>`,
+     </div>`,
     colorByCategory
       ? ''
-      : `<div style="color: '#666666'">
-       ${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}
-      </div>`,
+      : `<div>${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}</div>`,
   );
+  result.push('</div>');
   return result.join('\n');
 }
 
@@ -247,9 +260,14 @@ export default function transformProps(
     linearColorScale(totalSecondaryValue / totalValue);
   }
 
-  const traverse = (treeNodes: TreeNode[], path: string[]) =>
+  const traverse = (
+    treeNodes: TreeNode[],
+    path: string[],
+    pathRecords?: DataRecordValue[],
+  ) =>
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
+      const records = [...(pathRecords || []), nodeName];
       let name = formatSeriesName(nodeName, {
         numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
@@ -258,10 +276,10 @@ export default function transformProps(
         }),
       });
       const newPath = path.concat(name);
-      let item: SunburstSeriesNodeItemOption = {
+      let item: NodeItemOption = {
+        records,
         name,
         value,
-        // @ts-ignore
         secondaryValue,
         itemStyle: {
           color: colorByCategory
@@ -270,7 +288,7 @@ export default function transformProps(
         },
       };
       if (treeNode.children?.length) {
-        item.children = traverse(treeNode.children, newPath);
+        item.children = traverse(treeNode.children, newPath, records);
       } else {
         name = newPath.join(',');
       }
@@ -295,7 +313,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
@@ -306,6 +324,7 @@ export default function transformProps(
           totalValue,
           metricLabel,
           secondaryMetricLabel,
+          theme,
         }),
     },
     series: [

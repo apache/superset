@@ -80,7 +80,7 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=3.3.2",
+        "cryptography>=39.0.0,<40",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.1.3, <2.2",
         "flask-appbuilder>=4.1.6, <5.0.0",

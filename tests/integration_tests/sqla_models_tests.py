@@ -39,7 +39,6 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
-    TemporalType,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -805,7 +804,7 @@ def test__normalize_prequery_result_type(
     def _convert_dttm(
         target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() == TemporalType.TIMESTAMP:
+        if target_type.upper() == "TIMESTAMP":
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
 
         return None
