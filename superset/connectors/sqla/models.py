@@ -1918,6 +1918,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             error_message=error_message,
         )
 
+    def get_sqla_table_object(self) -> Table:
+        return self.database.get_table(self.table_name, schema=self.schema)
+
     def fetch_metadata(self, commit: bool = True) -> MetadataResult:
         """
         Fetches the metadata for the table and merges it in
