@@ -18,6 +18,7 @@
  */
 import { useRef } from 'react';
 import { useQuery, UseQueryOptions } from 'react-query';
+import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
 
 export type FetchTablesQueryParams = {
@@ -39,11 +40,15 @@ export interface Table {
 }
 
 type QueryData = {
-  json: { options: Table[]; tableLength: number };
+  json: {
+    count: number;
+    result: Table[];
+  };
   response: Response;
 };
 
-export type Data = QueryData['json'] & {
+export type Data = {
+  options: Table[];
   hasMore: boolean;
 };
 
@@ -53,10 +58,15 @@ export function fetchTables({
   forceRefresh,
 }: FetchTablesQueryParams) {
   const encodedSchema = schema ? encodeURIComponent(schema) : '';
+  const params = rison.encode({
+    force: forceRefresh,
+    schema_name: encodedSchema,
+  });
+
   // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-  const endpoint = `/superset/tables/${
+  const endpoint = `/api/v1/database/${
     dbId ?? 'undefined'
-  }/${encodedSchema}/${forceRefresh}/`;
+  }/tables/?q=${params}`;
   return SupersetClient.get({ endpoint }) as Promise<QueryData>;
 }
 
@@ -72,8 +82,8 @@ export function useTables(options: Params) {
     () => fetchTables({ ...params, forceRefresh: forceRefreshRef.current }),
     {
       select: ({ json }) => ({
-        ...json,
-        hasMore: json.tableLength > json.options.length,
+        options: json.result,
+        hasMore: json.count > json.result.length,
       }),
       enabled: Boolean(dbId && schema),
       onSuccess,
