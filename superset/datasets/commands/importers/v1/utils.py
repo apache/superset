@@ -22,7 +22,6 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from datasets.commands.exceptions import DatasetUnAllowedDataURI
 from flask import current_app, g
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
@@ -30,6 +29,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.commands.exceptions import DatasetUnAllowedDataURI
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
