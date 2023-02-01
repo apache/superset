@@ -76,7 +76,7 @@ const QueryTable = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const HISTORY_TABLE_HEADERS_LOCALIZED = {
+  const QUERY_HISTORY_TABLE_HEADERS_LOCALIZED = {
     state: t('State'),
     started: t('Started'),
     duration: t('Duration'),
@@ -91,7 +91,7 @@ const QueryTable = ({
     () =>
       columns.map(column => ({
         accessor: column,
-        Header: () => HISTORY_TABLE_HEADERS_LOCALIZED[column],
+        Header: QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column],
         disableSortBy: true,
       })),
     [columns],
