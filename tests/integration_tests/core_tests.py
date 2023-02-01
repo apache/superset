@@ -757,6 +757,40 @@ class TestCore(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_templated_sql_forbidden(self):
+        data = self.run_sql(
+            """
+            SELECT count(name) AS count_name, count(ds) AS count_ds
+            FROM {{ table_name }}
+            WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
+            GROUP BY name
+            ORDER BY count_name DESC
+            LIMIT 10;
+            """,
+            client_id="client_id_1",
+            username="gamma",
+            template_params=json.dumps({"table_name": "birth_names"}),
+        )
+        assert data["errors"][0]["error_type"] == "TABLE_SECURITY_ACCESS_ERROR"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_templated_sql_success(self):
+        data = self.run_sql(
+            """
+            SELECT count(name) AS count_name, count(ds) AS count_ds
+            FROM {{ table_name }}
+            WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
+            GROUP BY name
+            ORDER BY count_name DESC
+            LIMIT 10;
+            """,
+            client_id="client_id_1",
+            username="admin",
+            template_params=json.dumps({"table_name": "birth_names"}),
+        )
+        assert data["status"] == "success"
+
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
