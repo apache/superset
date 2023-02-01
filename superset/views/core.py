@@ -1143,6 +1143,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/")
     @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
+    @deprecated()
     def tables(  # pylint: disable=no-self-use
         self,
         db_id: int,

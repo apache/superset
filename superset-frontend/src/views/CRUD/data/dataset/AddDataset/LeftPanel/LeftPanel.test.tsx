@@ -24,7 +24,7 @@ import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
 
 const databasesEndpoint = 'glob:*/api/v1/database/?q*';
 const schemasEndpoint = 'glob:*/api/v1/database/*/schemas*';
-const tablesEndpoint = 'glob:*/superset/tables*';
+const tablesEndpoint = 'glob:*/api/v1/database/*/tables/?q*';
 
 fetchMock.get(databasesEndpoint, {
   count: 2,
@@ -136,8 +136,8 @@ fetchMock.get(schemasEndpoint, {
 });
 
 fetchMock.get(tablesEndpoint, {
-  tableLength: 3,
-  options: [
+  count: 3,
+  result: [
     { value: 'Sheet1', type: 'table', extra: null },
     { value: 'Sheet2', type: 'table', extra: null },
     { value: 'Sheet3', type: 'table', extra: null },
