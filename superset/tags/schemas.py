@@ -16,6 +16,8 @@
 # under the License.
 from marshmallow import fields, Schema
 
+from superset.dashboards.schemas import UserSchema
+
 object_type_description = "A title for the tag."
 
 openapi_spec_methods_override = {
@@ -33,6 +35,16 @@ openapi_spec_methods_override = {
         }
     },
 }
+
+
+class TaggedObjectEntityResponseSchema(Schema):
+    id = fields.Int()
+    type = fields.String()
+    name = fields.String()
+    url = fields.String()
+    changed_on = fields.DateTime()
+    created_by = fields.Nested(UserSchema)
+    creator = fields.String()
 
 
 class TagGetResponseSchema(Schema):

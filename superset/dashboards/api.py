@@ -224,8 +224,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "published",
             "roles",
             "slug",
+            "tags",
         )
-        if not is_feature_enabled("TAGGING_SYSTEM")
+        if is_feature_enabled("TAGGING_SYSTEM")
         else (
             "created_by",
             "changed_by",
@@ -235,7 +236,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "published",
             "roles",
             "slug",
-            "tags",
         )
     )
     search_filters = {

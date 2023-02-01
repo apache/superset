@@ -24,14 +24,21 @@ import string
 import pytest
 import prison
 from sqlalchemy.sql import func
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 
 import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
-from superset.tags.models import Tag, TagTypes
-
+from superset.tags.models import ObjectTypes, Tag, TagTypes, TaggedObject
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
+)
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.base_tests import SupersetTestCase
 
 TAGS_FIXTURE_COUNT = 10
@@ -63,6 +70,20 @@ class TestTagApi(SupersetTestCase):
         db.session.commit()
         return tag
 
+    def insert_tagged_object(
+        self,
+        tag_id: int,
+        object_id: int,
+        object_type: ObjectTypes,
+    ) -> TaggedObject:
+        tag = db.session.query(Tag).filter(Tag.id == tag_id).first()
+        tagged_object = TaggedObject(
+            tag=tag, object_id=object_id, object_type=object_type.name
+        )
+        db.session.add(tagged_object)
+        db.session.commit()
+        return tagged_object
+
     @pytest.fixture()
     def create_tags(self):
         with self.create_app().app_context():
@@ -77,7 +98,6 @@ class TestTagApi(SupersetTestCase):
                         tag_type="custom",
                     )
                 )
-
             yield tags
 
             # rollback changes
@@ -139,3 +159,192 @@ class TestTagApi(SupersetTestCase):
         assert data["count"] == TAGS_FIXTURE_COUNT
         # check expected columns
         assert data["list_columns"] == TAGS_LIST_COLUMNS
+
+    # test add tagged objects
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_add_tagged_objects(self):
+        self.login(username="admin")
+        dashboard_id = 1
+        dashboard_type = ObjectTypes.dashboard.value
+        uri = f"api/v1/tag/{dashboard_type}/{dashboard_id}/"
+        example_tag_names = ["example_tag_1", "example_tag_2"]
+        data = {"tags": example_tag_names}
+        rv = self.client.post(uri, json=data, follow_redirects=True)
+        # successful request
+        self.assertEqual(rv.status_code, 201)
+        # check that tags were created in database
+        tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
+        self.assertEqual(tags.count(), 2)
+        # check that tagged objects were created
+        tag_ids = [tags[0].id, tags[1].id]
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id.in_(tag_ids)
+        )
+        self.assertEqual(tagged_objects.count(), 2)
+        self.assertEqual(tagged_objects.first().object_id, 1)
+        self.assertEqual(tagged_objects.first().object_type, ObjectTypes.dashboard)
+        self.assertEqual(tagged_objects[1].object_id, 1)
+        self.assertEqual(tagged_objects[1].object_type, ObjectTypes.dashboard)
+        # clean up tags and tagged objects
+        tagged_objects.delete()
+        tags.delete()
+        db.session.commit()
+
+    # test delete tagged object
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_tagged_objects(self):
+        self.login(username="admin")
+        dashboard_id = 1
+        dashboard_type = ObjectTypes.dashboard
+        tag_names = ["example_tag_1", "example_tag_2"]
+        tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
+        assert tags.count() == 2
+        self.insert_tagged_object(
+            tag_id=tags.first().id, object_id=dashboard_id, object_type=dashboard_type
+        )
+        self.insert_tagged_object(
+            tag_id=tags[1].id, object_id=dashboard_id, object_type=dashboard_type
+        )
+        tagged_object = (
+            db.session.query(TaggedObject)
+            .filter(
+                TaggedObject.tag_id == tags.first().id,
+                TaggedObject.object_id == dashboard_id,
+                TaggedObject.object_type == dashboard_type.name,
+            )
+            .first()
+        )
+        other_tagged_object = (
+            db.session.query(TaggedObject)
+            .filter(
+                TaggedObject.tag_id == tags[1].id,
+                TaggedObject.object_id == dashboard_id,
+                TaggedObject.object_type == dashboard_type.name,
+            )
+            .first()
+        )
+        assert tagged_object is not None
+        uri = f"api/v1/tag/{dashboard_type.value}/{dashboard_id}/"
+        data = {"tag": tags.first().name}
+        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        # successful request
+        self.assertEqual(rv.status_code, 200)
+        # ensure that tagged object no longer exists
+        tagged_object = (
+            db.session.query(TaggedObject)
+            .filter(
+                TaggedObject.tag_id == tags.first().id,
+                TaggedObject.object_id == dashboard_id,
+                TaggedObject.object_type == dashboard_type.name,
+            )
+            .first()
+        )
+        assert not tagged_object
+        # ensure the other tagged objects still exist
+        other_tagged_object = (
+            db.session.query(TaggedObject)
+            .filter(
+                TaggedObject.object_id == dashboard_id,
+                TaggedObject.object_type == dashboard_type.name,
+                TaggedObject.tag_id == tags[1].id,
+            )
+            .first()
+        )
+        assert other_tagged_object is not None
+        # clean up tagged object
+        db.session.delete(other_tagged_object)
+
+    # test get objects
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_get_objects_by_tag(self):
+        self.login(username="admin")
+        dashboard_id = 1
+        dashboard_type = ObjectTypes.dashboard
+        tag_names = ["example_tag_1", "example_tag_2"]
+        tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
+        for tag in tags:
+            self.insert_tagged_object(
+                tag_id=tag.id, object_id=dashboard_id, object_type=dashboard_type
+            )
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id.in_([tag.id for tag in tags]),
+            TaggedObject.object_id == dashboard_id,
+            TaggedObject.object_type == dashboard_type.name,
+        )
+        self.assertEqual(tagged_objects.count(), 2)
+        uri = f'api/v1/tag/get_objects/?tags={",".join(tag_names)}'
+        rv = self.client.get(uri)
+        # successful request
+        self.assertEqual(rv.status_code, 200)
+        fetched_objects = rv.json["result"]
+        self.assertEqual(len(fetched_objects), 1)
+        self.assertEqual(fetched_objects[0]["id"], 1)
+        # clean up tagged object
+        tagged_objects.delete()
+
+    # test get all objects
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("create_tags")
+    def test_get_all_objects(self):
+        self.login(username="admin")
+        dashboard_id = 1
+        dashboard_type = ObjectTypes.dashboard
+        tag_names = ["example_tag_1", "example_tag_2"]
+        tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
+        for tag in tags:
+            self.insert_tagged_object(
+                tag_id=tag.id, object_id=dashboard_id, object_type=dashboard_type
+            )
+        num_objects = (
+            db.session.query(Dashboard).count()
+            + db.session.query(Slice).count()
+            + db.session.query(SavedQuery).count()
+        )
+
+        tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id.in_([tag.id for tag in tags]),
+            TaggedObject.object_id == dashboard_id,
+            TaggedObject.object_type == dashboard_type.name,
+        )
+        self.assertEqual(tagged_objects.count(), 2)
+        uri = "api/v1/tag/get_objects/"
+        rv = self.client.get(uri)
+        # successful request
+        self.assertEqual(rv.status_code, 200)
+        fetched_objects = rv.json["result"]
+        # check that all tagged objects are fetched
+        # when tagging system is false, there will only be the one dashboard
+        self.assertEqual(len(fetched_objects), 1)
+        self.assertEqual(fetched_objects[0]["id"], 1)
+        # clean up tagged object
+        tagged_objects.delete()
+
+    # test delete tags
+    @pytest.mark.usefixtures("create_tags")
+    def test_delete_tags(self):
+        self.login(username="admin")
+        # check that tags exist in the database
+        example_tag_names = ["example_tag_1", "example_tag_2", "example_tag_3"]
+        tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
+        self.assertEqual(tags.count(), 3)
+        # delete the first tag
+        uri = "api/v1/tag/"
+        data = example_tag_names[:1]
+        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        # successful request
+        self.assertEqual(rv.status_code, 200)
+        # check that tag does not exist in the database
+        tag = db.session.query(Tag).filter(Tag.name == example_tag_names[0]).first()
+        assert tag is None
+        tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
+        self.assertEqual(tags.count(), 2)
+        # delete multiple tags
+        data = example_tag_names[1:]
+        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        # successful request
+        self.assertEqual(rv.status_code, 200)
+        # check that tags are all gone
+        tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
+        self.assertEqual(tags.count(), 0)

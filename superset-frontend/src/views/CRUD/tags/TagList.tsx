@@ -204,7 +204,7 @@ function TagList(props: TagListProps) {
         Header: t('Search'),
         id: 'name',
         input: 'search',
-        operator: FilterOperator.titleOrSlug,
+        operator: FilterOperator.contains,
       },
     ] as Filters;
     return filters_list;

@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { logging, styled, t } from '@superset-ui/core';
-import Tag from 'src/types/TagType';
+import React, { useMemo } from 'react';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import SelectControl from 'src/explore/components/controls/SelectControl';
-import { fetchSuggestions } from 'src/tags';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
 import AllEntitiesTable from './AllEntitiesTable';
+import { AsyncSelect } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
+import { loadTags } from 'src/components/Tags/utils';
+import { getValue } from 'src/components/Select/utils';
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
@@ -54,27 +54,19 @@ const AllEntitiesNav = styled.div`
 `;
 
 function AllEntities() {
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>();
   const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
 
-  useEffect(() => {
-    fetchSuggestions(
-      { includeTypes: false },
-      (suggestions: Tag[]) => {
-        const tagSuggestions = [...suggestions.map(tag => tag.name)];
-        setTagSuggestions(tagSuggestions);
-      },
-      (error: Response) => {
-        logging.log(error.json());
-        addDangerToast(`Error Fetching Suggestions`);
-      },
-    );
-  }, [tagsQuery]);
-
-  const onTagSearchChange = (tags: Tag[]) => {
+  const onTagSearchChange = (value: SelectValue) => {
+    const tags = ensureIsArray(value).map(tag => getValue(tag));
     const tagSearch = tags.join(',');
     setTagsQuery(tagSearch);
   };
+
+  const tagsValue = useMemo(() => {
+    return tagsQuery
+      ? tagsQuery.split(',').map(tag => ({ value: tag, label: tag }))
+      : [];
+  }, [tagsQuery]);
 
   return (
     <AllEntitiesContainer>
@@ -83,12 +75,13 @@ function AllEntities() {
       </AllEntitiesNav>
       <div className="select-control">
         <div className="select-control-label">{t('search by tags')}</div>
-        <SelectControl
-          name="tags"
-          value={tagsQuery ? tagsQuery.split(',') : ''}
+        <AsyncSelect
+          ariaLabel="tags"
+          value={tagsValue}
           onChange={onTagSearchChange}
-          choices={tagSuggestions}
-          multi
+          options={loadTags}
+          placeholder="Select"
+          mode="multiple"
         />
       </div>
       <AllEntitiesTable search={tagsQuery || ''} />

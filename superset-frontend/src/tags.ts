@@ -19,17 +19,37 @@
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
+export const OBJECT_TYPES_VALUES = Object.freeze([
+  'dashboard',
+  'chart',
+  'saved_query',
+]);
+
 export const OBJECT_TYPES = Object.freeze({
   DASHBOARD: 'dashboard',
   CHART: 'chart',
-  QUERY: 'query',
+  QUERY: 'saved_query',
 });
+
+const OBJECT_TYPE_ID_MAP = {
+  saved_query: 1,
+  chart: 2,
+  dashboard: 3,
+};
+
+const map_object_type_to_id = (objectType: string) => {
+  if (!OBJECT_TYPES_VALUES.includes(objectType)) {
+    const msg = `objectType ${objectType} is invalid`;
+    throw new Error(msg);
+  }
+  return OBJECT_TYPE_ID_MAP[objectType];
+};
 
 export function fetchAllTags(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  const url = `/tagview/tags/`;
+  const url = `/api/v1/tag`;
   SupersetClient.get({ endpoint: url })
     .then(({ json }) => callback(json))
     .catch(response => error(response));
@@ -40,19 +60,29 @@ export function fetchTags(
     objectType,
     objectId,
     includeTypes = false,
-  }: { objectType: string; objectId: number; includeTypes: boolean },
+  }: {
+    objectType: string;
+    objectId: number;
+    includeTypes: boolean;
+  },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }
+  if (!OBJECT_TYPES_VALUES.includes(objectType)) {
+    const msg = `objectType ${objectType} is invalid`;
+    throw new Error(msg);
+  }
   SupersetClient.get({
-    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
+    endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
       callback(
-        json.filter((tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes),
+        json['result']['tags'].filter(
+          (tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes,
+        ),
       ),
     )
     .catch(response => error(response));
@@ -81,13 +111,20 @@ export function deleteTaggedObjects(
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }
+  if (!OBJECT_TYPES_VALUES.includes(objectType)) {
+    const msg = `objectType ${objectType} is invalid`;
+    throw new Error(msg);
+  }
   SupersetClient.delete({
-    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
-    body: JSON.stringify([tag.name]),
-    parseMethod: 'text',
+    endpoint: `/api/v1/tag/${map_object_type_to_id(objectType)}/${objectId}/`,
+    body: JSON.stringify({ tag: tag.name }),
+    parseMethod: 'json',
+    headers: { 'Content-Type': 'application/json' },
   })
-    .then(({ text }) =>
-      text ? callback(text) : callback('Successfully Deleted Tagged Objects'),
+    .then(({ json }) =>
+      json
+        ? callback(JSON.stringify(json))
+        : callback('Successfully Deleted Tagged Objects'),
     )
     .catch(response => {
       const err_str = response.message;
@@ -102,12 +139,15 @@ export function deleteTags(
 ) {
   const tags_str = JSON.stringify(tags.map(tag => tag.name) as string[]);
   SupersetClient.delete({
-    endpoint: `/tagview/tags`,
+    endpoint: `/api/v1/tag/`,
     body: tags_str,
-    parseMethod: 'text',
+    parseMethod: 'json',
+    headers: { 'Content-Type': 'application/json' },
   })
-    .then(({ text }) =>
-      text ? callback(text) : callback('Successfully Deleted Tag'),
+    .then(({ json }) =>
+      json.message
+        ? callback(json.message)
+        : callback('Successfully Deleted Tag'),
     )
     .catch(response => {
       const err_str = response.message;
@@ -120,7 +160,11 @@ export function addTag(
     objectType,
     objectId,
     includeTypes = false,
-  }: { objectType: string; objectId: number; includeTypes: boolean },
+  }: {
+    objectType: string;
+    objectId: number;
+    includeTypes: boolean;
+  },
   tag: string,
   callback: (text: string) => void,
   error: (response: Response) => void,
@@ -131,12 +175,14 @@ export function addTag(
   if (tag.indexOf(':') !== -1 && !includeTypes) {
     return;
   }
+  const objectTypeId = map_object_type_to_id(objectType);
   SupersetClient.post({
-    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
-    body: JSON.stringify([tag]),
-    parseMethod: 'text',
+    endpoint: `/api/v1/tag/${objectTypeId}/${objectId}/`,
+    body: JSON.stringify({ tags: [tag] }),
+    parseMethod: 'json',
+    headers: { 'Content-Type': 'application/json' },
   })
-    .then(({ text }) => callback(text))
+    .then(({ json }) => callback(JSON.stringify(json)))
     .catch(response => error(response));
 }
 
@@ -145,11 +191,11 @@ export function fetchObjects(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  let url = `/taggedobjectview/tagged_objects/?tags=${tags}`;
+  let url = `/api/v1/tag/get_objects/?tags=${tags}`;
   if (types) {
     url += `&types=${types}`;
   }
   SupersetClient.get({ endpoint: url })
-    .then(({ json }) => callback(json))
+    .then(({ json }) => callback(json['result']))
     .catch(response => error(response));
 }

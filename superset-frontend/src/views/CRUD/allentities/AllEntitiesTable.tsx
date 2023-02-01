@@ -72,14 +72,15 @@ export default function AllEntitiesTable({
       { tags: search, types: null },
       (data: TaggedObject[]) => {
         const objects = { dashboard: [], chart: [], query: [] };
-        data.forEach(object => {
-          objects[object.type].push(object);
+        data.forEach(function (object) {
+          const object_type = object.type;
+          objects[object_type].push(object);
         });
         setObjects(objects);
       },
       (error: Response) => {
         addDangerToast('Error Fetching Tagged Objects');
-        logging.log(error.json());
+        logging.log(error.text);
       },
     );
   }, [search]);

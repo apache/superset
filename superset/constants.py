@@ -141,6 +141,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "samples": "read",
     "delete_ssh_tunnel": "write",
     "stop_query": "read",
+    "get_objects": "read",
+    "get_all_objects": "read",
+    "add_tagged_objects": "write",
+    "delete_tagged_object": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
