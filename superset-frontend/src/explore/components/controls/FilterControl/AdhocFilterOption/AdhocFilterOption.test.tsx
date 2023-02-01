@@ -27,23 +27,8 @@ import AdhocFilterOption, { AdhocFilterOptionProps } from '.';
 
 jest.mock('src/components/Icons/Icon', () => ({
   __esModule: true,
-  default: ({
-    fileName,
-    role,
-    iconColor,
-    ...rest
-  }: {
-    fileName: string;
-    role: string;
-    iconColor: string;
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={fileName.replace('_', '-')}
-      // @ts-ignore
-      iconcolor={iconColor ?? 'green'}
-      {...rest}
-    />
+  default: ({ fileName, role }: { fileName: string; role: string }) => (
+    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
   ),
   StyledIcon: () => <span />,
 }));
