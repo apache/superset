@@ -86,11 +86,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     @staticmethod
     def _error_template(name: str, description: str, text: str) -> str:
         return __(
-            """*%(name)s*
-
-%(description)s
-
-Error: %(text)s
+            """>*<%(link)s | %(name)s>* \n>*Description:* _%(description)s_ \n>*Error:* %(text)s
 """,
             name=name,
             description=description,
