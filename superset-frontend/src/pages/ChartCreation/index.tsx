@@ -335,6 +335,7 @@ export class ChartCreation extends React.PureComponent<
 
   render() {
     const isButtonDisabled = this.isBtnDisabled();
+    const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link
@@ -350,7 +351,8 @@ export class ChartCreation extends React.PureComponent<
           target="_blank"
           data-test="add-chart-new-dataset-instructions"
         >
-          {t('view instructions')} <i className="fa fa-external-link" />
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
+          <i className="fa fa-external-link" />
         </a>
         .
       </span>
@@ -361,7 +363,8 @@ export class ChartCreation extends React.PureComponent<
           rel="noopener noreferrer"
           target="_blank"
         >
-          {t('view instructions')} <i className="fa fa-external-link" />
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
+          <i className="fa fa-external-link" />
         </a>
         .
       </span>
