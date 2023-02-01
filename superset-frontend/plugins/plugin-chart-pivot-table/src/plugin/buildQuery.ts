@@ -46,7 +46,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
       formData?.datetime_columns_lookup?.[col]
     ) {
       return {
-        timeGrain: formData.time_grain_sqla,
+        timeGrain: formData.extra_form_data?.time_grain_sqla,
         columnType: 'BASE_AXIS',
         sqlExpression: col,
         label: col,
