@@ -246,7 +246,7 @@ export default function LeftPanel({
         schema_name: encodedSchema,
       });
 
-      const endpoint = `/api/v1/database/${dbId}/tables/?q=${params}`;
+      const endpoint = `/api/v1/database/${dataset?.db?.id}/tables/?q=${params}`;
       getTablesList(endpoint);
     }
   }, [loadTables, dataset?.db?.id, encodedSchema, getTablesList, refresh]);
