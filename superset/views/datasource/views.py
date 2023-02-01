@@ -228,10 +228,7 @@ class DatasetEditor(BaseSupersetView):
     @has_access
     @permission_name("read")
     def root(self) -> FlaskResponse:
-        dev = request.args.get("testing")
-        if dev is not None:
-            return super().render_app_template()
-        return redirect("/")
+        return super().render_app_template()
 
     @expose("/<pk>", methods=["GET"])
     @has_access
