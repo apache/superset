@@ -64,7 +64,7 @@ test('skip pivot', () => {
   ).toEqual(undefined);
 });
 
-test('pivot by __timestamp without groupby', () => {
+test('pivot by __timestamp without columns', () => {
   expect(
     pivotOperator(
       { ...formData, granularity_sqla: 'time_column' },
@@ -84,13 +84,36 @@ test('pivot by __timestamp without groupby', () => {
   });
 });
 
-test('pivot by __timestamp with groupby', () => {
+test('pivot by __timestamp with columns', () => {
   expect(
     pivotOperator(
       { ...formData, granularity_sqla: 'time_column' },
       {
         ...queryObject,
         columns: ['foo', 'bar'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: ['foo', 'bar'],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});
+
+test('pivot by __timestamp with series_columns', () => {
+  expect(
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      {
+        ...queryObject,
+        series_columns: ['foo', 'bar'],
       },
     ),
   ).toEqual({
@@ -116,7 +139,7 @@ test('pivot by x_axis with groupby', () => {
       },
       {
         ...queryObject,
-        columns: ['foo', 'bar'],
+        series_columns: ['foo', 'bar'],
       },
     ),
   ).toEqual({
@@ -146,7 +169,7 @@ test('pivot by adhoc x_axis', () => {
       },
       {
         ...queryObject,
-        columns: ['foo', 'bar'],
+        series_columns: ['foo', 'bar'],
       },
     ),
   ).toEqual({
