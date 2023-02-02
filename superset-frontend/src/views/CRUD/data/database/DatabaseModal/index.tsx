@@ -22,6 +22,7 @@ import {
   SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import React, {
   FunctionComponent,
@@ -34,7 +35,7 @@ import React, {
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, Upload } from 'src/components';
+import { AntdSelect, AntdSwitch, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -63,7 +64,7 @@ import {
   ExtraJson,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
-import { pick } from 'lodash';
+import { isEmpty, pick } from 'lodash';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -87,9 +88,12 @@ import {
   StyledStickyHeader,
   formScrollableStyles,
   StyledUploadWrapper,
+  toggleStyle,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
 
@@ -557,6 +561,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
+  const SSHTunnelSwitchExtension = extensionsRegistry.get(
+    'ssh_tunnel.form.switch',
+  );
+  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -572,7 +581,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   )?.engine_information?.disable_ssh_tunneling;
   const isSSHTunneling =
     isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
-    disableSSHTunnelingForEngine !== undefined;
+    !disableSSHTunnelingForEngine;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -583,8 +592,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
-  const isEmpty = (data?: Object | null) =>
-    !data || (data && Object.keys(data).length === 0);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -652,6 +659,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setPasswordFields([]);
     setPasswords({});
     setConfirmedOverwrite(false);
+    setUseSSHTunneling(false);
     onHide();
   };
 
@@ -1145,6 +1153,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setPasswordFields([...passwordsNeeded]);
   }, [passwordsNeeded]);
 
+  useEffect(() => {
+    if (db) {
+      setUseSSHTunneling(!isEmpty(db?.ssh_tunnel));
+    }
+  }, [db]);
+
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
     setPasswordFields([]);
@@ -1325,10 +1339,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderSSHTunnelForm = () => (
     <SSHTunnelForm
-      isEditMode={isEditMode}
-      isSSHTunneling={isSSHTunneling}
       db={db as DatabaseObject}
-      dbFetched={dbFetched as DatabaseObject}
       onSSHTunnelParametersChange={({
         target,
       }: {
@@ -1346,12 +1357,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
-      removeSSHTunnelConfig={() =>
-        setDB({
-          type: ActionType.removeSSHTunnelConfig,
-        })
-      }
     />
+  );
+
+  const renderDefaultSSHTunnelSwitch = () => (
+    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+      <AntdSwitch
+        disabled={isEditMode && !isEmpty(dbFetched?.ssh_tunnel)}
+        checked={useSSHTunneling}
+        onChange={changed => {
+          setUseSSHTunneling(changed);
+          if (!changed) {
+            setDB({
+              type: ActionType.removeSSHTunnelConfig,
+            });
+          }
+        }}
+        data-test="ssh-tunnel-switch"
+      />
+      <span css={toggleStyle}>SSH Tunnel</span>
+      <InfoTooltip
+        tooltip={t('SSH Tunnel configuration parameters')}
+        placement="right"
+        viewBox="0 -5 24 24"
+      />
+    </div>
   );
 
   const renderCTABtns = () => (
@@ -1558,7 +1588,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {isSSHTunneling && renderSSHTunnelForm()}
+                {SSHTunnelSwitchExtension ? (
+                  <SSHTunnelSwitchExtension
+                    isEditMode={isEditMode}
+                    dbFetched={dbFetched}
+                    disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
+                    useSSHTunneling={useSSHTunneling}
+                    setUseSSHTunneling={setUseSSHTunneling}
+                    setDB={setDB}
+                  />
+                ) : (
+                  isSSHTunneling && renderDefaultSSHTunnelSwitch()
+                )}
+                {useSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1832,7 +1874,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
-                {isSSHTunneling && (
+                {SSHTunnelSwitchExtension ? (
+                  <SSHTunnelContainer>
+                    <SSHTunnelSwitchExtension
+                      isEditMode={isEditMode}
+                      dbFetched={dbFetched}
+                      disableSSHTunnelingForEngine={
+                        disableSSHTunnelingForEngine
+                      }
+                      useSSHTunneling={useSSHTunneling}
+                      setUseSSHTunneling={setUseSSHTunneling}
+                      setDB={setDB}
+                    />
+                  </SSHTunnelContainer>
+                ) : (
+                  isSSHTunneling && (
+                    <SSHTunnelContainer>
+                      {renderDefaultSSHTunnelSwitch()}
+                    </SSHTunnelContainer>
+                  )
+                )}
+                {useSSHTunneling && (
                   <SSHTunnelContainer>
                     {renderSSHTunnelForm()}
                   </SSHTunnelContainer>

@@ -31,6 +31,8 @@ import {
   DatabaseObject,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal, {
   dbReducer,
@@ -1586,6 +1588,36 @@ describe('DatabaseModal', () => {
       userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w Extensions', () => {
+    const renderAndWait = async () => {
+      const extensionsRegistry = getExtensionsRegistry();
+
+      extensionsRegistry.set('ssh_tunnel.form.switch', () => (
+        <>ssh_tunnel.form.switch extension component</>
+      ));
+
+      setupExtensions();
+
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="SQLite" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('should render an extension component if one is supplied', () => {
+      expect(
+        screen.getByText('ssh_tunnel.form.switch extension component'),
+      ).toBeInTheDocument();
     });
   });
 });
