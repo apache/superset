@@ -82,6 +82,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 import { SupersetPluginChartHelloWorld } from 'superset-plugin-chart-hello-world';
+import { SupersetPluginChartLiquid } from 'superset-plugin-chart-liquid';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -168,6 +169,7 @@ export default class MainPreset extends Preset {
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
+        new SupersetPluginChartLiquid().configure({ key: 'ext-liquid' }),
         ...experimentalplugins,
       ],
     });

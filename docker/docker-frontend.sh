@@ -28,7 +28,14 @@ npm install -f --no-optional --global webpack webpack-cli
 npm install -f --no-optional
 
 echo "Running liq viz dev"
+
 cd ./liq_viz_plugins/superset-plugin-chart-hello-world
+# Comment below before merging master for prod
+npm run dev & # Dev
+# Uncomment below before merging master for prod
+#npm run build # Prod
+
+cd ../superset-plugin-chart-liquid
 # Comment below before merging master for prod
 npm run dev & # Dev
 # Uncomment below before merging master for prod
