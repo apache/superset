@@ -173,7 +173,7 @@ packaging==21.3
     # via
     #   bleach
     #   deprecation
-pandas==1.5.2
+pandas==1.5.3
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel
