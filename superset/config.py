@@ -1441,7 +1441,7 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
-EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
+EMAIL_REPORTS_SUBJECT_PREFIX = "[Alert/Reports] "
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
