@@ -32,7 +32,7 @@ import { AnnotationObject } from './types';
 interface AnnotationModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  annnotationLayerId: number;
+  annotationLayerId: number;
   annotation?: AnnotationObject | null;
   onAnnotationAdd?: (annotation?: AnnotationObject) => void;
   onHide: () => void;
@@ -84,7 +84,7 @@ const AnnotationContainer = styled.div`
 const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   addDangerToast,
   addSuccessToast,
-  annnotationLayerId,
+  annotationLayerId,
   annotation = null,
   onAnnotationAdd,
   onHide,
@@ -102,7 +102,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     createResource,
     updateResource,
   } = useSingleViewResource<AnnotationObject>(
-    `annotation_layer/${annnotationLayerId}/annotation`,
+    `annotation_layer/${annotationLayerId}/annotation`,
     t('annotation'),
     addDangerToast,
   );
@@ -273,7 +273,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       show={show}
       width="55%"
       title={
-        <h4 data-test="annotaion-modal-title">
+        <h4 data-test="annotation-modal-title">
           {isEditMode ? (
             <Icons.EditAlt css={StyledIcon} />
           ) : (

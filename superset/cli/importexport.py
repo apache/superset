@@ -66,7 +66,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--dashboard-file",
         "-f",
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
@@ -101,7 +101,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--datasource-file",
         "-f",
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     def export_datasources(datasource_file: Optional[str] = None) -> None:
         """Export datasources to ZIP file"""
@@ -206,7 +206,7 @@ else:
         "--dashboard-file",
         "-f",
         default=None,
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     @click.option(
         "--print_stdout",
@@ -236,7 +236,7 @@ else:
         "--datasource-file",
         "-f",
         default=None,
-        help="Specify the the file to export to",
+        help="Specify the file to export to",
     )
     @click.option(
         "--print_stdout",

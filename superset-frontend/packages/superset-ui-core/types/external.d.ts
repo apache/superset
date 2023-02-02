@@ -17,6 +17,6 @@
  * under the License.
  */
 /**
- * Stub for the untypped jed module.
+ * Stub for the untyped jed module.
  */
 declare module 'jed';

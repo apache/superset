@@ -32,7 +32,7 @@ export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
 
-export const labelMarginBotton = (theme: SupersetTheme) => css`
+export const labelMarginBottom = (theme: SupersetTheme) => css`
   margin-bottom: ${theme.gridUnit * 2}px;
 `;
 

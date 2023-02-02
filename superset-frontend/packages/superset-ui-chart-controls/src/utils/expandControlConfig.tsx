@@ -74,7 +74,7 @@ export function expandControlConfig(
   // {
   //   name: 'metric',
   //   config: {
-  //     type: 'SelectControl' | SelectComonent
+  //     type: 'SelectControl' | SelectComponent
   //   }
   // }
   if ('name' in control && 'config' in control) {

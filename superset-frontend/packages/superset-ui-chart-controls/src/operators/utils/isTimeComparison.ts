@@ -17,7 +17,7 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { ComparisionType } from '@superset-ui/core';
+import { ComparisonType } from '@superset-ui/core';
 import { getMetricOffsetsMap } from './getMetricOffsetsMap';
 import { PostProcessingFactory } from '../types';
 
@@ -29,7 +29,7 @@ export const isTimeComparison: PostProcessingFactory<boolean> = (
   const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
 
   return (
-    Object.values(ComparisionType).includes(comparisonType) &&
+    Object.values(ComparisonType).includes(comparisonType) &&
     metricOffsetMap.size > 0
   );
 };
