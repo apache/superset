@@ -443,15 +443,18 @@ FLASH_OWNERSHIP = {
     "JSONSCHEMA": {
         "type": "object",
         "properties": {
-            "teamSlackChannel": {
+            "flashType": {
+                "title": "Flash Type",
                 "type": "string",
-                "title": "Slack Channel",
-                "pattern": "^(#)[A-Za-z0-9_-]+$",
-            },
-            "teamSlackHandle": {
-                "type": "string",
-                "title": "Slack Handle",
-                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
+                "enum": ["", "One Time", "Short Term", "Long Term"],
+                "enumNames": [
+                    "Please Select",
+                    "One Time (Valid upto 7 days)",
+                    "Short Term (Valid upto 7 days)",
+                    "Long Term (Valid upto 90 days)",
+                ],
+                "default": "Please Select",
+                "disabled": True,
             },
             "ownershipType": {
                 "type": "boolean",
@@ -465,15 +468,37 @@ FLASH_OWNERSHIP = {
                 "pattern": "^[a-z0-9._-]+@careem.com+$",
             },
         },
-        "required": [
-            "teamSlackChannel",
-            "teamSlackHandle",
-        ],
+        "required": ["flashType"],
+        "dependencies": {
+            "flashType": {
+                "oneOf": [
+                    {
+                        "properties": {
+                            "flashType": {"enum": ["Long Term"]},
+                            "teamSlackChannel": {
+                                "type": "string",
+                                "title": "Slack Channel",
+                                "pattern": "^(#)[A-Za-z0-9_-]+$",
+                            },
+                            "teamSlackHandle": {
+                                "type": "string",
+                                "title": "Slack Handle",
+                                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
+                            },
+                        },
+                        "required": [
+                            "teamSlackChannel",
+                            "teamSlackHandle",
+                        ],
+                    },
+                ]
+            }
+        },
     },
     "UISCHEMA": {
         "ui:order": [
-            "teamSlackChannel",
-            "teamSlackHandle",
+            "flashType",
+            "*",
             "ownershipType",
             "owner",
         ],
