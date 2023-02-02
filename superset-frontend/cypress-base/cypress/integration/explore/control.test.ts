@@ -23,10 +23,6 @@ import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   const newMetricName = `abc${Date.now()}`;
 
   it('should allow edit dataset', () => {
@@ -89,7 +85,6 @@ describe('Datasource control', () => {
 
 describe('Color scheme control', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
@@ -120,7 +115,6 @@ describe('Color scheme control', () => {
 });
 describe('VizType control', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: true }).as('lineChartData');
   });
@@ -147,7 +141,6 @@ describe('VizType control', () => {
 
 describe('Test datatable', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: true }).as('lineChartData');
     cy.visitChartByName('Daily Totals');
@@ -174,7 +167,6 @@ describe('Test datatable', () => {
 
 describe('Time range filter', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
   });
 
@@ -288,7 +280,6 @@ describe('Time range filter', () => {
 
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');

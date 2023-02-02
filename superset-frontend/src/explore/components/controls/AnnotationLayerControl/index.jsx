@@ -71,7 +71,7 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   componentDidMount() {
-    // preload the AnotationLayer component and dependent libraries i.e. mathjs
+    // preload the AnnotationLayer component and dependent libraries i.e. mathjs
     AnnotationLayer.preload();
   }
 

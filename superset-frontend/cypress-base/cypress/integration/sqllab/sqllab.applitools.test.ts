@@ -19,7 +19,6 @@
 
 describe('SqlLab view', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit('/superset/sqllab');
   });
 

@@ -133,6 +133,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
+  logEvent,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -167,6 +168,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
+  );
+  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
   const indicator = useMemo(
@@ -271,6 +275,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
+                logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
@@ -287,6 +292,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 chartStatus={chartStatus}
                 formData={formData}
                 exploreUrl={exploreUrl}
+                crossFiltersEnabled={isCrossFiltersEnabled}
               />
             )}
           </>

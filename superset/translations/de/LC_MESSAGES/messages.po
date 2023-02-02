@@ -12573,7 +12573,7 @@ msgstr "Die den Ergebnissen zugeordnete Abfrage wurde gelöscht."
 
 #: superset/views/core.py:2297
 msgid ""
-"The query associated with these results could not be find. You need to "
+"The query associated with these results could not be found. You need to "
 "re-run the original query."
 msgstr ""
 "Die mit diesen Ergebnissen verknüpfte Abfrage konnte nicht gefunden "

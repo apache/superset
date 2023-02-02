@@ -115,12 +115,6 @@ const AllEntitiesPage = lazy(
 const TagsPage = lazy(
   () => import(/* webpackChunkName: "TagList" */ 'src/views/CRUD/tags/TagList'),
 );
-const RowLevelSecurity = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "RowLevelSecurity" */ 'src/views/CRUD/rowlevelsecurity/RowLevelSecurityList'
-    ),
-);
 
 type Routes = {
   path: string;
@@ -215,10 +209,6 @@ export const routes: Routes = [
   {
     path: '/dataset/:datasetId',
     Component: AddDataset,
-  },
-  {
-    path: '/rowlevelsecurity/list',
-    Component: RowLevelSecurity,
   },
 ];
 

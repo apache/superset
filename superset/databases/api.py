@@ -44,11 +44,13 @@ from superset.databases.commands.exceptions import (
     DatabaseDeleteFailedError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
+    DatabaseTablesUnexpectedError,
     DatabaseUpdateFailedError,
     InvalidParametersError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
+from superset.databases.commands.tables import TablesDatabaseCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
@@ -58,10 +60,12 @@ from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
+    database_tables_query_schema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
+    DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
     get_export_ids_schema,
@@ -75,6 +79,7 @@ from superset.databases.schemas import (
 from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelDeleteFailedError,
+    SSHTunnelingNotEnabledError,
     SSHTunnelNotFoundError,
 )
 from superset.databases.utils import get_table_metadata
@@ -103,6 +108,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
+        "tables",
         "table_metadata",
         "table_extra_metadata",
         "select_star",
@@ -209,6 +215,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
+        "database_tables_query_schema": database_tables_query_schema,
         "get_export_ids_schema": get_export_ids_schema,
     }
 
@@ -216,6 +223,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
+        DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
         TableExtraMetadataResponseSchema,
@@ -349,6 +357,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
@@ -433,6 +443,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
@@ -549,6 +561,73 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
+
+    @expose("/<int:pk>/tables/")
+    @protect()
+    @safe
+    @rison(database_tables_query_schema)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".tables",
+        log_to_statsd=False,
+    )
+    def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Get a list of tables for given database
+        ---
+        get:
+          summary: Get a list of tables for given database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_tables_query_schema'
+          responses:
+            200:
+              description: Tables list
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      result:
+                        description: >-
+                          A List of tables for given database
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseTablesResponse'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        force = kwargs["rison"].get("force", False)
+        schema_name = kwargs["rison"].get("schema_name", "")
+
+        try:
+            command = TablesDatabaseCommand(pk, schema_name, force)
+            payload = command.run()
+            return self.response(200, **payload)
+        except DatabaseNotFoundError:
+            return self.response_404()
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+        except DatabaseTablesUnexpectedError as ex:
+            return self.response_422(ex.message)
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -782,8 +861,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        TestConnectionDatabaseCommand(item).run()
-        return self.response(200, message="OK")
+        try:
+            TestConnectionDatabaseCommand(item).run()
+            return self.response(200, message="OK")
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
@@ -1320,3 +1402,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            logger.error(
+                "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_400(message=str(ex))

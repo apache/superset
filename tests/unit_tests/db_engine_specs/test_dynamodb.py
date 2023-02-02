@@ -14,24 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 
+from datetime import datetime
+from typing import Optional
+
+import pytest
+
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
-def test_convert_dttm(dttm: datetime) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("text", "'2019-01-02 03:04:05'"),
+        ("dateTime", "'2019-01-02 03:04:05'"),
+        ("unknowntype", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec as spec
 
-    assert DynamoDBEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_lower(dttm: datetime) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
-
-    assert DynamoDBEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_invalid_type(dttm: datetime) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
-
-    assert DynamoDBEngineSpec.convert_dttm("other", dttm) is None
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

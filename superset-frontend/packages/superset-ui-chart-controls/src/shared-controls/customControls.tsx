@@ -20,35 +20,16 @@
 import {
   ContributionType,
   ensureIsArray,
-  FeatureFlag,
   getColumnLabel,
   getMetricLabel,
   isDefined,
   isEqualArray,
-  isFeatureEnabled,
   QueryFormColumn,
   QueryFormMetric,
   t,
 } from '@superset-ui/core';
 import { ControlPanelState, ControlState, ControlStateMapping } from '../types';
 import { isTemporalColumn } from '../utils';
-
-export const emitFilterControl = isFeatureEnabled(
-  FeatureFlag.DASHBOARD_CROSS_FILTERS,
-)
-  ? [
-      {
-        name: 'emit_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable dashboard cross filters'),
-          default: false,
-          renderTrigger: true,
-          description: t('Enable dashboard cross filters'),
-        },
-      },
-    ]
-  : [];
 
 export const contributionModeControl = {
   name: 'contributionMode',

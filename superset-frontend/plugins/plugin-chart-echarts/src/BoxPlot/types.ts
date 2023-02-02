@@ -30,7 +30,6 @@ export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;
   whiskerOptions?: BoxPlotFormDataWhiskerOptions;
   xTickLayout?: BoxPlotFormXTickLayout;
-  emitFilter: boolean;
 } & TitleFormData;
 
 export type BoxPlotFormDataWhiskerOptions =
@@ -48,7 +47,6 @@ export type BoxPlotFormXTickLayout =
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
-  emitFilter: false,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 

@@ -38,13 +38,14 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     formData,
     onContextMenu,
     refs,
+    emitCrossFilters,
   } = props;
 
-  const { emitFilter, columns } = formData;
+  const { columns } = formData;
 
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -75,7 +76,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         },
       });
     },
-    [emitFilter, setDataMask, columns, labelMap],
+    [emitCrossFilters, setDataMask, columns, labelMap],
   );
 
   const eventHandlers: EventHandlers = {
@@ -93,22 +94,22 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     contextmenu: eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
+        const { data } = eventParams;
+        const { records } = data;
         const treePath = extractTreePathInfo(eventParams.treePathInfo);
-        if (treePath.length > 0) {
-          const pointerEvent = eventParams.event.event;
-          const filters: BinaryQueryObjectFilterClause[] = [];
-          if (columns) {
-            treePath.forEach((path, i) =>
-              filters.push({
-                col: columns[i],
-                op: '==',
-                val: path,
-                formattedVal: path,
-              }),
-            );
-          }
-          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        const pointerEvent = eventParams.event.event;
+        const filters: BinaryQueryObjectFilterClause[] = [];
+        if (columns?.length) {
+          treePath.forEach((path, i) =>
+            filters.push({
+              col: columns[i],
+              op: '==',
+              val: records[i],
+              formattedVal: path,
+            }),
+          );
         }
+        onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
       }
     },
   };

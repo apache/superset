@@ -17,7 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient, logging, t } from '@superset-ui/core';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
+import rison from 'rison';
 
 type BaseQueryObject = {
   id: number;
@@ -75,11 +78,38 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
   };
 }
 
-export const UseGetDatasetsList = (queryParams: string | undefined) =>
-  SupersetClient.get({
-    endpoint: `/api/v1/dataset/?q=${queryParams}`,
-  })
-    .then(({ json }) => json)
-    .catch(error =>
-      logging.error('There was an error fetching dataset', error),
-    );
+/**
+ * Retrieves all pages of dataset results
+ */
+export const UseGetDatasetsList = async (filters: object[]) => {
+  let results: DatasetObject[] = [];
+  let page = 0;
+  let count;
+
+  // If count is undefined or less than results, we need to
+  // asynchronously retrieve a page of dataset results
+  while (count === undefined || results.length < count) {
+    const queryParams = rison.encode_uri({ filters, page });
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
+      });
+
+      // Reassign local count to response's count
+      ({ count } = response.json);
+
+      const {
+        json: { result },
+      } = response;
+
+      results = [...results, ...result];
+
+      page += 1;
+    } catch (error) {
+      addDangerToast(t('There was an error fetching dataset'));
+      logging.error(t('There was an error fetching dataset'), error);
+    }
+  }
+  return results;
+};

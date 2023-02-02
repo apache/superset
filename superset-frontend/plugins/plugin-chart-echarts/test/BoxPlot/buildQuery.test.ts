@@ -27,7 +27,6 @@ import { BoxPlotQueryFormData } from '../../src/BoxPlot/types';
 describe('BoxPlot buildQuery', () => {
   const formData: BoxPlotQueryFormData = {
     ...DEFAULT_TITLE_FORM_DATA,
-    emitFilter: false,
     columns: [],
     datasource: '5__table',
     granularity_sqla: 'ds',

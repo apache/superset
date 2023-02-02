@@ -49,8 +49,9 @@ export default function EchartsTimeseries({
   xValueFormatter,
   xAxis,
   refs,
+  emitCrossFilters,
 }: TimeseriesChartTransformedProps) {
-  const { emitFilter, stack } = formData;
+  const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -109,7 +110,7 @@ export default function EchartsTimeseries({
 
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
       const groupbyValues = values.map(value => labelMap[value]);
@@ -140,7 +141,7 @@ export default function EchartsTimeseries({
         },
       });
     },
-    [groupby, labelMap, setDataMask, emitFilter],
+    [groupby, labelMap, setDataMask, emitCrossFilters],
   );
 
   const eventHandlers: EventHandlers = {

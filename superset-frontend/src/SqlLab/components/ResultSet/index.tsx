@@ -360,8 +360,8 @@ const ResultSet = ({
               message={t('%(rows)d rows returned', { rows })}
               onClose={() => setAlertIsOpen(false)}
               description={t(
-                'The number of rows displayed is limited to %s by the dropdown.',
-                rows,
+                'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                { rows },
               )}
             />
           </div>

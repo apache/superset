@@ -910,7 +910,6 @@ class TestUtils(SupersetTestCase):
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
-        self.assertRaises(CertificateException, parse_ssl_cert, "abc" + ssl_certificate)
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)

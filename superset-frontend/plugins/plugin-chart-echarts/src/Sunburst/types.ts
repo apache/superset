@@ -20,10 +20,12 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  DataRecordValue,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
+import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
@@ -36,7 +38,6 @@ export type EchartsSunburstFormData = QueryFormData & {
   secondaryMetric?: QueryFormMetric;
   colorScheme?: string;
   linearColorScheme?: string;
-  emitFilter: boolean;
 };
 
 export enum EchartsSunburstLabelType {
@@ -51,7 +52,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   labelType: EchartsSunburstLabelType.Key,
   showLabels: false,
   dateFormat: 'smart_date',
-  emitFilter: false,
 };
 
 export interface EchartsSunburstChartProps
@@ -64,3 +64,8 @@ export type SunburstTransformedProps =
   BaseTransformedProps<EchartsSunburstFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps;
+
+export type NodeItemOption = SunburstSeriesNodeItemOption & {
+  records: DataRecordValue[];
+  secondaryValue: number;
+};
