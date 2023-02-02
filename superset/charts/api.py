@@ -927,7 +927,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_user_slices(self, user_id: Optional[int] = None) -> Response:
-        """Favorite stars for Charts
+        """Gets the slices owned or favorited by the user_id
         ---
         get:
           summary: >-

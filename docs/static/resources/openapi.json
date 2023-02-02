@@ -1768,7 +1768,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1783,7 +1783,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1830,7 +1830,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
@@ -1897,6 +1897,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1939,10 +1943,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2398,6 +2398,51 @@
         },
         "type": "object"
       },
+      "ChartFavStarResponseResult1": {
+        "properties": {
+          "creator": {
+            "description": "The creator name",
+            "nullable": true,
+            "type": "string"
+          },
+          "creator_url": {
+            "description": "The creator profile url",
+            "nullable": true,
+            "type": "string"
+          },
+          "data": {
+            "description": "The chart form data",
+            "nullable": true
+          },
+          "dttm": {
+            "description": "The timestamp when the chart was favorited or the last time it was modified",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "description": "The chart id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "is_favorite": {
+            "description": "Is the chart favorited by the user",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "The chart name",
+            "type": "boolean"
+          },
+          "url": {
+            "description": "The chart explore url",
+            "type": "string"
+          },
+          "viz_type": {
+            "description": "The chart visualization type",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ChartGetDatasourceObjectDataResponse": {
         "properties": {
           "datasource_id": {
@@ -2560,7 +2605,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2575,7 +2620,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2622,7 +2667,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
@@ -2689,6 +2734,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2731,10 +2780,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -3400,7 +3445,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3441,7 +3486,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "position_json": {
             "nullable": true,
@@ -3489,32 +3534,6 @@
       },
       "DashboardRestApi.get_list.User": {
         "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.User1": {
-        "properties": {
           "email": {
             "maxLength": 64,
             "type": "string"
@@ -3538,6 +3557,32 @@
         },
         "required": [
           "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
           "first_name",
           "last_name",
           "username"
@@ -4898,7 +4943,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -4976,7 +5021,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "schema": {
             "maxLength": 255,
@@ -5173,23 +5218,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5207,6 +5235,23 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -5961,6 +6006,18 @@
             "description": "A list of results for each corresponding chart in the request",
             "items": {
               "$ref": "#/components/schemas/ChartFavStarResponseResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserSlicesSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of charts owned or favorited by the user",
+            "items": {
+              "$ref": "#/components/schemas/ChartFavStarResponseResult1"
             },
             "type": "array"
           }
@@ -6950,7 +7007,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -7016,7 +7073,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -7060,6 +7117,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -7076,10 +7137,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -11534,6 +11591,100 @@
             "jwt": []
           }
         ],
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/api/v1/chart/user_slices/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserSlicesSchema"
+                }
+              }
+            },
+            "description": "None"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Gets the slices owned or favorited by the user_id",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/api/v1/chart/user_slices/{user_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserSlicesSchema"
+                }
+              }
+            },
+            "description": "None"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Gets the slices owned or favorited by the user_id",
         "tags": [
           "Charts"
         ]

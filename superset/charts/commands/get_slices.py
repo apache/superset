@@ -20,9 +20,9 @@ from typing import cast, Optional
 from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
-from superset.utils.core import get_user_id
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
+from superset.utils.core import get_user_id
 from superset.utils.dates import datetime_to_epoch
 
 logger = logging.getLogger(__name__)

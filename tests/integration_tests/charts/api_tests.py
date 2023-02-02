@@ -1478,12 +1478,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test get user slices
         """
-        admin = security_manager.find_user(username="admin")
-        chart = db.session.query(Slice).all()[0]
-        chart.owners = [admin]
+        user = security_manager.find_user(username="gamma2")
+        charts = db.session.query(Slice).order_by(Slice.slice_name.asc()).all()
+        charts[0].owners = [user]
         db.session.commit()
 
-        self.login(username="admin")
+        self.login(username="gamma2")
         rv = self.client.get("api/v1/chart/user_slices/")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1493,5 +1493,5 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         assert data["result"][0]["is_favorite"] == False
         assert data["result"][0]["viz_type"] == "dual_line"
 
-        chart.owners = []
+        charts[0].owners = []
         db.session.commit()

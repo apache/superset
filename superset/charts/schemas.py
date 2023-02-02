@@ -1379,14 +1379,15 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
-class ChartFavStarResponseResult(Schema):
+class ChartUserSliceResponseResult(Schema):
     id = fields.Integer(description="The chart id")
     url = fields.String(description="The chart explore url")
     title = fields.Boolean(description="The chart name")
     is_favorite = fields.Boolean(description="Is the chart favorited by the user")
     viz_type = fields.String(description="The chart visualization type")
     dttm = fields.Integer(
-        description="The timestamp when the chart was favorited or the last time it was modified"
+        description="The timestamp when the chart was favorited or the "
+        "last time it was modified"
     )
     data = fields.Raw(allow_none=True, description="The chart form data")
     creator = fields.String(allow_none=True, description="The creator name")
@@ -1395,7 +1396,7 @@ class ChartFavStarResponseResult(Schema):
 
 class GetUserSlicesSchema(Schema):
     result = fields.List(
-        fields.Nested(ChartFavStarResponseResult),
+        fields.Nested(ChartUserSliceResponseResult),
         description="A list of charts owned or favorited by the user",
     )
 

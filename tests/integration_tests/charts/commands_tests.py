@@ -460,7 +460,7 @@ class TestGetUserSlicesCommand(SupersetTestCase):
         user = security_manager.find_user(username="alpha")
         mock_g.user = mock_sm_g.user = user
 
-        command = GetUserSlicesCommand()
+        command = GetUserSlicesCommand(123456)
         result = command.run()
         assert len(result) == 0
 
@@ -468,20 +468,20 @@ class TestGetUserSlicesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_user_slices_owned(self, mock_sm_g, mock_g):
-        admin = security_manager.find_user(username="admin")
+        user = security_manager.find_user(username="gamma")
 
-        chart = db.session.query(Slice).all()[0]
-        chart.owners = [admin]
+        chart = db.session.query(Slice).order_by(Slice.slice_name.asc()).all()[0]
+        chart.owners = [user]
         db.session.commit()
 
-        mock_g.user = mock_sm_g.user = admin
+        mock_g.user = mock_sm_g.user = user
 
         command = GetUserSlicesCommand()
         result = command.run()
         assert len(result) == 1
         assert result == [
             {
-                "id": 1,
+                "id": chart.id,
                 "title": chart.slice_name,
                 "url": chart.slice_url,
                 "data": chart.form_data,
@@ -498,18 +498,20 @@ class TestGetUserSlicesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_user_slices_owned_favorited(self, mock_sm_g, mock_g):
-        admin = security_manager.find_user(username="admin")
-        mock_g.user = mock_sm_g.user = admin
+        user = security_manager.find_user(username="gamma")
+        mock_g.user = mock_sm_g.user = user
 
-        own_chart = db.session.query(Slice).all()[0]
-        own_chart.owners = [admin]
-        own_chart.created_by = admin
+        charts = db.session.query(Slice).order_by(Slice.slice_name.asc()).all()
 
-        fav_chart = db.session.query(Slice).all()[1]
+        own_chart = charts[0]
+        own_chart.owners = [user]
+        own_chart.created_by = user
+
+        fav_chart = charts[1]
         fav_obj = FavStar(
             class_name="slice",
             obj_id=fav_chart.id,
-            user_id=admin.id,
+            user_id=user.id,
             dttm=datetime.now(),
         )
         db.session.add(fav_obj)
@@ -520,24 +522,24 @@ class TestGetUserSlicesCommand(SupersetTestCase):
         assert len(result) == 2
         assert result == [
             {
-                "id": 2,
-                "title": fav_chart.slice_name,
-                "url": fav_chart.slice_url,
-                "data": fav_chart.form_data,
-                "viz_type": fav_chart.viz_type,
-                "dttm": datetime_to_epoch(fav_obj.dttm),
-                "is_favorite": True,
-            },
-            {
-                "id": 1,
+                "id": own_chart.id,
                 "title": own_chart.slice_name,
                 "url": own_chart.slice_url,
                 "data": own_chart.form_data,
                 "viz_type": own_chart.viz_type,
                 "dttm": datetime_to_epoch(own_chart.changed_on),
                 "is_favorite": False,
-                "creator": "admin user",
-                "creator_url": "/superset/profile/admin/",
+                "creator": "gamma user",
+                "creator_url": "/superset/profile/gamma/",
+            },
+            {
+                "id": fav_chart.id,
+                "title": fav_chart.slice_name,
+                "url": fav_chart.slice_url,
+                "data": fav_chart.form_data,
+                "viz_type": fav_chart.viz_type,
+                "dttm": datetime_to_epoch(fav_obj.dttm),
+                "is_favorite": True,
             },
         ]
 
