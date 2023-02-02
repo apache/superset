@@ -25,6 +25,7 @@ from pytest_mock import MockFixture
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.jinja_context import dataset_macro, where_in
 
+
 def test_where_in() -> None:
     """
     Test the ``where_in`` Jinja2 filter.
