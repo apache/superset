@@ -187,39 +187,50 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         then we delete.
         """
 
-        column_by_id = {column.id: column for column in model.columns}
-        seen = set()
-        original_cols = {obj.id for obj in model.columns}
-
         if override_columns:
-            for id_ in original_cols:
-                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+            db.session.query(TableColumn).filter(
+                TableColumn.table_id == model.id
+            ).delete(synchronize_session="fetch")
 
-            db.session.flush()
-
-            for properties in property_columns:
-                DatasetDAO.create_column(
-                    {**properties, "table_id": model.id},
-                    commit=False,
-                )
+            db.session.bulk_insert_mappings(
+                TableColumn,
+                [
+                    {**properties, "table_id": model.id}
+                    for properties in property_columns
+                ],
+            )
         else:
-            for properties in property_columns:
-                if "id" in properties:
-                    seen.add(properties["id"])
+            columns_by_id = {column.id: column for column in model.columns}
 
-                    DatasetDAO.update_column(
-                        column_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
-                else:
-                    DatasetDAO.create_column(
-                        {**properties, "table_id": model.id},
-                        commit=False,
-                    )
+            property_columns_by_id = {
+                properties["id"]: properties
+                for properties in property_columns
+                if "id" in properties
+            }
 
-            for id_ in {obj.id for obj in model.columns} - seen:
-                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+            db.session.bulk_insert_mappings(
+                TableColumn,
+                [
+                    {**properties, "table_id": model.id}
+                    for properties in property_columns
+                    if not "id" in properties
+                ],
+            )
+
+            db.session.bulk_update_mappings(
+                TableColumn,
+                [
+                    {**columns_by_id[properties["id"]].__dict__, **properties}
+                    for properties in property_columns_by_id.values()
+                ],
+            )
+
+            db.session.query(TableColumn).filter(
+                TableColumn.id.in_(
+                    {column.id for column in model.columns}
+                    - property_columns_by_id.keys()
+                )
+            ).delete(synchronize_session="fetch")
 
         if commit:
             db.session.commit()
@@ -241,26 +252,36 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         then we delete.
         """
 
-        metric_by_id = {metric.id: metric for metric in model.metrics}
-        seen = set()
+        metrics_by_id = {metric.id: metric for metric in model.metrics}
 
-        for properties in property_metrics:
-            if "id" in properties:
-                seen.add(properties["id"])
+        property_metrics_by_id = {
+            properties["id"]: properties
+            for properties in property_metrics
+            if "id" in properties
+        }
 
-                DatasetDAO.update_metric(
-                    metric_by_id[properties["id"]],
-                    properties,
-                    commit=False,
-                )
-            else:
-                DatasetDAO.create_metric(
-                    {**properties, "table_id": model.id},
-                    commit=False,
-                )
+        db.session.bulk_insert_mappings(
+            SqlMetric,
+            [
+                {**properties, "table_id": model.id}
+                for properties in property_metrics
+                if not "id" in properties
+            ],
+        )
 
-        for id_ in {obj.id for obj in model.metrics} - seen:
-            DatasetDAO.delete_column(metric_by_id[id_], commit=False)
+        db.session.bulk_update_mappings(
+            SqlMetric,
+            [
+                {**metrics_by_id[properties["id"]].__dict__, **properties}
+                for properties in property_metrics_by_id.values()
+            ],
+        )
+
+        db.session.query(SqlMetric).filter(
+            SqlMetric.id.in_(
+                {metric.id for metric in model.metrics} - property_metrics_by_id.keys()
+            )
+        ).delete(synchronize_session="fetch")
 
         if commit:
             db.session.commit()
