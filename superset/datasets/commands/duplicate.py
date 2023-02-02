@@ -76,10 +76,12 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 col = TableColumn(
                     column_name=column_name,
                     verbose_name=config_.verbose_name,
+                    expression=config_.expression,
                     filterable=True,
                     groupby=True,
                     is_dttm=config_.is_dttm,
                     type=config_.type,
+                    description=config_.description,
                 )
                 cols.append(col)
             table.columns = cols
