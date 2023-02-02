@@ -18,13 +18,15 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
+import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
-import rison from 'rison';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 type BaseQueryObject = {
   id: number;
 };
+
 export function useQueryPreviewState<D extends BaseQueryObject = any>({
   queries,
   fetchData,
@@ -81,8 +83,16 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
 /**
  * Retrieves all pages of dataset results
  */
-export const useGetDatasetsList = () => {
+export const useDatasetsList = (
+  db:
+    | (DatabaseObject & {
+        owners: [number];
+      })
+    | undefined,
+  schema: string | null | undefined,
+) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
 
   const getDatasetsList = useCallback(async (filters: object[]) => {
     let results: DatasetObject[] = [];
@@ -119,27 +129,51 @@ export const useGetDatasetsList = () => {
     return results;
   }, []);
 
+  useEffect(() => {
+    const filters = [
+      { col: 'database', opr: 'rel_o_m', value: db?.id },
+      { col: 'schema', opr: 'eq', value: encodedSchema },
+      { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
+    ];
+
+    if (schema) {
+      getDatasetsList(filters);
+    }
+  }, [db?.id, schema, encodedSchema, getDatasetsList]);
+
   const datasetNames = datasets?.map(dataset => dataset.table_name);
 
-  return { getDatasetsList, datasets, datasetNames };
+  return { datasets, datasetNames };
 };
 
-export const useGetDatasetRelatedObjects = (id: string) => {
+export const useGetDatasetRelatedCounts = (id: string) => {
   const [usageCount, setUsageCount] = useState(0);
 
-  const getDatasetRelatedObjects = () =>
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${id}/related_objects`,
-    })
-      .then(({ json }) => {
-        setUsageCount(json?.charts.count);
+  const getDatasetRelatedObjects = useCallback(
+    () =>
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${id}/related_objects`,
       })
-      .catch(error => {
-        addDangerToast(
-          t(`There was an error fetching dataset's related objects`),
-        );
-        logging.error(error);
-      });
+        .then(({ json }) => {
+          setUsageCount(json?.charts.count);
+        })
+        .catch(error => {
+          addDangerToast(
+            t(`There was an error fetching dataset's related objects`),
+          );
+          logging.error(error);
+        }),
+    [id],
+  );
 
-  return { getDatasetRelatedObjects, usageCount };
+  useEffect(() => {
+    // Todo: this useEffect should be used to call all count methods conncurently
+    // when we populate data for the new tabs. For right separating out this
+    // api call for building the usage page.
+    if (id) {
+      getDatasetRelatedObjects();
+    }
+  }, [id, getDatasetRelatedObjects]);
+
+  return { usageCount };
 };

@@ -37,7 +37,6 @@ interface DatasetLayoutProps {
   datasetPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   rightPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   footer?: ReactElement<any, string | JSXElementConstructor<any>> | null;
-  editPageIsVisible?: boolean;
 }
 
 export default function DatasetLayout({
@@ -46,17 +45,14 @@ export default function DatasetLayout({
   datasetPanel,
   rightPanel,
   footer,
-  editPageIsVisible,
 }: DatasetLayoutProps) {
   return (
     <StyledLayoutWrapper data-test="dataset-layout-wrapper">
       {header && <StyledLayoutHeader>{header}</StyledLayoutHeader>}
       <OuterRow>
-        {!editPageIsVisible && (
+        {leftPanel && (
           <LeftColumn>
-            {leftPanel && (
-              <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
-            )}
+            <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
           </LeftColumn>
         )}
         <RightColumn>

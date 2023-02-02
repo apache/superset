@@ -18,7 +18,7 @@
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useGetDatasetsList } from 'src/views/CRUD/data/hooks';
+import { useDatasetsList } from 'src/views/CRUD/data/hooks';
 import Header from './Header';
 import EditPage from './EditDataset';
 import DatasetPanel from './DatasetPanel';
@@ -77,23 +77,11 @@ export default function AddDataset() {
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [editPageIsVisible, setEditPageIsVisible] = useState(false);
-  const encodedSchema = dataset?.schema
-    ? encodeURIComponent(dataset?.schema)
-    : undefined;
 
-  const { getDatasetsList, datasets, datasetNames } = useGetDatasetsList();
-
-  useEffect(() => {
-    const filters = [
-      { col: 'database', opr: 'rel_o_m', value: dataset?.db?.id },
-      { col: 'schema', opr: 'eq', value: encodedSchema },
-      { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
-    ];
-
-    if (dataset?.schema) {
-      getDatasetsList(filters);
-    }
-  }, [dataset?.db?.id, dataset?.schema, encodedSchema, getDatasetsList]);
+  const { datasets, datasetNames } = useDatasetsList(
+    dataset?.db,
+    dataset?.schema,
+  );
 
   const { datasetId: id } = useParams<{ datasetId: string }>();
   useEffect(() => {
@@ -143,7 +131,6 @@ export default function AddDataset() {
         editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
       }
       footer={FooterComponent()}
-      editPageIsVisible={editPageIsVisible}
     />
   );
 }
