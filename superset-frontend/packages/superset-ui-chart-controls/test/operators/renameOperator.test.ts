@@ -49,7 +49,7 @@ test('should skip renameOperator if exists multiple metrics', () => {
   ).toEqual(undefined);
 });
 
-test('should skip renameOperator if does not exist series', () => {
+test('should skip renameOperator if series does not exist', () => {
   expect(
     renameOperator(formData, {
       ...queryObject,
@@ -105,7 +105,7 @@ test('should add renameOperator', () => {
   });
 });
 
-test('should add renameOperator if does not exist x_axis', () => {
+test('should add renameOperator if x_axis does not exist', () => {
   expect(
     renameOperator(
       {
@@ -113,6 +113,25 @@ test('should add renameOperator if does not exist x_axis', () => {
         ...{ x_axis: null, granularity_sqla: 'time column' },
       },
       queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+  });
+});
+
+test('should add renameOperator if based on series_columns', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        ...{ x_axis: null, granularity_sqla: 'time column' },
+      },
+      {
+        ...queryObject,
+        columns: [],
+        series_columns: ['gender', 'dttm'],
+      },
     ),
   ).toEqual({
     operation: 'rename',
