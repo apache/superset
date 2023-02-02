@@ -44,6 +44,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.export import ExportChartsCommand
+from superset.charts.commands.get_slices import GetUserSlicesCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
@@ -113,6 +114,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "thumbnail",
         "screenshot",
         "cache_screenshot",
+        "get_user_slices",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -914,3 +916,43 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/user_slices/")
+    @expose("/user_slices/<int:user_id>/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".get_user_slices",
+        log_to_statsd=False,
+    )
+    def get_user_slices(self, user_id: Optional[int] = None) -> Response:
+        """Favorite stars for Charts
+        ---
+        get:
+          summary: >-
+            Gets the slices owned or favorited by the user_id
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: user_id
+          responses:
+            200:
+              description:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetUserSlicesSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        command = GetUserSlicesCommand(user_id)
+        result = command.run()
+        return self.response(200, result=result)

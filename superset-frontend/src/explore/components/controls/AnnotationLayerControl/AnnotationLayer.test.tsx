@@ -40,9 +40,9 @@ beforeAll(() => {
     result: [{ label: 'Chart A', value: 'a' }],
   });
 
-  fetchMock.get('glob:*/superset/user_slices*', [
-    { id: 'a', title: 'Chart A', viz_type: 'table', data: {} },
-  ]);
+  fetchMock.get('glob:*/api/v1/chart/user_slices/*', {
+    result: [{ id: 'a', title: 'Chart A', viz_type: 'table', data: {} }],
+  });
 
   setupColors();
 

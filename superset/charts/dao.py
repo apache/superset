@@ -16,10 +16,12 @@
 # under the License.
 # pylint: disable=arguments-renamed
 import logging
-from typing import List, Optional, TYPE_CHECKING
+from typing import Any, List, Optional, TYPE_CHECKING
 
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import security_manager
 from superset.charts.filters import ChartFilter
 from superset.dao.base import BaseDAO
 from superset.extensions import db
@@ -82,3 +84,34 @@ class ChartDAO(BaseDAO):
             )
             .all()
         ]
+
+    @staticmethod
+    def user_slices(user_id: int) -> List[Any]:
+        owner_ids_query = (
+            db.session.query(Slice.id)
+            .join(Slice.owners)
+            .filter(security_manager.user_model.id == user_id)
+        )
+
+        return (
+            db.session.query(Slice, FavStar)
+            .join(
+                FavStar,
+                and_(
+                    FavStar.user_id == user_id,
+                    FavStar.class_name == "slice",
+                    Slice.id == FavStar.obj_id,
+                ),
+                isouter=True,
+            )
+            .filter(  # pylint: disable=comparison-with-callable
+                or_(
+                    Slice.id.in_(owner_ids_query),
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                    FavStar.user_id == user_id,
+                )
+            )
+            .order_by(Slice.slice_name.asc())
+            .all()
+        )

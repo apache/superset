@@ -315,12 +315,12 @@ class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(
+        SupersetClient.get({ endpoint: '/api/v1/chart/user_slices/' }).then(
           ({ json }) => {
             const registry = getChartMetadataRegistry();
             this.setState({
               isLoadingOptions: false,
-              valueOptions: json
+              valueOptions: json.result
                 .filter(x => {
                   const metadata = registry.get(x.viz_type);
                   return (

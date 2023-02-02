@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -25,13 +26,16 @@ from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
+from superset.charts.commands.get_slices import GetUserSlicesCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database
+from superset.exceptions import SupersetSecurityException
+from superset.models.core import Database, FavStar
 from superset.models.slice import Slice
+from superset.utils.dates import datetime_to_epoch
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
@@ -409,7 +413,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payloadwithout affecting owners
+        payload without affecting owners
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
@@ -430,3 +434,114 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+
+class TestGetUserSlicesCommand(SupersetTestCase):
+    @patch("superset.utils.core.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_user_slices_not_allowed(self, mock_g):
+        user = security_manager.find_user(username="admin")
+        mock_g.user = None
+
+        command = GetUserSlicesCommand(user.id)
+        with pytest.raises(SupersetSecurityException) as ex_info:
+            command.run()
+        assert str(ex_info.value) == "Access to user's activity data is restricted"
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_user_slices_empty(self, mock_sm_g, mock_g):
+        chart = db.session.query(Slice).all()[0]
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        user = security_manager.find_user(username="alpha")
+        mock_g.user = mock_sm_g.user = user
+
+        command = GetUserSlicesCommand()
+        result = command.run()
+        assert len(result) == 0
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_user_slices_owned(self, mock_sm_g, mock_g):
+        admin = security_manager.find_user(username="admin")
+
+        chart = db.session.query(Slice).all()[0]
+        chart.owners = [admin]
+        db.session.commit()
+
+        mock_g.user = mock_sm_g.user = admin
+
+        command = GetUserSlicesCommand()
+        result = command.run()
+        assert len(result) == 1
+        assert result == [
+            {
+                "id": 1,
+                "title": chart.slice_name,
+                "url": chart.slice_url,
+                "data": chart.form_data,
+                "viz_type": chart.viz_type,
+                "dttm": datetime_to_epoch(chart.changed_on),
+                "is_favorite": False,
+            }
+        ]
+
+        chart.owners = []
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_user_slices_owned_favorited(self, mock_sm_g, mock_g):
+        admin = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = admin
+
+        own_chart = db.session.query(Slice).all()[0]
+        own_chart.owners = [admin]
+        own_chart.created_by = admin
+
+        fav_chart = db.session.query(Slice).all()[1]
+        fav_obj = FavStar(
+            class_name="slice",
+            obj_id=fav_chart.id,
+            user_id=admin.id,
+            dttm=datetime.now(),
+        )
+        db.session.add(fav_obj)
+        db.session.commit()
+
+        command = GetUserSlicesCommand()
+        result = command.run()
+        assert len(result) == 2
+        assert result == [
+            {
+                "id": 2,
+                "title": fav_chart.slice_name,
+                "url": fav_chart.slice_url,
+                "data": fav_chart.form_data,
+                "viz_type": fav_chart.viz_type,
+                "dttm": datetime_to_epoch(fav_obj.dttm),
+                "is_favorite": True,
+            },
+            {
+                "id": 1,
+                "title": own_chart.slice_name,
+                "url": own_chart.slice_url,
+                "data": own_chart.form_data,
+                "viz_type": own_chart.viz_type,
+                "dttm": datetime_to_epoch(own_chart.changed_on),
+                "is_favorite": False,
+                "creator": "admin user",
+                "creator_url": "/superset/profile/admin/",
+            },
+        ]
+
+        own_chart.owners = []
+        own_chart.created_by = None
+        db.session.delete(fav_obj)
+        db.session.commit()

@@ -28,7 +28,7 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -1472,3 +1472,26 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_user_slices(self):
+        """
+        Chart API: Test get user slices
+        """
+        admin = security_manager.find_user(username="admin")
+        chart = db.session.query(Slice).all()[0]
+        chart.owners = [admin]
+        db.session.commit()
+
+        self.login(username="admin")
+        rv = self.client.get("api/v1/chart/user_slices/")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert len(data["result"]) == 1
+        assert data["result"][0]["title"] == "Average and Sum Trends"
+        assert data["result"][0]["is_favorite"] == False
+        assert data["result"][0]["viz_type"] == "dual_line"
+
+        chart.owners = []
+        db.session.commit()

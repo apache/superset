@@ -28,18 +28,25 @@ interface FavoritesProps {
   user: BootstrapUser;
 }
 
+interface UserSliceResult {
+  result: (Slice & { is_favorite: boolean })[];
+}
+
 export default class Favorites extends React.PureComponent<FavoritesProps> {
   renderSliceTable() {
-    const mutator = (data: Slice[]) =>
-      data.map(slice => ({
-        slice: <a href={slice.url}>{slice.title}</a>,
-        creator: <a href={slice.creator_url}>{slice.creator}</a>,
-        favorited: moment.utc(slice.dttm).fromNow(),
-        _favorited: slice.dttm,
-      }));
+    const mutator = (payload: UserSliceResult) =>
+      payload.result
+        .filter(it => !!it.is_favorite)
+        .map(slice => ({
+          slice: <a href={slice.url}>{slice.title}</a>,
+          creator: <a href={slice.creator_url}>{slice.creator}</a>,
+          favorited: moment.utc(slice.dttm).fromNow(),
+          _favorited: slice.dttm,
+        }));
+
     return (
       <TableLoader
-        dataEndpoint={`/superset/fave_slices/${this.props.user?.userId}/`}
+        dataEndpoint={`/api/v1/chart/user_slices/${this.props.user?.userId}/`}
         className="table-condensed"
         columns={['slice', 'creator', 'favorited']}
         mutator={mutator}
