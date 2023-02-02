@@ -23,7 +23,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
 import { FieldPropTypes } from '.';
-import { infoTooltip, labelMarginBotton, CredentialInfoForm } from '../styles';
+import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -66,7 +66,7 @@ export const EncryptedField = ({
       {db?.engine === 'gsheets' && (
         <div className="catalog-type-select">
           <FormLabel
-            css={(theme: SupersetTheme) => labelMarginBotton(theme)}
+            css={(theme: SupersetTheme) => labelMarginBottom(theme)}
             required
           >
             {t('Type of Google Sheets allowed')}

@@ -364,7 +364,7 @@ def menu_data(user: User) -> Dict[str, Any]:
         },
         "environment_tag": environment_tag,
         "navbar_right": {
-            # show the watermark if the default app icon has been overriden
+            # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
             "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
@@ -618,7 +618,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self: BaseView, primary_key: int) -> None:
         """
-        Delete function logic, override to implement diferent logic
+        Delete function logic, override to implement different logic
         deletes the record with primary_key = primary_key
 
         :param primary_key:

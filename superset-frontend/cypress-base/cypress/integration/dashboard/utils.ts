@@ -347,7 +347,7 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
 }
 
 /** ************************************************************************
- * Cancel Native fitler settings
+ * Cancel Native filter settings
  * @returns {None}
  * @summary helper for cancel native filters settings
  ************************************************************************* */

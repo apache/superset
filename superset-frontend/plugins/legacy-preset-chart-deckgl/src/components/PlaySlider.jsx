@@ -27,7 +27,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mousetrap from 'mousetrap';
 import { t, styled } from '@superset-ui/core';
-import BootrapSliderWrapper from './BootstrapSliderWrapper';
+import BootstrapSliderWrapper from './BootstrapSliderWrapper';
 
 const StyledSlider = styled.div`
   ${({ theme }) => `
@@ -210,7 +210,7 @@ export default class PlaySlider extends React.PureComponent {
           />
         </div>
         <div className="play-slider-scrobbler padded">
-          <BootrapSliderWrapper
+          <BootstrapSliderWrapper
             value={range ? values : values[0]}
             range={range}
             formatter={this.formatter}

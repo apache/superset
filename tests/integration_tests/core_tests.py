@@ -417,7 +417,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
-        # Test all slice urls as user with with explore-v2-beta role
+        # Test all slice urls as user with explore-v2-beta role
         security_manager.add_role("explore-v2-beta")
 
         security_manager.add_user(

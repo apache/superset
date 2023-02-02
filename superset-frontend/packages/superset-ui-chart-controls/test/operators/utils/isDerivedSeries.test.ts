@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isDerivedSeries } from '@superset-ui/chart-controls';
-import { SqlaFormData, ComparisionType } from '@superset-ui/core';
+import { SqlaFormData, ComparisonType } from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   datasource: 'foo',
@@ -31,15 +31,15 @@ const series = {
 
 test('should be false if comparison type is not actual values', () => {
   expect(isDerivedSeries(series, formData)).toEqual(false);
-  Object.keys(ComparisionType)
-    .filter(type => type === ComparisionType.Values)
+  Object.keys(ComparisonType)
+    .filter(type => type === ComparisonType.Values)
     .forEach(type => {
-      const formDataWithComparisionType = {
+      const formDataWithComparisonType = {
         ...formData,
         comparison_type: type,
         time_compare: ['1 month ago'],
       };
-      expect(isDerivedSeries(series, formDataWithComparisionType)).toEqual(
+      expect(isDerivedSeries(series, formDataWithComparisonType)).toEqual(
         false,
       );
     });
@@ -48,7 +48,7 @@ test('should be false if comparison type is not actual values', () => {
 test('should be true if comparison type is values', () => {
   const formDataWithActualTypes = {
     ...formData,
-    comparison_type: ComparisionType.Values,
+    comparison_type: ComparisonType.Values,
     time_compare: ['1 month ago', '1 month later'],
   };
   expect(isDerivedSeries(series, formDataWithActualTypes)).toEqual(true);
@@ -62,7 +62,7 @@ test('should be false if series name does not match time_compare', () => {
   };
   const formDataWithActualTypes = {
     ...formData,
-    comparison_type: ComparisionType.Values,
+    comparison_type: ComparisonType.Values,
     time_compare: ['1 month ago', '1 month later'],
   };
   expect(isDerivedSeries(arbitrary_series, formDataWithActualTypes)).toEqual(
@@ -78,7 +78,7 @@ test('should be false if time compare is not suffix', () => {
   };
   const formDataWithActualTypes = {
     ...formData,
-    comparison_type: ComparisionType.Values,
+    comparison_type: ComparisonType.Values,
     time_compare: ['1 month ago', '1 month later'],
   };
   expect(isDerivedSeries(series, formDataWithActualTypes)).toEqual(false);
@@ -92,7 +92,7 @@ test('should be false if series name invalid', () => {
   };
   const formDataWithActualTypes = {
     ...formData,
-    comparison_type: ComparisionType.Values,
+    comparison_type: ComparisonType.Values,
     time_compare: ['1 month ago', '1 month later'],
   };
   expect(isDerivedSeries(series, formDataWithActualTypes)).toEqual(false);

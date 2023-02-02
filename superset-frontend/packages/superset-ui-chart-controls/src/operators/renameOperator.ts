@@ -21,7 +21,7 @@ import {
   PostProcessingRename,
   ensureIsArray,
   getMetricLabel,
-  ComparisionType,
+  ComparisonType,
   getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
@@ -52,9 +52,9 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
       (
         isTimeComparison(formData, queryObject) &&
         [
-          ComparisionType.Difference,
-          ComparisionType.Ratio,
-          ComparisionType.Percentage,
+          ComparisonType.Difference,
+          ComparisonType.Ratio,
+          ComparisonType.Percentage,
         ].includes(formData.comparison_type)
       )
     ) &&
@@ -68,7 +68,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
       // we will rename the "metric" from the metricWithOffset label
       // for example: "count__1 year ago" =>	"1 year ago"
       isTimeComparison(formData, queryObject) &&
-      formData.comparison_type === ComparisionType.Values
+      formData.comparison_type === ComparisonType.Values
     ) {
       const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
       const timeOffsets = ensureIsArray(formData.time_compare);

@@ -80,12 +80,12 @@ describe('AnnotationModal', () => {
   it('renders add header when no annotation prop is included', async () => {
     const addWrapper = await mountAndWait({});
     expect(
-      addWrapper.find('[data-test="annotaion-modal-title"]').text(),
+      addWrapper.find('[data-test="annotation-modal-title"]').text(),
     ).toEqual('Add annotation');
   });
 
   it('renders edit header when annotation prop is included', () => {
-    expect(wrapper.find('[data-test="annotaion-modal-title"]').text()).toEqual(
+    expect(wrapper.find('[data-test="annotation-modal-title"]').text()).toEqual(
       'Edit annotation',
     );
   });

@@ -177,7 +177,7 @@ function Heatmap(element, props) {
       domain[d[k]] = (domain[d[k]] || 0) + d.v;
       actualKeys[d[k]] = d[k];
     });
-    // Not usgin object.keys() as it converts to strings
+    // Not using object.keys() as it converts to strings
     const keys = Object.keys(actualKeys).map(s => actualKeys[s]);
     if (sortMethod === 'alpha_asc') {
       domain = keys.sort(cmp);

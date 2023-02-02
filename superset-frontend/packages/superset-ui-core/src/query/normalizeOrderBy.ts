@@ -56,7 +56,7 @@ export default function normalizeOrderBy(
     };
   }
 
-  // todo: Removed `legacy_ordery_by` after refactoring
+  // todo: Removed `legacy_order_by` after refactoring
   if (
     queryObject.legacy_order_by !== undefined &&
     queryObject.legacy_order_by !== null &&
