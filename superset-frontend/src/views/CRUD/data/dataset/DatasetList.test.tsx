@@ -84,7 +84,7 @@ fetchMock.get(databaseEndpoint, {
   result: [],
 });
 
-async function mountAndWait(props) {
+async function mountAndWait(props: {}) {
   const mounted = mount(
     <Provider store={store}>
       <DatasetList {...props} user={mockUser} />
@@ -97,7 +97,7 @@ async function mountAndWait(props) {
 
 describe('DatasetList', () => {
   const mockedProps = {};
-  let wrapper;
+  let wrapper: any;
 
   beforeAll(async () => {
     wrapper = await mountAndWait(mockedProps);
@@ -255,7 +255,10 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock;
+  let isFeatureEnabledMock: jest.SpyInstance<
+    boolean,
+    [feature: featureFlags.FeatureFlag]
+  >;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
