@@ -105,7 +105,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate/Populate dashboards only if it's a list
         if dashboard_ids is not None:
-            dashboards = DashboardDAO.find_by_ids(dashboard_ids)
+            dashboards = DashboardDAO.find_by_ids(
+                dashboard_ids,
+                skip_base_filter=True,
+            )
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
             self._properties["dashboards"] = dashboards
