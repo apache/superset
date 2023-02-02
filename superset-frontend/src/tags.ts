@@ -88,21 +88,6 @@ export function fetchTags(
     )
     .catch(response => error(response));
 }
-
-export function fetchSuggestions(
-  { includeTypes = false },
-  callback: (json: JsonObject) => void,
-  error: (response: Response) => void,
-) {
-  SupersetClient.get({ endpoint: '/taggedobjectview/tags/suggestions/' })
-    .then(({ json }) =>
-      callback(
-        json.filter((tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes),
-      ),
-    )
-    .catch(response => error(response));
-}
-
 export function deleteTaggedObjects(
   { objectType, objectId }: { objectType: string; objectId: number },
   tag: Tag,
