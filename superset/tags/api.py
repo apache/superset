@@ -132,8 +132,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.add_tagged_objects",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_tagged_objects",
         log_to_statsd=False,
     )
     def add_tagged_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
@@ -204,8 +203,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.delete_tagged_object",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_tagged_object",
         log_to_statsd=True,
     )
     def delete_tagged_object(
@@ -274,8 +272,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(delete_tags_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
@@ -329,8 +326,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *
-        args, **kwargs: f"{self.__class__.__name__}.get_objects",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_objects",
         log_to_statsd=False,
     )
     def get_objects(self) -> Response:
@@ -369,8 +365,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         """
         tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
         # filter types
-        types = [type_ for type_ in request.args.get(
-            "types", "").split(",") if type_]
+        types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
             tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
