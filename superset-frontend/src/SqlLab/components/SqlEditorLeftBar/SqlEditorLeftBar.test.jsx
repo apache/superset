@@ -42,10 +42,11 @@ const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
 
 beforeEach(() => {
+  fetchMock.get('glob:*/api/v1/database/?*', { result: [] });
   fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
+    count: 2,
     result: ['main', 'new_schema'],
   });
-  fetchMock.get('glob:*/api/v1/database/**', { result: [] });
   fetchMock.get('glob:*/api/v1/database/*/tables/*', {
     count: 1,
     result: [
