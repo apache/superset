@@ -20,9 +20,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
-from superset.tags.commands.create import CreateCustomTagCommand
-from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
-from superset.tags.models import ObjectTypes, Tag, TagTypes, TaggedObject
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
@@ -39,6 +36,9 @@ from superset.dashboards.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.tags.commands.create import CreateCustomTagCommand
+from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
+from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
@@ -49,11 +49,12 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+
 
 # test create command
 class TestCreateCustomTagCommand(SupersetTestCase):
@@ -63,27 +64,31 @@ class TestCreateCustomTagCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ['create custom tag example 1', 'create custom tag example 2']
+        example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value,
-            example_dashboard.id,
-            example_tags
-            )
+            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+        )
         command.run()
 
-        created_tags = db.session.query(Tag).join(TaggedObject).filter(
-                            TaggedObject.object_id == example_dashboard.id,
-                            Tag.type == TagTypes.custom
-                        ).all()
+        created_tags = (
+            db.session.query(Tag)
+            .join(TaggedObject)
+            .filter(
+                TaggedObject.object_id == example_dashboard.id,
+                Tag.type == TagTypes.custom,
+            )
+            .all()
+        )
         assert example_tags == [tag.name for tag in created_tags]
-        
+
         # cleanup
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
         db.session.query(TaggedObject).filter(
-                TaggedObject.tag_id.in_([tag.id for tag in tags])
-            ).delete()
+            TaggedObject.tag_id.in_([tag.id for tag in tags])
+        ).delete()
         tags.delete()
         db.session.commit()
+
 
 # test delete tags command
 class TestDeleteTagsCommand(SupersetTestCase):
@@ -93,24 +98,28 @@ class TestDeleteTagsCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ['create custom tag example 1', 'create custom tag example 2']
+        example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value,
-            example_dashboard.id,
-            example_tags
-            )
+            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+        )
         command.run()
 
-        created_tags = db.session.query(Tag).join(TaggedObject).filter(
-                            TaggedObject.object_id == example_dashboard.id,
-                            Tag.type == TagTypes.custom
-                        ).all()
+        created_tags = (
+            db.session.query(Tag)
+            .join(TaggedObject)
+            .filter(
+                TaggedObject.object_id == example_dashboard.id,
+                Tag.type == TagTypes.custom,
+            )
+            .all()
+        )
         assert example_tags == [tag.name for tag in created_tags]
-        
+
         command = DeleteTagsCommand(example_tags)
         command.run()
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
         assert tags.count() == 0
+
 
 # test delete tagged objects command
 class TestDeleteTaggedObjectCommand(SupersetTestCase):
@@ -121,38 +130,44 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ['create custom tag example 1', 'create custom tag example 2']
+        example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(
-            ObjectTypes.dashboard.value,
-            example_dashboard.id,
-            example_tags
-            )
+            ObjectTypes.dashboard.value, example_dashboard.id, example_tags
+        )
         command.run()
 
-        tagged_objects = db.session.query(TaggedObject).join(Tag).filter(
-                            TaggedObject.object_id == example_dashboard.id,
-                            TaggedObject.object_type == ObjectTypes.dashboard.name,
-                            Tag.name.in_(example_tags)
-                        )
+        tagged_objects = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == example_dashboard.id,
+                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                Tag.name.in_(example_tags),
+            )
+        )
         assert tagged_objects.count() == 2
         # delete one of the tagged objects
         command = DeleteTaggedObjectCommand(
-                object_type=ObjectTypes.dashboard.value,
-                object_id=example_dashboard.id,
-                tag=example_tags[0]
-            )
+            object_type=ObjectTypes.dashboard.value,
+            object_id=example_dashboard.id,
+            tag=example_tags[0],
+        )
         command.run()
-        tagged_objects = db.session.query(TaggedObject).join(Tag).filter(
-                            TaggedObject.object_id == example_dashboard.id,
-                            TaggedObject.object_type == ObjectTypes.dashboard.name,
-                            Tag.name.in_(example_tags)
-                        )
+        tagged_objects = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == example_dashboard.id,
+                TaggedObject.object_type == ObjectTypes.dashboard.name,
+                Tag.name.in_(example_tags),
+            )
+        )
         assert tagged_objects.count() == 1
 
         # cleanup
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
         db.session.query(TaggedObject).filter(
-                TaggedObject.tag_id.in_([tag.id for tag in tags])
-            ).delete()
+            TaggedObject.tag_id.in_([tag.id for tag in tags])
+        ).delete()
         tags.delete()
         db.session.commit()

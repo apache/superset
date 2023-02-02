@@ -17,6 +17,7 @@
  * under the License.
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 import Tag from 'src/types/TagType';
 
 export const OBJECT_TYPES_VALUES = Object.freeze([
@@ -80,7 +81,7 @@ export function fetchTags(
   })
     .then(({ json }) =>
       callback(
-        json['result']['tags'].filter(
+        json.result.tags.filter(
           (tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes,
         ),
       ),
@@ -116,10 +117,9 @@ export function deleteTaggedObjects(
     throw new Error(msg);
   }
   SupersetClient.delete({
-    endpoint: `/api/v1/tag/${map_object_type_to_id(objectType)}/${objectId}/`,
-    body: JSON.stringify({ tag: tag.name }),
-    parseMethod: 'json',
-    headers: { 'Content-Type': 'application/json' },
+    endpoint: `/api/v1/tag/${map_object_type_to_id(objectType)}/${objectId}/${
+      tag.name
+    }`,
   })
     .then(({ json }) =>
       json
@@ -137,12 +137,9 @@ export function deleteTags(
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
-  const tags_str = JSON.stringify(tags.map(tag => tag.name) as string[]);
+  const tag_names = tags.map(tag => tag.name) as string[];
   SupersetClient.delete({
-    endpoint: `/api/v1/tag/`,
-    body: tags_str,
-    parseMethod: 'json',
-    headers: { 'Content-Type': 'application/json' },
+    endpoint: `/api/v1/tag/?q=${rison.encode(tag_names)}`,
   })
     .then(({ json }) =>
       json.message
@@ -178,7 +175,11 @@ export function addTag(
   const objectTypeId = map_object_type_to_id(objectType);
   SupersetClient.post({
     endpoint: `/api/v1/tag/${objectTypeId}/${objectId}/`,
-    body: JSON.stringify({ tags: [tag] }),
+    body: JSON.stringify({
+      properties: {
+        tags: [tag],
+      },
+    }),
     parseMethod: 'json',
     headers: { 'Content-Type': 'application/json' },
   })
@@ -196,6 +197,6 @@ export function fetchObjects(
     url += `&types=${types}`;
   }
   SupersetClient.get({ endpoint: url })
-    .then(({ json }) => callback(json['result']))
+    .then(({ json }) => callback(json.result))
     .catch(response => error(response));
 }

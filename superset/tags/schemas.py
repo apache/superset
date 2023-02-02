@@ -18,6 +18,8 @@ from marshmallow import fields, Schema
 
 from superset.dashboards.schemas import UserSchema
 
+delete_tags_schema = {"type": "array", "items": {"type": "string"}}
+
 object_type_description = "A title for the tag."
 
 openapi_spec_methods_override = {

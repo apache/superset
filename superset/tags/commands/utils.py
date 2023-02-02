@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Optional, Union
+
 from superset.tags.models import ObjectTypes
 
 
@@ -23,6 +24,6 @@ def to_object_type(object_type: Union[ObjectTypes, int, str]) -> Optional[Object
     if isinstance(object_type, ObjectTypes):
         return object_type
     for type_ in ObjectTypes:
-        if (object_type in [type_.value, type_.name]):
+        if object_type in [type_.value, type_.name]:
             return type_
     return None

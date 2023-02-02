@@ -20,11 +20,11 @@ import React, { useMemo } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import AllEntitiesTable from './AllEntitiesTable';
-import { AsyncSelect } from 'src/components';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { SelectValue } from 'antd/lib/select';
 import { loadTags } from 'src/components/Tags/utils';
 import { getValue } from 'src/components/Select/utils';
+import AllEntitiesTable from './AllEntitiesTable';
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
@@ -62,11 +62,13 @@ function AllEntities() {
     setTagsQuery(tagSearch);
   };
 
-  const tagsValue = useMemo(() => {
-    return tagsQuery
-      ? tagsQuery.split(',').map(tag => ({ value: tag, label: tag }))
-      : [];
-  }, [tagsQuery]);
+  const tagsValue = useMemo(
+    () =>
+      tagsQuery
+        ? tagsQuery.split(',').map(tag => ({ value: tag, label: tag }))
+        : [],
+    [tagsQuery],
+  );
 
   return (
     <AllEntitiesContainer>

@@ -168,7 +168,7 @@ class TestTagApi(SupersetTestCase):
         dashboard_type = ObjectTypes.dashboard.value
         uri = f"api/v1/tag/{dashboard_type}/{dashboard_id}/"
         example_tag_names = ["example_tag_1", "example_tag_2"]
-        data = {"tags": example_tag_names}
+        data = {"properties": {"tags": example_tag_names}}
         rv = self.client.post(uri, json=data, follow_redirects=True)
         # successful request
         self.assertEqual(rv.status_code, 201)
@@ -225,9 +225,8 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         assert tagged_object is not None
-        uri = f"api/v1/tag/{dashboard_type.value}/{dashboard_id}/"
-        data = {"tag": tags.first().name}
-        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        uri = f"api/v1/tag/{dashboard_type.value}/{dashboard_id}/{tags.first().name}"
+        rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         self.assertEqual(rv.status_code, 200)
         # ensure that tagged object no longer exists
@@ -297,12 +296,6 @@ class TestTagApi(SupersetTestCase):
             self.insert_tagged_object(
                 tag_id=tag.id, object_id=dashboard_id, object_type=dashboard_type
             )
-        num_objects = (
-            db.session.query(Dashboard).count()
-            + db.session.query(Slice).count()
-            + db.session.query(SavedQuery).count()
-        )
-
         tagged_objects = db.session.query(TaggedObject).filter(
             TaggedObject.tag_id.in_([tag.id for tag in tags]),
             TaggedObject.object_id == dashboard_id,
@@ -330,9 +323,8 @@ class TestTagApi(SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         self.assertEqual(tags.count(), 3)
         # delete the first tag
-        uri = "api/v1/tag/"
-        data = example_tag_names[:1]
-        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[:1])}"
+        rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         self.assertEqual(rv.status_code, 200)
         # check that tag does not exist in the database
@@ -341,8 +333,8 @@ class TestTagApi(SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         self.assertEqual(tags.count(), 2)
         # delete multiple tags
-        data = example_tag_names[1:]
-        rv = self.client.delete(uri, json=data, follow_redirects=True)
+        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[1:])}"
+        rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         self.assertEqual(rv.status_code, 200)
         # check that tags are all gone

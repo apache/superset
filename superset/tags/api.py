@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 from flask import request, Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -35,6 +36,7 @@ from superset.tags.commands.exceptions import (
 from superset.tags.dao import TagDAO
 from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
+    delete_tags_schema,
     openapi_spec_methods_override,
     TaggedObjectEntityResponseSchema,
     TagGetResponseSchema,
@@ -107,7 +109,13 @@ class TagRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Tags"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (TagGetResponseSchema,)
+    openapi_spec_component_schemas = (
+        TagGetResponseSchema,
+        TaggedObjectEntityResponseSchema,
+    )
+    apispec_parameter_schemas = {
+        "delete_tags_schema": delete_tags_schema,
+    }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
 
@@ -128,7 +136,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def add_tagged_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
-        """Adds tags to an object.
+        """Adds tags to an object. Creates new tags if they do not already exist
         ---
         post:
           description: >-
@@ -139,7 +147,13 @@ class TagRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+                  type: object
+                  properties:
+                    tags:
+                      description: list of tag names to add to object
+                      type: array
+                      items:
+                        type: string
           parameters:
           - in: path
             schema:
@@ -152,15 +166,6 @@ class TagRestApi(BaseSupersetModelRestApi):
           responses:
             201:
               description: Tag added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
             302:
               description: Redirects to the current digest
             400:
@@ -173,13 +178,14 @@ class TagRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            tags = request.json["tags"]
+            tags = request.json["properties"]["tags"]
             # This validates custom Schema with custom validations
             CreateCustomTagCommand(object_type, object_id, tags).run()
             return self.response(201)
         except KeyError:
             return self.response(
-                400, message="Missing required 'tags' field in request body"
+                400,
+                message="Missing required 'tags' field under 'properties' in request body",
             )
         except TagInvalidError:
             return self.response(422, message="Invalid tag")
@@ -192,7 +198,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:object_type>/<int:object_id>/", methods=["DELETE"])
+    @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
@@ -201,21 +207,18 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=True,
     )
     def delete_tagged_object(
-        self, object_type: ObjectTypes, object_id: int
+        self, object_type: ObjectTypes, object_id: int, tag: str
     ) -> Response:
         """Deletes a Tagged Object
         ---
         delete:
           description: >-
             Deletes a Tagged Object.
-          requestBody:
-            description: Tag name
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.delete'
           parameters:
+          - in: path
+            schema:
+              type: string
+            name: tag
           - in: path
             schema:
               type: integer
@@ -246,7 +249,6 @@ class TagRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            tag = request.json["tag"]
             DeleteTaggedObjectCommand(object_type, object_id, tag).run()
             return self.response(200, message="OK")
         except TagInvalidError:
@@ -268,25 +270,35 @@ class TagRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @rison(delete_tags_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
-    def bulk_delete(self) -> Response:
+    def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete Tags
         ---
         delete:
           description: >-
-            Deletes multiple Tags.
-          requestBody:
-            description: List of Tag names
-            required: true
-            name: tags
+            Deletes multiple Tags. This will remove all tagged objects with this tag
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/delete_tags_schema'
+
           responses:
             200:
               description: Deletes multiple Tags
               content:
                 application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             403:
@@ -298,7 +310,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        tags = request.json
+        tags = kwargs["rison"]
         try:
             DeleteTagsCommand(tags).run()
             return self.response(200, message=f"Deleted {len(tags)} tags")
@@ -330,16 +342,16 @@ class TagRestApi(BaseSupersetModelRestApi):
             name: tag_id
           responses:
             200:
-              description: Objects fetched
+              description: List of tagged objects associated with a Tag
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      id:
-                        type: number
                       result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TaggedObjectEntityResponseSchema'
             302:
               description: Redirects to the current digest
             400:
