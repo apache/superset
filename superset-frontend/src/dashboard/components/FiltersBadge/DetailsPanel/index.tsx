@@ -29,7 +29,7 @@ import {
   Reset,
   Title,
 } from 'src/dashboard/components/FiltersBadge/Styles';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { RootState } from 'src/dashboard/types';
 

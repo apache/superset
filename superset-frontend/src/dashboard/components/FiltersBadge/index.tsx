@@ -31,7 +31,7 @@ import {
   IndicatorStatus,
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
-} from './selectors';
+} from '../nativeFilters/selectors';
 import {
   ChartsState,
   DashboardInfo,
