@@ -113,6 +113,7 @@ Join our growing community!
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
+- [Caizin](https://caizin.com/)
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
