@@ -104,6 +104,8 @@ const StyledHeader = styled.header`
         justify-content: center;
         /* must be exactly the height of the Antd navbar */
         min-height: 50px;
+        min-width: 150px;
+        transform: scale(2.5);
         padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px ${
     theme.gridUnit
   }px ${theme.gridUnit * 4}px;
