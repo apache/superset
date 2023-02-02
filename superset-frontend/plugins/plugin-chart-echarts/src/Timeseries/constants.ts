@@ -17,6 +17,7 @@
  * under the License.
  */
 import { sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
 import {
   OrientationType,
   EchartsTimeseriesSeriesType,
@@ -63,3 +64,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   percentageThreshold: 0,
   orientation: OrientationType.vertical,
 };
+
+export const TIME_SERIES_DESCRIPTION_TEXT: string = t(
+  'When using other than adaptive formatting, labels may overlap',
+);

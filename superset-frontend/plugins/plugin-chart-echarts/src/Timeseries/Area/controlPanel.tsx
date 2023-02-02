@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { EchartsTimeseriesSeriesType } from '../types';
-import { DEFAULT_FORM_DATA } from '../constants';
+import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   onlyTotalControl,
@@ -182,9 +182,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
-              description: `${D3_TIME_FORMAT_DOCS}. ${t(
-                'When using other than adaptive formatting, labels may overlap.',
-              )}`,
+              description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },
         ],

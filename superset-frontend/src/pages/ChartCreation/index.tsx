@@ -342,9 +342,9 @@ export class ChartCreation extends React.PureComponent<
           to="/tablemodelview/list/#create"
           data-test="add-chart-new-dataset"
         >
-          {t('Add a dataset')}
+          {t('Add a dataset')}{' '}
         </Link>
-        {` ${t('or')} `}
+        {t('or')}{' '}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
           rel="noopener noreferrer"
