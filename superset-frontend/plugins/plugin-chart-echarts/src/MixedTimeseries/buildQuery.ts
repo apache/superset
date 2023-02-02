@@ -67,11 +67,8 @@ export default function buildQuery(formData: QueryFormData) {
         fd,
         queryObject,
       )
-        ? timeComparePivotOperator(fd, queryObject)
-        : pivotOperator(fd, {
-            ...queryObject,
-            columns: fd.groupby,
-          });
+        ? timeComparePivotOperator(fd, { ...queryObject, columns: fd.groupby })
+        : pivotOperator(fd, { ...queryObject, columns: fd.groupby });
 
       const tmpQueryObject = {
         ...queryObject,
