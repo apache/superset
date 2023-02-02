@@ -132,7 +132,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_tagged_objects",
+        action=lambda self, *args, **kwargs: Any,
         log_to_statsd=False,
     )
     def add_tagged_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
@@ -203,7 +203,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_tagged_object",
+        action=lambda self, *args, **kwargs: Any,
         log_to_statsd=True,
     )
     def delete_tagged_object(
