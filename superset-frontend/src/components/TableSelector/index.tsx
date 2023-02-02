@@ -275,26 +275,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     internalTableChange(value);
   };
 
-  function renderDatabaseSelector() {
-    return (
-      <DatabaseSelector
-        db={database}
-        emptyState={emptyState}
-        formMode={formMode}
-        getDbList={getDbList}
-        handleError={handleError}
-        onDbChange={readOnly ? undefined : internalDbChange}
-        onEmptyResults={onEmptyResults}
-        onSchemaChange={readOnly ? undefined : internalSchemaChange}
-        onSchemasLoad={onSchemasLoad}
-        schema={currentSchema}
-        sqlLabMode={sqlLabMode}
-        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
-        readOnly={readOnly}
-      />
-    );
-  }
-
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
@@ -346,7 +326,21 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   return (
     <TableSelectorWrapper>
-      {renderDatabaseSelector()}
+      <DatabaseSelector
+        db={database}
+        emptyState={emptyState}
+        formMode={formMode}
+        getDbList={getDbList}
+        handleError={handleError}
+        onDbChange={readOnly ? undefined : internalDbChange}
+        onEmptyResults={onEmptyResults}
+        onSchemaChange={readOnly ? undefined : internalSchemaChange}
+        onSchemasLoad={onSchemasLoad}
+        schema={currentSchema}
+        sqlLabMode={sqlLabMode}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+        readOnly={readOnly}
+      />
       {sqlLabMode && !formMode && <div className="divider" />}
       {renderTableSelect()}
     </TableSelectorWrapper>

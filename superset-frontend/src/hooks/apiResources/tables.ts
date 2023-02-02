@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useQuery, UseQueryOptions } from 'react-query';
 import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
+
+import { useSchemas } from './schemas';
 
 export type FetchTablesQueryParams = {
   dbId?: string | number;
@@ -71,9 +73,16 @@ export function fetchTables({
 }
 
 type Params = FetchTablesQueryParams &
-  Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
+  Pick<UseQueryOptions<Data>, 'onSuccess' | 'onError'>;
 
 export function useTables(options: Params) {
+  const { data: schemaOptions, isFetching } = useSchemas({
+    dbId: options.dbId,
+  });
+  const schemaOptionsMap = useMemo(
+    () => new Set(schemaOptions?.map(({ value }) => value)),
+    [schemaOptions],
+  );
   const { dbId, schema, onSuccess, onError } = options || {};
   const forceRefreshRef = useRef(false);
   const params = { dbId, schema };
@@ -85,7 +94,9 @@ export function useTables(options: Params) {
         options: json.result,
         hasMore: json.count > json.result.length,
       }),
-      enabled: Boolean(dbId && schema),
+      enabled: Boolean(
+        dbId && schema && !isFetching && schemaOptionsMap.has(schema),
+      ),
       onSuccess,
       onError,
       onSettled: () => {

@@ -29,3 +29,4 @@ export {
 export * from './charts';
 export * from './dashboards';
 export * from './tables';
+export * from './schemas';
