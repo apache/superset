@@ -43,7 +43,7 @@ function isCompatibleDomainOrRange(
 }
 
 /**
- * Convert encodeable scale object into @data-ui's scale config
+ * Convert encodable scale object into @data-ui's scale config
  * @param scale
  */
 export default function convertScaleToDataUIScale<Output extends Value>(

@@ -139,7 +139,7 @@ def import_datasource(  # pylint: disable=too-many-arguments
 ) -> int:
     """Imports the datasource from the object to the database.
 
-    Metrics and columns and datasource will be overrided if exists.
+    Metrics and columns and datasource will be overridden if exists.
     This function can be used to import/export datasources between multiple
     superset instances. Audit metadata isn't copies over.
     """

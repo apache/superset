@@ -48,7 +48,7 @@ import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
 import {
-  ExtentionConfigs,
+  ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
@@ -141,7 +141,7 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
-  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+  } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);

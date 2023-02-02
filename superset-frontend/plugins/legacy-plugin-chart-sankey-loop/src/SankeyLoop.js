@@ -26,9 +26,9 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-// a problem with 'd3-sankey-diagram'  is that the sankey().extent() paramters, which
+// a problem with 'd3-sankey-diagram'  is that the sankey().extent() parameters, which
 // informs the layout of the bounding box of the sankey columns, does not account
-// for labels and paths which happen to be layedout outside that rectangle.
+// for labels and paths which happen to be layed out outside that rectangle.
 // for that reason i've selected relatively large default left/right margins, and have
 // made 'margin' a property.   i have raised an issue in the chart repo:
 //

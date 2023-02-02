@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  ComparisionType,
+  ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
   TimeGranularity,
@@ -72,14 +72,14 @@ const formDataMixedChartWithAA = {
   ...formDataMixedChart,
   rolling_type: RollingType.Cumsum,
   time_compare: ['1 years ago'],
-  comparison_type: ComparisionType.Values,
+  comparison_type: ComparisonType.Values,
   resample_rule: '1AS',
   resample_method: 'zerofill',
 
   rolling_type_b: RollingType.Sum,
   rolling_periods_b: 1,
   min_periods_b: 1,
-  comparison_type_b: ComparisionType.Difference,
+  comparison_type_b: ComparisonType.Difference,
   time_compare_b: ['3 years ago'],
   resample_rule_b: '1A',
   resample_method_b: 'asfreq',

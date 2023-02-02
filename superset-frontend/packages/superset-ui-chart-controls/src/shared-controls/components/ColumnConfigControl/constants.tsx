@@ -149,7 +149,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
     label: t('Small number format'),
     description: t(
       'D3 number format for numbers between -1.0 and 1.0, ' +
-        'useful when you want to have different siginificant digits for small and large numbers',
+        'useful when you want to have different significant digits for small and large numbers',
     ),
   },
   d3TimeFormat,
