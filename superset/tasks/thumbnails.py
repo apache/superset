@@ -48,7 +48,7 @@ def cache_chart_thumbnail(
         logger.warning("No cache set, refusing to compute")
         return None
     chart = cast(Slice, Slice.get(chart_id))
-    url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+    url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)
     _, username = get_executor(
         executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
