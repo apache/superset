@@ -173,6 +173,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       subject: 'ds',
       comparator: 'Last month',
       filterOptionName: expect.any(String),
+      isExtra: true,
     },
     {
       clause: 'WHERE',
