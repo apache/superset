@@ -98,7 +98,6 @@ class TestTagApi(SupersetTestCase):
                         tag_type="custom",
                     )
                 )
-            db.session.commit()
             yield tags
 
             # rollback changes
