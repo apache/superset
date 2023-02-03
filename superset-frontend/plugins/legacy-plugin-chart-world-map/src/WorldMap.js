@@ -248,7 +248,7 @@ function WorldMap(element, props) {
     filterState.selectedValues.forEach(value => {
       d3.select(`path.datamaps-subunit.${value}`).style(
         'fill',
-        mapData[value].fillColor,
+        mapData[value]?.fillColor,
       );
     });
   }
