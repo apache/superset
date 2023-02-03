@@ -93,7 +93,6 @@ export interface DatabaseSelectorProps {
   onDbChange?: (db: DatabaseObject) => void;
   onEmptyResults?: (searchText?: string) => void;
   onSchemaChange?: (schema?: string) => void;
-  onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
@@ -126,7 +125,6 @@ export default function DatabaseSelector({
   onDbChange,
   onEmptyResults,
   onSchemaChange,
-  onSchemasLoad,
   readOnly = false,
   schema,
   sqlLabMode = false,
@@ -230,8 +228,6 @@ export default function DatabaseSelector({
   } = useSchemas({
     dbId: currentDb?.value,
     onSuccess: data => {
-      onSchemasLoad?.(data);
-
       if (data.length === 1) {
         changeSchema(data[0]);
       } else if (!data.find(schemaOption => schema === schemaOption.value)) {

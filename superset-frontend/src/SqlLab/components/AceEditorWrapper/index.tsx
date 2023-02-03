@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, styled } from '@superset-ui/core';
 
@@ -40,6 +40,7 @@ import {
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { useSchemas } from 'src/hooks/apiResources';
 
 type HotKey = {
   key: string;
@@ -81,6 +82,7 @@ const StyledAceEditor = styled(AceEditor)`
     }
   `}
 `;
+
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
@@ -98,14 +100,27 @@ const AceEditorWrapper = ({
     'dbId',
     'sql',
     'functionNames',
-    'schemaOptions',
     'tableOptions',
     'validationResult',
     'schema',
   ]);
+  const { data: schemaOptions } = useSchemas({ dbId: queryEditor.dbId });
   const currentSql = queryEditor.sql ?? '';
   const functionNames = queryEditor.functionNames ?? [];
-  const schemas = queryEditor.schemaOptions ?? [];
+
+  // Loading schema, table and column names as auto-completable words
+  const { schemas, schemaWords } = useMemo(
+    () => ({
+      schemas: schemaOptions ?? [],
+      schemaWords: (schemaOptions ?? []).map(s => ({
+        name: s.label,
+        value: s.value,
+        score: SCHEMA_AUTOCOMPLETE_SCORE,
+        meta: 'schema',
+      })),
+    }),
+    [schemaOptions],
+  );
   const tables = queryEditor.tableOptions ?? [];
 
   const [sql, setSql] = useState(currentSql);
@@ -193,14 +208,7 @@ const AceEditorWrapper = ({
     onChange(text);
   };
 
-  const setAutoCompleter = () => {
-    // Loading schema, table and column names as auto-completable words
-    const schemaWords = schemas.map(s => ({
-      name: s.label,
-      value: s.value,
-      score: SCHEMA_AUTOCOMPLETE_SCORE,
-      meta: 'schema',
-    }));
+  function setAutoCompleter() {
     const columns = {};
 
     const tableWords = tables.map(t => {
@@ -264,7 +272,7 @@ const AceEditorWrapper = ({
       }));
 
     setWords(words);
-  };
+  }
 
   const getAceAnnotations = () => {
     const { validationResult } = queryEditor;
