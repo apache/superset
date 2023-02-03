@@ -126,7 +126,6 @@ export const useDatasetsList = (
     }
 
     setDatasets(results);
-    return results;
   }, []);
 
   useEffect(() => {
