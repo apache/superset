@@ -327,11 +327,20 @@ test('show chart dashboards', async () => {
   expect(chartDashboards[0]).toHaveAttribute('href', '/superset/dashboard/1');
   expect(chartDashboards[1]).toHaveTextContent('Sample dashboard B');
   expect(chartDashboards[1]).toHaveAttribute('href', '/superset/dashboard/2');
-  expect(chartDashboards[0].parentNode).toBe(chartDashboards[1].parentNode);
+  expect(chartDashboards[0].closest('.ant-table-cell')).toBe(
+    chartDashboards[1].closest('.ant-table-cell'),
+  );
+
   expect(chartDashboards[2]).toHaveTextContent('Sample dashboard C');
   expect(chartDashboards[2]).toHaveAttribute('href', '/superset/dashboard/3');
-  expect(chartDashboards[2].parentNode).not.toBe(chartDashboards[0].parentNode);
-  expect(chartDashboards[2].parentNode).not.toBe(chartDashboards[1].parentNode);
+  expect(chartDashboards[2].closest('.ant-table-cell')).not.toBe(
+    chartDashboards[0].closest('.ant-table-cell'),
+  );
+
+  expect(chartDashboards[2].closest('.ant-table-cell')).not.toBe(
+    chartDashboards[1].closest('.ant-table-cell'),
+  );
+
   expectLastChartRequest();
 
   expect(
