@@ -58,7 +58,7 @@ type DataMaskAction =
       filterState: {
         label?: string;
         filters?: AdhocFilter[];
-        value: AdhocFilter[];
+        value?: AdhocFilter[];
       };
     };
 
@@ -184,13 +184,15 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
         ),
         filterState: {
           ...filterState,
-          label: (adhoc_filters || [])
-            .map(f =>
-              f.sqlExpression ? String(f.sqlExpression) : labelString(f),
-            )
-            .join(', '),
-          value: adhoc_filters,
-          filters: adhoc_filters,
+          label: adhoc_filters?.length
+            ? (adhoc_filters || [])
+                .map(f =>
+                  f.sqlExpression ? String(f.sqlExpression) : labelString(f),
+                )
+                .join(', ')
+            : undefined,
+          value: adhoc_filters?.length ? adhoc_filters : undefined,
+          filters: adhoc_filters?.length ? adhoc_filters : undefined,
         },
       });
     },
