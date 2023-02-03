@@ -54,6 +54,7 @@ export function normalizeTimeColumn(
     formData.x_axis &&
     Array.isArray(_columns)
   ) {
+
     if (isAdhocColumn(_columns[axisIdx])) {
       mutatedColumns[axisIdx] = {
         timeGrain: _extras?.time_grain_sqla,
@@ -64,8 +65,8 @@ export function normalizeTimeColumn(
       mutatedColumns[axisIdx] = {
         timeGrain: _extras?.time_grain_sqla,
         columnType: 'BASE_AXIS',
-        sqlExpression: formData.x_axis,
-        label: formData.x_axis,
+        sqlExpression: queryObject?.granularity || formData.x_axis,
+        label: queryObject?.granularity || formData.x_axis,
         expressionType: 'SQL',
       };
     }
