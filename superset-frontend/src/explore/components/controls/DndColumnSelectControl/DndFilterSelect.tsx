@@ -213,12 +213,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onClickClose = useCallback(
     (index: number) => {
-      if (canDelete) {
-        const result = canDelete(values[index], values);
-        if (typeof result === 'string') {
-          warning({ title: t('Warning'), content: result });
-          return;
-        }
+      const result = canDelete?.(values[index], values);
+      if (typeof result === 'string') {
+        warning({ title: t('Warning'), content: result });
+        return;
       }
       removeValue(index);
     },

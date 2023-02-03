@@ -194,12 +194,10 @@ class AdhocFilterControl extends React.Component {
   onRemoveFilter(index) {
     const { canDelete } = this.props;
     const { values } = this.state;
-    if (canDelete) {
-      const result = canDelete(values[index], values);
-      if (typeof result === 'string') {
-        warning({ title: t('Warning'), content: result });
-        return;
-      }
+    const result = canDelete?.(values[index], values);
+    if (typeof result === 'string') {
+      warning({ title: t('Warning'), content: result });
+      return;
     }
     this.removeFilter(index);
   }

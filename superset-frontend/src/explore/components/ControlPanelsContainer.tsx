@@ -496,7 +496,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           filter.operator === Operators.TEMPORAL_RANGE;
         if (isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
-          if (count < 2) {
+          if (count === 1) {
             return t(
               `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
             );
