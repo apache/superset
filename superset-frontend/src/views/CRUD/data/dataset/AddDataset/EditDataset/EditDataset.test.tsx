@@ -17,31 +17,27 @@
  * under the License.
  */
 import React from 'react';
+import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
-import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
+import EditDataset from './index';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
-  }),
-  useParams: () => ({ datasetId: undefined }),
-}));
+const DATASET_ENDPOINT = 'glob:*api/v1/dataset/1/related_objects';
 
-describe('AddDataset', () => {
-  it('renders a blank state AddDataset', async () => {
-    render(<AddDataset />, { useRedux: true });
+const mockedProps = {
+  id: '1',
+};
 
-    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
+fetchMock.get(DATASET_ENDPOINT, { charts: { results: [], count: 2 } });
 
-    // Header
-    expect(await screen.findByText(/new dataset/i)).toBeVisible();
-    // Left panel
-    expect(blankeStateImgs[0]).toBeVisible();
-    // Footer
-    expect(screen.getByText(/Cancel/i)).toBeVisible();
+test('should render edit dataset view with tabs', async () => {
+  render(<EditDataset {...mockedProps} />);
 
-    expect(blankeStateImgs.length).toBe(1);
-  });
+  const columnTab = await screen.findByRole('tab', { name: /columns/i });
+  const metricsTab = screen.getByRole('tab', { name: /metrics/i });
+  const usageTab = screen.getByRole('tab', { name: /usage/i });
+
+  expect(fetchMock.calls(DATASET_ENDPOINT)).toBeTruthy();
+  expect(columnTab).toBeInTheDocument();
+  expect(metricsTab).toBeInTheDocument();
+  expect(usageTab).toBeInTheDocument();
 });
