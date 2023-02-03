@@ -83,6 +83,7 @@ import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 import { SupersetPluginChartHelloWorld } from 'superset-plugin-chart-hello-world';
 import { SupersetPluginChartLiquid } from 'superset-plugin-chart-liquid';
+import { LiqThematicMaps } from 'superset-plugin-chart-liq-thematic-maps';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -170,6 +171,7 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
         new SupersetPluginChartLiquid().configure({ key: 'ext-liquid' }),
+        new LiqThematicMaps().configure({ key: 'ext-liq-thematic-maps' }),
         ...experimentalplugins,
       ],
     });

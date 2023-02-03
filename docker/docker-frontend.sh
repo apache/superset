@@ -41,6 +41,12 @@ npm run dev & # Dev
 # Uncomment below before merging master for prod
 #npm run build # Prod
 
+cd ../superset-plugin-chart-liq-thematic-maps
+# Comment below before merging master for prod
+npm run dev & # Dev
+# Uncomment below before merging master for prod
+#npm run build # Prod
+
 cd ../../
 
 echo "Running frontend"
