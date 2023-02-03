@@ -59,8 +59,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "get_objects",
         "get_all_objects",
-        "add_tagged_objects",
-        "delete_tagged_object",
+        "add_objects",
+        "delete_object",
     }
 
     resource_name = "tag"
@@ -132,10 +132,10 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: Any,
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_objects",
         log_to_statsd=False,
     )
-    def add_tagged_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
+    def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
         """Adds tags to an object. Creates new tags if they do not already exist
         ---
         post:
@@ -203,10 +203,10 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: Any,
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_object",
         log_to_statsd=True,
     )
-    def delete_tagged_object(
+    def delete_object(
         self, object_type: ObjectTypes, object_id: int, tag: str
     ) -> Response:
         """Deletes a Tagged Object

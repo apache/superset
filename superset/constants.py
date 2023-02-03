@@ -145,8 +145,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "stop_query": "read",
     "get_objects": "read",
     "get_all_objects": "read",
-    "add_tagged_objects": "write",
-    "delete_tagged_object": "write",
+    "add_objects": "write",
+    "delete_object": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
