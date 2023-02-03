@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ReactNode, useMemo, useRef } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useTruncation } from 'src/hooks/useTruncation';
 import { Tooltip } from '../Tooltip';
@@ -35,7 +35,7 @@ export type TruncatedListProps<ListItemType> = {
   renderVisibleItem?: (item: ListItemType) => ReactNode;
 
   /**
-   * Renderer for items not overflowed into the tooltip.
+   * Renderer for items that are overflowed into the tooltip.
    * Required if `ListItemType` is not renderable by React.
    */
   renderTooltipItem?: (item: ListItemType) => ReactNode;
@@ -93,11 +93,11 @@ const StyledPlus = styled.span`
   `}
 `;
 
-export default function TruncatedList<ListItemType = ReactNode>({
+export default function TruncatedList<ListItemType>({
   items,
   renderVisibleItem = item => item,
   renderTooltipItem = item => item,
-  getKey = item => item as React.Key,
+  getKey = item => item as unknown as React.Key,
   maxLinks = 20,
 }: TruncatedListProps<ListItemType>) {
   const itemsNotInTooltipRef = useRef<HTMLDivElement>(null);
@@ -136,13 +136,6 @@ export default function TruncatedList<ListItemType = ReactNode>({
         )),
     [getKey, items, maxLinks, renderTooltipItem],
   );
-
-  const [timesRendered, setTimesRendered] = useState(0);
-  useEffect(() => {
-    if (timesRendered < 3) {
-      setTimesRendered(timesRendered + 1);
-    }
-  }, [timesRendered]);
 
   return (
     <StyledTruncatedList>
