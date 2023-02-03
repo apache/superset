@@ -56,6 +56,7 @@ export interface SwitchProps {
   useSSHTunneling: boolean;
   setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
   setDB: React.Dispatch<any>;
+  isSSHTunneling: boolean;
 }
 
 type ConfigDetailsProps = {

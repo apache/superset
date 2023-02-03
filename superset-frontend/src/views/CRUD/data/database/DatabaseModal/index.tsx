@@ -35,7 +35,7 @@ import React, {
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, AntdSwitch, Upload } from 'src/components';
+import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -88,10 +88,10 @@ import {
   StyledStickyHeader,
   formScrollableStyles,
   StyledUploadWrapper,
-  toggleStyle,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
+import SSHTunnelSwitch from './SSHTunnelSwitch';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -561,9 +561,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
-  const SSHTunnelSwitchExtension = extensionsRegistry.get(
-    'ssh_tunnel.form.switch',
-  );
+  const SSHTunnelSwitchComponent =
+    extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
+
   const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
 
   const conf = useCommonConf();
@@ -1360,30 +1360,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     />
   );
 
-  const renderDefaultSSHTunnelSwitch = () => (
-    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <AntdSwitch
-        disabled={isEditMode && !isEmpty(dbFetched?.ssh_tunnel)}
-        checked={useSSHTunneling}
-        onChange={changed => {
-          setUseSSHTunneling(changed);
-          if (!changed) {
-            setDB({
-              type: ActionType.removeSSHTunnelConfig,
-            });
-          }
-        }}
-        data-test="ssh-tunnel-switch"
-      />
-      <span css={toggleStyle}>SSH Tunnel</span>
-      <InfoTooltip
-        tooltip={t('SSH Tunnel configuration parameters')}
-        placement="right"
-        viewBox="0 -5 24 24"
-      />
-    </div>
-  );
-
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
@@ -1588,18 +1564,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {SSHTunnelSwitchExtension ? (
-                  <SSHTunnelSwitchExtension
-                    isEditMode={isEditMode}
-                    dbFetched={dbFetched}
-                    disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-                    useSSHTunneling={useSSHTunneling}
-                    setUseSSHTunneling={setUseSSHTunneling}
-                    setDB={setDB}
-                  />
-                ) : (
-                  isSSHTunneling && renderDefaultSSHTunnelSwitch()
-                )}
+                <SSHTunnelSwitchComponent
+                  isEditMode={isEditMode}
+                  dbFetched={dbFetched}
+                  disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
+                  useSSHTunneling={useSSHTunneling}
+                  setUseSSHTunneling={setUseSSHTunneling}
+                  setDB={setDB}
+                  isSSHTunneling={isSSHTunneling}
+                />
                 {useSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
@@ -1874,26 +1847,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
-                {SSHTunnelSwitchExtension ? (
-                  <SSHTunnelContainer>
-                    <SSHTunnelSwitchExtension
-                      isEditMode={isEditMode}
-                      dbFetched={dbFetched}
-                      disableSSHTunnelingForEngine={
-                        disableSSHTunnelingForEngine
-                      }
-                      useSSHTunneling={useSSHTunneling}
-                      setUseSSHTunneling={setUseSSHTunneling}
-                      setDB={setDB}
-                    />
-                  </SSHTunnelContainer>
-                ) : (
-                  isSSHTunneling && (
-                    <SSHTunnelContainer>
-                      {renderDefaultSSHTunnelSwitch()}
-                    </SSHTunnelContainer>
-                  )
-                )}
+                <SSHTunnelContainer>
+                  <SSHTunnelSwitchComponent
+                    isEditMode={isEditMode}
+                    dbFetched={dbFetched}
+                    disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
+                    useSSHTunneling={useSSHTunneling}
+                    setUseSSHTunneling={setUseSSHTunneling}
+                    setDB={setDB}
+                    isSSHTunneling={isSSHTunneling}
+                  />
+                </SSHTunnelContainer>
                 {useSSHTunneling && (
                   <SSHTunnelContainer>
                     {renderSSHTunnelForm()}
