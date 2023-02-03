@@ -198,6 +198,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
+      const { url_params, ...formData } = this.props.form_data || {};
+
       let dashboard: DashboardGetResponse | null = null;
       if (this.state.newDashboardName || this.state.saveToDashboardId) {
         let saveToDashboardId = this.state.saveToDashboardId || null;
@@ -216,13 +218,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           sliceDashboards = sliceDashboards.includes(dashboard.id)
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
-          const { url_params, ...formData } = this.props.form_data || {};
-          this.props.actions.setFormData({
-            ...formData,
-            dashboards: sliceDashboards,
-          });
+          formData.dashboards = sliceDashboards;
         }
       }
+
+      // Sets the form data
+      this.props.actions.setFormData({ ...formData });
 
       //  Update or create slice
       let value: { id: number };
