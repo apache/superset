@@ -113,9 +113,9 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'metrics',
+            name: 'metric',
             config: {
-              ...sharedControls.metrics,
+              ...sharedControls.metric,
               // it's possible to add validators to controls if
               // certain selections/types need to be enforced
               validators: [validateNonEmpty],
@@ -152,6 +152,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['linear_color_scheme']
       ],
     },
   ],

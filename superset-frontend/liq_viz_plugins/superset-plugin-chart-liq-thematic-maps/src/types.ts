@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, TimeseriesDataRecord } from '@superset-ui/core';
+import { QueryFormData } from '@superset-ui/core';
 
 export interface LiqThematicMapsStylesProps {
   height: number;
@@ -25,6 +25,8 @@ export interface LiqThematicMapsStylesProps {
 
 interface LiqThematicMapsCustomizeProps {
   boundary: string;
+  linearColorScheme: string;
+  numberFormat: string;
 }
 
 export type LiqThematicMapsQueryFormData = QueryFormData &
@@ -33,6 +35,8 @@ export type LiqThematicMapsQueryFormData = QueryFormData &
 
 export type LiqThematicMapsProps = LiqThematicMapsStylesProps &
   LiqThematicMapsCustomizeProps & {
-    data: TimeseriesDataRecord[];
+    data: Array<Object>[];
+    groupCol: String;
+    metricCol: String;
     // add typing here for the props you pass in from transformProps.ts!
   };

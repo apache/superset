@@ -49,8 +49,10 @@ export default function transformProps(chartProps: ChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queriesData } = chartProps;
-  const { boundary } = formData;
-  const data = queriesData[0].data as TimeseriesDataRecord[];
+  const { boundary, linearColorScheme, numberFormat } = formData;
+  const data = queriesData[0].data;
+  const groupCol = formData.cols[0];
+  const metricCol = formData.metric.label;
 
   console.log('formData via TransformProps.ts', formData);
 
@@ -58,7 +60,11 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
+    groupCol,
+    metricCol,
     // and now your control data, manipulated as needed, and passed through as props!
-    boundary
+    boundary,
+    linearColorScheme,
+    numberFormat
   };
 }

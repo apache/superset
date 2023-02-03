@@ -20,6 +20,13 @@ import React, { useEffect, createRef, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { LiqThematicMapsProps, LiqThematicMapsStylesProps } from './types';
 import mapboxgl from 'mapbox-gl';
+import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import {
+  getNumberFormatter,
+  getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZGtpciIsImEiOiJjazIxNW54azgxZzd6M25xb2RqNHk0Z2Z5In0.1SbfSydEBGdjIxU-Wy0EXA"
 
@@ -50,7 +57,15 @@ const BDRY_LAYER_MAP = {
 
 export default function LiqThematicMaps(props: LiqThematicMapsProps) {
 
-  const { height, width, boundary } = props;
+  const { 
+    data,
+    groupCol,
+    metricCol,
+    height, 
+    width, 
+    boundary, 
+    linearColorScheme,
+  } = props;
 
   const rootElem = createRef<HTMLDivElement>();
   
@@ -58,6 +73,61 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   const map = useRef(null);
   
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [paintColorSpec, setPaintColorSpec] = useState([]);
+  const [zoom, setZoom] = useState(9);
+  const [cMap, setCMap] = useState([]);
+
+  // useEffect(() => {
+  //   const linearColorScale = getSequentialSchemeRegistry()
+  //     .get(linearColorScheme)
+  //     .createLinearScale(d3Extent(data, v => v[metricCol]));
+
+  //   const colorMap = {};
+  //   data.forEach(d => {
+  //     colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
+  //   });
+  
+  //   const colorKeys = Object.keys(colorMap);
+  //   let spec = ['case'];
+  //   for (let i = 0; i < colorKeys.length; i++) {
+  //     let cond = ['==', ['get', groupCol], colorKeys[i]]
+  //     spec.push(cond);
+  //     spec.push(colorMap[colorKeys[i]]);
+  //   }
+  //   spec.push('transparent');
+
+  //   setPaintColorSpec([...spec]);
+  // }, [linearColorScheme])
+
+  useEffect(() => {
+    const linearColorScale = getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(d3Extent(data, v => v[metricCol]));
+
+    const colorMap = {};
+    data.forEach(d => {
+      colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
+    });
+
+    setCMap(colorMap);
+  }, [data, linearColorScheme])
+
+  useEffect(() => {
+    if (map.current) {
+      const features = map.current.queryRenderedFeatures({ 'layers': ['tileset'] }); 
+      for (const d in features) {
+        map.current.setFeatureState(
+          {
+            source: 'tileset',
+            id: d.id
+          },
+          {
+            color: cMap[d.properties[groupCol]]
+          }
+        );
+      }
+    }
+  }, [cMap])
 
   useEffect(() => {
     if (map.current) return;
@@ -72,11 +142,17 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   })
 
   useEffect(() => {
+    if (!map.current) return;
+    map.current.on('move', () => {
+      setZoom(map.current.getZoom().toFixed(2));
+    });
+  })
+
+  useEffect(() => {
     if (map.current) map.current.resize();
   }, [width])
 
   useEffect(() => {
-    console.log(boundary)
     if (map.current && mapLoaded) {
       if (map.current.getLayer('tileset')) map.current.removeLayer('tileset');
       if (map.current.getSource('tileset')) map.current.removeSource('tileset');
@@ -92,13 +168,13 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
         'source-layer': BDRY_LAYER_MAP[boundary],
         'layout': {},
         'paint': {
-          'fill-color': 'transparent',
+          'fill-color': ['feature-state', 'color'],
           'fill-outline-color': '#2E2EFF',
-          'fill-opacity': 0.5
+          'fill-opacity': 0.7
         }
-      })
+      });
     }
-  }, [boundary, mapLoaded])
+  }, [boundary, mapLoaded, paintColorSpec])
 
   return (
     <Styles
