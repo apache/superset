@@ -202,9 +202,10 @@ class QueryContextProcessor:
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
         dashboard = None
+        chart = None
         if "dashboards" in query_context.form_data.keys():
             dashboard = query_context.form_data['dashboards']
-        chart = query_context.form_data['slice_id']
+            chart = query_context.form_data['slice_id']
         query = ""
         if isinstance(query_context.datasource, Query):
             # todo(hugh): add logic to manage all sip68 models here
