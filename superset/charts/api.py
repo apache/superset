@@ -582,7 +582,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return trigger_celery()
 
-    @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
+    @expose("/<pk>/screenshot/<cache_key>/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -590,7 +590,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.screenshot",
         log_to_statsd=False,
     )
-    def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
+    def screenshot(self, pk: int, cache_key: str) -> WerkzeugResponse:
         """Get Chart screenshot
         ---
         get:
@@ -603,7 +603,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: digest
+            name: cache_key
           responses:
             200:
               description: Chart thumbnail image
@@ -628,7 +628,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         # fetch the chart screenshot using the current user and cache if set
-        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
+        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, cache_key)
         if img:
             return Response(
                 FileWrapper(img), mimetype="image/png", direct_passthrough=True
