@@ -168,9 +168,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               </head>
               <body>
                 <div><strong>Description: </strong>{description}</div>
-                <br/>
                 {url_renderer}
                 {msgContent}
+                <br/>
                 <a href="{self._content.link}">Open Alert/Report in Careem Insights</a>
                 {html_table}
                 {img_tag}
