@@ -25,7 +25,7 @@ from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
 from superset.errors import SupersetErrorType
-from superset.sqllab.command import SqlQueryRender
+from superset.sqllab.commands.execute import SqlQueryRender
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 

@@ -248,7 +248,7 @@ export default function DatabaseSelector({
           setSchemaOptions(options);
           setLoadingSchemas(false);
           if (options.length === 1) changeSchema(options[0]);
-          if (refresh > 0) addSuccessToast('List refreshed');
+          if (refresh > 0) addSuccessToast(t('List refreshed'));
         })
         .catch(err => {
           setLoadingSchemas(false);
@@ -321,6 +321,7 @@ export default function DatabaseSelector({
         labelInValue
         loading={loadingSchemas}
         name="select-schema"
+        notFoundContent={t('No compatible schema found')}
         placeholder={t('Select schema or type schema name')}
         onChange={item => changeSchema(item as SchemaValue)}
         options={schemaOptions}

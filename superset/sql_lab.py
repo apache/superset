@@ -485,7 +485,11 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
             )
             # Run statement
-            msg = f"Running statement {i+1} out of {statement_count}"
+            msg = __(
+                "Running statement %(statement_num)s out of %(statement_count)s",
+                statement_num=i + 1,
+                statement_count=statement_count,
+            )
             logger.info("Query %s: %s", str(query_id), msg)
             query.set_extra_json_key("progress", msg)
             session.commit()
@@ -504,7 +508,11 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             except Exception as ex:  # pylint: disable=broad-except
                 msg = str(ex)
                 prefix_message = (
-                    f"[Statement {i+1} out of {statement_count}]"
+                    __(
+                        "Statement %(statement_num)s out of %(statement_count)s",
+                        statement_num=i + 1,
+                        statement_count=statement_count,
+                    )
                     if statement_count > 1
                     else ""
                 )

@@ -26,6 +26,7 @@ import sqlalchemy as sqla
 from flask import current_app, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_babel import gettext as __
 from humanize import naturaltime
 from sqlalchemy import (
     Boolean,
@@ -224,10 +225,10 @@ class Query(
         for col in self.columns:
             column_name = str(col.get("column_name") or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + " [asc]")
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + " [desc]")
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         return {

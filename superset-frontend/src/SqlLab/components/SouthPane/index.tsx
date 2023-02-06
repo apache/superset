@@ -35,6 +35,7 @@ import {
   STATUS_OPTIONS,
   STATE_TYPE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  STATUS_OPTIONS_LOCALIZED,
 } from '../../constants';
 
 const TAB_HEIGHT = 140;
@@ -145,7 +146,7 @@ const SouthPane = ({
   };
   const renderOfflineStatus = () => (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS.offline}
+      {STATUS_OPTIONS_LOCALIZED.offline}
     </Label>
   );
 

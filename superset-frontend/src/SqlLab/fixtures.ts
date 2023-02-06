@@ -688,6 +688,7 @@ export const query = {
   sql: 'SELECT * FROM something',
   description: 'test description',
   schema: 'test schema',
+  resultsKey: 'test',
 };
 
 export const queryId = 'clientId2353';

@@ -1498,8 +1498,8 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
-# By default, the Welcome page features example charts and dashboards. This can be
-# changed to show all charts/dashboards the user has access to, or a custom view
+# By default, the Welcome page features all charts and dashboards the user has access
+# to. This can be changed to show only examples, or a custom view
 # by providing the title and a FAB filter:
 # WELCOME_PAGE_LAST_TAB = (
 #     "Xyz",
@@ -1507,7 +1507,7 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
 # )
 WELCOME_PAGE_LAST_TAB: Union[
     Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
-] = "examples"
+] = "all"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)

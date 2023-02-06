@@ -23,7 +23,7 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import moment, { Moment } from 'moment';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
 import { BaseFilter, FilterHandler } from './Base';
@@ -64,6 +64,7 @@ function DateRangeFilter(
     <RangeFilterContainer>
       <FormLabel>{Header}</FormLabel>
       <RangePicker
+        placeholder={[t('Start date'), t('End date')]}
         showTime
         value={momentValue}
         onChange={momentRange => {

@@ -3224,7 +3224,7 @@ class PartitionViz(NVD3TimeSeriesViz):
         groups = get_column_names(self.form_data.get("groupby"))
         time_op = self.form_data.get("time_series_option", "not_time")
         if not groups:
-            raise ValueError("Please choose at least one groupby")
+            raise ValueError(_("Please choose at least one groupby"))
         if time_op == "not_time":
             levels = self.levels_for("agg_sum", groups, df)
         elif time_op in ["agg_sum", "agg_mean"]:

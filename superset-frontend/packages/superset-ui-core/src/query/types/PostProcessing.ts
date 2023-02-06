@@ -18,7 +18,7 @@
  */
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { RollingType, ComparisionType } from './AdvancedAnalytics';
+import { RollingType, ComparisonType } from './AdvancedAnalytics';
 
 export type NumpyFunction =
   | 'average'
@@ -57,7 +57,7 @@ export interface Aggregates {
   [colname: string]: {
     operator: NumpyFunction;
     /**
-     * the name of the column to generate aggrates from.
+     * the name of the column to generate aggregates from.
      */
     column?: string;
     options?: JsonObject;
@@ -171,7 +171,7 @@ export interface _PostProcessingCompare {
   options: {
     source_columns: string[];
     compare_columns: string[];
-    compare_type: Omit<ComparisionType, ComparisionType.Values>;
+    compare_type: Omit<ComparisonType, ComparisonType.Values>;
     drop_original_columns: boolean;
   };
 }

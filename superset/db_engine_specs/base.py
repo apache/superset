@@ -197,7 +197,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
+    _default_column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
@@ -314,6 +314,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.BOOLEAN,
         ),
     )
+    # engine-specific type mappings to check prior to the defaults
+    column_type_mappings: Tuple[ColumnTypeMapping, ...] = ()
 
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
@@ -1389,24 +1391,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(
+    def get_column_types(
         cls,
         column_type: Optional[str],
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Optional[Tuple[TypeEngine, GenericDataType]]:
         """
-        Return a sqlalchemy native column type that corresponds to the column type
-        defined in the data source (return None to use default type inferred by
-        SQLAlchemy). Override `column_type_mappings` for specific needs
+        Return a sqlalchemy native column type and generic data type that corresponds
+        to the column type defined in the data source (return None to use default type
+        inferred by SQLAlchemy). Override `column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param column_type: Column type returned by inspector
-        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
-        :return: SqlAlchemy column type
+        :return: SQLAlchemy and generic Superset column types
         """
         if not column_type:
             return None
-        for regex, sqla_type, generic_type in column_type_mappings:
+
+        for regex, sqla_type, generic_type in (
+            cls.column_type_mappings + cls._default_column_type_mappings
+        ):
             match = regex.match(column_type)
             if not match:
                 continue
@@ -1569,19 +1572,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         native_type: Optional[str],
         db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Optional[ColumnSpec]:
         """
-        Converts native database type to sqlalchemy column type.
+        Get generic type related specs regarding a native column type.
+
         :param native_type: Native database type
         :param db_extra: The database extra object
         :param source: Type coming from the database table or cursor description
-        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
         :return: ColumnSpec object
         """
-        col_types = cls.get_sqla_column_type(
-            native_type, column_type_mappings=column_type_mappings
-        )
+        col_types = cls.get_column_types(native_type)
         if col_types:
             column_type, generic_type = col_types
             is_dttm = generic_type == GenericDataType.TEMPORAL
@@ -1589,6 +1589,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+    @classmethod
+    def get_sqla_column_type(
+        cls,
+        native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+    ) -> Optional[TypeEngine]:
+        """
+        Converts native database type to sqlalchemy column type.
+
+        :param native_type: Native database type
+        :param db_extra: The database extra object
+        :param source: Type coming from the database table or cursor description
+        :return: ColumnSpec object
+        """
+        column_spec = cls.get_column_spec(
+            native_type=native_type,
+            db_extra=db_extra,
+            source=source,
+        )
+        return column_spec.sqla_type if column_spec else None
 
     # pylint: disable=unused-argument
     @classmethod
