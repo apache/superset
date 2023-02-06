@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-02-01 16:13+0300\n"
+"POT-Creation-Date: 2023-02-06 11:42+0300\n"
 "PO-Revision-Date: 2023-01-09 14:32+0300\n"
 "Last-Translator: Artem Shumeiko\n"
 "Language: ru\n"
@@ -216,12 +216,12 @@ msgstr ""
 "%(user)s была назначена роль %(role)s, которая дает доступ к "
 "%(datasource)s"
 
-#: superset/views/core.py:2646
+#: superset/views/core.py:2647
 #, python-format
 msgid "%(user)s's profile"
 msgstr "%(user)s - профиль"
 
-#: superset/databases/commands/validate_sql.py:73 superset/views/core.py:2301
+#: superset/databases/commands/validate_sql.py:73 superset/views/core.py:2302
 #, python-format
 msgid ""
 "%(validator)s was unable to check your query.\n"
@@ -743,27 +743,24 @@ msgstr "<= (меньше или равно)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1424
 msgid "<enter SQL expression here>"
-msgstr ""
+msgstr "<введите SQL выражение>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:494
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1421
-#, fuzzy
 msgid "<new column>"
-msgstr "Столбец с временем"
+msgstr "<новый столбец>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1259
-#, fuzzy
 msgid "<new metric>"
-msgstr "мера"
+msgstr "<новая мера>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:979
 msgid "<new spatial>"
-msgstr ""
+msgstr "<новая пространственная мера>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:980
-#, fuzzy
 msgid "<no type>"
-msgstr "Тип сортировки"
+msgstr "<без типа>"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:105
 msgid "== (Is equal)"
@@ -975,7 +972,6 @@ msgstr "Действие"
 msgid "Action Log"
 msgstr "Журнал действий"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:87
 #: superset-frontend/src/pages/ChartList/index.tsx:539
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:405
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:203
@@ -1260,10 +1256,6 @@ msgstr "Смешанный"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:75
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Настройка взаимодействия базы данных с Лабораторией SQL"
-
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:221
-msgid "Adjust performance settings of this database."
-msgstr "Настройка производительности базы данных."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1607,7 +1599,7 @@ msgstr "Разрешить множественный выбор"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:190
 msgid "Allow node selections"
-msgstr ""
+msgstr "Разрешить выбор вершин"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:176
 msgid "Allow sending multiple polygons as a filter event"
@@ -1667,7 +1659,7 @@ msgstr ""
 "При использовании сравнения времени необходимо указать закрытый временной"
 " интервал (как начало, так и конец)."
 
-#: superset/databases/schemas.py:271
+#: superset/databases/schemas.py:280
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
@@ -1998,7 +1990,7 @@ msgstr "Произошла ошибка при обновлении значен
 msgid "An error occurred while upserting the value."
 msgstr "Произошла ошибка при вставке значения."
 
-#: superset/databases/commands/exceptions.py:157
+#: superset/databases/commands/exceptions.py:162
 msgid "An unexpected error occurred"
 msgstr "Произошла неожиданная ошибка"
 
@@ -3003,7 +2995,7 @@ msgstr "Категориальный"
 msgid "Categorical Color"
 msgstr "Цвет категории"
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:165
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:166
 msgid "Categories to group by on the x-axis."
 msgstr "Категории для группировки по оси x"
 
@@ -3036,7 +3028,7 @@ msgstr "Категория и значение"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:88
 msgid "Category of target nodes"
-msgstr "Категория целевых нод"
+msgstr "Категория целевых вершин"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:56
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:98
@@ -3211,7 +3203,7 @@ msgstr "Символ десятичного разделителя"
 msgid "Chart"
 msgstr "График"
 
-#: superset/views/core.py:1712
+#: superset/views/core.py:1713
 #, python-format
 msgid "Chart %(id)s not found"
 msgstr "График %(id)s не найден"
@@ -3289,6 +3281,7 @@ msgstr[1] "Владельцы графика: %s"
 msgstr[2] "Владельцы графика: %s"
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:611
+#, fuzzy
 msgid "Chart Source"
 msgstr "Источник графика"
 
@@ -4002,7 +3995,7 @@ msgstr "Столбцы отсутствуют в источнике данных
 msgid "Columns subtotal position"
 msgstr "Расположение столбцов подытогов"
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:170
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:171
 msgid "Columns to calculate distribution across."
 msgstr ""
 
@@ -4242,7 +4235,7 @@ msgid "Connection"
 msgstr "База данных"
 
 #: superset/databases/commands/exceptions.py:107
-#: superset/databases/commands/exceptions.py:124 superset/views/core.py:1417
+#: superset/databases/commands/exceptions.py:124 superset/views/core.py:1418
 msgid "Connection failed, please check your connection settings"
 msgstr "Сбой подключения, пожалуйста, проверьте настройки вашего подключения"
 
@@ -4397,7 +4390,7 @@ msgstr "Не удалось найти объект визуализации"
 msgid "Could not load database driver"
 msgstr "Не удалось загрузить драйвер базы данных"
 
-#: superset/views/core.py:1400
+#: superset/views/core.py:1401
 #, python-format
 msgid "Could not load database driver: %(driver_name)s"
 msgstr "Не удалось загрузить драйвер базы данных: %(driver_name)s"
@@ -4812,7 +4805,7 @@ msgstr "Таблица"
 msgid "Data Zoom"
 msgstr "Масштабирование графика"
 
-#: superset/sqllab/commands/results.py:117 superset/views/core.py:2169
+#: superset/sqllab/commands/results.py:117 superset/views/core.py:2170
 msgid ""
 "Data could not be deserialized from the results backend. The storage "
 "format might have changed, rendering the old data stake. You need to re-"
@@ -4822,7 +4815,7 @@ msgstr ""
 " что привело к потере старых данных. Вам нужно повторно запустить "
 "исходный запрос."
 
-#: superset/sqllab/commands/results.py:76 superset/views/core.py:2122
+#: superset/sqllab/commands/results.py:76 superset/views/core.py:2123
 msgid ""
 "Data could not be retrieved from the results backend. You need to re-run "
 "the original query."
@@ -4834,7 +4827,7 @@ msgstr ""
 msgid "Data has no time steps"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:238
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:233
 msgid "Data preview"
 msgstr "Предпросмотр данных"
 
@@ -4983,7 +4976,7 @@ msgstr "База данных недоступна для изменений"
 msgid "Database not found."
 msgstr "База данных не найдена."
 
-#: superset/views/core.py:1173
+#: superset/views/core.py:1174
 #, python-format
 msgid "Database not found: %(id)s"
 msgstr "База данных не найдена: %(id)s"
@@ -5153,7 +5146,7 @@ msgstr "Временной фильтр"
 #: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:131
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:70
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:144
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:151
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:152
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:136
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:152
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:145
@@ -5703,7 +5696,7 @@ msgid "Dimension to use on y-axis."
 msgstr "Измерение для использования на оси Y"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:67
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:164
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:165
 #: superset-frontend/src/explore/controls.jsx:123
 #: superset-frontend/src/explore/controls.jsx:380
 msgid "Dimensions"
@@ -5794,7 +5787,7 @@ msgid ""
 "your data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:168
+#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:169
 #, fuzzy
 msgid "Distribute across"
 msgstr "Выполнить выбранный запрос"
@@ -5908,8 +5901,6 @@ msgstr ""
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:166
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:179
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:198
-#: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:207
-#: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:217
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:229
 msgid "Drill to detail by"
 msgstr ""
@@ -6009,7 +6000,6 @@ msgstr "Дублировать датасет"
 msgid "Duplicate tab"
 msgstr "Дублировать вкладку"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:82
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:138
 msgid "Duration"
 msgstr "Продолжительность"
@@ -6138,22 +6128,21 @@ msgstr "ОШИБКА: %s"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:242
 msgid "Edge length"
-msgstr ""
+msgstr "Длина ребер"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:248
 msgid "Edge length between nodes"
-msgstr ""
+msgstr "Длина ребер между вершинами"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:125
 msgid "Edge symbols"
-msgstr ""
+msgstr "Оформление ребер"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:227
-#, fuzzy
 msgid "Edge width"
-msgstr "Толщина линии"
+msgstr "Толщина ребра"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:216
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:211
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.tsx:35
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FilterSetUnit.tsx:83
 #: superset-frontend/src/explore/components/controls/TextAreaControl.jsx:144
@@ -6362,7 +6351,7 @@ msgstr "Встроить"
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:349
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:351
 msgid "Embed code"
-msgstr "Встроить код"
+msgstr "Встроенный код"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:350
 msgid "Embed dashboard"
@@ -6398,8 +6387,9 @@ msgid "Empty collection"
 msgstr "Пустая коллекция"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Column.jsx:220
+#, fuzzy
 msgid "Empty column"
-msgstr "Пустой столбец"
+msgstr "Показывать пустые столбцы"
 
 #: superset/charts/data/api.py:362
 msgid "Empty query result"
@@ -6411,7 +6401,7 @@ msgstr "Пустой запрос?"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:250
 msgid "Empty row"
-msgstr "Пустая строка"
+msgstr ""
 
 #: superset-frontend/src/views/components/RightMenu.tsx:305
 #: superset-frontend/src/views/components/SubMenu.tsx:304
@@ -6426,8 +6416,9 @@ msgid "Enable Filter Select"
 msgstr "Настроить области действия фильтра"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:139
+#, fuzzy
 msgid "Enable cross-filtering"
-msgstr "Включить кросс-фильтры"
+msgstr "Задать область действия кросс-фильтра"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:309
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:173
@@ -6454,11 +6445,11 @@ msgstr "Включить прогнозирование данных"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:162
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:271
 msgid "Enable graph roaming"
-msgstr ""
+msgstr "Включить перемещение по графику"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:142
 msgid "Enable node dragging"
-msgstr ""
+msgstr "Разрешить перемещение вершин"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:170
 msgid "Enable query cost estimation"
@@ -6522,7 +6513,7 @@ msgstr "Не удается настроить драйвер \"%(engine)s\" п�
 msgid "Engine Parameters"
 msgstr "Параметры драйвера"
 
-#: superset/databases/schemas.py:284
+#: superset/databases/schemas.py:293
 msgid ""
 "Engine spec \"InvalidEngine\" does not support being configured via "
 "individual parameters."
@@ -6642,7 +6633,7 @@ msgstr "Произошла ошибка при выполнении запрос
 msgid "Error: %(error)s"
 msgstr "Ошибка: %(error)s"
 
-#: superset/views/core.py:818 superset/views/core.py:1896
+#: superset/views/core.py:818 superset/views/core.py:1897
 #, python-format
 msgid "Error: %(msg)s"
 msgstr "Ошибка: %(msg)s"
@@ -6870,8 +6861,9 @@ msgid "Export to .JSON"
 msgstr "Экспорт в .JSON"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:335
+#, fuzzy
 msgid "Export to Excel"
-msgstr "Экспорт в Excel"
+msgstr "Экспорт в YAML"
 
 #: superset/views/base.py:602
 msgid "Export to YAML"
@@ -6988,8 +6980,8 @@ msgstr "Число, на которое умножается мера"
 msgid "Fail"
 msgstr "Ошибка"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:125
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:131
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:120
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:126
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:168
 msgid "Failed"
 msgstr "Ошибка"
@@ -7066,7 +7058,7 @@ msgstr "Получить данные для просмотра"
 msgid "Fetched %s"
 msgstr "Получено %s"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:143
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:138
 msgid "Fetching"
 msgstr "Получение данных"
 
@@ -7075,7 +7067,7 @@ msgstr "Получение данных"
 msgid "Field cannot be decoded by JSON. %(json_error)s"
 msgstr "поле не может быть декодировано с помощью JSON. %(json_error)s"
 
-#: superset/databases/schemas.py:185 superset/databases/schemas.py:200
+#: superset/databases/schemas.py:194 superset/databases/schemas.py:209
 #, python-format
 msgid "Field cannot be decoded by JSON. %(msg)s"
 msgstr "Поле не может быть декодировано с помощью JSON. %(msg)s"
@@ -7343,7 +7335,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:112
 msgid "Force"
-msgstr ""
+msgstr "Силовой алгоритм"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:141
 msgid ""
@@ -7437,11 +7429,11 @@ msgstr "Частота"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:305
 msgid "Friction"
-msgstr ""
+msgstr "Трение"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:311
 msgid "Friction between nodes"
-msgstr ""
+msgstr "Сила трения между вершинами"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:61
 msgid "Friday"
@@ -7534,11 +7526,11 @@ msgstr "Перерыв между оповещением"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:39
 msgid "Graph Chart"
-msgstr ""
+msgstr "Сетевой график"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:109
 msgid "Graph layout"
-msgstr ""
+msgstr "Формат сетевого графика"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:263
 msgid "Gravity"
@@ -7617,7 +7609,7 @@ msgstr "Строка заголовка"
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:38
 #: superset/viz.py:2246
 msgid "Heatmap"
-msgstr "Тепловая карт"
+msgstr "Тепловая карта"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:105
 msgid "Heatmap Options"
@@ -7763,7 +7755,7 @@ msgstr "ID"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:86
 msgid "Id of root node of the tree."
-msgstr "Id корневого узла дерева."
+msgstr "Id корневой вершины дерева."
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:391
 msgid ""
@@ -7894,7 +7886,7 @@ msgstr "Не удалось импортировать дашборд по не�
 msgid "Import dashboards"
 msgstr "Импортировать дашборды"
 
-#: superset/databases/commands/exceptions.py:166
+#: superset/databases/commands/exceptions.py:171
 msgid "Import database failed for an unknown reason"
 msgstr "Не удалось импортировать базу данных по неизвестной причине"
 
@@ -8036,11 +8028,11 @@ msgstr "Недопустимый формат JSON"
 msgid "Invalid advanced data type: %(advanced_data_type)s"
 msgstr "Невалидный расширенный тип данных: %(advanced_data_type)s"
 
-#: superset/databases/schemas.py:172 superset/exceptions.py:196
+#: superset/databases/schemas.py:181 superset/exceptions.py:196
 msgid "Invalid certificate"
 msgstr "Неверный сертификат"
 
-#: superset/views/core.py:1409
+#: superset/views/core.py:1410
 msgid ""
 "Invalid connection string, a valid string usually follows:\n"
 "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
@@ -8048,7 +8040,7 @@ msgstr ""
 "Недопустимая строка для подключения, валидная строка соответствует "
 "шаблону: ДРАЙВЕР://ИМЯ-ПОЛЬЗОВАТЕЛЯ:ПАРОЛЬ@ХОСТ/ИМЯ-БАЗЫ-ДАННЫХ"
 
-#: superset/databases/schemas.py:150
+#: superset/databases/schemas.py:159
 msgid ""
 "Invalid connection string, a valid string usually follows: "
 "backend+driver://user:password@database-host/database-name"
@@ -8279,7 +8271,7 @@ msgstr "Javascript генератор всплывающих подсказок"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:78
 msgid "Jinja templating"
-msgstr "Шаблонизацию Jinja"
+msgstr "Шаблонизацию Jinja."
 
 #: superset/views/database/forms.py:233
 msgid "Json list of the column names that should be read"
@@ -8343,10 +8335,6 @@ msgstr "Продолжить редактирование"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:98
 msgid "Key"
 msgstr "Ключ"
-
-#: superset-frontend/src/SqlLab/components/TableElement/index.tsx:188
-msgid "Keys for table %(tableName)"
-msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:145
 msgid "Kilometers"
@@ -8630,9 +8618,8 @@ msgid "Light mode"
 msgstr "Светлый режим"
 
 #: superset-frontend/src/explore/constants.ts:73
-#, fuzzy
 msgid "Like"
-msgstr "Линия"
+msgstr ""
 
 #: superset-frontend/src/explore/constants.ts:75
 #, fuzzy
@@ -8821,7 +8808,7 @@ msgstr "Загрузка"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/components/Handlebars/HandlebarsViewer.tsx:74
 #: superset-frontend/src/components/Select/AsyncSelect.tsx:495
-#: superset-frontend/src/components/Select/Select.tsx:453
+#: superset-frontend/src/components/Select/Select.tsx:452
 #: superset-frontend/src/components/Select/utils.tsx:152
 #: superset-frontend/src/dashboard/components/gridComponents/DynamicComponent.tsx:165
 #: superset-frontend/src/explore/components/RowCountLabel/index.tsx:40
@@ -8932,7 +8919,7 @@ msgstr ""
 "Убедитесь, что настройки графика верно сконфигурированы и источник данных"
 " содержит данные для выбранного временного интервала."
 
-#: superset/views/core.py:1702
+#: superset/views/core.py:1703
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
 "expected"
@@ -9121,12 +9108,16 @@ msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
 msgstr ""
+"Медианная толщина ребра, самое толстое ребро будет в 4 раза толще самой "
+"тонкой."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:218
 msgid ""
 "Median node size, the largest node will be 4 times larger than the "
 "smallest"
 msgstr ""
+"Медианный размер вершины, самая большая вершина будет в 4 раза больше "
+"самой маленькой."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:189
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:263
@@ -9215,7 +9206,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:99
 msgid "Metric for node values"
-msgstr "Мера для значений узлов"
+msgstr "Мера для значений вершин"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:106
 msgid "Metric name"
@@ -9334,7 +9325,7 @@ msgstr "Минимальный период"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:95
 #: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:48
 msgid "Min/max (no outliers)"
-msgstr ""
+msgstr "Мин/макс (без выбросов)"
 
 #: superset-frontend/src/views/CRUD/welcome/ChartTable.tsx:153
 #: superset-frontend/src/views/CRUD/welcome/DashboardTable.tsx:159
@@ -9376,7 +9367,7 @@ msgstr "Минимальный порог в процентных пунктах
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:203
 msgid "Minimum value for label to be displayed on graph."
-msgstr "Минимальное значение для метки, отображаемой на графике"
+msgstr "Минимальное значение метки для отображения на графике."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:86
 msgid "Minimum value on the gauge axis"
@@ -9523,6 +9514,8 @@ msgid ""
 "Multiple file extensions are not allowed for columnar uploads. Please "
 "make sure all files are of the same extension."
 msgstr ""
+"Несколько расширений файлов столбчатого формата не разрешены к загрузке. "
+"Пожалуйста, убедитесь, что все файлы имеют одинаковое расширение."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:173
 msgid "Multiple filtering"
@@ -9623,7 +9616,7 @@ msgstr "Имя обязательно"
 
 #: superset/annotation_layers/commands/exceptions.py:66
 msgid "Name must be unique"
-msgstr ""
+msgstr "Имя должно быть уникальным"
 
 #: superset/views/database/forms.py:406
 msgid "Name of table to be created from columnar data."
@@ -9639,7 +9632,7 @@ msgstr "Имя таблицы, созданной из CSV файла."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:62
 msgid "Name of the column containing the id of the parent node"
-msgstr ""
+msgstr "Имя столбца, содержащее id родительской вершины"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:52
 msgid "Name of the id column"
@@ -9647,15 +9640,15 @@ msgstr "Имя столбца id"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:54
 msgid "Name of the source nodes"
-msgstr ""
+msgstr "Имя исходных вершин"
 
 #: superset/connectors/sqla/views.py:429
 msgid "Name of the table that exists in the source database"
-msgstr ""
+msgstr "Имя таблицы, которая существует в базе данных"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:64
 msgid "Name of the target nodes"
-msgstr ""
+msgstr "Имя конечных вершин"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/SqlAlchemyForm.tsx:66
 msgid "Name your database"
@@ -9700,8 +9693,9 @@ msgid "New filter set"
 msgstr "Новый набор фильтров"
 
 #: superset-frontend/src/dashboard/util/newComponentFactory.js:49
+#, fuzzy
 msgid "New header"
-msgstr "Новый заголовок"
+msgstr "Подзаголовок"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:320
 msgid "New tab"
@@ -9784,8 +9778,9 @@ msgid "No charts"
 msgstr "Нет графиков"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:34
+#, fuzzy
 msgid "No charts yet"
-msgstr "Пока нет графиков"
+msgstr "Нет графиков"
 
 #: superset-frontend/src/filters/components/GroupBy/GroupByFilterPlugin.tsx:86
 msgid "No columns"
@@ -9796,20 +9791,23 @@ msgid "No compatible columns found"
 msgstr "Не найдено подходящих столбцов"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:93
+#, fuzzy
 msgid "No compatible datasets found"
-msgstr "Не найдено подходящих датасетов"
+msgstr "Не найдено подходящих столбцов"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:324
+#, fuzzy
 msgid "No compatible schema found"
-msgstr "Не найдено подходящих схем"
+msgstr "Не найдено подходящих столбцов"
 
 #: superset-frontend/src/profile/components/CreatedContent.tsx:91
 msgid "No dashboards"
 msgstr "Нет дашбордов"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:35
+#, fuzzy
 msgid "No dashboards yet"
-msgstr "Пока нет дашбордов"
+msgstr "Нет дашбордов"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberViz.tsx:133
 #: superset-frontend/src/components/Table/index.tsx:261
@@ -9828,7 +9826,7 @@ msgstr ""
 msgid "No data in file"
 msgstr "В файле нет данных"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:243
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:247
 msgid "No database tables found"
 msgstr "Не найдено таблиц в базе данных"
 
@@ -9946,8 +9944,9 @@ msgid "No saved metrics found"
 msgstr "Не найдено сохраненных мер"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:37
+#, fuzzy
 msgid "No saved queries yet"
-msgstr "Не найдено сохраненных запросов"
+msgstr "сохраненные(ых) запросы(ов)"
 
 #: superset-frontend/src/SqlLab/components/SouthPane/index.tsx:173
 msgid "No stored results found, you need to re-run your query"
@@ -9974,7 +9973,7 @@ msgstr "Столбцы формата дата/время не найдены"
 msgid "No time columns"
 msgstr "Нет столбцов формата дата/время"
 
-#: superset/databases/commands/exceptions.py:147
+#: superset/databases/commands/exceptions.py:152
 msgid "No validator found (configured for the engine)"
 msgstr "Не найден валидатор (сконфигурированный для драйвера)"
 
@@ -9984,15 +9983,15 @@ msgstr "Не найден валидатор с именем {} (сконфиг�
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:156
 msgid "Node label position"
-msgstr "Расположение метки узла"
+msgstr "Расположение метки вершины"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:183
 msgid "Node select mode"
-msgstr "Режим выбора узлов"
+msgstr "Режим выбора вершин"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:214
 msgid "Node size"
-msgstr "Размер узла"
+msgstr "Размер вершины"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:41
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:41
@@ -10019,11 +10018,11 @@ msgstr "Пусто"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:130
 msgid "None -> Arrow"
-msgstr ""
+msgstr "Ничего -> Стрелка"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:129
 msgid "None -> None"
-msgstr "Пусто -> Пусто"
+msgstr "Ничего -> Ничего"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:77
@@ -10037,7 +10036,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:329
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:127
 msgid "Normalized"
-msgstr ""
+msgstr "Нормализовать"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:74
 msgid "Not Time Series"
@@ -10054,9 +10053,8 @@ msgid "Not available"
 msgstr "Не доступно"
 
 #: superset-frontend/src/explore/constants.ts:60
-#, fuzzy
 msgid "Not equal to (≠)"
-msgstr "!= (не равно)"
+msgstr "Не равно (≠)"
 
 #: superset-frontend/src/explore/constants.ts:72
 #, fuzzy
@@ -10222,7 +10220,7 @@ msgstr "ПЕРЕЗАПИСАТЬ"
 msgid "October"
 msgstr "Октябрь"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:149
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:144
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:178
 msgid "Offline"
 msgstr "Оффлайн"
@@ -10320,7 +10318,7 @@ msgstr ""
 msgid "One or more parameters specified in the query are missing."
 msgstr "Один или несколько параметров, указанных в запросе, отсутствуют"
 
-#: superset/views/core.py:1969
+#: superset/views/core.py:1970
 msgid ""
 "One or more required fields are missing in the request. Please try again,"
 " and if the problem persists conctact your administrator."
@@ -10341,10 +10339,6 @@ msgstr "Только общий итог"
 #: superset/connectors/sqla/utils.py:122
 msgid "Only `SELECT` statements are allowed"
 msgstr "Доступны только SELECT запросы"
-
-#: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:141
-msgid "Only applies when \"Label Type\" is set to show values."
-msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:130
 msgid "Only selected panels will be affected by this filter"
@@ -10625,7 +10619,7 @@ msgstr "Перезаписать повторяющиеся столбцы"
 msgid "Overwrite existing"
 msgstr "Перезаписать существующий"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:277
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:272
 msgid "Overwrite text in the editor with a query on this table"
 msgstr "Вставить этот запрос в редактор SQL"
 
@@ -10871,7 +10865,6 @@ msgid "Person or group that has certified this metric"
 msgstr "Лицо или группа, которые утвердили этот показатель"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1108
-#: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:346
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:564
 msgid "Physical"
 msgstr "Физический"
@@ -11109,8 +11102,6 @@ msgstr "Пожалуйста, введите пароль еще раз"
 #: superset-frontend/src/views/CRUD/hooks.ts:423
 msgid "Please re-export your file and try importing again"
 msgstr ""
-"Пожалуйста, экспортируйте ваш файл еще раз и попробуйте импортировать его"
-" заново"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:59
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:72
@@ -11265,7 +11256,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:182
 msgid "Position of child node label on tree"
-msgstr ""
+msgstr "Расположение метки дочерней вершины на дереве"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:375
 msgid "Position of column level subtotal"
@@ -11387,7 +11378,6 @@ msgid "Profile picture provided by Gravatar"
 msgstr "Изображение профиля, сгенерированное сервисом Gravatar"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:235
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:83
 msgid "Progress"
 msgstr "Прогресс"
 
@@ -11793,11 +11783,11 @@ msgstr "Интервал обновления"
 msgid "Refresh interval saved"
 msgstr "Интервал обновления сохранен"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:246
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:250
 msgid "Refresh table list"
 msgstr "Обновить список таблиц"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:247
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:251
 msgid "Refresh tables"
 msgstr "Обновить таблицы"
 
@@ -11880,7 +11870,7 @@ msgstr "Удалить недействующие фильтры"
 msgid "Remove item"
 msgstr "Удалить элемент"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:293
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:288
 msgid "Remove query from log"
 msgstr "Удалить запрос из истории"
 
@@ -12027,11 +12017,11 @@ msgstr "Отчеты"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:284
 msgid "Repulsion"
-msgstr ""
+msgstr "Отталкивание"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:290
 msgid "Repulsion strength between nodes"
-msgstr ""
+msgstr "Сила отталкивания вершин"
 
 #: superset/templates/superset/request_access.html:31
 msgid "Request Permissions"
@@ -12103,7 +12093,6 @@ msgstr "Источник не был найден."
 msgid "Restore Filter"
 msgstr "Восстановить фильтр"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:86
 #: superset-frontend/src/SqlLab/components/SouthPane/index.tsx:241
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:204
 #: superset-frontend/src/explore/components/DataTablesPane/components/ResultsPaneOnDashboard.tsx:76
@@ -12117,7 +12106,7 @@ msgid "Results %s"
 msgstr "Результаты %s"
 
 #: superset/sql_lab.py:410 superset/sqllab/commands/results.py:60
-#: superset/views/core.py:2107
+#: superset/views/core.py:2108
 msgid "Results backend is not configured."
 msgstr "Results backend не нестроен"
 
@@ -12308,8 +12297,9 @@ msgstr ""
 "отсутствуют."
 
 #: superset/connectors/sqla/views.py:291
+#, fuzzy
 msgid "Row level security filter"
-msgstr "Фильтр безопасности на уровне строк"
+msgstr "Безопасность на уровне строк"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:247
 #: superset-frontend/src/explore/controls.jsx:340
@@ -12318,7 +12308,6 @@ msgstr "Лимит строк"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:62
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:120
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:84
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:307
 msgid "Rows"
 msgstr "Строки"
@@ -12372,15 +12361,15 @@ msgstr "Выполнить запрос"
 msgid "Run query (Ctrl + Return)"
 msgstr "Выполнить запрос (Ctrl + Enter)"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:286
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:281
 msgid "Run query in a new tab"
-msgstr "Выполнить запрос в новой вкладке"
+msgstr "Выполнить запрос на новой вкладке"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton/index.tsx:51
 msgid "Run selection"
 msgstr "Выполнить выбранное"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:137
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:132
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:173
 msgid "Running"
 msgstr "Выполняется"
@@ -12388,7 +12377,7 @@ msgstr "Выполняется"
 #: superset/sql_lab.py:488
 #, python-format
 msgid "Running statement %(statement_num)s out of %(statement_count)s"
-msgstr "Выполняется запрос %(statement_num)s из %(statement_count)s"
+msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:87
 msgid "SAT"
@@ -12403,7 +12392,6 @@ msgid "SHA"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx:101
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:85
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1082
 #: superset-frontend/src/views/CRUD/data/common.ts:22
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:312
@@ -12801,8 +12789,8 @@ msgstr "Настройки расписания"
 msgid "Schedule the query periodically"
 msgstr "Запланировать периодическое выполнение запроса"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:155
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:161
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:150
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:156
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:186
 msgid "Scheduled"
 msgstr "Запланировано"
@@ -12831,7 +12819,7 @@ msgstr "Схема"
 msgid "Schema cache timeout"
 msgstr "Время жизни кэша схемы"
 
-#: superset/views/core.py:1158
+#: superset/views/core.py:1159
 msgid "Schema undefined"
 msgstr "Схема не определена"
 
@@ -12903,7 +12891,7 @@ msgstr "Поиск по тексту запроса"
 msgid "Search in filters"
 msgstr "Поиск / Фильтр"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:248
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:252
 #, fuzzy
 msgid "Search tables"
 msgstr "Показать в виде таблицы"
@@ -13090,7 +13078,7 @@ msgstr "Выберите столбец"
 msgid "Select current page"
 msgstr "Выбрать текущую страницу"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:241
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:245
 msgid "Select database & schema"
 msgstr "Выберите базу данных и схему"
 
@@ -13099,7 +13087,7 @@ msgstr "Выберите базу данных и схему"
 msgid "Select database or type database name"
 msgstr "Выберите базу данных или введите ее имя"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:245
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:249
 msgid "Select database table"
 msgstr "Выберите таблицу из базы данных"
 
@@ -13542,7 +13530,7 @@ msgstr "Показывать метку"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:85
 msgid "Show labels when the node has children."
-msgstr "Показывать метки, когда у узла есть дочерние элементы"
+msgstr "Показывать метки, когда у вершины есть дочерние элементы."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:37
 msgid "Show legend"
@@ -13969,7 +13957,7 @@ msgstr "Исходный SQL"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:74
 msgid "Source category"
-msgstr "Категория источника"
+msgstr "Исходная категория"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:73
 msgid "Sparkline"
@@ -14119,12 +14107,6 @@ msgstr ""
 "Начать ось Y в нуле. Снимите флаг, чтобы ось Y начиналась на минимальном "
 "значении данных"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:81
-#, fuzzy
-msgid "Started"
-msgstr "запущен"
-
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:80
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:97
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:367
 msgid "State"
@@ -14210,7 +14192,7 @@ msgstr "Схема"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:269
 msgid "Strength to pull the graph toward center"
-msgstr ""
+msgstr "Сила притяжения вершин к центру"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:36
 msgid "Stretched style"
@@ -14268,7 +14250,7 @@ msgstr "Отправить"
 msgid "Subtotal"
 msgstr "Подытог"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:119
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:114
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:63
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:154
 msgid "Success"
@@ -14454,7 +14436,7 @@ msgstr "Имя вкладки"
 msgid "Table"
 msgstr "Таблица"
 
-#: superset/views/core.py:1725
+#: superset/views/core.py:1726
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
 msgstr ""
@@ -14498,7 +14480,7 @@ msgstr "Время жизни кэша таблицы"
 msgid "Table columns"
 msgstr "Столбцы таблицы"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:242
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:246
 #, fuzzy
 msgid "Table loading"
 msgstr "Загрузка таблицы"
@@ -14676,6 +14658,8 @@ msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
+"Категория исходных вершин предназначена для задания цветов. Если вершина "
+"связана более, чем с одной категорией, только первая будет использована."
 
 #: superset/common/query_context_processor.py:582
 msgid "The chart datasource does not exist"
@@ -14784,7 +14768,7 @@ msgstr "База данных вернула неожиданную ошибку
 msgid "The database was deleted."
 msgstr "База данных была удалена"
 
-#: superset/datasets/commands/duplicate.py:60 superset/views/core.py:1979
+#: superset/datasets/commands/duplicate.py:60 superset/views/core.py:1980
 msgid "The database was not found."
 msgstr "Не удалось найти базу данных"
 
@@ -14936,7 +14920,7 @@ msgstr ""
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Максимальное значение мер. Это необязательная настройка"
 
-#: superset/databases/schemas.py:208
+#: superset/databases/schemas.py:217
 #, python-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
@@ -15010,7 +14994,7 @@ msgstr ""
 "увидеть больше строк до предела %(limit)d.\""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:362
-#, python-format
+#, fuzzy, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the dropdown."
 msgstr "Количество отображаемых строк ограничено: не более %(rows)d."
 
@@ -15165,7 +15149,7 @@ msgstr "Недействительный порт."
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Основная мера используется для определения размера сегмента дуги"
 
-#: superset/views/core.py:2186
+#: superset/views/core.py:2187
 msgid "The provided `rows` argument is not a valid integer."
 msgstr ""
 
@@ -15173,7 +15157,7 @@ msgstr ""
 msgid "The query associated with the results was deleted."
 msgstr "Запрос, связанный с результатами, был удален."
 
-#: superset/sqllab/commands/results.py:92 superset/views/core.py:2136
+#: superset/sqllab/commands/results.py:92 superset/views/core.py:2137
 msgid ""
 "The query associated with these results could not be found. You need to "
 "re-run the original query."
@@ -15774,7 +15758,7 @@ msgid ""
 " id to the SDK:"
 msgstr ""
 
-#: superset/views/core.py:1310
+#: superset/views/core.py:1311
 msgid ""
 "This dashboard was changed recently. Please reload dashboard to get "
 "latest version."
@@ -15863,11 +15847,11 @@ msgstr ""
 "Этот JSON объект описывает расположение графиков в дашборде. Он "
 "генерируется динамически при изменении и перемещении графиков в дашборде."
 
-#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:85
+#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:84
 msgid "This markdown component has an error."
 msgstr "Этот компонент содержит ошибки."
 
-#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:203
+#: superset-frontend/src/dashboard/components/gridComponents/Markdown.jsx:202
 msgid "This markdown component has an error. Please revert your recent changes."
 msgstr "Этот компонент содержит ошибки. Пожалуйста, отмените последние изменения."
 
@@ -16529,7 +16513,7 @@ msgstr ""
 msgid "Try different criteria to display results."
 msgstr "Попробуйте использовать другии критерии фильтрации"
 
-#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:244
+#: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:248
 msgid "Try selecting a different schema"
 msgstr ""
 
@@ -16741,7 +16725,8 @@ msgstr "Отменить?"
 msgid "Unexpected error"
 msgstr "Неожиданная ошибка"
 
-#: superset/databases/commands/exceptions.py:137 superset/views/core.py:1425
+#: superset/databases/commands/exceptions.py:137
+#: superset/databases/commands/exceptions.py:142 superset/views/core.py:1426
 msgid "Unexpected error occurred, please check your logs for details"
 msgstr ""
 "Возникла неожиданная ошибка, пожалуйста, проверьте историю действий для "
@@ -16769,7 +16754,7 @@ msgstr "Неизвестный хост MySQL \"%(hostname)s\"."
 msgid "Unknown Presto Error"
 msgstr "Неизвестная ошибка Presto"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:167
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:162
 msgid "Unknown Status"
 msgstr "Неизвестный статус"
 
@@ -16906,7 +16891,7 @@ msgstr "Загрузить файл в базу данных"
 msgid "Use \"%(menuName)s\" menu instead."
 msgstr "Использовать меню \"%(menuName)s\" взамен."
 
-#: superset-frontend/src/dashboard/util/getSliceHeaderTooltip.tsx:36
+#: superset-frontend/src/dashboard/util/getSliceHeaderTooltip.tsx:34
 #, python-format
 msgid "Use %s to open in a new tab."
 msgstr "Используйте %s для открытия в отдельной вкладке."
@@ -17167,7 +17152,7 @@ msgstr "Вертикально (слева)"
 msgid "Video game consoles"
 msgstr "Игровые приставки"
 
-#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:235
+#: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:230
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:386
 msgid "View"
 msgstr "Показать"
@@ -17222,7 +17207,6 @@ msgstr "Просмотрено %s"
 msgid "Viewport"
 msgstr "Область просмотра"
 
-#: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:346
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:563
 msgid "Virtual"
 msgstr "Виртуальный"
@@ -17420,8 +17404,8 @@ msgstr ""
 "Внимание! Изменение датасета может привести к тому, что график станет "
 "нерабочим, если будут отсутствовать метаданные."
 
-#: superset/databases/commands/exceptions.py:152
-#: superset/databases/commands/exceptions.py:162
+#: superset/databases/commands/exceptions.py:157
+#: superset/databases/commands/exceptions.py:167
 msgid "Was unable to check your query"
 msgstr "Не удалось проверить запрос"
 
@@ -17784,7 +17768,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:145
 msgid "Whether to enable node dragging in force layout mode."
-msgstr ""
+msgstr "Включить перемещение вершин в режиме силового алгоритма."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:250
 msgid "Whether to fill the objects"
@@ -18245,7 +18229,7 @@ msgstr ""
 "существуют. Перезапись может привести к потере части вашей работы. Вы "
 "уверены, что хотите продолжить?"
 
-#: superset/views/core.py:2151
+#: superset/views/core.py:2152
 msgid ""
 "You are not authorized to see this query. If you think this is an error, "
 "please reach out to your administrator."
@@ -18277,8 +18261,6 @@ msgstr ""
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:183
 msgid "You can preview the list of dashboards in the chart settings dropdown."
 msgstr ""
-"Список дашбордов, в которые добавлен график, доступны в выпадающем списке"
-" возле кнопки \"\\Сохранить\"\\."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Vis.js:367
 msgid "You cannot use 45° tick layout along with the time range filter"
@@ -18768,9 +18750,8 @@ msgstr "подключении к %(dbModelName)s"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx:117
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/controlPanel.ts:79
-#, fuzzy
 msgid "count"
-msgstr "count"
+msgstr "количество"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:355
 msgid "create"
@@ -18801,7 +18782,6 @@ msgid "cumsum"
 msgstr "Кумулятивная сумма"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx:121
-#, fuzzy
 msgid "cumulative"
 msgstr "кумулятивно"
 
@@ -18876,25 +18856,25 @@ msgstr "deck.gl Многослойный"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Path/index.js:28
 #, fuzzy
 msgid "deck.gl Path"
-msgstr "deck.gl - Paths"
+msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.js:30
 msgid "deck.gl Polygon"
-msgstr "deck.gl - Полигон"
+msgstr "deck.gl Полигон"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:30
 msgid "deck.gl Scatterplot"
-msgstr "deck.gl - Точечная карта"
+msgstr "deck.gl Точечная карта"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.js:30
 #, fuzzy
 msgid "deck.gl Screen Grid"
-msgstr "deck.gl - Screen Grid"
+msgstr "deck.gl Screen Grid"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:37
 #, fuzzy
 msgid "deck.gl charts"
-msgstr "Deck.gl - Paths"
+msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.js:31
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.js:33
@@ -19101,7 +19081,7 @@ msgstr "тепловая карта"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:184
 msgid "heatmap: values are normalized across the entire heatmap"
-msgstr ""
+msgstr "тепловая карта: значения нормализованы внутри всей карты"
 
 #: superset-frontend/src/components/EmptyState/index.tsx:237
 #: superset-frontend/src/components/ImportModal/ErrorAlert.tsx:60
@@ -19204,7 +19184,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:123
 #, fuzzy
 msgid "linear"
-msgstr "Линия"
+msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:66
 msgid "log"
@@ -19297,7 +19277,7 @@ msgstr "значение обязательно"
 msgid "name"
 msgstr "имя"
 
-#: superset/databases/commands/exceptions.py:142
+#: superset/databases/commands/exceptions.py:147
 msgid "no SQL validator is configured"
 msgstr "не настроен ни один SQL валидатор"
 
@@ -19398,7 +19378,7 @@ msgstr "Отрисовка"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx:125
 msgid "percentile (exclusive)"
-msgstr ""
+msgstr "перцентиль (исключая)"
 
 #: superset/utils/pandas_postprocessing/boxplot.py:88
 msgid ""
@@ -19406,7 +19386,7 @@ msgid ""
 " first is lower than the second value"
 msgstr ""
 
-#: superset/views/core.py:1899
+#: superset/views/core.py:1900
 msgid "permalink state not found"
 msgstr ""
 
@@ -19486,8 +19466,9 @@ msgstr "справа"
 
 #: superset-frontend/src/SqlLab/constants.ts:36
 #: superset-frontend/src/SqlLab/constants.ts:52
+#, fuzzy
 msgid "running"
-msgstr "выполняется"
+msgstr "Выполняется"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:30
 msgid "saved queries"
@@ -19579,6 +19560,7 @@ msgstr "Успешно"
 msgid "sum"
 msgstr "Сумма"
 
+# Не нужно переводить
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:80
 msgid "syntax."
 msgstr ""
@@ -19592,9 +19574,8 @@ msgid "textarea"
 msgstr "текстовая область"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx:114
-#, fuzzy
 msgid "to"
-msgstr "сверху"
+msgstr "по"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:160
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:178
@@ -19639,12 +19620,6 @@ msgstr "Дисперсия"
 msgid "variance"
 msgstr "Дисперсия"
 
-#: superset-frontend/src/pages/ChartCreation/index.tsx:353
-#: superset-frontend/src/pages/ChartCreation/index.tsx:365
-#, fuzzy
-msgid "view instructions"
-msgstr "Время в секундах"
-
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1042
 msgid "virtual"
 msgstr "Виртуальный"
@@ -19681,7 +19656,7 @@ msgstr "x"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:181
 msgid "x: values are normalized within each column"
-msgstr ""
+msgstr "x: значения нормализованы внутри каждого столбца"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:170
 msgid "y"
@@ -19689,7 +19664,7 @@ msgstr "y"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:182
 msgid "y: values are normalized within each row"
-msgstr ""
+msgstr "y: значения нормализованы внутри каждой строки"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:175
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:47
