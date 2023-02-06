@@ -154,22 +154,29 @@ class TestTagsDAO(SupersetTestCase):
         )
         assert len(tagged_objects) == 0
         # test get all objects
-        num_charts = db.session.query(Slice).join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == Slice.id,
-                        TaggedObject.object_type == ObjectTypes.chart,
-                    ),
-                ).distinct(Slice.id).count()
+        num_charts = (
+            db.session.query(Slice)
+            .join(
+                TaggedObject,
+                and_(
+                    TaggedObject.object_id == Slice.id,
+                    TaggedObject.object_type == ObjectTypes.chart,
+                ),
+            )
+            .distinct(Slice.id)
+            .count()
+        )
         num_charts_and_dashboards = (
             db.session.query(Dashboard)
-                .join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == Dashboard.id,
-                        TaggedObject.object_type == ObjectTypes.dashboard,
-                    ),
-                ).distinct(Slice.id).count()
+            .join(
+                TaggedObject,
+                and_(
+                    TaggedObject.object_id == Dashboard.id,
+                    TaggedObject.object_type == ObjectTypes.dashboard,
+                ),
+            )
+            .distinct(Slice.id)
+            .count()
             + num_charts
         )
         # gets all tagged objects of type dashboard and chart

@@ -36,7 +36,7 @@ from superset.utils.database import get_example_database, get_main_database
 from superset.tags.models import ObjectTypes, Tag, TagTypes, TaggedObject
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
-    load_birth_names_data
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
@@ -318,7 +318,7 @@ class TestTagApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         fetched_objects = rv.json["result"]
         # check that the dashboard object was fetched
-        assert dashboard_id in [obj['id'] for obj in fetched_objects]
+        assert dashboard_id in [obj["id"] for obj in fetched_objects]
         # clean up tagged object
         tagged_objects.delete()
 
