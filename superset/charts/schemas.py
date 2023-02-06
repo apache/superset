@@ -1368,6 +1368,9 @@ class GetFavStarIdsSchema(Schema):
 
 class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
     query_context = fields.String(allow_none=True, validate=utils.validate_json)
