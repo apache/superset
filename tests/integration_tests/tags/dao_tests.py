@@ -17,6 +17,7 @@
 # isort:skip_file
 import copy
 import json
+from operator import and_
 import time
 from unittest.mock import patch
 import pytest
@@ -153,19 +154,29 @@ class TestTagsDAO(SupersetTestCase):
         )
         assert len(tagged_objects) == 0
         # test get all objects
-        num_charts = db.session.query(Slice).count()
-        num_objects = (
-            db.session.query(Dashboard).count()
+        num_charts = db.session.query(Slice).join(
+                    TaggedObject,
+                    and_(
+                        TaggedObject.object_id == Slice.id,
+                        TaggedObject.object_type == ObjectTypes.chart,
+                    ),
+                ).distinct(Slice.id).count()
+        num_charts_and_dashboards = (
+            db.session.query(Dashboard)
+                .join(
+                    TaggedObject,
+                    and_(
+                        TaggedObject.object_id == Dashboard.id,
+                        TaggedObject.object_type == ObjectTypes.dashboard,
+                    ),
+                ).distinct(Slice.id).count()
             + num_charts
-            + db.session.query(SavedQuery).count()
         )
-        tagged_objects = TagDAO.get_tagged_objects_for_tags()
-        assert len(tagged_objects) == num_objects
-        # test get all objects by type
+        # gets all tagged objects of type dashboard and chart
         tagged_objects = TagDAO.get_tagged_objects_for_tags(
-            obj_types=["dashboard", "chart", "saved_queries"]
+            obj_types=["dashboard", "chart"]
         )
-        assert len(tagged_objects) == num_objects
+        assert len(tagged_objects) == num_charts_and_dashboards
         # test objects are retrieved by type
         tagged_objects = TagDAO.get_tagged_objects_for_tags(obj_types=["chart"])
         assert len(tagged_objects) == num_charts

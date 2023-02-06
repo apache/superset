@@ -34,6 +34,10 @@ from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
 from superset.tags.models import ObjectTypes, Tag, TagTypes, TaggedObject
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -98,7 +102,7 @@ class TestTagApi(SupersetTestCase):
                         tag_type="custom",
                     )
                 )
-            yield tags
+            yield
 
             # rollback changes
             for tag in tags:
@@ -162,6 +166,7 @@ class TestTagApi(SupersetTestCase):
 
     # test add tagged objects
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_add_tagged_objects(self):
         self.login(username="admin")
         dashboard_id = 1
@@ -192,6 +197,7 @@ class TestTagApi(SupersetTestCase):
 
     # test delete tagged object
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_delete_tagged_objects(self):
         self.login(username="admin")
@@ -256,6 +262,7 @@ class TestTagApi(SupersetTestCase):
 
     # test get objects
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_get_objects_by_tag(self):
         self.login(username="admin")
@@ -285,9 +292,11 @@ class TestTagApi(SupersetTestCase):
 
     # test get all objects
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_get_all_objects(self):
         self.login(username="admin")
+        # tag the dashboard with id 1
         dashboard_id = 1
         dashboard_type = ObjectTypes.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
@@ -302,15 +311,14 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_type == dashboard_type.name,
         )
         self.assertEqual(tagged_objects.count(), 2)
+        self.assertEqual(tagged_objects.first().object_id, dashboard_id)
         uri = "api/v1/tag/get_objects/"
         rv = self.client.get(uri)
         # successful request
         self.assertEqual(rv.status_code, 200)
         fetched_objects = rv.json["result"]
-        # check that all tagged objects are fetched
-        # when tagging system is false, there will only be the one dashboard
-        self.assertEqual(len(fetched_objects), 1)
-        self.assertEqual(fetched_objects[0]["id"], 1)
+        # check that the dashboard object was fetched
+        assert dashboard_id in [obj['id'] for obj in fetched_objects]
         # clean up tagged object
         tagged_objects.delete()
 

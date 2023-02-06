@@ -169,7 +169,7 @@ class TagDAO(BaseDAO):
         results: List[Dict[str, Any]] = []
 
         # dashboards
-        if not obj_types or "dashboard" in obj_types:
+        if (not obj_types) or ("dashboard" in obj_types):
             dashboards = (
                 db.session.query(Dashboard)
                 .join(
@@ -197,7 +197,7 @@ class TagDAO(BaseDAO):
             )
 
         # charts
-        if not obj_types or "chart" in obj_types:
+        if (not obj_types) or ("chart" in obj_types):
             charts = (
                 db.session.query(Slice)
                 .join(
@@ -224,7 +224,7 @@ class TagDAO(BaseDAO):
             )
 
         # saved queries
-        if not obj_types or "query" in obj_types:
+        if (not obj_types) or ("query" in obj_types):
             saved_queries = (
                 db.session.query(SavedQuery)
                 .join(
