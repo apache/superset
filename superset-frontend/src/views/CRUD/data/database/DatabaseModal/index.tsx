@@ -1154,7 +1154,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [passwordsNeeded]);
 
   useEffect(() => {
-    if (db) {
+    if (db && isSSHTunneling) {
       setUseSSHTunneling(!isEmpty(db?.ssh_tunnel));
     }
   }, [db]);

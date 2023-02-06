@@ -1510,6 +1510,27 @@ describe('DatabaseModal', () => {
       expect(allowFileUploadText).not.toBeInTheDocument();
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
+
+    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+      const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
+      expect(SSHTunnelingToggle).not.toBeInTheDocument();
+      const SSHTunnelServerAddressInput = screen.queryByTestId(
+        'ssh-tunnel-server_address-input',
+      );
+      expect(SSHTunnelServerAddressInput).not.toBeInTheDocument();
+      const SSHTunnelServerPortInput = screen.queryByTestId(
+        'ssh-tunnel-server_port-input',
+      );
+      expect(SSHTunnelServerPortInput).not.toBeInTheDocument();
+      const SSHTunnelUsernameInput = screen.queryByTestId(
+        'ssh-tunnel-username-input',
+      );
+      expect(SSHTunnelUsernameInput).not.toBeInTheDocument();
+      const SSHTunnelPasswordInput = screen.queryByTestId(
+        'ssh-tunnel-password-input',
+      );
+      expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
+    });
   });
 
   describe('DatabaseModal w errors as objects', () => {
