@@ -101,7 +101,7 @@ def update_position_json(dashboard, session, uuid_map):
 
 def update_dashboards(session, uuid_map):
     message = (
-        "Updating dasboard position json with slice uuid.."
+        "Updating dashboard position json with slice uuid.."
         if uuid_map
         else "Cleaning up slice uuid from dashboard position json.."
     )

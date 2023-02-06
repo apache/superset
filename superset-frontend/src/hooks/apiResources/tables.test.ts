@@ -23,7 +23,8 @@ import { useTables } from './tables';
 
 const fakeApiResult = {
   json: {
-    options: [
+    count: 2,
+    result: [
       {
         id: 1,
         name: 'fake api result1',
@@ -35,13 +36,13 @@ const fakeApiResult = {
         label: 'fake api label2',
       },
     ],
-    tableLength: 2,
   },
 };
 
 const fakeHasMoreApiResult = {
   json: {
-    options: [
+    count: 4,
+    result: [
       {
         id: 1,
         name: 'fake api result1',
@@ -53,17 +54,16 @@ const fakeHasMoreApiResult = {
         label: 'fake api label2',
       },
     ],
-    tableLength: 4,
   },
 };
 
 const expectedData = {
-  ...fakeApiResult.json,
+  options: [...fakeApiResult.json.result],
   hasMore: false,
 };
 
 const expectedHasMoreData = {
-  ...fakeHasMoreApiResult.json,
+  options: [...fakeHasMoreApiResult.json.result],
   hasMore: true,
 };
 
@@ -103,7 +103,9 @@ describe('useTables hook', () => {
     });
     expect(SupersetClient.get).toHaveBeenCalledTimes(1);
     expect(SupersetClient.get).toHaveBeenCalledWith({
-      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/${forceRefresh}/`,
+      endpoint: `/api/v1/database/${expectDbId}/tables/?q=(force:!${
+        forceRefresh ? 't' : 'f'
+      },schema_name:${expectedSchema})`,
     });
     expect(result.current.data).toEqual(expectedData);
     await act(async () => {
@@ -111,7 +113,7 @@ describe('useTables hook', () => {
     });
     expect(SupersetClient.get).toHaveBeenCalledTimes(2);
     expect(SupersetClient.get).toHaveBeenCalledWith({
-      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/true/`,
+      endpoint: `/api/v1/database/${expectDbId}/tables/?q=(force:!t,schema_name:${expectedSchema})`,
     });
     expect(result.current.data).toEqual(expectedData);
   });

@@ -338,10 +338,7 @@ export class ChartCreation extends React.PureComponent<
     const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
-        <Link
-          to="/tablemodelview/list/#create"
-          data-test="add-chart-new-dataset"
-        >
+        <Link to="/dataset/add/" data-test="add-chart-new-dataset">
           {t('Add a dataset')}{' '}
         </Link>
         {t('or')}{' '}

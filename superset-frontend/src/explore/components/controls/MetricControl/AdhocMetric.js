@@ -127,7 +127,7 @@ export default class AdhocMetric {
       ...this,
       // all duplicate metrics are not considered new by default
       isNew: false,
-      // but still overriddable by nextFields
+      // but still overridable by nextFields
       ...nextFields,
     });
   }

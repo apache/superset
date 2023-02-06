@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  ComparisionType,
+  ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
   TimeGranularity,
@@ -72,14 +72,14 @@ const formDataMixedChartWithAA = {
   ...formDataMixedChart,
   rolling_type: RollingType.Cumsum,
   time_compare: ['1 years ago'],
-  comparison_type: ComparisionType.Values,
+  comparison_type: ComparisonType.Values,
   resample_rule: '1AS',
   resample_method: 'zerofill',
 
   rolling_type_b: RollingType.Sum,
   rolling_periods_b: 1,
   min_periods_b: 1,
-  comparison_type_b: ComparisionType.Difference,
+  comparison_type_b: ComparisonType.Difference,
   time_compare_b: ['3 years ago'],
   resample_rule_b: '1A',
   resample_method_b: 'asfreq',
@@ -198,6 +198,21 @@ test('should compile AA in query A', () => {
   // time comparison
   expect(query.time_offsets).toEqual(['1 years ago']);
 
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
   // cumsum
   expect(
     // prettier-ignore
@@ -384,20 +399,14 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
 });
 
 test("shouldn't convert a queryObject with axis although FF is enabled", () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
+  const windowSpy = jest
+    .spyOn(window, 'window', 'get')
     // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+    .mockImplementation(() => ({
       featureFlags: {
         GENERIC_CHART_AXES: true,
       },
     }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
 
   const { queries } = buildQuery(formDataMixedChart);
   expect(queries[0]).toEqual(
@@ -468,4 +477,40 @@ test("shouldn't convert a queryObject with axis although FF is enabled", () => {
       ],
     }),
   );
+
+  windowSpy.mockRestore();
+});
+
+test('ensure correct pivot columns with GENERIC_CHART_AXES enabled', () => {
+  const windowSpy = jest
+    .spyOn(window, 'window', 'get')
+    // @ts-ignore
+    .mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: true,
+      },
+    }));
+
+  const query = buildQuery({ ...formDataMixedChartWithAA, x_axis: 'ds' })
+    .queries[0];
+
+  expect(query.time_offsets).toEqual(['1 years ago']);
+
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['ds'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
+
+  windowSpy.mockRestore();
 });
