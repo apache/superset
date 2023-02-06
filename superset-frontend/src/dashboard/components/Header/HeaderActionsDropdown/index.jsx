@@ -36,39 +36,45 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
-  dashboardId: PropTypes.number.isRequired,
-  dashboardTitle: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number,
+  dashboardTitle: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
-  customCss: PropTypes.string.isRequired,
+  customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
-  refreshFrequency: PropTypes.number.isRequired,
+  refreshFrequency: PropTypes.number,
   shouldPersistRefreshFrequency: PropTypes.bool.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
-  userCanEdit: PropTypes.bool.isRequired,
-  userCanShare: PropTypes.bool.isRequired,
-  userCanSave: PropTypes.bool.isRequired,
+  userCanEdit: PropTypes.bool,
+  userCanShare: PropTypes.bool,
+  userCanSave: PropTypes.bool,
   userCanCurate: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
+  expandedSlices: PropTypes.object,
   onSave: PropTypes.func.isRequired,
   showPropertiesModal: PropTypes.func.isRequired,
   manageEmbedded: PropTypes.func.isRequired,
+  logEvent: PropTypes.func,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
 };
 
 const defaultProps = {
@@ -178,6 +184,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
+        this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
@@ -238,6 +245,9 @@ class HeaderActionsDropdown extends React.PureComponent {
       filters: getActiveFilters(),
       hash: window.location.hash,
     });
+
+    const refreshIntervalOptions =
+      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
@@ -386,6 +396,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             refreshWarning={refreshWarning}
             onChange={this.changeRefreshInterval}
             editMode={editMode}
+            refreshIntervalOptions={refreshIntervalOptions}
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
         </Menu.Item>

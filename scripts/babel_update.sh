@@ -45,7 +45,7 @@ pybabel extract \
   --sort-output \
   --copyright-holder=Superset \
   --project=Superset \
-  -k _ -k __ -k t -k tn -k tct .
+  -k _ -k __ -k t -k tn:1,2 -k tct .
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 

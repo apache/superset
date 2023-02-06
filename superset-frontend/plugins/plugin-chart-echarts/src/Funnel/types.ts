@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
+import { QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  DataRecordValue,
-  QueryFormColumn,
-  QueryFormData,
-  SetDataMaskHook,
-} from '@superset-ui/core';
-import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
+  LegendOrientation,
+  LegendType,
+} from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsFunnelFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     groupby: QueryFormData[];
     labelLine: boolean;
@@ -40,7 +40,6 @@ export type EchartsFunnelFormData = QueryFormData &
     gap: number;
     sort: 'descending' | 'ascending' | 'none' | undefined;
     orient: 'vertical' | 'horizontal' | undefined;
-    emitFilter: boolean;
   };
 
 export enum EchartsFunnelLabelTypeType {
@@ -53,9 +52,8 @@ export enum EchartsFunnelLabelTypeType {
 }
 
 export interface EchartsFunnelChartProps
-  extends ChartProps<EchartsFunnelFormData> {
+  extends BaseChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -71,17 +69,9 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   sort: 'descending',
   orient: 'vertical',
   gap: 0,
-  emitFilter: false,
 };
 
-export interface FunnelChartTransformedProps {
-  formData: EchartsFunnelFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type FunnelChartTransformedProps =
+  BaseTransformedProps<EchartsFunnelFormData> &
+    CrossFilterTransformedProps &
+    ContextMenuTransformedProps;

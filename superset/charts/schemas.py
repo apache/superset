@@ -71,6 +71,7 @@ get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 #
 # Column schema descriptions
 #
+id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
@@ -153,7 +154,7 @@ class ChartEntityResponseSchema(Schema):
     Schema for a chart object
     """
 
-    slice_id = fields.Integer()
+    id = fields.Integer(description=id_description)
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
@@ -434,7 +435,7 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         example=7,
     )
     rolling_type_options = fields.Dict(
-        desctiption="Optional options to pass to rolling method. Needed for "
+        description="Optional options to pass to rolling method. Needed for "
         "e.g. quantile operation.",
         example={},
     )
@@ -550,7 +551,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         required=True,
     )
     periods = fields.Integer(
-        descrption="Time periods (in units of `time_grain`) to predict into the future",
+        description="Time periods (in units of `time_grain`) to predict into the future",
         min=0,
         example=7,
         required=True,
@@ -819,7 +820,8 @@ class ChartDataFilterSchema(Schema):
     )
     val = fields.Raw(
         description="The value or values to compare against. Can be a string, "
-        "integer, decimal or list, depending on the operator.",
+        "integer, decimal, None or list, depending on the operator.",
+        allow_none=True,
         example=["China", "France", "Japan"],
     )
     grain = fields.String(
@@ -908,7 +910,7 @@ class AnnotationLayerSchema(Schema):
     )
     overrides = fields.Dict(
         keys=fields.String(
-            desciption="Name of property to be overridden",
+            description="Name of property to be overridden",
             validate=validate.OneOf(
                 choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
             ),
@@ -1194,9 +1196,16 @@ class ChartDataQueryContextSchema(Schema):
     query_context_factory: Optional[QueryContextFactory] = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
+    custom_cache_timeout = fields.Integer(
+        description="Override the default cache timeout",
+        required=False,
+        allow_none=True,
+    )
+
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
+        allow_none=True,
     )
 
     result_type = EnumField(ChartDataResultType, by_value=True)
@@ -1255,7 +1264,7 @@ class ChartDataResponseResult(Schema):
     )
     cache_timeout = fields.Integer(
         description="Cache timeout in following order: custom timeout, datasource "
-        "timeout, default config timeout.",
+        "timeout, cache default timeout, config default cache timeout.",
         required=True,
         allow_none=True,
     )
@@ -1289,7 +1298,7 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     stacktrace = fields.String(
-        desciption="Stacktrace if there was an error",
+        description="Stacktrace if there was an error",
         allow_none=True,
     )
     rowcount = fields.Integer(
@@ -1308,10 +1317,10 @@ class ChartDataResponseResult(Schema):
         fields.Dict(), description="A list with rejected filters"
     )
     from_dttm = fields.Integer(
-        desciption="Start timestamp of time range", required=False, allow_none=True
+        description="Start timestamp of time range", required=False, allow_none=True
     )
     to_dttm = fields.Integer(
-        desciption="End timestamp of time range", required=False, allow_none=True
+        description="End timestamp of time range", required=False, allow_none=True
     )
 
 

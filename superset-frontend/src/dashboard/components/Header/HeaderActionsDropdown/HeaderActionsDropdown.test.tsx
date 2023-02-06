@@ -38,7 +38,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   dashboardTitle: 'Title',
@@ -63,6 +68,7 @@ const createProps = () => ({
   lastModifiedTime: 0,
   isDropdownVisible: true,
   dataMask: {},
+  logEvent: jest.fn(),
 });
 const editModeOnProps = {
   ...createProps(),

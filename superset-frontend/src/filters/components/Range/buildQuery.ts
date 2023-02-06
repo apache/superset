@@ -20,6 +20,7 @@ import {
   buildQueryContext,
   GenericDataType,
   QueryFormData,
+  t,
 } from '@superset-ui/core';
 
 /**
@@ -44,7 +45,6 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns: [],
-      groupby: [],
       metrics: [
         {
           aggregate: 'MIN',
@@ -55,7 +55,7 @@ export default function buildQuery(formData: QueryFormData) {
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: 'min',
+          label: t('min'),
         },
         {
           aggregate: 'MAX',
@@ -66,7 +66,7 @@ export default function buildQuery(formData: QueryFormData) {
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
-          label: 'max',
+          label: t('max'),
         },
       ],
     },

@@ -72,7 +72,7 @@ interface PreselectedFilterColumn {
   [key: string]: boolean | string | number | string[] | number[];
 }
 
-interface PreselectedFiltersMeatadata {
+interface PreselectedFiltersMetadata {
   [key: string]: PreselectedFilterColumn;
 }
 
@@ -97,12 +97,9 @@ enum FILTER_COMPONENT_FILTER_TYPES {
 }
 
 const getPreselectedValuesFromDashboard =
-  (preselectedFilters: PreselectedFiltersMeatadata) =>
+  (preselectedFilters: PreselectedFiltersMetadata) =>
   (filterKey: string, column: string) => {
-    if (
-      preselectedFilters[filterKey] &&
-      preselectedFilters[filterKey][column]
-    ) {
+    if (preselectedFilters[filterKey]?.[column]) {
       // overwrite default values by dashboard default_filters
       return preselectedFilters[filterKey][column];
     }
@@ -157,7 +154,7 @@ const getFilterboxDependencies = (filterScopes: FilterScopesMetadata) => {
 export default function getNativeFilterConfig(
   chartData: SliceData[] = [],
   filterScopes: FilterScopesMetadata = {},
-  preselectFilters: PreselectedFiltersMeatadata = {},
+  preselectFilters: PreselectedFiltersMetadata = {},
 ): Filter[] {
   const filterConfig: Filter[] = [];
   const filterBoxToFilterComponentMap: FilterBoxToFilterComponentMap = {};

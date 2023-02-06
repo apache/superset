@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { NavBarProps, MenuObjectProps } from './Menu';
+import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
-export interface ExtentionConfigs {
+export interface ExtensionConfigs {
   ALLOWED_EXTENSIONS: Array<any>;
   CSV_EXTENSIONS: Array<any>;
   COLUMNAR_EXTENSIONS: Array<any>;
@@ -31,9 +31,14 @@ export interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
+  environmentTag: {
+    text: string;
+    color: string;
+  };
 }
 
 export enum GlobalMenuDataOptions {
   GOOGLE_SHEETS = 'gsheets',
   DB_CONNECTION = 'dbconnection',
+  DATASET_CREATION = 'datasetCreation',
 }

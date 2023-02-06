@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
+import { ModalFuncProps } from 'antd/lib/modal';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
 import { AntdModal, AntdModalProps } from 'src/components';
@@ -57,6 +58,7 @@ export interface ModalProps {
   draggableConfig?: DraggableProps;
   destroyOnClose?: boolean;
   maskClosable?: boolean;
+  zIndex?: number;
 }
 
 interface StyledModalProps {
@@ -201,6 +203,24 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `}
 `;
+const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
+  maxHeight: RESIZABLE_MAX_HEIGHT,
+  maxWidth: RESIZABLE_MAX_WIDTH,
+  minHeight: hideFooter
+    ? RESIZABLE_MIN_HEIGHT
+    : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
+  minWidth: RESIZABLE_MIN_WIDTH,
+  enable: {
+    bottom: true,
+    bottomLeft: false,
+    bottomRight: true,
+    left: false,
+    top: false,
+    topLeft: false,
+    topRight: false,
+    right: true,
+  },
+});
 
 const CustomModal = ({
   children,
@@ -222,24 +242,7 @@ const CustomModal = ({
   wrapProps,
   draggable = false,
   resizable = false,
-  resizableConfig = {
-    maxHeight: RESIZABLE_MAX_HEIGHT,
-    maxWidth: RESIZABLE_MAX_WIDTH,
-    minHeight: hideFooter
-      ? RESIZABLE_MIN_HEIGHT
-      : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
-    minWidth: RESIZABLE_MIN_WIDTH,
-    enable: {
-      bottom: true,
-      bottomLeft: false,
-      bottomRight: true,
-      left: false,
-      top: false,
-      topLeft: false,
-      topRight: false,
-      right: true,
-    },
-  },
+  resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
   ...rest
@@ -289,6 +292,13 @@ const CustomModal = ({
     }
   };
 
+  const getResizableConfig = useMemo(() => {
+    if (Object.keys(resizableConfig).length === 0) {
+      return defaultResizableConfig(hideFooter);
+    }
+    return resizableConfig;
+  }, [hideFooter, resizableConfig]);
+
   const ModalTitle = () =>
     draggable ? (
       <div
@@ -329,7 +339,7 @@ const CustomModal = ({
             {...draggableConfig}
           >
             {resizable ? (
-              <Resizable className="resizable" {...resizableConfig}>
+              <Resizable className="resizable" {...getResizableConfig}>
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>
@@ -354,13 +364,26 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
+// Ant Design 4 does not allow overriding Modal's buttons when
+// using one of the pre-defined functions. Ant Design 5 Modal introduced
+// the footer property that will allow that. Meanwhile, we're replicating
+// Button style using global CSS in src/GlobalStyles.tsx.
+// TODO: Replace this logic when on Ant Design 5.
+const buttonProps = {
+  okButtonProps: { className: 'modal-functions-ok-button' },
+  cancelButtonProps: { className: 'modal-functions-cancel-button' },
+};
+
 // TODO: in another PR, rename this to CompatabilityModal
 // and demote it as the default export.
 // We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
-  error: AntdModal.error,
-  warning: AntdModal.warning,
-  confirm: AntdModal.confirm,
+  error: (config: ModalFuncProps) =>
+    AntdModal.error({ ...config, ...buttonProps }),
+  warning: (config: ModalFuncProps) =>
+    AntdModal.warning({ ...config, ...buttonProps }),
+  confirm: (config: ModalFuncProps) =>
+    AntdModal.confirm({ ...config, ...buttonProps }),
   useModal: AntdModal.useModal,
 });
 

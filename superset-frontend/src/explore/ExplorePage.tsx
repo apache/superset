@@ -19,7 +19,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
+import {
+  getSharedLabelColor,
+  isDefined,
+  JsonObject,
+  makeApi,
+  SharedLabelColorSource,
+  t,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -30,15 +37,13 @@ import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilter
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
-import { ExploreResponsePayload } from './types';
+import { ExploreResponsePayload, SaveActionType } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
-const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
-  rv?.result?.form_data &&
-  rv?.result?.dataset &&
-  isDefined(rv?.result?.dataset?.id);
+const isValidResult = (rv: JsonObject): boolean =>
+  rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
@@ -46,10 +51,15 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       method: 'GET',
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
-    if (isResult(rv)) {
+    if (isValidResult(rv)) {
       return rv;
     }
-    throw new Error(t('Failed to load chart data.'));
+    let message = t('Failed to load chart data');
+    const responseError = rv?.result?.message;
+    if (responseError) {
+      message = `${message}:\n${responseError}`;
+    }
+    throw new Error(message);
   } catch (err) {
     // todo: encapsulate the error handler
     const clientError = await getClientErrorObject(err);
@@ -61,11 +71,20 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   }
 };
 
+const getDashboardPageContext = (pageId?: string | null) => {
+  if (!pageId) {
+    return null;
+  }
+  return (
+    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
+  );
+};
+
 const getDashboardContextFormData = () => {
   const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
-  const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
-  let dashboardContextWithFilters = {};
-  if (dashboardPageId) {
+  const dashboardContext = getDashboardPageContext(dashboardPageId);
+  if (dashboardContext) {
+    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
       labelColors,
       sharedLabelColors,
@@ -75,11 +94,8 @@ const getDashboardContextFormData = () => {
       filterBoxFilters,
       dataMask,
       dashboardId,
-    } =
-      getItem(LocalStorageKeys.dashboard__explore_context, {})[
-        dashboardPageId
-      ] || {};
-    dashboardContextWithFilters = getFormDataWithExtraFilters({
+    } = dashboardContext;
+    const dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
@@ -95,7 +111,7 @@ const getDashboardContextFormData = () => {
     Object.assign(dashboardContextWithFilters, { dashboardId });
     return dashboardContextWithFilters;
   }
-  return {};
+  return null;
 };
 
 export default function ExplorePage() {
@@ -106,19 +122,24 @@ export default function ExplorePage() {
 
   useEffect(() => {
     const exploreUrlParams = getParsedExploreURLParams(location);
-    const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
+    const saveAction = getUrlParam(
+      URL_PARAMS.saveAction,
+    ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData();
-    if (!isExploreInitialized.current || isSaveAction) {
+    if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData = getFormDataWithDashboardContext(
-            result.form_data,
-            dashboardContextFormData,
-          );
+          const formData = dashboardContextFormData
+            ? getFormDataWithDashboardContext(
+                result.form_data,
+                dashboardContextFormData,
+              )
+            : result.form_data;
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
+              saveAction,
             }),
           );
         })
@@ -131,6 +152,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
+    getSharedLabelColor().source = SharedLabelColorSource.explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

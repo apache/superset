@@ -126,7 +126,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   const onSave = () => {
     if (isEditMode) {
       // Edit
-      if (currentLayer && currentLayer.id) {
+      if (currentLayer?.id) {
         const update_id = currentLayer.id;
         delete currentLayer.id;
         delete currentLayer.created_by;
@@ -173,7 +173,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (currentLayer && currentLayer.name?.length) {
+    if (currentLayer?.name?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);

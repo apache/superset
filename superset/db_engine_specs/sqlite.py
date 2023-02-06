@@ -16,14 +16,14 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -73,49 +73,17 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        schemas = database.get_all_schema_names(
-            cache=database.schema_cache_enabled,
-            cache_timeout=database.schema_cache_timeout,
-            force=True,
-        )
-        schema = schemas[0]
-        if datasource_type == "table":
-            return [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ]
-        if datasource_type == "view":
-            return [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ]
-        raise Exception(f"Unsupported datasource_type: {datasource_type}")
-
-    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
-            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
+        sqla_type = cls.get_sqla_column_type(target_type)
+        if isinstance(sqla_type, (types.String, types.DateTime)):
+            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
         return None
 
     @classmethod
     def get_table_names(
         cls, database: "Database", inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
+    ) -> Set[str]:
         """Need to disregard the schema for Sqlite"""
-        return sorted(inspector.get_table_names())
+        return set(inspector.get_table_names())

@@ -62,10 +62,9 @@ export const useFilterScope = (filter: Filter) => {
     if (
       filter.scope.excluded.length === 0 &&
       (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID ||
-        (topLevelTabs &&
-          topLevelTabs.every(topLevelTab =>
-            filter.scope.rootPath.includes(topLevelTab),
-          )))
+        topLevelTabs?.every(topLevelTab =>
+          filter.scope.rootPath.includes(topLevelTab),
+        ))
     ) {
       return { all: [t('All charts')] };
     }

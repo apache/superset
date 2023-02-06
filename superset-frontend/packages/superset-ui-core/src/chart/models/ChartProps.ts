@@ -50,6 +50,8 @@ type Hooks = {
    * also handles "change" and "remove".
    */
   onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
+  /** handle right click */
+  onContextMenu?: HandlerFunction;
   /** handle errors */
   onError?: HandlerFunction;
   /** use the vis as control to update state */
@@ -88,6 +90,8 @@ export interface ChartPropsConfig {
   filterState?: FilterState;
   /** Set of actual behaviors that this instance of chart should use */
   behaviors?: Behavior[];
+  /** Chart display settings related to current view context */
+  displaySettings?: JsonObject;
   /** Application section of the chart on the screen (in what components/screen it placed) */
   appSection?: AppSection;
   /** is the chart refreshing its contents */
@@ -130,11 +134,17 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   behaviors: Behavior[];
 
+  displaySettings?: JsonObject;
+
   appSection?: AppSection;
 
   isRefreshing?: boolean;
 
   inputRef?: RefObject<any>;
+
+  inContextMenu?: boolean;
+
+  emitCrossFilters?: boolean;
 
   theme: SupersetTheme;
 
@@ -149,11 +159,14 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       initialValues = {},
       queriesData = [],
       behaviors = [],
+      displaySettings = {},
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
       appSection,
       isRefreshing,
       inputRef,
+      inContextMenu = false,
+      emitCrossFilters = false,
       theme,
     } = config;
     this.width = width;
@@ -169,9 +182,12 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.ownState = ownState;
     this.filterState = filterState;
     this.behaviors = behaviors;
+    this.displaySettings = displaySettings;
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
     this.inputRef = inputRef;
+    this.inContextMenu = inContextMenu;
+    this.emitCrossFilters = emitCrossFilters;
     this.theme = theme;
   }
 }
@@ -190,9 +206,12 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.ownState,
     input => input.filterState,
     input => input.behaviors,
+    input => input.displaySettings,
     input => input.appSection,
     input => input.isRefreshing,
     input => input.inputRef,
+    input => input.inContextMenu,
+    input => input.emitCrossFilters,
     input => input.theme,
     (
       annotationData,
@@ -206,9 +225,12 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       ownState,
       filterState,
       behaviors,
+      displaySettings,
       appSection,
       isRefreshing,
       inputRef,
+      inContextMenu,
+      emitCrossFilters,
       theme,
     ) =>
       new ChartProps({
@@ -223,9 +245,12 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         filterState,
         width,
         behaviors,
+        displaySettings,
         appSection,
         isRefreshing,
         inputRef,
+        inContextMenu,
+        emitCrossFilters,
         theme,
       }),
   );

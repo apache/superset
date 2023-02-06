@@ -36,6 +36,7 @@ describe('AdhocFilter', () => {
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
       operator: '>',
+      datasourceWarning: false,
       comparator: '10',
       clause: CLAUSES.WHERE,
       filterOptionName: adhocFilter.filterOptionName,

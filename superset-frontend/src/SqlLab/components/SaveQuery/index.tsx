@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -25,43 +25,29 @@ import { Menu } from 'src/components/Menu';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  SaveDatasetModal,
+  ISaveableDatasource,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { QueryEditor } from 'src/SqlLab/types';
 
 interface SaveQueryProps {
-  query: QueryPayload;
-  defaultLabel: string;
-  onSave: (arg0: QueryPayload) => void;
-  onUpdate: (arg0: QueryPayload) => void;
+  queryEditorId: string;
+  columns: ISaveableDatasource['columns'];
+  onSave: (arg0: QueryPayload, id: string) => void;
+  onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Record<string, any>;
 }
 
 type QueryPayload = {
-  autorun: boolean;
-  dbId: number;
+  name: string;
   description?: string;
   id?: string;
-  latestQueryId: string;
-  queryLimit: number;
-  remoteId: number;
-  schema: string;
-  schemaOptions: Array<{
-    label: string;
-    title: string;
-    value: string;
-  }>;
-  selectedText: string | null;
-  sql: string;
-  tableOptions: Array<{
-    label: string;
-    schema: string;
-    title: string;
-    type: string;
-    value: string;
-  }>;
-  name: string;
-};
+  remoteId?: number;
+} & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -75,14 +61,37 @@ const Styles = styled.span`
   }
 `;
 
-export default function SaveQuery({
-  query,
-  defaultLabel = t('Undefined'),
+const SaveQuery = ({
+  queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
-}: SaveQueryProps) {
+  columns,
+}: SaveQueryProps) => {
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'autorun',
+    'name',
+    'description',
+    'remoteId',
+    'dbId',
+    'latestQueryId',
+    'queryLimit',
+    'schema',
+    'schemaOptions',
+    'selectedText',
+    'sql',
+    'tableOptions',
+    'templateParams',
+  ]);
+  const query = useMemo(
+    () => ({
+      ...queryEditor,
+      columns,
+    }),
+    [queryEditor, columns],
+  );
+  const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',
   );
@@ -101,9 +110,13 @@ export default function SaveQuery({
   );
 
   const queryPayload = () => ({
-    ...query,
     name: label,
     description,
+    dbId: query.dbId ?? 0,
+    sql: query.sql,
+    schema: query.schema,
+    templateParams: query.templateParams,
+    remoteId: query?.remoteId || undefined,
   });
 
   useEffect(() => {
@@ -113,12 +126,12 @@ export default function SaveQuery({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
-    onSave(queryPayload());
+    onSave(queryPayload(), query.id);
     close();
   };
 
   const onUpdateWrapper = () => {
-    onUpdate(queryPayload());
+    onUpdate(queryPayload(), query.id);
     close();
   };
 
@@ -218,4 +231,6 @@ export default function SaveQuery({
       </Modal>
     </Styles>
   );
-}
+};
+
+export default SaveQuery;

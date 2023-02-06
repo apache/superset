@@ -17,13 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty, validateInteger } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   sharedControls,
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   sections,
-  emitFilterControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -46,7 +45,6 @@ const config: ControlPanelConfig = {
         ],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -82,8 +80,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'TextControl',
               isInt: true,
-              default: String(DEFAULT_FORM_DATA.minVal),
-              validators: [validateNonEmpty, validateInteger],
+              default: DEFAULT_FORM_DATA.minVal,
               renderTrigger: true,
               label: t('Min'),
               description: t('Minimum value on the gauge axis'),
@@ -95,7 +92,6 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               isInt: true,
               default: DEFAULT_FORM_DATA.maxVal,
-              validators: [validateNonEmpty, validateInteger],
               renderTrigger: true,
               label: t('Max'),
               description: t('Maximum value on the gauge axis'),

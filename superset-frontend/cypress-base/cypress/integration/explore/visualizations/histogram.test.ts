@@ -19,6 +19,10 @@
 import { QueryFormData } from '@superset-ui/core';
 
 describe('Visualization > Histogram', () => {
+  beforeEach(() => {
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const HISTOGRAM_FORM_DATA: QueryFormData = {
     datasource: '3__table',
     viz_type: 'histogram',
@@ -42,11 +46,6 @@ describe('Visualization > Histogram', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without groupby', () => {
     verify(HISTOGRAM_FORM_DATA);
@@ -83,5 +82,22 @@ describe('Visualization > Histogram', () => {
       ],
     });
     cy.get('.chart-container svg .vx-bar').should('have.length', numBins);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    verify(HISTOGRAM_FORM_DATA);
+
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.histogram .vx-legend .vx-legend-shape div')
+      .first()
+      .should('have.css', 'background')
+      .and('contains', 'rgb(31, 168, 201)');
   });
 });

@@ -33,6 +33,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
+import SubMenu from 'src/views/components/SubMenu';
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
@@ -41,6 +42,7 @@ const store = mockStore({});
 const datasetsInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 const datasetsSchemaEndpoint = 'glob:*/api/v1/dataset/distinct/schema*';
+const datasetsDuplicateEndpoint = 'glob:*/api/v1/dataset/duplicate*';
 const databaseEndpoint = 'glob:*/api/v1/dataset/related/database*';
 const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
@@ -51,7 +53,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
@@ -63,12 +65,15 @@ const mockUser = {
 };
 
 fetchMock.get(datasetsInfoEndpoint, {
-  permissions: ['can_read', 'can_write'],
+  permissions: ['can_read', 'can_write', 'can_duplicate'],
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsSchemaEndpoint, {
+  result: [],
+});
+fetchMock.post(datasetsDuplicateEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsEndpoint, {
@@ -180,6 +185,52 @@ describe('DatasetList', () => {
     expect(
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
+  });
+
+  it('shows duplicate modal when duplicate action is clicked', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeFalsy();
+    act(() => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeTruthy();
+  });
+
+  it('calls the duplicate endpoint', async () => {
+    await waitForComponentToPaint(wrapper);
+    await act(async () => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+      await waitForComponentToPaint(wrapper);
+      wrapper
+        .find('[data-test="duplicate-modal-input"]')
+        .at(0)
+        .props()
+        .onPressEnter();
+    });
+    expect(fetchMock.calls(/dataset\/duplicate/)).toHaveLength(1);
+  });
+
+  it('renders a SubMenu', () => {
+    expect(wrapper.find(SubMenu)).toExist();
+  });
+
+  it('renders a SubMenu with no tabs', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toBeUndefined();
   });
 });
 

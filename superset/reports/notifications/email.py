@@ -26,10 +26,11 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
+from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
-from superset.utils.core import send_email_smtp
+from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
@@ -67,6 +68,7 @@ ALLOWED_ATTRIBUTES = {
 @dataclass
 class EmailContent:
     body: str
+    header_data: Optional[HeaderDataType] = None
     data: Optional[Dict[str, Any]] = None
     images: Optional[Dict[str, bytes]] = None
 
@@ -126,7 +128,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __("Explore in Superset")
+        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         url = (
             modify_url_query(self._content.url, standalone="0")
             if self._content.url is not None
@@ -170,7 +172,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
-        return EmailContent(body=body, images=images, data=csv_data)
+        return EmailContent(
+            body=body,
+            images=images,
+            data=csv_data,
+            header_data=self._content.header_data,
+        )
 
     def _get_subject(self) -> str:
         return __(
@@ -199,7 +206,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                header_data=content.header_data,
             )
-            logger.info("Report sent to email")
+            logger.info(
+                "Report sent to email, notification content is %s", content.header_data
+            )
+        except SupersetErrorsException as ex:
+            raise NotificationError(
+                ";".join([error.message for error in ex.errors])
+            ) from ex
         except Exception as ex:
-            raise NotificationError(ex) from ex
+            raise NotificationError(str(ex)) from ex

@@ -69,7 +69,7 @@ function PropertiesModal({
       errorText = t('You do not have permission to edit this chart');
     }
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -107,12 +107,12 @@ function PropertiesModal({
         return SupersetClient.get({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+          data: response.json.result
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
+            .map((item: { value: number; text: string }) => ({
               value: item.value,
               label: item.text,
-            }),
-          ),
+            })),
           totalCount: response.json.count,
         }));
       },
@@ -159,6 +159,7 @@ function PropertiesModal({
         ...payload,
         ...res.json.result,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
@@ -186,7 +187,7 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title="Edit Chart Properties"
+      title={t('Edit Chart Properties')}
       footer={
         <>
           <Button

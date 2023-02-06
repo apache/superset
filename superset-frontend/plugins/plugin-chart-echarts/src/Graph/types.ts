@@ -19,13 +19,20 @@
 import { QueryFormData } from '@superset-ui/core';
 import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { SeriesTooltipOption } from 'echarts/types/src/util/types';
-import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+import {
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  LegendFormData,
+  LegendOrientation,
+  LegendType,
+} from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EdgeSymbol = 'none' | 'circle' | 'arrow';
 
 export type EchartsGraphFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     source: string;
     target: string;
     sourceCategory?: string;
@@ -75,3 +82,11 @@ export const DEFAULT_FORM_DATA: EchartsGraphFormData = {
 export type tooltipFormatParams = {
   data: { [name: string]: string };
 };
+
+export interface EchartsGraphChartProps
+  extends BaseChartProps<EchartsGraphFormData> {
+  formData: EchartsGraphFormData;
+}
+
+export type GraphChartTransformedProps =
+  BaseTransformedProps<EchartsGraphFormData> & ContextMenuTransformedProps;

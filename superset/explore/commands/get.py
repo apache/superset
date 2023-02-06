@@ -19,7 +19,7 @@ from abc import ABC
 from typing import Any, cast, Dict, Optional
 
 import simplejson as json
-from flask import current_app as app
+from flask import current_app, request
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -27,7 +27,7 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.dao.exceptions import DatasourceNotFound
 from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException
 from superset.explore.commands.parameters import CommandParameters
@@ -55,8 +55,8 @@ class GetExploreCommand(BaseCommand, ABC):
     ) -> None:
         self._permalink_key = params.permalink_key
         self._form_data_key = params.form_data_key
-        self._dataset_id = params.dataset_id
-        self._dataset_type = params.dataset_type
+        self._datasource_id = params.datasource_id
+        self._datasource_type = params.datasource_type
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -87,77 +87,104 @@ class GetExploreCommand(BaseCommand, ABC):
                     message = _(
                         "Form data not found in cache, reverting to chart metadata."
                     )
-            elif self._dataset_id:
+            elif self._datasource_id:
                 initial_form_data[
                     "datasource"
-                ] = f"{self._dataset_id}__{self._dataset_type}"
+                ] = f"{self._datasource_id}__{self._datasource_type}"
                 if self._form_data_key:
                     message = _(
                         "Form data not found in cache, reverting to dataset metadata."
                     )
 
         form_data, slc = get_form_data(
-            use_slice_data=True, initial_form_data=initial_form_data
+            slice_id=self._slice_id,
+            use_slice_data=True,
+            initial_form_data=initial_form_data,
         )
         try:
-            self._dataset_id, self._dataset_type = get_datasource_info(
-                self._dataset_id, self._dataset_type, form_data
+            self._datasource_id, self._datasource_type = get_datasource_info(
+                self._datasource_id, self._datasource_type, form_data
             )
         except SupersetException:
-            self._dataset_id = None
+            self._datasource_id = None
             # fallback unkonw datasource to table type
-            self._dataset_type = SqlaTable.type
+            self._datasource_type = SqlaTable.type
 
-        dataset: Optional[BaseDatasource] = None
-        if self._dataset_id is not None:
+        datasource: Optional[BaseDatasource] = None
+        if self._datasource_id is not None:
             try:
-                dataset = DatasourceDAO.get_datasource(
-                    db.session, cast(str, self._dataset_type), self._dataset_id
+                datasource = DatasourceDAO.get_datasource(
+                    db.session, cast(str, self._datasource_type), self._datasource_id
                 )
-            except DatasetNotFoundError:
+            except DatasourceNotFound:
                 pass
-        dataset_name = dataset.name if dataset else _("[Missing Dataset]")
+        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
 
-        if dataset:
-            if app.config["ENABLE_ACCESS_REQUEST"] and (
-                not security_manager.can_access_datasource(dataset)
+        if datasource:
+            if current_app.config["ENABLE_ACCESS_REQUEST"] and (
+                not security_manager.can_access_datasource(datasource)
             ):
-                message = __(security_manager.get_datasource_access_error_msg(dataset))
+                message = __(
+                    security_manager.get_datasource_access_error_msg(datasource)
+                )
                 raise DatasetAccessDeniedError(
                     message=message,
-                    dataset_type=self._dataset_type,
-                    dataset_id=self._dataset_id,
+                    datasource_type=self._datasource_type,
+                    datasource_id=self._datasource_id,
                 )
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and dataset and dataset.default_endpoint:
-            raise WrongEndpointError(redirect=dataset.default_endpoint)
+        if not viz_type and datasource and datasource.default_endpoint:
+            raise WrongEndpointError(redirect=datasource.default_endpoint)
 
         form_data["datasource"] = (
-            str(self._dataset_id) + "__" + cast(str, self._dataset_type)
+            str(self._datasource_id) + "__" + cast(str, self._datasource_type)
         )
 
-        # On explore, merge legacy and extra filters into the form data
+        # On explore, merge legacy/extra filters and URL params into the form data
         utils.convert_legacy_filters_into_adhoc(form_data)
         utils.merge_extra_filters(form_data)
+        utils.merge_request_params(form_data, request.args)
 
-        dummy_dataset_data: Dict[str, Any] = {
-            "type": self._dataset_type,
-            "name": dataset_name,
+        # TODO: this is a dummy placeholder - should be refactored to being just `None`
+        datasource_data: Dict[str, Any] = {
+            "type": self._datasource_type,
+            "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
         try:
-            dataset_data = dataset.data if dataset else dummy_dataset_data
-        except (SupersetException, SQLAlchemyError):
-            dataset_data = dummy_dataset_data
+            if datasource:
+                datasource_data = datasource.data
+        except SupersetException as ex:
+            message = ex.message
+        except SQLAlchemyError:
+            message = "SQLAlchemy error"
+
+        metadata = None
+
+        if slc:
+            metadata = {
+                "created_on_humanized": slc.created_on_humanized,
+                "changed_on_humanized": slc.changed_on_humanized,
+                "owners": [owner.get_full_name() for owner in slc.owners],
+                "dashboards": [
+                    {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
+                    for dashboard in slc.dashboards
+                ],
+            }
+            if slc.created_by:
+                metadata["created_by"] = slc.created_by.get_full_name()
+            if slc.changed_by:
+                metadata["changed_by"] = slc.changed_by.get_full_name()
 
         return {
-            "dataset": sanitize_datasource_data(dataset_data),
+            "dataset": sanitize_datasource_data(datasource_data),
             "form_data": form_data,
             "slice": slc.data if slc else None,
             "message": message,
+            "metadata": metadata,
         }
 
     def validate(self) -> None:

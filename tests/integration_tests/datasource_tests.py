@@ -45,18 +45,17 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    database.get_sqla_engine().execute(
-        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
-    )
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(
+            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+        )
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
+
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):
@@ -234,7 +233,7 @@ class TestDatasource(SupersetTestCase):
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
 
-    def test_external_metadata_for_mutistatement_virtual_table(self):
+    def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(username="admin")
         table = SqlaTable(
             table_name="multistatement_sql_table",
@@ -297,6 +296,44 @@ class TestDatasource(SupersetTestCase):
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_default_endpoint_validation_fail(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 400
+
+    def test_save_default_endpoint_validation_unsafe(self):
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = True
+
+    def test_save_default_endpoint_validation_success(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://localhost/superset/1"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
 
     def save_datasource_from_dict(self, datasource_post):
         data = dict(data=json.dumps(datasource_post))
@@ -429,37 +466,35 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     # feeds data
-    test_client.post(uri)
+    test_client.post(uri, json={})
     # get from cache
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 200
-    assert len(rv_data["result"]["data"]) == 10
+    assert len(rv.json["result"]["data"]) == 10
     assert QueryCacheManager.has(
-        rv_data["result"]["cache_key"],
+        rv.json["result"]["cache_key"],
         region=CacheRegion.DATA,
     )
-    assert rv_data["result"]["is_cached"]
+    assert rv.json["result"]["is_cached"]
 
     # 2. should read through cache data
     uri2 = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"
     # feeds data
-    test_client.post(uri2)
+    test_client.post(uri2, json={})
     # force query
-    rv2 = test_client.post(uri2)
-    rv_data2 = json.loads(rv2.data)
+    rv2 = test_client.post(uri2, json={})
     assert rv2.status_code == 200
-    assert len(rv_data2["result"]["data"]) == 10
+    assert len(rv2.json["result"]["data"]) == 10
     assert QueryCacheManager.has(
-        rv_data2["result"]["cache_key"],
+        rv2.json["result"]["cache_key"],
         region=CacheRegion.DATA,
     )
-    assert not rv_data2["result"]["is_cached"]
+    assert not rv2.json["result"]["is_cached"]
 
     # 3. data precision
-    assert "colnames" in rv_data2["result"]
-    assert "coltypes" in rv_data2["result"]
-    assert "data" in rv_data2["result"]
+    assert "colnames" in rv2.json["result"]
+    assert "coltypes" in rv2.json["result"]
+    assert "data" in rv2.json["result"]
 
     eager_samples = virtual_dataset.database.get_df(
         f"select * from ({virtual_dataset.sql}) as tbl"
@@ -468,7 +503,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     # the col3 is Decimal
     eager_samples["col3"] = eager_samples["col3"].apply(float)
     eager_samples = eager_samples.to_dict(orient="records")
-    assert eager_samples == rv_data2["result"]["data"]
+    assert eager_samples == rv2.json["result"]["data"]
 
 
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):
@@ -483,26 +518,24 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 422
 
-    rv_data = json.loads(rv.data)
-    assert "error" in rv_data
+    assert "error" in rv.json
     if virtual_dataset.database.db_engine_spec.engine_name == "PostgreSQL":
-        assert "INCORRECT SQL" in rv_data.get("error")
+        assert "INCORRECT SQL" in rv.json.get("error")
 
 
 def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_dataset):
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 200
-    rv_data = json.loads(rv.data)
     assert QueryCacheManager.has(
-        rv_data["result"]["cache_key"], region=CacheRegion.DATA
+        rv.json["result"]["cache_key"], region=CacheRegion.DATA
     )
-    assert len(rv_data["result"]["data"]) == 10
+    assert len(rv.json["result"]["data"]) == 10
 
 
 def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
@@ -510,7 +543,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json=None)
-    assert rv.status_code == 200
+    assert rv.status_code == 400
 
     rv = test_client.post(uri, json={})
     assert rv.status_code == 200
@@ -533,9 +566,8 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["colnames"] == ["col1", "col2", "col3", "col4", "col5"]
-    assert rv_data["result"]["rowcount"] == 1
+    assert rv.json["result"]["colnames"] == ["col1", "col2", "col3", "col4", "col5"]
+    assert rv.json["result"]["rowcount"] == 1
 
     # empty results
     rv = test_client.post(
@@ -547,9 +579,64 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["colnames"] == []
-    assert rv_data["result"]["rowcount"] == 0
+    assert rv.json["result"]["colnames"] == []
+    assert rv.json["result"]["rowcount"] == 0
+
+
+def test_get_samples_with_time_filter(test_client, login_as_admin, physical_dataset):
+    uri = (
+        f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
+    )
+    payload = {
+        "granularity": "col5",
+        "time_range": "2000-01-02 : 2000-01-04",
+    }
+    rv = test_client.post(uri, json=payload)
+    assert len(rv.json["result"]["data"]) == 2
+    if physical_dataset.database.backend != "sqlite":
+        assert [row["col5"] for row in rv.json["result"]["data"]] == [
+            946771200000.0,  # 2000-01-02 00:00:00
+            946857600000.0,  # 2000-01-03 00:00:00
+        ]
+    assert rv.json["result"]["page"] == 1
+    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["total_count"] == 2
+
+
+def test_get_samples_with_multiple_filters(
+    test_client, login_as_admin, physical_dataset
+):
+    # 1. empty response
+    uri = (
+        f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
+    )
+    payload = {
+        "granularity": "col5",
+        "time_range": "2000-01-02 : 2000-01-04",
+        "filters": [
+            {"col": "col4", "op": "IS NOT NULL"},
+        ],
+    }
+    rv = test_client.post(uri, json=payload)
+    assert len(rv.json["result"]["data"]) == 0
+
+    # 2. adhoc filters, time filters, and custom where
+    payload = {
+        "granularity": "col5",
+        "time_range": "2000-01-02 : 2000-01-04",
+        "filters": [
+            {"col": "col2", "op": "==", "val": "c"},
+        ],
+        "extras": {"where": "col3 = 1.2 and col4 is null"},
+    }
+    rv = test_client.post(uri, json=payload)
+    assert len(rv.json["result"]["data"]) == 1
+    assert rv.json["result"]["total_count"] == 1
+    assert "2000-01-02" in rv.json["result"]["query"]
+    assert "2000-01-04" in rv.json["result"]["query"]
+    assert "col3 = 1.2" in rv.json["result"]["query"]
+    assert "col4 is null" in rv.json["result"]["query"]
+    assert "col2 = 'c'" in rv.json["result"]["query"]
 
 
 def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
@@ -557,50 +644,46 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["page"] == 1
-    assert rv_data["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
-    assert rv_data["result"]["total_count"] == 10
+    rv = test_client.post(uri, json={})
+    assert rv.json["result"]["page"] == 1
+    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
     per_pages = (app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"
-        rv = test_client.post(uri)
+        rv = test_client.post(uri, json={})
         assert rv.status_code == 400
 
     # 3. incorrect page or datasource_type
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&page=xx"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 400
 
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=xx"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 400
 
     # 4. turning pages
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=1"
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["page"] == 1
-    assert rv_data["result"]["per_page"] == 2
-    assert rv_data["result"]["total_count"] == 10
-    assert [row["col1"] for row in rv_data["result"]["data"]] == [0, 1]
+    rv = test_client.post(uri, json={})
+    assert rv.json["result"]["page"] == 1
+    assert rv.json["result"]["per_page"] == 2
+    assert rv.json["result"]["total_count"] == 10
+    assert [row["col1"] for row in rv.json["result"]["data"]] == [0, 1]
 
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=2"
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["page"] == 2
-    assert rv_data["result"]["per_page"] == 2
-    assert rv_data["result"]["total_count"] == 10
-    assert [row["col1"] for row in rv_data["result"]["data"]] == [2, 3]
+    rv = test_client.post(uri, json={})
+    assert rv.json["result"]["page"] == 2
+    assert rv.json["result"]["per_page"] == 2
+    assert rv.json["result"]["total_count"] == 10
+    assert [row["col1"] for row in rv.json["result"]["data"]] == [2, 3]
 
     # 5. Exceeding the maximum pages
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=6"
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["page"] == 6
-    assert rv_data["result"]["per_page"] == 2
-    assert rv_data["result"]["total_count"] == 10
-    assert [row["col1"] for row in rv_data["result"]["data"]] == []
+    rv = test_client.post(uri, json={})
+    assert rv.json["result"]["page"] == 6
+    assert rv.json["result"]["per_page"] == 2
+    assert rv.json["result"]["total_count"] == 10
+    assert [row["col1"] for row in rv.json["result"]["data"]] == []

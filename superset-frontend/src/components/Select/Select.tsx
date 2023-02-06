@@ -19,188 +19,48 @@
 import React, {
   forwardRef,
   ReactElement,
-  ReactNode,
   RefObject,
   useEffect,
   useMemo,
   useState,
   useCallback,
 } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import AntdSelect, {
-  SelectProps as AntdSelectProps,
-  SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
+import {
+  ensureIsArray,
+  formatNumber,
+  NumberFormats,
+  t,
+} from '@superset-ui/core';
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { isEqual } from 'lodash';
-import Icons from 'src/components/Icons';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption, isLabeledValue } from './utils';
-
-const { Option } = AntdSelect;
-
-type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
-
-type PickedSelectProps = Pick<
-  AntdSelectAllProps,
-  | 'allowClear'
-  | 'autoFocus'
-  | 'disabled'
-  | 'filterOption'
-  | 'labelInValue'
-  | 'loading'
-  | 'notFoundContent'
-  | 'onChange'
-  | 'onClear'
-  | 'onFocus'
-  | 'onBlur'
-  | 'onDropdownVisibleChange'
-  | 'placeholder'
-  | 'showSearch'
-  | 'tokenSeparators'
-  | 'value'
-  | 'getPopupContainer'
->;
-
-export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export interface SelectProps extends PickedSelectProps {
-  /**
-   * It enables the user to create new options.
-   * Can be used with standard or async select types.
-   * Can be used with any mode, single or multiple.
-   * False by default.
-   * */
-  allowNewOptions?: boolean;
-  /**
-   * It adds the aria-label tag for accessibility standards.
-   * Must be plain English and localized.
-   */
-  ariaLabel: string;
-  /**
-   * It adds a header on top of the Select.
-   * Can be any ReactNode.
-   */
-  header?: ReactNode;
-  /**
-   * It defines whether the Select should allow for the
-   * selection of multiple options or single.
-   * Single by default.
-   */
-  mode?: 'single' | 'multiple';
-  /**
-   * Deprecated.
-   * Prefer ariaLabel instead.
-   */
-  name?: string; // discourage usage
-  /**
-   * It allows to define which properties of the option object
-   * should be looked for when searching.
-   * By default label and value.
-   */
-  optionFilterProps?: string[];
-  /**
-   * It defines the options of the Select.
-   * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
-   * an array of options.
-   */
-  options: OptionsType;
-  /**
-   * It shows a stop-outlined icon at the far right of a selected
-   * option instead of the default checkmark.
-   * Useful to better indicate to the user that by clicking on a selected
-   * option it will be de-selected.
-   * False by default.
-   */
-  invertSelection?: boolean;
-  /**
-   * Customize how filtered options are sorted while users search.
-   * Will not apply to predefined `options` array when users are not searching.
-   */
-  sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
-}
-
-const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
-
-const StyledSelect = styled(AntdSelect)`
-  ${({ theme }) => `
-    && .ant-select-selector {
-      border-radius: ${theme.gridUnit}px;
-    }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
-    }
-  `}
-`;
-
-const StyledStopOutlined = styled(Icons.StopOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledCheckOutlined = styled(Icons.CheckOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledSpin = styled(Spin)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
-`;
-
-const StyledLoadingText = styled.div`
-  ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 3}px;
-    line-height: ${theme.gridUnit * 8}px;
-    color: ${theme.colors.grayscale.light1};
-  `}
-`;
-
-const MAX_TAG_COUNT = 4;
-const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const EMPTY_OPTIONS: OptionsType = [];
-
-export const DEFAULT_SORT_COMPARATOR = (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-  search?: string,
-) => {
-  let aText: string | undefined;
-  let bText: string | undefined;
-  if (typeof a.label === 'string' && typeof b.label === 'string') {
-    aText = a.label;
-    bText = b.label;
-  } else if (typeof a.value === 'string' && typeof b.value === 'string') {
-    aText = a.value;
-    bText = b.value;
-  }
-  // sort selected options first
-  if (typeof aText === 'string' && typeof bText === 'string') {
-    if (search) {
-      return rankedSearchCompare(aText, bText, search);
-    }
-    return aText.localeCompare(bText);
-  }
-  return (a.value as number) - (b.value as number);
-};
-
-/**
- * It creates a comparator to check for a specific property.
- * Can be used with string and number property values.
- * */
-export const propertyComparator =
-  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
-    }
-    return (a[property] as number) - (b[property] as number);
-  };
+import {
+  getValue,
+  hasOption,
+  isLabeledValue,
+  renderSelectOptions,
+  sortSelectedFirstHelper,
+  sortComparatorWithSearchHelper,
+  handleFilterOptionHelper,
+  dropDownRenderHelper,
+  getSuffixIcon,
+  SELECT_ALL_VALUE,
+  selectAllOption,
+} from './utils';
+import { SelectOptionsType, SelectProps } from './types';
+import {
+  StyledCheckOutlined,
+  StyledContainer,
+  StyledHeader,
+  StyledSelect,
+  StyledStopOutlined,
+} from './styles';
+import {
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
+} from './constants';
+import { customTagRender } from './CustomTag';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -216,279 +76,424 @@ export const propertyComparator =
  * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
-const Select = (
-  {
-    allowClear,
-    allowNewOptions = false,
-    ariaLabel,
-    filterOption = true,
-    header = null,
-    invertSelection = false,
-    labelInValue = false,
-    loading,
-    mode = 'single',
-    name,
-    notFoundContent,
-    onChange,
-    onClear,
-    onDropdownVisibleChange,
-    optionFilterProps = ['label', 'value'],
-    options,
-    placeholder = t('Select ...'),
-    showSearch = true,
-    sortComparator = DEFAULT_SORT_COMPARATOR,
-    tokenSeparators,
-    value,
-    getPopupContainer,
-    ...props
-  }: SelectProps,
-  ref: RefObject<HTMLInputElement>,
-) => {
-  const isSingleMode = mode === 'single';
-  const shouldShowSearch = allowNewOptions ? true : showSearch;
-  const [selectValue, setSelectValue] = useState(value);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(loading);
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const mappedMode = isSingleMode
-    ? undefined
-    : allowNewOptions
-    ? 'tags'
-    : 'multiple';
-
-  const sortSelectedFirst = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      selectValue && a.value !== undefined && b.value !== undefined
-        ? Number(hasOption(b.value, selectValue)) -
-          Number(hasOption(a.value, selectValue))
-        : 0,
-    [selectValue],
-  );
-  const sortComparatorWithSearch = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
-    [inputValue, sortComparator, sortSelectedFirst],
-  );
-
-  const initialOptions = useMemo(
-    () => (options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
-    [options],
-  );
-  const initialOptionsSorted = useMemo(
-    () => initialOptions.slice().sort(sortSelectedFirst),
-    [initialOptions, sortSelectedFirst],
-  );
-
-  const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptionsSorted);
-
-  // add selected values to options list if they are not in it
-  const fullSelectOptions = useMemo(() => {
-    const missingValues: OptionsType = ensureIsArray(selectValue)
-      .filter(opt => !hasOption(getValue(opt), selectOptions))
-      .map(opt =>
-        isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
-      );
-    return missingValues.length > 0
-      ? missingValues.concat(selectOptions)
-      : selectOptions;
-  }, [selectOptions, selectValue]);
-
-  const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
-
-  const handleOnSelect = (
-    selectedItem: string | number | AntdLabeledValue | undefined,
+const Select = forwardRef(
+  (
+    {
+      allowClear,
+      allowNewOptions = false,
+      ariaLabel,
+      filterOption = true,
+      header = null,
+      headerPosition = 'top',
+      helperText,
+      invertSelection = false,
+      labelInValue = false,
+      loading,
+      mode = 'single',
+      name,
+      notFoundContent,
+      onChange,
+      onClear,
+      onDropdownVisibleChange,
+      optionFilterProps = ['label', 'value'],
+      options,
+      placeholder = t('Select ...'),
+      showSearch = true,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
+      tokenSeparators,
+      value,
+      getPopupContainer,
+      oneLine,
+      maxTagCount: propsMaxTagCount,
+      ...props
+    }: SelectProps,
+    ref: RefObject<HTMLInputElement>,
   ) => {
-    if (isSingleMode) {
-      setSelectValue(selectedItem);
-    } else {
-      setSelectValue(previousState => {
-        const array = ensureIsArray(previousState);
-        const value = getValue(selectedItem);
-        // Tokenized values can contain duplicated values
-        if (!hasOption(value, array)) {
-          const result = [...array, selectedItem];
-          return isLabeledValue(selectedItem)
-            ? (result as AntdLabeledValue[])
-            : (result as (string | number)[]);
-        }
-        return previousState;
-      });
-    }
-    setInputValue('');
-  };
+    const isSingleMode = mode === 'single';
+    const shouldShowSearch = allowNewOptions ? true : showSearch;
+    const [selectValue, setSelectValue] = useState(value);
+    const [inputValue, setInputValue] = useState('');
+    const [isLoading, setIsLoading] = useState(loading);
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
 
-  const handleOnDeselect = (
-    value: string | number | AntdLabeledValue | undefined,
-  ) => {
-    if (Array.isArray(selectValue)) {
-      if (isLabeledValue(value)) {
-        const array = selectValue as AntdLabeledValue[];
-        setSelectValue(array.filter(element => element.value !== value.value));
-      } else {
-        const array = selectValue as (string | number)[];
-        setSelectValue(array.filter(element => element !== value));
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
       }
-    }
-    setInputValue('');
-  };
+    }, [isDropdownVisible, oneLine]);
 
-  const handleOnSearch = (search: string) => {
-    const searchValue = search.trim();
-    if (allowNewOptions && isSingleMode) {
-      const newOption = searchValue &&
-        !hasOption(searchValue, fullSelectOptions, true) && {
-          label: searchValue,
-          value: searchValue,
-          isNewOption: true,
-        };
-      const cleanSelectOptions = fullSelectOptions.filter(
-        opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-      );
-      const newOptions = newOption
-        ? [newOption, ...cleanSelectOptions]
-        : cleanSelectOptions;
-      setSelectOptions(newOptions);
-    }
-    setInputValue(search);
-  };
+    const mappedMode = isSingleMode
+      ? undefined
+      : allowNewOptions
+      ? 'tags'
+      : 'multiple';
 
-  const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-    if (typeof filterOption === 'function') {
-      return filterOption(search, option);
-    }
+    const { Option } = AntdSelect;
 
-    if (filterOption) {
-      const searchValue = search.trim().toLowerCase();
-      if (optionFilterProps && optionFilterProps.length) {
-        return optionFilterProps.some(prop => {
-          const optionProp = option?.[prop]
-            ? String(option[prop]).trim().toLowerCase()
-            : '';
-          return optionProp.includes(searchValue);
+    const sortSelectedFirst = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortSelectedFirstHelper(a, b, selectValue),
+      [selectValue],
+    );
+    const sortComparatorWithSearch = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortComparatorWithSearchHelper(
+          a,
+          b,
+          inputValue,
+          sortSelectedFirst,
+          sortComparator,
+        ),
+      [inputValue, sortComparator, sortSelectedFirst],
+    );
+
+    const initialOptions = useMemo(
+      () =>
+        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
+      [options],
+    );
+    const initialOptionsSorted = useMemo(
+      () => initialOptions.slice().sort(sortSelectedFirst),
+      [initialOptions, sortSelectedFirst],
+    );
+
+    const [selectOptions, setSelectOptions] =
+      useState<SelectOptionsType>(initialOptionsSorted);
+
+    // add selected values to options list if they are not in it
+    const fullSelectOptions = useMemo(() => {
+      const missingValues: SelectOptionsType = ensureIsArray(selectValue)
+        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .map(opt =>
+          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+        );
+      const result =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+      return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
+    }, [selectOptions, selectValue]);
+
+    const selectAllEnabled = useMemo(
+      () =>
+        !isSingleMode &&
+        selectOptions.length > 0 &&
+        fullSelectOptions.length > 1 &&
+        !inputValue,
+      [
+        isSingleMode,
+        selectOptions.length,
+        fullSelectOptions.length,
+        inputValue,
+      ],
+    );
+
+    const selectAllMode = useMemo(
+      () => ensureIsArray(selectValue).length === fullSelectOptions.length + 1,
+      [selectValue, fullSelectOptions],
+    );
+
+    const handleOnSelect = (
+      selectedItem: string | number | AntdLabeledValue | undefined,
+    ) => {
+      if (isSingleMode) {
+        setSelectValue(selectedItem);
+      } else {
+        setSelectValue(previousState => {
+          const array = ensureIsArray(previousState);
+          const value = getValue(selectedItem);
+          // Tokenized values can contain duplicated values
+          if (value === getValue(SELECT_ALL_VALUE)) {
+            if (isLabeledValue(selectedItem)) {
+              return [
+                ...fullSelectOptions,
+                selectAllOption,
+              ] as AntdLabeledValue[];
+            }
+            return [
+              SELECT_ALL_VALUE,
+              ...fullSelectOptions.map(opt => opt.value),
+            ] as AntdLabeledValue[];
+          }
+          if (!hasOption(value, array)) {
+            const result = [...array, selectedItem];
+            if (
+              result.length === fullSelectOptions.length &&
+              selectAllEnabled
+            ) {
+              return isLabeledValue(selectedItem)
+                ? ([...result, selectAllOption] as AntdLabeledValue[])
+                : ([...result, SELECT_ALL_VALUE] as (string | number)[]);
+            }
+            return result as AntdLabeledValue[];
+          }
+          return previousState;
         });
       }
-    }
+      setInputValue('');
+    };
 
-    return false;
-  };
-
-  const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
-    setIsDropdownVisible(isDropdownVisible);
-
-    // if no search input value, force sort options because it won't be sorted by
-    // `filterSort`.
-    if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-      if (!isEqual(initialOptionsSorted, selectOptions)) {
-        setSelectOptions(initialOptionsSorted);
-      }
-    }
-    if (onDropdownVisibleChange) {
-      onDropdownVisibleChange(isDropdownVisible);
-    }
-  };
-
-  const dropdownRender = (
-    originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-  ) => {
-    if (!isDropdownVisible) {
-      originNode.ref?.current?.scrollTo({ top: 0 });
-    }
-    if (isLoading && fullSelectOptions.length === 0) {
-      return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
-    }
-    return originNode;
-  };
-
-  // use a function instead of component since every rerender of the
-  // Select component will create a new component
-  const getSuffixIcon = () => {
-    if (isLoading) {
-      return <StyledSpin size="small" />;
-    }
-    if (shouldShowSearch && isDropdownVisible) {
-      return <SearchOutlined />;
-    }
-    return <DownOutlined />;
-  };
-
-  const handleClear = () => {
-    setSelectValue(undefined);
-    if (onClear) {
-      onClear();
-    }
-  };
-
-  useEffect(() => {
-    // when `options` list is updated from component prop, reset states
-    setSelectOptions(initialOptions);
-  }, [initialOptions]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (loading !== undefined && loading !== isLoading) {
-      setIsLoading(loading);
-    }
-  }, [isLoading, loading]);
-
-  return (
-    <StyledContainer>
-      {header}
-      <StyledSelect
-        allowClear={!isLoading && allowClear}
-        aria-label={ariaLabel || name}
-        dropdownRender={dropdownRender}
-        filterOption={handleFilterOption}
-        filterSort={sortComparatorWithSearch}
-        getPopupContainer={
-          getPopupContainer || (triggerNode => triggerNode.parentNode)
-        }
-        labelInValue={labelInValue}
-        maxTagCount={MAX_TAG_COUNT}
-        mode={mappedMode}
-        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
-        onDeselect={handleOnDeselect}
-        onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={undefined}
-        onSearch={shouldShowSearch ? handleOnSearch : undefined}
-        onSelect={handleOnSelect}
-        onClear={handleClear}
-        onChange={onChange}
-        options={hasCustomLabels ? undefined : fullSelectOptions}
-        placeholder={placeholder}
-        showSearch={shouldShowSearch}
-        showArrow
-        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
-        value={selectValue}
-        suffixIcon={getSuffixIcon()}
-        menuItemSelectedIcon={
-          invertSelection ? (
-            <StyledStopOutlined iconSize="m" />
-          ) : (
-            <StyledCheckOutlined iconSize="m" />
-          )
-        }
-        ref={ref}
-        {...props}
-      >
-        {hasCustomLabels &&
-          fullSelectOptions.map(opt => {
-            const isOptObject = typeof opt === 'object';
-            const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = isOptObject ? opt.value : opt;
-            const { customLabel, ...optProps } = opt;
-            return (
-              <Option {...optProps} key={value} label={label} value={value}>
-                {isOptObject && customLabel ? customLabel : label}
-              </Option>
+    const handleOnDeselect = (
+      value: string | number | AntdLabeledValue | undefined,
+    ) => {
+      if (Array.isArray(selectValue)) {
+        if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
+          setSelectValue(undefined);
+        } else {
+          let array = selectValue as AntdLabeledValue[];
+          array = array.filter(
+            element => getValue(element) !== getValue(value),
+          );
+          // if this was not a new item, deselect select all option
+          if (
+            selectAllMode &&
+            selectOptions.some(opt => opt.value === getValue(value))
+          ) {
+            array = array.filter(
+              element => getValue(element) !== SELECT_ALL_VALUE,
             );
-          })}
-      </StyledSelect>
-    </StyledContainer>
-  );
-};
+          }
+          setSelectValue(array);
+        }
+      }
+      setInputValue('');
+    };
 
-export default forwardRef(Select);
+    const handleOnSearch = (search: string) => {
+      const searchValue = search.trim();
+      if (allowNewOptions && isSingleMode) {
+        const newOption = searchValue &&
+          !hasOption(searchValue, fullSelectOptions, true) && {
+            label: searchValue,
+            value: searchValue,
+            isNewOption: true,
+          };
+        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
+          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+        );
+        const newOptions = newOption
+          ? [newOption, ...cleanSelectOptions]
+          : cleanSelectOptions;
+        setSelectOptions(newOptions);
+      }
+      setInputValue(search);
+    };
+
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
+
+    const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+      setIsDropdownVisible(isDropdownVisible);
+
+      // if no search input value, force sort options because it won't be sorted by
+      // `filterSort`.
+      if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+        if (!isEqual(initialOptionsSorted, selectOptions)) {
+          setSelectOptions(initialOptionsSorted);
+        }
+      }
+      if (onDropdownVisibleChange) {
+        onDropdownVisibleChange(isDropdownVisible);
+      }
+    };
+
+    const dropdownRender = (
+      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+    ) =>
+      dropDownRenderHelper(
+        originNode,
+        isDropdownVisible,
+        isLoading,
+        fullSelectOptions.length,
+        helperText,
+      );
+
+    const handleClear = () => {
+      setSelectValue(undefined);
+      if (onClear) {
+        onClear();
+      }
+    };
+
+    useEffect(() => {
+      // when `options` list is updated from component prop, reset states
+      setSelectOptions(initialOptions);
+    }, [initialOptions]);
+
+    useEffect(() => {
+      if (loading !== undefined && loading !== isLoading) {
+        setIsLoading(loading);
+      }
+    }, [isLoading, loading]);
+
+    useEffect(() => {
+      setSelectValue(value);
+    }, [value]);
+
+    useEffect(() => {
+      // if all values are selected, add select all to value
+      if (
+        !isSingleMode &&
+        ensureIsArray(value).length === fullSelectOptions.length &&
+        selectOptions.length > 0
+      ) {
+        setSelectValue(
+          labelInValue
+            ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
+            : ([
+                ...ensureIsArray(value),
+                SELECT_ALL_VALUE,
+              ] as AntdLabeledValue[]),
+        );
+      }
+    }, [
+      value,
+      isSingleMode,
+      labelInValue,
+      fullSelectOptions.length,
+      selectOptions.length,
+    ]);
+
+    useEffect(() => {
+      const checkSelectAll = ensureIsArray(selectValue).some(
+        v => getValue(v) === SELECT_ALL_VALUE,
+      );
+      if (checkSelectAll && !selectAllMode) {
+        const optionsToSelect = fullSelectOptions.map(option =>
+          labelInValue ? option : option.value,
+        );
+        optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
+        setSelectValue(optionsToSelect);
+      }
+    }, [selectValue, selectAllMode, labelInValue, fullSelectOptions]);
+
+    const selectAllLabel = useMemo(
+      () => () =>
+        `${SELECT_ALL_VALUE} (${formatNumber(
+          NumberFormats.INTEGER,
+          fullSelectOptions.length,
+        )})`,
+      [fullSelectOptions.length],
+    );
+
+    const handleOnChange = (values: any, options: any) => {
+      // intercept onChange call to handle the select all case
+      // if the "select all" option is selected, we want to send all options to the onChange,
+      // otherwise we want to remove
+      let newValues = values;
+      let newOptions = options;
+      if (!isSingleMode) {
+        if (
+          ensureIsArray(newValues).some(
+            val => getValue(val) === SELECT_ALL_VALUE,
+          )
+        ) {
+          // send all options to onchange if all are not currently there
+          if (!selectAllMode) {
+            newValues = labelInValue
+              ? fullSelectOptions.map(opt => ({
+                  key: opt.value,
+                  value: opt.value,
+                  label: opt.label,
+                }))
+              : fullSelectOptions.map(opt => opt.value);
+            newOptions = fullSelectOptions.map(opt => ({
+              children: opt.label,
+              key: opt.value,
+              value: opt.value,
+              label: opt.label,
+            }));
+          } else {
+            newValues = ensureIsArray(values).filter(
+              (val: any) => getValue(val) !== SELECT_ALL_VALUE,
+            );
+          }
+        } else if (
+          ensureIsArray(values).length === fullSelectOptions.length &&
+          selectAllMode
+        ) {
+          newValues = [];
+          newValues = [];
+        }
+      }
+      onChange?.(newValues, newOptions);
+    };
+
+    const customMaxTagPlaceholder = () => {
+      const num_selected = ensureIsArray(selectValue).length;
+      const num_shown = maxTagCount as number;
+      return selectAllMode
+        ? `+ ${num_selected - num_shown - 1} ...`
+        : `+ ${num_selected - num_shown} ...`;
+    };
+
+    return (
+      <StyledContainer headerPosition={headerPosition}>
+        {header && (
+          <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
+        )}
+        <StyledSelect
+          allowClear={!isLoading && allowClear}
+          aria-label={ariaLabel || name}
+          dropdownRender={dropdownRender}
+          filterOption={handleFilterOption}
+          filterSort={sortComparatorWithSearch}
+          getPopupContainer={
+            getPopupContainer || (triggerNode => triggerNode.parentNode)
+          }
+          headerPosition={headerPosition}
+          labelInValue={labelInValue}
+          maxTagCount={maxTagCount}
+          maxTagPlaceholder={customMaxTagPlaceholder}
+          mode={mappedMode}
+          notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onDeselect={handleOnDeselect}
+          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onPopupScroll={undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
+          onSelect={handleOnSelect}
+          onClear={handleClear}
+          onChange={handleOnChange}
+          placeholder={placeholder}
+          showSearch={shouldShowSearch}
+          showArrow
+          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          value={selectValue}
+          suffixIcon={getSuffixIcon(
+            isLoading,
+            shouldShowSearch,
+            isDropdownVisible,
+          )}
+          menuItemSelectedIcon={
+            invertSelection ? (
+              <StyledStopOutlined iconSize="m" />
+            ) : (
+              <StyledCheckOutlined iconSize="m" />
+            )
+          }
+          oneLine={oneLine}
+          tagRender={customTagRender}
+          {...props}
+          ref={ref}
+        >
+          {selectAllEnabled && (
+            <Option
+              id="select-all"
+              className="select-all"
+              key={SELECT_ALL_VALUE}
+              value={SELECT_ALL_VALUE}
+            >
+              {selectAllLabel()}
+            </Option>
+          )}
+          {renderSelectOptions(fullSelectOptions)}
+        </StyledSelect>
+      </StyledContainer>
+    );
+  },
+);
+
+export default Select;

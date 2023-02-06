@@ -59,6 +59,7 @@ describe('controlUtils', () => {
     },
     controls: {},
     form_data: { datasource: '1__table', viz_type: 'table' },
+    common: {},
   };
 
   beforeAll(() => {

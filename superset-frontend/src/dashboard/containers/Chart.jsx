@@ -102,6 +102,7 @@ function mapStateToProps(
     setControlValue,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
     datasetsStatus,
+    emitCrossFilters: !!dashboardInfo.crossFiltersEnabled,
   };
 }
 

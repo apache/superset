@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
@@ -31,14 +32,14 @@ import {
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { propertyComparator } from 'src/components/Select/Select';
+import { Select } from 'src/components';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import { propertyComparator } from 'src/components/Select/utils';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 type DataMaskAction =
@@ -82,6 +83,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isRefreshing,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -89,6 +92,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showOverflow,
     parentRef,
     inputRef,
+    filterBarOrientation,
   } = props;
   const {
     enableEmptyFilter,
@@ -228,7 +232,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         : null;
       // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
       // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem && firstItem[0] !== undefined) {
+      if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
     } else if (isDisabled) {
@@ -317,13 +321,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onSearch={searchWrapper}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          maxTagCount={5}
+          oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}

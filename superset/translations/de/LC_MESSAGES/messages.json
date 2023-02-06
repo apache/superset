@@ -1963,7 +1963,7 @@
       "Font size for the smallest value in the list": [
         "Schriftgröße für den kleinsten Wert in der Liste"
       ],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Für Presto und Postgres wird ein Buttons angezeigt, um Kosten vor dem Ausführen einer Abfrage zu schätzen."
       ],
       "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
@@ -3988,7 +3988,7 @@
       "The query associated with the results was deleted.": [
         "Die den Ergebnissen zugeordnete Abfrage wurde gelöscht."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "Die mit diesen Ergebnissen verknüpfte Abfrage konnte nicht gefunden werden. Sie müssen die ursprüngliche Abfrage erneut ausführen."
       ],
       "The query contains one or more malformed template parameters.": [

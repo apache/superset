@@ -24,8 +24,10 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  NumberFormats,
   NumberFormatter,
   TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import {
@@ -33,7 +35,7 @@ import {
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { AxisType, LegendOrientation, LegendType, StackType } from '../types';
+import { LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -77,6 +79,8 @@ export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
     stack: StackType;
+    onlyTotal?: boolean;
+    isHorizontal?: boolean;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
@@ -84,8 +88,19 @@ export function extractShowValueIndexes(
     series.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (datum[1] !== null) {
+        if (!opts.onlyTotal && datum[opts.isHorizontal ? 0 : 1] !== null) {
           showValueIndexes[dataIndex] = seriesIndex;
+        }
+        if (opts.onlyTotal) {
+          if (datum[opts.isHorizontal ? 0 : 1] > 0) {
+            showValueIndexes[dataIndex] = seriesIndex;
+          }
+          if (
+            !showValueIndexes[dataIndex] &&
+            datum[opts.isHorizontal ? 0 : 1] !== null
+          ) {
+            showValueIndexes[dataIndex] = seriesIndex;
+          }
         }
       });
     });
@@ -309,7 +324,28 @@ export const currentSeries = {
 
 export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
-    return 'time';
+    return AxisType.time;
   }
-  return 'category';
+  return AxisType.category;
+}
+
+export function getOverMaxHiddenFormatter(
+  config: {
+    max?: number;
+    formatter?: NumberFormatter;
+  } = {},
+) {
+  const { max, formatter } = config;
+  // Only apply this logic if there's a MAX set in the controls
+  const shouldHideIfOverMax = !!max || max === 0;
+
+  return new NumberFormatter({
+    formatFunc: value =>
+      `${
+        shouldHideIfOverMax && value > max
+          ? ''
+          : formatter?.format(value) || value
+      }`,
+    id: NumberFormats.OVER_MAX_HIDDEN,
+  });
 }

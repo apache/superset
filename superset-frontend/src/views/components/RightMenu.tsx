@@ -21,6 +21,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
+import { isEmpty } from 'lodash';
 
 import {
   t,
@@ -29,23 +30,28 @@ import {
   SupersetTheme,
   SupersetClient,
   getExtensionsRegistry,
+  useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  MenuObjectProps,
+  UserWithPermissionsAndRoles,
+  MenuObjectChildProps,
+} from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
 import {
-  ExtentionConfigs,
+  ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { MenuObjectProps } from './Menu';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -80,9 +86,27 @@ const StyledDiv = styled.div<{ align: string }>`
   }
 `;
 
+const StyledMenuItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const tagStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light5};
+`;
+
+const styledChildMenu = (theme: SupersetTheme) => css`
+  &:hover {
+    color: ${theme.colors.primary.base} !important;
+    cursor: pointer !important;
+  }
 `;
 
 const { SubMenu } = Menu;
@@ -92,9 +116,16 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
+  environmentTag,
   setQuery,
 }: RightMenuProps & {
-  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+  setQuery: ({
+    databaseAdded,
+    datasetAdded,
+  }: {
+    databaseAdded?: boolean;
+    datasetAdded?: boolean;
+  }) => void;
 }) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -110,13 +141,14 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
-  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
+  const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
+  const canDataset = findPermission('can_write', 'Dataset', roles);
 
   const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
     uploadUserPerms(
@@ -129,6 +161,8 @@ const RightMenu = ({
 
   const showActionDropdown = canSql || canChart || canDashboard;
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const [nonExamplesDBConnected, setNonExamplesDBConnected] =
+    useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
@@ -139,7 +173,13 @@ const RightMenu = ({
         {
           label: t('Connect database'),
           name: GlobalMenuDataOptions.DB_CONNECTION,
-          perm: canDatabase,
+          perm: canDatabase && !nonExamplesDBConnected,
+        },
+        {
+          label: t('Create dataset'),
+          name: GlobalMenuDataOptions.DATASET_CREATION,
+          url: '/dataset/add/',
+          perm: canDataset && nonExamplesDBConnected,
         },
         {
           label: t('Connect Google Sheet'),
@@ -151,18 +191,21 @@ const RightMenu = ({
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
           perm: canUploadCSV && showUploads,
+          disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
           perm: canUploadColumnar && showUploads,
+          disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
           perm: canUploadExcel && showUploads,
+          disable: isAdmin && !allowUploads,
         },
       ],
     },
@@ -200,7 +243,24 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      setAllowUploads(json.count >= 1);
+      // There might be some existings Gsheets and Clickhouse DBs
+      // with allow_file_upload set as True which is not possible from now on
+      const allowedDatabasesWithFileUpload =
+        json?.result?.filter(
+          (database: any) => database?.engine_information?.supports_file_upload,
+        ) || [];
+      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
+    });
+  };
+
+  const existsNonExamplesDatabases = () => {
+    const payload = {
+      filters: [{ col: 'database_name', opr: 'neq', value: 'examples' }],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setNonExamplesDBConnected(json.count >= 1);
     });
   };
 
@@ -209,6 +269,12 @@ const RightMenu = ({
       checkAllowUploads();
     }
   }, [canUploadData]);
+
+  useEffect(() => {
+    if (canDatabase || canDataset) {
+      existsNonExamplesDatabases();
+    }
+  }, [canDatabase, canDataset]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -219,58 +285,84 @@ const RightMenu = ({
 
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
       setEngine('Google Sheets');
     }
   };
 
   const handleOnHideModal = () => {
     setEngine('');
-    setShowModal(false);
+    setShowDatabaseModal(false);
   };
 
-  const isDisabled = isAdmin && !allowUploads;
-
   const tooltipText = t(
-    "Enable 'Allow data upload' in any database's settings",
+    "Enable 'Allow file uploads to database' in any database's settings",
   );
 
-  const buildMenuItem = (item: Record<string, any>) => {
-    const disabledText = isDisabled && item.url;
-    return disabledText ? (
+  const buildMenuItem = (item: MenuObjectChildProps) =>
+    item.disable ? (
       <Menu.Item key={item.name} css={styledDisabled}>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>
       </Menu.Item>
     ) : (
-      <Menu.Item key={item.name}>
+      <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? <a href={item.url}> {item.label} </a> : item.label}
       </Menu.Item>
     );
-  };
 
   const onMenuOpen = (openKeys: string[]) => {
-    if (openKeys.length && canUploadData) {
-      return checkAllowUploads();
+    // We should query the API only if opening Data submenus
+    // because the rest don't need this information. Not using
+    // "Data" directly since we might change the label later on?
+    if (
+      openKeys.length > 1 &&
+      !isEmpty(
+        openKeys?.filter((key: string) =>
+          key.includes(`sub2_${dropdownItems?.[0]?.label}`),
+        ),
+      )
+    ) {
+      if (canUploadData) checkAllowUploads();
+      if (canDatabase || canDataset) existsNonExamplesDatabases();
     }
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
+  const RightMenuItemIconExtension = extensionsRegistry.get(
+    'navbar.right-menu.item.icon',
+  );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
+  const theme = useTheme();
 
   return (
     <StyledDiv align={align}>
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
-          show={showModal}
+          show={showDatabaseModal}
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
         />
+      )}
+      {environmentTag?.text && (
+        <Label
+          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
+          color={
+            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
+              ? environmentTag.color
+              : environmentTag.color
+                  .split('.')
+                  .reduce((o, i) => o[i], theme.colors)
+          }
+        >
+          <span css={tagStyles}>{environmentTag.text}</span>
+        </Label>
       )}
       <Menu
         selectable={false}
@@ -302,7 +394,7 @@ const RightMenu = ({
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
                           <Fragment key={item.name}>
-                            {idx === 2 && <Menu.Divider />}
+                            {idx === 3 && <Menu.Divider />}
                             {buildMenuItem(item)}
                           </Fragment>
                         ) : null,
@@ -352,12 +444,20 @@ const RightMenu = ({
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
+                  const menuItemDisplay = RightMenuItemIconExtension ? (
+                    <StyledMenuItemWithIcon>
+                      {child.label}
+                      <RightMenuItemIconExtension menuChild={child} />
+                    </StyledMenuItemWithIcon>
+                  ) : (
+                    child.label
+                  );
                   return (
                     <Menu.Item key={`${child.label}`}>
                       {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{child.label}</Link>
+                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{child.label}</a>
+                        <a href={child.url}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );
@@ -399,17 +499,17 @@ const RightMenu = ({
                 )}
                 {navbarRight.version_string && (
                   <div css={versionInfoStyles}>
-                    Version: {navbarRight.version_string}
+                    {t('Version')}: {navbarRight.version_string}
                   </div>
                 )}
                 {navbarRight.version_sha && (
                   <div css={versionInfoStyles}>
-                    SHA: {navbarRight.version_sha}
+                    {t('SHA')}: {navbarRight.version_sha}
                   </div>
                 )}
                 {navbarRight.build_number && (
                   <div css={versionInfoStyles}>
-                    Build: {navbarRight.build_number}
+                    {t('Build')}: {navbarRight.build_number}
                   </div>
                 )}
               </div>
@@ -424,25 +524,38 @@ const RightMenu = ({
         )}
       </Menu>
       {navbarRight.documentation_url && (
-        <StyledAnchor
-          href={navbarRight.documentation_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Documentation')}
-        >
-          <i className="fa fa-question" />
-          &nbsp;
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.documentation_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.documentation_text || t('Documentation')}
+          >
+            {navbarRight.documentation_icon ? (
+              <i className={navbarRight.documentation_icon} />
+            ) : (
+              <i className="fa fa-question" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.bug_report_url && (
-        <StyledAnchor
-          href={navbarRight.bug_report_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Report a bug')}
-        >
-          <i className="fa fa-bug" />
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.bug_report_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.bug_report_text || t('Report a bug')}
+          >
+            {navbarRight.bug_report_icon ? (
+              <i className={navbarRight.bug_report_icon} />
+            ) : (
+              <i className="fa fa-bug" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
@@ -457,6 +570,7 @@ const RightMenu = ({
 const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
+    datasetAdded: BooleanParam,
   });
 
   return <RightMenu setQuery={setQuery} {...props} />;

@@ -19,7 +19,7 @@
 set -e
 
 # Temporary fix, probably related with https://bugs.launchpad.net/ubuntu/+source/opencv/+bug/1890170
-# MySQL was failling with:
+# MySQL was failing with:
 # from . import _mysql
 # ImportError: /lib/x86_64-linux-gnu/libstdc++.so.6: cannot allocate memory in static TLS block
 export LD_PRELOAD=/lib/x86_64-linux-gnu/libstdc++.so.6
@@ -32,4 +32,4 @@ superset init
 
 echo "Running tests"
 
-pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset "$@"
+pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset ./tests/integration_tests "$@"

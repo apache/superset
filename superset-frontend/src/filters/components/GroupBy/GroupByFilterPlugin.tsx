@@ -36,6 +36,8 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     height,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -71,7 +73,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   }, [JSON.stringify(defaultValue), multiSelect]);
 
   const groupbys = ensureIsArray(formData.groupby).map(getColumnLabel);
-  const groupby = groupbys[0].length ? groupbys[0] : null;
+  const groupby = groupbys[0]?.length ? groupbys[0] : null;
 
   const withData = groupby
     ? data.filter(row => groupby.includes(row.column_name as string))
@@ -116,6 +118,8 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
           onDropdownVisibleChange={setFilterActive}

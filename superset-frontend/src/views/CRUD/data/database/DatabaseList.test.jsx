@@ -64,6 +64,14 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({ fileName, role }) => (
+    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
+  ),
+  StyledIcon: () => <span />,
+}));
+
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_write'],
 });
@@ -96,7 +104,7 @@ fetchMock.get(
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 const userSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
-describe('DatabaseList', () => {
+describe('Admin DatabaseList', () => {
   useSelectorMock.mockReturnValue({
     CSV_EXTENSIONS: ['csv'],
     EXCEL_EXTENSIONS: ['xls', 'xlsx'],
@@ -131,23 +139,27 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
   });
 
-  it('renders', () => {
+  test('renders', () => {
     expect(wrapper.find(DatabaseList)).toExist();
   });
 
-  it('renders a SubMenu', () => {
+  test('renders a SubMenu', () => {
     expect(wrapper.find(SubMenu)).toExist();
   });
 
-  it('renders a DatabaseModal', () => {
+  test('renders a SubMenu with no tabs', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toBeUndefined();
+  });
+
+  test('renders a DatabaseModal', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
   });
 
-  it('renders a ListView', () => {
+  test('renders a ListView', () => {
     expect(wrapper.find(ListView)).toExist();
   });
 
-  it('fetches Databases', () => {
+  test('fetches Databases', () => {
     const callsD = fetchMock.calls(/database\/\?q/);
     expect(callsD).toHaveLength(2);
     expect(callsD[0][0]).toMatchInlineSnapshot(
@@ -155,7 +167,7 @@ describe('DatabaseList', () => {
     );
   });
 
-  it('deletes', async () => {
+  test('deletes', async () => {
     act(() => {
       wrapper.find('[data-test="database-delete"]').first().props().onClick();
     });
@@ -185,7 +197,7 @@ describe('DatabaseList', () => {
     expect(fetchMock.calls(/database\/0/, 'DELETE')).toHaveLength(1);
   });
 
-  it('filters', async () => {
+  test('filters', async () => {
     const filtersWrapper = wrapper.find(Filters);
     act(() => {
       filtersWrapper
@@ -211,5 +223,33 @@ describe('DatabaseList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+
+  test('should not render dropdown menu button if user is not admin', async () => {
+    userSelectorMock.mockReturnValue({
+      createdOn: '2021-05-27T18:12:38.952304',
+      email: 'alpha@gmail.com',
+      firstName: 'alpha',
+      isActive: true,
+      lastName: 'alpha',
+      permissions: {},
+      roles: {
+        Alpha: [
+          ['can_sqllab', 'Superset'],
+          ['can_write', 'Dashboard'],
+          ['can_write', 'Chart'],
+        ],
+      },
+      userId: 2,
+      username: 'alpha',
+    });
+    const newWrapper = mount(
+      <Provider store={store}>
+        <DatabaseList />
+      </Provider>,
+    );
+    await waitForComponentToPaint(newWrapper);
+
+    expect(newWrapper.find('.dropdown-menu-links')).not.toExist();
   });
 });

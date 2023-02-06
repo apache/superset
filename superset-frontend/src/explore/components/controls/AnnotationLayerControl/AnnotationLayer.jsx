@@ -28,6 +28,7 @@ import {
   validateNonEmpty,
   isValidExpression,
   styled,
+  getColumnLabel,
   withTheme,
 } from '@superset-ui/core';
 
@@ -115,7 +116,7 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href="/annotationlayermodelview/list"
+            href="/annotationlayer/list"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -300,7 +301,7 @@ class AnnotationLayer extends React.PureComponent {
     if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         SupersetClient.get({
-          endpoint: '/annotationlayermodelview/api/read?',
+          endpoint: '/api/v1/annotation_layer/',
         }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
@@ -326,7 +327,19 @@ class AnnotationLayer extends React.PureComponent {
                     metadata && metadata.canBeAnnotationType(annotationType)
                   );
                 })
-                .map(x => ({ value: x.id, label: x.title, slice: x })),
+                .map(x => ({
+                  value: x.id,
+                  label: x.title,
+                  slice: {
+                    ...x,
+                    data: {
+                      ...x.data,
+                      groupby: x.data.groupby?.map(column =>
+                        getColumnLabel(column),
+                      ),
+                    },
+                  },
+                })),
             });
           },
         );
@@ -413,8 +426,8 @@ class AnnotationLayer extends React.PureComponent {
     let description = '';
     if (requiresQuery(sourceType)) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        label = 'Annotation layer';
-        description = 'Select the Annotation Layer you would like to use.';
+        label = t('Annotation layer');
+        description = t('Select the Annotation Layer you would like to use.');
       } else {
         label = t('Chart');
         description = t(
@@ -426,10 +439,10 @@ class AnnotationLayer extends React.PureComponent {
         );
       }
     } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      label = 'Formula';
-      description = `Expects a formula with depending time parameter 'x'
+      label = t('Formula');
+      description = t(`Expects a formula with depending time parameter 'x'
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
-        Example: '2x+5'`;
+        Example: '2x+5'`);
     }
     if (requiresQuery(sourceType)) {
       return (
@@ -464,7 +477,7 @@ class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={
             !this.isValidFormulaAnnotation(value, annotationType)
-              ? ['Bad formula.']
+              ? [t('Bad formula.')]
               : []
           }
         />
@@ -499,7 +512,7 @@ class AnnotationLayer extends React.PureComponent {
             isSelected
             title={t('Annotation Slice Configuration')}
             info={t(`This section allows you to configure how to use the slice
-               to generate annotations.`)}
+              to generate annotations.`)}
           >
             {(annotationType === ANNOTATION_TYPES.EVENT ||
               annotationType === ANNOTATION_TYPES.INTERVAL) && (
@@ -543,7 +556,7 @@ class AnnotationLayer extends React.PureComponent {
               name="annotation-layer-title"
               label={t('Title Column')}
               description={t('Pick a title for you annotation.')}
-              options={[{ value: '', label: 'None' }].concat(columns)}
+              options={[{ value: '', label: t('None') }].concat(columns)}
               value={titleColumn}
               onChange={value => this.setState({ titleColumn: value })}
             />
@@ -566,9 +579,9 @@ class AnnotationLayer extends React.PureComponent {
               <CheckboxControl
                 hovered
                 name="annotation-override-time_range"
-                label="Override time range"
-                description={`This controls whether the "time_range" field from the current
-                  view should be passed down to the chart containing the annotation data.`}
+                label={t('Override time range')}
+                description={t(`This controls whether the "time_range" field from the current
+                  view should be passed down to the chart containing the annotation data.`)}
                 value={'time_range' in overrides}
                 onChange={v => {
                   delete overrides.time_range;
@@ -584,9 +597,9 @@ class AnnotationLayer extends React.PureComponent {
               <CheckboxControl
                 hovered
                 name="annotation-override-timegrain"
-                label="Override time grain"
-                description={`This controls whether the time grain field from the current
-                  view should be passed down to the chart containing the annotation data.`}
+                label={t('Override time grain')}
+                description={t(`This controls whether the time grain field from the current
+                  view should be passed down to the chart containing the annotation data.`)}
                 value={'time_grain_sqla' in overrides}
                 onChange={v => {
                   delete overrides.time_grain_sqla;
@@ -607,9 +620,9 @@ class AnnotationLayer extends React.PureComponent {
               <TextControl
                 hovered
                 name="annotation-layer-timeshift"
-                label="Time Shift"
-                description={`Time delta in natural language
-                  (example:  24 hours, 7 days, 56 weeks, 365 days)`}
+                label={t('Time Shift')}
+                description={t(`Time delta in natural language
+                  (example:  24 hours, 7 days, 56 weeks, 365 days)`)}
                 placeholder=""
                 value={overrides.time_shift}
                 onChange={v =>
@@ -656,10 +669,10 @@ class AnnotationLayer extends React.PureComponent {
           label={t('Style')}
           // see '../../../visualizations/nvd3_vis.css'
           options={[
-            { value: 'solid', label: 'Solid' },
-            { value: 'dashed', label: 'Dashed' },
-            { value: 'longDashed', label: 'Long dashed' },
-            { value: 'dotted', label: 'Dotted' },
+            { value: 'solid', label: t('Solid') },
+            { value: 'dashed', label: t('Dashed') },
+            { value: 'longDashed', label: t('Long dashed') },
+            { value: 'dotted', label: t('Dotted') },
           ]}
           value={style}
           clearable={false}
@@ -671,7 +684,7 @@ class AnnotationLayer extends React.PureComponent {
           label={t('Opacity')}
           // see '../../../visualizations/nvd3_vis.css'
           options={[
-            { value: '', label: 'Solid' },
+            { value: '', label: t('Solid') },
             { value: 'opacityLow', label: '0.2' },
             { value: 'opacityMedium', label: '0.5' },
             { value: 'opacityHigh', label: '0.8' },
@@ -693,7 +706,7 @@ class AnnotationLayer extends React.PureComponent {
               buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
-              Automatic Color
+              {t('Automatic Color')}
             </Button>
           </div>
         </div>
@@ -708,8 +721,8 @@ class AnnotationLayer extends React.PureComponent {
           <CheckboxControl
             hovered
             name="annotation-layer-show-markers"
-            label="Show Markers"
-            description="Shows or hides markers for the time series"
+            label={t('Show Markers')}
+            description={t('Shows or hides markers for the time series')}
             value={showMarkers}
             onChange={v => this.setState({ showMarkers: v })}
           />
@@ -718,8 +731,8 @@ class AnnotationLayer extends React.PureComponent {
           <CheckboxControl
             hovered
             name="annotation-layer-hide-line"
-            label="Hide Line"
-            description="Hides the Line for the time series"
+            label={t('Hide Line')}
+            description={t('Hides the Line for the time series')}
             value={hideLine}
             onChange={v => this.setState({ hideLine: v })}
           />

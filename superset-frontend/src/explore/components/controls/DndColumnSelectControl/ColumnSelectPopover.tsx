@@ -103,7 +103,6 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
-  console.log('datasource', datasourceType);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -232,7 +231,9 @@ const ColumnSelectPopover = ({
   }, []);
 
   const setDatasetAndClose = () => {
-    if (setDatasetModal) setDatasetModal(true);
+    if (setDatasetModal) {
+      setDatasetModal(true);
+    }
     onClose();
   };
 
@@ -248,8 +249,6 @@ const ColumnSelectPopover = ({
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
 
-  console.log(calculatedColumns.length > 0);
-  console.log(datasourceType === DatasourceType.Query);
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
@@ -409,10 +408,8 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!stateIsValid}
-          buttonStyle={
-            hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-          }
+          disabled={!stateIsValid || !hasUnsavedChanges}
+          buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"

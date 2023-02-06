@@ -22,6 +22,7 @@ import createCache from '@emotion/cache';
 
 export {
   css,
+  keyframes,
   jsx,
   ThemeProvider,
   CacheProvider as EmotionCacheProvider,

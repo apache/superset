@@ -21,14 +21,16 @@ import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Form } from 'src/components/Form';
 import {
-  hostField,
-  portField,
+  accessTokenField,
   databaseField,
-  usernameField,
-  passwordField,
   displayField,
-  queryField,
   forceSSLField,
+  hostField,
+  httpPath,
+  passwordField,
+  portField,
+  queryField,
+  usernameField,
 } from './CommonParameters';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
@@ -42,6 +44,8 @@ export const FormFieldOrder = [
   'database',
   'username',
   'password',
+  'access_token',
+  'http_path',
   'database_name',
   'credentials_info',
   'service_account_info',
@@ -57,6 +61,7 @@ export interface FieldPropTypes {
   required: boolean;
   hasTooltip?: boolean;
   tooltipText?: (value: any) => string;
+  placeholder?: string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -66,6 +71,9 @@ export interface FieldPropTypes {
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
     onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: (value: any) => string;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;
@@ -79,10 +87,12 @@ export interface FieldPropTypes {
 
 const FORM_FIELD_MAP = {
   host: hostField,
+  http_path: httpPath,
   port: portField,
   database: databaseField,
   username: usernameField,
   password: passwordField,
+  access_token: accessTokenField,
   database_name: displayField,
   query: queryField,
   encryption: forceSSLField,
@@ -94,21 +104,7 @@ const FORM_FIELD_MAP = {
   account: validatedInputField,
 };
 
-const DatabaseConnectionForm = ({
-  dbModel: { parameters },
-  onParametersChange,
-  onChange,
-  onQueryChange,
-  onParametersUploadFileChange,
-  onAddTableCatalog,
-  onRemoveTableCatalog,
-  validationErrors,
-  getValidation,
-  db,
-  isEditMode = false,
-  sslForced,
-  editNewDb,
-}: {
+interface DatabaseConnectionFormProps {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
@@ -126,11 +122,33 @@ const DatabaseConnectionForm = ({
   onParametersUploadFileChange?: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
-}) => (
+  getPlaceholder?: (field: string) => string | undefined;
+}
+
+const DatabaseConnectionForm = ({
+  dbModel: { parameters },
+  db,
+  editNewDb,
+  getPlaceholder,
+  getValidation,
+  isEditMode = false,
+  onAddTableCatalog,
+  onChange,
+  onExtraInputChange,
+  onParametersChange,
+  onParametersUploadFileChange,
+  onQueryChange,
+  onRemoveTableCatalog,
+  sslForced,
+  validationErrors,
+}: DatabaseConnectionFormProps) => (
   <Form>
     <div
       // @ts-ignore
@@ -154,6 +172,7 @@ const DatabaseConnectionForm = ({
               onParametersUploadFileChange,
               onAddTableCatalog,
               onRemoveTableCatalog,
+              onExtraInputChange,
             },
             validationErrors,
             getValidation,
@@ -163,6 +182,7 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
+            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
           }),
         )}
     </div>

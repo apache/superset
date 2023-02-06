@@ -19,6 +19,7 @@
 
 /* eslint-disable react/jsx-sort-default-props */
 import * as React from 'react';
+import { t } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
@@ -167,7 +168,7 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
     if (error) {
       return (
         <div className="alert alert-warning" role="alert">
-          <strong>ERROR</strong>&nbsp;
+          <strong>{t('ERROR')}</strong>&nbsp;
           <code>chartType=&quot;{chartType}&quot;</code> &mdash;
           {error.toString()}
         </div>

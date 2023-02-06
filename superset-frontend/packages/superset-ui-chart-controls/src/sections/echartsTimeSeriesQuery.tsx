@@ -16,45 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { hasGenericChartAxes, t } from '@superset-ui/core';
+import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
-  ContributionType,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '../types';
-import { emitFilterControl } from '../shared-controls/emitFilterControl';
+  contributionModeControl,
+  xAxisSortControl,
+  xAxisSortAscControl,
+} from '../shared-controls';
+
+const controlsWithoutXAxis: ControlSetRow[] = [
+  ['metrics'],
+  ['groupby'],
+  [contributionModeControl],
+  ['adhoc_filters'],
+  ['limit'],
+  ['timeseries_limit_metric'],
+  ['order_desc'],
+  ['row_limit'],
+  ['truncate_metric'],
+  ['show_empty_columns'],
+];
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
   controlSetRows: [
-    [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
-    ['metrics'],
-    ['groupby'],
-    [
-      {
-        name: 'contributionMode',
-        config: {
-          type: 'SelectControl',
-          label: t('Contribution Mode'),
-          default: null,
-          choices: [
-            [null, 'None'],
-            [ContributionType.Row, 'Row'],
-            [ContributionType.Column, 'Series'],
-          ],
-          description: t('Calculate contribution per series or row'),
-        },
-      },
-    ],
-    ['adhoc_filters'],
-    emitFilterControl,
-    ['limit'],
-    ['timeseries_limit_metric'],
-    ['order_desc'],
-    ['row_limit'],
-    ['truncate_metric'],
-    ['show_empty_columns'],
+    [hasGenericChartAxes ? 'x_axis' : null],
+    [hasGenericChartAxes ? 'time_grain_sqla' : null],
+    ...controlsWithoutXAxis,
+  ],
+};
+
+export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
+  label: t('Query'),
+  expanded: true,
+  controlSetRows: [
+    [hasGenericChartAxes ? 'x_axis' : null],
+    [hasGenericChartAxes ? 'time_grain_sqla' : null],
+    [hasGenericChartAxes ? xAxisSortControl : null],
+    [hasGenericChartAxes ? xAxisSortAscControl : null],
+    ...controlsWithoutXAxis,
   ],
 };

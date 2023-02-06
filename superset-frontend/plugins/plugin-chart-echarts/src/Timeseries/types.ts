@@ -16,20 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
-  ChartDataResponseResult,
-  ChartProps,
+  AxisType,
+  ContributionType,
   QueryFormColumn,
   QueryFormData,
+  TimeFormatter,
   TimeGranularity,
-  ContributionType,
 } from '@superset-ui/core';
 import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
-  EchartsTitleFormData,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   StackType,
+  TitleFormData,
 } from '../types';
 
 export enum OrientationType {
@@ -76,28 +80,28 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  emitFilter: boolean;
   groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
   orientation?: OrientationType;
-} & EchartsLegendFormData &
-  EchartsTitleFormData;
+} & LegendFormData &
+  TitleFormData;
 
 export interface EchartsTimeseriesChartProps
-  extends ChartProps<EchartsTimeseriesFormData> {
+  extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 export type TimeseriesChartTransformedProps =
-  EChartTransformedProps<EchartsTimeseriesFormData>;
-
-export enum AxisType {
-  category = 'category',
-  value = 'value',
-  time = 'time',
-  log = 'log',
-}
+  BaseTransformedProps<EchartsTimeseriesFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps & {
+      legendData?: OptionName[];
+      xValueFormatter: TimeFormatter | StringConstructor;
+      xAxis: {
+        label: string;
+        type: AxisType;
+      };
+    };

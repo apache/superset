@@ -26,6 +26,7 @@ import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -57,11 +58,13 @@ import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
 import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
+import { FilterBarOrientation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
   ({
+    history,
     dashboard,
     charts,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -291,9 +294,26 @@ export const hydrateDashboard =
       future: [],
     };
 
+    // Searches for a focused_chart parameter in the URL to automatically focus a chart
+    const focusedChartId = getUrlParam(URL_PARAMS.dashboardFocusedChart);
+    let focusedChartLayoutId;
+    if (focusedChartId) {
+      // Converts focused_chart to dashboard layout id
+      const found = Object.values(dashboardLayout.present).find(
+        element => element.meta?.chartId === focusedChartId,
+      );
+      focusedChartLayoutId = found?.id;
+      // Removes the focused_chart parameter from the URL
+      const params = new URLSearchParams(window.location.search);
+      params.delete(URL_PARAMS.dashboardFocusedChart.name);
+      history.replace({
+        search: params.toString(),
+      });
+    }
+
     // find direct link component and path from root
-    const directLinkComponentId = getLocationHash();
-    let directPathToChild = [];
+    const directLinkComponentId = focusedChartLayoutId || getLocationHash();
+    let directPathToChild = dashboardState.directPathToChild || [];
     if (layout[directLinkComponentId]) {
       directPathToChild = (layout[directLinkComponentId].parents || []).slice();
       directPathToChild.push(directLinkComponentId);
@@ -375,6 +395,9 @@ export const hydrateDashboard =
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
+    const crossFiltersEnabled = isCrossFiltersEnabled(
+      metadata.cross_filters_enabled,
+    );
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -410,6 +433,11 @@ export const hydrateDashboard =
             flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
+          filterBarOrientation:
+            (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
+              metadata.filter_bar_orientation) ||
+            FilterBarOrientation.VERTICAL,
+          crossFiltersEnabled,
         },
         dataMask,
         dashboardFilters,
@@ -431,6 +459,7 @@ export const hydrateDashboard =
           editMode: canEdit && editMode,
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
+          dashboardIsSaving: false,
           maxUndoHistoryExceeded: false,
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,

@@ -436,13 +436,13 @@ export default function Home(): JSX.Element {
               </div>
               <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
                 <div className="imageContainer">
-                  <img src="img/explorer5.jpg" alt="" />
+                  <img src="img/explore.jpg" alt="Explore (chart buider) UI" />
                 </div>
                 <div className="imageContainer">
-                  <img src="img/dashboard3.png" alt="" />
+                  <img src="img/dashboard.jpg" alt="Superset Dashboard" />
                 </div>
                 <div className="imageContainer">
-                  <img src="img/sqllab5.jpg" alt="" />
+                  <img src="img/sql_lab.jpg" alt="SQL Lab" />
                 </div>
               </Carousel>
             </div>

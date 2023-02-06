@@ -16,86 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from './dashboard_list.helper';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
+import { setGridMode, clearAllInputs } from 'cypress/utils';
+import { setFilter } from '../dashboard/utils';
 
-describe('dashboard filters card view', () => {
-  beforeEach(() => {
-    cy.login();
+describe('Dashboards filters', () => {
+  before(() => {
     cy.visit(DASHBOARD_LIST);
-    cy.get('[aria-label="card-view"]').click();
+    setGridMode('card');
   });
 
-  it('should filter by owners correctly', () => {
-    // filter by owners
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="styled-card"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="styled-card"]').should('not.exist');
-  });
-
-  it('should filter by created by correctly', () => {
-    // filter by created by
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('.ant-card').should('not.exist');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('.ant-card').should('not.exist');
-  });
-
-  it('should filter by published correctly', () => {
-    // filter by published
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.rc-virtual-list').contains('Published').click({ timeout: 5000 });
-    cy.get('[data-test="styled-card"]').should('have.length', 3);
-    cy.get('[data-test="styled-card"]')
-      .contains('USA Births Names')
-      .should('be.visible');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('[data-test="filters-select"]').eq(1).type('unpub{enter}');
-    cy.get('[data-test="styled-card"]').should('have.length', 3);
-  });
-});
-
-describe('dashboard filters list view', () => {
   beforeEach(() => {
-    cy.login();
-    cy.visit(DASHBOARD_LIST);
-    cy.get('[aria-label="list-view"]').click();
+    clearAllInputs();
   });
 
-  it('should filter by owners correctly', () => {
-    // filter by owners
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
+  it('should allow filtering by "Owner" correctly', () => {
+    setFilter('Owner', 'alpha user');
+    setFilter('Owner', 'admin user');
   });
 
-  it('should filter by created by correctly', () => {
-    // filter by created by
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
+  it('should allow filtering by "Created by" correctly', () => {
+    setFilter('Created by', 'alpha user');
+    setFilter('Created by', 'admin user');
   });
 
-  it('should filter by published correctly', () => {
-    // filter by published
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.rc-virtual-list').contains('Published').click();
-    cy.get('[data-test="table-row"]').should('have.length', 3);
-    cy.get('[data-test="table-row"]')
-      .contains('USA Births Names')
-      .should('be.visible');
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('[data-test="filters-select"]').eq(2).type('unpub{enter}');
-    cy.get('[data-test="table-row"]').should('have.length', 3);
+  it('should allow filtering by "Status" correctly', () => {
+    setFilter('Status', 'Published');
+    setFilter('Status', 'Draft');
   });
 });

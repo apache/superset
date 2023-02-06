@@ -37,7 +37,7 @@ const metadata = new ChartMetadata({
     { url: example3 },
     { url: example4 },
   ],
-  name: t('Treemap'),
+  name: t('Treemap (legacy)'),
   tags: [
     t('Categorical'),
     t('Legacy'),

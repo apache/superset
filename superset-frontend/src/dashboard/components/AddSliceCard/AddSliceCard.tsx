@@ -39,7 +39,7 @@ const TruncatedTextWithTooltip: React.FC = ({ children, ...props }) => {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setIsTruncated(
-      ref.current ? ref.current.offsetWidth < ref.current.scrollWidth : false,
+      ref.current ? ref.current.scrollWidth > ref.current.clientWidth : false,
     );
   }, [children]);
 

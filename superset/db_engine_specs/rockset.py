@@ -17,8 +17,9 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -53,15 +54,16 @@ class RocksetEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
-        if tt == utils.TemporalType.DATETIME:
-            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
-            return f"""DATETIME '{dttm_formatted}'"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             dttm_formatted = dttm.isoformat(timespec="microseconds")
             return f"""TIMESTAMP '{dttm_formatted}'"""
+        if isinstance(sqla_type, types.DateTime):
+            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""DATETIME '{dttm_formatted}'"""
         return None
 
     @classmethod

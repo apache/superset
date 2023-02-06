@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 describe('Visualization > Gauge', () => {
+  beforeEach(() => {
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const GAUGE_FORM_DATA = {
-    datasource: '2__table',
+    datasource: '3__table',
     viz_type: 'gauge_chart',
     metric: 'count',
     adhoc_filters: [],
-    slice_id: 49,
+    slice_id: 54,
     row_limit: 10,
   };
 
@@ -30,11 +35,6 @@ describe('Visualization > Gauge', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
 
   it('should work', () => {
     verify(GAUGE_FORM_DATA);
@@ -59,5 +59,18 @@ describe('Visualization > Gauge', () => {
       ],
     });
     cy.get('.chart-container .gauge_chart canvas').should('have.length', 1);
+  });
+
+  it('should allow type to search color schemes', () => {
+    verify(GAUGE_FORM_DATA);
+
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
+    ).should('exist');
   });
 });

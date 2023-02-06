@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Sequence
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
-NUMPY_FUNCTIONS = {
+NUMPY_FUNCTIONS: Dict[str, Callable[..., Any]] = {
     "average": np.average,
     "argmin": np.argmin,
     "argmax": np.argmax,
@@ -101,6 +101,14 @@ def _is_multi_index_on_columns(df: DataFrame) -> bool:
     return isinstance(df.columns, pd.MultiIndex)
 
 
+def scalar_to_sequence(val: Any) -> Sequence[str]:
+    if val is None:
+        return []
+    if isinstance(val, str):
+        return [val]
+    return val
+
+
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(df: DataFrame, **options: Any) -> Any:
@@ -111,7 +119,7 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
                 columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
-                    elem in columns for elem in options.get(name) or []
+                    elem in columns for elem in scalar_to_sequence(options.get(name))
                 ):
                     raise InvalidPostProcessingError(
                         _("Referenced columns not available in DataFrame.")
@@ -198,3 +206,13 @@ def _append_columns(
         return _base_df
     append_df = append_df.rename(columns=columns)
     return pd.concat([base_df, append_df], axis="columns")
+
+
+def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return plain_str.replace(char, "\\" + char)
+
+
+def unescape_separator(escaped_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return escaped_str.replace("\\" + char, char)

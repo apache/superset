@@ -31,7 +31,7 @@ from superset.datasets.commands.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.datasets.dao import DatasetDAO
-from superset.extensions import db, security_manager
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +47,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
-            # Add datasource access permission
-            security_manager.add_permission_view_menu(
-                "datasource_access", dataset.get_perm()
-            )
-            # Add schema access permission if exists
-            if dataset.schema:
-                security_manager.add_permission_view_menu(
-                    "schema_access", dataset.schema_perm
-                )
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)
@@ -68,6 +59,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
+        sql = self._properties.get("sql", None)
         owner_ids: Optional[List[int]] = self._properties.get("owners")
 
         # Validate uniqueness
@@ -80,9 +72,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(DatabaseNotFoundValidationError())
         self._properties["database"] = database
 
-        # Validate table exists on dataset
-        if database and not DatasetDAO.validate_table_exists(
-            database, table_name, schema
+        # Validate table exists on dataset if sql is not provided
+        # This should be validated when the dataset is physical
+        if (
+            database
+            and not sql
+            and not DatasetDAO.validate_table_exists(database, table_name, schema)
         ):
             exceptions.append(TableNotFoundValidationError(table_name))
 

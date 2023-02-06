@@ -26,6 +26,7 @@ import sqlalchemy as sqla
 from flask import current_app, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_babel import gettext as __
 from humanize import naturaltime
 from sqlalchemy import (
     Boolean,
@@ -42,16 +43,15 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType, QueryStatus, user_label
 
 if TYPE_CHECKING:
@@ -126,6 +126,9 @@ class Query(
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
+    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        return get_template_processor(query=self, database=self.database, **kwargs)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "changedOn": self.changed_on,
@@ -180,7 +183,7 @@ class Query(
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[ResultSetColumnType]:
+    def columns(self) -> List[Dict[str, Any]]:
         bool_types = ("BOOL",)
         num_types = (
             "DOUBLE",
@@ -214,7 +217,7 @@ class Query(
             computed_column["column_name"] = col.get("name")
             computed_column["groupby"] = True
             columns.append(computed_column)
-        return columns  # type: ignore
+        return columns
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -222,10 +225,10 @@ class Query(
         for col in self.columns:
             column_name = str(col.get("column_name") or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + " [asc]")
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + " [desc]")
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         return {
@@ -242,6 +245,7 @@ class Query(
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
+            "schema": self.schema,
         }
 
     def raise_for_access(self) -> None:
@@ -285,7 +289,7 @@ class Query(
     def main_dttm_col(self) -> Optional[str]:
         for col in self.columns:
             if col.get("is_dttm"):
-                return col.get("column_name")  # type: ignore
+                return col.get("column_name")
         return None
 
     @property
@@ -329,6 +333,14 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
+    def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not column_name:
+            return None
+        for col in self.columns:
+            if col.get("column_name") == column_name:
+                return col
+        return None
+
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """ORM model for SQL query"""
@@ -341,6 +353,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     label = Column(String(256))
     description = Column(Text)
     sql = Column(Text)
+    template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
         backref=backref("saved_queries", cascade="all, delete-orphan"),
@@ -505,9 +518,3 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
             "description": description,
             "expanded": self.expanded,
         }
-
-
-# events for updating tags
-sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
-sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
-sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
