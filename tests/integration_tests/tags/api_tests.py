@@ -92,8 +92,10 @@ class TestTagApi(SupersetTestCase):
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
-            tags = db.session.query(Tag).delete()
-            db.session.commit()
+            tags = db.session.query(Tag)
+            for tag in tags:
+                db.session.delete(tag)
+                db.session.commit()
             tags = []
             for cx in range(TAGS_FIXTURE_COUNT):
                 tags.append(
@@ -107,7 +109,7 @@ class TestTagApi(SupersetTestCase):
             # rollback changes
             for tag in tags:
                 db.session.delete(tag)
-            db.session.commit()
+                db.session.commit()
 
     def test_get_tag(self):
         """
@@ -169,7 +171,21 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_add_tagged_objects(self):
         self.login(username="admin")
-        dashboard_id = 1
+        # clean up tags and tagged objects
+        tags = db.session.query(Tag)
+        for tag in tags:
+            db.session.delete(tag)
+            db.session.commit()
+        tagged_objects = db.session.query(TaggedObject)
+        for tagged_object in tagged_objects:
+            db.session.delete(tagged_object)
+            db.session.commit()
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
         dashboard_type = ObjectTypes.dashboard.value
         uri = f"api/v1/tag/{dashboard_type}/{dashboard_id}/"
         example_tag_names = ["example_tag_1", "example_tag_2"]
@@ -183,17 +199,18 @@ class TestTagApi(SupersetTestCase):
         # check that tagged objects were created
         tag_ids = [tags[0].id, tags[1].id]
         tagged_objects = db.session.query(TaggedObject).filter(
-            TaggedObject.tag_id.in_(tag_ids)
+            TaggedObject.tag_id.in_(tag_ids),
+            TaggedObject.object_id == dashboard_id,
+            TaggedObject.object_type == ObjectTypes.dashboard,
         )
-        self.assertEqual(tagged_objects.count(), 2)
-        self.assertEqual(tagged_objects.first().object_id, 1)
-        self.assertEqual(tagged_objects.first().object_type, ObjectTypes.dashboard)
-        self.assertEqual(tagged_objects[1].object_id, 1)
-        self.assertEqual(tagged_objects[1].object_type, ObjectTypes.dashboard)
+        assert tagged_objects.count() == 2
         # clean up tags and tagged objects
-        tagged_objects.delete()
-        tags.delete()
-        db.session.commit()
+        for tagged_object in tagged_objects:
+            db.session.delete(tagged_object)
+            db.session.commit()
+        for tag in tags:
+            db.session.delete(tag)
+            db.session.commit()
 
     # test delete tagged object
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -266,7 +283,12 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_get_objects_by_tag(self):
         self.login(username="admin")
-        dashboard_id = 1
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
         dashboard_type = ObjectTypes.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
@@ -286,7 +308,7 @@ class TestTagApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         fetched_objects = rv.json["result"]
         self.assertEqual(len(fetched_objects), 1)
-        self.assertEqual(fetched_objects[0]["id"], 1)
+        self.assertEqual(fetched_objects[0]["id"], dashboard_id)
         # clean up tagged object
         tagged_objects.delete()
 
@@ -297,7 +319,12 @@ class TestTagApi(SupersetTestCase):
     def test_get_all_objects(self):
         self.login(username="admin")
         # tag the dashboard with id 1
-        dashboard_id = 1
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
         dashboard_type = ObjectTypes.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))

@@ -96,7 +96,9 @@ class TestDeleteTagsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_delete_tags_command(self):
         example_dashboard = (
-            db.session.query(Dashboard).filter_by(slug="world_health").one()
+            db.session.query(Dashboard)
+            .filter_by(dashboard_title="World Bank's Data")
+            .one()
         )
         example_tags = ["create custom tag example 1", "create custom tag example 2"]
         command = CreateCustomTagCommand(

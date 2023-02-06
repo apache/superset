@@ -74,7 +74,10 @@ class TestTagsDAO(SupersetTestCase):
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
-            tags = db.session.query(Tag).delete()
+            tags = db.session.query(Tag)
+            for tag in tags:
+                db.session.delete(tag)
+                db.session.commit()
             db.session.commit()
             tags = []
             for cx in range(TAGS_FIXTURE_COUNT):
@@ -91,7 +94,10 @@ class TestTagsDAO(SupersetTestCase):
     def create_tagged_objects(self):
         with self.create_app().app_context():
             # clear tags table
-            tags = db.session.query(Tag).delete()
+            tags = db.session.query(Tag)
+            for tag in tags:
+                db.session.delete(tag)
+                db.session.commit()
             tags = []
             for cx in range(TAGS_FIXTURE_COUNT):
                 tags.append(
@@ -101,12 +107,18 @@ class TestTagsDAO(SupersetTestCase):
                     )
                 )
             # clear tagged objects table
-            tagged_objects = db.session.query(TaggedObject).delete()
+            tagged_objects = db.session.query(TaggedObject)
+            for tagged_obj in tagged_objects:
+                db.session.delete(tagged_obj)
+                db.session.commit()
             tagged_objects = []
+            dashboard_id = 1
             for tag in tags:
                 tagged_objects.append(
                     self.insert_tagged_object(
-                        object_id=1, object_type=ObjectTypes.dashboard, tag_id=tag.id
+                        object_id=dashboard_id,
+                        object_type=ObjectTypes.dashboard,
+                        tag_id=tag.id,
                     )
                 )
             yield tagged_objects
@@ -135,9 +147,20 @@ class TestTagsDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
-    @pytest.mark.usefixtures("create_tagged_objects")
+    @pytest.mark.usefixtures("create_tags")
     # test get objects from tag
     def test_get_objects_from_tag(self):
+        # create tagged objects
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "World Bank's Data")
+            .first()
+        )
+        dashboard_id = dashboard.id
+        tag = db.session.query(Tag).filter_by(name="example_tag_1").one()
+        self.insert_tagged_object(
+            object_id=dashboard_id, object_type=ObjectTypes.dashboard, tag_id=tag.id
+        )
         # get objects
         tagged_objects = TagDAO.get_tagged_objects_for_tags(
             ["example_tag_1", "example_tag_2"]
@@ -175,7 +198,7 @@ class TestTagsDAO(SupersetTestCase):
                     TaggedObject.object_type == ObjectTypes.dashboard,
                 ),
             )
-            .distinct(Slice.id)
+            .distinct(Dashboard.id)
             .count()
             + num_charts
         )

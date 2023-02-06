@@ -18,6 +18,8 @@ import logging
 from operator import and_
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
@@ -35,8 +37,10 @@ class TagDAO(BaseDAO):
 
     @staticmethod
     def validate_tag_name(tag_name: str) -> bool:
-        if ":" in tag_name:
-            return False
+        invalid_characters = [":", ","]
+        for invalid_character in invalid_characters:
+            if invalid_character in tag_name:
+                return False
         return True
 
     @staticmethod
@@ -47,7 +51,7 @@ class TagDAO(BaseDAO):
         for name in tag_names:
             if not TagDAO.validate_tag_name(name):
                 raise DAOCreateFailedError(
-                    message="Invalid Tag Name (cannot contain ':')"
+                    message="Invalid Tag Name (cannot contain ':' or ',')"
                 )
             type_ = TagTypes.custom
             tag_name = name.strip()
@@ -83,14 +87,12 @@ class TagDAO(BaseDAO):
                     object_type: {object_type} \
                     and tag name: "{tag_name}" could not be found'
             )
-        deleted = tagged_object.delete()
-        if not deleted:
-            raise DAODeleteFailedError(
-                message=f'Tagged object with object_id: {object_id} \
-                    object_type: {object_type} \
-                    and tag name: "{tag_name}" could not be deleted'
-            )
-        db.session.commit()
+        try:
+            db.session.delete(tagged_object.one())
+            db.session.commit()
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
     def delete_tags(tag_names: List[str]) -> None:
@@ -105,8 +107,14 @@ class TagDAO(BaseDAO):
                     message=f"Tag with name {tag_name} does not exist."
                 )
             tags_to_delete.append(tag_name)
-        db.session.query(Tag).filter(Tag.name.in_(tags_to_delete)).delete()
-        db.session.commit()
+        tag_objects = db.session.query(Tag).filter(Tag.name.in_(tags_to_delete))
+        for tag in tag_objects:
+            try:
+                db.session.delete(tag)
+                db.session.commit()
+            except SQLAlchemyError as ex:  # pragma: no cover
+                db.session.rollback()
+                raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
     def get_by_name(name: str, type_: TagTypes = TagTypes.custom) -> Tag:
