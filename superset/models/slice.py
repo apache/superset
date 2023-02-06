@@ -160,11 +160,13 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_url")
     def datasource_url(self) -> Optional[str]:
-        # pylint: disable=no-member
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
-        return datasource.explore_url if datasource else None
+        try:
+            return datasource.explore_url if datasource else None
+        except AttributeError:
+            return None
 
     def datasource_name_text(self) -> Optional[str]:
         # pylint: disable=no-member
