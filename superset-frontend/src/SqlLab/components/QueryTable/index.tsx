@@ -87,11 +87,19 @@ const QueryTable = ({
     actions: t('Actions'),
   };
 
+  const setHeaders = (column: string) => {
+    if (column === 'sql') {
+      return column.toUpperCase();
+    }
+    return column.charAt(0).toUpperCase().concat(column.slice(1));
+  };
+
   const columnsOfTable = useMemo(
     () =>
       columns.map(column => ({
         accessor: column,
-        Header: QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
+        Header:
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],
