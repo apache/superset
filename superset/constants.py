@@ -189,3 +189,32 @@ class CacheRegion(str, Enum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+legacy_charts = [
+    "line",
+    "dist_bar",
+    "area",
+    "time_table",
+    "histogram",
+    "time_pivot",
+    "heatmap",
+    "dual_line",
+    "line_multi",
+    "treemap",
+    "sunburst",
+    "sankey",
+    "mapbox",
+    "rose",
+    "bubble",
+    "horizon",
+    "compare",
+    "partition",
+    "event_flow",
+    "world_map",
+    "paired_ttest",
+    "para",
+    "bullet",
+    "chord",
+    "pivot_table",
+]

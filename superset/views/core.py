@@ -56,6 +56,7 @@ from superset import (
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
@@ -65,7 +66,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import legacy_charts, QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -1740,28 +1741,42 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for slc in slices:
             try:
-                form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                if dashboard_id:
-                    form_data["extra_filters"] = (
-                        json.loads(extra_filters)
-                        if extra_filters
-                        else get_dashboard_extra_filters(slc.id, dashboard_id)
+                if slc.viz_type in legacy_charts:
+
+                    form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                    if dashboard_id:
+                        form_data["extra_filters"] = (
+                            json.loads(extra_filters)
+                            if extra_filters
+                            else get_dashboard_extra_filters(slc.id, dashboard_id)
+                        )
+
+                    if not slc.datasource:
+                        raise Exception("Slice's datasource does not exist")
+
+                    obj = get_viz(
+                        datasource_type=slc.datasource.type,
+                        datasource_id=slc.datasource.id,
+                        form_data=form_data,
+                        force=True,
                     )
 
-                if not slc.datasource:
-                    raise Exception("Slice's datasource does not exist")
+                    # pylint: disable=assigning-non-slot
+                    g.form_data = form_data
+                    payload = obj.get_payload()
+                    delattr(g, "form_data")
+                else:
+                    query_context = slc.get_query_context()
+                    if not query_context:
+                        raise Exception(
+                            f"Query conext not found for the chart {slc.slice_name}. Please load the chart and save it manually"
+                        )
+                    if query_context != None:
+                        query_context.force = True
+                        command = ChartDataCommand(query_context)
+                        command.validate()
+                        payload = command.run()
 
-                obj = get_viz(
-                    datasource_type=slc.datasource.type,
-                    datasource_id=slc.datasource.id,
-                    form_data=form_data,
-                    force=True,
-                )
-
-                # pylint: disable=assigning-non-slot
-                g.form_data = form_data
-                payload = obj.get_payload()
-                delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:  # pylint: disable=broad-except
