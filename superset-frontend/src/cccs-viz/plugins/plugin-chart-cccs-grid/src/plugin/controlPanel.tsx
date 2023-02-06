@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react'
+
 import {
   t,
   FeatureFlag,
@@ -44,7 +46,8 @@ import {
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
-//import cidrRegex from 'cidr-regex';
+import DrillActionConfig from '../components/controls/JumpActionConfigControll';
+
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],
@@ -616,6 +619,17 @@ config.controlPanelSections.push({
           choices: PAGE_SIZE_OPTIONS,
           description: t('Rows per page, 0 means no pagination'),
           validators: [legacyValidateInteger],
+        },
+      },
+    ],
+    [
+      {
+        name: 'jump_action_configs',
+        config: {
+          type: DrillActionConfig,
+          renderTrigger: true,
+          label: t('Jump Actions'),
+          description: t('Configure dashboard jump actions.'),
         },
       },
     ],

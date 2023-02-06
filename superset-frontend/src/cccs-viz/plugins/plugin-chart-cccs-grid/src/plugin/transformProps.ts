@@ -83,6 +83,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     enable_grouping,
     column_state,
     enable_row_numbers,
+    jump_action_configs,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -315,6 +316,24 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         params.node ? params.node.rowIndex + 1 : null,
     } as any);
   }
+  let parsed_jump_action_configs = {}
+  jump_action_configs?.forEach( (e: any) =>
+  {
+    if (e.dashboardID in parsed_jump_action_configs) {
+      parsed_jump_action_configs[e.dashboardID] = parsed_jump_action_configs[e.dashboardID].concat({
+        advancedDataType: e.advancedDataType,
+        nativefilters: e.filters,
+        name: e.dashBoardName
+      })
+    }
+    else {
+      parsed_jump_action_configs[e.dashboardID] = [{
+        advancedDataType: e.advancedDataType,
+        nativefilters: e.filters,
+        name: e.dashBoardName
+      }]
+    }
+  });
 
   return {
     formData,
@@ -335,5 +354,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     enable_grouping,
     column_state,
     agGridLicenseKey,
+    datasetColumns: columns,
+    jumpActionConfigs: parsed_jump_action_configs
   };
 }
