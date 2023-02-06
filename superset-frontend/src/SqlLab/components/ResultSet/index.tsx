@@ -167,7 +167,7 @@ const ResultSet = ({
 
   const prevQuery = usePrevious(query);
   useEffect(() => {
-    if (cache && query.cached && query?.results?.data?.length > 0) {
+    if (cache && !query.cached && query?.results?.data?.length > 0) {
       setCachedData(query.results.data);
       dispatch(clearQueryResults(query));
     }

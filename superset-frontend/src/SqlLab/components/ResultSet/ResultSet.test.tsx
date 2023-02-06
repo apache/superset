@@ -148,6 +148,31 @@ describe('ResultSet', () => {
     expect(alert).toHaveTextContent('The query returned no data');
   });
 
+  test('should clear query results', async () => {
+    const props = {
+      ...mockedProps,
+      query: { ...mockedProps.query, cached: false },
+    };
+    const store = mockStore({
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [props.query.id]: props.query,
+        },
+      },
+    });
+    await waitFor(() => {
+      setup(props, store);
+    });
+
+    expect(store.getActions()).toContainEqual(
+      expect.objectContaining({
+        type: 'CLEAR_QUERY_RESULTS',
+      }),
+    );
+  });
+
   test('should call reRunQuery if timed out', async () => {
     const store = mockStore(initialState);
     const propsWithError = {
