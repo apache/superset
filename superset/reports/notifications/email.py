@@ -147,7 +147,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         msgContent = ""
         url_renderer = ""
         if all([url is not None, url != ""]):
-            url_renderer = f"""<b><a href="{url}">{call_to_action}</a></b>"""
+            url_renderer = f"""<p><b><a href="{url}">{call_to_action}</a></b></p>"""
         if self._content.msg_content:
             msgContent = f"""<p><strong> Message Content: </strong>{" ".join(self._content.msg_content.split())}</p>"""
         body = textwrap.dedent(
@@ -171,7 +171,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 {url_renderer}
                 {msgContent}
                 <br>
-                <a href="{self._content.link}">Open Alert/Report in Careem Insights</a>
+                <p><a href="{self._content.link}">Open Alert/Report in Careem Insights</a></p>
                 {html_table}
                 {img_tag}
               </body>
