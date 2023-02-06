@@ -16,17 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, createRef, useRef, useState } from 'react';
+import React, { useEffect, createRef, useRef, useState, useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { LiqThematicMapsProps, LiqThematicMapsStylesProps } from './types';
 import mapboxgl from 'mapbox-gl';
-import d3 from 'd3';
-import { extent as d3Extent } from 'd3-array';
-import {
-  getNumberFormatter,
-  getSequentialSchemeRegistry,
-  CategoricalColorNamespace,
-} from '@superset-ui/core';
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZGtpciIsImEiOiJjazIxNW54azgxZzd6M25xb2RqNHk0Z2Z5In0.1SbfSydEBGdjIxU-Wy0EXA"
 
@@ -56,111 +49,53 @@ const BDRY_LAYER_MAP = {
 }
 
 export default function LiqThematicMaps(props: LiqThematicMapsProps) {
-
   const { 
     data,
     groupCol,
-    metricCol,
     height, 
     width, 
     boundary, 
-    linearColorScheme,
+    colorMap
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
-  
+
   const mapContainer = useRef(null);
   const map = useRef(null);
-  
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [paintColorSpec, setPaintColorSpec] = useState([]);
-  const [zoom, setZoom] = useState(9);
-  const [cMap, setCMap] = useState([]);
 
-  // useEffect(() => {
-  //   const linearColorScale = getSequentialSchemeRegistry()
-  //     .get(linearColorScheme)
-  //     .createLinearScale(d3Extent(data, v => v[metricCol]));
-
-  //   const colorMap = {};
-  //   data.forEach(d => {
-  //     colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
-  //   });
-  
-  //   const colorKeys = Object.keys(colorMap);
-  //   let spec = ['case'];
-  //   for (let i = 0; i < colorKeys.length; i++) {
-  //     let cond = ['==', ['get', groupCol], colorKeys[i]]
-  //     spec.push(cond);
-  //     spec.push(colorMap[colorKeys[i]]);
-  //   }
-  //   spec.push('transparent');
-
-  //   setPaintColorSpec([...spec]);
-  // }, [linearColorScheme])
+  const [currIDs, setCurrIDs] = useState([]);
 
   useEffect(() => {
-    const linearColorScale = getSequentialSchemeRegistry()
-      .get(linearColorScheme)
-      .createLinearScale(d3Extent(data, v => v[metricCol]));
+    if (!map.current) return;
+    map.current.resize();
+  }, [width, height])
 
-    const colorMap = {};
-    data.forEach(d => {
-      colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
-    });
-
-    setCMap(colorMap);
-  }, [data, linearColorScheme])
 
   useEffect(() => {
     if (map.current) {
-      const features = map.current.queryRenderedFeatures({ 'layers': ['tileset'] }); 
-      for (const d in features) {
-        map.current.setFeatureState(
-          {
-            source: 'tileset',
-            id: d.id
-          },
-          {
-            color: cMap[d.properties[groupCol]]
-          }
-        );
-      }
-    }
-  }, [cMap])
+      map.current.remove();
+      map.current = null;
+    } 
+  }, [data])
 
   useEffect(() => {
     if (map.current) return;
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v10?optimize=true',
-      center: [151.2, -33.8]
+      style: 'mapbox://styles/mapbox/light-v10',
+      center: [151.2, -33.8],
+      zoom: 9
     });
+
     map.current.on('load', () => {
-      setMapLoaded(true);
-    });
-  })
 
-  useEffect(() => {
-    if (!map.current) return;
-    map.current.on('move', () => {
-      setZoom(map.current.getZoom().toFixed(2));
-    });
-  })
+      console.log(colorMap);
 
-  useEffect(() => {
-    if (map.current) map.current.resize();
-  }, [width])
-
-  useEffect(() => {
-    if (map.current && mapLoaded) {
-      if (map.current.getLayer('tileset')) map.current.removeLayer('tileset');
-      if (map.current.getSource('tileset')) map.current.removeSource('tileset');
       map.current.addSource('tileset', {
         'type': 'vector',
         'url': `mapbox://${boundary}`
       });
-      console.log(BDRY_LAYER_MAP[boundary]);
+
       map.current.addLayer({
         'id': 'tileset',
         'type': 'fill',
@@ -168,13 +103,47 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
         'source-layer': BDRY_LAYER_MAP[boundary],
         'layout': {},
         'paint': {
-          'fill-color': ['feature-state', 'color'],
+          'fill-color': 'transparent',
           'fill-outline-color': '#2E2EFF',
           'fill-opacity': 0.7
         }
       });
+      
+    });
+
+    map.current.on('data', () => {
+      const features = map.current.querySourceFeatures('tileset', {
+        sourceLayer: BDRY_LAYER_MAP[boundary]
+       });
+
+       let ids = [];
+       for (const d in features) {
+        ids.push({
+          id: features[d].id,
+          col: features[d].properties[groupCol]
+        });
+       }
+       setCurrIDs([...ids]);
+    });
+
+  });
+
+  useEffect(() => {
+    if (currIDs.length == 0) return;
+    for (const i in currIDs) {
+      map.current.setFeatureState(
+        {
+          source: 'tileset', 
+          sourceLayer: BDRY_LAYER_MAP[boundary], 
+          id: currIDs[i].id
+        },
+        {
+          color: colorMap[currIDs[i].col]
+        }
+      );
     }
-  }, [boundary, mapLoaded, paintColorSpec])
+    map.current.setPaintProperty('tileset', 'fill-color', ['feature-state', 'color']);
+  }, [currIDs]);
 
   return (
     <Styles
@@ -185,8 +154,8 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
       <div 
         ref={mapContainer} 
         className="map-container" 
-        style={{height: '60vh'}}
+        style={{height: height, width: width}}
       />
     </Styles>
-  );
+  );  
 }

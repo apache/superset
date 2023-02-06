@@ -145,7 +145,7 @@ const config: ControlPanelConfig = {
                 ['dkir.d4pc0v1s', 'SA1'],
                 ['dkir.1oqr7ii3', 'SA3'],
               ],
-              renderTrigger: true,
+              renderTrigger: false,
               // ^ this makes it apply instantaneously, without triggering a "run query" button
               label: t('Boundary'),
               description: t('ABS boundaries'),

@@ -17,6 +17,13 @@
  * under the License.
  */
 import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
+import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import {
+  getNumberFormatter,
+  getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -49,12 +56,26 @@ export default function transformProps(chartProps: ChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queriesData } = chartProps;
-  const { boundary, linearColorScheme, numberFormat } = formData;
+  const { 
+    boundary, 
+    linearColorScheme, 
+    numberFormat
+  } = formData;
   const data = queriesData[0].data;
-  const groupCol = formData.cols[0];
+  
+  const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.label;
 
-  console.log('formData via TransformProps.ts', formData);
+  console.log(linearColorScale);
+
+  const linearColorScale = getSequentialSchemeRegistry()
+    .get(linearColorScheme)
+    .createLinearScale(d3Extent(data, v => v[metricCol]));
+
+  const colorMap = {};
+  data.forEach(d => {
+    colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
+  });
 
   return {
     width,
@@ -65,6 +86,7 @@ export default function transformProps(chartProps: ChartProps) {
     // and now your control data, manipulated as needed, and passed through as props!
     boundary,
     linearColorScheme,
-    numberFormat
+    numberFormat,
+    colorMap
   };
 }
