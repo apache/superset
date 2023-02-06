@@ -91,7 +91,7 @@ const QueryTable = ({
     () =>
       columns.map(column => ({
         accessor: column,
-        Header: QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column],
+        Header: QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],
