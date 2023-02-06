@@ -137,8 +137,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -148,13 +148,19 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         # act
         get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)
+
+        # cleanup
+        db.session.delete(favorites)
+        db.session.delete(favorite_dash)
+        db.session.delete(regular_dash)
+        db.session.commit()
 
         # assert
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", get_dashboards_response)

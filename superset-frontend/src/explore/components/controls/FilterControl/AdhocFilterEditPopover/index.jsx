@@ -52,6 +52,7 @@ const propTypes = {
   theme: PropTypes.object,
   sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
+  requireSave: PropTypes.bool,
 };
 
 const ResizeIcon = styled.i`
@@ -181,12 +182,14 @@ export default class AdhocFilterEditPopover extends React.Component {
       partitionColumn,
       theme,
       operators,
+      requireSave,
       ...popoverProps
     } = this.props;
 
     const { adhocFilter } = this.state;
     const stateIsValid = adhocFilter.isValid();
-    const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
+    const hasUnsavedChanges =
+      requireSave || !adhocFilter.equals(propsAdhocFilter);
 
     return (
       <FilterPopoverContentContainer

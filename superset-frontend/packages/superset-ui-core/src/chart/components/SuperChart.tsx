@@ -61,7 +61,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
     /** Event listener for unexpected errors from chart */
     onErrorBoundary?: ErrorBoundaryProps['onError'];
-    /** Prop for form plugins uisng superchart */
+    /** Prop for form plugins using superchart */
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;

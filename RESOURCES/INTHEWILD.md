@@ -73,6 +73,7 @@ Join our growing community!
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
+- [Caizin](https://caizin.com/) [@tejaskatariya]
 - [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
@@ -93,6 +94,7 @@ Join our growing community!
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
@@ -151,6 +153,7 @@ Join our growing community!
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
+- [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### News
@@ -158,6 +161,9 @@ Join our growing community!
 
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+
+### Travel
+- [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)

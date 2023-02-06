@@ -144,6 +144,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   inContextMenu?: boolean;
 
+  emitCrossFilters?: boolean;
+
   theme: SupersetTheme;
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
@@ -164,6 +166,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       isRefreshing,
       inputRef,
       inContextMenu = false,
+      emitCrossFilters = false,
       theme,
     } = config;
     this.width = width;
@@ -184,6 +187,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.isRefreshing = isRefreshing;
     this.inputRef = inputRef;
     this.inContextMenu = inContextMenu;
+    this.emitCrossFilters = emitCrossFilters;
     this.theme = theme;
   }
 }
@@ -207,6 +211,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.isRefreshing,
     input => input.inputRef,
     input => input.inContextMenu,
+    input => input.emitCrossFilters,
     input => input.theme,
     (
       annotationData,
@@ -225,6 +230,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       isRefreshing,
       inputRef,
       inContextMenu,
+      emitCrossFilters,
       theme,
     ) =>
       new ChartProps({
@@ -244,6 +250,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         isRefreshing,
         inputRef,
         inContextMenu,
+        emitCrossFilters,
         theme,
       }),
   );

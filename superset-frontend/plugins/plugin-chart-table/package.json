@@ -28,8 +28,9 @@
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/d3-array": "^2.9.0",
-    "@types/react-table": "^7.0.29",
     "@types/enzyme": "^3.10.5",
+    "@types/react-table": "^7.0.29",
+    "classnames": "^2.3.2",
     "d3-array": "^2.4.0",
     "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
@@ -41,10 +42,10 @@
     "@testing-library/react": "^11.2.0"
   },
   "peerDependencies": {
-    "@types/react": "*",
-    "@types/classnames": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@types/classnames": "*",
+    "@types/react": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }

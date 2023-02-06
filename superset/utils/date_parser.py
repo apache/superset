@@ -178,7 +178,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE:
+    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:

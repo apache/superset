@@ -92,7 +92,6 @@ describe('Cross-referenced dashboards', () => {
   beforeEach(() => {
     interceptFiltering();
 
-    cy.preserveLogin();
     cy.createSampleDashboards(SAMPLE_DASHBOARDS_INDEXES);
     cy.createSampleCharts([0]);
     cy.visit(CHART_LIST);
@@ -125,7 +124,6 @@ describe('Cross-referenced dashboards', () => {
 
 describe('No Results', () => {
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

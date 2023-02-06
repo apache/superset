@@ -71,3 +71,33 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
         skip_base_filter=True,
     )
     assert result is None
+
+
+def test_datasource_find_by_ids_skip_base_filter(session_with_data: Session) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.dao import DatasetDAO
+
+    result = DatasetDAO.find_by_ids(
+        [1, 125326326],
+        session=session_with_data,
+        skip_base_filter=True,
+    )
+
+    assert result
+    assert [1] == list(map(lambda x: x.id, result))
+    assert ["my_sqla_table"] == list(map(lambda x: x.table_name, result))
+    assert isinstance(result[0], SqlaTable)
+
+
+def test_datasource_find_by_ids_skip_base_filter_not_found(
+    session_with_data: Session,
+) -> None:
+    from superset.datasets.dao import DatasetDAO
+
+    result = DatasetDAO.find_by_ids(
+        [125326326, 125326326125326326],
+        session=session_with_data,
+        skip_base_filter=True,
+    )
+
+    assert len(result) == 0

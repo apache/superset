@@ -86,9 +86,6 @@ ColumnTypeMapping = Tuple[
 logger = logging.getLogger()
 
 
-CTE_ALIAS = "__cte"
-
-
 class TimeGrain(NamedTuple):
     name: str  # TODO: redundant field, remove
     label: str
@@ -193,11 +190,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: Set[str] = set()
     drivers: Dict[str, str] = {}
     default_driver: Optional[str] = None
-    allow_ssh_tunneling = False
+    disable_ssh_tunneling = False
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
+    _default_column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
@@ -314,6 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.BOOLEAN,
         ),
     )
+    # engine-specific type mappings to check prior to the defaults
+    column_type_mappings: Tuple[ColumnTypeMapping, ...] = ()
 
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
@@ -344,6 +343,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then it will allow  in subquery ,
     # if False it will allow as regular CTE
     allows_cte_in_subquery = True
+    # Define alias for CTE
+    cte_alias = "__cte"
     # Whether allow LIMIT clause in the SQL
     # If True, then the database engine is allowed for LIMIT clause
     # If False, then the database engine is allowed for TOP clause
@@ -887,7 +888,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
             # extract rest of the SQLs after CTE
             remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
 
         return None
 
@@ -1389,24 +1390,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(
+    def get_column_types(
         cls,
         column_type: Optional[str],
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Optional[Tuple[TypeEngine, GenericDataType]]:
         """
-        Return a sqlalchemy native column type that corresponds to the column type
-        defined in the data source (return None to use default type inferred by
-        SQLAlchemy). Override `column_type_mappings` for specific needs
+        Return a sqlalchemy native column type and generic data type that corresponds
+        to the column type defined in the data source (return None to use default type
+        inferred by SQLAlchemy). Override `column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param column_type: Column type returned by inspector
-        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
-        :return: SqlAlchemy column type
+        :return: SQLAlchemy and generic Superset column types
         """
         if not column_type:
             return None
-        for regex, sqla_type, generic_type in column_type_mappings:
+
+        for regex, sqla_type, generic_type in (
+            cls.column_type_mappings + cls._default_column_type_mappings
+        ):
             match = regex.match(column_type)
             if not match:
                 continue
@@ -1569,19 +1571,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         native_type: Optional[str],
         db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
     ) -> Optional[ColumnSpec]:
         """
-        Converts native database type to sqlalchemy column type.
+        Get generic type related specs regarding a native column type.
+
         :param native_type: Native database type
         :param db_extra: The database extra object
         :param source: Type coming from the database table or cursor description
-        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
         :return: ColumnSpec object
         """
-        col_types = cls.get_sqla_column_type(
-            native_type, column_type_mappings=column_type_mappings
-        )
+        col_types = cls.get_column_types(native_type)
         if col_types:
             column_type, generic_type = col_types
             is_dttm = generic_type == GenericDataType.TEMPORAL
@@ -1589,6 +1588,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+    @classmethod
+    def get_sqla_column_type(
+        cls,
+        native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+    ) -> Optional[TypeEngine]:
+        """
+        Converts native database type to sqlalchemy column type.
+
+        :param native_type: Native database type
+        :param db_extra: The database extra object
+        :param source: Type coming from the database table or cursor description
+        :return: ColumnSpec object
+        """
+        column_spec = cls.get_column_spec(
+            native_type=native_type,
+            db_extra=db_extra,
+            source=source,
+        )
+        return column_spec.sqla_type if column_spec else None
 
     # pylint: disable=unused-argument
     @classmethod
@@ -1697,11 +1718,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Construct a Dict with properties we want to expose.
 
         :returns: Dict with properties of our class like supports_file_upload
-        and allow_ssh_tunneling
+        and disable_ssh_tunneling
         """
         return {
             "supports_file_upload": cls.supports_file_upload,
-            "allow_ssh_tunneling": cls.allow_ssh_tunneling,
+            "disable_ssh_tunneling": cls.disable_ssh_tunneling,
         }
 
 

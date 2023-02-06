@@ -38,7 +38,7 @@ import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
 /**
- * Return result from /superset/recent_activity/{user_id}
+ * Return result from /api/v1/log/recent_activity/{user_id}/
  */
 interface RecentActivity {
   action: string;
@@ -58,7 +58,7 @@ interface RecentDashboard extends RecentActivity {
 }
 
 /**
- * Recent activity objects fetched by `getRecentAcitivtyObjs`.
+ * Recent activity objects fetched by `getRecentActivityObjs`.
  */
 type ActivityObject =
   | RecentSlice

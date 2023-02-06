@@ -53,7 +53,6 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
@@ -749,6 +748,11 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
 
+# Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
+# method.
+# note: index option should not be overridden
+EXCEL_EXPORT = {"encoding": "utf-8"}
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
@@ -875,7 +879,6 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = ("superset.sql_lab",)
     result_backend = "db+sqlite:///celery_results.sqlite"
-    worker_log_level = "DEBUG"
     worker_prefetch_multiplier = 1
     task_acks_late = False
     task_annotations = {
@@ -1365,16 +1368,15 @@ TALISMAN_CONFIG = {
 }
 
 # It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `filter_rel_fields`
-# on `RLSRestApi`. Example:
+# dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
+# `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:
 #
 # from flask_appbuilder.models.sqla import filters
-
-# RLS_BASE_RELATED_FIELD_FILTERS = {
-#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#     "roles": [["name", filters.FilterContains, "Admin"]]
+# RLS_FORM_QUERY_REL_FIELDS = {
+#     "roles": [["name", filters.FilterStartsWith, "RlsRole"]]
+#     "tables": [["table_name", filters.FilterContains, "rls"]]
 # }
-RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
+RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 
 #
 # Flask session cookie options
@@ -1384,7 +1386,7 @@ RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 #
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE: Optional[Literal["None", "Lax", "Strict"]] = "Lax"
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
@@ -1403,6 +1405,13 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 
 # Prevents unsafe default endpoints to be registered on datasets.
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
+# Define a list of allowed URLs for dataset data imports (v1).
+# Simple example to only allow URLs that belong to certain domains:
+# ALLOWED_IMPORT_URL_DOMAINS = [
+#     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
+# ]
+DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -1432,6 +1441,9 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: Optional[
+    Literal["None", "Lax", "Strict"]
+] = None
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
@@ -1493,8 +1505,8 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
-# By default, the Welcome page features example charts and dashboards. This can be
-# changed to show all charts/dashboards the user has access to, or a custom view
+# By default, the Welcome page features all charts and dashboards the user has access
+# to. This can be changed to show only examples, or a custom view
 # by providing the title and a FAB filter:
 # WELCOME_PAGE_LAST_TAB = (
 #     "Xyz",
@@ -1502,7 +1514,7 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
 # )
 WELCOME_PAGE_LAST_TAB: Union[
     Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
-] = "examples"
+] = "all"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)

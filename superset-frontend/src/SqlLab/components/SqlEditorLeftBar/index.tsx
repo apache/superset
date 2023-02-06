@@ -89,10 +89,23 @@ const collapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-arrow {
     top: ${theme.gridUnit * 2}px !important;
     color: ${theme.colors.primary.dark1} !important;
-    &: hover {
+    &:hover {
       color: ${theme.colors.primary.dark2} !important;
     }
   }
+`;
+
+const LeftBarStyles = styled.div`
+  ${({ theme }) => css`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .divider {
+      border-bottom: 1px solid ${theme.colors.grayscale.light4};
+      margin: ${theme.gridUnit * 4}px 0;
+    }
+  `}
 `;
 
 const SqlEditorLeftBar = ({
@@ -228,7 +241,7 @@ const SqlEditorLeftBar = ({
   }, []);
 
   return (
-    <div data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
+    <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent(emptyResultsWithSearch)}
@@ -276,7 +289,7 @@ const SqlEditorLeftBar = ({
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}
-    </div>
+    </LeftBarStyles>
   );
 };
 

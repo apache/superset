@@ -212,7 +212,7 @@ class ChartScreenshot(BaseScreenshot):
 
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
-    element: str = "grid-container"
+    element: str = "standalone"
 
     def __init__(
         self,

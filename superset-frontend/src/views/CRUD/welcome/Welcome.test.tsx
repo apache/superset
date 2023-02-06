@@ -43,7 +43,7 @@ const dashboardFavoriteStatusEndpoint =
   'glob:*/api/v1/dashboard/favorite_status?*';
 const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
 const savedQueryInfoEndpoint = 'glob:*/api/v1/saved_query/_info?*';
-const recentActivityEndpoint = 'glob:*/superset/recent_activity/*';
+const recentActivityEndpoint = 'glob:*/api/v1/log/recent_activity/*';
 
 fetchMock.get(chartsEndpoint, {
   result: [
@@ -142,7 +142,7 @@ describe('Welcome with sql role', () => {
   it('calls api methods in parallel on page load', () => {
     const chartCall = fetchMock.calls(/chart\/\?q/);
     const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
-    const recentCall = fetchMock.calls(/superset\/recent_activity\/*/);
+    const recentCall = fetchMock.calls(/api\/v1\/log\/recent_activity\/*/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
     expect(chartCall).toHaveLength(2);
     expect(recentCall).toHaveLength(1);
@@ -186,7 +186,7 @@ describe('Welcome without sql role', () => {
   it('calls api methods in parallel on page load', () => {
     const chartCall = fetchMock.calls(/chart\/\?q/);
     const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
-    const recentCall = fetchMock.calls(/superset\/recent_activity\/*/);
+    const recentCall = fetchMock.calls(/api\/v1\/log\/recent_activity\/*/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
     expect(chartCall).toHaveLength(2);
     expect(recentCall).toHaveLength(1);

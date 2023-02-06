@@ -133,7 +133,6 @@ function testTimeChart(vizType: string) {
 
 describe('Drill to detail modal', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     closeModal();
   });
 

@@ -63,11 +63,15 @@ function safeJsonObjectParse(
   }
 }
 
-export function renderBigIntStrToNumber(value: string) {
+export function convertBigIntStrToNumber(value: string | number) {
   if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
     return value.substring(1, value.length - 1);
   }
   return value;
+}
+
+function renderBigIntStrToNumber(value: string | number) {
+  return <>{convertBigIntStrToNumber(value)}</>;
 }
 
 const GRID_POSITION_ADJUSTMENT = 4;

@@ -99,6 +99,7 @@ export default function transformProps(
     datasource,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -134,7 +135,6 @@ export default function transformProps(
     richTooltip,
     xAxis: xAxisOrig,
     xAxisLabelRotation,
-    emitFilter,
     groupby,
     showValue,
     onlyTotal,
@@ -448,7 +448,7 @@ export default function transformProps(
 
   return {
     echartOptions,
-    emitFilter,
+    emitCrossFilters,
     formData,
     groupby,
     height,

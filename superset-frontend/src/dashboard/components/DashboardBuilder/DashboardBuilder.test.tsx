@@ -125,7 +125,7 @@ describe('DashboardBuilder', () => {
 
   it('should render a StickyContainer with class "dashboard"', () => {
     const { getByTestId } = setup();
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard');
   });
 
@@ -133,7 +133,7 @@ describe('DashboardBuilder', () => {
     const { getByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, editMode: true },
     });
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard dashboard--editing');
   });
 

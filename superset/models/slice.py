@@ -285,11 +285,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         base_url: str = "/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
+        return self.build_explore_url(self.id, base_url, overrides)
+
+    @staticmethod
+    def build_explore_url(
+        id_: int, base_url: str = "/explore", overrides: Optional[Dict[str, Any]] = None
+    ) -> str:
         overrides = overrides or {}
-        form_data = {"slice_id": self.id}
+        form_data = {"slice_id": id_}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?slice_id={self.id}&form_data={params}"
+        return f"{base_url}/?slice_id={id_}&form_data={params}"
 
     @property
     def slice_url(self) -> str:

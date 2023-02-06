@@ -25,6 +25,7 @@ from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
@@ -32,6 +33,9 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelingNotEnabledError,
+)
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -64,7 +68,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
-    def run(self) -> None:  # pylint: disable=too-many-statements
+    def run(self) -> None:  # pylint: disable=too-many-statements, too-many-branches
         self.validate()
         ex_str = ""
         uri = self._properties.get("sqlalchemy_uri", "")
@@ -107,6 +111,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             # Generate tunnel if present in the properties
             if ssh_tunnel:
+                if not is_feature_enabled("SSH_TUNNELING"):
+                    raise SSHTunnelingNotEnabledError()
                 # If there's an existing tunnel for that DB we need to use the stored
                 # password, private_key and private_key_password instead
                 if ssh_tunnel_id := ssh_tunnel.pop("id", None):
@@ -202,6 +208,15 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 408
+            raise ex
+        except SSHTunnelingNotEnabledError as ex:
+            event_logger.log_with_context(
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
+                engine=database.db_engine_spec.__name__,
+            )
+            # bubble up the exception to return a 400
             raise ex
         except Exception as ex:
             event_logger.log_with_context(

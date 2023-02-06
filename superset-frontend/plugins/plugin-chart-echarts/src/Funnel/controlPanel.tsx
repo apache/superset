@@ -24,7 +24,6 @@ import {
   sections,
   sharedControls,
   ControlStateMapping,
-  emitFilterControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
@@ -45,7 +44,6 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',

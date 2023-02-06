@@ -195,7 +195,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             description: t(
               'Overlay one or more timeseries from a ' +
                 'relative time period. Expects relative time deltas ' +
-                'in natural language (example:  24 hours, 7 days, ' +
+                'in natural language (example: 24 hours, 7 days, ' +
                 '52 weeks, 365 days). Free text is supported.',
             ),
           },

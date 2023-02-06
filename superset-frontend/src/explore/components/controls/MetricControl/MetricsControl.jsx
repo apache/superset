@@ -217,10 +217,7 @@ const MetricsControl = ({
     [propsValue, savedMetrics],
   );
 
-  const newAdhocMetric = useMemo(
-    () => new AdhocMetric({ isNew: true }),
-    [value],
-  );
+  const newAdhocMetric = useMemo(() => new AdhocMetric({}), [value]);
   const addNewMetricPopoverTrigger = useCallback(
     trigger => {
       if (isAddNewMetricDisabled()) {
@@ -234,6 +231,7 @@ const MetricsControl = ({
           savedMetricsOptions={savedMetricOptions}
           savedMetric={emptySavedMetric}
           datasource={datasource}
+          isNew
         >
           {trigger}
         </AdhocMetricPopoverTrigger>

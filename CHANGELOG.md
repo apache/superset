@@ -18,20 +18,24 @@ under the License.
 -->
 
 ## Change Log
+
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
 - [2.0.0](#200-tue-jun-28-085302-2022--0400)
-- [1.5.2 (LTS)](#152-wed-sep-14-171151-2022-0530)
+- [1.5.3 (LTS)](#153-thu-jan-5-150544-2023--0500)
+- [1.5.2](#152-wed-sep-14-171151-2022-0530)
 - [1.5.1](#151-thu-may-26-144520-2022-0300)
 - [1.5.0](#150-fri-apr-22-172330-2022--0400)
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
 ### 2.0.1 (Fri Nov 4 10:34:02 2022 -0400)
+
 **Database Migrations**
 
 **Features**
 
 **Fixes**
+
 - [#22417](https://github.com/apache/superset/pull/22417) fix: fix: Force configuration for SafeMarkdown component in Handlebars(@geido)
 - [#21895](https://github.com/apache/superset/pull/21895) feat: Improves SafeMarkdown HTML sanitization (@michael-s-molina) (security-improvement)
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina)(security-improvement)
@@ -74,16 +78,18 @@ under the License.
 - [#20946](https://github.com/apache/superset/pull/20946) fix(viz): Show zero percent changes in Big Number Viz (@Antonio-RiveroMartnez)
 - [#20819](https://github.com/apache/superset/pull/20819) fix: Temporal X Axis values are not properly displayed if the time column has a custom label defined (@diegomedina248)
 - [#20736](https://github.com/apache/superset/pull/20736) fix: getting default value in run-server.sh (@zhaoyongjie)
-- [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable  (@mdeshmu)
+- [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable (@mdeshmu)
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
 **Others**
+
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#20644](https://github.com/apache/superset/pull/20644) chore(deps): bump moment from 2.29.2 to 2.29.4 in /superset-frontend (@dependabot[bot])
 - [#21721](https://github.com/apache/superset/pull/21721) build: changelog for 2.0.1 (@AAfghahi)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#21091](https://github.com/apache/superset/pull/21091) chore(deps): unpin holidays dependency version (@ecederstrand)
+
 ### 2.0.0 (Tue Jun 28 08:53:02 2022 -0400)
 
 **Database Migrations**
@@ -577,6 +583,32 @@ under the License.
 - [#19046](https://github.com/apache/superset/pull/19046) chore(explore): Set Drag&Drop feature flags to True by default (@kgabryje)
 - [#19016](https://github.com/apache/superset/pull/19016) chore: Adding PR to Updating.md (@AAfghahi)
 - [#18970](https://github.com/apache/superset/pull/18970) chore: Change Dataset legacy editor flag to true (@AAfghahi)
+
+### 1.5.3 (Thu Jan 5 15:05:44 2023 -0500)
+
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+
+- [#21895](https://github.com/apache/superset/pull/21895) fix: Improves SafeMarkdown HTML sanitization (@michael-s-molina)
+- [#21874](https://github.com/apache/superset/pull/21874) fix: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina)
+- [#21853](https://github.com/apache/superset/pull/21853) fix: Disables HTML rendering in Toast by default (@michael-s-molina)
+- [#22591](https://github.com/apache/superset/pull/22591) fix: Talisman configuration (@michael-s-molina)
+- [#22196](https://github.com/apache/superset/pull/22196) fix(reports): force data generation in csv reports (@mayurnewase)
+- [#22038](https://github.com/apache/superset/pull/22038) fix: datasource save, improve data validation (@dpgaspar)
+- [#22022](https://github.com/apache/superset/pull/22022) fix: deprecate approve and request_access endpoint (@dpgaspar)
+- [#21964](https://github.com/apache/superset/pull/21964) fix: dashboard api cache decorator (@dpgaspar)
+- [#21875](https://github.com/apache/superset/pull/21875) fix: check that imports are ZIPs (@betodealmeida)
+- [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
+- [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
+- [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
+- [#21216](https://github.com/apache/superset/pull/21216) fix(database-list): hide upload file button if no permission (@stephenLYZ)
+
+**Others**
+
+- [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 
 ### 1.5.2 (Wed Sep 14 17:11:51 2022 +0530)
 

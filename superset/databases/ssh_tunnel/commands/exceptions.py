@@ -46,6 +46,11 @@ class SSHTunnelCreateFailedError(CommandException):
     message = _("Creating SSH Tunnel failed for an unknown reason")
 
 
+class SSHTunnelingNotEnabledError(CommandException):
+    status = 400
+    message = _("SSH Tunneling is not enabled")
+
+
 class SSHTunnelRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(

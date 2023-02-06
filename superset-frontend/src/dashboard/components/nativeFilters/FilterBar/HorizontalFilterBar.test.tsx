@@ -36,6 +36,11 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
+      initialState: {
+        dashboardInfo: {
+          dash_edit_perm: true,
+        },
+      },
     }),
   );
 
@@ -63,19 +68,6 @@ test('should render the empty message', async () => {
   expect(
     screen.getByText('No filters are currently added to this dashboard.'),
   ).toBeInTheDocument();
-});
-
-test('should render the gear icon', async () => {
-  await renderWrapper();
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
-});
-
-test('should not render the gear icon', async () => {
-  await renderWrapper({
-    canEdit: false,
-  });
-
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
 test('should not render the loading icon', async () => {

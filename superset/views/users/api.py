@@ -15,17 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask import g, Response
-from flask_appbuilder.api import BaseApi, expose, safe
+from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
+from superset.views.base_api import BaseSupersetApi
+from superset.views.users.schemas import UserResponseSchema
 from superset.views.utils import bootstrap_user_data
-
-from .schemas import UserResponseSchema
 
 user_response_schema = UserResponseSchema()
 
 
-class CurrentUserRestApi(BaseApi):
+class CurrentUserRestApi(BaseSupersetApi):
     """An api to get information about the current user"""
 
     resource_name = "me"

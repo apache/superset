@@ -49,10 +49,10 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
         credits: ['https://echarts.apache.org'],
         description: hasGenericChartAxes
           ? t(
-              'Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
+              'Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
             )
           : t(
-              'Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
+              'Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
             ),
         exampleGallery: [{ url: example }],
         supportedAnnotationTypes: [

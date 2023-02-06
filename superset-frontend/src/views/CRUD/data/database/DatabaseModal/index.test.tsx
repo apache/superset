@@ -31,6 +31,8 @@ import {
   DatabaseObject,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal, {
   dbReducer,
@@ -41,6 +43,33 @@ import DatabaseModal, {
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: () => true,
+}));
+
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({
+    fileName,
+    role,
+    ...rest
+  }: {
+    fileName: string;
+    role: string;
+  }) => (
+    <span
+      role={role ?? 'img'}
+      aria-label={fileName.replace('_', '-')}
+      {...rest}
+    />
+  ),
+  StyledIcon: () => <span />,
+}));
+
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
 }));
 
 const dbProps = {
@@ -131,7 +160,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -141,7 +170,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -194,7 +223,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -204,7 +233,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -214,7 +243,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -239,7 +268,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -250,7 +279,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: false,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -354,11 +383,6 @@ describe('DatabaseModal', () => {
       const preferredDbTextSQLite = within(preferredDbButtonSQLite).getByText(
         /sqlite/i,
       );
-      // All dbs render with this icon in this testing environment,
-      // The Icon count should equal the count of databases rendered
-      const preferredDbIcon = screen.getAllByRole('img', {
-        name: /default-icon/i,
-      });
       // renderAvailableSelector() => <Select> - Supported databases selector
       const supportedDbsHeader = screen.getByRole('heading', {
         name: /or choose from a list of other databases we support:/i,
@@ -399,10 +423,6 @@ describe('DatabaseModal', () => {
         preferredDbButtonPresto,
         preferredDbButtonMySQL,
         preferredDbButtonSQLite,
-        preferredDbIcon[0],
-        preferredDbIcon[1],
-        preferredDbIcon[2],
-        preferredDbIcon[3],
         preferredDbTextPostgreSQL,
         preferredDbTextPresto,
         preferredDbTextMySQL,
@@ -414,9 +434,6 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
-
-      // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(5);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -1198,6 +1215,41 @@ describe('DatabaseModal', () => {
       });
 
       describe('SSH Tunnel Form interaction', () => {
+        test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /postgresql/i,
+            }),
+          );
+          expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = screen.getByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
+          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          const SSHTunnelServerPortInput = screen.getByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerPortInput, '22');
+          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          const SSHTunnelUsernameInput = screen.getByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).toHaveValue('');
+          userEvent.type(SSHTunnelUsernameInput, 'test');
+          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).toHaveValue('');
+          userEvent.type(SSHTunnelPasswordInput, 'pass');
+          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+        });
+
         test('properly interacts with SSH Tunnel form textboxes', async () => {
           userEvent.click(
             screen.getByRole('button', {
@@ -1536,6 +1588,36 @@ describe('DatabaseModal', () => {
       userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w Extensions', () => {
+    const renderAndWait = async () => {
+      const extensionsRegistry = getExtensionsRegistry();
+
+      extensionsRegistry.set('ssh_tunnel.form.switch', () => (
+        <>ssh_tunnel.form.switch extension component</>
+      ));
+
+      setupExtensions();
+
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="SQLite" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('should render an extension component if one is supplied', () => {
+      expect(
+        screen.getByText('ssh_tunnel.form.switch extension component'),
+      ).toBeInTheDocument();
     });
   });
 });
@@ -1917,7 +1999,7 @@ describe('dbReducer', () => {
       payload: {
         engine_information: {
           supports_file_upload: true,
-          allow_ssh_tunneling: true,
+          disable_ssh_tunneling: false,
         },
         ...db,
         driver: db.driver,
@@ -1932,7 +2014,7 @@ describe('dbReducer', () => {
       configuration_method: db.configuration_method,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
       driver: db.driver,
       expose_in_sqllab: true,

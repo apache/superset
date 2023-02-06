@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
@@ -34,6 +35,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
 from superset.exceptions import SupersetErrorsException
@@ -52,7 +54,7 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except SupersetErrorsException as ex:
+        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
@@ -78,6 +80,9 @@ class CreateDatabaseCommand(BaseCommand):
 
             ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                if not is_feature_enabled("SSH_TUNNELING"):
+                    db.session.rollback()
+                    raise SSHTunnelingNotEnabledError()
                 try:
                     # So database.id is not None
                     db.session.flush()

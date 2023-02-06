@@ -19,7 +19,7 @@
 
 import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
-export interface ExtentionConfigs {
+export interface ExtensionConfigs {
   ALLOWED_EXTENSIONS: Array<any>;
   CSV_EXTENSIONS: Array<any>;
   COLUMNAR_EXTENSIONS: Array<any>;

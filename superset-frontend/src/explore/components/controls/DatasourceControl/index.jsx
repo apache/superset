@@ -267,11 +267,12 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = datasource?.id == null;
+    const isMissingDatasource = !datasource?.id;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
+
       if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
@@ -288,7 +289,7 @@ class DatasourceControl extends React.PureComponent {
 
     const defaultDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
-        {this.props.isEditable && (
+        {this.props.isEditable && !isMissingDatasource && (
           <Menu.Item
             key={EDIT_DATASET}
             data-test="edit-dataset"
@@ -308,7 +309,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
-        {datasource && canAccessSqlLab && (
+        {!isMissingDatasource && canAccessSqlLab && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
       </Menu>
@@ -358,7 +359,10 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
-    const titleText = getDatasourceTitle(datasource);
+    const titleText = isMissingDatasource
+      ? t('Missing dataset')
+      : getDatasourceTitle(datasource);
+
     const tooltip = titleText;
 
     return (

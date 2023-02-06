@@ -178,7 +178,7 @@ export const getUserOwnedObjects = (
     endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
   }).then(res => res.json?.result);
 
-export const getRecentAcitivtyObjs = (
+export const getRecentActivityObjs = (
   userId: string | number,
   recent: string,
   addDangerToast: (arg1: string, arg2: any) => any,
@@ -197,7 +197,7 @@ export const getRecentAcitivtyObjs = (
     return Promise.all(newBatch)
       .then(([chartRes, dashboardRes]) => {
         res.other = [...chartRes.json.result, ...dashboardRes.json.result];
-        res.viewed = recentsRes.json;
+        res.viewed = recentsRes.json.result;
         return res;
       })
       .catch(errMsg =>

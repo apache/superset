@@ -241,6 +241,10 @@ def test_delete_ssh_tunnel(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
+        mocker.patch(
+            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            return_value=True,
+        )
 
         # Create our SSHTunnel
         tunnel = SSHTunnel(
@@ -313,6 +317,10 @@ def test_delete_ssh_tunnel_not_found(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
+        mocker.patch(
+            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            return_value=True,
+        )
 
         # Create our SSHTunnel
         tunnel = SSHTunnel(

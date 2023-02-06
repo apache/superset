@@ -95,6 +95,7 @@ export default function transformProps(
     datasource,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const { label_map: labelMap } =
@@ -144,8 +145,6 @@ export default function transformProps(
     xAxisLabelRotation,
     groupby,
     groupbyB,
-    emitFilter,
-    emitFilterB,
     xAxis: xAxisOrig,
     xAxisTitle,
     yAxisTitle,
@@ -504,8 +503,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
-    emitFilterB,
+    emitCrossFilters,
     labelMap,
     labelMapB,
     groupby,

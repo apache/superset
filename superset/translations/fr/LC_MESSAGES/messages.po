@@ -12626,7 +12626,7 @@ msgstr "La requête associée aux résutlats a été supprimée."
 
 #: superset/views/core.py:2280
 msgid ""
-"The query associated with these results could not be find. You need to "
+"The query associated with these results could not be found. You need to "
 "re-run the original query."
 msgstr ""
 "La requête associée à ces résultats n'a pu être trouvée. Rejouez la "

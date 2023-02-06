@@ -65,7 +65,7 @@ interface PivotTableCustomizeProps {
   rowTotals: boolean;
   valueFormat: string;
   setDataMask: SetDataMaskHook;
-  emitFilter?: boolean;
+  emitCrossFilters?: boolean;
   selectedFilters?: SelectedFiltersType;
   verboseMap: JsonObject;
   columnFormats: JsonObject;

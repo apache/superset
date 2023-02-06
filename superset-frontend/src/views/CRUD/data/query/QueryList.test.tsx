@@ -35,6 +35,14 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import SubMenu from 'src/views/components/SubMenu';
 import { QueryState } from '@superset-ui/core';
 
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({ fileName, role }: { fileName: string; role: string }) => (
+    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
+  ),
+  StyledIcon: () => <span />,
+}));
+
 // store needed for withToasts
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

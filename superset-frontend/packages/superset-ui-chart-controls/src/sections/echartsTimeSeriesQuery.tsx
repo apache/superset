@@ -20,7 +20,6 @@ import { hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
   contributionModeControl,
-  emitFilterControl,
   xAxisSortControl,
   xAxisSortAscControl,
 } from '../shared-controls';
@@ -30,7 +29,6 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['groupby'],
   [contributionModeControl],
   ['adhoc_filters'],
-  emitFilterControl,
   ['limit'],
   ['timeseries_limit_metric'],
   ['order_desc'],

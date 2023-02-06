@@ -54,10 +54,6 @@ function visitChartList() {
 }
 
 describe('Charts list', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe.skip('Cross-referenced dashboards', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);

@@ -69,6 +69,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = True
     allows_subqueries = True
+    disable_ssh_tunneling = True
 
     parameters_schema = GSheetsParametersSchema()
     default_driver = "apsw"

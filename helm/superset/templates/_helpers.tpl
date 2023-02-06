@@ -83,12 +83,6 @@ SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 
-# Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
-# Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = []
-# A CSRF token that expires in 1 year
-WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}

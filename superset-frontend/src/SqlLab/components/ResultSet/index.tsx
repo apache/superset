@@ -22,7 +22,13 @@ import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { QueryResponse, QueryState, styled, t } from '@superset-ui/core';
+import {
+  QueryResponse,
+  QueryState,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -133,6 +139,7 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -353,8 +360,8 @@ const ResultSet = ({
               message={t('%(rows)d rows returned', { rows })}
               onClose={() => setAlertIsOpen(false)}
               description={t(
-                'The number of rows displayed is limited to %s by the dropdown.',
-                rows,
+                'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                { rows },
               )}
             />
           </div>
@@ -449,7 +456,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  className="m-r-5"
+                  css={{ marginRight: theme.gridUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}

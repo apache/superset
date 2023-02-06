@@ -55,13 +55,13 @@ describe('async actions', () => {
 
   afterEach(fetchMock.resetHistory);
 
-  const fetchQueryEndpoint = 'glob:*/superset/results/*';
+  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
     fetchQueryEndpoint,
     JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
   );
 
-  const runQueryEndpoint = 'glob:*/superset/sql_json/';
+  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
@@ -280,7 +280,8 @@ describe('async actions', () => {
     };
 
     it('makes the fetch request', async () => {
-      const runQueryEndpointWithParams = 'glob:*/superset/sql_json/?foo=bar';
+      const runQueryEndpointWithParams =
+        'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
         runQueryEndpointWithParams,
         `{ "data": ${mockBigNumber} }`,
@@ -317,11 +318,15 @@ describe('async actions', () => {
   });
 
   describe('postStopQuery', () => {
-    const stopQueryEndpoint = 'glob:*/superset/stop_query/*';
+    const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
+    const baseQuery = {
+      ...query,
+      id: 'test_foo',
+    };
 
     const makeRequest = () => {
-      const request = actions.postStopQuery(query);
+      const request = actions.postStopQuery(baseQuery);
       return request(dispatch);
     };
 
@@ -346,7 +351,8 @@ describe('async actions', () => {
 
       return makeRequest().then(() => {
         const call = fetchMock.calls(stopQueryEndpoint)[0];
-        expect(call[1].body.get('client_id')).toBe(query.id);
+        const body = JSON.parse(call[1].body);
+        expect(body.client_id).toBe(baseQuery.id);
       });
     });
   });
@@ -427,15 +433,21 @@ describe('async actions', () => {
           {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
-              ...defaultQueryEditor,
               id: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query ${
                 store.getState().sqlLab.queryEditors.length + 1
               }`,
+              dbId: defaultQueryEditor.dbId,
+              schema: defaultQueryEditor.schema,
+              autorun: false,
+              queryLimit:
+                defaultQueryEditor.queryLimit ||
+                initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
             },
           },
         ];
-        const request = actions.addNewQueryEditor(defaultQueryEditor);
+        const request = actions.addNewQueryEditor();
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
         });

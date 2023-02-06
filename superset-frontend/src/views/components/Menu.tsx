@@ -45,6 +45,8 @@ const StyledHeader = styled.header`
   ${({ theme }) => `
       background-color: ${theme.colors.grayscale.light5};
       margin-bottom: 2px;
+      z-index: 10;
+
       &:nth-last-of-type(2) nav {
         margin-bottom: 2px;
       }

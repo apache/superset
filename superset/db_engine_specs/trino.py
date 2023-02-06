@@ -17,8 +17,6 @@
 from __future__ import annotations
 
 import logging
-import re
-from datetime import datetime
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
@@ -48,29 +46,6 @@ logger = logging.getLogger(__name__)
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
-
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
-        """
-        Convert a Python `datetime` object to a SQL expression.
-        :param target_type: The target type of expression
-        :param dttm: The datetime object
-        :param db_extra: The database extra object
-        :return: The SQL expression
-        Superset only defines time zone naive `datetime` objects, though this method
-        handles both time zone naive and aware conversions.
-        """
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
-            return f"DATE '{dttm.date().isoformat()}'"
-        if re.sub(r"\(\d\)", "", tt) in (
-            utils.TemporalType.TIMESTAMP,
-            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
-        ):
-            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
-        return None
 
     @classmethod
     def extra_table_metadata(

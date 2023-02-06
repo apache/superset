@@ -24,7 +24,6 @@ import {
   ControlPanelSectionConfig,
   ControlSetRow,
   CustomControlItem,
-  emitFilterControl,
   getStandardizedControls,
   sections,
   sharedControls,
@@ -79,14 +78,6 @@ function createQuerySection(
           config: sharedControls.adhoc_filters,
         },
       ],
-      emitFilterControl.length > 0
-        ? [
-            {
-              ...emitFilterControl[0],
-              name: `emit_filter${controlSuffix}`,
-            },
-          ]
-        : [],
       [
         {
           name: `limit${controlSuffix}`,

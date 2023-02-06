@@ -23,6 +23,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
+import rison from 'rison';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -37,7 +38,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   createErrorHandler,
-  getRecentAcitivtyObjs,
+  getRecentActivityObjs,
   mq,
   CardContainer,
   getUserOwnedObjects,
@@ -165,7 +166,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const canAccessSqlLab = canUserAccessSqlLab(user);
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
-  const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
+  const params = rison.encode({ page_size: 6 });
+  const recent = `/api/v1/log/recent_activity/${user.userId}/?q=${params}`;
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
@@ -226,7 +228,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     }
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
+    getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
         data[TableTab.Other] = res.other;

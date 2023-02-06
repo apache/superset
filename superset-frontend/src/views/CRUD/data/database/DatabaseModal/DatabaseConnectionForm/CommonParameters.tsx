@@ -90,7 +90,7 @@ export const httpPath = ({
       placeholder={t('e.g. sql/protocolv1/o/12345')}
       label="HTTP Path"
       onChange={changeMethods.onExtraInputChange}
-      helpText={t('Copy the name of the  HTTP Path of your cluster.')}
+      helpText={t('Copy the name of the HTTP Path of your cluster.')}
     />
   );
 };
