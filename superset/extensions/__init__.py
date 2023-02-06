@@ -16,7 +16,6 @@
 # under the License.
 import json
 import os
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import celery
@@ -28,6 +27,8 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
+from superset.extensions.ssh import SSHManagerFactory
+from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
@@ -126,4 +127,6 @@ migrate = Migrate()
 profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
 security_manager = LocalProxy(lambda: appbuilder.sm)
+ssh_manager_factory = SSHManagerFactory()
+stats_logger_manager = BaseStatsLoggerManager()
 talisman = Talisman()

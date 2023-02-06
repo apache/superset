@@ -51,37 +51,38 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = superset.utils.database.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine_with_context() as engine:
 
-    if not only_metadata and (not table_exists or force):
-        url = get_example_url("countries.json.gz")
-        pdf = pd.read_json(url, compression="gzip")
-        pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-        if database.backend == "presto":
-            pdf.year = pd.to_datetime(pdf.year)
-            pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
-        else:
-            pdf.year = pd.to_datetime(pdf.year)
-        pdf = pdf.head(100) if sample else pdf
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
 
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=50,
-            dtype={
-                # TODO(bkyryliuk): use TIMESTAMP type for presto
-                "year": DateTime if database.backend != "presto" else String(255),
-                "country_code": String(3),
-                "country_name": String(255),
-                "region": String(255),
-            },
-            method="multi",
-            index=False,
-        )
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("countries.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            pdf.columns = [col.replace(".", "_") for col in pdf.columns]
+            if database.backend == "presto":
+                pdf.year = pd.to_datetime(pdf.year)
+                pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
+            else:
+                pdf.year = pd.to_datetime(pdf.year)
+            pdf = pdf.head(100) if sample else pdf
+
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=50,
+                dtype={
+                    # TODO(bkyryliuk): use TIMESTAMP type for presto
+                    "year": DateTime if database.backend != "presto" else String(255),
+                    "country_code": String(3),
+                    "country_name": String(255),
+                    "region": String(255),
+                },
+                method="multi",
+                index=False,
+            )
 
     print("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()

@@ -81,7 +81,9 @@ function verifyMetabar(text) {
 
 function saveAndVerifyDashboard(number) {
   saveChartToDashboard(`${number} - Sample dashboard`);
-  verifyMetabar(`Added to ${number} dashboard(s)`);
+  verifyMetabar(
+    number > 1 ? `Added to ${number} dashboards` : 'Added to 1 dashboard',
+  );
   openDashboardsAddedTo();
   verifyDashboardsSubmenuItem(`${number} - Sample dashboard`);
 }
@@ -90,7 +92,6 @@ describe('Cross-referenced dashboards', () => {
   beforeEach(() => {
     interceptFiltering();
 
-    cy.preserveLogin();
     cy.createSampleDashboards(SAMPLE_DASHBOARDS_INDEXES);
     cy.createSampleCharts([0]);
     cy.visit(CHART_LIST);
@@ -123,7 +124,6 @@ describe('Cross-referenced dashboards', () => {
 
 describe('No Results', () => {
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

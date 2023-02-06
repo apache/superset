@@ -51,6 +51,7 @@ These features are **finished** but currently being tested. They are usable, but
 - ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
+- CONFIRM_DASHBOARD_DIFF
 - DASHBOARD_EDIT_CHART_IN_NEW_TAB
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS

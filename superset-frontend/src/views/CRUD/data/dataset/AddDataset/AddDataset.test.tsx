@@ -20,6 +20,15 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+  useParams: () => ({ datasetId: undefined }),
+}));
+
 describe('AddDataset', () => {
   it('renders a blank state AddDataset', async () => {
     render(<AddDataset />, { useRedux: true });
@@ -27,7 +36,7 @@ describe('AddDataset', () => {
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
     // Header
-    expect(await screen.findByTestId('editable-title')).toBeVisible();
+    expect(await screen.findByText(/new dataset/i)).toBeVisible();
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
     // Footer

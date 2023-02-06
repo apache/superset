@@ -34,6 +34,7 @@ export default function EchartsGraph({
   echartOptions,
   formData,
   onContextMenu,
+  refs,
 }: GraphChartTransformedProps) {
   const eventHandlers: EventHandlers = {
     contextmenu: (e: Event) => {
@@ -68,6 +69,7 @@ export default function EchartsGraph({
   };
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

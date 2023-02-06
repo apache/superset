@@ -28,7 +28,6 @@ import {
 // Table
 describe('Visualization > Table', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 

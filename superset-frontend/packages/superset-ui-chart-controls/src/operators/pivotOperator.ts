@@ -30,14 +30,15 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   queryObject,
 ) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  const xAxis = getXAxisLabel(formData);
+  const xAxisLabel = getXAxisLabel(formData);
+  const columns = queryObject.series_columns || queryObject.columns;
 
-  if (xAxis && metricLabels.length) {
+  if (xAxisLabel && metricLabels.length) {
     return {
       operation: 'pivot',
       options: {
-        index: [xAxis],
-        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
+        index: [xAxisLabel],
+        columns: ensureIsArray(columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
         aggregates: Object.fromEntries(

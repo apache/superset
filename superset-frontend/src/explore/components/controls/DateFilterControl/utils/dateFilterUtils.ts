@@ -17,8 +17,9 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient, NO_TIME_RANGE } from '@superset-ui/core';
+import { SupersetClient, NO_TIME_RANGE, JsonObject } from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { useSelector } from 'react-redux';
 import {
   COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,
@@ -84,3 +85,11 @@ export const fetchTimeRange = async (
     };
   }
 };
+
+export function useDefaultTimeFilter() {
+  return (
+    useSelector(
+      (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
+    ) ?? NO_TIME_RANGE
+  );
+}

@@ -30,6 +30,14 @@ import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelect
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({ fileName }: { fileName: string }) => (
+    <span role="img" aria-label={fileName.replace('_', '-')} />
+  ),
+  StyledIcon: () => <span />,
+}));
+
 const defaultProps = {
   savedMetrics: [
     {

@@ -266,3 +266,7 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 class SupersetCancelQueryException(SupersetException):
     status = 422
+
+
+class QueryNotFoundException(SupersetException):
+    status = 404

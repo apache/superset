@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer } from 'react';
+import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useDatasetsList } from 'src/views/CRUD/data/hooks';
 import Header from './Header';
+import EditPage from './EditDataset';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import Footer from './Footer';
@@ -72,6 +75,20 @@ export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
+  const [hasColumns, setHasColumns] = useState(false);
+  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
+
+  const { datasets, datasetNames } = useDatasetsList(
+    dataset?.db,
+    dataset?.schema,
+  );
+
+  const { datasetId: id } = useParams<{ datasetId: string }>();
+  useEffect(() => {
+    if (!Number.isNaN(parseInt(id, 10))) {
+      setEditPageIsVisible(true);
+    }
+  }, [id]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -80,24 +97,39 @@ export default function AddDataset() {
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
-      schema={dataset?.schema}
-      dbId={dataset?.db?.id}
+      dataset={dataset}
+      datasetNames={datasetNames}
     />
   );
 
+  const EditPageComponent = () => <EditPage id={id} />;
+
   const DatasetPanelComponent = () => (
-    <DatasetPanel tableName={dataset?.table_name} />
+    <DatasetPanel
+      tableName={dataset?.table_name}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+      setHasColumns={setHasColumns}
+      datasets={datasets}
+    />
   );
 
   const FooterComponent = () => (
-    <Footer url={prevUrl} datasetObject={dataset} />
+    <Footer
+      url={prevUrl}
+      datasetObject={dataset}
+      hasColumns={hasColumns}
+      datasets={datasetNames}
+    />
   );
 
   return (
     <DatasetLayout
       header={HeaderComponent()}
-      leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanelComponent()}
+      leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
+      datasetPanel={
+        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
+      }
       footer={FooterComponent()}
     />
   );

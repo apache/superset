@@ -25,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -95,6 +96,7 @@ class TestDatasetApi(SupersetTestCase):
     def get_fixture_datasets(self) -> List[SqlaTable]:
         return (
             db.session.query(SqlaTable)
+            .options(joinedload(SqlaTable.database))
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
         )
@@ -364,12 +366,18 @@ class TestDatasetApi(SupersetTestCase):
                     schema="information_schema",
                 )
             )
-            schema_values = [
-                "information_schema",
-                "public",
-            ]
+            all_datasets = db.session.query(SqlaTable).all()
+            schema_values = sorted(
+                set(
+                    [
+                        dataset.schema
+                        for dataset in all_datasets
+                        if dataset.schema is not None
+                    ]
+                )
+            )
             expected_response = {
-                "count": 2,
+                "count": len(schema_values),
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -395,10 +403,8 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 2,
-                    "result": [
-                        {"text": "information_schema", "value": "information_schema"}
-                    ],
+                    "count": len(schema_values),
+                    "result": [expected_response["result"][0]],
                 },
             )
 
@@ -765,7 +771,7 @@ class TestDatasetApi(SupersetTestCase):
             with patch.object(
                 dialect, "get_view_names", wraps=dialect.get_view_names
             ) as patch_get_view_names:
-                patch_get_view_names.return_value = ["test_case_view"]
+                patch_get_view_names.return_value = {"test_case_view"}
 
             self.login(username="admin")
             table_data = {
@@ -1804,7 +1810,7 @@ class TestDatasetApi(SupersetTestCase):
             "datasource_access", dataset.perm
         )
 
-        # add perissions to allow export + access to query this dataset
+        # add permissions to allow export + access to query this dataset
         gamma_role = security_manager.find_role("Gamma")
         security_manager.add_permission_role(gamma_role, perm1)
         security_manager.add_permission_role(gamma_role, perm2)
@@ -1973,21 +1979,17 @@ class TestDatasetApi(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        shadow_dataset = (
-            db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+
         assert database.database_name == "imported_database"
 
         assert len(database.tables) == 1
         dataset = database.tables[0]
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
-        assert str(shadow_dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
-        db.session.delete(shadow_dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2088,8 +2090,8 @@ class TestDatasetApi(SupersetTestCase):
         dataset = database.tables[0]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 

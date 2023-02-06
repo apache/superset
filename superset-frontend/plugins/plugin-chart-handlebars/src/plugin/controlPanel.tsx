@@ -18,7 +18,6 @@
  */
 import {
   ControlPanelConfig,
-  emitFilterControl,
   getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
@@ -49,7 +48,7 @@ import { styleControlSetItem } from './controls/style';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
@@ -65,7 +64,6 @@ const config: ControlPanelConfig = {
         [includeTimeControlSetItem],
         [showTotalsControlSetItem],
         ['adhoc_filters'],
-        emitFilterControl,
       ],
     },
     {

@@ -25,7 +25,7 @@ from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
 from superset.errors import SupersetErrorType
-from superset.sqllab.command import SqlQueryRender
+from superset.sqllab.commands.execute import SqlQueryRender
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
-PARAMETER_MISSING_ERR = (
+PARAMETER_MISSING_ERR = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."

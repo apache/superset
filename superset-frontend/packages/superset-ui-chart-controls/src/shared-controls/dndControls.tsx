@@ -40,8 +40,9 @@ import {
   ColumnMeta,
   FilterOption,
   temporalColumnMixin,
+  datePickerInAdhocFilterMixin,
+  xAxisMixin,
 } from '..';
-import { xAxisMixin } from './mixins';
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -149,6 +150,7 @@ export const dndAdhocFilterControl: SharedControlConfig<
     datasource,
   }),
   provideFormDataToProps: true,
+  ...datePickerInAdhocFilterMixin,
 };
 
 export const dndAdhocMetricsControl: SharedControlConfig<

@@ -231,7 +231,9 @@ const ColumnSelectPopover = ({
   }, []);
 
   const setDatasetAndClose = () => {
-    if (setDatasetModal) setDatasetModal(true);
+    if (setDatasetModal) {
+      setDatasetModal(true);
+    }
     onClose();
   };
 
@@ -406,10 +408,8 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!stateIsValid}
-          buttonStyle={
-            hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-          }
+          disabled={!stateIsValid || !hasUnsavedChanges}
+          buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"

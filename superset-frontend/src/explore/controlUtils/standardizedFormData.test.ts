@@ -145,7 +145,6 @@ const tableVizStore = {
       value: true,
     },
     show_totals: {},
-    emit_filter: {},
     table_timestamp_format: {
       value: 'smart_date',
     },

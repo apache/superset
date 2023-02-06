@@ -44,7 +44,6 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
-  emitFilterControl,
   Dataset,
   ColumnMeta,
   defineSavedMetrics,
@@ -218,7 +217,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          hasGenericChartAxes && isAggMode ? 'datetime_columns_lookup' : null,
+          hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
         ],
         [
           {
@@ -369,7 +368,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        emitFilterControl,
       ],
     },
     {
@@ -488,7 +486,6 @@ const config: ControlPanelConfig = {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
-                  emitFilter: explore?.controls?.table_filter?.value,
                 };
               },
             },

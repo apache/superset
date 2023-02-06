@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode, SyntheticEvent } from 'react';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
@@ -31,7 +31,7 @@ export enum EmptyStateSize {
 export interface EmptyStateSmallProps {
   title: ReactNode;
   description?: ReactNode;
-  image: ReactNode;
+  image?: ReactNode;
 }
 
 export interface EmptyStateProps extends EmptyStateSmallProps {
@@ -156,7 +156,7 @@ export const EmptyStateBig = ({
   className,
 }: EmptyStateProps) => (
   <EmptyStateContainer className={className}>
-    <ImageContainer image={image} size={EmptyStateSize.Big} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`
@@ -187,7 +187,7 @@ export const EmptyStateMedium = ({
   buttonText,
 }: EmptyStateProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Medium} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`
@@ -216,7 +216,7 @@ export const EmptyStateSmall = ({
   description,
 }: EmptyStateSmallProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Small} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`
@@ -228,4 +228,28 @@ export const EmptyStateSmall = ({
       {description && <SmallDescription>{description}</SmallDescription>}
     </TextContainer>
   </EmptyStateContainer>
+);
+
+const TRANSLATIONS = {
+  NO_DATABASES_MATCH_TITLE: t('No databases match your search'),
+  NO_DATABASES_AVAILABLE_TITLE: t('There are no databases available'),
+  MANAGE_YOUR_DATABASES_TEXT: t('Manage your databases'),
+  HERE_TEXT: t('here'),
+};
+
+export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
+  <EmptyStateSmall
+    image="empty.svg"
+    title={
+      emptyResultsWithSearch
+        ? TRANSLATIONS.NO_DATABASES_MATCH_TITLE
+        : TRANSLATIONS.NO_DATABASES_AVAILABLE_TITLE
+    }
+    description={
+      <p>
+        {TRANSLATIONS.MANAGE_YOUR_DATABASES_TEXT}{' '}
+        <a href="/databaseview/list">{TRANSLATIONS.HERE_TEXT}</a>
+      </p>
+    }
+  />
 );

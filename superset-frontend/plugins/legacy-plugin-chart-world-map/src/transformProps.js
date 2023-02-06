@@ -23,6 +23,7 @@ export default function transformProps(chartProps) {
     chartProps;
   const { onContextMenu } = hooks;
   const {
+    countryFieldtype,
     entity,
     maxBubbleSize,
     showBubbles,
@@ -35,6 +36,7 @@ export default function transformProps(chartProps) {
   const { r, g, b } = colorPicker;
 
   return {
+    countryFieldtype,
     entity,
     data: queriesData[0].data,
     width,

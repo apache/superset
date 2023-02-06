@@ -271,10 +271,11 @@ function CssTemplatesList({
     () => [
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'css_template',
           'created_by',
@@ -290,6 +291,7 @@ function CssTemplatesList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'template_name',
         input: 'search',
         operator: FilterOperator.contains,

@@ -33,6 +33,12 @@ export function fetchDashboardsFailed(userId) {
   return { type: FETCH_DASHBOARDS_FAILED, userId };
 }
 
+export const SET_SAVE_CHART_MODAL_VISIBILITY =
+  'SET_SAVE_CHART_MODAL_VISIBILITY';
+export function setSaveChartModalVisibility(isVisible) {
+  return { type: SET_SAVE_CHART_MODAL_VISIBILITY, isVisible };
+}
+
 export function fetchDashboards(userId) {
   return function fetchDashboardsThunk(dispatch) {
     return SupersetClient.get({

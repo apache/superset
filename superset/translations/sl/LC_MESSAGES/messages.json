@@ -1299,7 +1299,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "Podatkov ni bilo mogoče pridobiti iz zalednega sistema rezultatov. Ponovno morate zagnati izvorno poizvedbo."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "Poizvedbe, povezane s temi rezultati, ni bilo mogoče najti. Ponovno morate zagnati izvorno poizvedbo."
       ],
       "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
@@ -3453,17 +3453,8 @@
       "Are you sure you want to overwrite this dataset?": [
         "Ali ste prepričani, da želite prepisati podatkovni set?"
       ],
-      "Undefined": ["Ni definirano"],
-      "Save": ["Shrani"],
-      "Save as": ["Shrani kot"],
-      "Save query": ["Shrani poizvedbo"],
-      "Update": ["Posodobi"],
-      "Label for your query": ["Ime vaše poizvedbe"],
-      "Write a description for your query": ["Dodajte opis vaše poizvedbe"],
-      "Schedule query": ["Urnik poizvedb"],
-      "Schedule": ["Urnik"],
-      "There was an error with your request": [
-        "Pri zahtevi je prišlo do napake"
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
+        "Za Presto in Postgres prikaže gumb za izračun potratnosti pred zagonom poizvedbe."
       ],
       "Please save the query to enable sharing": [
         "Shranite poizvedbo za deljenje"
@@ -5138,7 +5129,7 @@
       "Enable query cost estimation": [
         "Omogoči ocenjevanje potratnosti poizvedbe"
       ],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Za Presto in Postgres prikaže gumb za izračun potratnosti pred zagonom poizvedbe."
       ],
       "Allow this database to be explored": [

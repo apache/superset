@@ -153,6 +153,43 @@ of a policy and if it's not able to find one, it will issue a warning with the s
 where CSP policies are defined outside of Superset using other software, administrators can disable
 the warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
 
+#### CSP Requirements
+
+* Superset needs both the `'unsafe-eval'` and `'unsafe-inline'` CSP keywords in order to operate.
+
+  ```
+  default-src 'self' 'unsafe-eval' 'unsafe-inline'
+  ```
+
+* Some dashbaords load images using data URIs and require `data:` in their `img-src`
+
+  ```
+  img-src 'self' data:
+  ```
+
+* MapBox charts use workers and need to connect to MapBox servers in addition to the Superset origin
+
+  ```
+  worker-src 'self' blob:
+  connect-src 'self' https://api.mapbox.com https://events.mapbox.com
+  ```
+
+This is a basic example `TALISMAN_CONFIG` that implements the above requirements, uses `'self'` to
+limit content to the same origin as the Superset server, and disallows outdated HTML elements by
+setting `object-src` to `'none'`.
+
+```python
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "default-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "img-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": ["'self'", "https://api.mapbox.com", "https://events.mapbox.com"],
+        "object-src": "'none'",
+    }
+}
+```
+
 ### Reporting Security Vulnerabilities
 
 Apache Software Foundation takes a rigorous standpoint in annihilating the security issues in its

@@ -22,7 +22,6 @@ import { WORLD_HEALTH_CHARTS } from './utils';
 
 describe('Dashboard load', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });

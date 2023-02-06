@@ -28,19 +28,20 @@ import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
 
 export default function EchartsTreemap({
-  height,
-  width,
   echartOptions,
-  setDataMask,
-  labelMap,
+  emitCrossFilters,
   groupby,
-  selectedValues,
-  formData,
+  height,
+  labelMap,
   onContextMenu,
+  refs,
+  setDataMask,
+  selectedValues,
+  width,
 }: TreemapTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -113,6 +114,7 @@ export default function EchartsTreemap({
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

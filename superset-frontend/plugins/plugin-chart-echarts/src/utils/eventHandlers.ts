@@ -17,7 +17,11 @@
  * under the License.
  */
 import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
-import { EChartTransformedProps, EventHandlers } from '../types';
+import {
+  BaseTransformedProps,
+  CrossFilterTransformedProps,
+  EventHandlers,
+} from '../types';
 
 export type Event = {
   name: string;
@@ -40,8 +44,9 @@ export const clickEventHandler =
 
 export const contextMenuEventHandler =
   (
-    groupby: EChartTransformedProps<any>['groupby'],
-    onContextMenu: EChartTransformedProps<any>['onContextMenu'],
+    groupby: (BaseTransformedProps<any> &
+      CrossFilterTransformedProps)['groupby'],
+    onContextMenu: BaseTransformedProps<any>['onContextMenu'],
     labelMap: Record<string, string[]>,
   ) =>
   (e: Event) => {
@@ -65,7 +70,7 @@ export const contextMenuEventHandler =
   };
 
 export const allEventHandlers = (
-  transformedProps: EChartTransformedProps<any>,
+  transformedProps: BaseTransformedProps<any> & CrossFilterTransformedProps,
   handleChange: (values: string[]) => void,
 ) => {
   const { groupby, selectedValues, onContextMenu, labelMap } = transformedProps;

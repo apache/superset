@@ -212,9 +212,9 @@ describe('TabbedSqlEditors', () => {
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
-    expect(wrapper.find(EditableTabs).props().hideAdd).toBe(false);
+    expect(wrapper.find('#a11y-query-editor-tabs').props().hideAdd).toBe(false);
     wrapper.setProps({ offline: true });
-    expect(wrapper.find(EditableTabs).props().hideAdd).toBe(true);
+    expect(wrapper.find('#a11y-query-editor-tabs').props().hideAdd).toBe(true);
   });
   it('should have an empty state when query editors is empty', () => {
     wrapper = getWrapper();

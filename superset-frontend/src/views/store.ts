@@ -48,10 +48,12 @@ import {
 import shortid from 'shortid';
 import {
   BootstrapUser,
+  UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
 import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
@@ -61,8 +63,7 @@ const noopReducer =
   (state: STATE = initialState) =>
     state;
 
-const container = document.getElementById('app');
-const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
+const bootstrapData = getBootstrapData();
 
 export const USER_LOADED = 'USER_LOADED';
 
@@ -72,9 +73,9 @@ export type UserLoadedAction = {
 };
 
 const userReducer = (
-  user: BootstrapUser = bootstrap.user || {},
+  user = bootstrapData.user || {},
   action: UserLoadedAction,
-): BootstrapUser => {
+): BootstrapUser | UndefinedUser => {
   if (action.type === USER_LOADED) {
     return action.user;
   }
@@ -104,7 +105,7 @@ const CombinedDatasourceReducers = (
 // exported for tests
 export const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
-  common: noopReducer(bootstrap.common || {}),
+  common: noopReducer(bootstrapData.common),
   user: userReducer,
   impressionId: noopReducer(shortid.generate()),
   charts,

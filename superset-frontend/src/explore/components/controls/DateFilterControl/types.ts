@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Type } from 'src/components/Label';
-
 export type SelectOptionType = {
   value: string;
   label: string;
@@ -32,7 +30,7 @@ export type FrameType =
 
 export type DateTimeGrainType =
   | 'second'
-  | 'minite'
+  | 'minute'
   | 'hour'
   | 'day'
   | 'week'
@@ -96,7 +94,8 @@ export interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
-  type?: Type;
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
 }

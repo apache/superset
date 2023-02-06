@@ -52,6 +52,7 @@ const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
+    countryFieldtype,
     entity,
     data,
     width,
@@ -111,7 +112,7 @@ function WorldMap(element, props) {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    const val = mapData[key]?.name;
+    const val = countryFieldtype === 'name' ? mapData[key]?.name : key;
     if (val) {
       const filters = [
         {

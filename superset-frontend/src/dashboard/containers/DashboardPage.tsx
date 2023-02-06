@@ -63,7 +63,7 @@ import {
   getFilterValue,
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
-import { filterCardPopoverStyle } from 'src/dashboard/styles';
+import { filterCardPopoverStyle, headerStyles } from 'src/dashboard/styles';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 import shortid from 'shortid';
 import { RootState } from '../types';
@@ -365,7 +365,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   return (
     <>
-      <Global styles={filterCardPopoverStyle(theme)} />
+      <Global styles={[filterCardPopoverStyle(theme), headerStyles(theme)]} />
       <FilterBoxMigrationModal
         show={filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.UNDECIDED}
         hideFooter={!isMigrationEnabled}

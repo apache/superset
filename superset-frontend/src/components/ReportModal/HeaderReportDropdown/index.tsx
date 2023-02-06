@@ -23,9 +23,11 @@ import {
   t,
   SupersetTheme,
   css,
+  styled,
   useTheme,
   FeatureFlag,
   isFeatureEnabled,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
@@ -45,6 +47,8 @@ import {
 } from 'src/reports/actions/reports';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -70,6 +74,21 @@ const onMenuItemHover = (theme: SupersetTheme) => css`
     background-color: ${theme.colors.secondary.light5};
   }
 `;
+
+const StyledDropdownItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  > *:first-child {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const DropdownItemExtension = extensionsRegistry.get(
+  'report-modal.dropdown.item.icon',
+);
+
 export enum CreationMethod {
   CHARTS = 'charts',
   DASHBOARDS = 'dashboards',
@@ -204,7 +223,14 @@ export default function HeaderReportDropDown({
     ) : (
       <Menu selectable={false} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
-          {t('Set up an email report')}
+          {DropdownItemExtension ? (
+            <StyledDropdownItemWithIcon>
+              <div>{t('Set up an email report')}</div>
+              <DropdownItemExtension />
+            </StyledDropdownItemWithIcon>
+          ) : (
+            t('Set up an email report')
+          )}
         </Menu.Item>
         <Menu.Divider />
       </Menu>

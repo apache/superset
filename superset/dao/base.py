@@ -73,16 +73,22 @@ class BaseDAO:
             return None
 
     @classmethod
-    def find_by_ids(cls, model_ids: Union[List[str], List[int]]) -> List[Model]:
+    def find_by_ids(
+        cls,
+        model_ids: Union[List[str], List[int]],
+        session: Session = None,
+        skip_base_filter: bool = False,
+    ) -> List[Model]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
         if id_col is None:
             return []
-        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
+        session = session or db.session
+        query = session.query(cls.model_cls).filter(id_col.in_(model_ids))
+        if cls.base_filter and not skip_base_filter:
+            data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
