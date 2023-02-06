@@ -41,6 +41,7 @@ import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -1309,6 +1310,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return sqla_type, generic_type
         return None
 
+    @classmethod
+    def get_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> URL:
+        """
+        Return a modified URL with the username set.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user and username is not None:
+            url = url.set(username=username)
+
+        return url
+
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
@@ -1440,6 +1456,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             logger.error(ex, exc_info=True)
             raise ex
 
+    @staticmethod
+    def update_params_from_encrypted_extra(  # pylint: disable=invalid-name
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        """
+        Some databases require some sensitive information which do not conform to
+        the username:password syntax normally used by SQLAlchemy.
+        :param database: database instance from which to extract extras
+        :param params: params to be updated
+        """
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            params.update(encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex
+
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
@@ -1536,6 +1571,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def parse_sql(cls, sql: str) -> List[str]:
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+
+    @classmethod
+    def get_impersonation_key(cls, user: Optional[User]) -> Any:
+        """
+        Construct an impersonation key, by default it's the given username.
+
+        :param user: logged in user
+
+        :returns: username if given user is not null
+        """
+        return user.username if user else None
 
 
 # schema for adding a database by providing parameters instead of the

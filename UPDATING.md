@@ -22,7 +22,17 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 2.0.1
+
+- [21895](https://github.com/apache/superset/pull/21895): Markdown components had their security increased by adhering to the same sanitization process enforced by Github. This means that some HTML elements found in markdowns are not allowed anymore due to the security risks they impose. If you're deploying Superset in a trusted environment and wish to use some of the blocked elements, then you can use the HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration to extend the default sanitization schema. There's also the option to disable HTML sanitization using the HTML_SANITIZATION configuration but we do not recommend this approach because of the security risks. Given the provided configurations, we don't view the improved sanitization as a breaking change but as a security patch.
+
+### Breaking Changes
+
+### Potential Downtime
+
+### Other
+
+## 2.0.0
 
 - [19046](https://github.com/apache/superset/pull/19046): Enables the drag and drop interface in Explore control panel by default. Flips `ENABLE_EXPLORE_DRAG_AND_DROP` and `ENABLE_DND_WITH_CLICK_UX` feature flags to `True`.
 - [18936](https://github.com/apache/superset/pull/18936): Removes legacy SIP-15 interim logic/flags—specifically the `SIP_15_ENABLED`, `SIP_15_GRACE_PERIOD_END`, `SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS`, and `SIP_15_TOAST_MESSAGE` flags. Time range endpoints are no longer configurable and strictly adhere to the `[start, end)` paradigm, i.e., inclusive of the start and exclusive of the end. Additionally this change removes the now obsolete `time_range_endpoints` from the form-data and resulting in the cache being busted.
@@ -45,10 +55,6 @@ assists people when migrating to a new version.
 - [19049](https://github.com/apache/superset/pull/19049): The `APP_ICON_WIDTH` config key has been removed. Superset should now be able to handle different logo sizes without having to explicitly set an `APP_ICON_WIDTH`. This might affect the size of existing custom logos as the UI will now resize them according to the specified space of maximum 148px and not according to the value of `APP_ICON_WIDTH`.
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
 - [18970](https://github.com/apache/superset/pull/18970): The `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag is now `True` by default which disables the legacy datasource editor from being shown in the client.
-
-### Potential Downtime
-
-### Other
 
 ## 1.5.0
 
@@ -82,6 +88,7 @@ assists people when migrating to a new version.
 ## 1.4.1
 
 ### Breaking Changes
+
 - [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
 
 ### Potential Downtime

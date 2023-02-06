@@ -92,6 +92,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
@@ -116,6 +117,7 @@ from superset.sql_parse import (
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    Column as ColumnTyping,
     Metric,
     OrderBy,
     QueryObjectDict,
@@ -439,6 +441,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         self, known_columns: Optional[Dict[str, NewColumn]] = None
     ) -> NewColumn:
         """Convert a TableColumn to NewColumn"""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -451,6 +454,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             value = getattr(self, attr)
             if value:
                 extra_json[attr] = value
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -555,6 +573,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     ) -> NewColumn:
         """Convert a SqlMetric to NewColumn. Find and update existing or
         create a new one."""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -567,6 +586,20 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         is_additive = (
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.name = self.metric_name
@@ -616,19 +649,19 @@ def _process_sql_expression(
     expression: Optional[str],
     database_id: int,
     schema: str,
-    template_processor: Optional[BaseTemplateProcessor],
+    template_processor: Optional[BaseTemplateProcessor] = None,
 ) -> Optional[str]:
     if template_processor and expression:
         expression = template_processor.process_template(expression)
     if expression:
-        expression = validate_adhoc_subquery(
-            expression,
-            database_id,
-            schema,
-        )
         try:
+            expression = validate_adhoc_subquery(
+                expression,
+                database_id,
+                schema,
+            )
             expression = sanitize_clause(expression)
-        except QueryClauseValidationException as ex:
+        except (QueryClauseValidationException, SupersetSecurityException) as ex:
             raise QueryObjectValidationError(ex.message) from ex
     return expression
 
@@ -1186,7 +1219,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
+        columns: Optional[List[ColumnTyping]] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1375,20 +1408,31 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
-                if not series_column_names or outer.name in series_column_names:
+                if (
+                    is_timeseries and not series_column_names
+                ) or outer.name in series_column_names:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                if is_adhoc_column(selected):
+                    _sql = selected["sqlExpression"]
+                    _column_label = selected["label"]
+                elif isinstance(selected, str):
+                    _sql = selected
+                    _column_label = selected
+
                 selected = validate_adhoc_subquery(
-                    selected,
+                    _sql,
                     self.database_id,
                     self.schema,
                 )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name
-                    else self.make_sqla_column_compatible(literal_column(selected))
+                    if isinstance(selected, str) and selected in columns_by_name
+                    else self.make_sqla_column_compatible(
+                        literal_column(selected), _column_label
+                    )
                 )
             metrics_exprs = []
 
@@ -1597,6 +1641,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                where = _process_sql_expression(
+                    expression=where,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
@@ -1609,7 +1658,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                having = _process_sql_expression(
+                    expression=having,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 having_clause_and += [self.text(having)]
+
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
@@ -2107,10 +2162,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             uuids.remove(column.uuid)
 
         if uuids:
-            # load those not found from db
-            existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
-            )
+            with session.no_autoflush:
+                # load those not found from db
+                existing_columns |= set(
+                    session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
+                )
 
         known_columns = {column.uuid: column for column in existing_columns}
         return [
@@ -2150,9 +2206,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # update changed_on timestamp
             session.execute(update(NewDataset).where(NewDataset.id == dataset.id))
             try:
-                column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
-                # update `Column` model as well
-                session.merge(target.to_sl_column({target.uuid: column}))
+                with session.no_autoflush:
+                    column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
+                    # update `Column` model as well
+                    session.merge(target.to_sl_column({target.uuid: column}))
             except NoResultFound:
                 logger.warning("No column was found for %s", target)
                 # see if the column is in cache
@@ -2162,14 +2219,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     ),
                     None,
                 )
+                if column:
+                    logger.warning("New column was found in cache: %s", column)
 
-                if not column:
+                else:
                     # to be safe, use a different uuid and create a new column
                     uuid = uuid4()
                     target.uuid = uuid
-                    column = NewColumn(uuid=uuid)
 
-                session.add(target.to_sl_column({column.uuid: column}))
+                session.add(target.to_sl_column())
 
     @staticmethod
     def after_insert(

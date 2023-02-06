@@ -65,6 +65,8 @@ FEATURE_FLAGS = {
     "DASHBOARD_NATIVE_FILTERS": True,
 }
 
+WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
+
 
 def GET_FEATURE_FLAGS_FUNC(ff):
     ff_copy = copy(ff)
@@ -114,6 +116,8 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 
 class CeleryConfig(object):

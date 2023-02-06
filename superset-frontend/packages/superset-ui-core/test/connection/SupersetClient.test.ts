@@ -30,21 +30,23 @@ describe('SupersetClient', () => {
 
   afterEach(SupersetClient.reset);
 
-  it('exposes reset, configure, init, get, post, isAuthenticated, and reAuthenticate methods', () => {
+  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
     expect(typeof SupersetClient.post).toBe('function');
+    expect(typeof SupersetClient.postForm).toBe('function');
     expect(typeof SupersetClient.isAuthenticated).toBe('function');
     expect(typeof SupersetClient.reAuthenticate).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
     expect(typeof SupersetClient.reset).toBe('function');
   });
 
-  it('throws if you call init, get, post, isAuthenticated, or reAuthenticate before configure', () => {
+  it('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
+    expect(SupersetClient.postForm).toThrow();
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
     expect(SupersetClient.request).toThrow();

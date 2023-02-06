@@ -123,3 +123,20 @@ export const MIDNIGHT = moment()
   .add(DEFAULT_RELATIVE_END_TIME === 'tomorrow' ? 1 : 0, 'days')
   .startOf('day')
   .format(MOMENT_FORMAT);
+
+export const LOCALE_MAPPING = {
+  en: 'en_US',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  it: 'it_IT',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+  de: 'de_DE',
+  pt: 'pt_PT',
+  pt_BR: 'pt_BR',
+  ru: 'ru_RU',
+  ko: 'ko_KR',
+  sk: 'sk_SK',
+  sl: 'sl_SI',
+  nl: 'nl_NL',
+};

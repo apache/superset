@@ -97,7 +97,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       role="alert"
     >
       {icon}
-      <Interweave content={toast.text} />
+      <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       <i
         className="fa fa-close pull-right pointer"
         role="button"

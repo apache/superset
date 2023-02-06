@@ -131,6 +131,28 @@ For example, the filters `client_id=4` and `client_id=5`, applied to a role,
 will result in users of that role having `client_id=4` AND `client_id=5`
 added to their query, which can never be true.
 
+### Content Security Policiy (CSP)
+
+[Content Security Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) is an added
+layer of security that helps to detect and mitigate certain types of attacks, including
+Cross-Site Scripting (XSS) and data injection attacks.
+
+CSP makes it possible for server administrators to reduce or eliminate the vectors by which XSS can
+occur by specifying the domains that the browser should consider to be valid sources of executable scripts.
+A CSP compatible browser will then only execute scripts loaded in source files received from those allowed domains,
+ignoring all other scripts (including inline scripts and event-handling HTML attributes).
+
+A policy is described using a series of policy directives, each of which describes the policy for
+a certain resource type or policy area. You can check possible directives
+[here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
+
+It's extremely important to correclty configure a Content Security Policy when deploying Superset to
+prevent many types of attacks. For that matter, Superset provides the ` TALISMAN_CONFIG` key in `config.py`
+where admnistrators can define the policy. When running in production mode, Superset will check for the presence
+of a policy and if it's not able to find one, it will issue a warning with the security risks. For environments
+where CSP policies are defined outside of Superset using other software, administrators can disable
+the warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
+
 ### Reporting Security Vulnerabilities
 
 Apache Software Foundation takes a rigorous standpoint in annihilating the security issues in its

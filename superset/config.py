@@ -429,6 +429,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
+    # Enable caching per impersonation key (e.g username) in a datasource where user
+    # impersonation is enabled
+    "CACHE_IMPERSONATION": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -601,6 +604,28 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 ENABLE_CORS = False
 CORS_OPTIONS: Dict[Any, Any] = {}
+
+# Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
+# Disabling this option is not recommended for security reasons. If you wish to allow
+# valid safe elements that are not included in the default sanitization schema, use the
+# HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
+HTML_SANITIZATION = True
+
+# Use this configuration to extend the HTML sanitization schema.
+# By default we use the Gihtub schema defined in
+# https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
+# For example, the following configuration would allow the rendering of the
+# style attribute for div elements and the ftp protocol in hrefs:
+# HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+#   "attributes": {
+#     "div": ["style"],
+#   },
+#   "protocols": {
+#     "href": ["ftp"],
+#   }
+# }
+# Be careful when extending the default schema to avoid XSS attacks.
+HTML_SANITIZATION_SCHEMA_EXTENSIONS: Dict[str, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
@@ -959,7 +984,9 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
-
+# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
+# default system root CA certificates.
+SMTP_SSL_SERVER_AUTH = False
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -1078,6 +1105,9 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+# Max tries to run queries to prevent false errors caused by transient errors
+# being returned to users. Set to a value >1 to enable retries.
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1162,6 +1192,9 @@ PREFERRED_DATABASES: List[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
+# Enable/disable CSP warning
+CONTENT_SECURITY_POLICY_WARNING = True
+
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
 # If you want Talisman, how do you want it configured??
@@ -1206,6 +1239,9 @@ STATIC_ASSETS_PREFIX = ""
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
+
+# Prevents unsafe default endpoints to be registered on datasets.
+PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -1287,6 +1323,7 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
+# or to disallow users from viewing other users profile page
 ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # the advanced data type key should correspond to that set in the column metadata
