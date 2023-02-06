@@ -37,7 +37,7 @@ const getChartResponse = (result: ChartListChart[]) => ({
 });
 
 const CHARTS_ENDPOINT = 'glob:*/api/v1/chart/?*';
-const mockChartsFetch = (response: any) => {
+const mockChartsFetch = (response: fetchMock.MockResponse) => {
   fetchMock.reset();
   fetchMock.get('glob:*/api/v1/chart/_info?*', {
     permissions: ['can_export', 'can_read', 'can_write'],
@@ -90,7 +90,7 @@ const expectLastChartRequest = (params?: {
   expect(lastChartRequestUrl).toMatch(new RegExp(`page_size:${pageSize}`));
 };
 
-test('shows loading state', () => {
+test('shows loading state', async () => {
   mockChartsFetch(
     new Promise(resolve =>
       setTimeout(() => resolve(getChartResponse([])), 250),
@@ -99,7 +99,7 @@ test('shows loading state', () => {
 
   renderDatasetUsage();
 
-  const loadingIndicator = screen.getByRole('status', {
+  const loadingIndicator = await screen.findByRole('status', {
     name: /loading/i,
   });
 
