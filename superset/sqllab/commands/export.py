@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast, Dict
+from typing import Any, cast, List, TypedDict
 
 import pandas as pd
 from flask_babel import gettext as __, lazy_gettext as _
@@ -37,6 +37,12 @@ from superset.views.utils import _deserialize_results_payload
 config = app.config
 
 logger = logging.getLogger(__name__)
+
+
+class SqlExportResult(TypedDict):
+    query: Query
+    count: int
+    data: List[Any]
 
 
 class SqlResultExportCommand(BaseCommand):
@@ -80,7 +86,7 @@ class SqlResultExportCommand(BaseCommand):
 
     def run(
         self,
-    ) -> Dict[str, Any]:
+    ) -> SqlExportResult:
         self.validate()
         blob = None
         if results_backend and self._query.results_key:

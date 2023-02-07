@@ -38,55 +38,46 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
+    @pytest.fixture()
+    def create_database_and_query(self):
+        with self.create_app().app_context():
+            database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+            query_obj = Query(
+                client_id="test",
+                database=database,
+                tab_name="test_tab",
+                sql_editor_id="test_editor_id",
+                sql="select * from bar",
+                select_sql="select * from bar",
+                executed_sql="select * from bar",
+                limit=100,
+                select_as_cta=False,
+                rows=104,
+                error_message="none",
+                results_key="abc_query",
+            )
+
+            db.session.add(database)
+            db.session.add(query_obj)
+            db.session.commit()
+
+            yield
+
+            db.session.delete(query_obj)
+            db.session.delete(database)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_database_and_query")
     def test_validation_query_not_found(self) -> None:
         command = export.SqlResultExportCommand("asdf")
-
-        database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test1",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc1",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
 
         with pytest.raises(SupersetErrorException) as ex_info:
             command.run()
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
+    @pytest.mark.usefixtures("create_database_and_query")
     def test_validation_invalid_access(self) -> None:
-        command = export.SqlResultExportCommand("test2")
-
-        database = Database(database_name="my_database2", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test2",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc2",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
+        command = export.SqlResultExportCommand("test")
 
         with mock.patch(
             "superset.security_manager.raise_for_access",
@@ -105,33 +96,13 @@ class TestSqlResultExportCommand(SupersetTestCase):
                 == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
             )
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_select_sql(self, get_df_mock: Mock) -> None:
-        command = export.SqlResultExportCommand("test3")
-
-        database = Database(database_name="my_database3", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test3",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc3",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
+        command = export.SqlResultExportCommand("test")
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
-
         result = command.run()
 
         data = result.get("data")
@@ -140,35 +111,20 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         assert data == "foo\n1\n2\n3\n"
         assert count == 3
-        assert query.client_id == "test3"
+        assert query.client_id == "test"
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_executed_sql(self, get_df_mock: Mock) -> None:
-        command = export.SqlResultExportCommand("test4")
-
-        database = Database(database_name="my_database4", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test4",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql=None,
-            executed_sql="select * from bar limit 2",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc4",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
+        query_obj = db.session.query(Query).filter_by(client_id="test").one()
+        query_obj.executed_sql = "select * from bar limit 2"
+        query_obj.select_sql = None
         db.session.commit()
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        command = export.SqlResultExportCommand("test")
 
+        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
         data = result.get("data")
@@ -177,35 +133,21 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         assert data == "foo\n1\n2\n"
         assert count == 2
-        assert query.client_id == "test4"
+        assert query.client_id == "test"
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_executed_sql_limiting_factor(
         self, get_df_mock: Mock
     ) -> None:
-        command = export.SqlResultExportCommand("test5")
-
-        database = Database(database_name="my_database5", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test5",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql=None,
-            executed_sql="select * from bar limit 2",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc5",
-            limiting_factor=LimitingFactor.DROPDOWN,
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
+        query_obj = db.session.query(Query).filter_by(results_key="abc_query").one()
+        query_obj.executed_sql = "select * from bar limit 2"
+        query_obj.select_sql = None
+        query_obj.limiting_factor = LimitingFactor.DROPDOWN
         db.session.commit()
+
+        command = export.SqlResultExportCommand("test")
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
 
@@ -217,32 +159,13 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         assert data == "foo\n1\n"
         assert count == 1
-        assert query.client_id == "test5"
+        assert query.client_id == "test"
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.sqllab.commands.export.results_backend_use_msgpack", False)
     def test_run_with_results_backend(self) -> None:
-        command = export.SqlResultExportCommand("test6")
-
-        database = Database(database_name="my_database6", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test6",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc6",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
+        command = export.SqlResultExportCommand("test")
 
         data = [{"foo": i} for i in range(5)]
         payload = {
@@ -263,10 +186,39 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         assert data == "foo\n0\n1\n2\n3\n4\n"
         assert count == 5
-        assert query.client_id == "test6"
+        assert query.client_id == "test"
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
+    @pytest.fixture()
+    def create_database_and_query(self):
+        with self.create_app().app_context():
+            database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+            query_obj = Query(
+                client_id="test",
+                database=database,
+                tab_name="test_tab",
+                sql_editor_id="test_editor_id",
+                sql="select * from bar",
+                select_sql="select * from bar",
+                executed_sql="select * from bar",
+                limit=100,
+                select_as_cta=False,
+                rows=104,
+                error_message="none",
+                results_key="abc_query",
+            )
+
+            db.session.add(database)
+            db.session.add(query_obj)
+            db.session.commit()
+
+            yield
+
+            db.session.delete(query_obj)
+            db.session.delete(database)
+            db.session.commit()
+
     @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_validation_no_results_backend(self) -> None:
         results.results_backend = None
@@ -311,6 +263,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             command.run()
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_validation_query_not_found(self) -> None:
         data = [{"col_0": i} for i in range(104)]
@@ -325,38 +278,19 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        database = Database(database_name="my_database7", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test8",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="abc7",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
-
         with mock.patch(
             "superset.views.utils._deserialize_results_payload",
             side_effect=SerializationError(),
         ):
             with pytest.raises(SupersetErrorException) as ex_info:
-                command = results.SqlExecutionResultsCommand("test", 1000)
+                command = results.SqlExecutionResultsCommand("test_other", 1000)
                 command.run()
             assert (
                 ex_info.value.error.error_type
                 == SupersetErrorType.RESULTS_BACKEND_ERROR
             )
 
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
@@ -371,27 +305,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        database = Database(database_name="my_database8", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="test9",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="test_abc",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-        db.session.commit()
-
-        command = results.SqlExecutionResultsCommand("test_abc", 1000)
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
         result = command.run()
 
         assert result.get("status") == "success"

@@ -200,7 +200,7 @@ class TestSqlLabApi(SupersetTestCase):
             select_as_cta=False,
             rows=104,
             error_message="none",
-            results_key="test_abc2",
+            results_key="test_abc",
         )
 
         db.session.add(database)
@@ -208,10 +208,9 @@ class TestSqlLabApi(SupersetTestCase):
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
 
-        arguments = {"client_id": "test"}
-        resp = self.get_resp(f"/api/v1/sqllab/export/?q={prison.dumps(arguments)}")
+        resp = self.get_resp("/api/v1/sqllab/export/test/")
         data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO(f"foo\n1\n2"))
+        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
         self.assertEqual(list(expected_data), list(data))
         db.session.rollback()

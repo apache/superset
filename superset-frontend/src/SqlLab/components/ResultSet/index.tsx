@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import rison from 'rison';
 import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
@@ -220,13 +219,8 @@ const ResultSet = ({
     }
   };
 
-  const getExportCsvUrl = (clientId: string) => {
-    const params = rison.encode({
-      client_id: clientId,
-    });
-
-    return `/api/v1/sqllab/export/?q=${params}`;
-  };
+  const getExportCsvUrl = (clientId: string) =>
+    `/api/v1/sqllab/export/${clientId}/`;
 
   const renderControls = () => {
     if (search || visualize || csv) {

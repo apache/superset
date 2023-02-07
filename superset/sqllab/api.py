@@ -44,7 +44,6 @@ from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
     ExecutePayloadSchema,
     QueryExecutionResponseSchema,
-    sql_lab_export_csv_schema,
     sql_lab_get_results_schema,
 )
 from superset.sqllab.sql_json_executer import (
@@ -75,7 +74,6 @@ class SqlLabRestApi(BaseSupersetApi):
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
-        "sql_lab_export_csv_schema": sql_lab_export_csv_schema,
     }
     openapi_spec_tag = "SQL Lab"
     openapi_spec_component_schemas = (
@@ -83,28 +81,26 @@ class SqlLabRestApi(BaseSupersetApi):
         QueryExecutionResponseSchema,
     )
 
-    @expose("/export/")
+    @expose("/export/<string:client_id>/")
     @protect()
     @statsd_metrics
-    @rison(sql_lab_export_csv_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".export_csv",
         log_to_statsd=False,
     )
-    def export_csv(self, **kwargs: Any) -> CsvResponse:
-        """Exports the SQL Query results to a CSV
+    def export_csv(self, client_id: str) -> CsvResponse:
+        """Exports the SQL query results to a CSV
         ---
         get:
           summary: >-
-            Exports the SQL Query results to a CSV
+            Exports the SQL query results to a CSV
           parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/sql_lab_export_csv_schema'
+          - in: path
+            schema:
+              type: integer
+            name: client_id
+            description: The SQL query result identifier
           responses:
             200:
               description: SQL query results
@@ -123,13 +119,11 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        params = kwargs["rison"]
-        client_id = params.get("client_id")
         result = SqlResultExportCommand(client_id=client_id).run()
 
         query = result.get("query")
         data = result.get("data")
-        row_count = result.get("row_count")
+        row_count = result.get("count")
 
         quoted_csv_name = parse.quote(query.name)
         response = CsvResponse(
