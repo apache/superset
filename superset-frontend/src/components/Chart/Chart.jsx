@@ -109,6 +109,10 @@ const Styles = styled.div`
   }
 
   .slice_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
     height: ${p => p.height}px;
 
     .pivot_table tbody tr {
