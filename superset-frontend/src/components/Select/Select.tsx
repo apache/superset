@@ -45,6 +45,8 @@ import {
   getSuffixIcon,
   SELECT_ALL_VALUE,
   selectAllOption,
+  mapValues,
+  mapOptions,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
@@ -415,20 +417,8 @@ const Select = forwardRef(
         ) {
           // send all options to onchange if all are not currently there
           if (!selectAllMode) {
-            newValues = labelInValue
-              ? selectAllEligible.map(opt => ({
-                  key: opt.value,
-                  value: opt.value,
-                  label: opt.label,
-                }))
-              : selectAllEligible.map(opt => opt.value);
-            newOptions = fullSelectOptions.map(opt => ({
-              children: opt.label,
-              key: opt.value,
-              value: opt.value,
-              label: opt.label,
-              disabled: opt.disabled,
-            }));
+            newValues = mapValues(selectAllEligible, labelInValue);
+            newOptions = mapOptions(selectAllEligible);
           } else {
             newValues = ensureIsArray(values).filter(
               (val: any) => getValue(val) !== SELECT_ALL_VALUE,
@@ -438,8 +428,11 @@ const Select = forwardRef(
           ensureIsArray(values).length === selectAllEligible.length &&
           selectAllMode
         ) {
-          newValues = [];
-          newValues = [];
+          const array = selectAllEligible.filter(
+            option => hasOption(option.value, selectValue) && option.disabled,
+          );
+          newValues = mapValues(array, labelInValue);
+          newOptions = mapOptions(array);
         }
       }
       onChange?.(newValues, newOptions);
