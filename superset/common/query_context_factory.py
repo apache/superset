@@ -26,7 +26,6 @@ from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
 from superset.datasource.dao import DatasourceDAO
 from superset.models.slice import Slice
-from superset.superset_typing import AdhocColumn
 from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
@@ -136,13 +135,16 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         column
                         for column in query_object.columns
                         if column == x_axis
-                        or (type(column) is dict and column["sqlExpression"] == x_axis)
+                        or (
+                            isinstance(column, dict)
+                            and column["sqlExpression"] == x_axis
+                        )
                     ),
                     None,
                 )
                 # Replaces x-axis column values with granularity
                 if x_axis_column:
-                    if type(x_axis_column) is dict:
+                    if isinstance(x_axis_column, dict):
                         x_axis_column["sqlExpression"] = granularity
                         x_axis_column["label"] = granularity
                     else:
