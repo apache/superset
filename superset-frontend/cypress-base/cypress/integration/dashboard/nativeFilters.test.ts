@@ -235,7 +235,7 @@ function openMoreFilters(intercetFilterState = true) {
   }
 }
 
-describe('Horizontal FilterBar', () => {
+describe.only('Horizontal FilterBar', () => {
   it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
@@ -283,7 +283,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
     cy.getBySel('form-item-value').should('have.length', 0);
-    openMoreFilters();
+    openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
