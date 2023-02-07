@@ -162,6 +162,16 @@ test('Clicking on "Save" should call onChange and onClose for new metric', () =>
   expect(props.onClose).toBeCalledTimes(1);
 });
 
+test('Clicking on "Save" should call onChange and onClose for new title', () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} isLabelModified />);
+  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onClose).toBeCalledTimes(0);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toBeCalledTimes(1);
+  expect(props.onClose).toBeCalledTimes(1);
+});
+
 test('Should switch to tab:Simple', () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
