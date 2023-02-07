@@ -547,7 +547,7 @@ def test_get_user_id(
 @pytest.mark.parametrize(
     "username",
     [
-        None,
+        "admin",
         "alpha",
         "gamma",
     ],

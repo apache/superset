@@ -29,6 +29,7 @@ from flask.cli import with_appcontext
 from superset import security_manager
 from superset.cli.lib import feature_flags
 from superset.extensions import db
+from superset.utils.core import get_username
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         from superset.models.dashboard import Dashboard
 
         # pylint: disable=assigning-non-slot
-        g.user = security_manager.find_user(username="admin")
+        g.user = security_manager.find_user(username=get_username())
 
         dashboard_ids = [id_ for (id_,) in db.session.query(Dashboard.id).all()]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -110,7 +111,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         from superset.datasets.commands.export import ExportDatasetsCommand
 
         # pylint: disable=assigning-non-slot
-        g.user = security_manager.find_user(username="admin")
+        g.user = security_manager.find_user(username=get_username())
 
         dataset_ids = [id_ for (id_,) in db.session.query(SqlaTable.id).all()]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
