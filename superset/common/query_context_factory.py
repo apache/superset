@@ -26,7 +26,6 @@ from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
 from superset.datasource.dao import DatasourceDAO
 from superset.models.slice import Slice
-from superset.superset_typing import AdhocColumn
 from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
@@ -162,8 +161,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         # Use the first temporal filter
                         filter_to_remove = temporal_filters[0]
 
-            # Removes the temporal filter which may be an x-axis or another temporal filter.
-            # A new filter based on the value of the granularity will be added later in the code.
+            # Removes the temporal filter which may be an x-axis or
+            # another temporal filter. A new filter based on the value of
+            # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
             if filter_to_remove:
                 query_object.filter = [
@@ -174,6 +174,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     def _apply_filters(self, query_object: QueryObject):
         if query_object.time_range:
-            for filter in query_object.filter:
-                if filter["op"] == "TEMPORAL_RANGE":
-                    filter["val"] = query_object.time_range
+            for filter_object in query_object.filter:
+                if filter_object["op"] == "TEMPORAL_RANGE":
+                    filter_object["val"] = query_object.time_range
