@@ -151,7 +151,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if not filter_to_remove:
                 filter_to_remove = next(
                     (
-                        filter
+                        filter["col"]
                         for filter in query_object.filter
                         if filter["op"] == "TEMPORAL_RANGE"
                     ),
@@ -165,7 +165,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 query_object.filter = [
                     filter
                     for filter in query_object.filter
-                    if filter["col"] != filter_to_remove["col"]
+                    if filter["col"] != filter_to_remove
                 ]
 
     def _apply_filters(self, query_object: QueryObject):
