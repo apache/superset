@@ -122,9 +122,8 @@ def test_export_dashboards_versioned_export(app_context, fs):
     importlib.reload(superset.cli.importexport)
 
     runner = app.test_cli_runner()
-    with app_context:
-        with freeze_time("2021-01-01T00:00:00Z"):
-            response = runner.invoke(superset.cli.importexport.export_dashboards, ())
+    with freeze_time("2021-01-01T00:00:00Z"):   
+        response = runner.invoke(superset.cli.importexport.export_dashboards, ())
 
     assert response.exit_code == 0
     assert Path("dashboard_export_20210101T000000.zip").exists()
