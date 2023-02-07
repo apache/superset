@@ -1897,10 +1897,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1918,6 +1914,27 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2689,10 +2706,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2710,6 +2723,27 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4283,6 +4317,23 @@
             "type": "integer"
           },
           "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseTablesResponse": {
+        "properties": {
+          "extra": {
+            "description": "Extra data used to specify column metadata",
+            "type": "object"
+          },
+          "type": {
+            "description": "table or view",
+            "type": "string"
+          },
+          "value": {
+            "description": "The table or view name",
             "type": "string"
           }
         },
@@ -9291,6 +9342,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "database_tables_query_schema": {
+        "properties": {
+          "force": {
+            "type": "boolean"
+          },
+          "schema_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_name"
+        ],
         "type": "object"
       },
       "get_delete_ids_schema": {
@@ -15567,6 +15632,80 @@
           }
         ],
         "summary": "Get table extra metadata",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/tables/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/database_tables_query_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "result": {
+                      "description": "A List of tables for given database",
+                      "items": {
+                        "$ref": "#/components/schemas/DatabaseTablesResponse"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tables list"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of tables for given database",
         "tags": [
           "Database"
         ]

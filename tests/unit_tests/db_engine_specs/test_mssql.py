@@ -17,9 +17,10 @@
 import unittest.mock as mock
 from datetime import datetime
 from textwrap import dedent
+from typing import Any, Dict, Optional, Type
 
 import pytest
-from sqlalchemy import column, table
+from sqlalchemy import column, table, types
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
@@ -27,36 +28,36 @@ from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
-    "type_string,type_expected,generic_type_expected",
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
-        ("STRING", String, GenericDataType.STRING),
-        ("CHAR(10)", String, GenericDataType.STRING),
-        ("VARCHAR(10)", String, GenericDataType.STRING),
-        ("TEXT", String, GenericDataType.STRING),
-        ("NCHAR(10)", UnicodeText, GenericDataType.STRING),
-        ("NVARCHAR(10)", UnicodeText, GenericDataType.STRING),
-        ("NTEXT", UnicodeText, GenericDataType.STRING),
+        ("CHAR", String, None, GenericDataType.STRING, False),
+        ("CHAR(10)", String, None, GenericDataType.STRING, False),
+        ("VARCHAR", String, None, GenericDataType.STRING, False),
+        ("VARCHAR(10)", String, None, GenericDataType.STRING, False),
+        ("TEXT", String, None, GenericDataType.STRING, False),
+        ("NCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
+        ("NVARCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
+        ("NTEXT", UnicodeText, None, GenericDataType.STRING, False),
     ],
 )
-def test_mssql_column_types(
-    type_string: str,
-    type_expected: TypeEngine,
-    generic_type_expected: GenericDataType,
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: Type[types.TypeEngine],
+    attrs: Optional[Dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
 
-    if type_expected is None:
-        type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
-        assert type_assigned is None
-    else:
-        column_spec = MssqlEngineSpec.get_column_spec(type_string)
-        if column_spec is not None:
-            assert isinstance(column_spec.sqla_type, type_expected)
-            assert column_spec.generic_type == generic_type_expected
+    assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
 def test_where_clause_n_prefix() -> None:
@@ -65,13 +66,13 @@ def test_where_clause_n_prefix() -> None:
     dialect = mssql.dialect()
 
     # non-unicode col
-    sqla_column_type = MssqlEngineSpec.get_sqla_column_type("VARCHAR(10)")
+    sqla_column_type = MssqlEngineSpec.get_column_types("VARCHAR(10)")
     assert sqla_column_type is not None
     type_, _ = sqla_column_type
     str_col = column("col", type_=type_)
 
     # unicode col
-    sqla_column_type = MssqlEngineSpec.get_sqla_column_type("NTEXT")
+    sqla_column_type = MssqlEngineSpec.get_column_types("NTEXT")
     assert sqla_column_type is not None
     type_, _ = sqla_column_type
     unicode_col = column("unicode_col", type_=type_)
@@ -103,30 +104,31 @@ def test_time_exp_mixd_case_col_1y() -> None:
 
 
 @pytest.mark.parametrize(
-    "actual,expected",
+    "target_type,expected_result",
     [
         (
-            "DATE",
+            "date",
             "CONVERT(DATE, '2019-01-02', 23)",
         ),
         (
-            "DATETIME",
+            "datetime",
             "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
         ),
         (
-            "SMALLDATETIME",
+            "smalldatetime",
             "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
         ),
+        ("Other", None),
     ],
 )
 def test_convert_dttm(
-    actual: str,
-    expected: str,
+    target_type: str,
+    expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
 
-    assert MssqlEngineSpec.convert_dttm(actual, dttm) == expected
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 def test_extract_error_message() -> None:

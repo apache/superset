@@ -81,7 +81,7 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('successfully saves a query', () => {
-    cy.intercept('superset/tables/**').as('getTables');
+    cy.intercept('api/v1/database/**/tables/**').as('getTables');
     cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
 
     const query =

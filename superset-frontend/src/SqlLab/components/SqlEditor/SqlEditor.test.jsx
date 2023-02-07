@@ -54,7 +54,7 @@ jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => () => (
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
 fetchMock.get('glob:*/api/v1/database/*', { result: [] });
-fetchMock.get('glob:*/superset/tables/*', { options: [] });
+fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
 fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
 const middlewares = [thunk];

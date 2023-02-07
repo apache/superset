@@ -52,7 +52,7 @@ import AdhocFilter, {
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
-const { confirm } = Modal;
+const { warning } = Modal;
 
 const selectedMetricType = PropTypes.oneOfType([
   PropTypes.string,
@@ -74,11 +74,7 @@ const propTypes = {
     PropTypes.arrayOf(selectedMetricType),
   ]),
   isLoading: PropTypes.bool,
-  confirmDeletion: PropTypes.shape({
-    triggerCondition: PropTypes.func,
-    confirmationTitle: PropTypes.string,
-    confirmationText: PropTypes.string,
-  }),
+  canDelete: PropTypes.func,
 };
 
 const defaultProps = {
@@ -121,7 +117,10 @@ class AdhocFilterControl extends React.Component {
         sections={this.props.sections}
         operators={this.props.operators}
         datasource={this.props.datasource}
-        onRemoveFilter={() => this.onRemoveFilter(index)}
+        onRemoveFilter={e => {
+          e.stopPropagation();
+          this.onRemoveFilter(index);
+        }}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.values)}
         partitionColumn={this.state.partitionColumn}
@@ -193,21 +192,12 @@ class AdhocFilterControl extends React.Component {
   }
 
   onRemoveFilter(index) {
-    const { confirmDeletion } = this.props;
+    const { canDelete } = this.props;
     const { values } = this.state;
-    if (confirmDeletion) {
-      const { confirmationText, confirmationTitle, triggerCondition } =
-        confirmDeletion;
-      if (triggerCondition(values[index], values)) {
-        confirm({
-          title: confirmationTitle,
-          content: confirmationText,
-          onOk() {
-            this.removeFilter(index);
-          },
-        });
-        return;
-      }
+    const result = canDelete?.(values[index], values);
+    if (typeof result === 'string') {
+      warning({ title: t('Warning'), content: result });
+      return;
     }
     this.removeFilter(index);
   }

@@ -17,8 +17,9 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
@@ -56,7 +57,9 @@ class DynamoDBEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, (types.String, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+
         return None

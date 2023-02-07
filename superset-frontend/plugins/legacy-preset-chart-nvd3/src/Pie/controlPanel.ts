@@ -97,7 +97,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Whether to display the labels. Note that the label only displays when the the 5% ' +
+                'Whether to display the labels. Note that the label only displays when the 5% ' +
                   'threshold.',
               ),
             },

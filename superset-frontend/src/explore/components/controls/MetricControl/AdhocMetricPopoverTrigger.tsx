@@ -44,6 +44,7 @@ export type AdhocMetricPopoverTriggerProps = {
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
+  isNew?: boolean;
 };
 
 export type AdhocMetricPopoverTriggerState = {
@@ -223,6 +224,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           onChange={this.onChange}
           getCurrentTab={this.getCurrentTab}
           getCurrentLabel={this.getCurrentLabel}
+          isNewMetric={this.props.isNew}
         />
       </ExplorePopoverContent>
     );

@@ -96,7 +96,7 @@ from superset.connectors.sqla.utils import (
     validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
-from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
     DatasetInvalidPermissionEvaluationException,
@@ -921,7 +921,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
-            table(CTE_ALIAS)
+            table(self.db_engine_spec.cte_alias)
             if cte
             else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
         )
