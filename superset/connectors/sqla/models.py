@@ -1638,10 +1638,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
-        elif len(where_clause_and) > 0
+        elif len(where_clause_and) > 1:
             qry = qry.where(and_(*where_clause_and))
-        else:
-            qry = qry.where(*where_clause_and)
+        elif len(where_clause_and) == 1:
+            qry = qry.where(' '.join(map(str, where_clause_and)))
 
         qry = qry.having(and_(*having_clause_and))
 
