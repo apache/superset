@@ -225,6 +225,10 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           getCurrentTab={this.getCurrentTab}
           getCurrentLabel={this.getCurrentLabel}
           isNewMetric={this.props.isNew}
+          isLabelModified={
+            this.state.labelModified &&
+            adhocMetricLabel !== this.state.title.label
+          }
         />
       </ExplorePopoverContent>
     );
