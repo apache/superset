@@ -750,12 +750,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_fetch_values_predicate(self) -> List[Any]:
         raise NotImplementedError()
 
+    @property
+    def default_endpoint(self) -> sa.Text:
+        raise NotImplementedError()
+
+    @property
+    def type(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def id(self) -> int:
+        raise NotImplementedError()
+
     @staticmethod
     def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
+
+    def explore_url(self) -> str:
+        if self.default_endpoint:
+            return self.default_endpoint
+        return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
 
     def _process_sql_expression(  # pylint: disable=no-self-use
         self,
