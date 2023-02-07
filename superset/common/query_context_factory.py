@@ -126,29 +126,47 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         }
         granularity = query_object.granularity
         x_axis = form_data.get("x_axis")
-        if granularity and x_axis in temporal_columns:
-            x_axis_column = next(
-                (
-                    column
-                    for column in query_object.columns
-                    if column["sqlExpression"] == x_axis
-                ),
-                None,
-            )
-            if x_axis_column:
-                x_axis_column["sqlExpression"] = granularity
-                x_axis_column["label"] = granularity
-                query_object.granularity = None
-                for post_processing in query_object.post_processing:
-                    if post_processing.get("operation") == "pivot":
-                        post_processing["options"]["index"] = [granularity]
 
-            x_axis_filter = x_axis and next(
-                (filter for filter in query_object.filter if filter["col"] == x_axis),
-                None,
-            )
-            if x_axis_filter:
-                x_axis_filter["col"] = granularity
+        if granularity:
+            filter_to_remove = None
+            if x_axis in temporal_columns:
+                filter_to_remove = x_axis
+                x_axis_column = next(
+                    (
+                        column
+                        for column in query_object.columns
+                        if column["sqlExpression"] == x_axis
+                    ),
+                    None,
+                )
+                # Replaces x-axis column values with granularity
+                if x_axis_column:
+                    x_axis_column["sqlExpression"] = granularity
+                    x_axis_column["label"] = granularity
+                    for post_processing in query_object.post_processing:
+                        if post_processing.get("operation") == "pivot":
+                            post_processing["options"]["index"] = [granularity]
+
+            # If no temporal x-axis, then get the first temporal filter
+            if not filter_to_remove:
+                filter_to_remove = next(
+                    (
+                        filter
+                        for filter in query_object.filter
+                        if filter["op"] == "TEMPORAL_RANGE"
+                    ),
+                    None,
+                )
+
+            # Removes the temporal filter which may be an x-axis or the first temporal filter.
+            # A new filter based on the value of the granularity will be added later in the code.
+            # In practice, this is replacing the previous default temporal filter.
+            if filter_to_remove:
+                query_object.filter = [
+                    filter
+                    for filter in query_object.filter
+                    if filter["col"] != filter_to_remove["col"]
+                ]
 
     def _apply_filters(self, query_object: QueryObject):
         if query_object.time_range:
