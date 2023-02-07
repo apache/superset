@@ -117,6 +117,7 @@ const getWrapper = (props = defaultProps, store = initialStore) =>
     .dive()
     .dive()
     .dive()
+    .dive()
     .dive();
 
 test('renders a Modal with the right set of components', () => {

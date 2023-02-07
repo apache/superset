@@ -1768,7 +1768,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1830,7 +1830,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
@@ -1897,10 +1897,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1917,6 +1913,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2560,7 +2560,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2622,7 +2622,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
@@ -2689,10 +2689,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2709,6 +2705,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -4056,7 +4056,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4169,7 +4169,7 @@
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4283,6 +4283,23 @@
             "type": "integer"
           },
           "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseTablesResponse": {
+        "properties": {
+          "extra": {
+            "description": "Extra data used to specify column metadata",
+            "type": "object"
+          },
+          "type": {
+            "description": "table or view",
+            "type": "string"
+          },
+          "value": {
+            "description": "The table or view name",
             "type": "string"
           }
         },
@@ -9268,6 +9285,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "database_tables_query_schema": {
+        "properties": {
+          "force": {
+            "type": "boolean"
+          },
+          "schema_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_name"
+        ],
         "type": "object"
       },
       "get_delete_ids_schema": {
@@ -15555,6 +15586,80 @@
           }
         ],
         "summary": "Get table extra metadata",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/tables/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/database_tables_query_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "result": {
+                      "description": "A List of tables for given database",
+                      "items": {
+                        "$ref": "#/components/schemas/DatabaseTablesResponse"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tables list"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of tables for given database",
         "tags": [
           "Database"
         ]

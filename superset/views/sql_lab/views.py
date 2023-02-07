@@ -145,7 +145,7 @@ class TabStateView(BaseSupersetView):
             user_id=get_user_id(),
             # This is for backward compatibility
             label=query_editor.get("name")
-            or query_editor.get("title", "Untitled Query"),
+            or query_editor.get("title", _("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
             schema=query_editor.get("schema"),

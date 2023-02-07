@@ -30,6 +30,13 @@ const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.SavedQueries]: t('saved queries'),
 };
 
+const welcomeTableEmpty: Record<WelcomeTable, string> = {
+  [WelcomeTable.Charts]: t('No charts yet'),
+  [WelcomeTable.Dashboards]: t('No dashboards yet'),
+  [WelcomeTable.Recents]: t('No recents yet'),
+  [WelcomeTable.SavedQueries]: t('No saved queries yet'),
+};
+
 export interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
@@ -75,11 +82,7 @@ export default function EmptyState({
     [WelcomeTable.Recents]: 'union.svg',
     [WelcomeTable.SavedQueries]: 'empty-queries.svg',
   };
-  const mine = (
-    <span>
-      {t('No %(tableName)s yet', { tableName: welcomeTableLabels[tableName] })}
-    </span>
-  );
+  const mine = <span>{welcomeTableEmpty[tableName]}</span>;
   const recent = (
     <span className="no-recents">
       {(() => {

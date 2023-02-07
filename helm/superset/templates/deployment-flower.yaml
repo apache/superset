@@ -67,7 +67,7 @@ spec:
       {{- end }}
       containers:
         - name: "{{ .Chart.Name }}-flower"
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetCeleryFlower.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetCeleryFlower.containerSecurityContext | nindent 12 }}

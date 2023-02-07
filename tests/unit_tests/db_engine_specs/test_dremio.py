@@ -14,19 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.impala import ImpalaEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from datetime import datetime
+from typing import Optional
+
+import pytest
+
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
-class TestImpalaDbEngineSpec(TestDbEngineSpec):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
+        (
+            "TimeStamp",
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
+        ),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.dremio import DremioEngineSpec as spec
 
-        self.assertEqual(
-            ImpalaEngineSpec.convert_dttm("DATE", dttm), "CAST('2019-01-02' AS DATE)"
-        )
-
-        self.assertEqual(
-            ImpalaEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)",
-        )
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

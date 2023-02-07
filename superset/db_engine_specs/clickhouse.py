@@ -18,12 +18,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
+from sqlalchemy import types
 from urllib3.exceptions import NewConnectionError
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.extensions import cache_manager
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -77,10 +77,11 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"toDate('{dttm.date().isoformat()}')"
-        if tt == utils.TemporalType.DATETIME:
+        if isinstance(sqla_type, types.DateTime):
             return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
         return None
 

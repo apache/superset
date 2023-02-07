@@ -21,20 +21,16 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.types import String
+from sqlalchemy.types import Date, DateTime, String
 
-from superset.db_engine_specs.base import (
-    BaseEngineSpec,
-    BasicParametersMixin,
-    ColumnTypeMapping,
-)
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -185,7 +181,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         ),
         (
             re.compile(r"^array.*", re.IGNORECASE),
-            lambda match: ARRAY(int(match[2])) if match[2] else String(),
+            String(),
             GenericDataType.STRING,
         ),
         (
@@ -238,10 +234,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if "TIMESTAMP" in tt or "DATETIME" in tt:
+        if isinstance(sqla_type, DateTime):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
         return None
@@ -269,23 +266,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
             engine_params["connect_args"] = connect_args
             extra["engine_params"] = engine_params
         return extra
-
-    @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(native_type)
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:

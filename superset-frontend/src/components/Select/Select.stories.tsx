@@ -158,7 +158,7 @@ const mountHeader = (type: String) => {
     header = (
       <ControlHeader
         label="Control header"
-        warning="Example of warning messsage"
+        warning="Example of warning message"
       />
     );
   }

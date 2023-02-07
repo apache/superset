@@ -18,6 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { render, screen } from 'spec/helpers/testing-library';
 import SubMenu, { ButtonProps } from './SubMenu';
 
@@ -58,30 +59,42 @@ const mockedProps = {
   ],
 };
 
+const setup = (overrides: Record<string, any> = {}) => {
+  const props = {
+    ...mockedProps,
+    ...overrides,
+  };
+  return render(
+    <BrowserRouter>
+      <SubMenu {...props} />
+    </BrowserRouter>,
+  );
+};
+
 test('should render', async () => {
-  const { container } = render(<SubMenu {...mockedProps} />);
+  const { container } = setup();
   expect(await screen.findByText(/title/i)).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
 test('should render the navigation', async () => {
-  render(<SubMenu {...mockedProps} />);
+  setup();
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
 test('should render the brand', async () => {
-  render(<SubMenu {...mockedProps} />);
+  setup();
   expect(await screen.findByText('Title')).toBeInTheDocument();
 });
 
 test('should render the right number of tabs', async () => {
-  render(<SubMenu {...mockedProps} />);
+  setup();
   expect(await screen.findAllByRole('tab')).toHaveLength(3);
 });
 
 test('should render all the tabs links', async () => {
   const { tabs } = mockedProps;
-  render(<SubMenu {...mockedProps} />);
+  setup();
   expect(await screen.findAllByRole('tab')).toHaveLength(3);
   tabs.forEach(tab => {
     const tabItem = screen.getByText(tab.label);
@@ -90,7 +103,7 @@ test('should render all the tabs links', async () => {
 });
 
 test('should render dropdownlinks', async () => {
-  render(<SubMenu {...mockedProps} />);
+  setup();
   userEvent.hover(screen.getByText('test an upload'));
   const label = await screen.findByText('test an upload');
   expect(label).toBeInTheDocument();
@@ -110,11 +123,7 @@ test('should render the buttons', async () => {
       buttonStyle: 'danger' as ButtonProps['buttonStyle'],
     },
   ];
-  const buttonsProps = {
-    ...mockedProps,
-    buttons,
-  };
-  render(<SubMenu {...buttonsProps} />);
+  setup({ buttons });
   const testButton = screen.getByText(buttons[0].name);
   expect(await screen.findAllByRole('button')).toHaveLength(3);
   userEvent.click(testButton);
