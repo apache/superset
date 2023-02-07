@@ -147,18 +147,22 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         if post_processing.get("operation") == "pivot":
                             post_processing["options"]["index"] = [granularity]
 
-            # If no temporal x-axis, then get the first temporal filter
+            # If no temporal x-axis, then get the default temporal filter
             if not filter_to_remove:
-                filter_to_remove = next(
-                    (
-                        filter["col"]
-                        for filter in query_object.filter
-                        if filter["op"] == "TEMPORAL_RANGE"
-                    ),
-                    None,
-                )
+                temporal_filters = [
+                    filter["col"]
+                    for filter in query_object.filter
+                    if filter["op"] == "TEMPORAL_RANGE"
+                ]
+                if len(temporal_filters) > 0:
+                    # Use granularity if it's already in the filters
+                    if granularity in temporal_filters:
+                        filter_to_remove = granularity
+                    else:
+                        # Use the first temporal filter
+                        filter_to_remove = temporal_filters[0]
 
-            # Removes the temporal filter which may be an x-axis or the first temporal filter.
+            # Removes the temporal filter which may be an x-axis or another temporal filter.
             # A new filter based on the value of the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
             if filter_to_remove:
