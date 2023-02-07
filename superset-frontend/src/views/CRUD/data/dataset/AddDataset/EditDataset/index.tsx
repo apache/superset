@@ -21,11 +21,13 @@ import React from 'react';
 import { useGetDatasetRelatedCounts } from 'src/views/CRUD/data/hooks';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
+import UsageTab from './UsageTab';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
   margin-top: ${theme.gridUnit * 8.5}px;
   padding-left: ${theme.gridUnit * 4}px;
+  padding-right: ${theme.gridUnit * 4}px;
 
   .ant-tabs-top > .ant-tabs-nav::before {
     width: ${theme.gridUnit * 50}px;
@@ -66,7 +68,9 @@ const EditPage = ({ id }: EditPageProps) => {
     <StyledTabs moreIcon={null} fullWidth={false}>
       <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
       <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
-      <Tabs.TabPane tab={usageTab} key="3" />
+      <Tabs.TabPane tab={usageTab} key="3">
+        <UsageTab datasetId={id} />
+      </Tabs.TabPane>
     </StyledTabs>
   );
 };
