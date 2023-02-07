@@ -122,7 +122,7 @@ def test_export_dashboards_versioned_export(app_context, fs):
     importlib.reload(superset.cli.importexport)
 
     runner = app.test_cli_runner()
-    with freeze_time("2021-01-01T00:00:00Z"):   
+    with freeze_time("2021-01-01T00:00:00Z"):
         response = runner.invoke(superset.cli.importexport.export_dashboards, ())
 
     assert response.exit_code == 0
