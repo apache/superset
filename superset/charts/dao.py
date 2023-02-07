@@ -20,6 +20,7 @@ from typing import Any, List, Optional, TYPE_CHECKING
 
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
+from typing_extensions import TypedDict
 
 from superset import security_manager
 from superset.charts.filters import ChartFilter
@@ -33,6 +34,10 @@ if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
+
+class UserSlice(TypedDict):
+    Slice: Slice
+    FavStar: Optional[FavStar]
 
 
 class ChartDAO(BaseDAO):
@@ -86,7 +91,7 @@ class ChartDAO(BaseDAO):
         ]
 
     @staticmethod
-    def user_slices(user_id: int) -> List[Any]:
+    def user_slices(user_id: int) -> List[UserSlice]:
         owner_ids_query = (
             db.session.query(Slice.id)
             .join(Slice.owners)
