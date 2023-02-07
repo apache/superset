@@ -73,14 +73,14 @@ const DatabaseList = lazy(
 const DatasetList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
+      /* webpackChunkName: "DatasetList" */ 'src/pages/Dataset/DatasetList'
     ),
 );
 
-const AddDataset = lazy(
+const DatasetPage = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetEditor" */ 'src/views/CRUD/data/dataset/AddDataset/index'
+      /* webpackChunkName: "DatasetEditor" */ 'src/pages/Dataset/DatasetPage'
     ),
 );
 
@@ -194,11 +194,11 @@ export const routes: Routes = [
   },
   {
     path: '/dataset/add/',
-    Component: AddDataset,
+    Component: DatasetPage,
   },
   {
     path: '/dataset/:datasetId',
-    Component: AddDataset,
+    Component: DatasetPage,
   },
 ];
 

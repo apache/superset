@@ -18,9 +18,9 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
-import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
+import { NewDatasetObject } from 'src/pages/Dataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import DatasetPanel from './DatasetPanel';
+import DatasetCreationPanel from 'src/pages/DatasetCreationPanel/DatasetCreationPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 
 /**
@@ -41,7 +41,7 @@ interface IColumnProps {
   schema: string;
 }
 
-export interface IDatasetPanelWrapperProps {
+export interface IDatasetCreationPanelWrapperProps {
   /**
    * Name of the database table
    */
@@ -55,16 +55,16 @@ export interface IDatasetPanelWrapperProps {
    */
   schema?: string | null;
   setHasColumns?: Function;
-  datasets?: DatasetObject[] | undefined;
+  datasets?: NewDatasetObject[] | undefined;
 }
 
-const DatasetPanelWrapper = ({
+const DatasetCreationPanelWrapper = ({
   tableName,
   dbId,
   schema,
   setHasColumns,
   datasets,
-}: IDatasetPanelWrapperProps) => {
+}: IDatasetCreationPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -127,7 +127,7 @@ const DatasetPanelWrapper = ({
   }, [tableName, dbId, schema]);
 
   return (
-    <DatasetPanel
+    <DatasetCreationPanel
       columnList={columnList}
       hasError={hasError}
       loading={loading}
@@ -137,4 +137,4 @@ const DatasetPanelWrapper = ({
   );
 };
 
-export default DatasetPanelWrapper;
+export default DatasetCreationPanelWrapper;

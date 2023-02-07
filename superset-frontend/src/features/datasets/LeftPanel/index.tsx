@@ -48,14 +48,11 @@ import {
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
-import {
-  DatasetActionType,
-  DatasetObject,
-} from 'src/views/CRUD/data/dataset/AddDataset/types';
+import { DatasetActionType, NewDatasetObject } from 'src/pages/Dataset/types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
-  dataset?: Partial<DatasetObject> | null;
+  dataset?: Partial<NewDatasetObject> | null;
   datasetNames?: (string | null | undefined)[] | undefined;
 }
 

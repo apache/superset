@@ -16,14 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import RightPanel from 'src/views/CRUD/data/dataset/AddDataset/RightPanel';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import DatasetCreationPanel from './DatasetCreationPanel';
+import { exampleColumns } from './fixtures';
 
-describe('RightPanel', () => {
-  it('renders a blank state RightPanel', () => {
-    render(<RightPanel />);
+export default {
+  title: 'Superset App/views/CRUD/data/dataset/DatasetCreationPanel',
+  component: DatasetCreationPanel,
+} as ComponentMeta<typeof DatasetCreationPanel>;
 
-    expect(screen.getByText(/right panel/i)).toBeVisible();
-  });
-});
+export const Basic: ComponentStory<typeof DatasetCreationPanel> = args => (
+  <ThemeProvider theme={supersetTheme}>
+    <div style={{ height: '350px' }}>
+      <DatasetCreationPanel {...args} />
+    </div>
+  </ThemeProvider>
+);
+
+Basic.args = {
+  tableName: 'example_table',
+  loading: false,
+  hasError: false,
+  columnList: exampleColumns,
+};

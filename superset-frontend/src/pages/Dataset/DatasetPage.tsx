@@ -19,22 +19,26 @@
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDatasetsList } from 'src/views/CRUD/data/hooks';
-import Header from './Header';
-import EditPage from './EditDataset';
-import DatasetPanel from './DatasetPanel';
-import LeftPanel from './LeftPanel';
-import Footer from './Footer';
-import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
-import DatasetLayout from '../DatasetLayout';
+import Header from 'src/features/datasets/Header';
+import DatasetEditPanel from 'src/pages/DatasetEditPanel';
+import DatasetCreationPanel from 'src/pages/DatasetCreationPanel';
+import LeftPanel from 'src/features/datasets/LeftPanel';
+import Footer from 'src/features/datasets/Footer';
+import {
+  DatasetActionType,
+  NewDatasetObject,
+  DSReducerActionType,
+} from 'src/pages/Dataset/types';
+import DatasetLayout from 'src/features/datasets/DatasetLayout';
 
 type Schema = {
   schema: string;
 };
 
 export function datasetReducer(
-  state: DatasetObject | null,
+  state: NewDatasetObject | null,
   action: DSReducerActionType,
-): Partial<DatasetObject> | Schema | null {
+): Partial<NewDatasetObject> | Schema | null {
   const trimmedState = {
     ...(state || {}),
   };
@@ -71,12 +75,13 @@ export function datasetReducer(
 const prevUrl =
   '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
 
-export default function AddDataset() {
+export default function DatasetPage() {
   const [dataset, setDataset] = useReducer<
-    Reducer<Partial<DatasetObject> | null, DSReducerActionType>
+    Reducer<Partial<NewDatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
-  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
+  const [datasetEditPanelIsVisible, setDatasetEditPanelIsVisible] =
+    useState(false);
 
   const { datasets, datasetNames } = useDatasetsList(
     dataset?.db,
@@ -86,7 +91,7 @@ export default function AddDataset() {
   const { datasetId: id } = useParams<{ datasetId: string }>();
   useEffect(() => {
     if (!Number.isNaN(parseInt(id, 10))) {
-      setEditPageIsVisible(true);
+      setDatasetEditPanelIsVisible(true);
     }
   }, [id]);
 
@@ -102,10 +107,10 @@ export default function AddDataset() {
     />
   );
 
-  const EditPageComponent = () => <EditPage id={id} />;
+  const DatasetEditPanelComponent = () => <DatasetEditPanel id={id} />;
 
-  const DatasetPanelComponent = () => (
-    <DatasetPanel
+  const DatasetCreationPanelComponent = () => (
+    <DatasetCreationPanel
       tableName={dataset?.table_name}
       dbId={dataset?.db?.id}
       schema={dataset?.schema}
@@ -126,9 +131,11 @@ export default function AddDataset() {
   return (
     <DatasetLayout
       header={HeaderComponent()}
-      leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
+      leftPanel={datasetEditPanelIsVisible ? null : LeftPanelComponent()}
       datasetPanel={
-        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
+        datasetEditPanelIsVisible
+          ? DatasetEditPanelComponent()
+          : DatasetCreationPanelComponent()
       }
       footer={FooterComponent()}
     />

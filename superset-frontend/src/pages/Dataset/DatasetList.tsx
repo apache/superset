@@ -30,7 +30,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
+import { ColumnObject } from 'src/pages/Dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { DatasourceModal } from 'src/components/Datasource';

@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import DatasetPanel, {
+import DatasetCreationPanel, {
   REFRESHING,
   ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
-} from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel/DatasetPanel';
+} from 'src/pages/DatasetCreationPanel/DatasetCreationPanel';
 import { exampleColumns, exampleDataset } from './fixtures';
 import {
   SELECT_MESSAGE,
@@ -43,9 +43,11 @@ jest.mock(
       <span role="img" aria-label={fileName.replace('_', '-')} />,
 );
 
-describe('DatasetPanel', () => {
-  test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
+describe('DatasetCreationPanel', () => {
+  test('renders a blank state DatasetCreationPanel', () => {
+    render(
+      <DatasetCreationPanel hasError={false} columnList={[]} loading={false} />,
+    );
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     expect(blankDatasetImg).toBeVisible();
@@ -67,7 +69,7 @@ describe('DatasetPanel', () => {
 
   test('renders a no columns screen', () => {
     render(
-      <DatasetPanel
+      <DatasetCreationPanel
         tableName="Name"
         hasError={false}
         columnList={[]}
@@ -85,7 +87,7 @@ describe('DatasetPanel', () => {
 
   test('renders a loading screen', () => {
     render(
-      <DatasetPanel
+      <DatasetCreationPanel
         tableName="Name"
         hasError={false}
         columnList={[]}
@@ -101,7 +103,7 @@ describe('DatasetPanel', () => {
 
   test('renders an error screen', () => {
     render(
-      <DatasetPanel
+      <DatasetCreationPanel
         tableName="Name"
         hasError
         columnList={[]}
@@ -118,7 +120,7 @@ describe('DatasetPanel', () => {
   test('renders a table with columns displayed', async () => {
     const tableName = 'example_name';
     render(
-      <DatasetPanel
+      <DatasetCreationPanel
         tableName={tableName}
         hasError={false}
         columnList={exampleColumns}
@@ -141,7 +143,7 @@ describe('DatasetPanel', () => {
 
   test('renders an info banner if table already has a dataset', async () => {
     render(
-      <DatasetPanel
+      <DatasetCreationPanel
         tableName="example_table"
         hasError={false}
         columnList={exampleColumns}

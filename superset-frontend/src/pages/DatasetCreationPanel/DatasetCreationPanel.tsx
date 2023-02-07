@@ -24,7 +24,7 @@ import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
-import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
+import { NewDatasetObject } from 'src/pages/Dataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -199,9 +199,9 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
 ];
 
 /**
- * Props interface for DatasetPanel
+ * Props interface for DatasetCreationPanel
  */
-export interface IDatasetPanelProps {
+export interface IDatasetCreationPanelProps {
   /**
    * Name of the database table
    */
@@ -218,7 +218,7 @@ export interface IDatasetPanelProps {
    * Boolean indicating if the component is in a loading state
    */
   loading: boolean;
-  datasets?: DatasetObject[] | undefined;
+  datasets?: NewDatasetObject[] | undefined;
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
@@ -226,7 +226,7 @@ const EXISTING_DATASET_DESCRIPTION = t(
 );
 const VIEW_DATASET = t('View Dataset');
 
-const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
+const renderExistingDatasetAlert = (dataset?: NewDatasetObject) => (
   <StyledAlert
     closable={false}
     type="info"
@@ -254,13 +254,13 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
   />
 );
 
-const DatasetPanel = ({
+const DatasetCreationPanel = ({
   tableName,
   columnList,
   loading,
   hasError,
   datasets,
-}: IDatasetPanelProps) => {
+}: IDatasetCreationPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
   const datasetNames = datasets?.map(dataset => dataset.table_name);
@@ -350,4 +350,4 @@ const DatasetPanel = ({
   );
 };
 
-export default DatasetPanel;
+export default DatasetCreationPanel;

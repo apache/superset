@@ -20,8 +20,8 @@ import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
-import { exampleDataset } from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel/fixtures';
+import LeftPanel from 'src/features/datasets/LeftPanel';
+import { exampleDataset } from 'src/pages/DatasetCreationPanel/fixtures';
 
 const databasesEndpoint = 'glob:*/api/v1/database/?q*';
 const schemasEndpoint = 'glob:*/api/v1/database/*/schemas*';

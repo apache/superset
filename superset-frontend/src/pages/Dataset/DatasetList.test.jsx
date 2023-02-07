@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import * as featureFlags from 'src/featureFlags';
 
-import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
+import DatasetList from 'src/pages/Dataset/DatasetList';
 import ListView from 'src/components/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';

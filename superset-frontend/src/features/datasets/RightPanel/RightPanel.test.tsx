@@ -16,34 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
-import { ITableColumn } from './types';
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import RightPanel from 'src/features/datasets/RightPanel';
 
-export const exampleColumns: ITableColumn[] = [
-  {
-    name: 'name',
-    type: 'STRING',
-  },
-  {
-    name: 'height_in_inches',
-    type: 'NUMBER',
-  },
-  {
-    name: 'birth_date',
-    type: 'DATE',
-  },
-];
+describe('RightPanel', () => {
+  it('renders a blank state RightPanel', () => {
+    render(<RightPanel />);
 
-export const exampleDataset: DatasetObject[] = [
-  {
-    db: {
-      id: 1,
-      database_name: 'test_database',
-      owners: [1],
-      backend: 'test_backend',
-    },
-    schema: 'test_schema',
-    dataset_name: 'example_dataset',
-    table_name: 'example_table',
-  },
-];
+    expect(screen.getByText(/right panel/i)).toBeVisible();
+  });
+});

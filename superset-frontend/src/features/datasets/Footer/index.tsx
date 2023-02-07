@@ -30,13 +30,13 @@ import {
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_SUCCESS,
 } from 'src/logger/LogUtils';
-import { DatasetObject } from '../types';
+import { NewDatasetObject } from 'src/pages/Dataset/types';
 
 interface FooterProps {
   url: string;
   addDangerToast: () => void;
-  datasetObject?: Partial<DatasetObject> | null;
-  onDatasetAdd?: (dataset: DatasetObject) => void;
+  datasetObject?: Partial<NewDatasetObject> | null;
+  onDatasetAdd?: (dataset: NewDatasetObject) => void;
   hasColumns?: boolean;
   datasets?: (string | null | undefined)[] | undefined;
 }
@@ -56,13 +56,13 @@ function Footer({
   datasets,
 }: FooterProps) {
   const history = useHistory();
-  const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
+  const { createResource } = useSingleViewResource<Partial<NewDatasetObject>>(
     'dataset',
     t('dataset'),
     addDangerToast,
   );
 
-  const createLogAction = (dataset: Partial<DatasetObject>) => {
+  const createLogAction = (dataset: Partial<NewDatasetObject>) => {
     let totalCount = 0;
     const value = Object.keys(dataset).reduce((total, key) => {
       if (INPUT_FIELDS.includes(key) && dataset[key]) {

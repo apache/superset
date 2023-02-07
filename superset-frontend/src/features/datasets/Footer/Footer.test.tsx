@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
+import Footer from 'src/features/datasets/Footer';
 
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({

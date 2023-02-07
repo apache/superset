@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
+import { NewDatasetObject } from 'src/pages/Dataset/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 type BaseQueryObject = {
@@ -91,11 +91,11 @@ export const useDatasetsList = (
     | undefined,
   schema: string | null | undefined,
 ) => {
-  const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const [datasets, setDatasets] = useState<NewDatasetObject[]>([]);
   const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
 
   const getDatasetsList = useCallback(async (filters: object[]) => {
-    let results: DatasetObject[] = [];
+    let results: NewDatasetObject[] = [];
     let page = 0;
     let count;
 

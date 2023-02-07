@@ -29,7 +29,7 @@ import {
   StyledLayoutDatasetPanel,
   StyledLayoutRightPanel,
   StyledLayoutFooter,
-} from 'src/views/CRUD/data/dataset/styles';
+} from 'src/pages/Dataset/styles';
 
 interface DatasetLayoutProps {
   header?: ReactElement<any, string | JSXElementConstructor<any>> | null;

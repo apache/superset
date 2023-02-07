@@ -44,7 +44,7 @@ const TabStyles = styled.div`
   `}
 `;
 
-interface EditPageProps {
+interface DatasetEditPanelProps {
   id: string;
 }
 
@@ -54,7 +54,7 @@ const TRANSLATIONS = {
   METRICS_TEXT: t('Metrics'),
 };
 
-const EditPage = ({ id }: EditPageProps) => {
+const DatasetEditPanel = ({ id }: DatasetEditPanelProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
 
   const usageTab = (
@@ -75,4 +75,4 @@ const EditPage = ({ id }: EditPageProps) => {
   );
 };
 
-export default EditPage;
+export default DatasetEditPanel;

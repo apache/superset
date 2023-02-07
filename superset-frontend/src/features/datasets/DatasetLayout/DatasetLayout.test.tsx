@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
-import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
-import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
-import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
-import RightPanel from 'src/views/CRUD/data/dataset/AddDataset/RightPanel';
-import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
+import DatasetLayout from 'src/features/datasets/DatasetLayout';
+import Header from 'src/features/datasets/Header';
+import LeftPanel from 'src/features/datasets/LeftPanel';
+import DatasetCreationPanel from 'src/pages/DatasetCreationPanel';
+import RightPanel from 'src/features/datasets/RightPanel';
+import Footer from 'src/features/datasets/Footer';
 
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -64,8 +64,8 @@ describe('DatasetLayout', () => {
     expect(LeftPanel).toBeTruthy();
   });
 
-  it('renders a DatasetPanel when passed in', () => {
-    render(<DatasetLayout datasetPanel={<DatasetPanel />} />);
+  it('renders a DatasetCreationPanel when passed in', () => {
+    render(<DatasetLayout datasetPanel={<DatasetCreationPanel />} />);
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     const blankDatasetTitle = screen.getByText(/select dataset source/i);

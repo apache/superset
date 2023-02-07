@@ -18,9 +18,7 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import Header, {
-  DEFAULT_TITLE,
-} from 'src/views/CRUD/data/dataset/AddDataset/Header';
+import Header, { DEFAULT_TITLE } from 'src/features/datasets/Header';
 
 describe('Header', () => {
   const mockSetDataset = jest.fn();

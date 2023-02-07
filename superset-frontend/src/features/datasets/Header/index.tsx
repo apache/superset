@@ -27,11 +27,11 @@ import {
   HeaderComponentStyles,
   disabledSaveBtnStyles,
   StyledCreateDatasetTitle,
-} from 'src/views/CRUD/data/dataset/styles';
+} from 'src/pages/Dataset/styles';
 import {
   DatasetActionType,
   DSReducerActionType,
-} from 'src/views/CRUD/data/dataset/AddDataset/types';
+} from 'src/pages/Dataset/types';
 
 export const DEFAULT_TITLE = t('New dataset');
 
