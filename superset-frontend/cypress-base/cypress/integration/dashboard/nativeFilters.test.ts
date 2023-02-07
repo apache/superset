@@ -235,7 +235,7 @@ function openMoreFilters(intercetFilterState = true) {
   }
 }
 
-describe.only('Horizontal FilterBar', () => {
+describe('Horizontal FilterBar', () => {
   it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
