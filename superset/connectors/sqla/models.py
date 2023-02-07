@@ -283,6 +283,35 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     def type_generic(self) -> Optional[utils.GenericDataType]:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
+
+        bool_types = ("BOOL",)
+        num_types = (
+            "DOUBLE",
+            "FLOAT",
+            "INT",
+            "BIGINT",
+            "NUMBER",
+            "LONG",
+            "REAL",
+            "NUMERIC",
+            "DECIMAL",
+            "MONEY",
+        )
+        date_types = ("DATE", "TIME")
+        str_types = ("VARCHAR", "STRING", "CHAR")
+
+        if self.table is None:
+            # Query.TableColumns don't have a reference to a table.db_engine_spec
+            # reference so this logic will manage rendering types
+            if self.type and any(map(lambda t: t in self.type.upper(), str_types)):
+                return GenericDataType.STRING
+            if self.type and any(map(lambda t: t in self.type.upper(), bool_types)):
+                return GenericDataType.BOOLEAN
+            if self.type and any(map(lambda t: t in self.type.upper(), num_types)):
+                return GenericDataType.NUMERIC
+            if self.type and any(map(lambda t: t in self.type.upper(), date_types)):
+                return GenericDataType.TEMPORAL
+
         column_spec = self.db_engine_spec.get_column_spec(
             self.type, db_extra=self.db_extra
         )

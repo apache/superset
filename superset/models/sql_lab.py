@@ -189,46 +189,13 @@ class Query(
             TableColumn,
         )
 
-        bool_types = ("BOOL",)
-        num_types = (
-            "DOUBLE",
-            "FLOAT",
-            "INT",
-            "BIGINT",
-            "NUMBER",
-            "LONG",
-            "REAL",
-            "NUMERIC",
-            "DECIMAL",
-            "MONEY",
-        )
-        date_types = ("DATE", "TIME")
-        str_types = ("VARCHAR", "STRING", "CHAR")
         columns = []
-        col_type = ""
-
         for col in self.extra.get("columns", []):
-            computed_column = {**col}
-            col_type = col.get("type")
-
-            if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
-                computed_column["type_generic"] = GenericDataType.STRING
-            if col_type and any(map(lambda t: t in col_type.upper(), bool_types)):
-                computed_column["type_generic"] = GenericDataType.BOOLEAN
-            if col_type and any(map(lambda t: t in col_type.upper(), num_types)):
-                computed_column["type_generic"] = GenericDataType.NUMERIC
-            if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
-                computed_column["type_generic"] = GenericDataType.TEMPORAL
-
-            column_name = col.get("name")
-            del computed_column["name"]
-            del computed_column["type_generic"]
-            computed_column["groupby"] = True
             columns.append(
                 TableColumn(
-                    column_name=column_name,
-                    type=col_type,
-                    is_dttm=computed_column["is_dttm"],
+                    column_name=col["name"],
+                    type=col["type"],
+                    is_dttm=col["is_dttm"],
                     groupby=True,
                 )
             )
