@@ -57,7 +57,7 @@ import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import Chart from 'src/types/Chart';
+import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
@@ -147,11 +147,6 @@ interface ChartListProps {
     lastName: string;
   };
 }
-
-type ChartLinkedDashboard = {
-  id: number;
-  dashboard_title: string;
-};
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
