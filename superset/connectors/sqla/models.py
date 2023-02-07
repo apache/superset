@@ -1641,7 +1641,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif len(where_clause_and) > 1:
             qry = qry.where(and_(*where_clause_and))
         elif len(where_clause_and) == 1:
-            qry = qry.where(' '.join(map(str, where_clause_and)))
+            qry = qry.where(" ".join(map(str, where_clause_and)))
 
         qry = qry.having(and_(*having_clause_and))
 
