@@ -1157,7 +1157,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (db && isSSHTunneling) {
       setUseSSHTunneling(!isEmpty(db?.ssh_tunnel));
     }
-  }, [db]);
+  }, [db, isSSHTunneling]);
 
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
