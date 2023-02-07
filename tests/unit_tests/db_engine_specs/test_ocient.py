@@ -18,11 +18,11 @@
 # pylint: disable=import-outside-toplevel
 
 from datetime import datetime
+from typing import Dict, List, Tuple
 
 import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from typing import Dict, List, Tuple
 
 
 @pytest.mark.parametrize(
@@ -38,10 +38,11 @@ def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:
 
     assert OcientEngineSpec.convert_dttm(actual, dttm) == expected
 
+
 # (msg,expected)
-MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
+MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
-        'The referenced user does not exist (User \'mj\' not found)',
+        "The referenced user does not exist (User 'mj' not found)",
         SupersetError(
             message='The username "mj" does not exist.',
             error_type=SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
@@ -55,12 +56,12 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'The userid/password combination was not valid (Incorrect password for user)',
+        "The userid/password combination was not valid (Incorrect password for user)",
         SupersetError(
-            message='The user/password combination is not valid (Incorrect password for user).',
+            message="The user/password combination is not valid (Incorrect password for user).",
             error_type=SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -72,10 +73,10 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'No database named \'bulls\' exists',
+        "No database named 'bulls' exists",
         SupersetError(
             message='Could not connect to database: "bulls"',
             error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
@@ -89,10 +90,10 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'Unable to connect to unitedcenter.com:4050',
+        "Unable to connect to unitedcenter.com:4050",
         SupersetError(
             message='Could not resolve hostname: "unitedcenter.com".',
             error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
@@ -106,12 +107,12 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'Port out of range 0-65535',
+        "Port out of range 0-65535",
         SupersetError(
-            message='Port out of range 0-65535',
+            message="Port out of range 0-65535",
             error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -123,12 +124,12 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'An invalid connection string attribute was specified (failed to decrypt cipher text)',
+        "An invalid connection string attribute was specified (failed to decrypt cipher text)",
         SupersetError(
-            message='Invalid Connection String: Expecting String of the form \'ocient://user:pass@host:port/database\'.',
+            message="Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -140,10 +141,10 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'There is a syntax error in your statement (extraneous input \'foo bar baz\' expecting ',
+        "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting ",
         SupersetError(
             message='Extraneous input: "foo bar baz".',
             error_type=SupersetErrorType.SYNTAX_ERROR,
@@ -157,10 +158,10 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'There is a syntax error in your statement (mismatched input \'to\' expecting {<EOF>, \'trace\', \'using\'})',
+        "There is a syntax error in your statement (mismatched input 'to' expecting {<EOF>, 'trace', 'using'})",
         SupersetError(
             message='Extraneous input: "foo bar baz".',
             error_type=SupersetErrorType.SYNTAX_ERROR,
@@ -174,10 +175,10 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     }
                 ],
             },
-        )
+        ),
     ),
     (
-        'The referenced table or view \'goats\' does not exist',
+        "The referenced table or view 'goats' does not exist",
         SupersetError(
             message='Table or View "goats" does not exist.',
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
@@ -192,13 +193,13 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     {
                         "code": 1005,
                         "message": "Issue 1005 - The table was deleted or renamed in the database.",
-                    }
+                    },
                 ],
             },
-        )
+        ),
     ),
     (
-        'The reference to column \'goats\' is not valid',
+        "The reference to column 'goats' is not valid",
         SupersetError(
             message='Invalid reference to column: "goats"',
             error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
@@ -213,21 +214,17 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, Dict]] = [
                     {
                         "code": 1004,
                         "message": "Issue 1004 - The column was deleted or renamed in the database.",
-                    }
+                    },
                 ],
             },
-        )
+        ),
     ),
 ]
 
-@pytest.mark.parametrize(
-    "msg,expected",
-    MARSHALED_OCIENT_ERRORS
-)
+
+@pytest.mark.parametrize("msg,expected", MARSHALED_OCIENT_ERRORS)
 def test_connection_errors(msg: str, expected: SupersetError) -> None:
     from superset.db_engine_specs.ocient import OcientEngineSpec
 
     result = OcientEngineSpec.extract_errors(Exception(msg))
-    assert result == [
-        expected
-    ]
+    assert result == [expected]

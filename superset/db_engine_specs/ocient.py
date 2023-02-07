@@ -16,20 +16,19 @@
 # under the License.
 
 import re
-
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import SupersetErrorType
-from flask_babel import gettext as __
+import threading
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Pattern, Set, Tuple
 
 import pyocient
-from pyocient import _STPoint, _STLinestring, _STPolygon, TypeCodes
-from superset import app
-from superset.models.core import Database
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Optional, Pattern
-import threading
+from flask_babel import gettext as __
+from pyocient import _STLinestring, _STPoint, _STPolygon, TypeCodes
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm import Session
 
+from superset import app
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 
 # Ensure pyocient inherits Superset's logging level
@@ -236,13 +235,17 @@ class OcientEngineSpec(BaseEngineSpec):
     @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
-        return sorted(inspector.get_table_names(schema))
+    ) -> Set[str]:
+        return inspector.get_table_names(schema)
 
     @classmethod
-    def fetch_data(cls, cursor, lim=None):
+    def fetch_data(
+        cls, cursor: Any, lim: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
         try:
-            rows = super(OcientEngineSpec, cls).fetch_data(cursor)
+            rows: List[Tuple[Any, ...]] = super(OcientEngineSpec, cls).fetch_data(
+                cursor, lim
+            )
         except Exception as exception:
             with OcientEngineSpec.query_id_mapping_lock:
                 del OcientEngineSpec.query_id_mapping[
@@ -259,18 +262,26 @@ class OcientEngineSpec(BaseEngineSpec):
 
         if columns_to_sanitize:
             # At least 1 column has to be sanitized.
-            def do_nothing(x):
+
+            def identity(x: Any) -> Any:
                 return x
 
-            sanitization_functions = [
-                do_nothing for _ in range(len(cursor.description))
+            # Use the identity function if the column type doesn't need to be
+            # sanitized.
+            sanitization_functions: List[SanitizeFunc] = [
+                identity for _ in range(len(cursor.description))
             ]
             for info in columns_to_sanitize:
                 sanitization_functions[info.column_index] = info.sanitize_func
 
-            # Rows from pyocient are given as NamedTuple, so we need to recreate the whole table
+            # pyocient returns a list of NamedTuple objects which represent a
+            # single row. We have to do this copy because that data type is
+            # NamedTuple's are immutable.
             rows = [
-                [sanitization_functions[i](row[i]) for i in range(len(row))]
+                tuple(
+                    sanitize_func(val)
+                    for sanitize_func, val in zip(sanitization_functions, row)
+                )
                 for row in rows
             ]
         return rows
