@@ -121,7 +121,8 @@ function WorldMap(element, props) {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    let val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    let val =
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
     if (!val) {
       return;
     }
@@ -152,7 +153,8 @@ function WorldMap(element, props) {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    const val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    const val =
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
     if (val) {
       const filters = [
         {
