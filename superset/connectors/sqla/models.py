@@ -1637,8 +1637,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
         if granularity:
-            qry = qry.where(and_(*(time_filters + where_clause_and)))
-        elif len(where_clause_and) > 1:
+            where_clause_and += time_filters
+
+        if len(where_clause_and) > 1:
             qry = qry.where(and_(*where_clause_and))
         elif len(where_clause_and) == 1:
             qry = qry.where(" ".join(map(str, where_clause_and)))
