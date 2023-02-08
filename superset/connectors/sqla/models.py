@@ -973,6 +973,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
+        dashboard_id = kwargs['dashboard_id'] if "dashboard_id" in kwargs else None
+        chart_id = kwargs['chart_id'] if "chart_id" in kwargs else None
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(
@@ -980,8 +982,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # TODO(john-bodley): Deprecate in 3.0.
                 query_source="Charts",
                 query_id=None,
-                dashboard_id = kwargs['dashboard_id'],
-                chart_id = kwargs['chart_id'],
+                dashboard_id = dashboard_id,
+                chart_id = chart_id,
                 user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
