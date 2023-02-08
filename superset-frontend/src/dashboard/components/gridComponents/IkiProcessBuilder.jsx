@@ -202,11 +202,17 @@ class IkiProcessBuilder extends React.PureComponent {
             `ikiprocessdiagram-widget-${this.props.component.id}`,
           ).src,
         );
+        // const widgetUrlQuery = new URLSearchParams(widgetUrl);
         const definitionData = document.getElementById(
           `ikiprocessdiagram-widget-${this.props.component.id}`,
         ).dataset.definition;
+        // console.log('definitionData 1', definitionData, widgetUrl);
         widgetUrl.searchParams.set('mode', 'preview');
         widgetUrl.searchParams.set('data', definitionData);
+        // widgetUrlQuery.set('mode', 'preview');
+        // widgetUrlQuery.set('data', definitionData);
+        // widgetUrl.search = widgetUrlQuery.toString();
+        // console.log('widgetUrl', widgetUrl);
         const iframeSrc =
           this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
         const tempIframe = `<iframe
@@ -234,6 +240,7 @@ class IkiProcessBuilder extends React.PureComponent {
         const definitionData = document.getElementById(
           `ikiprocessdiagram-widget-${this.props.component.id}`,
         ).dataset.definition;
+        // console.log('definitionData 2', definitionData);
         widgetUrl.searchParams.set('mode', 'edit');
         widgetUrl.searchParams.set('data', definitionData);
         const iframeSrc =
@@ -263,7 +270,9 @@ class IkiProcessBuilder extends React.PureComponent {
 
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
+    // console.log('this.props.ikigaiOrigin', this.props.ikigaiOrigin);
     window.addEventListener('message', event => {
+      // console.log('origin', event.origin, this.props.ikigaiOrigin);
       if (event.origin === this.props.ikigaiOrigin) {
         // console.log('process diagram received 1: ', event.data);
         const messageObject = JSON.parse(event.data);
@@ -275,6 +284,7 @@ class IkiProcessBuilder extends React.PureComponent {
           } else {
             messageData = messageObject.data;
           }
+          // console.log('messageData', messageData);
           if (messageObject.info === 'widget-to-superset/edit') {
             if (
               document.getElementById(
@@ -289,10 +299,18 @@ class IkiProcessBuilder extends React.PureComponent {
               const widgetUrlMode = widgetUrl.searchParams.get('mode');
               const widgetSCId = widgetUrl.searchParams.get('scid');
               // widgetUrl.searchParams.set('mode', 'edit');
+              /* console.log(
+                'widgetUrlMode',
+                widgetUrlMode,
+                'scId',
+                scId,
+                widgetSCId,
+              ); */
               if (widgetUrlMode === 'edit' && scId === widgetSCId) {
                 const infoString = JSON.stringify(messageData);
                 const infoStringCompresed =
                   LZString.compressToEncodedURIComponent(infoString);
+                // console.log('infoStringCompresed', infoStringCompresed);
                 // widgetUrl.searchParams.set('data', infoStringCompresed);
                 // console.log('widgetUrl', widgetUrl);
                 const iframeSrc =
@@ -309,9 +327,9 @@ class IkiProcessBuilder extends React.PureComponent {
                           data-definition="${infoStringCompresed}"
                         ></iframe>`;
                 this.handleIkiProcessBuilderChange(tempIframe);
-                document.getElementById(
+                /* document.getElementById(
                   `ikiprocessdiagram-widget-${this.props.component.id}`,
-                ).dataset.definition = infoStringCompresed;
+                ).dataset.definition = infoStringCompresed; */
               }
             }
           }
@@ -446,7 +464,11 @@ class IkiProcessBuilder extends React.PureComponent {
         } else {
           iframeSrcUrl.searchParams.set('mode', 'edit');
         }
-        iframeData = iframeSrcUrl.searchParams.get('data');
+        /* iframeData = iframeSrcUrl.searchParams.get('data');
+        if (!iframeData) {
+          iframeData = iframeHtml.dataset.definition;
+        } */
+        iframeData = iframeHtml.dataset.definition;
         /* const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
         if (hostname.includes('localhost') || hostname.includes('dev')) {
           // iframeHtml.src = iframeSrcUrl.href.toString();
@@ -461,7 +483,7 @@ class IkiProcessBuilder extends React.PureComponent {
 
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
 
-        // console.log('iframe', iframeSrcUrl, iframeHtml);
+        // console.log('iframe', iframeSrcUrl, iframeHtml, iframeData);
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/diagram/builder?v=1&run_flow_times=${timestamp}&mode=edit&scid=${this.props.component.id}`;
       }
