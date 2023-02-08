@@ -121,7 +121,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         datasource: BaseDatasource,
     ) -> None:
         temporal_columns = {
-            column.column_name for column in datasource.columns if column.is_temporal
+            column.column_name
+            for column in datasource.columns
+            if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         granularity = query_object.granularity
         x_axis = form_data and form_data.get("x_axis")
