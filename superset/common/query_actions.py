@@ -89,8 +89,8 @@ def _get_query(
     result = {"language": datasource.query_language}
     dashboard_id = None
     chart_id = None
-    if query_context.form_data and "dashboards" in query_context.form_data.keys():
-        dashboard_id = query_context.form_data['dashboards']
+    if query_context.form_data and "dashboardId" in query_context.form_data.keys():
+        dashboard_id = query_context.form_data['dashboardId']
     if query_context.form_data and "slice_id" in query_context.form_data.keys():
         chart_id = query_context.form_data['slice_id']
     try:
