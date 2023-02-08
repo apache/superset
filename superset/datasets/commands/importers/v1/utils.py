@@ -29,6 +29,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,28 @@ def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> Dict[str, VisitableType]:
         for column in dataset.columns
         if column.column_name in df.keys()
     }
+
+
+def validate_data_uri(data_uri: str) -> None:
+    """
+    Validate that the data URI is configured on DATASET_IMPORT_ALLOWED_URLS
+    has a valid URL.
+
+    :param data_uri:
+    :return:
+    """
+    allowed_urls = current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
+    for allowed_url in allowed_urls:
+        try:
+            match = re.match(allowed_url, data_uri)
+        except re.error:
+            logger.exception(
+                "Invalid regular expression on DATASET_IMPORT_ALLOWED_URLS"
+            )
+            raise
+        if match:
+            return
+    raise DatasetForbiddenDataURI()
 
 
 def import_dataset(
@@ -139,7 +162,6 @@ def import_dataset(
         table_exists = True
 
     if data_uri and (not table_exists or force_data):
-        logger.info("Downloading data from %s", data_uri)
         load_data(data_uri, dataset, dataset.database, session)
 
     if hasattr(g, "user") and g.user:
@@ -151,6 +173,14 @@ def import_dataset(
 def load_data(
     data_uri: str, dataset: SqlaTable, database: Database, session: Session
 ) -> None:
+    """
+    Load data from a data URI into a dataset.
+
+    :raises DatasetUnAllowedDataURI: If a dataset is trying
+    to load data from a URI that is not allowed.
+    """
+    validate_data_uri(data_uri)
+    logger.info("Downloading data from %s", data_uri)
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
         data = gzip.open(data)

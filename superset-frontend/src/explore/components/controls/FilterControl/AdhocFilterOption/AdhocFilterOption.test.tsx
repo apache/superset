@@ -19,13 +19,19 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterOption, { AdhocFilterOptionProps } from '.';
+
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({ fileName, role }: { fileName: string; role: string }) => (
+    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
+  ),
+  StyledIcon: () => <span />,
+}));
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -56,36 +62,37 @@ const mockedProps = {
 };
 
 const setup = (props: AdhocFilterOptionProps) => (
-  <DndProvider backend={HTML5Backend}>
-    <AdhocFilterOption {...props} />
-  </DndProvider>
+  <AdhocFilterOption {...props} />
 );
 
 test('should render', async () => {
-  const { container } = render(setup(mockedProps));
+  const { container } = render(setup(mockedProps), {
+    useDnd: true,
+    useRedux: true,
+  });
   await waitFor(() => expect(container).toBeInTheDocument());
 });
 
 test('should render the control label', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   expect(await screen.findByText('value > 10')).toBeInTheDocument();
 });
 
 test('should render the remove button', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   const removeBtn = await screen.findByRole('button');
   expect(removeBtn).toBeInTheDocument();
 });
 
 test('should render the right caret', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   expect(
     await screen.findByRole('img', { name: 'caret-right' }),
   ).toBeInTheDocument();
 });
 
 test('should render the Popover on clicking the right caret', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   const rightCaret = await screen.findByRole('img', { name: 'caret-right' });
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();

@@ -17,10 +17,10 @@
  * under the License.
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
-import { logging } from '@superset-ui/core';
-import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
-import rison from 'rison';
+import { useParams } from 'react-router-dom';
+import { useDatasetsList } from 'src/views/CRUD/data/hooks';
 import Header from './Header';
+import EditPage from './EditDataset';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import Footer from './Footer';
@@ -76,36 +76,19 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
-  const [datasets, setDatasets] = useState<DatasetObject[]>([]);
-  const datasetNames = datasets.map(dataset => dataset.table_name);
-  const encodedSchema = dataset?.schema
-    ? encodeURIComponent(dataset?.schema)
-    : undefined;
+  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
 
-  const queryParams = dataset?.schema
-    ? rison.encode_uri({
-        filters: [
-          { col: 'schema', opr: 'eq', value: encodedSchema },
-          { col: 'sql', opr: 'dataset_is_null_or_empty', value: '!t' },
-        ],
-      })
-    : undefined;
+  const { datasets, datasetNames } = useDatasetsList(
+    dataset?.db,
+    dataset?.schema,
+  );
 
-  const getDatasetsList = async () => {
-    await UseGetDatasetsList(queryParams)
-      .then(json => {
-        setDatasets(json?.result);
-      })
-      .catch(error =>
-        logging.error('There was an error fetching dataset', error),
-      );
-  };
-
+  const { datasetId: id } = useParams<{ datasetId: string }>();
   useEffect(() => {
-    if (dataset?.schema) {
-      getDatasetsList();
+    if (!Number.isNaN(parseInt(id, 10))) {
+      setEditPageIsVisible(true);
     }
-  }, [dataset?.schema]);
+  }, [id]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -114,11 +97,12 @@ export default function AddDataset() {
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
-      schema={dataset?.schema}
-      dbId={dataset?.db?.id}
-      datasets={datasetNames}
+      dataset={dataset}
+      datasetNames={datasetNames}
     />
   );
+
+  const EditPageComponent = () => <EditPage id={id} />;
 
   const DatasetPanelComponent = () => (
     <DatasetPanel
@@ -142,8 +126,10 @@ export default function AddDataset() {
   return (
     <DatasetLayout
       header={HeaderComponent()}
-      leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanelComponent()}
+      leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
+      datasetPanel={
+        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
+      }
       footer={FooterComponent()}
     />
   );

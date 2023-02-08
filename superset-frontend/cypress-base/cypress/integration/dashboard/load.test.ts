@@ -45,6 +45,6 @@ describe('Dashboard load', () => {
   it('should send log data', () => {
     interceptLog();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.wait('@logs');
+    cy.wait('@logs', { timeout: 15000 });
   });
 });

@@ -17,16 +17,13 @@
  * under the License.
  */
 import React, { EventHandler, ChangeEvent, useState } from 'react';
-import { t, SupersetTheme, styled } from '@superset-ui/core';
-import { AntdForm, AntdSwitch, Col, Row } from 'src/components';
-import InfoTooltip from 'src/components/InfoTooltip';
+import { t, styled } from '@superset-ui/core';
+import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
 import { Input as AntdInput, Tooltip } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { isEmpty } from 'lodash';
-import { infoTooltip, toggleStyle } from './styles';
 
 import { DatabaseObject } from '../types';
 import { AuthType } from '.';
@@ -54,79 +51,143 @@ const StyledInputPassword = styled(AntdInput.Password)`
 
 const SSHTunnelForm = ({
   db,
-  dbFetched,
-  isEditMode,
-  isSSHTunneling,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
-  removeSSHTunnelConfig,
 }: {
   db: DatabaseObject | null;
-  dbFetched: DatabaseObject | null;
-  isEditMode: boolean;
-  isSSHTunneling: boolean;
   onSSHTunnelParametersChange: EventHandler<
     ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   >;
   setSSHTunnelLoginMethod: (method: AuthType) => void;
-  removeSSHTunnelConfig: () => void;
 }) => {
-  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(
-    !isEmpty(db?.ssh_tunnel),
-  );
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.password);
 
   return (
     <Form>
-      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-        <AntdSwitch
-          disabled={
-            !isSSHTunneling || (isEditMode && !isEmpty(dbFetched?.ssh_tunnel))
-          }
-          checked={useSSHTunneling}
-          onChange={changed => {
-            setUseSSHTunneling(changed);
-            if (!changed) removeSSHTunnelConfig();
-          }}
-          data-test="ssh-tunnel-switch"
-        />
-        <span css={toggleStyle}>SSH Tunnel</span>
-        <InfoTooltip
-          tooltip={t('SSH Tunnel configuration parameters')}
-          placement="right"
-          viewBox="0 -5 24 24"
-        />
-      </div>
-      {useSSHTunneling && (
+      <StyledRow gutter={16}>
+        <Col xs={24} md={12}>
+          <StyledDiv>
+            <FormLabel htmlFor="server_address" required>
+              {t('SSH Host')}
+            </FormLabel>
+            <Input
+              name="server_address"
+              type="text"
+              placeholder={t('e.g. 127.0.0.1')}
+              value={db?.ssh_tunnel?.server_address || ''}
+              onChange={onSSHTunnelParametersChange}
+              data-test="ssh-tunnel-server_address-input"
+            />
+          </StyledDiv>
+        </Col>
+        <Col xs={24} md={12}>
+          <StyledDiv>
+            <FormLabel htmlFor="server_port" required>
+              {t('SSH Port')}
+            </FormLabel>
+            <Input
+              name="server_port"
+              type="text"
+              placeholder={t('22')}
+              value={db?.ssh_tunnel?.server_port || ''}
+              onChange={onSSHTunnelParametersChange}
+              data-test="ssh-tunnel-server_port-input"
+            />
+          </StyledDiv>
+        </Col>
+      </StyledRow>
+      <StyledRow gutter={16}>
+        <Col xs={24}>
+          <StyledDiv>
+            <FormLabel htmlFor="username" required>
+              {t('Username')}
+            </FormLabel>
+            <Input
+              name="username"
+              type="text"
+              placeholder={t('e.g. Analytics')}
+              value={db?.ssh_tunnel?.username || ''}
+              onChange={onSSHTunnelParametersChange}
+              data-test="ssh-tunnel-username-input"
+            />
+          </StyledDiv>
+        </Col>
+      </StyledRow>
+      <StyledRow gutter={16}>
+        <Col xs={24}>
+          <StyledDiv>
+            <FormLabel htmlFor="use_password" required>
+              {t('Login with')}
+            </FormLabel>
+            <StyledFormItem name="use_password" initialValue={usePassword}>
+              <Radio.Group
+                onChange={({ target: { value } }) => {
+                  setUsePassword(value);
+                  setSSHTunnelLoginMethod(value);
+                }}
+              >
+                <Radio
+                  value={AuthType.password}
+                  data-test="ssh-tunnel-use_password-radio"
+                >
+                  {t('Password')}
+                </Radio>
+                <Radio
+                  value={AuthType.privateKey}
+                  data-test="ssh-tunnel-use_private_key-radio"
+                >
+                  {t('Private Key & Password')}
+                </Radio>
+              </Radio.Group>
+            </StyledFormItem>
+          </StyledDiv>
+        </Col>
+      </StyledRow>
+      {usePassword === AuthType.password && (
+        <StyledRow gutter={16}>
+          <Col xs={24}>
+            <StyledDiv>
+              <FormLabel htmlFor="password" required>
+                {t('SSH Password')}
+              </FormLabel>
+              <StyledInputPassword
+                name="password"
+                placeholder={t('e.g. ********')}
+                value={db?.ssh_tunnel?.password || ''}
+                onChange={onSSHTunnelParametersChange}
+                data-test="ssh-tunnel-password-input"
+                iconRender={visible =>
+                  visible ? (
+                    <Tooltip title="Hide password.">
+                      <EyeInvisibleOutlined />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Show password.">
+                      <EyeOutlined />
+                    </Tooltip>
+                  )
+                }
+                role="textbox"
+              />
+            </StyledDiv>
+          </Col>
+        </StyledRow>
+      )}
+      {usePassword === AuthType.privateKey && (
         <>
           <StyledRow gutter={16}>
-            <Col xs={24} md={12}>
+            <Col xs={24}>
               <StyledDiv>
-                <FormLabel htmlFor="server_address" required>
-                  {t('SSH Host')}
+                <FormLabel htmlFor="private_key" required>
+                  {t('Private Key')}
                 </FormLabel>
-                <Input
-                  name="server_address"
-                  type="text"
-                  placeholder={t('e.g. 127.0.0.1')}
-                  value={db?.ssh_tunnel?.server_address || ''}
+                <TextArea
+                  name="private_key"
+                  placeholder={t('Paste Private Key here')}
+                  value={db?.ssh_tunnel?.private_key || ''}
                   onChange={onSSHTunnelParametersChange}
-                  data-test="ssh-tunnel-server_address-input"
-                />
-              </StyledDiv>
-            </Col>
-            <Col xs={24} md={12}>
-              <StyledDiv>
-                <FormLabel htmlFor="server_port" required>
-                  {t('SSH Port')}
-                </FormLabel>
-                <Input
-                  name="server_port"
-                  type="text"
-                  placeholder={t('22')}
-                  value={db?.ssh_tunnel?.server_port || ''}
-                  onChange={onSSHTunnelParametersChange}
-                  data-test="ssh-tunnel-server_port-input"
+                  data-test="ssh-tunnel-private_key-input"
+                  rows={4}
                 />
               </StyledDiv>
             </Col>
@@ -134,129 +195,31 @@ const SSHTunnelForm = ({
           <StyledRow gutter={16}>
             <Col xs={24}>
               <StyledDiv>
-                <FormLabel htmlFor="username" required>
-                  {t('Username')}
+                <FormLabel htmlFor="private_key_password" required>
+                  {t('Private Key Password')}
                 </FormLabel>
-                <Input
-                  name="username"
-                  type="text"
-                  placeholder={t('e.g. Analytics')}
-                  value={db?.ssh_tunnel?.username || ''}
+                <StyledInputPassword
+                  name="private_key_password"
+                  placeholder={t('e.g. ********')}
+                  value={db?.ssh_tunnel?.private_key_password || ''}
                   onChange={onSSHTunnelParametersChange}
-                  data-test="ssh-tunnel-username-input"
+                  data-test="ssh-tunnel-private_key_password-input"
+                  iconRender={visible =>
+                    visible ? (
+                      <Tooltip title="Hide password.">
+                        <EyeInvisibleOutlined />
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Show password.">
+                        <EyeOutlined />
+                      </Tooltip>
+                    )
+                  }
+                  role="textbox"
                 />
               </StyledDiv>
             </Col>
           </StyledRow>
-          <StyledRow gutter={16}>
-            <Col xs={24}>
-              <StyledDiv>
-                <FormLabel htmlFor="use_password" required>
-                  {t('Login with')}
-                </FormLabel>
-                <StyledFormItem name="use_password" initialValue={usePassword}>
-                  <Radio.Group
-                    onChange={({ target: { value } }) => {
-                      setUsePassword(value);
-                      setSSHTunnelLoginMethod(value);
-                    }}
-                  >
-                    <Radio
-                      value={AuthType.password}
-                      data-test="ssh-tunnel-use_password-radio"
-                    >
-                      {t('Password')}
-                    </Radio>
-                    <Radio
-                      value={AuthType.privateKey}
-                      data-test="ssh-tunnel-use_private_key-radio"
-                    >
-                      {t('Private Key & Password')}
-                    </Radio>
-                  </Radio.Group>
-                </StyledFormItem>
-              </StyledDiv>
-            </Col>
-          </StyledRow>
-          {usePassword === AuthType.password && (
-            <StyledRow gutter={16}>
-              <Col xs={24}>
-                <StyledDiv>
-                  <FormLabel htmlFor="password" required>
-                    {t('SSH Password')}
-                  </FormLabel>
-                  <StyledInputPassword
-                    name="password"
-                    placeholder={t('e.g. ********')}
-                    value={db?.ssh_tunnel?.password || ''}
-                    onChange={onSSHTunnelParametersChange}
-                    data-test="ssh-tunnel-password-input"
-                    iconRender={visible =>
-                      visible ? (
-                        <Tooltip title={t('Hide password.')}>
-                          <EyeInvisibleOutlined />
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title={t('Show password.')}>
-                          <EyeOutlined />
-                        </Tooltip>
-                      )
-                    }
-                    role="textbox"
-                  />
-                </StyledDiv>
-              </Col>
-            </StyledRow>
-          )}
-          {usePassword === AuthType.privateKey && (
-            <>
-              <StyledRow gutter={16}>
-                <Col xs={24}>
-                  <StyledDiv>
-                    <FormLabel htmlFor="private_key" required>
-                      {t('Private Key')}
-                    </FormLabel>
-                    <TextArea
-                      name="private_key"
-                      placeholder={t('Paste Private Key here')}
-                      value={db?.ssh_tunnel?.private_key || ''}
-                      onChange={onSSHTunnelParametersChange}
-                      data-test="ssh-tunnel-private_key-input"
-                      rows={4}
-                    />
-                  </StyledDiv>
-                </Col>
-              </StyledRow>
-              <StyledRow gutter={16}>
-                <Col xs={24}>
-                  <StyledDiv>
-                    <FormLabel htmlFor="private_key_password" required>
-                      {t('Private Key Password')}
-                    </FormLabel>
-                    <StyledInputPassword
-                      name="private_key_password"
-                      placeholder={t('e.g. ********')}
-                      value={db?.ssh_tunnel?.private_key_password || ''}
-                      onChange={onSSHTunnelParametersChange}
-                      data-test="ssh-tunnel-private_key_password-input"
-                      iconRender={visible =>
-                        visible ? (
-                          <Tooltip title="Hide password.">
-                            <EyeInvisibleOutlined />
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title="Show password.">
-                            <EyeOutlined />
-                          </Tooltip>
-                        )
-                      }
-                      role="textbox"
-                    />
-                  </StyledDiv>
-                </Col>
-              </StyledRow>
-            </>
-          )}
         </>
       )}
     </Form>
