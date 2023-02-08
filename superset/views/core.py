@@ -141,7 +141,6 @@ from superset.views.base import (
     api,
     BaseSupersetView,
     common_bootstrap_payload,
-    create_table_permissions,
     CsvResponse,
     data_payload_response,
     deprecated,
@@ -1953,7 +1952,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             db.session.add(table)
             table.fetch_metadata()
-            create_table_permissions(table)
             db.session.commit()
 
         return json_success(json.dumps({"table_id": table.id}))

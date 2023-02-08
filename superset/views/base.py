@@ -299,12 +299,6 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
         ) from ex
 
 
-def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-    if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
-
-
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:

@@ -929,25 +929,21 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=ex.messages)
         table_name = body["table_name"]
         database_id = body["database_id"]
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, table_name=table_name)
-            .one_or_none()
-        )
-        if not table:
-            body["database"] = database_id
-            try:
-                table = CreateDatasetCommand(body).run()
-            except DatasetInvalidError as ex:
-                return self.response_422(message=ex.normalized_messages())
-            except DatasetCreateFailedError as ex:
-                logger.error(
-                    "Error creating model %s: %s",
-                    self.__class__.__name__,
-                    str(ex),
-                    exc_info=True,
-                )
-                return self.response_422(message=ex.message)
+        table = DatasetDAO.get_table_by_name(database_id, table_name)
+        if table:
+            return self.response(200, result={"table_id": table.id})
 
-        payload = {"table_id": table.id}
-        return self.response(200, result=payload)
+        body["database"] = database_id
+        try:
+            table = CreateDatasetCommand(body).run()
+            return self.response(200, result={"table_id": table.id})
+        except DatasetInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatasetCreateFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=ex.message)
