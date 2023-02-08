@@ -1473,25 +1473,28 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_get_user_slices(self):
+    @pytest.mark.usefixtures("create_charts")
+    def test_gets_owned_created_favorited_by_me_filter(self):
         """
-        Chart API: Test get user slices
+        Chart API: Test ChartOwnedCreatedFavoredByMeFilter
         """
-        user = security_manager.find_user(username="gamma2")
-        charts = db.session.query(Slice).order_by(Slice.slice_name.asc()).all()
-        charts[0].owners = [user]
-        db.session.commit()
-
-        self.login(username="gamma2")
-        rv = self.client.get("api/v1/chart/user_slices/")
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_owned_created_favored_by_me",
+                    "value": True,
+                }
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": 25,
+        }
+        rv = self.client.get(f"api/v1/chart/?q={prison.dumps(arguments)}")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
 
-        assert len(data["result"]) == 1
-        assert data["result"][0]["title"] == "Average and Sum Trends"
-        assert data["result"][0]["is_favorite"] == False
-        assert data["result"][0]["viz_type"] == "dual_line"
-
-        charts[0].owners = []
-        db.session.commit()
+        assert data["result"][0]["slice_name"] == "name0"
+        assert data["result"][0]["datasource_id"] == 1

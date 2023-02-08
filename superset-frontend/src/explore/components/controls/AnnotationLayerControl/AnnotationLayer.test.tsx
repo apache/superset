@@ -40,8 +40,10 @@ beforeAll(() => {
     result: [{ label: 'Chart A', value: 'a' }],
   });
 
-  fetchMock.get('glob:*/api/v1/chart/user_slices/*', {
-    result: [{ id: 'a', title: 'Chart A', viz_type: 'table', data: {} }],
+  fetchMock.get('glob:*/api/v1/chart/*', {
+    result: [
+      { id: 'a', slice_name: 'Chart A', viz_type: 'table', form_data: {} },
+    ],
   });
 
   setupColors();

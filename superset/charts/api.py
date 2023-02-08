@@ -44,7 +44,6 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.export import ExportChartsCommand
-from superset.charts.commands.get_slices import GetUserSlicesCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
@@ -55,6 +54,7 @@ from superset.charts.filters import (
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
+    ChartOwnedCreatedFavoredByMeFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -114,7 +114,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "thumbnail",
         "screenshot",
         "cache_screenshot",
-        "get_user_slices",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -153,10 +152,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by_name",
         "changed_by_url",
         "changed_on_delta_humanized",
+        "changed_on_dttm",
         "changed_on_utc",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "created_by_name",
+        "created_by_url",
         "created_on_delta_humanized",
         "datasource_id",
         "datasource_name_text",
@@ -165,6 +167,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "description_markeddown",
         "edit_url",
+        "form_data",
         "id",
         "last_saved_at",
         "last_saved_by.id",
@@ -178,6 +181,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "dashboards.dashboard_title",
         "params",
         "slice_name",
+        "slice_url",
         "table.default_endpoint",
         "table.table_name",
         "thumbnail_url",
@@ -215,7 +219,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
-        "id": [ChartFavoriteFilter, ChartCertifiedFilter],
+        "id": [
+            ChartFavoriteFilter,
+            ChartCertifiedFilter,
+            ChartOwnedCreatedFavoredByMeFilter,
+        ],
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
@@ -916,43 +924,3 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
-
-    @expose("/user_slices/")
-    @expose("/user_slices/<int:user_id>/")
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_user_slices",
-        log_to_statsd=False,
-    )
-    def get_user_slices(self, user_id: Optional[int] = None) -> Response:
-        """Gets the slices owned or favorited by the user_id
-        ---
-        get:
-          summary: >-
-            Gets the slices owned or favorited by the user_id
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: user_id
-          responses:
-            200:
-              description:
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/GetUserSlicesSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        command = GetUserSlicesCommand(user_id)
-        result = command.run()
-        return self.response(200, result=result)
