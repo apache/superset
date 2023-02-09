@@ -1633,9 +1633,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 having_clause_and += [self.text(having)]
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
-            qry = qry.where(
-                self.get_fetch_values_predicate(template_processor=template_processor)
-            )
+            where_clause_and += [self.get_fetch_values_predicate(template_processor=template_processor)]
+
         if granularity:
             where_clause_and += time_filters
 
