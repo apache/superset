@@ -935,8 +935,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         body["database"] = database_id
         try:
-            table = CreateDatasetCommand(body).run()
-            return self.response(200, result={"table_id": table.id})
+            tbl = CreateDatasetCommand(body).run()
+            return self.response(200, result={"table_id": tbl.id})
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
