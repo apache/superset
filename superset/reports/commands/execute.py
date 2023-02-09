@@ -325,7 +325,7 @@ class BaseReportState:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
-            elif self._report_schedule.report_format in ReportDataFormat.table_like:
+            elif self._report_schedule.report_format in ReportDataFormat.table_like():
                 df = self._get_data()
                 data = None
                 if self._report_schedule.report_format == ReportDataFormat.CSV:
