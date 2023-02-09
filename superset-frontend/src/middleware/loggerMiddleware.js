@@ -91,11 +91,13 @@ const loggerMiddleware = store => next => action => {
       ...logMetadata,
     };
   } else if (sqlLab) {
+    const editor = sqlLab.queryEditors.find(
+      ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
+    );
     logMetadata = {
       source: 'sqlLab',
-      source_id: sqlLab.queryEditors.find(
-        ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
-      )?.dbId,
+      source_id: editor?.dbId,
+      schema: editor?.schema,
     };
   }
 
