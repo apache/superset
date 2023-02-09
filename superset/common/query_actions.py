@@ -87,8 +87,14 @@ def _get_query(
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
+    dashboard_id = None
+    chart_id = None
+    if query_context.form_data and "dashboardId" in query_context.form_data.keys():
+        dashboard_id = query_context.form_data['dashboardId']
+    if query_context.form_data and "slice_id" in query_context.form_data.keys():
+        chart_id = query_context.form_data['slice_id']
     try:
-        result["query"] = datasource.get_query_str(query_obj.to_dict())
+        result["query"] = datasource.get_query_str(query_obj.to_dict(),chart_id=chart_id,dashboard_id = dashboard_id)
     except QueryObjectValidationError as err:
         result["error"] = err.message
     return result
