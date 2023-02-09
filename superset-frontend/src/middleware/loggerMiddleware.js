@@ -96,7 +96,8 @@ const loggerMiddleware = store => next => action => {
     );
     logMetadata = {
       source: 'sqlLab',
-      source_id: editor?.dbId,
+      source_id: editor?.id,
+      db_id: editor?.dbId,
       schema: editor?.schema,
     };
   }
