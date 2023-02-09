@@ -114,3 +114,4 @@ cache/
 # Added
 docker/pythonpath_dev/superset_config.py
 docker/.env
+superset-frontend/liq_viz_plugins/liq_secrets.js
