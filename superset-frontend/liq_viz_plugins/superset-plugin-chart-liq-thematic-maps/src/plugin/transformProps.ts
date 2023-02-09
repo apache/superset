@@ -66,11 +66,11 @@ export default function transformProps(chartProps: ChartProps) {
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.label;
 
-  console.log(linearColorScale);
-
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v[metricCol]));
+
+  console.log(getSequentialSchemeRegistry().get(linearColorScheme));
 
   const colorMap = {};
   data.forEach(d => {

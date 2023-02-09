@@ -84,7 +84,8 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v10',
       center: [151.2, -33.8],
-      zoom: 9
+      zoom: 9,
+      minZoom: 7
     });
 
     map.current.on('load', () => {

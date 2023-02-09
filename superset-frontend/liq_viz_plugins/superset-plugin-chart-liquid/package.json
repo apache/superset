@@ -11,6 +11,7 @@
   ],
   "private": true,
   "scripts": {
+    "build-only": "npm run build-cjs && npm run build-esm",
     "build": "npm run build-cjs && npm run build-esm && npm run ts-types",
     "build-cjs": "babel src --extensions \".ts,.tsx,.js,.jsx\" --copy-files --out-dir lib",
     "build-clean": "npm run clean && npm run build",
