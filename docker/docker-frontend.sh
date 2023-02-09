@@ -21,11 +21,40 @@ set -e
 apt update
 apt install -y chromium
 
-export NODE_OPTIONS=--max_old_space_size=2048
+export NODE_OPTIONS=--max_old_space_size=4096
+mkdir -p /home/tmp_cache/
+export npm_config_cache=/home/tmp_cache
 
 cd /app/superset-frontend
 npm install -f --no-optional --global webpack webpack-cli
 npm install -f --no-optional
+
+echo "Running liq viz dev"
+
+cd ./liq_viz_plugins/superset-plugin-chart-hello-world
+# Comment below before merging master for prod
+# npm run dev & # Dev
+# Uncomment below before merging master for prod
+npm install --force
+npm run build-only # Prod
+
+cd ../superset-plugin-chart-liquid
+# Comment below before merging master for prod
+# npm run dev & # Dev
+# Uncomment below before merging master for prod
+npm install --force
+npm run build-only # Prod
+
+cd ../superset-plugin-chart-liq-thematic-maps
+# Comment below before merging master for prod
+npm run dev & # Dev
+# Uncomment below before merging master for prod
+#npm ci
+#npm run build # Prod
+
+rm -rf tmp_cache
+
+cd ../../
 
 echo "Running frontend"
 npm run dev
