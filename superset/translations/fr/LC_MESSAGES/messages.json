@@ -3243,7 +3243,9 @@
       "Edit CSS": ["Modifier le CSS"],
       "Download as image": ["Télécharger comme image"],
       "Share": ["Partage de requête"],
-      "Copy permalink to clipboard": ["Copier le lien de la requête vers le presse-papier"],
+      "Copy permalink to clipboard": [
+        "Copier le lien de la requête vers le presse-papier"
+      ],
       "Set filter mapping": ["Définir le mappage de filtre"],
       "Set auto-refresh interval": ["Définir l'interval d'auto-refresh"],
       "Scroll down to the bottom to enable overwriting changes. ": [""],
@@ -3336,7 +3338,9 @@
       ],
       "Add/Edit Filters": ["Ajouter/Editer les filtres"],
       "No filters are currently added": [""],
-      "Click the button above to add a filter to the dashboard": ["Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"],
+      "Click the button above to add a filter to the dashboard": [
+        "Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"
+      ],
 
       "Filter sets (%(filterSetCount)d)": [""],
       "Apply filters": ["Appliquer les filtres"],
