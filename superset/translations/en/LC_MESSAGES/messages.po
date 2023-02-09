@@ -3508,8 +3508,15 @@ msgstr ""
 msgid "Number of rows to skip at start of file"
 msgstr ""
 
+
 #: superset/views/database/forms.py:270
 msgid "Name of table to be created from excel data."
+msgstr ""
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:154
+msgid ""
+"D3 number format for numbers between -1.0 and 1.0, useful when you want "
+"to have different significant digits for small and large numbers"
 msgstr ""
 
 #: superset/views/database/forms.py:278
@@ -12532,8 +12539,13 @@ msgstr ""
 msgid "Timeout error"
 msgstr ""
 
+
 #: superset-frontend/src/components/FaveStar/index.tsx:79
 msgid "Click to favorite/unfavorite"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:163
+msgid "Position of intermediate node label on tree"
 msgstr ""
 
 #: superset-frontend/src/components/FilterableTable/index.tsx:431
@@ -14287,6 +14299,12 @@ msgstr ""
 msgid "Fixed color"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:52
+msgid ""
+"Show hierarchical relationships of data, with the value represented "
+"by area, showing proportion and contribution to the whole."
+msgstr ""
+
 #: superset-frontend/src/explore/controls.jsx:214
 msgid "Right axis metric"
 msgstr ""
@@ -15797,6 +15815,12 @@ msgstr ""
 msgid "Date format string"
 msgstr ""
 
+#: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.jsx:127
+msgid ""
+"This color scheme is being overridden by custom label colors.\n"
+"              Check the JSON metadata in the Advanced settings"
+msgstr ""
+
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:361
 msgid "Column Configuration"
 msgstr ""
@@ -16999,6 +17023,14 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:106
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:403
 msgid "Saved queries"
+msgstr ""
+
+#: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:27
+msgid ""
+"Visualizes how a single metric varies across a country's principal "
+"subdivisions (states, provinces, etc) on a choropleth map. Each "
+"subdivision's value is elevated when you hover over the corresponding "
+"geographic boundary."
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/components/SyntaxHighlighterCopy/index.tsx:71

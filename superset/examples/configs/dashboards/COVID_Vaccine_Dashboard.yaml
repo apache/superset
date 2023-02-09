@@ -90,7 +90,7 @@ position:
       chartId: 3962
       height: 82
       sliceName: Vaccine Candidates per Approach & Stage
-      sliceNameOverride: Heatmap of Aproaches & Clinical Stages
+      sliceNameOverride: Heatmap of Approaches & Clinical Stages
       uuid: 0c953c84-0c9a-418d-be9f-2894d2a2cee0
       width: 4
     parents:

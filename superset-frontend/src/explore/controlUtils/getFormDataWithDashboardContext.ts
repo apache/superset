@@ -184,6 +184,7 @@ const applyTimeRangeFilters = (
         return {
           ...filter,
           comparator: extraFormData.time_range,
+          isExtra: true,
         };
       }
       return filter;

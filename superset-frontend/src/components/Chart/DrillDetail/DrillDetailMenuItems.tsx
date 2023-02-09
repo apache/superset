@@ -37,6 +37,7 @@ import DrillDetailModal from './DrillDetailModal';
 import { getMenuAdjustedY, MENU_ITEM_HEIGHT } from '../utils';
 
 const MENU_PADDING = 4;
+const DRILL_TO_DETAIL_TEXT = t('Drill to detail by');
 
 const DisabledMenuItemTooltip = ({ title }: { title: ReactNode }) => (
   <Tooltip title={title} placement="top">
@@ -163,7 +164,7 @@ const DrillDetailMenuItems = ({
   if (!handlesDimensionContextMenu) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
-        {t('Drill to detail by')}
+        {DRILL_TO_DETAIL_TEXT}
         <DisabledMenuItemTooltip
           title={t(
             'Drill to detail by value is not yet supported for this chart type.',
@@ -176,7 +177,7 @@ const DrillDetailMenuItems = ({
   if (handlesDimensionContextMenu && noAggregations) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
-        {t('Drill to detail by')}
+        {DRILL_TO_DETAIL_TEXT}
       </DisabledMenuItem>
     );
   }
@@ -195,7 +196,7 @@ const DrillDetailMenuItems = ({
       <Menu.SubMenu
         {...props}
         popupOffset={[0, submenuYOffset]}
-        title={t('Drill to detail by')}
+        title={DRILL_TO_DETAIL_TEXT}
       >
         <div data-test="drill-to-detail-by-submenu">
           {filters.map((filter, i) => (
@@ -204,7 +205,7 @@ const DrillDetailMenuItems = ({
               key={`drill-detail-filter-${i}`}
               onClick={openModal.bind(null, [filter])}
             >
-              {`${t('Drill to detail by')} `}
+              {`${DRILL_TO_DETAIL_TEXT} `}
               <Filter>{filter.formattedVal}</Filter>
             </Menu.Item>
           ))}
@@ -214,7 +215,7 @@ const DrillDetailMenuItems = ({
               key="drill-detail-filter-all"
               onClick={openModal.bind(null, filters)}
             >
-              {`${t('Drill to detail by')} `}
+              {`${DRILL_TO_DETAIL_TEXT} `}
               <Filter>{t('all')}</Filter>
             </Menu.Item>
           )}
@@ -226,7 +227,7 @@ const DrillDetailMenuItems = ({
   if (handlesDimensionContextMenu && !noAggregations && !filters?.length) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
-        {t('Drill to detail by')}
+        {DRILL_TO_DETAIL_TEXT}
         <DisabledMenuItemTooltip
           title={t(
             'Right-click on a dimension value to drill to detail by that value.',

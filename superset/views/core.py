@@ -852,7 +852,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         except SupersetException:
             datasource_id = None
-            # fallback unkonw datasource to table type
+            # fallback unknown datasource to table type
             datasource_type = SqlaTable.type
 
         datasource: Optional[BaseDatasource] = None

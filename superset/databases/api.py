@@ -813,7 +813,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
-            return self.response(404, message="Table not found on the database")
+            return self.response(404, message="Table not found in the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 

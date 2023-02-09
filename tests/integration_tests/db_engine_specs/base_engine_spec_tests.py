@@ -395,7 +395,7 @@ def test_get_time_grain_with_config():
     app.config = config
 
 
-def test_get_time_grain_with_unkown_values():
+def test_get_time_grain_with_unknown_values():
     """Should concatenate from configs and then sort in the proper order
     putting unknown patterns at the end"""
     config = app.config.copy()
