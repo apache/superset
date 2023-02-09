@@ -185,9 +185,7 @@ class TestSqlLabApi(SupersetTestCase):
     def test_export_results(self, get_df_mock: mock.Mock) -> None:
         self.login()
 
-        database = Database(
-            database_name="my_export_database", sqlalchemy_uri="sqlite://"
-        )
+        database = get_example_database()
         query_obj = Query(
             client_id="test",
             database=database,
@@ -203,8 +201,8 @@ class TestSqlLabApi(SupersetTestCase):
             results_key="test_abc",
         )
 
-        db.session.add(database)
         db.session.add(query_obj)
+        db.session.commit()
 
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
 
@@ -213,4 +211,5 @@ class TestSqlLabApi(SupersetTestCase):
         expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
         self.assertEqual(list(expected_data), list(data))
-        db.session.rollback()
+        db.session.delete(query_obj)
+        db.session.commit()

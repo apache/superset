@@ -34,6 +34,7 @@ from superset.models.sql_lab import Query
 from superset.sqllab.commands import export, results
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -41,7 +42,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
     @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
-            database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+            database = get_example_database()
             query_obj = Query(
                 client_id="test",
                 database=database,
@@ -57,14 +58,12 @@ class TestSqlResultExportCommand(SupersetTestCase):
                 results_key="abc_query",
             )
 
-            db.session.add(database)
             db.session.add(query_obj)
             db.session.commit()
 
             yield
 
             db.session.delete(query_obj)
-            db.session.delete(database)
             db.session.commit()
 
     @pytest.mark.usefixtures("create_database_and_query")
@@ -193,7 +192,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
     @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
-            database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+            database = get_example_database()
             query_obj = Query(
                 client_id="test",
                 database=database,
@@ -209,14 +208,12 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 results_key="abc_query",
             )
 
-            db.session.add(database)
             db.session.add(query_obj)
             db.session.commit()
 
             yield
 
             db.session.delete(query_obj)
-            db.session.delete(database)
             db.session.commit()
 
     @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
