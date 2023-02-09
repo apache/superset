@@ -160,9 +160,9 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               default: '',
               choices: [
+                ['', ''],
                 ['equal_count', 'Equal Count (Quantile)'],
-                ['equal_interval', 'Equal Interval'],
-                ['logarithmic', 'Logarithmic'],
+                ['equal_interval', 'Equal Interval']
               ],
               renderTrigger: false,
               label: t('Mode'),

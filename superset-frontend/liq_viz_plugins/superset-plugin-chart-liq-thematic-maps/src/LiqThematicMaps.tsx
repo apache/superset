@@ -28,7 +28,10 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-mapboxgl.accessToken = "pk.eyJ1IjoiZGtpciIsImEiOiJjazIxNW54azgxZzd6M25xb2RqNHk0Z2Z5In0.1SbfSydEBGdjIxU-Wy0EXA"
+const liqSecrets = require('../../liq_secrets.js').liqSecrets;
+
+mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
+const BDRY_LAYER_MAP = liqSecrets.mapbox.boundaryLayerMap;
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
@@ -49,11 +52,6 @@ const Styles = styled.div<LiqThematicMapsStylesProps>`
  *  * A DOM element
  *  * FormData (your controls!) provided as props by transformProps.ts
  */
-
-const BDRY_LAYER_MAP = {
-  "dkir.d4pc0v1s": "all_sa1s",
-  "dkir.1oqr7ii3": "SA3_Demographic_Data2-0f718v"
-}
 
 export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   const { 
@@ -84,17 +82,19 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 
-    var raw = breaksMode === '' ? JSON.stringify({
+    var raw = (!breaksMode || breaksMode.length === 0) ? JSON.stringify({
       'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
       'breaks': customMode,
       'values': data.map(d => d[metricCol]),
       'n_classes': numClasses,
-      'cmap_type': 'custom'
+      'cmap_type': 'custom',
+      'secret': liqSecrets.lambdaFunctions.cMap.secret
     }) : JSON.stringify({
       'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
       'values': data.map(d => d[metricCol]),
       'n_classes': numClasses,
-      'cmap_type': breaksMode
+      'cmap_type': breaksMode,
+      'secret': liqSecrets.lambdaFunctions.cMap.secret
     });
 
     var requestOptions = {
@@ -105,7 +105,7 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
     }
 
     fetch(
-      'https://f6bmtic2qqf4jec4ihblxt5ld40cwrcd.lambda-url.ap-southeast-2.on.aws/',
+      liqSecrets.lambdaFunctions.cMap.url,
       requestOptions
     )
       .then(response => response.json())
@@ -114,8 +114,7 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
         data.forEach((d, i) => {
           cMap[d[groupCol]] = result.colors[i]
         });
-        console.log(cMap);
-        setColorMap(cMap);
+        setColorMap({...cMap});
       })
       .then(error => console.log('error', error));
   }, [linearColorScheme, breaksMode, customMode, numClasses, data])
@@ -139,8 +138,7 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v10',
       center: [151.2, -33.8],
-      zoom: 9,
-      minZoom: 7
+      zoom: 9    
     });
 
     map.current.on('load', () => {
