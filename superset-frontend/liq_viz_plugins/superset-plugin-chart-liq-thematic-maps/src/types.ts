@@ -26,7 +26,9 @@ export interface LiqThematicMapsStylesProps {
 interface LiqThematicMapsCustomizeProps {
   boundary: string;
   linearColorScheme: string;
-  numberFormat: string;
+  breaksMode: string;
+  customMode: string;
+  numClasses: number;
 }
 
 export type LiqThematicMapsQueryFormData = QueryFormData &
@@ -38,5 +40,6 @@ export type LiqThematicMapsProps = LiqThematicMapsStylesProps &
     data: Array<Object>[];
     groupCol: String;
     metricCol: String;
+    colorMap: Object;
     // add typing here for the props you pass in from transformProps.ts!
   };

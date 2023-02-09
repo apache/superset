@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -132,7 +132,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Thematic settings'),
+      label: t('Thematic Settings'),
       expanded: true,
       controlSetRows: [
         [
@@ -152,7 +152,50 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['linear_color_scheme']
+        ['linear_color_scheme'],
+        [
+          {
+            'name': 'breaks_mode',
+            'config': {
+              type: 'SelectControl',
+              default: '',
+              choices: [
+                ['equal_count', 'Equal Count (Quantile)'],
+                ['equal_interval', 'Equal Interval'],
+                ['logarithmic', 'Logarithmic'],
+              ],
+              renderTrigger: false,
+              label: t('Mode'),
+              description: t('Method used for color styling in thematic. If specifying a custom mode below, leave this blank.')
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_mode',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              default: '',
+              label: t('Custom Mode'),
+              description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.')
+            }
+          }
+        ],
+        [
+          {
+            name: 'num_classes',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: 0,
+              validators: [legacyValidateInteger],
+              renderTrigger: false,
+              label: t('Number of classes'),
+              description: t('The number of breaks for the thematic'),
+            },
+          },
+        ]
       ],
     },
   ],

@@ -59,23 +59,23 @@ export default function transformProps(chartProps: ChartProps) {
   const { 
     boundary, 
     linearColorScheme, 
-    numberFormat
+    breaksMode,
+    customMode,
+    numClasses
   } = formData;
   const data = queriesData[0].data;
   
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.label;
 
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v[metricCol]));
+  // const linearColorScale = getSequentialSchemeRegistry()
+  //   .get(linearColorScheme)
+  //   .createLinearScale(d3Extent(data, v => v[metricCol]));
 
-  console.log(getSequentialSchemeRegistry().get(linearColorScheme));
-
-  const colorMap = {};
-  data.forEach(d => {
-    colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
-  });
+  // const colorMap = {};
+  // data.forEach(d => {
+  //   colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
+  // });
 
   return {
     width,
@@ -86,7 +86,8 @@ export default function transformProps(chartProps: ChartProps) {
     // and now your control data, manipulated as needed, and passed through as props!
     boundary,
     linearColorScheme,
-    numberFormat,
-    colorMap
+    breaksMode,
+    customMode,
+    numClasses
   };
 }

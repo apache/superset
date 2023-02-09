@@ -20,6 +20,13 @@ import React, { useEffect, createRef, useRef, useState, useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { LiqThematicMapsProps, LiqThematicMapsStylesProps } from './types';
 import mapboxgl from 'mapbox-gl';
+import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import {
+  getNumberFormatter,
+  getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZGtpciIsImEiOiJjazIxNW54azgxZzd6M25xb2RqNHk0Z2Z5In0.1SbfSydEBGdjIxU-Wy0EXA"
 
@@ -52,10 +59,14 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   const { 
     data,
     groupCol,
+    metricCol,
     height, 
     width, 
     boundary, 
-    colorMap
+    linearColorScheme,
+    breaksMode,
+    customMode,
+    numClasses
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
@@ -64,6 +75,50 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   const map = useRef(null);
 
   const [currIDs, setCurrIDs] = useState([]);
+  const [colorMap, setColorMap] = useState({});
+
+  useEffect(() => {
+
+    setColorMap({});
+
+    var myHeaders = new Headers();
+    myHeaders.append('Content-Type', 'application/json');
+
+    var raw = breaksMode === '' ? JSON.stringify({
+      'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
+      'breaks': customMode,
+      'values': data.map(d => d[metricCol]),
+      'n_classes': numClasses,
+      'cmap_type': 'custom'
+    }) : JSON.stringify({
+      'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
+      'values': data.map(d => d[metricCol]),
+      'n_classes': numClasses,
+      'cmap_type': breaksMode
+    });
+
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      redirect: 'follow'
+    }
+
+    fetch(
+      'https://f6bmtic2qqf4jec4ihblxt5ld40cwrcd.lambda-url.ap-southeast-2.on.aws/',
+      requestOptions
+    )
+      .then(response => response.json())
+      .then(result => {
+        var cMap = {};
+        data.forEach((d, i) => {
+          cMap[d[groupCol]] = result.colors[i]
+        });
+        console.log(cMap);
+        setColorMap(cMap);
+      })
+      .then(error => console.log('error', error));
+  }, [linearColorScheme, breaksMode, customMode, numClasses, data])
 
   useEffect(() => {
     if (!map.current) return;
@@ -89,8 +144,6 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
     });
 
     map.current.on('load', () => {
-
-      console.log(colorMap);
 
       map.current.addSource('tileset', {
         'type': 'vector',
@@ -130,7 +183,7 @@ export default function LiqThematicMaps(props: LiqThematicMapsProps) {
   });
 
   useEffect(() => {
-    if (currIDs.length == 0) return;
+    if (currIDs.length === 0 || Object.keys(colorMap).length === 0) return;
     for (const i in currIDs) {
       map.current.setFeatureState(
         {
