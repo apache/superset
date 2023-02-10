@@ -34,9 +34,11 @@ import {
   createErrorHandler,
   getFilterValues,
   PAGE_SIZE,
+  handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
+import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/views/components/SubMenu';
@@ -90,6 +92,9 @@ function DashboardTable({
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
+  const [dashboardToDelete, setDashboardToDelete] = useState<Dashboard | null>(
+    null,
+  );
 
   const getData = (tab: TableTab) =>
     fetchData({
@@ -217,6 +222,30 @@ function DashboardTable({
           onSubmit={handleDashboardEdit}
         />
       )}
+      {dashboardToDelete && (
+        <DeleteModal
+          description={
+            <>
+              {t('Are you sure you want to delete')}{' '}
+              <b>{dashboardToDelete.dashboard_title}</b>?
+            </>
+          }
+          onConfirm={() => {
+            handleDashboardDelete(
+              dashboardToDelete,
+              refreshData,
+              addSuccessToast,
+              addDangerToast,
+              activeTab,
+              user?.userId,
+            );
+            setDashboardToDelete(null);
+          }}
+          onHide={() => setDashboardToDelete(null)}
+          open={!!dashboardToDelete}
+          title={t('Please confirm')}
+        />
+      )}
       {dashboards.length > 0 && (
         <CardContainer showThumbnails={showThumbnails}>
           {dashboards.map(e => (
@@ -226,10 +255,6 @@ function DashboardTable({
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
               showThumbnails={showThumbnails}
-              dashboardFilter={activeTab}
-              refreshData={refreshData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
               userId={user?.userId}
               loading={loading}
               openDashboardEditModal={(dashboard: Dashboard) =>
@@ -238,6 +263,7 @@ function DashboardTable({
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
               handleBulkDashboardExport={handleBulkDashboardExport}
+              onDelete={dashboard => setDashboardToDelete(dashboard)}
             />
           ))}
         </CardContainer>
