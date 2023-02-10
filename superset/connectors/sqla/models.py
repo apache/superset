@@ -1613,7 +1613,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     database_id=self.database_id,
                     schema=self.schema,
                 )
-                where_clause_and += [self.text(where)]
+                where_clause_and.append(self.text(where))
             having = extras.get("having")
             if having:
                 try:
@@ -1630,20 +1630,21 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     database_id=self.database_id,
                     schema=self.schema,
                 )
-                having_clause_and += [self.text(having)]
+                having_clause_and.append(self.text(having))
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
-            where_clause_and += [self.get_fetch_values_predicate(template_processor=template_processor)]
+            where_clause_and.append(
+                self.get_fetch_values_predicate(template_processor=template_processor)
+            )
 
         if granularity:
             where_clause_and += time_filters
 
-        if len(where_clause_and) > 1:
+        if where_clause_and:
             qry = qry.where(and_(*where_clause_and))
-        elif len(where_clause_and) == 1:
-            qry = qry.where(" ".join(map(str, where_clause_and)))
 
-        qry = qry.having(and_(*having_clause_and))
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
@@ -1683,7 +1684,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
 
-                inner_select_exprs += [inner_main_metric_expr]
+                inner_select_exprs.append(inner_main_metric_expr)
                 subq = select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
