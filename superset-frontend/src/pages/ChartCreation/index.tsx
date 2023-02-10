@@ -335,19 +335,20 @@ export class ChartCreation extends React.PureComponent<
 
   render() {
     const isButtonDisabled = this.isBtnDisabled();
+    const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}
+          {t('Add a dataset')}{' '}
         </Link>
-        {` ${t('or')} `}
+        {t('or')}{' '}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
           rel="noopener noreferrer"
           target="_blank"
           data-test="add-chart-new-dataset-instructions"
         >
-          {`${t('view instructions')} `}
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
           <i className="fa fa-external-link" />
         </a>
         .
@@ -359,7 +360,7 @@ export class ChartCreation extends React.PureComponent<
           rel="noopener noreferrer"
           target="_blank"
         >
-          {`${t('View instructions')} `}
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
           <i className="fa fa-external-link" />
         </a>
         .

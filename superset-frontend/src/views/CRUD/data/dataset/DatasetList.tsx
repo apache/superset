@@ -332,7 +332,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+        }: any) => (kind === 'physical' ? t('Physical') : t('Virtual')),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
