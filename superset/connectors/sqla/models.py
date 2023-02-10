@@ -1106,20 +1106,22 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                if filter_.group_key:
-                    filter_groups[filter_.group_key].append(clause)
-                else:
-                    all_filters.append(clause)
+                if filter_.clause:
+                    clause = self.text(
+                        f"({template_processor.process_template(filter_.clause)})"
+                    )
+                    if filter_.group_key:
+                        filter_groups[filter_.group_key].append(clause)
+                    else:
+                        all_filters.append(clause)
 
             if is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
-                    )
-                    all_filters.append(clause)
+                    if rule['clause']:
+                        clause = self.text(
+                            f"({template_processor.process_template(rule['clause'])})"
+                        )
+                        all_filters.append(clause)
 
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)
