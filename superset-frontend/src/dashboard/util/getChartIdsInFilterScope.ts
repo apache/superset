@@ -29,7 +29,7 @@ export function getChartIdsInFilterScope(
   return Object.values(charts)
     .filter(
       chart =>
-        !filterScope.excluded.includes(chart.id) &&
+        !filterScope?.excluded.includes(chart.id) &&
         layoutItems
           .find(
             layoutItem =>
@@ -37,7 +37,7 @@ export function getChartIdsInFilterScope(
               layoutItem.meta?.chartId === chart.id,
           )
           ?.parents?.some(elementId =>
-            filterScope.rootPath.includes(elementId),
+            filterScope?.rootPath.includes(elementId),
           ),
     )
     .map(chart => chart.id);
