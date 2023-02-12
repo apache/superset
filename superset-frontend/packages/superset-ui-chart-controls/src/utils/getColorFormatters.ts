@@ -182,9 +182,8 @@ export const getColorFunction = (
         colorScheme,
         getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
       );
-    } else {
-      return colorScheme;
     }
+    return colorScheme;
   };
 };
 
