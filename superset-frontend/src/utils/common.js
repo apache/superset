@@ -91,6 +91,8 @@ export function optionFromValue(opt) {
 
 export function prepareCopyToClipboardTabularData(data, columns) {
   let result = '';
+  const columnNames = columns.map(column => column.name || column);
+  result += `${columnNames.join('\t')}\n`;
   for (let i = 0; i < data.length; i += 1) {
     const row = {};
     for (let j = 0; j < columns.length; j += 1) {
