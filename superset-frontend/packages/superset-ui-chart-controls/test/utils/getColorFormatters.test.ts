@@ -188,6 +188,22 @@ describe('getColorFunction()', () => {
     expect(colorFunction(150)).toBeUndefined();
   });
 
+  it('getColorFunction BETWEEN_OR_EQUAL without opacity', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.BETWEEN_OR_EQUAL,
+        targetValueLeft: 50,
+        targetValueRight: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+      false,
+    );
+    expect(colorFunction(50)).toEqual('#FF0000');
+    expect(colorFunction(100)).toEqual('#FF0000');
+  });
+
   it('getColorFunction BETWEEN_OR_LEFT_EQUAL', () => {
     const colorFunction = getColorFunction(
       {

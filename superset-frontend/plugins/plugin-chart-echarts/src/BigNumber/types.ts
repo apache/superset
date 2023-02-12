@@ -28,6 +28,7 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 import { BaseChartProps, Refs } from '../types';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 
 export interface BigNumberDatum {
   [key: string]: number | null;
@@ -94,4 +95,5 @@ export type BigNumberVizProps = {
   xValueFormatter?: TimeFormatter;
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
+  colorThresholdFormatters?: ColorFormatters;
 };
