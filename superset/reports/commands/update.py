@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+import sqlparse
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -37,6 +38,7 @@ from superset.reports.commands.exceptions import (
 )
 from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.utils.core import add_metadata_to_queries
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +109,13 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
+            )
+        
+        if "sql" in self._properties:
+            self._properties["sql"] = add_metadata_to_queries(
+                sql=sqlparse.format(self._properties["sql"], strip_comments=True) ,
+                query_id=None,
+                query_source="Alerts",
             )
 
         # Check ownership
