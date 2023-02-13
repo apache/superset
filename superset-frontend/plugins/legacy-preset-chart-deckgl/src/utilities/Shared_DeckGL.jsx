@@ -38,8 +38,8 @@ const DEFAULT_VIEWPORT = {
 };
 
 const sandboxUrl =
-  'https://github.com/apache/incubator-superset/' +
-  'blob/master/superset-frontend/src/modules/sandbox.js';
+  'https://github.com/apache/superset/' +
+  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.js';
 const jsFunctionInfo = (
   <div>
     {t(

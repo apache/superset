@@ -5,8 +5,6 @@
 #
 #    pip-compile-multi
 #
-backports-entry-points-selectable==1.1.0
-    # via virtualenv
 build==0.8.0
     # via pip-tools
 cfgv==3.3.0
@@ -15,9 +13,9 @@ click==8.0.4
     # via
     #   pip-compile-multi
     #   pip-tools
-distlib==0.3.2
+distlib==0.3.6
     # via virtualenv
-filelock==3.0.12
+filelock==3.9.0
     # via
     #   tox
     #   virtualenv
@@ -35,11 +33,11 @@ pip-compile-multi==2.6.1
     # via -r integration.in
 pip-tools==6.8.0
     # via pip-compile-multi
-platformdirs==2.2.0
+platformdirs==2.6.2
     # via virtualenv
 pluggy==0.13.1
     # via tox
-pre-commit==2.20.0
+pre-commit==3.0.4
     # via -r integration.in
 py==1.10.0
     # via tox
@@ -48,20 +46,16 @@ pyparsing==3.0.6
 pyyaml==5.4.1
     # via pre-commit
 six==1.16.0
-    # via
-    #   tox
-    #   virtualenv
+    # via tox
 toml==0.10.2
-    # via
-    #   pre-commit
-    #   tox
+    # via tox
 tomli==1.2.1
     # via pep517
 toposort==1.6
     # via pip-compile-multi
 tox==3.25.1
     # via -r integration.in
-virtualenv==20.7.2
+virtualenv==20.17.1
     # via
     #   pre-commit
     #   tox
