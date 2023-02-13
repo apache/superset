@@ -3528,7 +3528,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:154
 msgid ""
 "D3 number format for numbers between -1.0 and 1.0, useful when you want "
-"to have different siginificant digits for small and large numbers"
+"to have different significant digits for small and large numbers"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:220
@@ -8604,7 +8604,7 @@ msgid "Position of column level subtotal"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:163
-msgid "Position of intermidiate node label on tree"
+msgid "Position of intermediate node label on tree"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:293
@@ -10418,7 +10418,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:52
 msgid ""
-"Show hierarchical relationships of data, with with the value represented "
+"Show hierarchical relationships of data, with the value represented "
 "by area, showing proportion and contribution to the whole."
 msgstr ""
 
@@ -12144,7 +12144,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.jsx:127
 msgid ""
-"This color scheme is being overriden by custom label colors.\n"
+"This color scheme is being overridden by custom label colors.\n"
 "              Check the JSON metadata in the Advanced settings"
 msgstr ""
 
@@ -13418,7 +13418,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:27
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
-"subdivisions (states, provinces, etc) on a chloropleth map. Each "
+"subdivisions (states, provinces, etc) on a choropleth map. Each "
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
 msgstr ""

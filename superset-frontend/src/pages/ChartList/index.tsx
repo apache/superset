@@ -58,7 +58,7 @@ import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import Chart from 'src/types/Chart';
+import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
 import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';

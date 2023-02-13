@@ -366,7 +366,7 @@ class RowLevelSecurityFilterType(str, Enum):
 
 class ColumnTypeSource(Enum):
     GET_TABLE = 1
-    CURSOR_DESCRIPION = 2
+    CURSOR_DESCRIPTION = 2
 
 
 class ColumnSpec(NamedTuple):

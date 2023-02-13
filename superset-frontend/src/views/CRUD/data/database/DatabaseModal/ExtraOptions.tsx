@@ -218,7 +218,7 @@ const ExtraOptions = ({
           <div>
             <h4>{t('Performance')}</h4>
             <p className="helper">
-              Adjust performance settings of this database.
+              {t('Adjust performance settings of this database.')}
             </p>
           </div>
         }

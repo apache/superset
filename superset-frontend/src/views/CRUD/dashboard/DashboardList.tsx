@@ -44,12 +44,14 @@ import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
 import Icons from 'src/components/Icons';
+import DeleteModal from 'src/components/DeleteModal';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
+import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -135,6 +137,8 @@ function DashboardList(props: DashboardListProps) {
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
+  const [dashboardToDelete, setDashboardToDelete] =
+    useState<CRUDDashboard | null>(null);
 
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
@@ -611,7 +615,6 @@ function DashboardList(props: DashboardListProps) {
         dashboard={dashboard}
         hasPerm={hasPerm}
         bulkSelectEnabled={bulkSelectEnabled}
-        refreshData={refreshData}
         showThumbnails={
           userKey
             ? userKey.thumbnails
@@ -619,23 +622,19 @@ function DashboardList(props: DashboardListProps) {
         }
         userId={userId}
         loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
         favoriteStatus={favoriteStatus[dashboard.id]}
         handleBulkDashboardExport={handleBulkDashboardExport}
+        onDelete={dashboard => setDashboardToDelete(dashboard)}
       />
     ),
     [
-      addDangerToast,
-      addSuccessToast,
       bulkSelectEnabled,
       favoriteStatus,
       hasPerm,
       loading,
       userId,
-      refreshData,
       saveFavoriteStatus,
       userKey,
     ],
@@ -715,6 +714,30 @@ function DashboardList(props: DashboardListProps) {
                   show
                   onHide={() => setDashboardToEdit(null)}
                   onSubmit={handleDashboardEdit}
+                />
+              )}
+              {dashboardToDelete && (
+                <DeleteModal
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{dashboardToDelete.dashboard_title}</b>?
+                    </>
+                  }
+                  onConfirm={() => {
+                    handleDashboardDelete(
+                      dashboardToDelete,
+                      refreshData,
+                      addSuccessToast,
+                      addDangerToast,
+                      undefined,
+                      userId,
+                    );
+                    setDashboardToDelete(null);
+                  }}
+                  onHide={() => setDashboardToDelete(null)}
+                  open={!!dashboardToDelete}
+                  title={t('Please confirm')}
                 />
               )}
               <ListView<Dashboard>

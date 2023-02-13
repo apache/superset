@@ -25,6 +25,11 @@ import { QueryFormData } from '@superset-ui/core';
 import Owner from './Owner';
 import Tag from './TagType';
 
+export type ChartLinkedDashboard = {
+  id: number;
+  dashboard_title: string;
+};
+
 export interface Chart {
   id: number;
   url: string;
@@ -41,11 +46,20 @@ export interface Chart {
   thumbnail_url?: string;
   owners?: Owner[];
   tags?: Tag[];
+  last_saved_at?: string;
+  last_saved_by?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
   datasource_name_text?: string;
   form_data: {
     viz_type: string;
   };
   is_managed_externally: boolean;
+
+  // TODO: Update API spec to describe `dashboards` key
+  dashboards: ChartLinkedDashboard[];
 }
 
 export type Slice = {
