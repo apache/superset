@@ -163,8 +163,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   };
 
   const flashRecoverService = (flash: FlashServiceObject) => {
-    let currentTtl = flash?.ttl;
-    const maxDate = new Date(flash.ttl);
+    let currentTtl = '';
+    const maxDate = new Date();
 
     const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
     if (
@@ -176,6 +176,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     } else if (flashType === FlashTypes.LONG_TERM) {
       maxDate.setDate(maxDate.getDate() + 90);
       currentTtl = new Date(maxDate).toISOString().split('T')[0];
+    } else {
+      addDangerToast(
+        'There is an issue recovering the selected flash: FLASH TYPE is missing',
+      );
+      return;
     }
     const payload = {
       ttl: currentTtl,
