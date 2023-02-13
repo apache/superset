@@ -43,6 +43,8 @@ import {
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
   SET_OVERRIDE_CONFIRM,
+  SAVE_DASHBOARD_STARTED,
+  SAVE_DASHBOARD_FINISHED,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -110,6 +112,18 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [ON_CHANGE]() {
       return { ...state, hasUnsavedChanges: true };
+    },
+    [SAVE_DASHBOARD_STARTED]() {
+      return {
+        ...state,
+        dashboardIsSaving: true,
+      };
+    },
+    [SAVE_DASHBOARD_FINISHED]() {
+      return {
+        ...state,
+        dashboardIsSaving: false,
+      };
     },
     [ON_SAVE]() {
       return {

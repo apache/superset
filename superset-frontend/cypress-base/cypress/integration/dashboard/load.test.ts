@@ -21,14 +21,6 @@ import { waitForChartLoad } from 'cypress/utils';
 import { WORLD_HEALTH_CHARTS, interceptLog } from './utils';
 
 describe('Dashboard load', () => {
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should load dashboard', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
@@ -53,6 +45,6 @@ describe('Dashboard load', () => {
   it('should send log data', () => {
     interceptLog();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.wait('@logs');
+    cy.wait('@logs', { timeout: 15000 });
   });
 });

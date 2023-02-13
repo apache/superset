@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve Superset's stability! For feature requests please open a discussion at https://github.com/apache/superset/discussions/categories/ideas
 labels: "#bug"
 
 ---

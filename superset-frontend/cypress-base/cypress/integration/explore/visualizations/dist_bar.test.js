@@ -20,7 +20,6 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Distribution bar chart', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

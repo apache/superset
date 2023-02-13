@@ -24,7 +24,7 @@ set -e
 #
 function reset_db() {
   echo --------------------
-  echo Reseting test DB
+  echo Resetting test DB
   echo --------------------
   docker-compose stop superset-tests-worker superset || true
   RESET_DB_CMD="psql \"postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432\" <<-EOF

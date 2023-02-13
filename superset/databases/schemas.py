@@ -43,6 +43,15 @@ database_schemas_query_schema = {
     "properties": {"force": {"type": "boolean"}},
 }
 
+database_tables_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "schema_name": {"type": "string"},
+    },
+    "required": ["schema_name"],
+}
+
 database_name_description = "A database name to identify this connection."
 port_description = "Port number for the database connection."
 cache_timeout_description = (
@@ -52,7 +61,7 @@ cache_timeout_description = (
 )
 expose_in_sqllab_description = "Expose this database to SQLLab"
 allow_run_async_description = (
-    "Operate the database in asynchronous mode, meaning  "
+    "Operate the database in asynchronous mode, meaning "
     "that the queries are executed on remote workers as opposed "
     "to on the web server itself. "
     "This assumes that you have a Celery worker setup as well "
@@ -365,6 +374,20 @@ class DatabaseValidateParametersSchema(Schema):
     )
 
 
+class DatabaseSSHTunnel(Schema):
+    id = fields.Integer(allow_none=True, description="SSH Tunnel ID (for updates)")
+    server_address = fields.String()
+    server_port = fields.Integer()
+    username = fields.String()
+
+    # Basic Authentication
+    password = fields.String(required=False)
+
+    # password protected private key authentication
+    private_key = fields.String(required=False)
+    private_key_password = fields.String(required=False)
+
+
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
@@ -409,6 +432,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.String(required=False)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
@@ -454,6 +478,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     )
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
@@ -481,6 +506,8 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         description=sqlalchemy_uri_description,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):
@@ -553,6 +580,12 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class DatabaseTablesResponse(Schema):
+    extra = fields.Dict(description="Extra data used to specify column metadata")
+    type = fields.String(description="table or view")
+    value = fields.String(description="The table or view name")
 
 
 class ValidateSQLRequest(Schema):
@@ -665,6 +698,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
+    allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)

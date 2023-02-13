@@ -17,7 +17,8 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { t, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -229,11 +230,13 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
+    const sqlEditorId = results?.query?.sqlEditorId;
     const sync =
+      sqlEditorId &&
       !query.isDataPreview &&
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
         ? SupersetClient.put({
-            endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
+            endpoint: encodeURI(`/tabstateview/${sqlEditorId}`),
             postPayload: { latest_query_id: query.id },
           })
         : Promise.resolve();
@@ -303,8 +306,13 @@ export function fetchQueryResults(query, displayLimit) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
 
+    const queryParams = rison.encode({
+      key: query.resultsKey,
+      rows: displayLimit || null,
+    });
+
     return SupersetClient.get({
-      endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
+      endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
       parseMethod: 'json-bigint',
     })
       .then(({ json }) => dispatch(querySuccess(query, json)))
@@ -345,7 +353,7 @@ export function runQuery(query) {
 
     const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${search}`,
+      endpoint: `/api/v1/sqllab/execute/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'json-bigint',
@@ -357,7 +365,11 @@ export function runQuery(query) {
       })
       .catch(response =>
         getClientErrorObject(response).then(error => {
-          let message = error.error || error.statusText || t('Unknown error');
+          let message =
+            error.error ||
+            error.message ||
+            error.statusText ||
+            t('Unknown error');
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
@@ -448,9 +460,9 @@ export function validateQuery(queryEditor, sql) {
 export function postStopQuery(query) {
   return function (dispatch) {
     return SupersetClient.post({
-      endpoint: '/superset/stop_query/',
-      postPayload: { client_id: query.id },
-      stringify: false,
+      endpoint: '/api/v1/query/stop',
+      body: JSON.stringify({ client_id: query.id }),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
@@ -586,16 +598,44 @@ export function addQueryEditor(queryEditor) {
   };
 }
 
-export function addNewQueryEditor(queryEditor) {
+export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: { queryEditors },
+      sqlLab: {
+        queryEditors,
+        tabHistory,
+        unsavedQueryEditor,
+        defaultDbId,
+        databases,
+      },
+      common,
     } = getState();
+    const activeQueryEditor = queryEditors.find(
+      qe => qe.id === tabHistory[tabHistory.length - 1],
+    );
+    const dbIds = Object.values(databases).map(database => database.id);
+    const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
+    const { dbId, schema, queryLimit, autorun } = {
+      ...queryEditors[0],
+      ...activeQueryEditor,
+      ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
+        unsavedQueryEditor),
+    };
+    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? ''
+      : t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
+        );
+
     const name = newQueryTabName(queryEditors || []);
 
     return dispatch(
       addQueryEditor({
-        ...queryEditor,
+        dbId: dbId || defaultDbId || firstDbId,
+        schema: schema ?? null,
+        autorun: autorun ?? false,
+        sql: `${warning}SELECT ...`,
+        queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
       }),
     );
@@ -1400,7 +1440,7 @@ export function popQuery(queryId) {
           dbId: queryData.database.id,
           schema: queryData.schema,
           sql: queryData.sql,
-          name: `Copy of ${queryData.tab_name}`,
+          name: t('Copy of %s', queryData.tab_name),
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1410,6 +1450,7 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
@@ -1417,7 +1458,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.result.name}`,
+            name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
             autorun: sql !== undefined,

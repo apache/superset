@@ -21,7 +21,7 @@ import { useDispatch } from 'react-redux';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import { t, styled } from '@superset-ui/core';
+import { css, t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { removeDataPreview, removeTables } from 'src/SqlLab/actions/sqlLab';
@@ -61,7 +61,7 @@ export interface TableElementProps {
 
 const StyledSpan = styled.span`
   color: ${({ theme }) => theme.colors.primary.dark1};
-  &: hover {
+  &:hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
   cursor: pointer;
@@ -70,6 +70,39 @@ const StyledSpan = styled.span`
 const Fade = styled.div`
   transition: all ${({ theme }) => theme.transitionTiming}s;
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
+`;
+
+const StyledCollapsePanel = styled(Collapse.Panel)`
+  ${({ theme }) => css`
+    & {
+      .ws-el-controls {
+        margin-right: ${-theme.gridUnit}px;
+        display: flex;
+      }
+
+      .header-container {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        width: 100%;
+
+        .table-name {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-size: ${theme.typography.sizes.l}px;
+          flex: 1;
+        }
+
+        .header-right-side {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          margin-right: ${theme.gridUnit * 8}px;
+        }
+      }
+    }
+  `}
 `;
 
 const TableElement = ({ table, ...props }: TableElementProps) => {
@@ -149,10 +182,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const renderControls = () => {
     let keyLink;
+    const KEYS_FOR_TABLE_TEXT = t('Keys for table');
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={`${t('Keys for table')} ${table.name}`}
+          modalTitle={`${KEYS_FOR_TABLE_TEXT} ${table.name}`}
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}
@@ -287,7 +321,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   };
 
   return (
-    <Collapse.Panel
+    <StyledCollapsePanel
       {...props}
       key={table.id}
       header={renderHeader()}
@@ -295,7 +329,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       forceRender
     >
       {renderBody()}
-    </Collapse.Panel>
+    </StyledCollapsePanel>
   );
 };
 

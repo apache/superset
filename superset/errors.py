@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _
 
 
 class SupersetErrorType(str, Enum):

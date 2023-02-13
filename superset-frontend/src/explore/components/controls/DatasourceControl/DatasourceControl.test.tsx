@@ -18,15 +18,16 @@
  */
 
 import React from 'react';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { SupersetClient, DatasourceType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
+import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
+import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-const createProps = () => ({
+const createProps = (overrides: JsonObject = {}) => ({
   hovered: false,
   type: 'DatasourceControl',
   label: 'Datasource',
@@ -64,6 +65,7 @@ const createProps = () => ({
   },
   onChange: jest.fn(),
   onDatasourceSave: jest.fn(),
+  ...overrides,
 });
 
 async function openAndSaveChanges(datasource: any) {
@@ -96,6 +98,52 @@ test('Should open a menu', async () => {
   expect(screen.queryByText('Edit dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
+  expect(screen.getByText('Swap dataset')).toBeInTheDocument();
+  expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
+});
+
+test('Should not show SQL Lab for non sql_lab role', async () => {
+  const props = createProps({
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'gamma',
+      firstName: 'gamma',
+      isActive: true,
+      lastName: 'gamma',
+      permissions: {},
+      roles: { Gamma: [] },
+      userId: 2,
+      username: 'gamma',
+    },
+  });
+  render(<DatasourceControl {...props} />);
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
+  expect(screen.getByText('Swap dataset')).toBeInTheDocument();
+  expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+});
+
+test('Should show SQL Lab for sql_lab role', async () => {
+  const props = createProps({
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'sql',
+      firstName: 'sql',
+      isActive: true,
+      lastName: 'sql',
+      permissions: {},
+      roles: { Gamma: [], sql_lab: [] },
+      userId: 2,
+      username: 'sql',
+    },
+  });
+  render(<DatasourceControl {...props} />);
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
@@ -347,4 +395,31 @@ test('should not set the temporal column', async () => {
       null,
     );
   });
+});
+
+test('should show missing params state', () => {
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true });
+  expect(screen.getByText(/missing dataset/i)).toBeVisible();
+  expect(screen.getByText(/missing url parameters/i)).toBeVisible();
+  expect(
+    screen.getByText(
+      /the url is missing the dataset_id or slice_id parameters\./i,
+    ),
+  ).toBeVisible();
+});
+
+test('should show missing dataset state', () => {
+  // @ts-ignore
+  delete window.location;
+  // @ts-ignore
+  window.location = { search: '?slice_id=152' };
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true });
+  expect(screen.getAllByText(/missing dataset/i)).toHaveLength(2);
+  expect(
+    screen.getByText(
+      /the dataset linked to this chart may have been deleted\./i,
+    ),
+  ).toBeVisible();
 });

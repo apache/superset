@@ -66,7 +66,7 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==9.1.1
+pillow==9.3.0
     # via apache-superset
 progress==1.6
     # via -r requirements/development.in
@@ -97,7 +97,7 @@ s3transfer==0.5.0
     # via boto3
 sasl==0.3.1
     # via pyhive
-sqloxide==0.1.17
+sqloxide==0.1.30
     # via -r requirements/development.in
 stack-data==0.2.0
     # via ipython

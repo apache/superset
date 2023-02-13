@@ -73,6 +73,7 @@ export interface FieldPropTypes {
     onRemoveTableCatalog: (idx: number) => void;
   } & {
     onExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: (value: any) => string;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;

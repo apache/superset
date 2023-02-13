@@ -23,7 +23,7 @@ import DatasetPanel, {
   ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
-} from './DatasetPanel';
+} from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel/DatasetPanel';
 import { exampleColumns, exampleDataset } from './fixtures';
 import {
   SELECT_MESSAGE,

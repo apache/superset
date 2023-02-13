@@ -182,10 +182,6 @@ function openExplore(chartName: string) {
 }
 
 describe('Dashboard edit', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('Color consistency', () => {
     beforeEach(() => {
       visitResetTabbedDashboard();

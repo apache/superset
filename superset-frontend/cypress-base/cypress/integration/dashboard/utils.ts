@@ -306,8 +306,7 @@ export function getNativeFilterPlaceholderWithIndex(index: number) {
 export function applyNativeFilterValueWithIndex(index: number, value: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
     .eq(index)
-    .parent()
-    .should('be.visible', { timeout: 10000 })
+    .should('exist', { timeout: 10000 })
     .type(`${value}{enter}`);
   // click the title to dismiss shown options
   cy.get(nativeFilters.filterFromDashboardView.filterName)
@@ -348,7 +347,7 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
 }
 
 /** ************************************************************************
- * Cancel Native fitler settings
+ * Cancel Native filter settings
  * @returns {None}
  * @summary helper for cancel native filters settings
  ************************************************************************* */

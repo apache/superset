@@ -71,7 +71,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
-import { oneLineTagRender } from './CustomTag';
+import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -194,18 +194,8 @@ const AsyncSelect = forwardRef(
       [sortComparator, sortSelectedFirst],
     );
 
-    const initialOptions = useMemo(
-      () =>
-        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
-      [options],
-    );
-    const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortComparatorForNoSearch),
-      [initialOptions, sortComparatorForNoSearch],
-    );
-
     const [selectOptions, setSelectOptions] =
-      useState<SelectOptionsType>(initialOptionsSorted);
+      useState<SelectOptionsType>(EMPTY_OPTIONS);
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
@@ -441,8 +431,8 @@ const AsyncSelect = forwardRef(
       // when `options` list is updated from component prop, reset states
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
-      setSelectOptions(initialOptions);
-    }, [initialOptions]);
+      setSelectOptions(EMPTY_OPTIONS);
+    }, [options]);
 
     useEffect(() => {
       setSelectValue(value);
@@ -521,13 +511,13 @@ const AsyncSelect = forwardRef(
           suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
           menuItemSelectedIcon={
             invertSelection ? (
-              <StyledStopOutlined iconSize="m" />
+              <StyledStopOutlined iconSize="m" aria-label="stop" />
             ) : (
-              <StyledCheckOutlined iconSize="m" />
+              <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
           oneLine={oneLine}
-          tagRender={oneLine ? oneLineTagRender : undefined}
+          tagRender={customTagRender}
           {...props}
           ref={ref}
         >

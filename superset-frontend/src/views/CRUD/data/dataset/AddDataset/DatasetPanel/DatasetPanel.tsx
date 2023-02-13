@@ -55,8 +55,8 @@ const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
-  ${({ theme }) => `
-  position: ${(props: StyledHeaderProps) => props.position};
+  ${({ theme, position }) => `
+  position: ${position};
   margin: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
     ${theme.gridUnit * MARGIN_MULTIPLIER}px
     ${theme.gridUnit * MARGIN_MULTIPLIER}px
@@ -124,17 +124,27 @@ const StyledLoader = styled.div`
   `}
 `;
 
-const TableContainer = styled.div`
+const TableContainerWithBanner = styled.div`
   ${({ theme }) => `
   position: relative;
   margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
   margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  overflow: scroll;
-  height: calc(100% - ${theme.gridUnit * 36}px);
+  height: calc(100% - ${theme.gridUnit * 60}px);
+  overflow: auto;
   `}
 `;
 
-const StyledTable = styled(Table)`
+const TableContainerWithoutBanner = styled.div`
+  ${({ theme }) => `
+  position: relative;
+  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  height: calc(100% - ${theme.gridUnit * 30}px);
+  overflow: auto;
+  `}
+`;
+
+const TableScrollContainer = styled.div`
   position: absolute;
   left: 0;
   top: 0;
@@ -167,6 +177,7 @@ export const COLUMN_TITLE = t('Table columns');
 export const ALT_LOADING = t('Loading');
 
 const pageSizeOptions = ['5', '10', '15', '25'];
+const DEFAULT_PAGE_SIZE = 25;
 
 // Define the columns for Table instance
 export const tableColumnDefinition: ColumnsType<ITableColumn> = [
@@ -253,6 +264,9 @@ const DatasetPanel = ({
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
   const datasetNames = datasets?.map(dataset => dataset.table_name);
+  const tableWithDataset = datasets?.find(
+    dataset => dataset.table_name === tableName,
+  );
 
   let component;
   let loader;
@@ -271,16 +285,33 @@ const DatasetPanel = ({
       component = (
         <>
           <StyledTitle>{COLUMN_TITLE}</StyledTitle>
-          <TableContainer>
-            <StyledTable
-              loading={loading}
-              size={TableSize.SMALL}
-              columns={tableColumnDefinition}
-              data={columnList}
-              pageSizeOptions={pageSizeOptions}
-              defaultPageSize={10}
-            />
-          </TableContainer>
+          {tableWithDataset ? (
+            <TableContainerWithBanner>
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
+                />
+              </TableScrollContainer>
+            </TableContainerWithBanner>
+          ) : (
+            <TableContainerWithoutBanner>
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
+                />
+              </TableScrollContainer>
+            </TableContainerWithoutBanner>
+          )}
         </>
       );
     } else {
@@ -299,9 +330,7 @@ const DatasetPanel = ({
       {tableName && (
         <>
           {datasetNames?.includes(tableName) &&
-            renderExistingDatasetAlert(
-              datasets?.find(dataset => dataset.table_name === tableName),
-            )}
+            renderExistingDatasetAlert(tableWithDataset)}
           <StyledHeader
             position={
               !loading && hasColumns ? EPosition.RELATIVE : EPosition.ABSOLUTE

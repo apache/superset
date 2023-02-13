@@ -36,6 +36,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -65,6 +66,7 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   showPropertiesModal: PropTypes.func.isRequired,
   manageEmbedded: PropTypes.func.isRequired,
+  logEvent: PropTypes.func,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
@@ -182,6 +184,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
+        this.props.logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {

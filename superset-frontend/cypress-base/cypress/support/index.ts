@@ -22,7 +22,6 @@ import '@applitools/eyes-cypress/commands';
 require('cy-verify-downloads').addCustomCommand();
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
-const TokenName = Cypress.env('TOKEN_NAME');
 let DASHBOARD_FIXTURES: Record<string, any>[] = [];
 let CHART_FIXTURES: Record<string, any>[] = [];
 
@@ -40,6 +39,7 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
 
 before(() => {
   cy.login();
+  Cypress.Cookies.defaults({ preserve: 'session' });
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
 });
@@ -50,7 +50,6 @@ beforeEach(() => {
 });
 
 Cypress.Commands.add('cleanDashboards', () => {
-  cy.login();
   cy.getDashboards().then((sampleDashboards?: Record<string, any>[]) => {
     const deletableDashboards = [];
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
@@ -72,7 +71,6 @@ Cypress.Commands.add('cleanDashboards', () => {
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
@@ -82,7 +80,6 @@ Cypress.Commands.add('cleanDashboards', () => {
 });
 
 Cypress.Commands.add('cleanCharts', () => {
-  cy.login();
   cy.getCharts().then((sampleCharts?: Record<string, any>[]) => {
     const deletableCharts = [];
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
@@ -104,7 +101,6 @@ Cypress.Commands.add('cleanCharts', () => {
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
@@ -142,10 +138,6 @@ Cypress.Commands.add('login', () => {
   }).then(response => {
     expect(response.status).to.eq(200);
   });
-});
-
-Cypress.Commands.add('preserveLogin', () => {
-  Cypress.Cookies.preserveOnce('session');
 });
 
 Cypress.Commands.add('visitChartByName', name => {
@@ -187,7 +179,6 @@ Cypress.Commands.add(
           Cookie: `csrf_access_token=${accessToken}`,
           'X-CSRFToken': accessToken,
         }),
-        ...(TokenName && { Authorization: `Bearer ${TokenName}` }),
         'Content-Type': 'application/json',
         Referer: `${Cypress.config().baseUrl}/`,
       },
@@ -258,7 +249,6 @@ Cypress.Commands.add('createSampleDashboards', (indexes?: number[]) =>
               'access_token',
             )}`,
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
             'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
             Referer: `${Cypress.config().baseUrl}/`,
           },
@@ -282,7 +272,6 @@ Cypress.Commands.add('createSampleCharts', (indexes?: number[]) =>
               'access_token',
             )}`,
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
             'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
             Referer: `${Cypress.config().baseUrl}/`,
           },
@@ -318,7 +307,6 @@ Cypress.Commands.add(
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
@@ -326,18 +314,15 @@ Cypress.Commands.add(
       .then(resp => resp),
 );
 
-Cypress.Commands.add('getDashboards', () =>
-  cy
-    .request({
-      method: 'GET',
-      url: `api/v1/dashboard/`,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
-      },
-    })
-    .then(resp => resp.body.result),
-);
+Cypress.Commands.add('getDashboards', () => {
+  cy.request({
+    method: 'GET',
+    url: `api/v1/dashboard/`,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }).then(resp => resp.body.result);
+});
 
 Cypress.Commands.add('getDashboard', (dashboardId: string | number) =>
   cy
@@ -346,7 +331,6 @@ Cypress.Commands.add('getDashboard', (dashboardId: string | number) =>
       url: `api/v1/dashboard/${dashboardId}`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
       },
     })
     .then(resp => resp.body.result),
@@ -362,7 +346,6 @@ Cypress.Commands.add(
         body,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
         },
       })
       .then(resp => resp.body.result),
@@ -379,7 +362,6 @@ Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
           'access_token',
         )}`,
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
         'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
         Referer: `${Cypress.config().baseUrl}/`,
       },
@@ -394,7 +376,6 @@ Cypress.Commands.add('getCharts', () =>
       url: `api/v1/chart/`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
       },
     })
     .then(resp => resp.body.result),

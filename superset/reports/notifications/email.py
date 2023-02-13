@@ -128,7 +128,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __("Explore in Superset")
+        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         url = (
             modify_url_query(self._content.url, standalone="0")
             if self._content.url is not None

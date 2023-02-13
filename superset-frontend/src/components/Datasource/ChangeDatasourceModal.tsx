@@ -190,7 +190,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed dataset!');
+    addSuccessToast(t('Successfully changed dataset!'));
   };
 
   const handlerCancelConfirm = () => {
@@ -260,13 +260,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           {confirmChange && (
             <ConfirmModalStyled>
               <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+                <Button onClick={handlerCancelConfirm}>{t('Cancel')}</Button>
                 <Button
                   className="proceed-btn"
                   buttonStyle="primary"
                   onClick={handleChangeConfirm}
                 >
-                  Proceed
+                  {t('Proceed')}
                 </Button>
               </div>
             </ConfirmModalStyled>

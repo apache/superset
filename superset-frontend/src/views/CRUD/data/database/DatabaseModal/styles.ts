@@ -32,7 +32,7 @@ export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
 
-export const labelMarginBotton = (theme: SupersetTheme) => css`
+export const labelMarginBottom = (theme: SupersetTheme) => css`
   margin-bottom: ${theme.gridUnit * 2}px;
 `;
 
@@ -603,12 +603,6 @@ export const StyledCatalogTable = styled.div`
   .catalog-name-url {
     margin: 4px 0;
     width: 95%;
-  }
-
-  .catalog-delete {
-    align-self: center;
-    background: ${({ theme }) => theme.colors.grayscale.light4};
-    margin: 5px 5px 8px 5px;
   }
 
   .catalog-add-btn {

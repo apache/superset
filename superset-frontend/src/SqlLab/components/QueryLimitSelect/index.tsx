@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { styled, useTheme } from '@superset-ui/core';
-
+import { styled, useTheme, t } from '@superset-ui/core';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -99,7 +98,7 @@ const QueryLimitSelect = ({
         trigger={['click']}
       >
         <button type="button" onClick={e => e.preventDefault()}>
-          <span>LIMIT:</span>
+          <span>{t('LIMIT')}:</span>
           <span className="limitDropdown">
             {convertToNumWithSpaces(queryLimit)}
           </span>

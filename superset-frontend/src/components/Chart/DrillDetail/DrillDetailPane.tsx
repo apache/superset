@@ -219,7 +219,7 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
-      const jsonPayload = getDrillPayload(formData, filters);
+      const jsonPayload = getDrillPayload(formData, filters) ?? {};
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
       getDatasourceSamples(
         datasourceType,

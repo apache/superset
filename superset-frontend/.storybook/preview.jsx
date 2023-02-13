@@ -26,6 +26,7 @@ import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
+import { GlobalStyles } from '../src/GlobalStyles';
 
 import 'src/theme.ts';
 import './storybook.css';
@@ -37,7 +38,12 @@ const store = createStore(
 );
 
 const themeDecorator = Story => (
-  <ThemeProvider theme={supersetTheme}>{<Story />}</ThemeProvider>
+  <ThemeProvider theme={supersetTheme}>
+    <>
+      <GlobalStyles />
+      <Story />
+    </>
+  </ThemeProvider>
 );
 
 const providerDecorator = Story => (
@@ -81,5 +87,5 @@ addParameters({
       ],
     },
   },
-  controls: { expanded: true },
+  controls: { expanded: true, sort: 'alpha' },
 });

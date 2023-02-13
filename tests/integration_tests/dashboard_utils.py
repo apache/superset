@@ -80,8 +80,9 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-    if not dash:
-        dash = Dashboard()
+    if dash:
+        return dash
+    dash = Dashboard()
     dash.dashboard_title = title
     if position is not None:
         js = position
@@ -90,7 +91,7 @@ def create_dashboard(
     dash.slug = slug
     if slices is not None:
         dash.slices = slices
-    db.session.merge(dash)
+    db.session.add(dash)
     db.session.commit()
 
     return dash

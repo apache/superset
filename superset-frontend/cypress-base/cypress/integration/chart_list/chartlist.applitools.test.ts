@@ -20,7 +20,6 @@ import { CHART_LIST } from 'cypress/utils/urls';
 
 describe('charts list view', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit(CHART_LIST);
   });
 

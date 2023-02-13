@@ -21,7 +21,6 @@ import React from 'react';
 import { css } from '@emotion/react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterDivider from './FilterDivider';
-import 'src/dashboard/stylesheets/index.less';
 import { FilterDividerProps } from './types';
 
 export default {

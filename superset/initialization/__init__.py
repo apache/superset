@@ -45,6 +45,8 @@ from superset.extensions import (
     migrate,
     profiling,
     results_backend_manager,
+    ssh_manager_factory,
+    stats_logger_manager,
     talisman,
 )
 from superset.security import SupersetSecurityManager
@@ -136,6 +138,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
         from superset.explore.api import ExploreRestApi
@@ -147,6 +150,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
+        from superset.sqllab.api import SqlLabRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import AnnotationLayerView
@@ -205,6 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(DatasourceRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
@@ -215,6 +220,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(SqlLabRestApi)
         #
         # Setup regular views
         #
@@ -335,7 +341,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "SQL Editor",
-            label=_("SQL Lab"),
+            label=__("SQL Lab"),
             href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
@@ -343,7 +349,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("SQL"),
         )
         appbuilder.add_link(
-            __("Saved Queries"),
+            "Saved Queries",
+            label=__("Saved Queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
@@ -351,7 +358,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Query Search",
-            label=_("Query History"),
+            label=__("Query History"),
             href="/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
@@ -390,7 +397,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AnnotationLayerView,
             "Annotation Layers",
-            label=_("Annotation Layers"),
+            label=__("Annotation Layers"),
             href="/annotationlayer/list/",
             icon="fa-comment",
             category_icon="",
@@ -417,6 +424,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
+        self.configure_ssh_manager()
+        self.configure_stats_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -473,6 +482,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
+
+    def configure_ssh_manager(self) -> None:
+        ssh_manager_factory.init_app(self.superset_app)
+
+    def configure_stats_manager(self) -> None:
+        stats_logger_manager.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(
@@ -572,25 +587,33 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
+        # Talisman
+        talisman_enabled = self.config["TALISMAN_ENABLED"]
+        talisman_config = self.config["TALISMAN_CONFIG"]
+        csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
+
+        if talisman_enabled:
+            talisman.init_app(self.superset_app, **talisman_config)
+
         show_csp_warning = False
         if (
-            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            csp_warning
             and not self.superset_app.debug
+            and (
+                not talisman_enabled
+                or not talisman_config
+                or not talisman_config.get("content_security_policy")
+            )
         ):
-            if self.config["TALISMAN_ENABLED"]:
-                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
-                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
-                    show_csp_warning = True
-            else:
-                show_csp_warning = True
+            show_csp_warning = True
 
         if show_csp_warning:
             logger.warning(
                 "We haven't found any Content Security Policy (CSP) defined in "
                 "the configurations. Please make sure to configure CSP using the "
-                "TALISMAN_CONFIG key or any other external software. Failing to "
-                "configure CSP have serious security implications. Check "
-                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
+                "software. Failing to configure CSP have serious security implications. "
+                "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
                 "information. You can disable this warning using the "
                 "CONTENT_SECURITY_POLICY_WARNING key."
             )

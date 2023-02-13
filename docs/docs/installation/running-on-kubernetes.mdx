@@ -123,9 +123,20 @@ init:
 
 #### Dependencies
 
-Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
-recommended to build own image with this step done in CI. The following example installs the Big Query and Elasticsearch
-database drivers so that you can connect to those datasources in your Superset installation.
+Install additional packages and do any other bootstrap configuration in the bootstrap script.
+For production clusters it's recommended to build own image with this step done in CI.
+
+:::note
+
+Superset requires a Python DB-API database driver and a SQLAlchemy
+dialect to be installed for each datastore you want to connect to.
+
+See [Install Database Drivers](/docs/databases/installing-database-drivers) for more information
+
+:::
+
+The following example installs the Big Query and Elasticsearch database drivers so that you can
+connect to those datasources in your Superset installation:
 
 ```yaml
 bootstrapScript: |
@@ -225,6 +236,14 @@ Those will also be mounted as secrets and can include sensitive parameters.
 ### Configuration Examples
 
 #### Setting up OAuth
+
+:::note
+
+OAuth setup requires that the [authlib](https://authlib.org/) Python library is installed. This can
+be done using `pip` by updating the `bootstrapScript`. See the [Dependencies](#dependencies) section
+for more information.
+
+:::
 
 ```yaml
 extraEnv:

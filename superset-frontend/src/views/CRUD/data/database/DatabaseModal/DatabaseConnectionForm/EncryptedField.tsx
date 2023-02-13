@@ -21,9 +21,9 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdButton, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
-import { DeleteFilled } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { FieldPropTypes } from '.';
-import { infoTooltip, labelMarginBotton, CredentialInfoForm } from '../styles';
+import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -66,7 +66,7 @@ export const EncryptedField = ({
       {db?.engine === 'gsheets' && (
         <div className="catalog-type-select">
           <FormLabel
-            css={(theme: SupersetTheme) => labelMarginBotton(theme)}
+            css={(theme: SupersetTheme) => labelMarginBottom(theme)}
             required
           >
             {t('Type of Google Sheets allowed')}
@@ -117,7 +117,9 @@ export const EncryptedField = ({
             name={encryptedField}
             value={encryptedValue}
             onChange={changeMethods.onParametersChange}
-            placeholder="Paste content of service credentials JSON file here"
+            placeholder={t(
+              'Paste content of service credentials JSON file here',
+            )}
           />
           <span className="label-paste">
             {t('Copy and paste the entire service account .json file here')}
@@ -152,7 +154,8 @@ export const EncryptedField = ({
             {fileToUpload && (
               <div className="input-upload-current">
                 {fileToUpload}
-                <DeleteFilled
+                <Icons.DeleteFilled
+                  iconSize="m"
                   onClick={() => {
                     setFileToUpload(null);
                     changeMethods.onParametersChange({

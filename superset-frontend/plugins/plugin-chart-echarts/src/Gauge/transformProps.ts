@@ -91,8 +91,16 @@ const calculateMax = (data: GaugeDataItemOption[]) =>
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    theme,
+    emitCrossFilters,
+  } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
 
@@ -117,7 +125,6 @@ export default function transformProps(
     intervals,
     intervalColorIndices,
     valueFormatter,
-    emitFilter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
@@ -327,7 +334,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],

@@ -177,16 +177,19 @@ class WebDriverProxy:
             element = WebDriverWait(driver, self._screenshot_locate_wait).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
-            logger.debug("Wait for .loading to be done")
-            WebDriverWait(driver, self._screenshot_load_wait).until_not(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
-            )
-            logger.debug("Wait for chart to have content")
+
+            logger.debug("Wait for chart containers to draw")
             WebDriverWait(driver, self._screenshot_locate_wait).until(
                 EC.visibility_of_all_elements_located(
                     (By.CLASS_NAME, "slice_container")
                 )
             )
+
+            logger.debug("Wait for loading element of charts to be gone")
+            WebDriverWait(driver, self._screenshot_load_wait).until_not(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
+            )
+
             selenium_animation_wait = current_app.config[
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
             ]

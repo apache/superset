@@ -155,7 +155,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "database": "database_name",
     }
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database"}
     allowed_distinct_fields = {"schema"}
 

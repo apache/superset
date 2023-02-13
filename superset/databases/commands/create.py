@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
@@ -31,6 +32,12 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelCreateFailedError,
+    SSHTunnelingNotEnabledError,
+    SSHTunnelInvalidError,
+)
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
@@ -47,7 +54,7 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except SupersetErrorsException as ex:
+        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
@@ -71,12 +78,38 @@ class CreateDatabaseCommand(BaseCommand):
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
+            ssh_tunnel = None
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                if not is_feature_enabled("SSH_TUNNELING"):
+                    db.session.rollback()
+                    raise SSHTunnelingNotEnabledError()
+                try:
+                    # So database.id is not None
+                    db.session.flush()
+                    ssh_tunnel = CreateSSHTunnelCommand(
+                        database.id, ssh_tunnel_properties
+                    ).run()
+                except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                    event_logger.log_with_context(
+                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                    )
+                    # So we can show the original message
+                    raise ex
+                except Exception as ex:
+                    event_logger.log_with_context(
+                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                    )
+                    raise DatabaseCreateFailedError() from ex
+
             # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False)
+            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
+
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()

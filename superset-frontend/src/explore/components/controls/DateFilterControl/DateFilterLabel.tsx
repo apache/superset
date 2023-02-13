@@ -248,27 +248,28 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   function onSave() {
     onChange(timeRangeValue);
     setShow(false);
+    onClosePopover();
   }
 
   function onOpen() {
     setTimeRangeValue(value);
     setFrame(guessedFrame);
     setShow(true);
+    onOpenPopover();
   }
 
   function onHide() {
     setTimeRangeValue(value);
     setFrame(guessedFrame);
     setShow(false);
+    onClosePopover();
   }
 
   const toggleOverlay = () => {
     if (show) {
       onHide();
-      onClosePopover();
     } else {
       onOpen();
-      onOpenPopover();
     }
   };
 

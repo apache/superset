@@ -22,7 +22,6 @@ import re
 import time
 from abc import ABCMeta
 from collections import defaultdict, deque
-from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 from textwrap import dedent
@@ -55,7 +54,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -71,7 +70,7 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -166,6 +165,92 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    column_type_mappings = (
+        (
+            re.compile(r"^boolean.*", re.IGNORECASE),
+            types.BOOLEAN(),
+            GenericDataType.BOOLEAN,
+        ),
+        (
+            re.compile(r"^tinyint.*", re.IGNORECASE),
+            TinyInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^smallint.*", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^integer.*", re.IGNORECASE),
+            types.INTEGER(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^bigint.*", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^real.*", re.IGNORECASE),
+            types.FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^double.*", re.IGNORECASE),
+            types.FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^decimal.*", re.IGNORECASE),
+            types.DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.CHAR(int(match[2])) if match[2] else types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^varbinary.*", re.IGNORECASE),
+            types.VARBINARY(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^date.*", re.IGNORECASE),
+            types.Date(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^timestamp.*", re.IGNORECASE),
+            types.TIMESTAMP(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^interval.*", re.IGNORECASE),
+            Interval(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^time.*", re.IGNORECASE),
+            types.Time(),
+            GenericDataType.TEMPORAL,
+        ),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
+    )
+
     # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
@@ -200,14 +285,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Superset only defines time zone naive `datetime` objects, though this method
         handles both time zone naive and aware conversions.
         """
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
-        if tt in (
-            utils.TemporalType.TIMESTAMP,
-            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
-        ):
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+
         return None
 
     @classmethod
@@ -310,6 +394,203 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: A list of function names useable in the database
         """
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+
+    @classmethod
+    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
+        cls,
+        table_name: str,
+        database: Database,
+        limit: int = 0,
+        order_by: Optional[List[Tuple[str, bool]]] = None,
+        filters: Optional[Dict[Any, Any]] = None,
+    ) -> str:
+        """Returns a partition query
+
+        :param table_name: the name of the table to get partitions from
+        :type table_name: str
+        :param limit: the number of partitions to be returned
+        :type limit: int
+        :param order_by: a list of tuples of field name and a boolean
+            that determines if that field should be sorted in descending
+            order
+        :type order_by: list of (str, bool) tuples
+        :param filters: dict of field name and filter value combinations
+        """
+        limit_clause = "LIMIT {}".format(limit) if limit else ""
+        order_by_clause = ""
+        if order_by:
+            l = []
+            for field, desc in order_by:
+                l.append(field + " DESC" if desc else "")
+            order_by_clause = "ORDER BY " + ", ".join(l)
+
+        where_clause = ""
+        if filters:
+            l = []
+            for field, value in filters.items():
+                l.append(f"{field} = '{value}'")
+            where_clause = "WHERE " + " AND ".join(l)
+
+        presto_version = database.get_extra().get("version")
+
+        # Partition select syntax changed in v0.199, so check here.
+        # Default to the new syntax if version is unset.
+        partition_select_clause = (
+            f'SELECT * FROM "{table_name}$partitions"'
+            if not presto_version
+            or StrictVersion(presto_version) >= StrictVersion("0.199")
+            else f"SHOW PARTITIONS FROM {table_name}"
+        )
+
+        sql = dedent(
+            f"""\
+            {partition_select_clause}
+            {where_clause}
+            {order_by_clause}
+            {limit_clause}
+        """
+        )
+        return sql
+
+    @classmethod
+    def where_latest_partition(  # pylint: disable=too-many-arguments
+        cls,
+        table_name: str,
+        schema: Optional[str],
+        database: Database,
+        query: Select,
+        columns: Optional[List[Dict[str, str]]] = None,
+    ) -> Optional[Select]:
+        try:
+            col_names, values = cls.latest_partition(
+                table_name, schema, database, show_first=True
+            )
+        except Exception:  # pylint: disable=broad-except
+            # table is not partitioned
+            return None
+
+        if values is None:
+            return None
+
+        column_type_by_name = {
+            column.get("name"): column.get("type") for column in columns or []
+        }
+
+        for col_name, value in zip(col_names, values):
+            if col_name in column_type_by_name:
+                if column_type_by_name.get(col_name) == "TIMESTAMP":
+                    query = query.where(Column(col_name, TimeStamp()) == value)
+                elif column_type_by_name.get(col_name) == "DATE":
+                    query = query.where(Column(col_name, Date()) == value)
+                else:
+                    query = query.where(Column(col_name) == value)
+        return query
+
+    @classmethod
+    def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
+        if not df.empty:
+            return df.to_records(index=False)[0].item()
+        return None
+
+    @classmethod
+    @cache_manager.data_cache.memoize(timeout=60)
+    def latest_partition(
+        cls,
+        table_name: str,
+        schema: Optional[str],
+        database: Database,
+        show_first: bool = False,
+    ) -> Tuple[List[str], Optional[List[str]]]:
+        """Returns col name and the latest (max) partition value for a table
+
+        :param table_name: the name of the table
+        :param schema: schema / database / namespace
+        :param database: database query will be run against
+        :type database: models.Database
+        :param show_first: displays the value for the first partitioning key
+          if there are many partitioning keys
+        :type show_first: bool
+
+        >>> latest_partition('foo_table')
+        (['ds'], ('2018-01-01',))
+        """
+        indexes = database.get_indexes(table_name, schema)
+        if not indexes:
+            raise SupersetTemplateException(
+                f"Error getting partition for {schema}.{table_name}. "
+                "Verify that this table has a partition."
+            )
+
+        if len(indexes[0]["column_names"]) < 1:
+            raise SupersetTemplateException(
+                "The table should have one partitioned field"
+            )
+
+        if not show_first and len(indexes[0]["column_names"]) > 1:
+            raise SupersetTemplateException(
+                "The table should have a single partitioned field "
+                "to use this function. You may want to use "
+                "`presto.latest_sub_partition`"
+            )
+
+        column_names = indexes[0]["column_names"]
+        part_fields = [(column_name, True) for column_name in column_names]
+        sql = cls._partition_query(table_name, database, 1, part_fields)
+        df = database.get_df(sql, schema)
+        return column_names, cls._latest_partition_from_df(df)
+
+    @classmethod
+    def latest_sub_partition(
+        cls, table_name: str, schema: Optional[str], database: Database, **kwargs: Any
+    ) -> Any:
+        """Returns the latest (max) partition value for a table
+
+        A filtering criteria should be passed for all fields that are
+        partitioned except for the field to be returned. For example,
+        if a table is partitioned by (``ds``, ``event_type`` and
+        ``event_category``) and you want the latest ``ds``, you'll want
+        to provide a filter as keyword arguments for both
+        ``event_type`` and ``event_category`` as in
+        ``latest_sub_partition('my_table',
+            event_category='page', event_type='click')``
+
+        :param table_name: the name of the table, can be just the table
+            name or a fully qualified table name as ``schema_name.table_name``
+        :type table_name: str
+        :param schema: schema / database / namespace
+        :type schema: str
+        :param database: database query will be run against
+        :type database: models.Database
+
+        :param kwargs: keyword arguments define the filtering criteria
+            on the partition list. There can be many of these.
+        :type kwargs: str
+        >>> latest_sub_partition('sub_partition_table', event_type='click')
+        '2018-01-01'
+        """
+        indexes = database.get_indexes(table_name, schema)
+        part_fields = indexes[0]["column_names"]
+        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
+            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
+                msg = f"Field [{k}] is not part of the portioning key"
+                raise SupersetTemplateException(msg)
+        if len(kwargs.keys()) != len(part_fields) - 1:
+            msg = (
+                "A filter needs to be specified for {} out of the " "{} fields."
+            ).format(len(part_fields) - 1, len(part_fields))
+            raise SupersetTemplateException(msg)
+
+        for field in part_fields:
+            if field not in kwargs.keys():
+                field_to_return = field
+
+        sql = cls._partition_query(
+            table_name, database, 1, [(field_to_return, True)], kwargs
+        )
+        df = database.get_df(sql, schema)
+        if df.empty:
+            return ""
+        return df.to_dict()[field_to_return][0]
 
 
 class PrestoEngineSpec(PrestoBaseEngineSpec):
@@ -442,9 +723,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         Per the SQLAlchemy definition if the schema is omitted the database’s default
         schema is used, however some dialects infer the request as schema agnostic.
 
-        Note that PyHive's Hive and Presto SQLAlchemy dialects do not implement the
-        `get_view_names` method. To ensure consistency with the `get_table_names` method
-        the request is deemed schema agnostic when the schema is omitted.
+        Note that PyHive's Presto SQLAlchemy dialect does not adhere to the
+        specification as the `get_view_names` method is not defined. Futhermore the
+        dialect wrongfully infers the request as schema agnostic when the schema is
+        omitted.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
@@ -470,13 +752,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ).strip()
             params = {}
 
-        with cls.get_engine(database, schema=schema) as engine:
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                cursor.execute(sql, params)
-                results = cursor.fetchall()
-
-        return {row[0] for row in results}
+        with database.get_raw_connection(schema=schema) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+            return {row[0] for row in results}
 
     @classmethod
     def _create_column_info(
@@ -631,92 +911,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         if schema:
             full_table = "{}.{}".format(quote(schema), full_table)
         return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
-
-    column_type_mappings = (
-        (
-            re.compile(r"^boolean.*", re.IGNORECASE),
-            types.BOOLEAN,
-            GenericDataType.BOOLEAN,
-        ),
-        (
-            re.compile(r"^tinyint.*", re.IGNORECASE),
-            TinyInteger(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^smallint.*", re.IGNORECASE),
-            types.SMALLINT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^integer.*", re.IGNORECASE),
-            types.INTEGER(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^bigint.*", re.IGNORECASE),
-            types.BIGINT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^real.*", re.IGNORECASE),
-            types.FLOAT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^double.*", re.IGNORECASE),
-            types.FLOAT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^decimal.*", re.IGNORECASE),
-            types.DECIMAL(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
-            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
-            lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^varbinary.*", re.IGNORECASE),
-            types.VARBINARY(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^json.*", re.IGNORECASE),
-            types.JSON(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^date.*", re.IGNORECASE),
-            types.DATE(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^timestamp.*", re.IGNORECASE),
-            types.TIMESTAMP(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^interval.*", re.IGNORECASE),
-            Interval(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^time.*", re.IGNORECASE),
-            types.Time(),
-            GenericDataType.TEMPORAL,
-        ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
-    )
 
     @classmethod
     def get_columns(
@@ -958,21 +1152,24 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         indexes = database.get_indexes(table_name, schema_name)
         if indexes:
-            cols = indexes[0].get("column_names", [])
-            full_table_name = table_name
-            if schema_name and "." not in table_name:
-                full_table_name = "{}.{}".format(schema_name, table_name)
-            pql = cls._partition_query(full_table_name, database)
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
 
             if not latest_parts:
                 latest_parts = tuple([None] * len(col_names))
+
             metadata["partitions"] = {
-                "cols": cols,
+                "cols": sorted(indexes[0].get("column_names", [])),
                 "latest": dict(zip(col_names, latest_parts)),
-                "partitionQuery": pql,
+                "partitionQuery": cls._partition_query(
+                    table_name=(
+                        f"{schema_name}.{table_name}"
+                        if schema_name and "." not in table_name
+                        else table_name
+                    ),
+                    database=database,
+                ),
             }
 
         # flake8 is not matching `Optional[str]` to `Any` for some reason...
@@ -996,16 +1193,15 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        with cls.get_engine(database, schema=schema) as engine:
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                sql = f"SHOW CREATE VIEW {schema}.{table}"
-                try:
-                    cls.execute(cursor, sql)
+        with database.get_raw_connection(schema=schema) as conn:
+            cursor = conn.cursor()
+            sql = f"SHOW CREATE VIEW {schema}.{table}"
+            try:
+                cls.execute(cursor, sql)
+            except DatabaseError:  # not a VIEW
+                return None
+            rows = cls.fetch_data(cursor, 1)
 
-                except DatabaseError:  # not a VIEW
-                    return None
-                rows = cls.fetch_data(cursor, 1)
             return rows[0][0]
 
     @classmethod
@@ -1086,225 +1282,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
-        cls,
-        table_name: str,
-        database: Database,
-        limit: int = 0,
-        order_by: Optional[List[Tuple[str, bool]]] = None,
-        filters: Optional[Dict[Any, Any]] = None,
-    ) -> str:
-        """Returns a partition query
-
-        :param table_name: the name of the table to get partitions from
-        :type table_name: str
-        :param limit: the number of partitions to be returned
-        :type limit: int
-        :param order_by: a list of tuples of field name and a boolean
-            that determines if that field should be sorted in descending
-            order
-        :type order_by: list of (str, bool) tuples
-        :param filters: dict of field name and filter value combinations
-        """
-        limit_clause = "LIMIT {}".format(limit) if limit else ""
-        order_by_clause = ""
-        if order_by:
-            l = []
-            for field, desc in order_by:
-                l.append(field + " DESC" if desc else "")
-            order_by_clause = "ORDER BY " + ", ".join(l)
-
-        where_clause = ""
-        if filters:
-            l = []
-            for field, value in filters.items():
-                l.append(f"{field} = '{value}'")
-            where_clause = "WHERE " + " AND ".join(l)
-
-        presto_version = database.get_extra().get("version")
-
-        # Partition select syntax changed in v0.199, so check here.
-        # Default to the new syntax if version is unset.
-        partition_select_clause = (
-            f'SELECT * FROM "{table_name}$partitions"'
-            if not presto_version
-            or StrictVersion(presto_version) >= StrictVersion("0.199")
-            else f"SHOW PARTITIONS FROM {table_name}"
-        )
-
-        sql = dedent(
-            f"""\
-            {partition_select_clause}
-            {where_clause}
-            {order_by_clause}
-            {limit_clause}
-        """
-        )
-        return sql
-
-    @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
-        cls,
-        table_name: str,
-        schema: Optional[str],
-        database: Database,
-        query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
-    ) -> Optional[Select]:
-        try:
-            col_names, values = cls.latest_partition(
-                table_name, schema, database, show_first=True
-            )
-        except Exception:  # pylint: disable=broad-except
-            # table is not partitioned
-            return None
-
-        if values is None:
-            return None
-
-        column_type_by_name = {
-            column.get("name"): column.get("type") for column in columns or []
-        }
-
-        for col_name, value in zip(col_names, values):
-            if col_name in column_type_by_name:
-                if column_type_by_name.get(col_name) == "TIMESTAMP":
-                    query = query.where(Column(col_name, TimeStamp()) == value)
-                elif column_type_by_name.get(col_name) == "DATE":
-                    query = query.where(Column(col_name, Date()) == value)
-                else:
-                    query = query.where(Column(col_name) == value)
-        return query
-
-    @classmethod
-    def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
-        if not df.empty:
-            return df.to_records(index=False)[0].item()
-        return None
-
-    @classmethod
-    @cache_manager.data_cache.memoize(timeout=60)
-    def latest_partition(
-        cls,
-        table_name: str,
-        schema: Optional[str],
-        database: Database,
-        show_first: bool = False,
-    ) -> Tuple[List[str], Optional[List[str]]]:
-        """Returns col name and the latest (max) partition value for a table
-
-        :param table_name: the name of the table
-        :param schema: schema / database / namespace
-        :param database: database query will be run against
-        :type database: models.Database
-        :param show_first: displays the value for the first partitioning key
-          if there are many partitioning keys
-        :type show_first: bool
-
-        >>> latest_partition('foo_table')
-        (['ds'], ('2018-01-01',))
-        """
-        indexes = database.get_indexes(table_name, schema)
-        if not indexes:
-            raise SupersetTemplateException(
-                f"Error getting partition for {schema}.{table_name}. "
-                "Verify that this table has a partition."
-            )
-
-        if len(indexes[0]["column_names"]) < 1:
-            raise SupersetTemplateException(
-                "The table should have one partitioned field"
-            )
-
-        if not show_first and len(indexes[0]["column_names"]) > 1:
-            raise SupersetTemplateException(
-                "The table should have a single partitioned field "
-                "to use this function. You may want to use "
-                "`presto.latest_sub_partition`"
-            )
-
-        column_names = indexes[0]["column_names"]
-        part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, database, 1, part_fields)
-        df = database.get_df(sql, schema)
-        return column_names, cls._latest_partition_from_df(df)
-
-    @classmethod
-    def latest_sub_partition(
-        cls, table_name: str, schema: Optional[str], database: Database, **kwargs: Any
-    ) -> Any:
-        """Returns the latest (max) partition value for a table
-
-        A filtering criteria should be passed for all fields that are
-        partitioned except for the field to be returned. For example,
-        if a table is partitioned by (``ds``, ``event_type`` and
-        ``event_category``) and you want the latest ``ds``, you'll want
-        to provide a filter as keyword arguments for both
-        ``event_type`` and ``event_category`` as in
-        ``latest_sub_partition('my_table',
-            event_category='page', event_type='click')``
-
-        :param table_name: the name of the table, can be just the table
-            name or a fully qualified table name as ``schema_name.table_name``
-        :type table_name: str
-        :param schema: schema / database / namespace
-        :type schema: str
-        :param database: database query will be run against
-        :type database: models.Database
-
-        :param kwargs: keyword arguments define the filtering criteria
-            on the partition list. There can be many of these.
-        :type kwargs: str
-        >>> latest_sub_partition('sub_partition_table', event_type='click')
-        '2018-01-01'
-        """
-        indexes = database.get_indexes(table_name, schema)
-        part_fields = indexes[0]["column_names"]
-        for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
-            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
-                msg = f"Field [{k}] is not part of the portioning key"
-                raise SupersetTemplateException(msg)
-        if len(kwargs.keys()) != len(part_fields) - 1:
-            msg = (
-                "A filter needs to be specified for {} out of the " "{} fields."
-            ).format(len(part_fields) - 1, len(part_fields))
-            raise SupersetTemplateException(msg)
-
-        for field in part_fields:
-            if field not in kwargs.keys():
-                field_to_return = field
-
-        sql = cls._partition_query(
-            table_name, database, 1, [(field_to_return, True)], kwargs
-        )
-        df = database.get_df(sql, schema)
-        if df.empty:
-            return ""
-        return df.to_dict()[field_to_return][0]
-
-    @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
-
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(native_type)
-
-    @classmethod
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

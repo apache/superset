@@ -18,11 +18,12 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.8.13-slim
+ARG PY_VER=3.8.16-slim
 FROM node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 RUN mkdir -p /app/superset-frontend
@@ -58,6 +59,7 @@ RUN mkdir -p ${PYTHONPATH} \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \
+            curl \
             default-libmysqlclient-dev \
             libsasl2-dev \
             libsasl2-modules-gssapi-mit \

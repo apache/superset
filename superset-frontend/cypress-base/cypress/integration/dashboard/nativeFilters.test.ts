@@ -82,7 +82,7 @@ function prepareDashboardFilters(
   }).then(res => {
     const { body } = res;
     const dashboardId = body.result.id;
-    const allFilters: Record<string, any>[] = [];
+    const allFilters: Record<string, unknown>[] = [];
     filters.forEach((f, i) => {
       allFilters.push({
         id: `NATIVE_FILTER-fLH0pxFQ${i}`,
@@ -128,6 +128,7 @@ function prepareDashboardFilters(
         label_colors: {},
         shared_label_colors: {},
         color_scheme_domain: [],
+        cross_filters_enabled: false,
         positions: {
           DASHBOARD_VERSION_KEY: 'v2',
           ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
@@ -202,9 +203,11 @@ function openVerticalFilterBar() {
 
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
-  cy.getBySel('dropdown-selectable-info')
+  cy.wait(250);
+  cy.getBySel('dropdown-selectable-icon-submenu')
     .contains('Orientation of filter bar')
-    .should('exist');
+    .should('exist')
+    .trigger('mouseover');
 
   if (orientation === 'vertical') {
     cy.get('.ant-dropdown-menu-item-selected')
@@ -233,14 +236,6 @@ function openMoreFilters(intercetFilterState = true) {
 }
 
 describe('Horizontal FilterBar', () => {
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
@@ -288,7 +283,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
     cy.getBySel('form-item-value').should('have.length', 0);
-    openMoreFilters();
+    openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
@@ -403,18 +398,14 @@ describe('Horizontal FilterBar', () => {
     saveNativeFilterSettings([SAMPLE_CHART]);
     cy.getBySel('filter-bar').within(() => {
       cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
-      cy.get(nativeFilters.filterItem).contains('+1').should('be.visible');
+      cy.get(nativeFilters.filterItem).contains('+ 1 ...').should('be.visible');
       cy.get('.ant-select-selection-search-input').click();
-      cy.get(nativeFilters.filterItem).contains('+2').should('be.visible');
+      cy.get(nativeFilters.filterItem).contains('+ 2 ...').should('be.visible');
     });
   });
 });
 
 describe('Native filters', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);
