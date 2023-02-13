@@ -420,6 +420,10 @@ export function useImportResource(
       const formData = new FormData();
       formData.append('formData', bundle);
 
+      const RE_EXPORT_TEXT = t(
+        'Please re-export your file and try importing again',
+      );
+
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
        */
@@ -468,7 +472,7 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again.'),
+                    RE_EXPORT_TEXT,
                   ].join('.\n'),
                 ),
               );
@@ -668,6 +672,21 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
+    return {
+      ...db,
+      catalog: Object.assign(
+        {},
+        ...db.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      ),
+    };
+  }
+  return db;
+};
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
@@ -676,7 +695,7 @@ export function useDatabaseValidation() {
     (database: Partial<DatabaseObject> | null, onCreate = false) =>
       SupersetClient.post({
         endpoint: '/api/v1/database/validate_parameters/',
-        body: JSON.stringify(database),
+        body: JSON.stringify(transformDB(database)),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(() => {

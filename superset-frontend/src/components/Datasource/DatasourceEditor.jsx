@@ -134,10 +134,10 @@ const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -491,7 +491,7 @@ ColumnCollectionTable.defaultProps = {
   allowAddItem: false,
   allowEditDataType: false,
   itemGenerator: () => ({
-    column_name: '<new column>',
+    column_name: t('<new column>'),
     filterable: true,
     groupby: true,
   }),
@@ -976,8 +976,8 @@ class DatasourceEditor extends React.PureComponent {
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
           itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
+            name: t('<new spatial>'),
+            type: t('<no type>'),
             config: null,
           })}
           collection={spatials}
@@ -1256,7 +1256,7 @@ class DatasourceEditor extends React.PureComponent {
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
-          metric_name: '<new metric>',
+          metric_name: t('<new metric>'),
           verbose_name: '',
           expression: '',
         })}
@@ -1418,10 +1418,10 @@ class DatasourceEditor extends React.PureComponent {
                 allowAddItem
                 allowEditDataType
                 itemGenerator={() => ({
-                  column_name: '<new column>',
+                  column_name: t('<new column>'),
                   filterable: true,
                   groupby: true,
-                  expression: '<enter SQL expression here>',
+                  expression: t('<enter SQL expression here>'),
                   __expanded: true,
                 })}
               />

@@ -17,43 +17,43 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { css, styled, t } from '@superset-ui/core';
+
 import Alert from 'src/components/Alert';
-import { t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { EmptyWrapperType } from 'src/components/TableView/TableView';
-import {
-  SqlLabRootState,
-  QueryCostEstimate,
-  QueryEditor,
-} from 'src/SqlLab/types';
-import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
-import { useSelector } from 'react-redux';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 
 export interface EstimateQueryCostButtonProps {
   getEstimate: Function;
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   tooltip?: string;
   disabled?: boolean;
 }
 
+const CostEstimateModalStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.s};
+  `}
+`;
+
 const EstimateQueryCostButton = ({
   getEstimate,
-  queryEditor,
+  queryEditorId,
   tooltip = '',
   disabled = false,
 }: EstimateQueryCostButtonProps) => {
   const queryCostEstimate = useSelector<
     SqlLabRootState,
     QueryCostEstimate | undefined
-  >(state => state.sqlLab.queryCostEstimates?.[queryEditor.id]);
-  const selectedText = useSelector<SqlLabRootState, string | undefined>(
-    rootState =>
-      (getUpToDateQuery(rootState, queryEditor) as unknown as QueryEditor)
-        .selectedText,
-  );
+  >(state => state.sqlLab.queryCostEstimates?.[queryEditorId]);
+
+  const { selectedText } = useQueryEditor(queryEditorId, ['selectedText']);
   const { cost } = queryCostEstimate || {};
   const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
   const columns = useMemo(
@@ -82,13 +82,14 @@ const EstimateQueryCostButton = ({
     }
     if (queryCostEstimate?.completed) {
       return (
-        <TableView
-          columns={columns}
-          data={tableData}
-          withPagination={false}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="cost-estimate"
-        />
+        <CostEstimateModalStyles>
+          <TableView
+            columns={columns}
+            data={tableData}
+            withPagination={false}
+            emptyWrapperType={EmptyWrapperType.Small}
+          />
+        </CostEstimateModalStyles>
       );
     }
     return <Loading position="normal" />;

@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { css, SupersetTheme, t } from '@superset-ui/core';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
-import { CloseOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { FieldPropTypes } from '.';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject } from '../../types';
@@ -64,8 +64,17 @@ export const TableCatalog = ({
                 value={sheet.name}
               />
               {tableCatalog?.length > 1 && (
-                <CloseOutlined
-                  className="catalog-delete"
+                <Icons.CloseOutlined
+                  css={(theme: SupersetTheme) => css`
+                    align-self: center;
+                    background: ${theme.colors.grayscale.light4};
+                    margin: 5px 5px 8px 5px;
+
+                    &.anticon > * {
+                      line-height: 0;
+                    }
+                  `}
+                  iconSize="m"
                   onClick={() => changeMethods.onRemoveTableCatalog(idx)}
                 />
               )}

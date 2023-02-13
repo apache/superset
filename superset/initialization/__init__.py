@@ -45,6 +45,8 @@ from superset.extensions import (
     migrate,
     profiling,
     results_backend_manager,
+    ssh_manager_factory,
+    stats_logger_manager,
     talisman,
 )
 from superset.security import SupersetSecurityManager
@@ -136,6 +138,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
         from superset.explore.api import ExploreRestApi
@@ -147,12 +150,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
+        from superset.sqllab.api import SqlLabRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.annotations import (
-            AnnotationLayerModelView,
-            AnnotationModelView,
-        )
+        from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
@@ -208,6 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(DatasourceRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
@@ -218,6 +220,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(SqlLabRestApi)
         #
         # Setup regular views
         #
@@ -235,16 +238,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-database",
             category="Data",
             category_label=__("Data"),
-        )
-
-        appbuilder.add_view(
-            AnnotationLayerModelView,
-            "Annotation Layers",
-            label=__("Annotation Layers"),
-            icon="fa-comment",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="",
         )
         appbuilder.add_view(
             DashboardModelView,
@@ -323,7 +316,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
-        appbuilder.add_view_no_menu(AnnotationModelView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
@@ -349,7 +341,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "SQL Editor",
-            label=_("SQL Lab"),
+            label=__("SQL Lab"),
             href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
@@ -357,7 +349,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("SQL"),
         )
         appbuilder.add_link(
-            __("Saved Queries"),
+            "Saved Queries",
+            label=__("Saved Queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
@@ -365,7 +358,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Query Search",
-            label=_("Query History"),
+            label=__("Query History"),
             href="/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
@@ -402,6 +395,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
+            AnnotationLayerView,
+            "Annotation Layers",
+            label=__("Annotation Layers"),
+            href="/annotationlayer/list/",
+            icon="fa-comment",
+            category_icon="",
+            category="Manage",
+            category_label=__("Manage"),
+        )
+
+        appbuilder.add_view(
             AccessRequestsModelView,
             "Access requests",
             label=__("Access requests"),
@@ -420,6 +424,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
+        self.configure_ssh_manager()
+        self.configure_stats_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -476,6 +482,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
+
+    def configure_ssh_manager(self) -> None:
+        ssh_manager_factory.init_app(self.superset_app)
+
+    def configure_stats_manager(self) -> None:
+        stats_logger_manager.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(
@@ -575,8 +587,36 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
-        if self.config["TALISMAN_ENABLED"]:
-            talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+        # Talisman
+        talisman_enabled = self.config["TALISMAN_ENABLED"]
+        talisman_config = self.config["TALISMAN_CONFIG"]
+        csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
+
+        if talisman_enabled:
+            talisman.init_app(self.superset_app, **talisman_config)
+
+        show_csp_warning = False
+        if (
+            csp_warning
+            and not self.superset_app.debug
+            and (
+                not talisman_enabled
+                or not talisman_config
+                or not talisman_config.get("content_security_policy")
+            )
+        ):
+            show_csp_warning = True
+
+        if show_csp_warning:
+            logger.warning(
+                "We haven't found any Content Security Policy (CSP) defined in "
+                "the configurations. Please make sure to configure CSP using the "
+                "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
+                "software. Failing to configure CSP have serious security implications. "
+                "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "information. You can disable this warning using the "
+                "CONTENT_SECURITY_POLICY_WARNING key."
+            )
 
     def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(

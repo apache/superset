@@ -195,9 +195,7 @@ POSTPROCESSING_OPERATIONS = {
         },
         {
             "operation": "sort",
-            "options": {
-                "columns": {"q1": False, "name": True},
-            },
+            "options": {"by": ["q1", "name"], "ascending": [False, True]},
         },
     ]
 }

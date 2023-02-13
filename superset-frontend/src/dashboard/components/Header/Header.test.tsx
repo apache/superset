@@ -37,7 +37,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   user: {
@@ -77,7 +82,8 @@ const createProps = () => ({
   setEditMode: jest.fn(),
   showBuilderPane: jest.fn(),
   updateCss: jest.fn(),
-  setColorSchemeAndUnsavedChanges: jest.fn(),
+  setColorScheme: jest.fn(),
+  setUnsavedChanges: jest.fn(),
   logEvent: jest.fn(),
   setRefreshFrequency: jest.fn(),
   hasUnsavedChanges: false,

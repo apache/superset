@@ -18,7 +18,7 @@
  */
 import JSONbig from 'json-bigint';
 import React, { useEffect, useRef, useState } from 'react';
-import JSONTree from 'react-json-tree';
+import { JSONTree } from 'react-json-tree';
 import {
   AutoSizer,
   Column,
@@ -53,7 +53,7 @@ function safeJsonObjectParse(
 
   // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
   try {
-    const jsonData = JSON.parse(data);
+    const jsonData = JSONbig({ storeAsString: true }).parse(data);
     if (jsonData && typeof jsonData === 'object') {
       return jsonData;
     }
@@ -61,6 +61,17 @@ function safeJsonObjectParse(
   } catch (_) {
     return null;
   }
+}
+
+export function convertBigIntStrToNumber(value: string | number) {
+  if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
+    return value.substring(1, value.length - 1);
+  }
+  return value;
+}
+
+function renderBigIntStrToNumber(value: string | number) {
+  return <>{convertBigIntStrToNumber(value)}</>;
 }
 
 const GRID_POSITION_ADJUSTMENT = 4;
@@ -332,7 +343,6 @@ const FilterableTable = ({
       .map(key => widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next),
   );
-  const totalTableHeight = useRef(height);
   const container = useRef<HTMLDivElement>(null);
 
   const fitTableToWidthIfNeeded = () => {
@@ -406,7 +416,13 @@ const FilterableTable = ({
     jsonString: CellDataType,
   ) => (
     <ModalTrigger
-      modalBody={<JSONTree data={jsonObject} theme={getJsonTreeTheme()} />}
+      modalBody={
+        <JSONTree
+          data={jsonObject}
+          theme={getJsonTreeTheme()}
+          valueRenderer={renderBigIntStrToNumber}
+        />
+      }
       modalFooter={
         <Button>
           <CopyToClipboard shouldShowText={false} text={jsonString} />
@@ -563,15 +579,13 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
-    totalTableHeight.current = height;
-    if (
+    // exclude the height of the horizontal scroll bar from the height of the table
+    // and the height of the table container if the content overflows
+    const totalTableHeight =
       container.current &&
       totalTableWidth.current > container.current.clientWidth
-    ) {
-      // exclude the height of the horizontal scroll bar from the height of the table
-      // and the height of the table container if the content overflows
-      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
-    }
+        ? height - SCROLL_BAR_HEIGHT
+        : height;
 
     const getColumnWidth = ({ index }: { index: number }) =>
       widthsForColumnsByKey[orderedColumnKeys[index]];
@@ -600,7 +614,7 @@ const FilterableTable = ({
                       cellRenderer={renderGridCell}
                       columnCount={orderedColumnKeys.length}
                       columnWidth={getColumnWidth}
-                      height={totalTableHeight.current - rowHeight}
+                      height={totalTableHeight - rowHeight}
                       onScroll={onScroll}
                       overscanColumnCount={overscanColumnCount}
                       overscanRowCount={overscanRowCount}
@@ -644,15 +658,13 @@ const FilterableTable = ({
       );
     }
 
-    totalTableHeight.current = height;
-    if (
+    // exclude the height of the horizontal scroll bar from the height of the table
+    // and the height of the table container if the content overflows
+    const totalTableHeight =
       container.current &&
       totalTableWidth.current > container.current.clientWidth
-    ) {
-      // exclude the height of the horizontal scroll bar from the height of the table
-      // and the height of the table container if the content overflows
-      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
-    }
+        ? height - SCROLL_BAR_HEIGHT
+        : height;
 
     const rowGetter = ({ index }: { index: number }) =>
       getDatum(sortedAndFilteredList, index);
@@ -665,7 +677,7 @@ const FilterableTable = ({
         {fitted && (
           <Table
             headerHeight={headerHeight}
-            height={totalTableHeight.current}
+            height={totalTableHeight}
             overscanRowCount={overscanRowCount}
             rowClassName={rowClassName}
             rowHeight={rowHeight}

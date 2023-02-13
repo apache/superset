@@ -27,9 +27,6 @@ interface QueryString {
 
 describe.skip('nativefilter url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
-  before(() => {
-    cy.login();
-  });
 
   let initialFilterKey: string;
   it('should have cachekey in nativefilter param', () => {

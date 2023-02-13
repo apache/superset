@@ -38,7 +38,6 @@ describe('PivotTableChart transformProps', () => {
     colTotals: true,
     rowTotals: true,
     valueFormat: 'SMART_NUMBER',
-    emitFilter: false,
     metricsLayout: MetricsLayoutEnum.COLUMNS,
     viz_type: '',
     datasource: '',
@@ -83,13 +82,13 @@ describe('PivotTableChart transformProps', () => {
       rowTotals: true,
       valueFormat: 'SMART_NUMBER',
       data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-      emitFilter: false,
       setDataMask,
       selectedFilters: {},
       verboseMap: {},
       metricsLayout: MetricsLayoutEnum.COLUMNS,
       metricColorFormatters: [],
       dateFormatters: {},
+      emitCrossFilters: false,
       columnFormats: {},
     });
   });

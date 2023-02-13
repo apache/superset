@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unicodedata
 import urllib
 from typing import Any
+from urllib.parse import urlparse
 
-from flask import current_app, url_for
+from flask import current_app, request, url_for
 
 
 def get_url_host(user_friendly: bool = False) -> str:
@@ -48,3 +50,18 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
 
     parts[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
     return urllib.parse.urlunsplit(parts)
+
+
+def is_safe_url(url: str) -> bool:
+    if url.startswith("///"):
+        return False
+    try:
+        ref_url = urlparse(request.host_url)
+        test_url = urlparse(url)
+    except ValueError:
+        return False
+    if unicodedata.category(url[0])[0] == "C":
+        return False
+    if test_url.scheme != ref_url.scheme or ref_url.netloc != test_url.netloc:
+        return False
+    return True

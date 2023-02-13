@@ -59,6 +59,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
+        sql = self._properties.get("sql", None)
         owner_ids: Optional[List[int]] = self._properties.get("owners")
 
         # Validate uniqueness
@@ -71,9 +72,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(DatabaseNotFoundValidationError())
         self._properties["database"] = database
 
-        # Validate table exists on dataset
-        if database and not DatasetDAO.validate_table_exists(
-            database, table_name, schema
+        # Validate table exists on dataset if sql is not provided
+        # This should be validated when the dataset is physical
+        if (
+            database
+            and not sql
+            and not DatasetDAO.validate_table_exists(database, table_name, schema)
         ):
             exceptions.append(TableNotFoundValidationError(table_name))
 

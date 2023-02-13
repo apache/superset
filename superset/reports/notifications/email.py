@@ -26,6 +26,7 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
+from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
@@ -127,7 +128,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __("Explore in Superset")
+        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         url = (
             modify_url_query(self._content.url, standalone="0")
             if self._content.url is not None
@@ -207,6 +208,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 dryrun=False,
                 header_data=content.header_data,
             )
-            logger.info("Report sent to email")
+            logger.info(
+                "Report sent to email, notification content is %s", content.header_data
+            )
+        except SupersetErrorsException as ex:
+            raise NotificationError(
+                ";".join([error.message for error in ex.errors])
+            ) from ex
         except Exception as ex:
-            raise NotificationError(ex) from ex
+            raise NotificationError(str(ex)) from ex

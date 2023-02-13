@@ -158,8 +158,8 @@ class TestRequestAccess(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_1_table(self):
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = inspect(engine).default_schema_name
+        with database.get_sqla_engine_with_context() as engine:
+            schema = inspect(engine).default_schema_name
 
         perm_data = ROLE_TABLES_PERM_DATA.copy()
         perm_data["database"][0]["schema"][0]["name"] = schema
@@ -186,8 +186,8 @@ class TestRequestAccess(SupersetTestCase):
     )
     def test_override_role_permissions_drops_absent_perms(self):
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = inspect(engine).default_schema_name
+        with database.get_sqla_engine_with_context() as engine:
+            schema = inspect(engine).default_schema_name
 
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
@@ -270,7 +270,7 @@ class TestRequestAccess(SupersetTestCase):
         session.commit()
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -309,7 +309,7 @@ class TestRequestAccess(SupersetTestCase):
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -353,7 +353,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)

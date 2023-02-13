@@ -105,7 +105,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         {description && (
           <span>
             <Tooltip
-              id={`${t('description')}-tooltip`}
+              id="description-tooltip"
               title={description}
               placement="top"
             >

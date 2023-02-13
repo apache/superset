@@ -21,7 +21,7 @@ import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 
 export const MAX_TAG_COUNT = 4;
 
-export const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
+export const TOKEN_SEPARATORS = [',', '\r\n', '\n', '\t', ';'];
 
 export const EMPTY_OPTIONS = [];
 

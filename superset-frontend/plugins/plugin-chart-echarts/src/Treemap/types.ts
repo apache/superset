@@ -24,7 +24,13 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartTransformedProps, LabelPositionEnum } from '../types';
+import {
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LabelPositionEnum,
+  TreePathInfo,
+} from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
   colorScheme?: string;
@@ -37,7 +43,6 @@ export type EchartsTreemapFormData = QueryFormData & {
   numberFormat: string;
   dateFormat: string;
   dashboardId?: number;
-  emitFilter: boolean;
 };
 
 export enum EchartsTreemapLabelType {
@@ -60,17 +65,12 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   showLabels: true,
   showUpperLabels: true,
   dateFormat: 'smart_date',
-  emitFilter: false,
 };
-
-export interface TreePathInfo {
-  name: string;
-  dataIndex: number;
-  value: number | number[];
-}
 export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
   treePathInfo?: TreePathInfo[];
 }
 
 export type TreemapTransformedProps =
-  EChartTransformedProps<EchartsTreemapFormData>;
+  BaseTransformedProps<EchartsTreemapFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

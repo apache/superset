@@ -58,9 +58,9 @@ export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null
               label: t('Stacked Style'),
               renderTrigger: true,
               choices: [
-                ['stack', 'stack'],
-                ['stream', 'stream'],
-                ['expand', 'expand'],
+                ['stack', t('stack')],
+                ['stream', t('stream')],
+                ['expand', t('expand')],
               ],
               default: 'stack',
               description: '',
@@ -115,7 +115,6 @@ export const exploreInitialData: ExplorePageInitialData = {
     datasource: '8__table',
     metric: 'count',
     slice_id: 371,
-    time_range: 'No filter',
     viz_type: 'table',
   },
   slice: {
@@ -128,7 +127,6 @@ export const exploreInitialData: ExplorePageInitialData = {
       datasource: '8__table',
       metric: 'count',
       slice_id: 371,
-      time_range: 'No filter',
       viz_type: 'table',
     },
   },

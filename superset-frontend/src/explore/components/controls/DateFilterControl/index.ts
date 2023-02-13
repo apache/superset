@@ -17,3 +17,4 @@
  * under the License.
  */
 export { default } from './DateFilterLabel';
+export * from './utils';

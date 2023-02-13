@@ -16,7 +16,6 @@
 # under the License.
 import json
 import re
-from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from apispec import APISpec
@@ -55,11 +54,12 @@ class GSheetsParametersSchema(Schema):
 
 class GSheetsParametersType(TypedDict):
     service_account_info: str
-    catalog: Dict[str, str]
+    catalog: Optional[Dict[str, str]]
 
 
 class GSheetsPropertiesType(TypedDict):
     parameters: GSheetsParametersType
+    catalog: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -69,6 +69,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = True
     allows_subqueries = True
+    disable_ssh_tunneling = True
 
     parameters_schema = GSheetsParametersSchema()
     default_driver = "apsw"
@@ -108,12 +109,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         table_name: str,
         schema_name: Optional[str],
     ) -> Dict[str, Any]:
-        engine = cls.get_engine(database, schema=schema_name)
-        with closing(engine.raw_connection()) as conn:
+        with database.get_raw_connection(schema=schema_name) as conn:
             cursor = conn.cursor()
             cursor.execute(f'SELECT GET_METADATA("{table_name}")')
             results = cursor.fetchone()[0]
-
         try:
             metadata = json.loads(results)
         except Exception:  # pylint: disable=broad-except
@@ -215,15 +214,21 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         properties: GSheetsPropertiesType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
+
+        # backwards compatible just incase people are send data
+        # via parameters for validation
         parameters = properties.get("parameters", {})
+        if parameters and parameters.get("catalog"):
+            table_catalog = parameters.get("catalog", {})
+        else:
+            table_catalog = properties.get("catalog", {})
+
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
-
-        table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
             # Allowing users to submit empty catalogs
@@ -250,6 +255,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         )
         conn = engine.connect()
         idx = 0
+
         for name, url in table_catalog.items():
 
             if not name:

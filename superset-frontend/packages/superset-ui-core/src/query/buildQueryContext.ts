@@ -48,6 +48,8 @@ export default function buildQueryContext(
       ? { buildQuery: options, queryFields: {} }
       : options || {};
   let queries = buildQuery(buildQueryObject(formData, queryFields));
+  // --- query mutator begin ---
+  // todo(Yongjie): move the query mutator into buildQueryObject instead of buildQueryContext
   queries.forEach(query => {
     if (Array.isArray(query.post_processing)) {
       // eslint-disable-next-line no-param-reassign
@@ -57,6 +59,7 @@ export default function buildQueryContext(
   if (isXAxisSet(formData)) {
     queries = queries.map(query => normalizeTimeColumn(formData, query));
   }
+  // --- query mutator end ---
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,

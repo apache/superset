@@ -23,6 +23,7 @@ import {
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
+  hasGenericChartAxes,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
@@ -43,7 +44,6 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
-  emitFilterControl,
   Dataset,
   ColumnMeta,
   defineSavedMetrics,
@@ -189,7 +189,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && isAggMode
+          hasGenericChartAxes && isAggMode
             ? {
                 name: 'time_grain_sqla',
                 config: {
@@ -217,9 +217,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && isAggMode
-            ? 'datetime_columns_lookup'
-            : null,
+          hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
         ],
         [
           {
@@ -370,7 +368,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        emitFilterControl,
       ],
     },
     {
@@ -489,7 +486,6 @@ const config: ControlPanelConfig = {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
                     | undefined,
-                  emitFilter: explore?.controls?.table_filter?.value,
                 };
               },
             },

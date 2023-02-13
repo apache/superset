@@ -19,7 +19,15 @@
 import { Dispatch } from 'redux';
 import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
 import { isString } from 'lodash';
-import { ChartConfiguration, DashboardInfo } from '../reducers/types';
+import { getErrorText } from 'src/utils/getClientErrorObject';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  DashboardInfo,
+  FilterBarOrientation,
+  RootState,
+} from 'src/dashboard/types';
+import { ChartConfiguration } from 'src/dashboard/reducers/types';
+import { onSave } from './dashboardState';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
@@ -111,3 +119,93 @@ export const setChartConfiguration =
       dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
     }
   };
+
+export const SET_FILTER_BAR_ORIENTATION = 'SET_FILTER_BAR_ORIENTATION';
+export interface SetFilterBarOrientation {
+  type: typeof SET_FILTER_BAR_ORIENTATION;
+  filterBarOrientation: FilterBarOrientation;
+}
+export function setFilterBarOrientation(
+  filterBarOrientation: FilterBarOrientation,
+) {
+  return { type: SET_FILTER_BAR_ORIENTATION, filterBarOrientation };
+}
+
+export const SET_CROSS_FILTERS_ENABLED = 'SET_CROSS_FILTERS_ENABLED';
+export interface SetCrossFiltersEnabled {
+  type: typeof SET_CROSS_FILTERS_ENABLED;
+  crossFiltersEnabled: boolean;
+}
+export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
+  return { type: SET_CROSS_FILTERS_ENABLED, crossFiltersEnabled };
+}
+
+export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { id, metadata } = getState().dashboardInfo;
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: Partial<DashboardInfo>; last_modified_time: number }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          filter_bar_orientation: orientation,
+        }),
+      });
+      const updatedDashboard = response.result;
+      const lastModifiedTime = response.last_modified_time;
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        if (metadata.filter_bar_orientation) {
+          dispatch(setFilterBarOrientation(metadata.filter_bar_orientation));
+        }
+      }
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+    } catch (errorObject) {
+      const errorText = await getErrorText(errorObject, 'dashboard');
+      dispatch(addDangerToast(errorText));
+      throw errorObject;
+    }
+  };
+}
+
+export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { id, metadata } = getState().dashboardInfo;
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: Partial<DashboardInfo>; last_modified_time: number }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          cross_filters_enabled: crossFiltersEnabled,
+        }),
+      });
+      const updatedDashboard = response.result;
+      const lastModifiedTime = response.last_modified_time;
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        dispatch(setCrossFiltersEnabled(metadata.cross_filters_enabled));
+      }
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+    } catch (errorObject) {
+      const errorText = await getErrorText(errorObject, 'dashboard');
+      dispatch(addDangerToast(errorText));
+      throw errorObject;
+    }
+  };
+}

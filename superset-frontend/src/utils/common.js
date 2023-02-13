@@ -36,17 +36,6 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function getParamFromQuery(query, param) {
-  const vars = query.split('&');
-  for (let i = 0; i < vars.length; i += 1) {
-    const pair = vars[i].split('=');
-    if (decodeURIComponent(pair[0]) === param) {
-      return decodeURIComponent(pair[1]);
-    }
-  }
-  return null;
-}
-
 export function storeQuery(query) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
@@ -150,5 +139,3 @@ export const isSafari = () => {
 
   return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
 };
-
-export const isNullish = value => value === null || value === undefined;

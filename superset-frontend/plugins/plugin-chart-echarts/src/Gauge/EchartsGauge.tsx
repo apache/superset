@@ -30,11 +30,12 @@ export default function EchartsGauge(props: GaugeChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData: { emitFilter },
+    emitCrossFilters,
+    refs,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -72,6 +73,7 @@ export default function EchartsGauge(props: GaugeChartTransformedProps) {
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

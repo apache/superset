@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict, List
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,8 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class DuplicateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]) -> None:
         self._base_model: SqlaTable = SqlaTable()
         self._properties = data.copy()
 
@@ -78,10 +76,12 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 col = TableColumn(
                     column_name=column_name,
                     verbose_name=config_.verbose_name,
+                    expression=config_.expression,
                     filterable=True,
                     groupby=True,
                     is_dttm=config_.is_dttm,
                     type=config_.type,
+                    description=config_.description,
                 )
                 cols.append(col)
             table.columns = cols
@@ -122,7 +122,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(DatasetExistsValidationError(table_name=duplicate_name))
 
         try:
-            owners = self.populate_owners(self._actor)
+            owners = self.populate_owners()
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

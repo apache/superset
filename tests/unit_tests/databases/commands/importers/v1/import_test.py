@@ -41,11 +41,21 @@ def test_import_database(session: Session) -> None:
     assert database.allow_run_async is False
     assert database.allow_ctas is True
     assert database.allow_cvas is True
+    assert database.allow_dml is True
     assert database.allow_file_upload is True
     assert database.extra == "{}"
     assert database.uuid == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
     assert database.is_managed_externally is False
     assert database.external_url is None
+
+    # ``allow_dml`` was initially not exported; the import should work if the field is
+    # missing
+    config = copy.deepcopy(database_config)
+    del config["allow_dml"]
+    session.delete(database)
+    session.flush()
+    database = import_database(session, config)
+    assert database.allow_dml is False
 
 
 def test_import_database_managed_externally(session: Session) -> None:

@@ -19,6 +19,10 @@
 import { QueryFormData } from '@superset-ui/core';
 
 describe('Visualization > Histogram', () => {
+  beforeEach(() => {
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const HISTOGRAM_FORM_DATA: QueryFormData = {
     datasource: '3__table',
     viz_type: 'histogram',
@@ -42,11 +46,6 @@ describe('Visualization > Histogram', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without groupby', () => {
     verify(HISTOGRAM_FORM_DATA);
@@ -86,6 +85,8 @@ describe('Visualization > Histogram', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    verify(HISTOGRAM_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')

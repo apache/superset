@@ -18,6 +18,7 @@
  */
 import { buildQueryContext } from '@superset-ui/core';
 import * as queryModule from '../../src/query/normalizeTimeColumn';
+import * as getXAxisModule from '../../src/query/getXAxis';
 
 describe('buildQueryContext', () => {
   it('should build datasource for table sources and apply defaults', () => {
@@ -98,6 +99,7 @@ describe('buildQueryContext', () => {
       ]),
     );
   });
+  // todo(Yongjie): move these test case into buildQueryObject.test.ts
   it('should remove undefined value in post_processing', () => {
     const queryContext = buildQueryContext(
       {
@@ -124,12 +126,9 @@ describe('buildQueryContext', () => {
     ]);
   });
   it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled and has x_axis', () => {
-    // @ts-ignore
-    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: true,
-      },
-    }));
+    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
+      value: true,
+    });
     const spyNormalizeTimeColumn = jest.spyOn(
       queryModule,
       'normalizeTimeColumn',
@@ -144,16 +143,12 @@ describe('buildQueryContext', () => {
       () => [{}],
     );
     expect(spyNormalizeTimeColumn).toBeCalled();
-    spy.mockRestore();
     spyNormalizeTimeColumn.mockRestore();
   });
   it("shouldn't call normalizeTimeColumn if GENERIC_CHART_AXES is disabled", () => {
-    // @ts-ignore
-    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
+    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
+      value: false,
+    });
     const spyNormalizeTimeColumn = jest.spyOn(
       queryModule,
       'normalizeTimeColumn',
@@ -167,7 +162,6 @@ describe('buildQueryContext', () => {
       () => [{}],
     );
     expect(spyNormalizeTimeColumn).not.toBeCalled();
-    spy.mockRestore();
     spyNormalizeTimeColumn.mockRestore();
   });
 });

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-
+import { QueryState, t } from '@superset-ui/core';
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
@@ -32,9 +31,22 @@ import {
 } from '../../reduxUtils';
 
 function alterUnsavedQueryEditorState(state, updatedState, id) {
+  if (state.tabHistory[state.tabHistory.length - 1] !== id) {
+    const { queryEditors } = alterInArr(
+      state,
+      'queryEditors',
+      { id },
+      updatedState,
+    );
+    return {
+      queryEditors,
+    };
+  }
   return {
-    ...(state.unsavedQueryEditor.id === id && state.unsavedQueryEditor),
-    ...(id ? { id, ...updatedState } : state.unsavedQueryEditor),
+    unsavedQueryEditor: {
+      ...(state.unsavedQueryEditor.id === id && state.unsavedQueryEditor),
+      ...(id ? { id, ...updatedState } : state.unsavedQueryEditor),
+    },
   };
 }
 
@@ -56,8 +68,8 @@ export default function sqlLabReducer(state = {}, action) {
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
     [actions.QUERY_EDITOR_SAVED]() {
-      const { query, result } = action;
-      const existing = state.queryEditors.find(qe => qe.id === query.id);
+      const { query, result, clientId } = action;
+      const existing = state.queryEditors.find(qe => qe.id === clientId);
       return alterInArr(
         state,
         'queryEditors',
@@ -227,7 +239,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.START_QUERY_VALIDATION]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             validationResult: {
@@ -259,7 +271,7 @@ export default function sqlLabReducer(state = {}, action) {
       // Otherwise, persist the results on the queryEditor state
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             validationResult: {
@@ -308,7 +320,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: null,
@@ -321,7 +333,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: true,
             cost: action.json,
             error: null,
@@ -334,7 +346,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: action.error,
@@ -367,7 +379,7 @@ export default function sqlLabReducer(state = {}, action) {
 
       return {
         ...newState,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             latestQueryId: action.query.id,
@@ -378,7 +390,7 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.STOP_QUERY]() {
       return alterInObject(state, 'queries', action.query, {
-        state: 'stopped',
+        state: QueryState.STOPPED,
         results: [],
       });
     },
@@ -392,12 +404,16 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.REQUEST_QUERY_RESULTS]() {
       return alterInObject(state, 'queries', action.query, {
-        state: 'fetching',
+        state: QueryState.FETCHING,
       });
     },
     [actions.QUERY_SUCCESS]() {
-      // prevent race condition were query succeeds shortly after being canceled
-      if (action.query.state === 'stopped') {
+      // prevent race condition where query succeeds shortly after being canceled
+      // or the final result was unsuccessful
+      if (
+        action.query.state === QueryState.STOPPED ||
+        action.results.status !== QueryState.SUCCESS
+      ) {
         return state;
       }
       const alts = {
@@ -405,7 +421,7 @@ export default function sqlLabReducer(state = {}, action) {
         progress: 100,
         results: action.results,
         rows: action?.results?.query?.rows || 0,
-        state: 'success',
+        state: QueryState.SUCCESS,
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
@@ -421,11 +437,11 @@ export default function sqlLabReducer(state = {}, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
-      if (action.query.state === 'stopped') {
+      if (action.query.state === QueryState.STOPPED) {
         return state;
       }
       const alts = {
-        state: 'failed',
+        state: QueryState.FAILED,
         errors: action.errors,
         errorMessage: action.msg,
         endDttm: now(),
@@ -538,7 +554,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SETDB]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             dbId: action.dbId,
@@ -550,7 +566,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_FUNCTION_NAMES]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             functionNames: action.functionNames,
@@ -562,7 +578,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             schema: action.schema,
@@ -574,7 +590,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_SCHEMA_OPTIONS]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             schemaOptions: action.options,
@@ -586,7 +602,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             tableOptions: action.options,
@@ -598,7 +614,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_TITLE]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             name: action.name,
@@ -610,7 +626,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_SQL]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             sql: action.sql,
@@ -622,7 +638,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_QUERY_LIMIT]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             queryLimit: action.queryLimit,
@@ -634,7 +650,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_TEMPLATE_PARAMS]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             templateParams: action.templateParams,
@@ -646,7 +662,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             selectedText: action.sql,
@@ -658,7 +674,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             autorun: action.autorun,
@@ -670,7 +686,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             northPercent: action.northPercent,
@@ -683,7 +699,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.QUERY_EDITOR_TOGGLE_LEFT_BAR]() {
       return {
         ...state,
-        unsavedQueryEditor: alterUnsavedQueryEditorState(
+        ...alterUnsavedQueryEditorState(
           state,
           {
             hideLeftBar: action.hideLeftBar,
@@ -710,8 +726,8 @@ export default function sqlLabReducer(state = {}, action) {
       Object.entries(action.alteredQueries).forEach(([id, changedQuery]) => {
         if (
           !state.queries.hasOwnProperty(id) ||
-          (state.queries[id].state !== 'stopped' &&
-            state.queries[id].state !== 'failed')
+          (state.queries[id].state !== QueryState.STOPPED &&
+            state.queries[id].state !== QueryState.FAILED)
         ) {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
@@ -725,8 +741,8 @@ export default function sqlLabReducer(state = {}, action) {
             // because of async behavior, sql lab may still poll a couple of seconds
             // when it started fetching or finished rendering results
             state:
-              currentState === 'success' &&
-              ['fetching', 'success'].includes(prevState)
+              currentState === QueryState.SUCCESS &&
+              [QueryState.FETCHING, QueryState.SUCCESS].includes(prevState)
                 ? prevState
                 : currentState,
           };

@@ -39,11 +39,13 @@ export type ButtonStyle =
   | 'link'
   | 'dashed';
 
+export type ButtonSize = 'default' | 'small' | 'xsmall';
+
 export type ButtonProps = Omit<AntdButtonProps, 'css'> &
   Pick<TooltipProps, 'placement'> & {
     tooltip?: string;
     className?: string;
-    buttonSize?: 'default' | 'small' | 'xsmall';
+    buttonSize?: ButtonSize;
     buttonStyle?: ButtonStyle;
     cta?: boolean;
     showMarginRight?: boolean;

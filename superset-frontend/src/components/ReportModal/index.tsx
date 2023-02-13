@@ -273,7 +273,7 @@ function ReportModal({
             onChange: ({ target }: { target: HTMLInputElement }) =>
               setCurrentReport({ name: target.value }),
           }}
-          label="Report Name"
+          label={t('Report Name')}
           data-test="report-name-test"
         />
         <LabeledErrorBoundInput

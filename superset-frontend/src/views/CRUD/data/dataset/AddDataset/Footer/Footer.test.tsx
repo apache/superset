@@ -20,6 +20,14 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
+
 const mockedProps = {
   url: 'realwebsite.com',
 };
@@ -36,10 +44,11 @@ const mockPropsWithDataset = {
     dataset_name: 'Untitled',
     table_name: 'real_info',
   },
+  hasColumns: true,
 };
 
 describe('Footer', () => {
-  it('renders a Footer with a cancel button and a disabled create button', () => {
+  test('renders a Footer with a cancel button and a disabled create button', () => {
     render(<Footer {...mockedProps} />, { useRedux: true });
 
     const saveButton = screen.getByRole('button', {
@@ -54,7 +63,7 @@ describe('Footer', () => {
     expect(createButton).toBeDisabled();
   });
 
-  it('renders a Create Dataset button when a table is selected', () => {
+  test('renders a Create Dataset button when a table is selected', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
@@ -62,5 +71,17 @@ describe('Footer', () => {
     });
 
     expect(createButton).toBeEnabled();
+  });
+
+  test('create button becomes disabled when table already has a dataset', () => {
+    render(<Footer datasets={['real_info']} {...mockPropsWithDataset} />, {
+      useRedux: true,
+    });
+
+    const createButton = screen.getByRole('button', {
+      name: /Create/i,
+    });
+
+    expect(createButton).toBeDisabled();
   });
 });

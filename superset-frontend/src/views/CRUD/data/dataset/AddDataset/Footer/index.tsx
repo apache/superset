@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { useHistory } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -36,6 +37,8 @@ interface FooterProps {
   addDangerToast: () => void;
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
+  hasColumns?: boolean;
+  datasets?: (string | null | undefined)[] | undefined;
 }
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
@@ -46,7 +49,13 @@ const LOG_ACTIONS = [
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
 ];
 
-function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
+function Footer({
+  datasetObject,
+  addDangerToast,
+  hasColumns = false,
+  datasets,
+}: FooterProps) {
+  const history = useHistory();
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -64,11 +73,6 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
 
     return LOG_ACTIONS[value];
   };
-  const goToPreviousUrl = () => {
-    // this is a placeholder url until the final feature gets implemented
-    // at that point we will be passing in the url of the previous location.
-    window.location.href = url;
-  };
 
   const cancelButtonOnClick = () => {
     if (!datasetObject) {
@@ -77,7 +81,7 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
       const logAction = createLogAction(datasetObject);
       logEvent(logAction, datasetObject);
     }
-    goToPreviousUrl();
+    history.goBack();
   };
 
   const tooltipText = t('Select a database table.');
@@ -96,22 +100,28 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          goToPreviousUrl();
+          history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
         }
       });
     }
   };
 
+  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
+  const disabledCheck =
+    !datasetObject?.table_name ||
+    !hasColumns ||
+    datasets?.includes(datasetObject?.table_name);
+
   return (
     <>
-      <Button onClick={cancelButtonOnClick}>Cancel</Button>
+      <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
       <Button
         buttonStyle="primary"
-        disabled={!datasetObject?.table_name}
+        disabled={disabledCheck}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}
       >
-        {t('Create Dataset')}
+        {CREATE_DATASET_TEXT}
       </Button>
     </>
   );

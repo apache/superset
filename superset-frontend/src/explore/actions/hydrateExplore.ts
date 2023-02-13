@@ -30,6 +30,7 @@ import {
   ensureIsArray,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -47,7 +48,13 @@ enum ColorSchemeType {
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
-  ({ form_data, slice, dataset, metadata }: ExplorePageInitialData) =>
+  ({
+    form_data,
+    slice,
+    dataset,
+    metadata,
+    saveAction = null,
+  }: ExplorePageInitialData) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
       getState();
@@ -61,6 +68,10 @@ export const hydrateExplore =
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
+    }
+    if (!initialFormData.time_range) {
+      initialFormData.time_range =
+        common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
@@ -124,6 +135,8 @@ export const hydrateExplore =
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
       metadata,
+      saveAction,
+      common,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER
@@ -169,6 +182,7 @@ export const hydrateExplore =
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: exploreState,
       },

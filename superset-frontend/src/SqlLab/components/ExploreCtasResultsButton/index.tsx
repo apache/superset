@@ -86,7 +86,7 @@ const ExploreCtasResultsButton = ({
       <InfoTooltipWithTrigger
         icon="line-chart"
         placement="top"
-        label="explore"
+        label={t('explore')}
       />{' '}
       {t('Explore')}
     </Button>

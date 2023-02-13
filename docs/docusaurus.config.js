@@ -211,7 +211,7 @@ const config = {
               },
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-16jvzmoi8-sI7jKWp~xc2zYRe~NqiY9Q',
+                href: 'http://bit.ly/join-superset-slack',
               },
               {
                 label: 'Mailing List',

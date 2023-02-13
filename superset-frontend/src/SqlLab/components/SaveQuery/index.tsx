@@ -36,8 +36,8 @@ import { QueryEditor } from 'src/SqlLab/types';
 interface SaveQueryProps {
   queryEditorId: string;
   columns: ISaveableDatasource['columns'];
-  onSave: (arg0: QueryPayload) => void;
-  onUpdate: (arg0: QueryPayload) => void;
+  onSave: (arg0: QueryPayload, id: string) => void;
+  onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Record<string, any>;
 }
@@ -46,19 +46,8 @@ type QueryPayload = {
   name: string;
   description?: string;
   id?: string;
-} & Pick<
-  QueryEditor,
-  | 'autorun'
-  | 'dbId'
-  | 'schema'
-  | 'sql'
-  | 'selectedText'
-  | 'remoteId'
-  | 'latestQueryId'
-  | 'queryLimit'
-  | 'tableOptions'
-  | 'schemaOptions'
->;
+  remoteId?: number;
+} & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -72,14 +61,14 @@ const Styles = styled.span`
   }
 `;
 
-export default function SaveQuery({
+const SaveQuery = ({
   queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
   columns,
-}: SaveQueryProps) {
+}: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
     'name',
@@ -93,6 +82,7 @@ export default function SaveQuery({
     'selectedText',
     'sql',
     'tableOptions',
+    'templateParams',
   ]);
   const query = useMemo(
     () => ({
@@ -120,10 +110,13 @@ export default function SaveQuery({
   );
 
   const queryPayload = () => ({
-    ...query,
     name: label,
     description,
     dbId: query.dbId ?? 0,
+    sql: query.sql,
+    schema: query.schema,
+    templateParams: query.templateParams,
+    remoteId: query?.remoteId || undefined,
   });
 
   useEffect(() => {
@@ -133,12 +126,12 @@ export default function SaveQuery({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
-    onSave(queryPayload());
+    onSave(queryPayload(), query.id);
     close();
   };
 
   const onUpdateWrapper = () => {
-    onUpdate(queryPayload());
+    onUpdate(queryPayload(), query.id);
     close();
   };
 
@@ -238,4 +231,6 @@ export default function SaveQuery({
       </Modal>
     </Styles>
   );
-}
+};
+
+export default SaveQuery;

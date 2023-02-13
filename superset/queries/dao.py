@@ -16,12 +16,17 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
+from superset import sql_lab
+from superset.common.db_query_status import QueryStatus
 from superset.dao.base import BaseDAO
+from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
 from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
+from superset.utils.core import get_user_id
+from superset.utils.dates import now_as_float
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +61,37 @@ class QueryDAO(BaseDAO):
         columns = payload.get("columns", {})
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
+
+    @staticmethod
+    def get_queries_changed_after(last_updated_ms: Union[float, int]) -> List[Query]:
+        # UTC date time, same that is stored in the DB.
+        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
+
+        return (
+            db.session.query(Query)
+            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
+            .all()
+        )
+
+    @staticmethod
+    def stop_query(client_id: str) -> None:
+        query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+        if not query:
+            raise QueryNotFoundException(f"Query with client_id {client_id} not found")
+
+        if query.status in [
+            QueryStatus.FAILED,
+            QueryStatus.SUCCESS,
+            QueryStatus.TIMED_OUT,
+        ]:
+            logger.warning(
+                "Query with client_id could not be stopped: query already complete",
+            )
+            return
+
+        if not sql_lab.cancel_query(query):
+            raise SupersetCancelQueryException("Could not cancel query")
+
+        query.status = QueryStatus.STOPPED
+        query.end_time = now_as_float()
+        db.session.commit()

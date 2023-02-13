@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
@@ -31,6 +31,69 @@ import {
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+
+const SqlLabStyles = styled.div`
+  ${({ theme }) => css`
+    &.SqlLab {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 0 ${theme.gridUnit * 2}px;
+
+      pre {
+        padding: 0 !important;
+        margin: 0;
+        border: none;
+        font-size: ${theme.typography.sizes.s}px;
+        background: transparent !important;
+      }
+
+      .north-pane {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .ace_editor {
+        flex-grow: 1;
+      }
+
+      .ace_content {
+        height: 100%;
+      }
+
+      .ant-tabs-content-holder {
+        /* This is needed for Safari */
+        height: 100%;
+      }
+
+      .ant-tabs-content {
+        height: 100%;
+        position: relative;
+        background-color: ${theme.colors.grayscale.light5};
+        overflow-x: auto;
+        overflow-y: auto;
+
+        > .ant-tabs-tabpane {
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+        }
+      }
+
+      .ResultsModal .ant-modal-body {
+        min-height: ${theme.gridUnit * 140}px;
+      }
+
+      .ant-modal-body {
+        overflow: auto;
+      }
+    }
+  `};
+`;
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -99,7 +162,7 @@ class App extends React.PureComponent {
       return window.location.replace('/superset/sqllab/history/');
     }
     return (
-      <div className="App SqlLab">
+      <SqlLabStyles className="App SqlLab">
         <QueryAutoRefresh
           queries={queries}
           refreshQueries={actions?.refreshQueries}
@@ -107,7 +170,7 @@ class App extends React.PureComponent {
         />
         <TabbedSqlEditors />
         <ToastContainer />
-      </div>
+      </SqlLabStyles>
     );
   }
 }

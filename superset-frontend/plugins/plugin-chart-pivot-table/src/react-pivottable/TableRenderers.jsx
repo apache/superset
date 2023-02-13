@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { PivotData, flatKey } from './utilities';
@@ -463,7 +464,7 @@ export class TableRenderer extends React.Component {
               true,
             )}
           >
-            Subtotal
+            {t('Subtotal')}
           </th>,
         );
       }
@@ -489,7 +490,9 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {t(`Total (%s)`, t(constAggregatorName))}
+          {t('Total (%(aggregatorName)s)', {
+            aggregatorName: t(this.props.aggregatorName),
+          })}
         </th>
       ) : null;
 
@@ -555,7 +558,9 @@ export class TableRenderer extends React.Component {
           )}
         >
           {colAttrs.length === 0
-            ? t(`Total (%s)`, t(constAggregatorName))
+            ? t('Total (%(aggregatorName)s)', {
+                aggregatorName: t(this.props.aggregatorName),
+              })
             : null}
         </th>
       </tr>
@@ -664,7 +669,7 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          Subtotal
+          {t('Subtotal')}
         </th>
       ) : null;
 
@@ -771,7 +776,9 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {t(`Total (%s)`, t(constAggregatorName))}
+        {t('Total (%(aggregatorName)s)', {
+          aggregatorName: t(this.props.aggregatorName),
+        })}
       </th>
     );
 
