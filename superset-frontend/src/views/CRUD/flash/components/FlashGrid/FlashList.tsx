@@ -164,7 +164,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   const flashRecoverService = (flash: FlashServiceObject) => {
     let currentTtl = flash?.ttl;
-    const maxDate = new Date(flash.ttl);
+    const maxDate = new Date();
 
     const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
     if (
