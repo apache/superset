@@ -66,7 +66,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import legacy_charts, QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -1741,8 +1741,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for slc in slices:
             try:
-                if slc.viz_type in legacy_charts:
-
+                query_context = slc.get_query_context()
+                if query_context:
+                    query_context.force = True
+                    command = ChartDataCommand(query_context)
+                    command.validate()
+                    payload = command.run()
+                else:
                     form_data = get_form_data(slc.id, use_slice_data=True)[0]
                     if dashboard_id:
                         form_data["extra_filters"] = (
@@ -1760,22 +1765,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         form_data=form_data,
                         force=True,
                     )
-
                     # pylint: disable=assigning-non-slot
                     g.form_data = form_data
                     payload = obj.get_payload()
                     delattr(g, "form_data")
-                else:
-                    query_context = slc.get_query_context()
-                    if not query_context:
-                        raise Exception(
-                            f"Query conext not found for the chart {slc.slice_name}. Please load the chart and save it manually"
-                        )
-                    if query_context != None:
-                        query_context.force = True
-                        command = ChartDataCommand(query_context)
-                        command.validate()
-                        payload = command.run()
 
                 error = payload["errors"] or None
                 status = payload["status"]
