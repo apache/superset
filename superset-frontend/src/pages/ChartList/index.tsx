@@ -151,11 +151,6 @@ interface ChartListProps {
   };
 }
 
-type ChartLinkedDashboard = {
-  id: number;
-  dashboard_title: string;
-};
-
 const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
