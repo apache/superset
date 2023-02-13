@@ -21,6 +21,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import { EchartsFunnelChartProps, EchartsFunnelFormData } from './types';
 
 export default class EchartsFunnelChartPlugin extends ChartPlugin<
@@ -43,12 +44,13 @@ export default class EchartsFunnelChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsFunnel'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('KPI'),
         credits: ['https://echarts.apache.org'],
         description: t(
           'Showcases how a metric changes as the funnel progresses. This classic chart is useful for visualizing drop-off between stages in a pipeline or lifecycle.',
         ),
+        exampleGallery: [{ url: example }],
         name: t('Funnel Chart'),
         tags: [
           t('Business'),

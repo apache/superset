@@ -26,9 +26,6 @@ describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
   it('should allow edit dataset', () => {
-    let numScripts = 0;
-
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
@@ -36,16 +33,8 @@ describe('Datasource control', () => {
 
     cy.get('[data-test="datasource-menu-trigger"]').click();
 
-    cy.get('script').then(nodes => {
-      numScripts = nodes.length;
-    });
-
     cy.get('[data-test="edit-dataset"]').click();
 
-    // should load additional scripts for the modal
-    cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
-    });
     cy.get('[data-test="edit-dataset-tabs"]').within(() => {
       cy.contains('Metrics').click();
     });
@@ -96,7 +85,6 @@ describe('Datasource control', () => {
 
 describe('Color scheme control', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
@@ -127,7 +115,6 @@ describe('Color scheme control', () => {
 });
 describe('VizType control', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: true }).as('lineChartData');
   });
@@ -154,7 +141,6 @@ describe('VizType control', () => {
 
 describe('Test datatable', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: false }).as('tableChartData');
     interceptChart({ legacy: true }).as('lineChartData');
     cy.visitChartByName('Daily Totals');
@@ -181,7 +167,6 @@ describe('Test datatable', () => {
 
 describe('Time range filter', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
   });
 
@@ -205,7 +190,8 @@ describe('Time range filter', () => {
           cy.get('input[value="now"]');
         });
         cy.get('[data-test=cancel-button]').click();
-        cy.get('.ant-popover').should('not.be.visible');
+        cy.wait(500);
+        cy.get('.ant-popover').should('not.exist');
       });
   });
 
@@ -294,7 +280,6 @@ describe('Time range filter', () => {
 
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');

@@ -279,6 +279,7 @@ export default typedMemo(function DataTable<D extends object>({
                 onContextMenu={(e: MouseEvent) => {
                   if (onContextMenu) {
                     e.preventDefault();
+                    e.stopPropagation();
                     onContextMenu(
                       row.original,
                       e.nativeEvent.clientX,

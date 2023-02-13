@@ -27,10 +27,12 @@ from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
+from superset.utils.core import backend
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from sqlalchemy import Table
 
 import pytest
 import pytz
@@ -79,6 +81,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -231,41 +234,6 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 422)
 
-    def test_annotation_json_endpoint(self):
-        # Set up an annotation layer and annotation
-        layer = AnnotationLayer(name="foo", descr="bar")
-        db.session.add(layer)
-        db.session.commit()
-
-        annotation = Annotation(
-            layer_id=layer.id,
-            short_descr="my_annotation",
-            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
-            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
-        )
-
-        db.session.add(annotation)
-        db.session.commit()
-
-        self.login()
-        resp_annotations = json.loads(
-            self.get_resp("annotationlayermodelview/api/read")
-        )
-        # the UI needs id and name to function
-        self.assertIn("id", resp_annotations["result"][0])
-        self.assertIn("name", resp_annotations["result"][0])
-
-        response = self.get_resp(
-            f"/superset/annotation_json/{layer.id}?form_data="
-            + quote(json.dumps({"time_range": "100 years ago : now"}))
-        )
-        assert "my_annotation" in response
-
-        # Rollback changes
-        db.session.delete(annotation)
-        db.session.delete(layer)
-        db.session.commit()
-
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
@@ -357,21 +325,13 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_filter_endpoint(self):
         self.login(username="admin")
-        slice_name = "Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
-        db.session.commit()
         tbl_id = self.table_ids.get("energy_usage")
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
-        url = (
-            "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
-            "&metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
-            "slice_id={}&datasource_name=energy_usage&"
-            "datasource_id=1&datasource_type=table"
-        )
+        url = "/superset/filter/table/{}/target/"
 
         # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id))
+        resp = self.get_resp(url.format(tbl_id))
         assert len(resp) > 0
         assert "energy_target0" in resp
 
@@ -457,7 +417,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
-        # Test all slice urls as user with with explore-v2-beta role
+        # Test all slice urls as user with explore-v2-beta role
         security_manager.add_role("explore-v2-beta")
 
         security_manager.add_user(
@@ -661,7 +621,7 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         response = self.client.get(f"/r/{model_url.id}")
-        assert response.headers["Location"] == "http://localhost/"
+        assert response.headers["Location"] == "/"
         db.session.delete(model_url)
         db.session.commit()
 
@@ -1454,7 +1414,7 @@ class TestCore(SupersetTestCase):
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/admin/",
-            f"/explore/?dataset_type=table&dataset_id={tbl_id}",
+            f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
             data = self.get_resp(url)
@@ -1651,7 +1611,7 @@ class TestCore(SupersetTestCase):
         Handle injected exceptions from the db mutator
         """
 
-        # Assert we can handle a custom excetion at the mutator level
+        # Assert we can handle a custom exception at the mutator level
         exception = SupersetException("Error message")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()
@@ -1706,7 +1666,19 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
         )
-        self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
+        self.assertEqual(
+            rv.headers["Location"], f"/explore/?form_data_key={random_key}"
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_has_table_by_name(self):
+        if backend() in ("sqlite", "mysql"):
+            return
+        example_db = superset.utils.database.get_example_database()
+        assert (
+            example_db.has_table_by_name(table_name="birth_names", schema="public")
+            is True
+        )
 
 
 if __name__ == "__main__":

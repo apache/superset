@@ -18,54 +18,9 @@
  */
 import { isXAxisSet } from '@superset-ui/core';
 
-describe('GENERIC_CHART_AXES is enabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: true,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
-  it('isEnabledAxies when FF is disabled', () => {
-    expect(
-      isXAxisSet({ datasource: '123', viz_type: 'table' }),
-    ).not.toBeTruthy();
-    expect(
-      isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
-    ).toBeTruthy();
-  });
-});
-
-describe('GENERIC_CHART_AXES is disabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
-  it('isEnabledAxies when FF is disabled', () => {
-    expect(
-      isXAxisSet({ datasource: '123', viz_type: 'table' }),
-    ).not.toBeTruthy();
-    expect(
-      isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
-    ).toBeTruthy();
-  });
+test('isXAxisSet', () => {
+  expect(isXAxisSet({ datasource: '123', viz_type: 'table' })).not.toBeTruthy();
+  expect(
+    isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
+  ).toBeTruthy();
 });

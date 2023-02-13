@@ -22,8 +22,7 @@ import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   isPhysicalColumn,
   QueryFormColumn,
   QueryFormOrderBy,
@@ -42,8 +41,8 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     if (
       isPhysicalColumn(col) &&
       formData.time_grain_sqla &&
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      formData?.datetime_columns_lookup?.[col]
+      hasGenericChartAxes &&
+      formData?.temporal_columns_lookup?.[col]
     ) {
       return {
         timeGrain: formData.time_grain_sqla,
@@ -66,7 +65,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     }
     return [
       {
-        ...(isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        ...(hasGenericChartAxes
           ? omit(baseQueryObject, ['extras.time_grain_sqla'])
           : baseQueryObject),
         orderby: orderBy,

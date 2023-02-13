@@ -20,8 +20,8 @@
 import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  EchartsLegendFormData,
-  EchartsTitleFormData,
+  LegendFormData,
+  TitleFormData,
   LabelPositionEnum,
   LegendOrientation,
   LegendType,
@@ -91,14 +91,14 @@ export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
 
-export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
+export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendMargin: null,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   showLegend: true,
 };
 
-export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
+export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
@@ -107,3 +107,10 @@ export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
 };
 
 export { DEFAULT_FORM_DATA } from './Timeseries/constants';
+
+// How far away from the mouse should the tooltip be
+export const TOOLTIP_POINTER_MARGIN = 10;
+
+// If no satisfactory position can be found, how far away
+// from the edge of the window should the tooltip be kept
+export const TOOLTIP_OVERFLOW_MARGIN = 5;

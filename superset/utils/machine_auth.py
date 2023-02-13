@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import importlib
 import logging
 from typing import Callable, Dict, TYPE_CHECKING
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
 
 class MachineAuthProvider:
     def __init__(
-        self, auth_webdriver_func_override: Callable[[WebDriver, "User"], WebDriver]
+        self, auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation
@@ -43,7 +45,7 @@ class MachineAuthProvider:
     def authenticate_webdriver(
         self,
         driver: WebDriver,
-        user: "User",
+        user: User,
     ) -> WebDriver:
         """
         Default AuthDriverFuncType type that sets a session cookie flask-login style
@@ -69,7 +71,7 @@ class MachineAuthProvider:
         return driver
 
     @staticmethod
-    def get_auth_cookies(user: "User") -> Dict[str, str]:
+    def get_auth_cookies(user: User) -> Dict[str, str]:
         # Login with the user specified to get the reports
         with current_app.test_request_context("/login"):
             login_user(user)

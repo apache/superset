@@ -30,11 +30,12 @@ export default function EchartsPie(props: PieChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData,
+    refs,
+    emitCrossFilters,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -72,6 +73,7 @@ export default function EchartsPie(props: PieChartTransformedProps) {
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

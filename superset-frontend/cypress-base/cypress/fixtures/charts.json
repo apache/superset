@@ -5,8 +5,9 @@
     "owners": [1],
     "viz_type": "line",
     "cache_timeout": 1000,
-    "datasource_id": 1,
-    "datasource_type": "table"
+    "datasource_id": 2,
+    "datasource_type": "table",
+    "params": "{\"viz_type\":\"line\",\"metrics\":[\"count\"]}"
   },
   {
     "slice_name": "2 - Sample chart",
@@ -14,8 +15,9 @@
     "owners": [1],
     "viz_type": "line",
     "cache_timeout": 1000,
-    "datasource_id": 1,
-    "datasource_type": "table"
+    "datasource_id": 2,
+    "datasource_type": "table",
+    "params": "{\"viz_type\":\"line\",\"metrics\":[\"count\"]}"
   },
   {
     "slice_name": "3 - Sample chart",
@@ -23,8 +25,9 @@
     "owners": [1],
     "viz_type": "line",
     "cache_timeout": 1000,
-    "datasource_id": 1,
-    "datasource_type": "table"
+    "datasource_id": 2,
+    "datasource_type": "table",
+    "params": "{\"viz_type\":\"line\",\"metrics\":[\"count\"]}"
   },
   {
     "slice_name": "4 - Sample chart",
@@ -32,7 +35,8 @@
     "owners": [1],
     "viz_type": "line",
     "cache_timeout": 1000,
-    "datasource_id": 1,
-    "datasource_type": "table"
+    "datasource_id": 2,
+    "datasource_type": "table",
+    "params": "{\"viz_type\":\"line\",\"metrics\":[\"count\"]}"
   }
 ]

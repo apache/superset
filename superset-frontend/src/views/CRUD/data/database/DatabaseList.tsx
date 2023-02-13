@@ -21,6 +21,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -36,9 +37,9 @@ import Icons from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
-import { ExtentionConfigs } from 'src/views/components/types';
+import { ExtensionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import type { MenuObjectProps } from 'src/views/components/Menu';
+import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -119,7 +120,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     COLUMNAR_EXTENSIONS,
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
-  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+  } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
 
   useEffect(() => {
     if (query?.databaseAdded) {
@@ -156,6 +157,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Delete user-selected db from local storage
+        setItem(LocalStorageKeys.db, null);
 
         // Close delete modal
         setDatabaseCurrentlyDeleting(null);
@@ -455,13 +459,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         Header: t('Expose in SQL Lab'),
+        key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
@@ -474,17 +479,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
+        key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'database_name',
         input: 'search',
         operator: FilterOperator.contains,

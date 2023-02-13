@@ -27,6 +27,7 @@ import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import { act } from 'react-dom/test-utils';
+import { QueryState } from '@superset-ui/core';
 
 // store needed for withToasts
 const mockStore = configureStore([thunk]);
@@ -46,7 +47,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: 'success',
+  status: QueryState.SUCCESS,
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',

@@ -103,23 +103,20 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
+) -> Tuple[Dict[str, List[Tuple[str]]], DefaultDict[str, List[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
-    roles = defaultdict(list)
-    permissions = defaultdict(set)
-
-    for role in user.roles:
-        permissions_ = security_manager.get_role_permissions(role)
-        for permission in permissions_:
+    data_permissions = defaultdict(set)
+    roles_permissions = security_manager.get_user_roles_permissions(user)
+    for _, permissions in roles_permissions.items():
+        for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
-                permissions[permission[0]].add(permission[1])
-            roles[role.name].append([permission[0], permission[1]])
+                data_permissions[permission[0]].add(permission[1])
     transformed_permissions = defaultdict(list)
-    for perm in permissions:
-        transformed_permissions[perm] = list(permissions[perm])
-    return roles, transformed_permissions
+    for perm in data_permissions:
+        transformed_permissions[perm] = list(data_permissions[perm])
+    return roles_permissions, transformed_permissions
 
 
 def get_viz(

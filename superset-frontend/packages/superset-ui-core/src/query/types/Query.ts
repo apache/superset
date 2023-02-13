@@ -136,12 +136,6 @@ export interface QueryObject
   /** The size of bucket by which to group timeseries data (forthcoming) */
   time_grain?: string;
 
-  /** Maximum number of timeseries */
-  timeseries_limit?: number;
-
-  /** The metric used to sort the returned result. */
-  timeseries_limit_metric?: Maybe<QueryFormMetric>;
-
   /** Direction to ordered by */
   order_desc?: boolean;
 
@@ -258,6 +252,7 @@ export const CtasEnum = {
 
 export type QueryColumn = {
   name: string;
+  column_name?: string;
   type: string | null;
   is_dttm: boolean;
 };
@@ -301,6 +296,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    errors?: SupersetError[];
   };
   id: string;
   isDataPreview: boolean;

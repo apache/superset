@@ -19,7 +19,6 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  formatSelectOptions,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
@@ -52,14 +51,14 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Aggregation function'),
               clearable: false,
-              choices: formatSelectOptions([
-                'sum',
-                'mean',
-                'min',
-                'max',
-                'std',
-                'var',
-              ]),
+              choices: [
+                ['sum', t('sum')],
+                ['mean', t('mean')],
+                ['min', t('min')],
+                ['max', t('max')],
+                ['std', t('std')],
+                ['var', t('var')],
+              ],
               default: 'sum',
               description: t(
                 'Aggregate function to apply when pivoting and ' +

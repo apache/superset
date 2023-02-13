@@ -190,3 +190,38 @@ def test_database_parameters_schema_mixin_invalid_type(
         dummy_schema.load(payload)
     except ValidationError as err:
         assert err.messages == {"port": ["Not a valid integer."]}
+
+
+def test_rename_encrypted_extra() -> None:
+    """
+    Test that ``encrypted_extra`` gets renamed to ``masked_encrypted_extra``.
+    """
+    from superset.databases.schemas import ConfigurationMethod, DatabasePostSchema
+
+    schema = DatabasePostSchema()
+
+    # current schema
+    payload = schema.load(
+        {
+            "database_name": "My database",
+            "masked_encrypted_extra": "{}",
+        }
+    )
+    assert payload == {
+        "database_name": "My database",
+        "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        "masked_encrypted_extra": "{}",
+    }
+
+    # previous schema
+    payload = schema.load(
+        {
+            "database_name": "My database",
+            "encrypted_extra": "{}",
+        }
+    )
+    assert payload == {
+        "database_name": "My database",
+        "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        "masked_encrypted_extra": "{}",
+    }

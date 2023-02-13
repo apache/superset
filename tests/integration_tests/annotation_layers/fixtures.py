@@ -73,7 +73,7 @@ def _insert_annotation(
 def create_annotation_layers():
     """
     Creates ANNOTATION_LAYERS_COUNT-1 layers with no annotations
-    and a final one with ANNOTATION_COUNT childs
+    and a final one with ANNOTATION_COUNT children
     :return:
     """
     with app.app_context():

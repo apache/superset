@@ -28,7 +28,7 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import { ParentSize } from '@vx/responsive';
+import { ParentSize } from '@visx/responsive';
 import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
