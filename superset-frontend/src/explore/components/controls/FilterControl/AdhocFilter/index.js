@@ -62,7 +62,9 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     const { subject, comparator } = adhocMetric;
     const operator =
       adhocMetric.operator &&
-      CUSTOM_OPERATIONS.indexOf(adhocMetric.operator) >= 0
+      // 'LATEST PARTITION' supported callback only
+      adhocMetric.operator ===
+        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LATEST_PARTITION].operation
         ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
         : OPERATORS_TO_SQL[adhocMetric.operator];
     return getSimpleSQLExpression(subject, operator, comparator);
@@ -118,6 +120,7 @@ export default class AdhocFilter {
     }
     this.isExtra = !!adhocFilter.isExtra;
     this.isNew = !!adhocFilter.isNew;
+    this.datasourceWarning = !!adhocFilter.datasourceWarning;
 
     this.filterOptionName =
       adhocFilter.filterOptionName ||

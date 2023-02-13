@@ -46,10 +46,6 @@ function confirmDelete() {
 }
 
 describe('Dashboards list', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('list mode', () => {
     before(() => {
       cy.visit(DASHBOARD_LIST);
@@ -127,7 +123,7 @@ describe('Dashboards list', () => {
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0, 1, 2, 3]);
       cy.visit(DASHBOARD_LIST);
     });
 

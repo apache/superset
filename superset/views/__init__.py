@@ -17,7 +17,6 @@
 from . import (
     access_requests,
     alerts,
-    annotations,
     api,
     base,
     core,

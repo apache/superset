@@ -209,6 +209,7 @@ const transformProps = (
       setDataMask = () => {},
       onContextMenu,
     },
+    emitCrossFilters,
   } = chartProps;
 
   const {
@@ -217,7 +218,6 @@ const transformProps = (
     show_cell_bars: showCellBars = true,
     include_search: includeSearch = false,
     page_length: pageLength,
-    emit_filter: emitFilter,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
     order_desc: sortDesc = false,
@@ -273,7 +273,7 @@ const transformProps = (
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
-    emitFilter,
+    emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
     timeGrain,

@@ -24,7 +24,7 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
-from flask_login import AnonymousUserMixin, LoginManager
+from flask_login import AnonymousUserMixin, login_user
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -149,8 +149,7 @@ class Dashboard(BaseSupersetView):
         # Log in as an anonymous user, just for this view.
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
-        login_manager: LoginManager = security_manager.lm
-        login_manager.reload_user(AnonymousUserMixin())
+        login_user(AnonymousUserMixin(), force=True)
 
         add_extra_log_payload(
             dashboard_id=dashboard_id_or_slug,

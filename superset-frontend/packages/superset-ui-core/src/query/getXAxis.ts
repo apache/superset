@@ -18,22 +18,40 @@
  */
 import {
   DTTM_ALIAS,
+  FeatureFlag,
+  isFeatureEnabled,
   getColumnLabel,
   isQueryFormColumn,
   QueryFormData,
+  QueryFormColumn,
+  Optional,
 } from '@superset-ui/core';
 
 export const isXAxisSet = (formData: QueryFormData) =>
   isQueryFormColumn(formData.x_axis);
 
-export const getXAxis = (formData: QueryFormData): string | undefined => {
+export const hasGenericChartAxes = isFeatureEnabled(
+  FeatureFlag.GENERIC_CHART_AXES,
+);
+
+export const getXAxisColumn = (
+  formData: QueryFormData,
+): Optional<QueryFormColumn> => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
   if (!(formData.granularity_sqla || formData.x_axis)) {
     return undefined;
   }
 
   if (isXAxisSet(formData)) {
-    return getColumnLabel(formData.x_axis);
+    return formData.x_axis;
   }
   return DTTM_ALIAS;
+};
+
+export const getXAxisLabel = (formData: QueryFormData): Optional<string> => {
+  const col = getXAxisColumn(formData);
+  if (col) {
+    return getColumnLabel(col);
+  }
+  return undefined;
 };

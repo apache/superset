@@ -26,7 +26,7 @@ import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import { MenuObjectProps } from './Menu';
+import { MenuObjectProps } from 'src/types/bootstrapTypes';
 
 const StyledHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;

@@ -76,6 +76,7 @@ export default class AdhocMetric {
       this.aggregate = null;
     }
     this.isNew = !!adhocMetric.isNew;
+    this.datasourceWarning = !!adhocMetric.datasourceWarning;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
       ? adhocMetric.label
@@ -126,7 +127,7 @@ export default class AdhocMetric {
       ...this,
       // all duplicate metrics are not considered new by default
       isNew: false,
-      // but still overriddable by nextFields
+      // but still overridable by nextFields
       ...nextFields,
     });
   }

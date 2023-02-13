@@ -35,6 +35,7 @@ const propTypes = {
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
   datasource: PropTypes.object,
+  datasourceWarningMessage: PropTypes.string,
 };
 
 export default function MetricDefinitionValue({
@@ -50,6 +51,7 @@ export default function MetricDefinitionValue({
   index,
   type,
   multi,
+  datasourceWarningMessage,
 }) {
   const getSavedMetricByName = metricName =>
     savedMetrics.find(metric => metric.metric_name === metricName);
@@ -78,6 +80,7 @@ export default function MetricDefinitionValue({
       savedMetric: savedMetric ?? {},
       type,
       multi,
+      datasourceWarningMessage,
     };
 
     return <AdhocMetricOption {...metricOptionProps} />;

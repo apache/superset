@@ -22,7 +22,6 @@ import '@applitools/eyes-cypress/commands';
 require('cy-verify-downloads').addCustomCommand();
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
-const TokenName = Cypress.env('TOKEN_NAME');
 let DASHBOARD_FIXTURES: Record<string, any>[] = [];
 let CHART_FIXTURES: Record<string, any>[] = [];
 
@@ -40,13 +39,17 @@ Cypress.Commands.add('loadDashboardFixtures', () =>
 
 before(() => {
   cy.login();
+  Cypress.Cookies.defaults({ preserve: 'session' });
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
+});
+
+beforeEach(() => {
   cy.cleanDashboards();
   cy.cleanCharts();
 });
 
-Cypress.Commands.add('cleanDashboards', () =>
+Cypress.Commands.add('cleanDashboards', () => {
   cy.getDashboards().then((sampleDashboards?: Record<string, any>[]) => {
     const deletableDashboards = [];
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
@@ -68,16 +71,15 @@ Cypress.Commands.add('cleanDashboards', () =>
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
       }).then(resp => resp);
     }
-  }),
-);
+  });
+});
 
-Cypress.Commands.add('cleanCharts', () =>
+Cypress.Commands.add('cleanCharts', () => {
   cy.getCharts().then((sampleCharts?: Record<string, any>[]) => {
     const deletableCharts = [];
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
@@ -89,7 +91,7 @@ Cypress.Commands.add('cleanCharts', () =>
         deletableCharts.push(isInDb.id);
       }
     }
-    if (deletableCharts) {
+    if (deletableCharts.length) {
       cy.request({
         failOnStatusCode: false,
         method: 'DELETE',
@@ -99,14 +101,13 @@ Cypress.Commands.add('cleanCharts', () =>
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
       }).then(resp => resp);
     }
-  }),
-);
+  });
+});
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
   cy.get(`[data-test=${selector}]`, ...args),
@@ -124,6 +125,8 @@ Cypress.on('uncaught:exception', err => {
     // returning false here prevents Cypress from failing the test
     return false;
   }
+
+  return false; // TODO:@geido remove
 });
 /* eslint-enable consistent-return */
 
@@ -135,10 +138,6 @@ Cypress.Commands.add('login', () => {
   }).then(response => {
     expect(response.status).to.eq(200);
   });
-});
-
-Cypress.Commands.add('preserveLogin', () => {
-  Cypress.Cookies.preserveOnce('session');
 });
 
 Cypress.Commands.add('visitChartByName', name => {
@@ -180,7 +179,6 @@ Cypress.Commands.add(
           Cookie: `csrf_access_token=${accessToken}`,
           'X-CSRFToken': accessToken,
         }),
-        ...(TokenName && { Authorization: `Bearer ${TokenName}` }),
         'Content-Type': 'application/json',
         Referer: `${Cypress.config().baseUrl}/`,
       },
@@ -251,7 +249,6 @@ Cypress.Commands.add('createSampleDashboards', (indexes?: number[]) =>
               'access_token',
             )}`,
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
             'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
             Referer: `${Cypress.config().baseUrl}/`,
           },
@@ -275,7 +272,6 @@ Cypress.Commands.add('createSampleCharts', (indexes?: number[]) =>
               'access_token',
             )}`,
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
             'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
             Referer: `${Cypress.config().baseUrl}/`,
           },
@@ -311,7 +307,6 @@ Cypress.Commands.add(
             'access_token',
           )}`,
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
@@ -319,17 +314,41 @@ Cypress.Commands.add(
       .then(resp => resp),
 );
 
-Cypress.Commands.add('getDashboards', () =>
+Cypress.Commands.add('getDashboards', () => {
+  cy.request({
+    method: 'GET',
+    url: `api/v1/dashboard/`,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }).then(resp => resp.body.result);
+});
+
+Cypress.Commands.add('getDashboard', (dashboardId: string | number) =>
   cy
     .request({
       method: 'GET',
-      url: `api/v1/dashboard/`,
+      url: `api/v1/dashboard/${dashboardId}`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
       },
     })
     .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add(
+  'updateDashboard',
+  (dashboardId: number, body: Record<string, any>) =>
+    cy
+      .request({
+        method: 'PUT',
+        url: `api/v1/dashboard/${dashboardId}`,
+        body,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(resp => resp.body.result),
 );
 
 Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
@@ -343,7 +362,6 @@ Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
           'access_token',
         )}`,
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
         'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
         Referer: `${Cypress.config().baseUrl}/`,
       },
@@ -358,7 +376,6 @@ Cypress.Commands.add('getCharts', () =>
       url: `api/v1/chart/`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
       },
     })
     .then(resp => resp.body.result),

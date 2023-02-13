@@ -21,7 +21,7 @@ import { interceptFav, interceptUnfav } from './utils';
 
 describe('Dashboard actions', () => {
   beforeEach(() => {
-    cy.createSampleDashboards();
+    cy.createSampleDashboards([0]);
     cy.visit(SAMPLE_DASHBOARD_1);
   });
 

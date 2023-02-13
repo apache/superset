@@ -187,7 +187,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
             : t('Superset Embedded SDK documentation.')}
         </a>
       </p>
-      <h3>Settings</h3>
+      <h3>{t('Settings')}</h3>
       <FormItem>
         <label htmlFor="allowed-domains">
           {t('Allowed Domains (comma separated)')}{' '}

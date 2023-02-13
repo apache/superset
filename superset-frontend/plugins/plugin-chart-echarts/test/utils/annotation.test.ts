@@ -17,15 +17,16 @@
  * under the License.
  */
 import {
-  AnnotationLayer,
   AnnotationData,
+  AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
+  DataRecord,
   FormulaAnnotationLayer,
   TimeseriesDataRecord,
-  DataRecord,
 } from '@superset-ui/core';
 import {
   evalFormula,
@@ -161,7 +162,7 @@ describe('evalFormula', () => {
       { __timestamp: 10 },
     ];
 
-    expect(evalFormula(layer, data, '__timestamp', 'time')).toEqual([
+    expect(evalFormula(layer, data, '__timestamp', AxisType.time)).toEqual([
       [0, 1],
       [10, 11],
     ]);
@@ -178,7 +179,7 @@ describe('evalFormula', () => {
         { ...layer, value: 'y  = x* 2   -1' },
         data,
         '__timestamp',
-        'time',
+        AxisType.time,
       ),
     ).toEqual([
       [0, -1],
@@ -190,7 +191,12 @@ describe('evalFormula', () => {
     const data: DataRecord[] = [{ gender: 'boy' }, { gender: 'girl' }];
 
     expect(
-      evalFormula({ ...layer, value: 'y = 1000' }, data, 'gender', 'category'),
+      evalFormula(
+        { ...layer, value: 'y = 1000' },
+        data,
+        'gender',
+        AxisType.category,
+      ),
     ).toEqual([
       ['boy', 1000],
       ['girl', 1000],

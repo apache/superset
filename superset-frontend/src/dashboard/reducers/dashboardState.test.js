@@ -28,7 +28,6 @@ import {
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
   UNSET_FOCUSED_FILTER_FIELD,
-  RESET_SLICE,
 } from 'src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
@@ -44,7 +43,7 @@ describe('dashboardState reducer', () => {
         { sliceIds: [1] },
         { type: ADD_SLICE, slice: { slice_id: 2 } },
       ),
-    ).toEqual({ sliceIds: [1, 2], updateSlice: true });
+    ).toEqual({ sliceIds: [1, 2] });
   });
 
   it('should remove a slice', () => {
@@ -54,12 +53,6 @@ describe('dashboardState reducer', () => {
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
     ).toEqual({ sliceIds: [1], filters: {} });
-  });
-
-  it('should reset updateSlice', () => {
-    expect(
-      dashboardStateReducer({ updateSlice: true }, { type: RESET_SLICE }),
-    ).toEqual({ updateSlice: false });
   });
 
   it('should toggle fav star', () => {

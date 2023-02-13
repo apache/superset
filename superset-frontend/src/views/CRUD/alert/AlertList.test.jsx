@@ -55,7 +55,7 @@ const mockalerts = [...new Array(3)].map((_, i) => ({
   last_eval_dttm: Date.now(),
   last_state: 'ok',
   name: `alert ${i}  `,
-  owners: [],
+  owners: [{ id: 1 }],
   recipients: [
     {
       id: `${i}`,
@@ -67,6 +67,8 @@ const mockalerts = [...new Array(3)].map((_, i) => ({
 
 const mockUser = {
   userId: 1,
+  firstName: 'user 1',
+  lastName: 'lastname',
 };
 
 fetchMock.get(alertsEndpoint, {

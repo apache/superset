@@ -28,7 +28,8 @@ import {
   styled,
   useTheme,
   isAdhocColumn,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
+  t,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -55,7 +56,7 @@ const PivotTableWrapper = styled.div`
   overflow: auto;
 `;
 
-const METRIC_KEY = 'metric';
+const METRIC_KEY = t('metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
@@ -135,7 +136,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     colTotals,
     rowTotals,
     valueFormat,
-    emitFilter,
+    emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,
@@ -144,6 +145,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
+    timeGrainSqla,
   } = props;
 
   const theme = useTheme();
@@ -286,7 +288,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       isSubtotal: boolean,
       isGrandTotal: boolean,
     ) => {
-      if (isSubtotal || isGrandTotal || !emitFilter) {
+      if (isSubtotal || isGrandTotal || !emitCrossFilters) {
         return;
       }
 
@@ -326,7 +328,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
       handleChange(updatedFilters);
     },
-    [emitFilter, selectedFilters, handleChange],
+    [emitCrossFilters, selectedFilters, handleChange],
   );
 
   const tableOptions = useMemo(
@@ -335,7 +337,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       clickColumnHeaderCallback: toggleFilter,
       colTotals,
       rowTotals,
-      highlightHeaderCellsOnHover: emitFilter,
+      highlightHeaderCellsOnHover: emitCrossFilters,
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
@@ -344,7 +346,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     [
       colTotals,
       dateFormatters,
-      emitFilter,
+      emitCrossFilters,
       metricColorFormatters,
       rowTotals,
       selectedFilters,
@@ -370,18 +372,20 @@ export default function PivotTableChart(props: PivotTableProps) {
     ) => {
       if (onContextMenu) {
         e.preventDefault();
-        const filters: QueryObjectFilterClause[] = [];
+        e.stopPropagation();
+        const filters: BinaryQueryObjectFilterClause[] = [];
         if (colKey && colKey.length > 1) {
           colKey.forEach((val, i) => {
             const col = cols[i];
-            const formattedVal =
-              dateFormatters[col]?.(val as number) || String(val);
+            const formatter = dateFormatters[col];
+            const formattedVal = formatter?.(val as number) || String(val);
             if (i > 0) {
               filters.push({
                 col,
                 op: '==',
                 val,
                 formattedVal,
+                grain: formatter ? timeGrainSqla : undefined,
               });
             }
           });
@@ -389,20 +393,21 @@ export default function PivotTableChart(props: PivotTableProps) {
         if (rowKey) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
-            const formattedVal =
-              dateFormatters[col]?.(val as number) || String(val);
+            const formatter = dateFormatters[col];
+            const formattedVal = formatter?.(val as number) || String(val);
             filters.push({
               col,
               op: '==',
               val,
               formattedVal,
+              grain: formatter ? timeGrainSqla : undefined,
             });
           });
         }
-        onContextMenu(filters, e.clientX, e.clientY);
+        onContextMenu(e.clientX, e.clientY, filters);
       }
     },
-    [cols, dateFormatters, onContextMenu, rows],
+    [cols, dateFormatters, onContextMenu, rows, timeGrainSqla],
   );
 
   return (

@@ -256,6 +256,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_empty_request_with_excel_result_format(self):
+        """
+        Chart data API: Test empty chart data with Excel result format
+        """
+        self.query_context_payload["result_format"] = "xlsx"
+        self.query_context_payload["queries"] = []
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -264,6 +274,17 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
         assert rv.mimetype == "text/csv"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_excel_result_format(self):
+        """
+        Chart data API: Test chart data with Excel result format
+        """
+        self.query_context_payload["result_format"] = "xlsx"
+        mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        assert rv.mimetype == mimetype
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_multi_query_csv_result_format(self):
@@ -281,6 +302,21 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert zipfile.namelist() == ["query_1.csv", "query_2.csv"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_multi_query_excel_result_format(self):
+        """
+        Chart data API: Test chart data with multi-query Excel result format
+        """
+        self.query_context_payload["result_format"] = "xlsx"
+        self.query_context_payload["queries"].append(
+            self.query_context_payload["queries"][0]
+        )
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        assert rv.mimetype == "application/zip"
+        zipfile = ZipFile(BytesIO(rv.data), "r")
+        assert zipfile.namelist() == ["query_1.xlsx", "query_2.xlsx"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format_when_actor_not_permitted_for_csv__403(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -288,6 +324,18 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         self.login(username="gamma_no_csv")
         self.query_context_payload["result_format"] = "csv"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_excel_result_format_when_actor_not_permitted_for_excel__403(self):
+        """
+        Chart data API: Test chart data with Excel result format
+        """
+        self.logout()
+        self.login(username="gamma_no_csv")
+        self.query_context_payload["result_format"] = "xlsx"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 403
@@ -451,7 +499,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     def test_with_invalid_where_parameter__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
-        # erroneus WHERE-clause
+        # erroneous WHERE-clause
         self.query_context_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -764,6 +812,47 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_table_columns_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name", "gender"]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "name" in result["colnames"]
+        assert "gender" in result["colnames"]
+        assert "name" in result["query"]
+        assert "gender" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "gender"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_adhoc_column_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = [
+            "name",
+            {
+                "label": "num divide by 10",
+                "sqlExpression": "num/10",
+                "expressionType": "SQL",
+            },
+        ]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "num divide by 10" in result["colnames"]
+        assert "name" in result["colnames"]
+        assert "num divide by 10" in result["query"]
+        assert "name" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
+
 
 @pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):
@@ -820,6 +909,56 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_get_forced(self):
+        """
+        Chart data API: Test GET endpoint with force cache parameter
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        chart.query_context = json.dumps(
+            {
+                "datasource": {"id": chart.table.id, "type": "table"},
+                "force": False,
+                "queries": [
+                    {
+                        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                        "granularity": "ds",
+                        "filters": [],
+                        "extras": {
+                            "having": "",
+                            "having_druid": [],
+                            "where": "",
+                        },
+                        "applied_time_extras": {},
+                        "columns": ["gender"],
+                        "metrics": ["sum__num"],
+                        "orderby": [["sum__num", False]],
+                        "annotation_layers": [],
+                        "row_limit": 50000,
+                        "timeseries_limit": 0,
+                        "order_desc": True,
+                        "url_params": {},
+                        "custom_params": {},
+                        "custom_form_data": {},
+                    }
+                ],
+                "result_format": "json",
+                "result_type": "full",
+            }
+        )
+
+        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/?force=true", "get_data")
+
+        # should burst cache
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?force=true", "get_data"
+        )
+        assert rv.json["result"][0]["is_cached"] is None
+
+        # should get response from the cache
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.json["result"][0]["is_cached"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
@@ -1057,3 +1196,53 @@ def test_chart_cache_timeout_chart_not_found(
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 1010
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (400, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (400, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_not_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (200, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (200, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code

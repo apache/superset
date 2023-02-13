@@ -19,11 +19,17 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { ReactElement, RefObject } from 'react';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
+
+export const SELECT_ALL_VALUE: RawValue = 'Select All';
+export const selectAllOption = {
+  value: SELECT_ALL_VALUE,
+  label: String(SELECT_ALL_VALUE),
+};
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -126,9 +132,9 @@ export const getSuffixIcon = (
     return <StyledSpin size="small" />;
   }
   if (showSearch && isDropdownVisible) {
-    return <SearchOutlined />;
+    return <Icons.SearchOutlined iconSize="s" />;
   }
-  return <DownOutlined />;
+  return <Icons.DownOutlined iconSize="s" />;
 };
 
 export const dropDownRenderHelper = (

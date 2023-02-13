@@ -34,6 +34,7 @@ describe('AdhocMetric', () => {
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
+      datasourceWarning: false,
       label: 'SUM(value)',
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,

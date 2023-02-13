@@ -27,6 +27,7 @@ import {
   NumberFormats,
   NumberFormatter,
   TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import {
@@ -34,7 +35,7 @@ import {
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { AxisType, LegendOrientation, LegendType, StackType } from '../types';
+import { LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -323,9 +324,9 @@ export const currentSeries = {
 
 export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
-    return 'time';
+    return AxisType.time;
   }
-  return 'category';
+  return AxisType.category;
 }
 
 export function getOverMaxHiddenFormatter(

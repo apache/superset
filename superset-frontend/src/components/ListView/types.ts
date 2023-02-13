@@ -39,6 +39,7 @@ export interface CardSortSelectOption {
 
 export interface Filter {
   Header: ReactNode;
+  key: string;
   id: string;
   urlDisplay?: string;
   operator?: FilterOperator;

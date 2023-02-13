@@ -29,13 +29,13 @@ describe('normalizeOrderBy', () => {
     expect(normalizeOrderBy(query)).toEqual(query);
   });
 
-  it('has timeseries_limit_metric in queryObject', () => {
+  it('has series_limit_metric in queryObject', () => {
     const query: QueryObject = {
       datasource: '5__table',
       viz_type: 'table',
       time_range: '1 year ago : 2013',
       metrics: ['count(*)'],
-      timeseries_limit_metric: {
+      series_limit_metric: {
         expressionType: 'SIMPLE',
         column: {
           id: 1,
@@ -46,7 +46,7 @@ describe('normalizeOrderBy', () => {
       order_desc: true,
     };
     const expectedQueryObject = normalizeOrderBy(query);
-    expect(expectedQueryObject).not.toHaveProperty('timeseries_limit_metric');
+    expect(expectedQueryObject).not.toHaveProperty('series_limit_metric');
     expect(expectedQueryObject).not.toHaveProperty('order_desc');
     expect(expectedQueryObject).toEqual({
       datasource: '5__table',
@@ -118,7 +118,7 @@ describe('normalizeOrderBy', () => {
       order_desc: true,
     };
     const expectedQueryObject = normalizeOrderBy(query);
-    expect(expectedQueryObject).not.toHaveProperty('timeseries_limit_metric');
+    expect(expectedQueryObject).not.toHaveProperty('series_limit_metric');
     expect(expectedQueryObject).not.toHaveProperty('order_desc');
     expect(expectedQueryObject).toEqual({
       datasource: '5__table',

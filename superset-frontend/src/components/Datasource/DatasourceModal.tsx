@@ -133,7 +133,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
           modal.error({
-            title: 'Error',
+            title: t('Error'),
             content: error || t('An error has occurred'),
             okButtonProps: { danger: true, className: 'btn-danger' },
           });
@@ -177,6 +177,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       content: renderSaveDialog(),
       onOk: onConfirmSave,
       icon: null,
+      okText: t('OK'),
+      cancelText: t('Cancel'),
     });
   };
 

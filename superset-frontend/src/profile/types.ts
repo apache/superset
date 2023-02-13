@@ -32,3 +32,7 @@ export type Activity = {
   item_url: string;
   time: number;
 };
+
+export type ActivityResult = {
+  result: Activity[];
+};

@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 from flask import Flask
+from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
@@ -109,7 +110,13 @@ class SecretsMigrator:
             return bytes(value.encode("utf8"))
 
         # Just bail if we haven't seen this type before...
-        raise ValueError(f"DB column {col_name} has unknown type: {type(value)}")
+        raise ValueError(
+            _(
+                "DB column %(col_name)s has unknown type: %(value_type)s",
+                col_name=col_name,
+                value_type=type(value),
+            )
+        )
 
     @staticmethod
     def _select_columns_from_table(
