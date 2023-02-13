@@ -24,10 +24,7 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import {
-  getClientErrorMessage,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
+import { useSchemas, SchemaOption } from 'src/hooks/apiResources';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -86,8 +83,6 @@ export type DatabaseObject = {
   backend: string;
 };
 
-type SchemaValue = { label: string; value: string };
-
 export interface DatabaseSelectorProps {
   db?: DatabaseObject | null;
   emptyState?: ReactNode;
@@ -119,6 +114,8 @@ const SelectLabel = ({
   </LabelStyle>
 );
 
+const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
+
 export default function DatabaseSelector({
   db,
   formMode = false,
@@ -134,13 +131,10 @@ export default function DatabaseSelector({
   schema,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
-  const [loadingSchemas, setLoadingSchemas] = useState(false);
-  const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
-  const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
-    schema ? { label: schema, value: schema } : undefined,
+  const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
+    schema ? { label: schema, value: schema, title: schema } : undefined,
   );
-  const [refresh, setRefresh] = useState(0);
   const { addSuccessToast } = useToasts();
 
   const loadDatabases = useMemo(
@@ -221,48 +215,37 @@ export default function DatabaseSelector({
     );
   }, [db]);
 
-  function changeSchema(schema: SchemaValue) {
+  function changeSchema(schema: SchemaOption | undefined) {
     setCurrentSchema(schema);
     if (onSchemaChange) {
-      onSchemaChange(schema.value);
+      onSchemaChange(schema?.value);
     }
   }
 
-  useEffect(() => {
-    if (currentDb) {
-      setLoadingSchemas(true);
-      const queryParams = rison.encode({ force: refresh > 0 });
-      const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
+  const {
+    data,
+    isFetching: loadingSchemas,
+    isFetched,
+    refetch,
+  } = useSchemas({
+    dbId: currentDb?.value,
+    onSuccess: data => {
+      onSchemasLoad?.(data);
 
-      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options = json.result.map((s: string) => ({
-            value: s,
-            label: s,
-            title: s,
-          }));
-          if (onSchemasLoad) {
-            onSchemasLoad(options);
-          }
-          setSchemaOptions(options);
-          setLoadingSchemas(false);
-          if (options.length === 1) changeSchema(options[0]);
-          if (refresh > 0) addSuccessToast(t('List refreshed'));
-        })
-        .catch(err => {
-          setLoadingSchemas(false);
-          getClientErrorObject(err).then(clientError => {
-            handleError(
-              getClientErrorMessage(
-                t('There was an error loading the schemas'),
-                clientError,
-              ),
-            );
-          });
-        });
-    }
-  }, [currentDb, onSchemasLoad, refresh]);
+      if (data.length === 1) {
+        changeSchema(data[0]);
+      } else if (!data.find(schemaOption => schema === schemaOption.value)) {
+        changeSchema(undefined);
+      }
+
+      if (isFetched) {
+        addSuccessToast('List refreshed');
+      }
+    },
+    onError: () => handleError(t('There was an error loading the schemas')),
+  });
+
+  const schemaOptions = data || EMPTY_SCHEMA_OPTIONS;
 
   function changeDataBase(
     value: { label: string; value: number },
@@ -309,7 +292,7 @@ export default function DatabaseSelector({
   function renderSchemaSelect() {
     const refreshIcon = !readOnly && (
       <RefreshLabel
-        onClick={() => setRefresh(refresh + 1)}
+        onClick={() => refetch()}
         tooltipContent={t('Force refresh schema list')}
       />
     );
@@ -323,7 +306,7 @@ export default function DatabaseSelector({
         name="select-schema"
         notFoundContent={t('No compatible schema found')}
         placeholder={t('Select schema or type schema name')}
-        onChange={item => changeSchema(item as SchemaValue)}
+        onChange={item => changeSchema(item as SchemaOption)}
         options={schemaOptions}
         showSearch
         value={currentSchema}
