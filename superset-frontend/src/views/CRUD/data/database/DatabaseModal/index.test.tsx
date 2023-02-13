@@ -45,25 +45,6 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: ({
-    fileName,
-    role,
-    ...rest
-  }: {
-    fileName: string;
-    role: string;
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
-  StyledIcon: () => <span />,
-}));
-
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
