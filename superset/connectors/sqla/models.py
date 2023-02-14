@@ -92,6 +92,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
@@ -116,6 +117,7 @@ from superset.sql_parse import (
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    Column as ColumnTyping,
     Metric,
     OrderBy,
     QueryObjectDict,
@@ -419,7 +421,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             "groupby",
             "is_dttm",
             "type",
-            "business_type",
             "type_generic",
             "advanced_data_type",
             "python_date_format",
@@ -439,6 +440,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         self, known_columns: Optional[Dict[str, NewColumn]] = None
     ) -> NewColumn:
         """Convert a TableColumn to NewColumn"""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -451,6 +453,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             value = getattr(self, attr)
             if value:
                 extra_json[attr] = value
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -555,6 +572,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     ) -> NewColumn:
         """Convert a SqlMetric to NewColumn. Find and update existing or
         create a new one."""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -567,6 +585,20 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         is_additive = (
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.name = self.metric_name
@@ -616,19 +648,19 @@ def _process_sql_expression(
     expression: Optional[str],
     database_id: int,
     schema: str,
-    template_processor: Optional[BaseTemplateProcessor],
+    template_processor: Optional[BaseTemplateProcessor] = None,
 ) -> Optional[str]:
     if template_processor and expression:
         expression = template_processor.process_template(expression)
     if expression:
-        expression = validate_adhoc_subquery(
-            expression,
-            database_id,
-            schema,
-        )
         try:
+            expression = validate_adhoc_subquery(
+                expression,
+                database_id,
+                schema,
+            )
             expression = sanitize_clause(expression)
-        except QueryClauseValidationException as ex:
+        except (QueryClauseValidationException, SupersetSecurityException) as ex:
             raise QueryObjectValidationError(ex.message) from ex
     return expression
 
@@ -1186,7 +1218,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
+        columns: Optional[List[ColumnTyping]] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1375,20 +1407,31 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
-                if not series_column_names or outer.name in series_column_names:
+                if (
+                    is_timeseries and not series_column_names
+                ) or outer.name in series_column_names:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                if is_adhoc_column(selected):
+                    _sql = selected["sqlExpression"]
+                    _column_label = selected["label"]
+                elif isinstance(selected, str):
+                    _sql = selected
+                    _column_label = selected
+
                 selected = validate_adhoc_subquery(
-                    selected,
+                    _sql,
                     self.database_id,
                     self.schema,
                 )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name
-                    else self.make_sqla_column_compatible(literal_column(selected))
+                    if isinstance(selected, str) and selected in columns_by_name
+                    else self.make_sqla_column_compatible(
+                        literal_column(selected), _column_label
+                    )
                 )
             metrics_exprs = []
 
@@ -1489,8 +1532,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     utils.FilterOperator.NOT_IN.value,
                 )
 
-                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
-
+                col_advanced_data_type: str = (
+                    col_obj.advanced_data_type if col_obj else ""
+                )
+                col_advanced_data_type = (
+                    col_advanced_data_type.lower()
+                    if col_advanced_data_type
+                    else col_advanced_data_type
+                )
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
                 else:
@@ -1505,14 +1554,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
                 if (
                     col_advanced_data_type != ""
+                    and col_advanced_data_type
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                    and col_advanced_data_type.lower() in ADVANCED_DATA_TYPES
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
-                        col_advanced_data_type
+                        col_advanced_data_type.lower()
                     ].translate_type(
                         {
                             "type": col_advanced_data_type,
@@ -1597,6 +1647,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                where = _process_sql_expression(
+                    expression=where,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
@@ -1609,7 +1664,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                having = _process_sql_expression(
+                    expression=having,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 having_clause_and += [self.text(having)]
+
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
@@ -2107,10 +2168,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             uuids.remove(column.uuid)
 
         if uuids:
-            # load those not found from db
-            existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
-            )
+            with session.no_autoflush:
+                # load those not found from db
+                existing_columns |= set(
+                    session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
+                )
 
         known_columns = {column.uuid: column for column in existing_columns}
         return [
@@ -2150,9 +2212,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # update changed_on timestamp
             session.execute(update(NewDataset).where(NewDataset.id == dataset.id))
             try:
-                column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
-                # update `Column` model as well
-                session.merge(target.to_sl_column({target.uuid: column}))
+                with session.no_autoflush:
+                    column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
+                    # update `Column` model as well
+                    session.merge(target.to_sl_column({target.uuid: column}))
             except NoResultFound:
                 logger.warning("No column was found for %s", target)
                 # see if the column is in cache
@@ -2162,14 +2225,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     ),
                     None,
                 )
+                if column:
+                    logger.warning("New column was found in cache: %s", column)
 
-                if not column:
+                else:
                     # to be safe, use a different uuid and create a new column
                     uuid = uuid4()
                     target.uuid = uuid
-                    column = NewColumn(uuid=uuid)
 
-                session.add(target.to_sl_column({column.uuid: column}))
+                session.add(target.to_sl_column())
 
     @staticmethod
     def after_insert(
@@ -2446,143 +2510,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             is_physical=not self.sql,
             is_managed_externally=self.is_managed_externally,
             external_url=self.external_url,
-        )
-        session.add(new_dataset)
-
-    @staticmethod
-    def write_shadow_dataset(  # pylint: disable=too-many-locals
-        dataset: "SqlaTable", database: Database, session: Session
-    ) -> None:
-        """
-        Shadow write the dataset to new models.
-
-        The ``SqlaTable`` model is currently being migrated to two new models, ``Table``
-        and ``Dataset``. In the first phase of the migration the new models are populated
-        whenever ``SqlaTable`` is modified (created, updated, or deleted).
-
-        In the second phase of the migration reads will be done from the new models.
-        Finally, in the third phase of the migration the old models will be removed.
-
-        For more context: https://github.com/apache/superset/issues/14909
-        """
-
-        engine = database.get_sqla_engine(schema=dataset.schema)
-        conditional_quote = engine.dialect.identifier_preparer.quote
-
-        # create columns
-        columns = []
-        for column in dataset.columns:
-            # ``is_active`` might be ``None`` at this point, but it defaults to ``True``.
-            if column.is_active is False:
-                continue
-
-            try:
-                extra_json = json.loads(column.extra or "{}")
-            except json.decoder.JSONDecodeError:
-                extra_json = {}
-            for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
-                value = getattr(column, attr)
-                if value:
-                    extra_json[attr] = value
-
-            columns.append(
-                NewColumn(
-                    name=column.column_name,
-                    type=column.type or "Unknown",
-                    expression=column.expression
-                    or conditional_quote(column.column_name),
-                    description=column.description,
-                    is_temporal=column.is_dttm,
-                    is_aggregation=False,
-                    is_physical=column.expression is None,
-                    is_spatial=False,
-                    is_partition=False,
-                    is_increase_desired=True,
-                    extra_json=json.dumps(extra_json) if extra_json else None,
-                    is_managed_externally=dataset.is_managed_externally,
-                    external_url=dataset.external_url,
-                ),
-            )
-
-        # create metrics
-        for metric in dataset.metrics:
-            try:
-                extra_json = json.loads(metric.extra or "{}")
-            except json.decoder.JSONDecodeError:
-                extra_json = {}
-            for attr in {"verbose_name", "metric_type", "d3format"}:
-                value = getattr(metric, attr)
-                if value:
-                    extra_json[attr] = value
-
-            is_additive = (
-                metric.metric_type
-                and metric.metric_type.lower() in ADDITIVE_METRIC_TYPES
-            )
-
-            columns.append(
-                NewColumn(
-                    name=metric.metric_name,
-                    type="Unknown",  # figuring this out would require a type inferrer
-                    expression=metric.expression,
-                    warning_text=metric.warning_text,
-                    description=metric.description,
-                    is_aggregation=True,
-                    is_additive=is_additive,
-                    is_physical=False,
-                    is_spatial=False,
-                    is_partition=False,
-                    is_increase_desired=True,
-                    extra_json=json.dumps(extra_json) if extra_json else None,
-                    is_managed_externally=dataset.is_managed_externally,
-                    external_url=dataset.external_url,
-                ),
-            )
-
-        # physical dataset
-        if not dataset.sql:
-            physical_columns = [column for column in columns if column.is_physical]
-
-            # create table
-            table = NewTable(
-                name=dataset.table_name,
-                schema=dataset.schema,
-                catalog=None,  # currently not supported
-                database_id=dataset.database_id,
-                columns=physical_columns,
-                is_managed_externally=dataset.is_managed_externally,
-                external_url=dataset.external_url,
-            )
-            tables = [table]
-
-        # virtual dataset
-        else:
-            # mark all columns as virtual (not physical)
-            for column in columns:
-                column.is_physical = False
-
-            # find referenced tables
-            parsed = ParsedQuery(dataset.sql)
-            referenced_tables = parsed.tables
-            tables = load_or_create_tables(
-                session,
-                dataset.database_id,
-                dataset.schema,
-                referenced_tables,
-                conditional_quote,
-                engine,
-            )
-
-        # create the new dataset
-        new_dataset = NewDataset(
-            sqlatable_id=dataset.id,
-            name=dataset.table_name,
-            expression=dataset.sql or conditional_quote(dataset.table_name),
-            tables=tables,
-            columns=columns,
-            is_physical=not dataset.sql,
-            is_managed_externally=dataset.is_managed_externally,
-            external_url=dataset.external_url,
         )
         session.add(new_dataset)
 

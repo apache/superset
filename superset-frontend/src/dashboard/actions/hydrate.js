@@ -127,6 +127,8 @@ export const hydrateDashboard =
     const dashboardFilters = {};
     const slices = {};
     const sliceIds = new Set();
+    const slicesFromExploreCount = new Map();
+
     chartData.forEach(slice => {
       const key = slice.slice_id;
       const form_data = {
@@ -181,6 +183,10 @@ export const hydrateDashboard =
           },
           (newSlicesContainer.parents || []).slice(),
         );
+
+        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
+        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
+        slicesFromExploreCount.set(slice.slice_id, count);
 
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer.children.push(chartHolder.id);

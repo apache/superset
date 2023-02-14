@@ -12,6 +12,7 @@ describe('CccsGrid buildQuery', () => {
     enable_grouping: false,
     viz_type: 'my_chart',
     column_state: [],
+    enable_row_numbers: false,
   };
 
   it('should build groupby with series in form data', () => {

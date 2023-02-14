@@ -132,7 +132,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
         from superset.databases.api import DatabaseRestApi
-        from superset.proxy.api import ProxyRestAPI
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -141,11 +140,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.importexport.api import ImportExportRestApi
+        from superset.proxy.api import ProxyRestAPI
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
-        from superset.security.api import SecurityRestApi
+        from superset.security.api import SecurityRestApi, UsersApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
@@ -215,6 +215,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(UsersApi)
         #
         # Setup regular views
         #
@@ -560,8 +561,28 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
-        if self.config["TALISMAN_ENABLED"]:
-            talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+        show_csp_warning = False
+        if (
+            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            and not self.superset_app.debug
+        ):
+            if self.config["TALISMAN_ENABLED"]:
+                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
+                    show_csp_warning = True
+            else:
+                show_csp_warning = True
+
+        if show_csp_warning:
+            logger.warning(
+                "We haven't found any Content Security Policy (CSP) defined in "
+                "the configurations. Please make sure to configure CSP using the "
+                "TALISMAN_CONFIG key or any other external software. Failing to "
+                "configure CSP have serious security implications. Check "
+                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "information. You can disable this warning using the "
+                "CONTENT_SECURITY_POLICY_WARNING key."
+            )
 
     def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(

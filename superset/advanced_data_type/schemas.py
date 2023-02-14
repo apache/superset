@@ -26,7 +26,7 @@ advanced_data_type_convert_schema = {
         "values": {
             "type": "array",
             "items": {"default": "http"},
-            "minItems": 1,
+            "minItems": 0,
         },
     },
     "required": ["type", "values"],

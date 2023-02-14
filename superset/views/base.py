@@ -87,6 +87,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
+    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -105,6 +106,8 @@ FRONTEND_CONF_KEYS = (
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
+    "HTML_SANITIZATION",
+    "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
 )
 
 logger = logging.getLogger(__name__)
@@ -386,6 +389,18 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
+        "datahub_url": conf.get("DATAHUB_URL", ""),
+        "advanced_data_types": list(
+            map(
+                lambda v: {
+                    "id": v[0],
+                    "verbose_name": v[1].verbose_name,
+                    "description": v[1].description,
+                    "valid_data_types": v[1].valid_data_types,
+                },
+                config["ADVANCED_DATA_TYPES"].items(),
+            )
+        ),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data

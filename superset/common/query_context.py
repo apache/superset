@@ -27,6 +27,7 @@ from superset.common.query_context_processor import (
     QueryContextProcessor,
 )
 from superset.common.query_object import QueryObject
+from superset.models.slice import Slice
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -46,11 +47,12 @@ class QueryContext:
     enforce_numerical_metrics: ClassVar[bool] = True
 
     datasource: BaseDatasource
+    slice_: Optional[Slice] = None
     queries: List[QueryObject]
     form_data: Optional[Dict[str, Any]]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
-    viz_type: str
+    viz_type: Optional[str]
     force: bool
     custom_cache_timeout: Optional[int]
 
@@ -65,14 +67,17 @@ class QueryContext:
         *,
         datasource: BaseDatasource,
         queries: List[QueryObject],
+        slice_: Optional[Slice],
         form_data: Optional[Dict[str, Any]],
         result_type: ChartDataResultType,
         result_format: ChartDataResultFormat,
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
         cache_values: Dict[str, Any],
+        viz_type: Optional[str],
     ) -> None:
         self.datasource = datasource
+        self.slice_ = slice_
         self.result_type = result_type
         self.result_format = result_format
         self.queries = queries
@@ -100,6 +105,8 @@ class QueryContext:
     def get_cache_timeout(self) -> Optional[int]:
         if self.custom_cache_timeout is not None:
             return self.custom_cache_timeout
+        if self.slice_ and self.slice_.cache_timeout is not None:
+            return self.slice_.cache_timeout
         if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
         if hasattr(self.datasource, "database"):

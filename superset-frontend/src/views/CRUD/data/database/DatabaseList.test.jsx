@@ -96,7 +96,7 @@ fetchMock.get(
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 const userSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
-describe('DatabaseList', () => {
+describe('Admin DatabaseList', () => {
   useSelectorMock.mockReturnValue({
     CSV_EXTENSIONS: ['csv'],
     EXCEL_EXTENSIONS: ['xls', 'xlsx'],
@@ -211,5 +211,31 @@ describe('DatabaseList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+
+  it('should not render dropdown menu button if user is not admin', () => {
+    userSelectorMock.mockReturnValue({
+      createdOn: '2021-05-27T18:12:38.952304',
+      email: 'alpha@gmail.com',
+      firstName: 'alpha',
+      isActive: true,
+      lastName: 'alpha',
+      permissions: {},
+      roles: {
+        Alpha: [
+          ['can_sqllab', 'Superset'],
+          ['can_write', 'Dashboard'],
+          ['can_write', 'Chart'],
+        ],
+      },
+      userId: 2,
+      username: 'alpha',
+    });
+    const newWrapper = mount(
+      <Provider store={store}>
+        <DatabaseList />
+      </Provider>,
+    );
+    expect(newWrapper.find('.dropdown-menu-links')).not.toExist();
   });
 });

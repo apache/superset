@@ -39,6 +39,15 @@ test('renders with certified by', async () => {
   expect(await screen.findByRole('tooltip')).toHaveTextContent(certifiedBy);
 });
 
+test('renders with multiple certified by values', async () => {
+  const certifiedBy = ['Trusted Authority', 'Other Authority'];
+  render(<CertifiedBadge certifiedBy={certifiedBy} />);
+  userEvent.hover(screen.getByRole('img'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    certifiedBy.join(', '),
+  );
+});
+
 test('renders with details', async () => {
   const details = 'All requirements have been met.';
   render(<CertifiedBadge details={details} />);

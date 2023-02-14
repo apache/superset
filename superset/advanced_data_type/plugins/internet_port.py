@@ -133,7 +133,7 @@ def port_translate_filter_func(
 
 
 internet_port: AdvancedDataType = AdvancedDataType(
-    verbose_name="port",
+    verbose_name="Port",
     description="represents of a port",
     valid_data_types=["int"],
     translate_filter=port_translate_filter_func,

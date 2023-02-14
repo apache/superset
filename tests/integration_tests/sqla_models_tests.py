@@ -261,7 +261,7 @@ class TestDatabaseModel(SupersetTestCase):
         )
         db.session.commit()
 
-        with pytest.raises(SupersetSecurityException):
+        with pytest.raises(QueryObjectValidationError):
             table.get_sqla_query(**base_query_obj)
         # Cleanup
         db.session.delete(table)

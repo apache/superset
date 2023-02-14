@@ -96,6 +96,7 @@ enum FILTER_COMPONENT_FILTER_TYPES {
   FILTER_TIMEGRAIN = 'filter_timegrain',
   FILTER_TIMECOLUMN = 'filter_timecolumn',
   FILTER_SELECT = 'filter_select',
+  FILTER_ADHOC = 'filter_adhoc',
   FILTER_RANGE = 'filter_range',
 }
 

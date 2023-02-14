@@ -76,11 +76,14 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerFontSize,
     headerText,
     emitFilter,
+    principalColumns,
     page_length,
     query_mode,
     include_search,
     enable_grouping,
     column_state,
+    enable_row_numbers,
+    jump_action_configs,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -105,7 +108,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     // @ts-ignore
     const name = column.column_name;
     // @ts-ignore
-    columnMap[name] = ((column.business_type as string) ?? '').toUpperCase();
+    columnMap[name] = (
+      (column.advanced_data_type as string) ?? ''
+    ).toUpperCase();
     return columnMap;
   }, columnAdvancedTypeMap);
 
@@ -118,6 +123,16 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     columnMap[name] = column.verbose_name;
     return columnMap;
   }, columnVerboseNameMap);
+
+  // Map of column descriptions, key is column name, value is the description
+  const columnDescriptionMap = new Map<string, string>();
+  columns.reduce(function (columnMap, column: Column) {
+    // @ts-ignore
+    const name = column.column_name;
+    // @ts-ignore
+    columnMap[name] = column.description;
+    return columnMap;
+  }, columnDescriptionMap);
 
   // Map of verbose names, key is metric name, value is verbose name
   const metricVerboseNameMap = new Map<string, string>();
@@ -167,7 +182,24 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     COUNTRY: 'countryValueRenderer',
     JSON: 'jsonValueRenderer',
   };
-  
+
+  const formatIpV4 = (v: any) => {
+    const converted = `${(v >> 24) & 0xff}.${(v >> 16) & 0xff}.${
+      (v >> 8) & 0xff
+    }.${v & 0xff}`;
+    return converted;
+  };
+
+  const valueFormatter = (params: any) => {
+    if (
+      params.value != null &&
+      params.colDef.cellRenderer === 'ipv4ValueRenderer'
+    ) {
+      return formatIpV4(params.value.toString());
+    }
+    return params.value != null ? params.value.toString() : '';
+  };
+
   const percentMetricValueFormatter = function (params: ValueFormatterParams) {
     return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(
       params.value,
@@ -199,6 +231,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
           : undefined;
       const isSortable = true;
       const enableRowGroup = true;
+      const columnDescription = columnDescriptionMap[column];
       return {
         field: column,
         headerName: columnHeader,
@@ -207,6 +240,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         sort: sortDirection,
         sortIndex,
         enableRowGroup,
+        getQuickFilterText: (params: any) => valueFormatter(params),
+        headerTooltip: columnDescription,
       };
     });
   } else {
@@ -225,12 +260,15 @@ export default function transformProps(chartProps: CccsGridChartProps) {
             : undefined;
         const isSortable = true;
         const enableRowGroup = true;
+        const columnDescription = columnDescriptionMap[column];
         return {
           field: column,
           headerName: columnHeader,
           cellRenderer,
           sortable: isSortable,
           enableRowGroup,
+          getQuickFilterText: (params: any) => valueFormatter(params),
+          headerTooltip: columnDescription,
         };
       });
       columnDefs = columnDefs.concat(groupByColumnDefs);
@@ -271,6 +309,34 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     }
   }
 
+  if (enable_row_numbers) {
+    columnDefs.splice(0, 0, {
+      headerName: '#',
+      colId: 'rowNum',
+      pinned: 'left',
+      valueGetter: (params: any) =>
+        params.node ? params.node.rowIndex + 1 : null,
+    } as any);
+  }
+  let parsed_jump_action_configs = {}
+  jump_action_configs?.forEach( (e: any) =>
+  {
+    if (e.dashboardID in parsed_jump_action_configs) {
+      parsed_jump_action_configs[e.dashboardID] = parsed_jump_action_configs[e.dashboardID].concat({
+        advancedDataType: e.advancedDataType,
+        nativefilters: e.filters,
+        name: e.dashBoardName
+      })
+    }
+    else {
+      parsed_jump_action_configs[e.dashboardID] = [{
+        advancedDataType: e.advancedDataType,
+        nativefilters: e.filters,
+        name: e.dashBoardName
+      }]
+    }
+  });
+
   return {
     formData,
     setDataMask,
@@ -284,10 +350,13 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerFontSize,
     headerText,
     emitFilter,
+    principalColumns,
     include_search,
     page_length,
     enable_grouping,
     column_state,
     agGridLicenseKey,
+    datasetColumns: columns,
+    jumpActionConfigs: parsed_jump_action_configs
   };
 }

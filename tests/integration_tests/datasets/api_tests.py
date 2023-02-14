@@ -779,7 +779,6 @@ class TestDatasetApi(SupersetTestCase):
         assert columns[2].advanced_data_type == new_column_data["advanced_data_type"]
         assert columns[2].extra == new_column_data["extra"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
-        assert columns[2].business_type == new_column_data["business_type"]
         assert str(columns[2].uuid) == new_column_data["uuid"]
 
         metrics = (

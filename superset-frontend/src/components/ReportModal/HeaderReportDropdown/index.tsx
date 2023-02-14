@@ -81,7 +81,6 @@ export interface HeaderReportProps {
   setShowReportSubMenu?: (show: boolean) => void;
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
-  showReportSubMenu?: boolean;
 }
 
 export default function HeaderReportDropDown({
@@ -120,7 +119,7 @@ export default function HeaderReportDropDown({
         perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
-    return permissions[0].length > 0;
+    return permissions.some(permission => permission.length > 0);
   };
 
   const [currentReportDeleting, setCurrentReportDeleting] =
@@ -156,10 +155,8 @@ export default function HeaderReportDropDown({
     }
   }, []);
 
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
-
   useEffect(() => {
-    if (showReportSubMenu) {
+    if (report && setShowReportSubMenu && canAddReports()) {
       setShowReportSubMenu(true);
     } else if (!report && setShowReportSubMenu) {
       setShowReportSubMenu(false);

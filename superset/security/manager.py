@@ -189,6 +189,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
         "can_grant_guest_token",
         "can_set_embedded",
+        "can_delete_user",
     }
 
     READ_ONLY_PERMISSION = {
@@ -1033,6 +1034,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import feature_flag_manager
         from superset.sql_parse import Table
+        from superset.views.utils import is_owner
 
         if database and table or query:
             if query:
@@ -1063,7 +1065,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                     # Access to any datasource is suffice.
                     for datasource_ in datasources:
-                        if self.can_access("datasource_access", datasource_.perm):
+                        if self.can_access(
+                            "datasource_access", datasource_.perm
+                        ) or is_owner(datasource_, getattr(g, "user", None)):
                             break
                     else:
                         denied.add(table_)
@@ -1089,6 +1093,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                or is_owner(datasource, getattr(g, "user", None))
                 or (
                     should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
@@ -1383,7 +1388,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+        raw_token = req.headers.get(
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+        ) or req.form.get("guest_token")
         if raw_token is None:
             return None
 

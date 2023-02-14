@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
- import {
-   ControlPanelConfig,
-   ControlPanelState,
-   ControlState,
-   ControlStateMapping,
-   sharedControls,
- } from '@superset-ui/chart-controls';
- 
- const validateAggControlValues = (
-   controls: ControlStateMapping,
-   values: any[],
- ) => {
-   const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
-   // @ts-ignore
-   return areControlsEmpty ? [t('Metrics must have a value')] : [];
- };
- 
- const config: ControlPanelConfig = {
-   /**
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+
+const validateAggControlValues = (
+  controls: ControlStateMapping,
+  values: any[],
+) => {
+  const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
+  // @ts-ignore
+  return areControlsEmpty ? [t('Metrics must have a value')] : [];
+};
+
+const config: ControlPanelConfig = {
+  /**
    * The control panel is split into two tabs: "Query" and
    * "Chart Options". The controls that define the inputs to
    * the chart data request, such as columns and metrics, usually
@@ -108,59 +108,59 @@
    * - validateInteger: must be an integer value
    * - validateNumber: must be an intger or decimal value
    */
- 
-   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
-   controlPanelSections: [
-     {
-       label: t('Query'),
-       expanded: true,
-       controlSetRows: [
-         ['adhoc_filters'],
-         [
-           {
-             name: 'metrics',
-             override: {
-               // visibility: () => true,
-               validators: [],
-               mapStateToProps: (
-                 state: ControlPanelState,
-                 controlState: ControlState,
-               ) => {
-                 const { controls } = state;
-                 const originalMapStateToProps =
-                   sharedControls?.metrics?.mapStateToProps;
-                 const newState =
-                   originalMapStateToProps?.(state, controlState) ?? {};
-                 newState.externalValidationErrors = validateAggControlValues(
-                   controls,
-                   [controlState.value],
-                 );
-                 return newState;
-               },
-             },
-           },
-         ],
-         [
-           {
-             name: 'row_limit',
-             override: {
-               default: 1,
-             },
-           },
-         ],
-       ],
-     },
-   ],
- 
-   controlOverrides: {
-     series: {
-       validators: [validateNonEmpty],
-       clearable: false,
-     },
-     row_limit: {
-       default: 1,
-     },
-   },
- };
- 
- export default config;
+
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['adhoc_filters'],
+        [
+          {
+            name: 'metrics',
+            override: {
+              // visibility: () => true,
+              validators: [],
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
+                const { controls } = state;
+                const originalMapStateToProps =
+                  sharedControls?.metrics?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [controlState.value],
+                );
+                return newState;
+              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'row_limit',
+            override: {
+              default: 1,
+            },
+          },
+        ],
+      ],
+    },
+  ],
+
+  controlOverrides: {
+    series: {
+      validators: [validateNonEmpty],
+      clearable: false,
+    },
+    row_limit: {
+      default: 1,
+    },
+  },
+};
+
+export default config;

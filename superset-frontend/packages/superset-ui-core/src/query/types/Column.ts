@@ -37,6 +37,7 @@ export type PhysicalColumn = string;
  * Column information defined in datasource.
  */
 export interface Column {
+  advanced_data_type?: string;
   id: number;
   type?: string;
   type_generic?: GenericDataType;

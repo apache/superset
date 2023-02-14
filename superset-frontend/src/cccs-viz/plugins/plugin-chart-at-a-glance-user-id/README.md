@@ -1,7 +1,5 @@
 ## @superset-ui/plugin-chart-at-a-glance-user-id
 
-
-
 This plugin provides At A Glance User ID for Superset.
 
 ### Usage
@@ -10,9 +8,7 @@ Configure `key`, which can be any `string`, and register the plugin. This `key` 
 
 ```js
 import AtAGlanceChartPlugin from '@superset-ui/plugin-chart-at-a-glance-user-id';
-new AtAGlanceChartPlugin()
-  .configure({ key: 'at_a_glance_user_id' })
-  .register();
+new AtAGlanceChartPlugin().configure({ key: 'at_a_glance_user_id' }).register();
 ```
 
 Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-at-a-glance-user-id) for more details.

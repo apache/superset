@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react'
+
 import {
   t,
-  tn,
   FeatureFlag,
   isFeatureEnabled,
   DEFAULT_METRICS,
@@ -41,10 +42,12 @@ import {
   ControlPanelState,
   ControlState,
   formatSelectOptions,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
-//import cidrRegex from 'cidr-regex';
+import DrillActionConfig from '../components/controls/JumpActionConfigControll';
+
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],
@@ -101,39 +104,6 @@ const validateAggControlValues = (
     : [];
 };
 
-const validateColumnValues = (
-  controls: ControlStateMapping,
-  values: any[],
-  state: ControlPanelState,
-) => {
-  const invalidColumns = values.filter(
-    (val: any) =>
-      val !== undefined &&
-      !state.datasource?.columns.some(col => col.name === val),
-  );
-  return invalidColumns.length !== 0
-    ? [
-        tn(
-          'Invalid column: %s',
-          'Invalid columns: %s',
-          invalidColumns.length,
-          invalidColumns.join(', '),
-        ),
-      ]
-    : [];
-};
-
-const validateAggColumnValues = (
-  controls: ControlStateMapping,
-  values: any[],
-  state: ControlPanelState,
-) => {
-  const result = validateAggControlValues(controls, values);
-  if (result.length === 0 && isAggMode({ controls })) {
-    return validateColumnValues(controls, values[1], state);
-  }
-  return result;
-};
 
 // function isIP(v: unknown) {
 //   if (typeof v === 'string' && v.trim().length > 0) {
@@ -212,24 +182,10 @@ const validateAggColumnValues = (
 //   return false;
 // }
 
-
-const defineSavedMetrics = (
-  datasource: Dataset | QueryResponse | null,
-) =>
+const defineSavedMetrics = (datasource: Dataset | QueryResponse | null) =>
   datasource?.hasOwnProperty('metrics')
     ? (datasource as Dataset)?.metrics || []
     : DEFAULT_METRICS;
-
- const columnChoices = (datasource: any) => {
-  if (datasource?.columns) {
-    return datasource.columns
-      .map((col : any) => [col.column_name, col.verbose_name || col.column_name])
-      .sort((opt1: any, opt2: any) =>
-        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
-      );
-  }
-  return [];
-}
 
 const config: ControlPanelConfig = {
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
@@ -248,20 +204,11 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'groupby',
-            config: {
-              type: 'SelectControl',
-              label: t('Group by'),
-              description: sharedControls.groupby.description,
-              multi: true,
-              freeForm: true,
-              allowAll: true,
-              default: [],
-              valueKey: 'column_name',
-              includeTime: false,
-              canSelectAll: true,
-              optionRenderer: c => <StyledColumnOption showType column={c} />,
-              valueRenderer: c => <StyledColumnOption column={c} />,
+            override: {
               visibility: isAggMode,
+              resetOnHide: false,
+              canCopy: true,
+              canSelectAll: true,
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
@@ -271,20 +218,19 @@ const config: ControlPanelConfig = {
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggColumnValues(
+                newState.externalValidationErrors = validateAggControlValues(
                   controls,
                   [
                     controls.metrics?.value,
-                    controlState.value,
                     controls.percent_metrics?.value,
+                    controlState.value,
                   ],
-                  state,
                 );
+
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics'],
-              canCopy: true,
-            } as typeof sharedControls.groupby,
+              rerender: ['metrics', 'percent_metrics', ],
+            },
           },
         ],
         [
@@ -349,15 +295,22 @@ const config: ControlPanelConfig = {
             name: 'columns',
             config: {
               type: 'SelectControl',
-              label: t('Columns'),
+              label: t('Dimensions'),
               description: t('Columns to display'),
               multi: true,
               freeForm: true,
               allowAll: true,
               default: [],
               canSelectAll: true,
-              optionRenderer: c => <StyledColumnOption showType column={c} />,
-              valueRenderer: c => <StyledColumnOption column={c} />,
+              optionRenderer: (c: ColumnMeta) => (
+                // eslint-disable-next-line react/react-in-jsx-scope
+                <StyledColumnOption showType column={c} />
+              ),
+              // eslint-disable-next-line react/react-in-jsx-scope
+              valueRenderer: (c: ColumnMeta) => (
+                // eslint-disable-next-line react/react-in-jsx-scope
+                <StyledColumnOption column={c} />
+              ),
               valueKey: 'column_name',
               mapStateToProps: (
                 state: ControlPanelState,
@@ -373,18 +326,13 @@ const config: ControlPanelConfig = {
                   isRawMode({ controls }) &&
                   ensureIsArray(controlState.value).length === 0
                     ? [t('must have a value')]
-                    : isRawMode({ controls })
-                    ? validateColumnValues(
-                        controls,
-                        ensureIsArray(controlState.value),
-                        state,
-                      )
                     : [];
                 return newState;
               },
+              rerender: ['principalColumns'],
               visibility: isRawMode,
               canCopy: true,
-            } as typeof sharedControls.groupby,
+            } 
           },
         ],
         [
@@ -392,22 +340,6 @@ const config: ControlPanelConfig = {
             name: 'adhoc_filters',
             override: {
               // validators: [adhocFilterValidator],
-            },
-          },
-        ],
-        [
-          {
-            name: 'order_by_cols',
-            config: {
-              type: 'SelectControl',
-              label: t('Ordering'),
-              description: t('Order results by selected columns'),
-              multi: true,
-              default: [],
-              mapStateToProps: ({ datasource }) => ({
-                choices: columnChoices(datasource),
-              }),
-              visibility: isRawMode,
             },
           },
         ],
@@ -429,26 +361,102 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'order_desc',
+            name: 'order_by_cols',
             config: {
-              type: 'CheckboxControl',
-              label: t('Sort descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: isAggMode,
+              type: 'SelectControl',
+              label: t('Ordering'),
+              description: t('Order results by selected columns'),
+              multi: true,
+              default: [],
+              mapStateToProps: ({ datasource }) => ({
+                choices: datasource?.hasOwnProperty('order_by_choices')
+                  ? (datasource as Dataset)?.order_by_choices
+                  : datasource?.columns || [],
+              }),
+              visibility: isRawMode,
+              resetOnHide: false,
             },
           },
         ],
         [
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
             ? {
-                name: 'table_filter',
+                name: 'emitFilter',
                 config: {
                   type: 'CheckboxControl',
                   label: t('Emit dashboard cross filters'),
                   default: false,
                   renderTrigger: true,
                   description: t('Emit dashboard cross filters.'),
+                },
+              }
+            : null,
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+            ? {
+                name: 'principalColumns',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Principal Column(s) to Emit'),
+                  description: t(
+                    'Preselect a set of principal columns that can easily be emitted from the context menu',
+                  ),
+                  multi: true,
+                  freeForm: true,
+                  allowAll: true,
+                  default: [],
+                  canSelectAll: true,
+                  optionRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption showType column={c} />
+                  ),
+                  // eslint-disable-next-line react/react-in-jsx-scope
+                  valueRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption column={c} />
+                  ),
+                  valueKey: 'column_name',
+                  mapStateToProps: (
+                    state: ControlPanelState,
+                    controlState: ControlState,
+                  ) => {
+                    const { controls } = state;
+                    const originalMapStateToProps = isRawMode({ controls }) ?
+                      sharedControls?.columns?.mapStateToProps :
+                      sharedControls?.groupby?.mapStateToProps;
+                    const newState =
+                      originalMapStateToProps?.(state, controlState) ?? {};
+                    const choices = isRawMode({ controls })
+                      ? controls?.columns?.value
+                      : controls?.groupby?.value;
+                    newState.options = newState.options.filter(
+                      (o: { column_name: string }) =>
+                        ensureIsArray(choices).includes(o.column_name),
+                    );
+                    const invalidOptions = ensureIsArray(
+                      controlState.value,
+                    ).filter(c => !ensureIsArray(choices).includes(c));
+                    newState.externalValidationErrors =
+                      invalidOptions.length > 0
+                        ? invalidOptions.length > 1
+                          ? [
+                              `'${invalidOptions.join(', ')}'${t(
+                                ' are not valid options',
+                              )}`,
+                            ]
+                          : [
+                              `'${invalidOptions}'${t(
+                                ' is not a valid option',
+                              )}`,
+                            ]
+                        : [];
+                    return newState;
+                  },
+                  visibility: ({ controls }) =>
+                    // TODO properly emsure is Bool
+                    Boolean(controls?.emitFilter?.value),
+                  canCopy: true,
                 },
               }
             : null,
@@ -589,6 +597,18 @@ config.controlPanelSections.push({
     ],
     [
       {
+        name: 'enable_row_numbers',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Row numbers'),
+          renderTrigger: true,
+          default: true,
+          description: t('Whether to enable row numbers'),
+        },
+      },
+    ],
+    [
+      {
         name: 'page_length',
         config: {
           type: 'SelectControl',
@@ -599,6 +619,17 @@ config.controlPanelSections.push({
           choices: PAGE_SIZE_OPTIONS,
           description: t('Rows per page, 0 means no pagination'),
           validators: [legacyValidateInteger],
+        },
+      },
+    ],
+    [
+      {
+        name: 'jump_action_configs',
+        config: {
+          type: DrillActionConfig,
+          renderTrigger: true,
+          label: t('Jump Actions'),
+          description: t('Configure dashboard jump actions.'),
         },
       },
     ],

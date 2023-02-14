@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import Regexp
+from wtforms.validators import DataRequired, Regexp
 
 from superset import app, db
 from superset.connectors.base.views import DatasourceModelView
@@ -47,7 +47,22 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
+class SelectDataRequired(DataRequired):  # pylint: disable=too-few-public-methods
+    """
+    Select required flag on the input field will not work well on Chrome
+    Console error:
+        An invalid form control with name='tables' is not focusable.
+
+    This makes a simple override to the DataRequired to be used specifically with
+    select fields
+    """
+
+    field_flags = ()
+
+
+class TableColumnInlineView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
     class_permission_name = "Dataset"
@@ -129,7 +144,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "extra": utils.markdown(
             "Extra data to specify column metadata. Currently supports "
             'certification data of the format: `{ "certification": "certified_by": '
-            '"Taylor Swift", "details": "This column is the source of truth." '
+            '["Taylor Swift", "Harry Styles"], "details": "This column is the source of truth." '
             "} }`. This should be modified from the edit datasource model in "
             "Explore to ensure correct formatting.",
             True,
@@ -179,7 +194,9 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
+class SqlMetricInlineView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
@@ -219,7 +236,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
             'metadata of the format: `{ "certification": { "certified_by": '
-            '"Data Platform Team", "details": "This metric is the source of truth." '
+            '["Data Platform Team", "Engineering Team"], "details": "This metric is the source of truth." '
             '}, "warning_markdown": "This is a warning." }`. This should be modified '
             "from the edit datasource model in Explore to ensure correct formatting.",
             True,
@@ -261,7 +278,9 @@ class RowLevelSecurityListWidget(
         super().__init__(**kwargs)
 
 
-class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
+class RowLevelSecurityFiltersModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
     list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
@@ -424,7 +443,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "extra": utils.markdown(
             "Extra data to specify table metadata. Currently supports "
             'metadata of the format: `{ "certification": { "certified_by": '
-            '"Data Platform Team", "details": "This table is the source of truth." '
+            '["Data Platform Team", "Engineering Team"], "details": "This table is the source of truth." '
             '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),

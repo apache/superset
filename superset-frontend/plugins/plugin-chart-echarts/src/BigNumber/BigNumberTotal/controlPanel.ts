@@ -100,4 +100,8 @@ export default {
     ...formData,
     metric: formData.standardizedFormData.standardizedState.metrics[0],
   }),
+  updateStandardizedState: (prevState, currState) => ({
+    ...currState,
+    metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
+  }),
 } as ControlPanelConfig;

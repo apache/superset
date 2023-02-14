@@ -327,3 +327,9 @@ test('should refresh the charts', async () => {
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
 });
+
+test('should show datahub link', async () => {
+  const mockedProps = createProps();
+  setup(mockedProps);
+  expect(screen.getByTestId('datahub_link')).toBeInTheDocument();
+});

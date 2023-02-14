@@ -44,6 +44,7 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import { bootstrapData } from 'src/preamble';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -121,6 +122,13 @@ const StyledColumnsTabWrapper = styled.div`
   .ant-tag {
     margin-top: ${({ theme }) => theme.gridUnit}px;
   }
+`;
+
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 const checkboxGenerator = (d, onChange) => (
@@ -272,9 +280,17 @@ function ColumnCollectionTable({
                 fieldKey="advanced_data_type"
                 label={t('Advanced data type')}
                 control={
-                  <TextControl
-                    controlId="advanced_data_type"
-                    placeholder={t('Advanced Data type')}
+                  <Select
+                    ariaLabel={t('Select advanced data type')}
+                    name="advanced_data_type"
+                    allowClear
+                    allowNewOptions
+                    options={bootstrapData?.common?.advanced_data_types.map(
+                      v => ({
+                        value: v.id,
+                        label: v.verbose_name,
+                      }),
+                    )}
                   />
                 }
               />
@@ -889,7 +905,7 @@ class DatasourceEditor extends React.PureComponent {
             description={t(
               'Extra data to specify table metadata. Currently supports ' +
                 'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
+                '["Data Platform Team", "Engineering Team"], "details": "This table is the source of truth." ' +
                 '}, "warning_markdown": "This is a warning." }`.',
             )}
             control={
@@ -1361,7 +1377,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
-                <span className="m-t-10 m-r-10">
+                <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
                     buttonStyle="tertiary"
@@ -1372,7 +1388,7 @@ class DatasourceEditor extends React.PureComponent {
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>
-                </span>
+                </StyledButtonWrapper>
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
