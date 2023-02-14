@@ -25,14 +25,6 @@ import AdhocFilter, {
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterOption, { AdhocFilterOptionProps } from '.';
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: ({ fileName, role }: { fileName: string; role: string }) => (
-    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
-  ),
-  StyledIcon: () => <span />,
-}));
-
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',

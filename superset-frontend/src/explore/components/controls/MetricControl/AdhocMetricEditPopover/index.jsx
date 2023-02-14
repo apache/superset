@@ -19,7 +19,13 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import {
+  isDefined,
+  t,
+  styled,
+  ensureIsArray,
+  DatasourceType,
+} from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -55,11 +61,14 @@ const propTypes = {
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
   datasource: PropTypes.object,
+  isNewMetric: PropTypes.bool,
+  isLabelModified: PropTypes.bool,
 };
 
 const defaultProps = {
   columns: [],
   getCurrentTab: noOp,
+  isNewMetric: false,
 };
 
 const StyledSelect = styled(Select)`
@@ -78,12 +87,7 @@ export const SAVED_TAB_KEY = 'SAVED';
 
 export default class AdhocMetricEditPopover extends React.PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
-  defaultActiveTabKey =
-    (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
-    Array.isArray(this.props.savedMetricsOptions) &&
-    this.props.savedMetricsOptions.length > 0
-      ? SAVED_TAB_KEY
-      : this.props.adhocMetric.expressionType;
+  defaultActiveTabKey = this.getDefaultTab();
 
   constructor(props) {
     super(props);
@@ -99,6 +103,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
+    this.getDefaultTab = this.getDefaultTab.bind(this);
 
     this.state = {
       adhocMetric: this.props.adhocMetric,
@@ -106,7 +111,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
     };
-
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
@@ -135,6 +139,22 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
   componentWillUnmount() {
     document.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  getDefaultTab() {
+    const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
+      this.props;
+    if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
+      return adhocMetric.expressionType;
+    }
+    if (
+      (isNewMetric || savedMetric.metric_name) &&
+      Array.isArray(savedMetricsOptions) &&
+      savedMetricsOptions.length > 0
+    ) {
+      return SAVED_TAB_KEY;
+    }
+    return adhocMetric.expressionType;
   }
 
   onSave() {
@@ -279,6 +299,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       onClose,
       onResize,
       datasource,
+      isNewMetric,
+      isLabelModified,
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
@@ -325,6 +347,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
+      isLabelModified ||
+      isNewMetric ||
       !adhocMetric.equals(propsAdhocMetric) ||
       (!(
         typeof savedMetric?.metric_name === 'undefined' &&
