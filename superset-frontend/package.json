@@ -64,7 +64,8 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "pl:dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --port 3000 --config webpack.config.plugin.js"
   },
   "browserslist": [
     "last 3 chrome versions",
@@ -192,10 +193,11 @@
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
     "regenerator-runtime": "^0.13.5",
-    "rimraf": "^3.0.2",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
+    "single-spa": "^5.9.3",
+    "single-spa-react": "^4.6.0",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
     "use-immer": "^0.6.0",
@@ -275,6 +277,7 @@
     "cross-env": "^5.2.0",
     "css-loader": "^6.2.0",
     "css-minimizer-webpack-plugin": "^3.0.2",
+    "dotenv": "^16.0.3",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
     "eslint": "^7.32.0",
@@ -316,6 +319,7 @@
     "react-resizable": "^3.0.4",
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.5.4",
+    "rimraf": "^3.0.2",
     "sinon": "^9.0.2",
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.5.0",

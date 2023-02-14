@@ -1,30 +1,15 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here FIX
 import { SupersetClient, logging } from '@superset-ui/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
+import { API_HANDLER } from 'src/Superstructure/api';
 
 const assembleEndpoint = (
   dashId: string | number,
   key?: string | null,
   tabId?: string,
 ) => {
-  let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  // let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  let endpoint = `/dashboard/${dashId}/filter_state`;
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }
@@ -55,9 +40,12 @@ export const createFilterKey = (
   value: string,
   tabId?: string,
 ) =>
-  SupersetClient.post({
-    endpoint: assembleEndpoint(dashId, undefined, tabId),
-    jsonPayload: { value },
+  // SupersetClient.post({
+  API_HANDLER.SupersetClient({
+    method: 'post',
+    url: assembleEndpoint(dashId, undefined, tabId),
+    // jsonPayload: { value },
+    body: { value },
   })
     .then(r => r.json.key as string)
     .catch(err => {
@@ -66,9 +54,13 @@ export const createFilterKey = (
     });
 
 export const getFilterValue = (dashId: string | number, key?: string | null) =>
-  SupersetClient.get({
-    endpoint: assembleEndpoint(dashId, key),
+  API_HANDLER.SupersetClient({
+    method: 'get',
+    url: assembleEndpoint(dashId, key)
   })
+  // SupersetClient.get({
+  //   endpoint: assembleEndpoint(dashId, key),
+  // })
     .then(({ json }) => JSON.parse(json.value))
     .catch(err => {
       logging.error(err);

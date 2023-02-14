@@ -64,7 +64,7 @@
     "skipLibCheck": true
   },
   "exclude": [
-    "./packages/generator-superset/test/**/*"
+    "./packages/generator-superset/test/**/*",
   ],
   "include": [
     "./src/**/*",
