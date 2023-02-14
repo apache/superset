@@ -566,6 +566,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @event_logger.log_this
     @api
+    @protect
     @has_access_api
     @handle_api_exception
     @permission_name("explore_json")
