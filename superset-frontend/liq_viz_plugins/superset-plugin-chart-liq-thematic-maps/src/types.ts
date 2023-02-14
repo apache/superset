@@ -40,6 +40,5 @@ export type LiqThematicMapsProps = LiqThematicMapsStylesProps &
     data: Array<Object>[];
     groupCol: String;
     metricCol: String;
-    colorMap: Object;
     // add typing here for the props you pass in from transformProps.ts!
   };
