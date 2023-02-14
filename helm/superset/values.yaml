@@ -200,6 +200,9 @@ service:
     {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: null
+  nodePort:
+    # -- (int)
+    http: nil
 
 ingress:
   enabled: false
@@ -466,6 +469,9 @@ supersetCeleryFlower:
     type: ClusterIP
     annotations: {}
     port: 5555
+    nodePort:
+      # -- (int)
+      http: nil
   startupProbe:
     httpGet:
       path: /api/workers
@@ -567,6 +573,9 @@ supersetWebsockets:
     type: ClusterIP
     annotations: {}
     port: 8080
+    nodePort:
+      # -- (int)
+      http: nil
   command: []
   resources: {}
   deploymentAnnotations: {}
