@@ -367,7 +367,7 @@ class BaseReportState:
             return NotificationContent(
                 name=name,
                 description=self._report_schedule.description,
-                msg_content=self._report_schedule.msg_content,
+                msg_content=self._report_schedule.msg_content + f"current value is {self._report_schedule.last_value}",
                 header_data=header_data,
                 link=link,
             )
