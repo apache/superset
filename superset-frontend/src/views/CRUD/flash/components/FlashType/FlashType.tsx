@@ -34,16 +34,12 @@ import {
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import * as chrono from 'chrono-node';
 import { updateFlashType } from '../../services/flash.service';
 import { FlashTypes } from '../../enums';
-import * as chrono from 'chrono-node';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-
-const { user } = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
