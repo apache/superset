@@ -1,7 +1,7 @@
 # Vault CA container import
 ARG VAULT_CA_CONTAINER=uchimera.azurecr.io/cccs/hogwarts/vault-ca:master_2921_22315d60
 FROM $VAULT_CA_CONTAINER AS vault_ca
-FROM uchimera.azurecr.io/cccs/superset-base:CLDN-1967-AG-Grid-Quick-Search-Error-for-Null-Values_20230213201105_b6242
+FROM uchimera.azurecr.io/cccs/superset-base:feature_CLDN-1932-update-cccs-main-to-2.0.1-add-cccs-2.0_20230208140614_b6221
 
 USER root
 
