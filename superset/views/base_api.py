@@ -165,6 +165,7 @@ class BaseSupersetApiMixin:
         "401": {"description": "Unauthorized", "content": error_payload_content},
         "403": {"description": "Forbidden", "content": error_payload_content},
         "404": {"description": "Not found", "content": error_payload_content},
+        "410": {"description": "Gone", "content": error_payload_content},
         "422": {
             "description": "Could not process entity",
             "content": error_payload_content,
@@ -210,7 +211,7 @@ class BaseSupersetApiMixin:
             self.timing_stats("time", key, time_delta)
 
 
-class BaseSupersetApi(BaseApi, BaseSupersetApiMixin):
+class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
     ...
 
 

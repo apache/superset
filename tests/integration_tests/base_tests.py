@@ -347,7 +347,7 @@ class SupersetTestCase(TestCase):
             json_payload["schema"] = schema
 
         resp = self.get_json_resp(
-            "/superset/sql_json/", raise_on_error=False, json_=json_payload
+            "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")

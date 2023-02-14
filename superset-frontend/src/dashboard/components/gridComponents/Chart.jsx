@@ -211,7 +211,7 @@ class Chart extends React.Component {
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
         const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
         // use deep objects equality comparison to prevent
-        // unneccessary updates when objects references change
+        // unnecessary updates when objects references change
         if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
           return true;
         }

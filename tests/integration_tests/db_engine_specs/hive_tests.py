@@ -150,15 +150,6 @@ def test_hive_error_msg():
     )
 
 
-def test_convert_dttm():
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    assert HiveEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"
-    assert (
-        HiveEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)"
-    )
-
-
 def test_df_to_csv() -> None:
     with pytest.raises(SupersetException):
         HiveEngineSpec.df_to_sql(

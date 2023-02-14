@@ -11738,7 +11738,7 @@ msgstr ""
 
 #: superset/views/core.py:2280
 msgid ""
-"The query associated with these results could not be find. You need to "
+"The query associated with these results could not be found. You need to "
 "re-run the original query."
 msgstr ""
 

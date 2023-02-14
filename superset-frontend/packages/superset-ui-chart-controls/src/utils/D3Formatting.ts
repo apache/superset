@@ -23,6 +23,13 @@ export const D3_FORMAT_DOCS = t(
   'D3 format syntax: https://github.com/d3/d3-format',
 );
 
+export const D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT = t(
+  'Only applies when "Label Type" is set to show values.',
+);
+export const D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT = t(
+  'Only applies when "Label Type" is not set to a percentage.',
+);
+
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],

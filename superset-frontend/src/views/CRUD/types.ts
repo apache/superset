@@ -117,7 +117,7 @@ export enum QueryObjectColumns {
   database_name = 'database.database_name',
   schema = 'schema',
   sql = 'sql',
-  executed_sql = 'exceuted_sql',
+  executed_sql = 'executed_sql',
   sql_tables = 'sql_tables',
   status = 'status',
   tab_name = 'tab_name',

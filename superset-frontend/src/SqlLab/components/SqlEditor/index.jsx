@@ -179,7 +179,7 @@ const StyledSqlEditor = styled.div`
       border-top: 1px solid ${theme.colors.grayscale.light2};
       border-bottom: 1px solid ${theme.colors.grayscale.light2};
       width: 3%;
-      margin: ${theme.gridUnit}px 47%;
+      margin: ${SQL_EDITOR_GUTTER_MARGIN}px 47%;
     }
 
     .gutter.gutter-vertical {
@@ -319,7 +319,7 @@ const SqlEditor = ({
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          dispatch(addNewQueryEditor(queryEditor));
+          dispatch(addNewQueryEditor());
         },
       },
       {
