@@ -26,17 +26,18 @@ import {
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';
+// import { XYChart, LineSeries, GlyphSeries, Axis } from '@visx/xychart';
 import { getTextDimension, formatNumber } from '@superset-ui/core';
 
 interface Props {
   ariaLabel: string;
   className?: string;
   height: number;
-  numberFormat: string;
+  numberFormat?: string;
   renderTooltip: ({ index }: { index: number }) => void;
   showYAxis: boolean;
   width: number;
-  yAxisBounds: Array<number>;
+  yAxisBounds: Array<number | undefined>;
   data: Array<number>;
 }
 
@@ -88,8 +89,17 @@ function isValidBoundValue(value?: number | string) {
   );
 }
 
-class SparklineCell extends React.Component<Props, {}> {
-  renderHorizontalReferenceLine(value?: number, label?: string) {
+const SparklineCell = ({
+  ariaLabel,
+  data,
+  width = 300,
+  height = 50,
+  numberFormat = '',
+  yAxisBounds = [undefined, undefined],
+  showYAxis = false,
+  renderTooltip = () => <div />,
+}: Props) => {
+  function renderHorizontalReferenceLine(value?: number, label?: string) {
     return (
       <HorizontalReferenceLine
         reference={value}
@@ -101,101 +111,87 @@ class SparklineCell extends React.Component<Props, {}> {
       />
     );
   }
+  const yScale: Yscale = {};
+  let hasMinBound = false;
+  let hasMaxBound = false;
 
-  render() {
-    const {
-      width = 300,
-      height = 50,
-      data,
-      ariaLabel,
-      numberFormat = undefined,
-      yAxisBounds = [undefined, undefined],
-      showYAxis = false,
-      renderTooltip = () => <div />,
-    } = this.props;
-
-    const yScale: Yscale = {};
-    let hasMinBound = false;
-    let hasMaxBound = false;
-
-    if (yAxisBounds) {
-      const [minBound, maxBound] = yAxisBounds;
-      hasMinBound = isValidBoundValue(minBound);
-      if (hasMinBound) {
-        yScale.min = minBound;
-      }
-      hasMaxBound = isValidBoundValue(maxBound);
-      if (hasMaxBound) {
-        yScale.max = maxBound;
-      }
+  if (yAxisBounds) {
+    const [minBound, maxBound] = yAxisBounds;
+    hasMinBound = isValidBoundValue(minBound);
+    if (hasMinBound) {
+      yScale.min = minBound;
     }
-
-    let min: number | undefined;
-    let max: number | undefined;
-    let minLabel: string;
-    let maxLabel: string;
-    let labelLength = 0;
-    if (showYAxis) {
-      const [minBound, maxBound] = yAxisBounds;
-      min = hasMinBound
-        ? minBound
-        : data.reduce((acc, current) => Math.min(acc, current), data[0]);
-      max = hasMaxBound
-        ? maxBound
-        : data.reduce((acc, current) => Math.max(acc, current), data[0]);
-
-      minLabel = formatNumber(numberFormat, min);
-      maxLabel = formatNumber(numberFormat, max);
-      labelLength = Math.max(
-        getSparklineTextWidth(minLabel),
-        getSparklineTextWidth(maxLabel),
-      );
+    hasMaxBound = isValidBoundValue(maxBound);
+    if (hasMaxBound) {
+      yScale.max = maxBound;
     }
+  }
 
-    const margin = {
-      ...MARGIN,
-      right: MARGIN.right + labelLength,
-    };
+  let min: number | undefined;
+  let max: number | undefined;
+  let minLabel: string;
+  let maxLabel: string;
+  let labelLength = 0;
+  if (showYAxis) {
+    const [minBound, maxBound] = yAxisBounds;
+    min = hasMinBound
+      ? minBound
+      : data.reduce((acc, current) => Math.min(acc, current), data[0]);
+    max = hasMaxBound
+      ? maxBound
+      : data.reduce((acc, current) => Math.max(acc, current), data[0]);
 
-    return (
-      <WithTooltip
-        tooltipProps={tooltipProps}
-        hoverStyles={null}
-        renderTooltip={renderTooltip}
-      >
-        {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
-          <Sparkline
-            ariaLabel={ariaLabel}
-            width={width}
-            height={height}
-            margin={margin}
-            data={data}
-            onMouseLeave={onMouseLeave}
-            onMouseMove={onMouseMove}
-            {...yScale}
-          >
-            {showYAxis && this.renderHorizontalReferenceLine(min, minLabel)}
-            {showYAxis && this.renderHorizontalReferenceLine(max, maxLabel)}
-            <LineSeries showArea={false} stroke="#767676" />
-            {tooltipData && (
-              <VerticalReferenceLine
-                reference={tooltipData.index}
-                strokeDasharray="3 3"
-                strokeWidth={1}
-              />
-            )}
-            {tooltipData && (
-              <PointSeries
-                points={[tooltipData.index]}
-                fill="#767676"
-                strokeWidth={1}
-              />
-            )}
-          </Sparkline>
-        )}
-      </WithTooltip>
+    minLabel = formatNumber(numberFormat, min);
+    maxLabel = formatNumber(numberFormat, max);
+    labelLength = Math.max(
+      getSparklineTextWidth(minLabel),
+      getSparklineTextWidth(maxLabel),
     );
   }
-}
+
+  const margin = {
+    ...MARGIN,
+    right: MARGIN.right + labelLength,
+  };
+
+  return (
+    <WithTooltip
+      tooltipProps={tooltipProps}
+      hoverStyles={null}
+      renderTooltip={renderTooltip}
+    >
+      {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
+        <Sparkline
+          ariaLabel={ariaLabel}
+          width={width}
+          height={height}
+          margin={margin}
+          data={data}
+          onMouseLeave={onMouseLeave}
+          onMouseMove={onMouseMove}
+          {...yScale}
+        >
+          {showYAxis && renderHorizontalReferenceLine(min, minLabel)}
+          {showYAxis && renderHorizontalReferenceLine(max, maxLabel)}
+          <LineSeries showArea={false} stroke="#767676" />
+          {tooltipData && (
+            <VerticalReferenceLine
+              reference={tooltipData.index}
+              strokeDasharray="3 3"
+              strokeWidth={1}
+            />
+          )}
+          {tooltipData && (
+            <PointSeries
+              points={[tooltipData.index]}
+              fill="#767676"
+              strokeWidth={1}
+            />
+          )}
+        </Sparkline>
+      )}
+    </WithTooltip>
+  );
+};
 
 export default SparklineCell;
