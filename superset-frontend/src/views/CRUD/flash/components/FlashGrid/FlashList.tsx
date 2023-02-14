@@ -311,7 +311,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 label: 'export-action',
                 tooltip: t('Change Flash Type'),
                 placement: 'bottom' as TooltipPlacement,
-                icon: 'Calendar',
+                icon: 'Clock',
                 onClick: handleChangeType,
               },
             !isDeletedFlash(original?.status) && {

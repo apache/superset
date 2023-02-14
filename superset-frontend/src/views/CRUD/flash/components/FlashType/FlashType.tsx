@@ -34,11 +34,9 @@ import {
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { updateFlash } from '../../services/flash.service';
-import { FLASH_TYPES, UPDATE_TYPES } from '../../constants';
+import { updateFlashType } from '../../services/flash.service';
 import { FlashTypes } from '../../enums';
 import * as chrono from 'chrono-node';
-import { convertToLocalDateTime } from 'src/utils/commonHelper';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -131,7 +129,8 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   useEffect(() => {
     if (flash) {
-      formData.flashType = flash?.flashType ?? '';
+      formData.flashType =
+        flash?.flashType.replace(/([A-Z])/g, ' $1').trim() ?? '';
       formData.teamSlackChannel = flash?.teamSlackChannel ?? '';
       formData.teamSlackHandle = flash?.teamSlackHandle ?? '';
       formData.ttl = flash?.ttl ?? '';
@@ -179,12 +178,13 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
-    flashTtlService(Number(flash?.id), UPDATE_TYPES.TYPE, payload);
+    console.log({ payload });
+    flashTtlService(Number(flash?.id), payload);
   };
 
   const flashTtlService = useCallback(
-    (id, type, payload) => {
-      updateFlash(id, type, payload)
+    (id, payload) => {
+      updateFlashType(id, payload)
         .then(() => {
           addSuccessToast(t('Your flash object type has been changed.'));
           onHide();
