@@ -1,7 +1,7 @@
 # Vault CA container import
 ARG VAULT_CA_CONTAINER=uchimera.azurecr.io/cccs/hogwarts/vault-ca:master_2921_22315d60
 FROM $VAULT_CA_CONTAINER AS vault_ca
-FROM uchimera.azurecr.io/cccs/superset-base:cccs-2.0_20230206181403_b6196
+FROM uchimera.azurecr.io/cccs/superset-base:cccs-2.0.1_20230214194256_b6266
 
 USER root
 

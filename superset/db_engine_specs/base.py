@@ -1310,6 +1310,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return sqla_type, generic_type
         return None
 
+    @classmethod
+    def get_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> URL:
+        """
+        Return a modified URL with the username set.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user and username is not None:
+            url = url.set(username=username)
+
+        return url
+
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
@@ -1429,6 +1444,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some databases require some sensitive information which do not conform to
         the username:password syntax normally used by SQLAlchemy.
 
+        :param database: database instance from which to extract extras
+        :param params: params to be updated
+        """
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            params.update(encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex
+
+    @staticmethod
+    def update_params_from_encrypted_extra(  # pylint: disable=invalid-name
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        """
+        Some databases require some sensitive information which do not conform to
+        the username:password syntax normally used by SQLAlchemy.
         :param database: database instance from which to extract extras
         :param params: params to be updated
         """

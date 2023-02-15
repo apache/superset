@@ -19,6 +19,24 @@
 Here is where we create the app which ends up being shared across all tests.integration_tests. A future
 optimization will be to create a separate app instance for each test class.
 """
+from typing import TYPE_CHECKING
+
+from superset.app import create_app
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from flask.testing import FlaskClient
 from superset.app import create_app
 
 app = create_app()
+
+
+def login(
+    client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
+):
+    resp = client.post(
+        "/login/",
+        data=dict(username=username, password=password),
+    ).get_data(as_text=True)
+    assert "User confirmation needed" not in resp

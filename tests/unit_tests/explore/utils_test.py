@@ -39,8 +39,8 @@ from superset.utils.core import DatasourceType
 dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
 query_find_by_id = "superset.queries.dao.QueryDAO.find_by_id"
 chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
-is_user_admin = "superset.explore.utils.is_user_admin"
-is_owner = "superset.explore.utils.is_owner"
+is_admin = "superset.security.SupersetSecurityManager.is_admin"
+is_owner = "superset.security.SupersetSecurityManager.is_owner"
 can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )
@@ -49,7 +49,6 @@ raise_for_access = "superset.security.SupersetSecurityManager.raise_for_access"
 query_datasources_by_name = (
     "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name"
 )
-
 
 def test_unsaved_chart_no_dataset_id(app_context: AppContext) -> None:
     from superset.explore.utils import check_access as check_chart_access
@@ -168,7 +167,7 @@ def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> N
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    mocker.patch(is_user_admin, return_value=True)
+    mocker.patch(is_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
     check_chart_access(
         datasource_id=1,
@@ -185,7 +184,7 @@ def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> N
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    mocker.patch(is_user_admin, return_value=False)
+    mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
     check_chart_access(
@@ -203,7 +202,7 @@ def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) ->
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    mocker.patch(is_user_admin, return_value=False)
+    mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
@@ -223,7 +222,7 @@ def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> 
     with raises(ChartAccessDeniedError):
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=True)
-        mocker.patch(is_user_admin, return_value=False)
+        mocker.patch(is_admin, return_value=False)
         mocker.patch(is_owner, return_value=False)
         mocker.patch(can_access, return_value=False)
         mocker.patch(chart_find_by_id, return_value=Slice())
@@ -241,7 +240,7 @@ def test_dataset_has_access(mocker: MockFixture, app_context: AppContext) -> Non
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    mocker.patch(is_user_admin, return_value=False)
+    mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
@@ -259,7 +258,7 @@ def test_query_has_access(mocker: MockFixture, app_context: AppContext) -> None:
 
     mocker.patch(query_find_by_id, return_value=Query())
     mocker.patch(raise_for_access, return_value=True)
-    mocker.patch(is_user_admin, return_value=False)
+    mocker.patch(is_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     assert (
@@ -285,7 +284,7 @@ def test_query_no_access(mocker: MockFixture, client, app_context: AppContext) -
         table = SqlaTable()
         table.owners = []
         mocker.patch(query_datasources_by_name, return_value=[table])
-        mocker.patch(is_user_admin, return_value=False)
+        mocker.patch(is_admin, return_value=False)
         mocker.patch(is_owner, return_value=False)
         mocker.patch(can_access, return_value=False)
         check_datasource_access(
