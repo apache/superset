@@ -34,6 +34,7 @@ from superset.dao.exceptions import (
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
+from superset.datasets.commands.exceptions import DatasetCreateFailedError
 from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
@@ -474,6 +475,7 @@ class TestDatasetApi(SupersetTestCase):
             "can_write",
             "can_export",
             "can_duplicate",
+            "can_get_or_create_dataset",
         }
 
     def test_create_dataset_item(self):
@@ -2302,3 +2304,90 @@ class TestDatasetApi(SupersetTestCase):
         }
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_or_create_dataset_already_exists(self):
+        """
+        Dataset API: Test get or create endpoint when table already exists
+        """
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "virtual_dataset",
+                "database_id": get_example_database().id,
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "virtual_dataset")
+            .one()
+        )
+        self.assertEqual(response["result"], {"table_id": dataset.id})
+
+    def test_get_or_create_dataset_database_not_found(self):
+        """
+        Dataset API: Test get or create endpoint when database doesn't exist
+        """
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": "virtual_dataset", "database_id": 999},
+        )
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["message"], {"database": ["Database does not exist"]})
+
+    @patch("superset.datasets.commands.create.CreateDatasetCommand.run")
+    def test_get_or_create_dataset_create_fails(self, command_run_mock):
+        """
+        Dataset API: Test get or create endpoint when create fails
+        """
+        command_run_mock.side_effect = DatasetCreateFailedError
+        self.login(username="admin")
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "virtual_dataset",
+                "database_id": get_example_database().id,
+            },
+        )
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["message"], "Dataset could not be created.")
+
+    def test_get_or_create_dataset_creates_table(self):
+        """
+        Dataset API: Test get or create endpoint when table is created
+        """
+        self.login(username="admin")
+
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
+            engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": "test_create_sqla_table_api",
+                "database_id": examples_db.id,
+                "template_params": '{"param": 1}',
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="test_create_sqla_table_api")
+            .one()
+        )
+        self.assertEqual(response["result"], {"table_id": table.id})
+        self.assertEqual(table.template_params, '{"param": 1}')
+
+        db.session.delete(table)
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE test_create_sqla_table_api")
+        db.session.commit()
