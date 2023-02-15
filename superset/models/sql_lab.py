@@ -197,6 +197,7 @@ class Query(
                     type=col["type"],
                     is_dttm=col["is_dttm"],
                     groupby=True,
+                    filterable=True,
                 )
             )
         return columns
