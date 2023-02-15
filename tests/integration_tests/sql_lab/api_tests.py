@@ -19,6 +19,9 @@
 import datetime
 import json
 import random
+import csv
+import pandas as pd
+import io
 
 import pytest
 import prison
@@ -26,7 +29,7 @@ from sqlalchemy.sql import func
 from unittest import mock
 
 from tests.integration_tests.test_app import app
-from superset import sql_lab
+from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
@@ -176,3 +179,37 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertEqual(result_limited, expected_limited)
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
+
+    @mock.patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @mock.patch("superset.models.core.Database.get_df")
+    def test_export_results(self, get_df_mock: mock.Mock) -> None:
+        self.login()
+
+        database = get_example_database()
+        query_obj = Query(
+            client_id="test",
+            database=database,
+            tab_name="test_tab",
+            sql_editor_id="test_editor_id",
+            sql="select * from bar",
+            select_sql=None,
+            executed_sql="select * from bar limit 2",
+            limit=100,
+            select_as_cta=False,
+            rows=104,
+            error_message="none",
+            results_key="test_abc",
+        )
+
+        db.session.add(query_obj)
+        db.session.commit()
+
+        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+
+        resp = self.get_resp("/api/v1/sqllab/export/test/")
+        data = csv.reader(io.StringIO(resp))
+        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
+
+        self.assertEqual(list(expected_data), list(data))
+        db.session.delete(query_obj)
+        db.session.commit()
