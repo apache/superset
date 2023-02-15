@@ -18,6 +18,7 @@
  * under the License.
  */
 import React from 'react';
+import moment from 'moment';
 import {
   Sparkline,
   LineSeries,
@@ -26,19 +27,28 @@ import {
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';
-// import { XYChart, LineSeries, GlyphSeries, Axis } from '@visx/xychart';
-import { getTextDimension, formatNumber } from '@superset-ui/core';
+import {
+  Axis,
+  GlyphSeries,
+  Grid,
+  LineSeries as NewLineSeries,
+  Tooltip,
+  XYChart,
+  buildChartTheme,
+} from '@visx/xychart';
+import { getTextDimension, formatNumber, formatTime } from '@superset-ui/core';
 
 interface Props {
   ariaLabel: string;
   className?: string;
   height: number;
   numberFormat?: string;
-  renderTooltip: ({ index }: { index: number }) => void;
+  renderTooltip: ({ index }: { index: number }) => React.ReactNode;
   showYAxis: boolean;
   width: number;
   yAxisBounds: Array<number | undefined>;
   data: Array<number>;
+  entries: Array<any>;
 }
 
 interface TooltipProps {
@@ -88,6 +98,13 @@ function isValidBoundValue(value?: number | string) {
     !Number.isNaN(value)
   );
 }
+const customTheme = buildChartTheme({
+  backgroundColor: 'ffffff',
+  colors: ['#767676'],
+  gridColor: '#bbbbbb',
+  gridColorDark: '#bbbbbb',
+  tickLength: 5,
+});
 
 const SparklineCell = ({
   ariaLabel,
@@ -97,6 +114,7 @@ const SparklineCell = ({
   numberFormat = '',
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
+  entries = [],
   renderTooltip = () => <div />,
 }: Props) => {
   function renderHorizontalReferenceLine(value?: number, label?: string) {
@@ -111,6 +129,7 @@ const SparklineCell = ({
       />
     );
   }
+
   const yScale: Yscale = {};
   let hasMinBound = false;
   let hasMaxBound = false;
@@ -154,43 +173,105 @@ const SparklineCell = ({
     right: MARGIN.right + labelLength,
   };
 
+  const newData = data.map((num, idx) => ({
+    x: idx,
+    y: num,
+  }));
+
+  const xAccessor = (d: any) => d.x;
+  const yAccessor = (d: any) => d.y;
+
   return (
-    <WithTooltip
-      tooltipProps={tooltipProps}
-      hoverStyles={null}
-      renderTooltip={renderTooltip}
-    >
-      {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
-        <Sparkline
-          ariaLabel={ariaLabel}
-          width={width}
-          height={height}
-          margin={margin}
-          data={data}
-          onMouseLeave={onMouseLeave}
-          onMouseMove={onMouseMove}
-          {...yScale}
-        >
-          {showYAxis && renderHorizontalReferenceLine(min, minLabel)}
-          {showYAxis && renderHorizontalReferenceLine(max, maxLabel)}
-          <LineSeries showArea={false} stroke="#767676" />
-          {tooltipData && (
-            <VerticalReferenceLine
-              reference={tooltipData.index}
-              strokeDasharray="3 3"
-              strokeWidth={1}
-            />
-          )}
-          {tooltipData && (
-            <PointSeries
-              points={[tooltipData.index]}
-              fill="#767676"
-              strokeWidth={1}
-            />
-          )}
-        </Sparkline>
-      )}
-    </WithTooltip>
+    <>
+      <WithTooltip
+        tooltipProps={tooltipProps}
+        hoverStyles={null}
+        renderTooltip={renderTooltip}
+      >
+        {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
+          <Sparkline
+            ariaLabel={ariaLabel}
+            width={width}
+            height={height}
+            margin={margin}
+            data={data}
+            onMouseLeave={onMouseLeave}
+            onMouseMove={onMouseMove}
+            {...yScale}
+          >
+            {showYAxis && renderHorizontalReferenceLine(min, minLabel)}
+            {showYAxis && renderHorizontalReferenceLine(max, maxLabel)}
+            <LineSeries showArea={false} stroke="#767676" />
+            {tooltipData && (
+              <VerticalReferenceLine
+                reference={tooltipData.index}
+                strokeDasharray="3 3"
+                strokeWidth={1}
+              />
+            )}
+            {tooltipData && (
+              <PointSeries
+                points={[tooltipData.index]}
+                fill="#767676"
+                strokeWidth={1}
+              />
+            )}
+          </Sparkline>
+        )}
+      </WithTooltip>
+
+      <XYChart
+        width={width}
+        height={height}
+        margin={margin}
+        yScale={{
+          type: 'linear',
+          zero: false,
+          domain: [yScale.min || min, yScale.max || max],
+        }}
+        xScale={{ type: 'band', paddingInner: 0.5 }}
+        theme={customTheme}
+      >
+        {showYAxis && (
+          <Axis
+            tickValues={[min, max]}
+            orientation="right"
+            numTicks={2}
+            hideAxisLine
+            tickFormat={(d: any) => formatNumber(numberFormat, d)}
+          />
+        )}
+        {showYAxis && (
+          <Grid columns={false} numTicks={2} strokeDasharray="3 3" />
+        )}
+        <Tooltip
+          showVerticalCrosshair
+          snapTooltipToDatumX
+          showSeriesGlyphs
+          renderTooltip={({ tooltipData }) => {
+            const idx = tooltipData?.datumByKey[ariaLabel].index;
+            return (
+              <div>
+                <strong>{idx && formatNumber(numberFormat, data[idx])}</strong>
+                <div>
+                  {idx &&
+                    formatTime(
+                      numberFormat,
+                      moment.utc(entries[idx].time).toDate(),
+                    )}
+                </div>
+              </div>
+            );
+          }}
+        />
+        <NewLineSeries
+          dataKey={ariaLabel}
+          data={newData}
+          xAccessor={xAccessor}
+          yAccessor={yAccessor}
+        />
+      </XYChart>
+    </>
   );
 };
 

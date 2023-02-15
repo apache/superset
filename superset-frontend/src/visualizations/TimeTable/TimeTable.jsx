@@ -171,6 +171,7 @@ const TimeTable = ({
           numberFormat={column.d3format}
           yAxisBounds={column.yAxisBounds}
           showYAxis={column.showYAxis}
+          entries={entries}
           renderTooltip={({ index }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
