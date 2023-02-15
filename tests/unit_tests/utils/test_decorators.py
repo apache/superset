@@ -16,8 +16,10 @@
 # under the License.
 
 
+from contextlib import nullcontext
 from enum import Enum
-from typing import Any
+from inspect import isclass
+from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
@@ -54,7 +56,17 @@ def test_debounce() -> None:
     assert result == 3
 
 
-def test_statsd_gauge() -> None:
+@pytest.mark.parametrize(
+    "response_value, expected_exception, expected_result",
+    [
+        (ResponseValues.OK, None, "custom.prefix.ok"),
+        (ResponseValues.FAIL, ValueError, "custom.prefix.error"),
+        (ResponseValues.WARN, FileNotFoundError, "custom.prefix.warn"),
+    ],
+)
+def test_statsd_gauge(
+    response_value: str, expected_exception: Optional[Exception], expected_result: str
+) -> None:
     @decorators.statsd_gauge("custom.prefix")
     def my_func(response: ResponseValues, *args: Any, **kwargs: Any) -> str:
         if response == ResponseValues.FAIL:
@@ -64,13 +76,12 @@ def test_statsd_gauge() -> None:
         return "OK"
 
     with patch.object(app.config["STATS_LOGGER"], "gauge") as mock:
-        my_func(ResponseValues.OK, 1, 2)
-        mock.assert_called_once_with("custom.prefix.ok", 1)
+        cm = (
+            pytest.raises(expected_exception)
+            if isclass(expected_exception) and issubclass(expected_exception, Exception)
+            else nullcontext()
+        )
 
-        with pytest.raises(ValueError):
-            my_func(ResponseValues.FAIL, 1, 2)
-            mock.assert_called_once_with("custom.prefix.error", 1)
-
-        with pytest.raises(FileNotFoundError):
-            my_func(ResponseValues.WARN, 1, 2)
-            mock.assert_called_once_with("custom.prefix.warn", 1)
+        with cm:
+            my_func(response_value, 1, 2)
+            mock.assert_called_once_with(expected_result, 1)
