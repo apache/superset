@@ -18,7 +18,13 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -245,30 +251,33 @@ const SqlEditor = ({
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
 
-  const startQuery = (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
-    if (!database) {
-      return;
-    }
+  const startQuery = useCallback(
+    (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
+      if (!database) {
+        return;
+      }
 
-    dispatch(
-      runQueryFromSqlEditor(
-        database,
-        queryEditor,
-        defaultQueryLimit,
-        ctasArg ? ctas : '',
-        ctasArg,
-        ctas_method,
-      ),
-    );
-    dispatch(setActiveSouthPaneTab('Results'));
-  };
+      dispatch(
+        runQueryFromSqlEditor(
+          database,
+          queryEditor,
+          defaultQueryLimit,
+          ctasArg ? ctas : '',
+          ctasArg,
+          ctas_method,
+        ),
+      );
+      dispatch(setActiveSouthPaneTab('Results'));
+    },
+    [ctas, database, defaultQueryLimit, dispatch, queryEditor],
+  );
 
-  const stopQuery = () => {
+  const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
     return false;
-  };
+  }, [dispatch, latestQuery]);
 
   const runQuery = () => {
     if (database) {
@@ -282,7 +291,7 @@ const SqlEditor = ({
       dispatch(queryEditorSetAutorun(queryEditor, false));
       startQuery();
     }
-  }, []);
+  }, [autorun, dispatch, queryEditor, startQuery]);
 
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
@@ -290,7 +299,7 @@ const SqlEditor = ({
       ? sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
       : 0;
 
-  const getHotkeyConfig = () => {
+  const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
     const userOS = detectOS();
     const base = [
@@ -342,26 +351,33 @@ const SqlEditor = ({
     }
 
     return base;
-  };
+  }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
 
-  const handleWindowResize = () => {
+  const handleWindowResize = useCallback(() => {
     setHeight(getSqlEditorHeight());
-  };
+  }, []);
 
   const handleWindowResizeWithThrottle = useMemo(
     () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
-    [],
+    [handleWindowResize],
   );
 
-  const onBeforeUnload = event => {
-    if (
-      database?.extra_json?.cancel_query_on_windows_unload &&
-      latestQuery?.state === 'running'
-    ) {
-      event.preventDefault();
-      stopQuery();
-    }
-  };
+  const onBeforeUnload = useCallback(
+    event => {
+      if (
+        database?.extra_json?.cancel_query_on_windows_unload &&
+        latestQuery?.state === 'running'
+      ) {
+        event.preventDefault();
+        stopQuery();
+      }
+    },
+    [
+      database?.extra_json?.cancel_query_on_windows_unload,
+      latestQuery?.state,
+      stopQuery,
+    ],
+  );
 
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
@@ -378,7 +394,7 @@ const SqlEditor = ({
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, []);
+  }, [database, handleWindowResizeWithThrottle, onBeforeUnload]);
 
   useEffect(() => {
     // setup hotkeys
@@ -387,7 +403,7 @@ const SqlEditor = ({
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
-  }, [latestQuery]);
+  }, [getHotkeyConfig, latestQuery]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -404,13 +420,16 @@ const SqlEditor = ({
     }
   };
 
-  const setQueryEditorAndSaveSql = sql => {
-    dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
-  };
+  const setQueryEditorAndSaveSql = useCallback(
+    sql => {
+      dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
+    },
+    [dispatch, queryEditor],
+  );
 
   const setQueryEditorAndSaveSqlWithDebounce = useMemo(
     () => debounce(setQueryEditorAndSaveSql, SET_QUERY_EDITOR_SQL_DEBOUNCE_MS),
-    [],
+    [setQueryEditorAndSaveSql],
   );
 
   const canValidateQuery = () => {
@@ -422,15 +441,18 @@ const SqlEditor = ({
     return false;
   };
 
-  const requestValidation = sql => {
-    if (database) {
-      dispatch(validateQuery(queryEditor, sql));
-    }
-  };
+  const requestValidation = useCallback(
+    sql => {
+      if (database) {
+        dispatch(validateQuery(queryEditor, sql));
+      }
+    },
+    [database, dispatch, queryEditor],
+  );
 
   const requestValidationWithDebounce = useMemo(
     () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [],
+    [requestValidation],
   );
 
   const onSqlChanged = sql => {
