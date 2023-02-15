@@ -219,6 +219,9 @@ const ResultSet = ({
     }
   };
 
+  const getExportCsvUrl = (clientId: string) =>
+    `/api/v1/sqllab/export/${clientId}/`;
+
   const renderControls = () => {
     if (search || visualize || csv) {
       let { data } = query.results;
@@ -257,7 +260,7 @@ const ResultSet = ({
               />
             )}
             {csv && (
-              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
+              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
