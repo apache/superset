@@ -1490,6 +1490,7 @@ class TestRolePermission(SupersetTestCase):
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
+        self.assert_cannot_gamma(get_perm_tuples("Gamma"))
 
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_permissions_basic(self):
