@@ -345,7 +345,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -356,7 +356,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -502,13 +502,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "end_dttm": {
             "format": "date-time",
@@ -1223,6 +1223,7 @@
             "example": false
           },
           "periods": {
+            "description": "Time periods (in units of `time_grain`) to predict into the future",
             "example": 7,
             "format": "int32",
             "type": "integer"
@@ -1578,6 +1579,7 @@
             "type": "string"
           },
           "from_dttm": {
+            "description": "Start timestamp of time range",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -1603,6 +1605,7 @@
             "type": "integer"
           },
           "stacktrace": {
+            "description": "Stacktrace if there was an error",
             "nullable": true,
             "type": "string"
           },
@@ -1620,6 +1623,7 @@
             "type": "string"
           },
           "to_dttm": {
+            "description": "End timestamp of time range",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -2232,6 +2236,7 @@
             "type": "string"
           },
           "rolling_type_options": {
+            "description": "Optional options to pass to rolling method. Needed for e.g. quantile operation.",
             "example": {},
             "type": "object"
           },
@@ -3027,13 +3032,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -5230,7 +5235,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5273,7 +5278,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5317,6 +5322,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5333,23 +5355,6 @@
         "required": [
           "first_name",
           "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
           "username"
         ],
         "type": "object"
@@ -19992,6 +19997,57 @@
             "jwt": []
           }
         ],
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/export/{client_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The SQL query result identifier",
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "SQL query results"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Exports the SQL query results to a CSV",
         "tags": [
           "SQL Lab"
         ]
