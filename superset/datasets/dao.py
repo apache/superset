@@ -388,6 +388,14 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
                 db.session.rollback()
             raise ex
 
+    @staticmethod
+    def get_table_by_name(database_id: int, table_name: str) -> Optional[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+
 
 class DatasetColumnDAO(BaseDAO):
     model_cls = TableColumn
