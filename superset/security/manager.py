@@ -164,6 +164,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "Dataset",
         "Datasource",
+        "CssTemplate",
     } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
