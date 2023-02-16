@@ -28,12 +28,12 @@ from marshmallow.validate import Length, ValidationError
 from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
-from superset import db
 from superset.constants import PASSWORD_MASK
 from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
+from superset.extensions import db
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert

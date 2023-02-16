@@ -20,9 +20,9 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter

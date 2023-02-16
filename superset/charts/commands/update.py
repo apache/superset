@@ -22,7 +22,6 @@ from flask import g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
@@ -37,6 +36,7 @@ from superset.commands.utils import get_datasource_by_id
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)

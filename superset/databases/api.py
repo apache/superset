@@ -28,7 +28,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import app
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -86,7 +86,7 @@ from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
-from superset.extensions import security_manager
+from superset.extensions import event_logger, security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item

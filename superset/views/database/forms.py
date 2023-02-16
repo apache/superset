@@ -31,7 +31,8 @@ from wtforms import (
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 
-from superset import app, db, security_manager
+from superset import app
+from superset.extensions import db, security_manager
 from superset.forms import (
     CommaSeparatedListField,
     filter_not_empty_values,

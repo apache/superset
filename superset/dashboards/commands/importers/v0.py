@@ -24,11 +24,11 @@ from typing import Any, Dict, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.exceptions import DashboardImportException
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import (

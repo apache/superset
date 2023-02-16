@@ -20,7 +20,8 @@ from typing import Any, Dict, Union
 import prison
 from flask import Response
 
-from superset import app, security_manager
+from superset import app
+from superset.extensions import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import (

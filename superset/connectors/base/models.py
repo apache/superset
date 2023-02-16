@@ -28,9 +28,10 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.sql import literal_column
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.extensions import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict

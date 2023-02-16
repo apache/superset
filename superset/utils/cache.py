@@ -27,8 +27,7 @@ from flask_caching import Cache
 from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
-from superset import db
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict

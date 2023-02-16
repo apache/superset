@@ -18,8 +18,8 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import security_manager
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils

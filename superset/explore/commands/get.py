@@ -23,7 +23,6 @@ from flask import current_app, request
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
@@ -38,6 +37,7 @@ from superset.explore.form_data.commands.parameters import (
 )
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
+from superset.extensions import db, security_manager
 from superset.utils import core as utils
 from superset.views.utils import (
     get_datasource_info,

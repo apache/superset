@@ -21,17 +21,17 @@ import logging
 from typing import Any, cast, List, TypedDict
 
 import pandas as pd
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 
-from superset import app, db, results_backend, results_backend_use_msgpack
+from superset import app, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
-from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
 
 config = app.config

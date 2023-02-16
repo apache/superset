@@ -22,7 +22,7 @@ import prison
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app
-from superset import db
+from superset.extensions import db
 from superset.models.core import CssTemplate
 from superset.utils.database import get_example_database
 

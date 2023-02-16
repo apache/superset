@@ -22,8 +22,9 @@ from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
 
-from superset import event_logger, is_feature_enabled
+from superset import is_feature_enabled
 from superset.embedded.dao import EmbeddedDAO
+from superset.extensions import event_logger
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetView, common_bootstrap_payload

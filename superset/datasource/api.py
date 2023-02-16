@@ -18,10 +18,11 @@ import logging
 
 from flask_appbuilder.api import expose, protect, safe
 
-from superset import app, db, event_logger
+from superset import app
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, event_logger
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics

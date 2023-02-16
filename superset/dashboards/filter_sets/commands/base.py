@@ -19,7 +19,6 @@ from typing import cast, Optional
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import security_manager
 from superset.common.not_authrized_object import NotAuthorizedException
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
@@ -28,6 +27,7 @@ from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetNotFoundError,
 )
 from superset.dashboards.filter_sets.consts import USER_OWNER_TYPE
+from superset.extensions import security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
 from superset.utils.core import get_user_id

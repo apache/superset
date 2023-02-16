@@ -33,11 +33,9 @@ from sqlalchemy.orm import Session
 
 from superset import (
     app,
-    db,
     is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
-    security_manager,
 )
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
@@ -45,7 +43,7 @@ from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
-from superset.extensions import celery_app
+from superset.extensions import celery_app, db, security_manager
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet

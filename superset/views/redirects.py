@@ -21,7 +21,7 @@ from flask import flash
 from flask_appbuilder import expose
 from werkzeug.utils import redirect
 
-from superset import db, event_logger
+from superset.extensions import db, event_logger
 from superset.models import core as models
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView

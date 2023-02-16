@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
@@ -41,6 +40,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
 

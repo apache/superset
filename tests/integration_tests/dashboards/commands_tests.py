@@ -22,7 +22,6 @@ import pytest
 import yaml
 from werkzeug.utils import secure_filename
 
-from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -33,6 +32,7 @@ from superset.dashboards.commands.export import (
     get_default_position,
 )
 from superset.dashboards.commands.importers import v0, v1
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

@@ -23,8 +23,8 @@ from typing import List
 
 from sqlalchemy import inspect
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType

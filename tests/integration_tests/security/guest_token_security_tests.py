@@ -20,10 +20,10 @@ from unittest import mock
 import pytest
 from flask import g
 
-from superset import db, security_manager
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.embedded.dao import EmbeddedDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType
 from superset.sql_parse import Table

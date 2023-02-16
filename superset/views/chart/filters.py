@@ -19,7 +19,7 @@ from typing import Any
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset import security_manager
+from superset.extensions import security_manager
 from superset.views.base import BaseFilter
 
 

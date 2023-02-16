@@ -20,10 +20,11 @@ from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
 
-from superset import app, security_manager
+from superset import app
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.exceptions import SupersetException
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import core as utils

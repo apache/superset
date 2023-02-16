@@ -26,7 +26,7 @@ import prison
 from parameterized import parameterized
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard

@@ -23,7 +23,7 @@ from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db
+from superset.extensions import db
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()

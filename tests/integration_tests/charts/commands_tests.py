@@ -21,7 +21,6 @@ import pytest
 import yaml
 from flask import g
 
-from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
@@ -30,6 +29,7 @@ from superset.charts.commands.update import UpdateChartCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase

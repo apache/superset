@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest import mock, skip
+from unittest import mock
 from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
 
-from superset import db, sql_lab
+from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -29,7 +29,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetSecurityException,
 )
-from superset.models.core import Database
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.sqllab.commands import export, results
 from superset.sqllab.limiting_factor import LimitingFactor

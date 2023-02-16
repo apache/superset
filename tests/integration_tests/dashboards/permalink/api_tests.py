@@ -14,25 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from typing import Iterator
-from unittest.mock import patch
 from uuid import uuid3
 
 import pytest
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import db
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.extensions import db
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 from tests.integration_tests.test_app import app
 
 STATE = {

@@ -52,14 +52,7 @@ from werkzeug.exceptions import HTTPException
 from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
-from superset import (
-    app as superset_app,
-    appbuilder,
-    conf,
-    db,
-    get_feature_flags,
-    security_manager,
-)
+from superset import app as superset_app, conf, get_feature_flags
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
@@ -72,7 +65,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import appbuilder, cache_manager, db, security_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse

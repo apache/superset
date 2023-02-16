@@ -27,8 +27,9 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import app, jinja_context
 from superset.commands.base import BaseCommand
+from superset.extensions import security_manager
 from superset.reports.commands.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,

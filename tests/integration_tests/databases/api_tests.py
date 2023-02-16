@@ -23,20 +23,17 @@ from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
-from operator import itemgetter
 
 import prison
 import pytest
 import yaml
 
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -48,28 +45,11 @@ from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.certificates import ssl_certificate
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     database_metadata_config,
     dataset_metadata_config,
-)
-from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_position,
-    load_unicode_data,
 )
 from tests.integration_tests.test_app import app
 

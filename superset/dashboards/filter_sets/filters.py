@@ -20,8 +20,8 @@ from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import and_, or_
 
-from superset import security_manager
 from superset.dashboards.filter_sets.consts import DASHBOARD_OWNER_TYPE, USER_OWNER_TYPE
+from superset.extensions import security_manager
 from superset.models.dashboard import dashboard_user
 from superset.models.filter_set import FilterSet
 from superset.utils.core import get_user_id

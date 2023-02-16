@@ -27,7 +27,6 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import db, event_logger, security_manager
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
@@ -37,6 +36,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType

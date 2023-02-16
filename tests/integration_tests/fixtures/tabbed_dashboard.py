@@ -18,7 +18,7 @@ import json
 
 import pytest
 
-from superset import db
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils.core import shortid
 from tests.integration_tests.dashboards.superset_factory_util import create_dashboard

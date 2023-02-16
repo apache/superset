@@ -20,7 +20,8 @@ import time
 from contextlib import closing
 from typing import Any, Dict, List, Optional
 
-from superset import app, security_manager
+from superset import app
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation

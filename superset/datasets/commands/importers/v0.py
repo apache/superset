@@ -23,13 +23,13 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import make_transient
 
-from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.datasets.commands.exceptions import DatasetInvalidError
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.dict_import_export import DATABASES_KEY
 

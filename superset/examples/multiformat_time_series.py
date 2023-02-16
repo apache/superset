@@ -19,7 +19,8 @@ from typing import Dict, Optional, Tuple
 import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
-from superset import app, db
+from superset import app
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
 

@@ -17,10 +17,10 @@
 import logging
 from typing import List, Optional
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleForbiddenError,

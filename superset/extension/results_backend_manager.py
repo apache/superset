@@ -14,17 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Optional
 
-from superset.extensions import security_manager
+from cachelib.base import BaseCache
+from flask import Flask
 
 
-def get_test_user(id_: int, username: str) -> Any:
-    """Create a sample test user"""
-    return security_manager.user_model(
-        id=id_,
-        username=username,
-        first_name=username,
-        last_name=username,
-        email=f"{username}@example.com",
-    )
+class ResultsBackendManager:
+    def __init__(self) -> None:
+        self._results_backend = None
+        self._use_msgpack = False
+
+    def init_app(self, app: Flask) -> None:
+        self._results_backend = app.config["RESULTS_BACKEND"]
+        self._use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
+
+    @property
+    def results_backend(self) -> Optional[BaseCache]:
+        return self._results_backend
+
+    @property
+    def should_use_msgpack(self) -> bool:
+        return self._use_msgpack

@@ -61,9 +61,10 @@ from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
-from superset import security_manager, sql_parse
+from superset import sql_parse
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.extensions import security_manager
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils

@@ -21,8 +21,8 @@ from unittest import mock
 
 import pytest
 
-from superset import db
 from superset.embedded.dao import EmbeddedDAO
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

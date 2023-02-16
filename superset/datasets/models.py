@@ -30,8 +30,8 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 
-from superset import security_manager
 from superset.columns.models import Column
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,

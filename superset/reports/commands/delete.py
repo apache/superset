@@ -19,10 +19,10 @@ from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.reports.commands.exceptions import (
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,

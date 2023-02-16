@@ -45,11 +45,11 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import app, is_feature_enabled
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasource.dao import DatasourceDAO
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice

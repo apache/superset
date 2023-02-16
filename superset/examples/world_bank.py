@@ -24,8 +24,9 @@ from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database
-from superset import app, db
+from superset import app
 from superset.connectors.sqla.models import SqlMetric
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils

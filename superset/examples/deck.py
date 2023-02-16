@@ -16,7 +16,7 @@
 # under the License.
 import json
 
-from superset import db
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType

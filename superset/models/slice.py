@@ -39,7 +39,8 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import db, is_feature_enabled, security_manager
+from superset import is_feature_enabled
+from superset.extensions import db, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail

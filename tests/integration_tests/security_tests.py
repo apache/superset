@@ -31,10 +31,11 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from superset.datasource.dao import DatasourceDAO
 from superset.models.dashboard import Dashboard
-from superset import app, appbuilder, db, security_manager, viz
+from superset import app, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import appbuilder, db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table

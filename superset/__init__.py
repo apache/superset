@@ -18,17 +18,11 @@
 from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
-from superset.app import create_app
 from superset.extensions import (
-    appbuilder,
     cache_manager,
-    db,
-    event_logger,
     feature_flag_manager,
     manifest_processor,
     results_backend_manager,
-    security_manager,
-    talisman,
 )
 from superset.security import SupersetSecurityManager
 

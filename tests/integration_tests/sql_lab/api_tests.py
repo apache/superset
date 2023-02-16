@@ -29,8 +29,9 @@ from sqlalchemy.sql import func
 from unittest import mock
 
 from tests.integration_tests.test_app import app
-from superset import db, sql_lab
+from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils import core as utils

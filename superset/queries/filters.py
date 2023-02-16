@@ -18,7 +18,7 @@ from typing import Any
 
 from flask_sqlalchemy import BaseQuery
 
-from superset import security_manager
+from superset.extensions import security_manager
 from superset.models.sql_lab import Query
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter

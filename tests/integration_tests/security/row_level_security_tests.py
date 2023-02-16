@@ -22,8 +22,8 @@ from unittest import mock
 import pytest
 from flask import g
 
-from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.extensions import db, security_manager
 from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,

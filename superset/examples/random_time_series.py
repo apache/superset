@@ -19,7 +19,8 @@ import pandas as pd
 from sqlalchemy import DateTime, inspect, String
 
 import superset.utils.database as database_utils
-from superset import app, db
+from superset import app
+from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
 

@@ -16,13 +16,14 @@
 # under the License.
 from typing import Any, Dict, Optional
 
-from superset import app, db
+from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.datasets.commands.exceptions import DatasetSamplesFailedError
 from superset.datasource.dao import DatasourceDAO
+from superset.extensions import db
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 

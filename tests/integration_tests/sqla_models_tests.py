@@ -28,12 +28,12 @@ from pytest_mock import MockFixture
 from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,

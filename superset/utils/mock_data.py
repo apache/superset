@@ -35,7 +35,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
 from typing_extensions import TypedDict
 
-from superset import db
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
@@ -43,7 +43,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.connectors.base.models import BaseDatasource
 from superset.dao.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse

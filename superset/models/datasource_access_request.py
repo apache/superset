@@ -20,7 +20,8 @@ from flask import Markup
 from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String
 
-from superset import app, db, security_manager
+from superset import app
+from superset.extensions import db, security_manager
 from superset.models.helpers import AuditMixinNullable
 from superset.utils.memoized import memoized
 

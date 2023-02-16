@@ -39,7 +39,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
 )
 from tests.integration_tests.test_app import app  # isort:skip
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest

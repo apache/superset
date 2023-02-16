@@ -75,7 +75,7 @@ class EncryptedFieldFactory:
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
-        from superset import db  # pylint: disable=import-outside-toplevel
+        from superset.extensions import db  # pylint: disable=import-outside-toplevel
 
         self._db = db
         self._previous_secret_key = previous_secret_key

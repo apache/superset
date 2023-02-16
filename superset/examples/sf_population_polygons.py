@@ -20,7 +20,7 @@ import pandas as pd
 from sqlalchemy import BigInteger, Float, inspect, Text
 
 import superset.utils.database as database_utils
-from superset import db
+from superset.extensions import db
 
 from .helpers import get_example_url, get_table_connector_registry
 

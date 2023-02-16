@@ -28,10 +28,11 @@ from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Regexp
 
-from superset import app, db
+from superset import app
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import db
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (

@@ -23,7 +23,7 @@ from flask_babel import lazy_gettext
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 
-from superset import security_manager
+from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
 

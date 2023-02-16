@@ -28,11 +28,11 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
-from superset import security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.extensions import security_manager
 
 if TYPE_CHECKING:
     from superset.models.core import Database

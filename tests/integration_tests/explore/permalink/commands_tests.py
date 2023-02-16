@@ -14,19 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-import json
 from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
-from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset import app
 from superset.connectors.sqla.models import SqlaTable
-from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
-from superset.key_value.utils import decode_permalink_id
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema

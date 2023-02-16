@@ -24,7 +24,7 @@ from typing import Any
 from celery.signals import worker_process_init
 
 # Superset framework imports
-from superset import create_app
+from superset.app import create_app
 from superset.extensions import celery_app, db
 
 # Init the Flask app / configure everything

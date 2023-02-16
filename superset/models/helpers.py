@@ -62,7 +62,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -75,7 +75,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
+from superset.extensions import feature_flag_manager, security_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, sanitize_clause
 from superset.superset_typing import (

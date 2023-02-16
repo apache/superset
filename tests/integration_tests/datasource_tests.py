@@ -22,13 +22,14 @@ from unittest import mock
 import prison
 import pytest
 
-from superset import app, db
+from superset import app
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
+from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database

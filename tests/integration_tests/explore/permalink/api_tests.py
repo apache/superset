@@ -22,7 +22,7 @@ from uuid import uuid3
 import pytest
 from sqlalchemy.orm import Session
 
-from superset import db
+from superset.extensions import db
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key

@@ -30,7 +30,7 @@ from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
-from superset import app, dataframe, db, result_set, viz
+from superset import app, dataframe, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -40,7 +40,12 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, feature_flag_manager, security_manager
+from superset.extensions import (
+    cache_manager,
+    db,
+    feature_flag_manager,
+    security_manager,
+)
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard

@@ -22,7 +22,6 @@ import pytest
 import yaml
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -34,6 +33,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database

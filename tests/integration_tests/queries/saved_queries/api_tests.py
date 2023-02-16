@@ -26,8 +26,7 @@ import pytest
 import prison
 from sqlalchemy.sql import func, and_
 
-import tests.integration_tests.test_app
-from superset import db
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery

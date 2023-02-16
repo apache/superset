@@ -19,7 +19,6 @@ from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import TableColumn
 from superset.dao.exceptions import DAODeleteFailedError
@@ -30,6 +29,7 @@ from superset.datasets.columns.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
 

@@ -16,8 +16,8 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset import security_manager
 from superset.dashboards.filters import DashboardAccessFilter
+from superset.extensions import security_manager
 
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods

@@ -22,7 +22,7 @@ from uuid import uuid4
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

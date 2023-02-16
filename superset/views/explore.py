@@ -18,7 +18,7 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
-from superset import event_logger
+from superset.extensions import event_logger
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView

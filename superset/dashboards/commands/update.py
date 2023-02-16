@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import populate_roles
 from superset.dao.exceptions import DAOUpdateFailedError
@@ -34,7 +33,7 @@ from superset.dashboards.commands.exceptions import (
 )
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)

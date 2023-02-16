@@ -28,8 +28,8 @@ import pytest
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
-from superset import db, is_feature_enabled, security_manager
-from superset.extensions import machine_auth_provider_factory
+from superset import is_feature_enabled
+from superset.extensions import db, machine_auth_provider_factory, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tasks.types import ExecutorType

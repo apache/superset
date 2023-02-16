@@ -21,7 +21,7 @@ import textwrap
 import unittest
 from unittest import mock
 
-from superset import security_manager
+from superset.extensions import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
 from superset.utils.core import override_user
@@ -35,7 +35,8 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
-from superset import app, db as metadata_db
+from superset import app
+from superset.extensions import db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database

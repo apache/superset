@@ -20,7 +20,7 @@ from datetime import datetime
 from typing import Optional
 
 
-from superset import db
+from superset.extensions import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from tests.integration_tests.test_app import app

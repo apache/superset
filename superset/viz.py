@@ -2473,7 +2473,7 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         # Late imports to avoid circular import issues
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
         from superset.models.slice import Slice
 
         slice_ids = self.form_data.get("deck_slices")

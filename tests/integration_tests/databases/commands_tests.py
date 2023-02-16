@@ -22,7 +22,6 @@ import yaml
 from func_timeout import FunctionTimedOut
 from sqlalchemy.exc import DBAPIError
 
-from superset import db, event_logger, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -48,6 +47,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import Database
 from superset.utils.core import backend
 from superset.utils.database import get_example_database

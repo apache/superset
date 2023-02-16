@@ -28,7 +28,8 @@ from freezegun import freeze_time
 
 import superset.cli.importexport
 import superset.cli.thumbnails
-from superset import app, db
+from superset import app
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

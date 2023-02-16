@@ -23,7 +23,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from superset import app, db
+from superset import app
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 

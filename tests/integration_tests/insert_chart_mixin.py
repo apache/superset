@@ -16,8 +16,8 @@
 # under the License.
 from typing import List, Optional
 
-from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 
 

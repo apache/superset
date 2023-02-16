@@ -20,8 +20,8 @@ from datetime import datetime
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.commands.base import BaseCommand
+from superset.extensions import db
 from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource

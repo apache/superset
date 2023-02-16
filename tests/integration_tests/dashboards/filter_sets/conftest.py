@@ -21,7 +21,6 @@ from typing import Any, Dict, Generator, List, TYPE_CHECKING
 
 import pytest
 
-from superset import db, security_manager as sm
 from superset.dashboards.filter_sets.consts import (
     DESCRIPTION_FIELD,
     JSON_METADATA_FIELD,
@@ -30,6 +29,7 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
     USER_OWNER_TYPE,
 )
+from superset.extensions import db, security_manager as sm
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
 from tests.integration_tests.dashboards.filter_sets.consts import (

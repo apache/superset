@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest import mock, skip
-from unittest.mock import patch
+from unittest import mock
 
 import pytest
 
-from superset import security_manager
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
@@ -27,6 +25,7 @@ from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelNotFoundError,
 )
 from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
+from superset.extensions import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 
 

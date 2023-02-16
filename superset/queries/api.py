@@ -21,10 +21,10 @@ import backoff
 from flask_appbuilder.api import expose, protect, request, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset import db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
+from superset.extensions import db, event_logger
 from superset.models.sql_lab import Query
 from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter

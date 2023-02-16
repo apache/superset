@@ -20,7 +20,6 @@ from typing import Optional
 from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
-from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartDeleteFailedError,
     ChartDeleteFailedReportsExistError,
@@ -31,6 +30,7 @@ from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.dao import ReportScheduleDAO

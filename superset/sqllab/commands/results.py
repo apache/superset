@@ -20,12 +20,13 @@ from __future__ import annotations
 import logging
 from typing import Any, cast, Dict, Optional
 
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 
-from superset import app, db, results_backend, results_backend_use_msgpack
+from superset import app, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SerializationError, SupersetErrorException
+from superset.extensions import db
 from superset.models.sql_lab import Query
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils

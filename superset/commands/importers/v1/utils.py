@@ -22,8 +22,8 @@ import yaml
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
 
-from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.extensions import db
 from superset.models.core import Database
 
 METADATA_FILE_NAME = "metadata.yaml"

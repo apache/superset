@@ -26,9 +26,8 @@ import yaml
 from flask import g
 from flask.cli import with_appcontext
 
-from superset import security_manager
 from superset.cli.lib import feature_flags
-from superset.extensions import db
+from superset.extensions import db, security_manager
 
 logger = logging.getLogger(__name__)
 

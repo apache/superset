@@ -26,8 +26,9 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_login import AnonymousUserMixin, login_user
 
-from superset import db, event_logger, is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.extensions import db, event_logger, security_manager
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils

@@ -14,17 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from flask import Flask
 
-from superset.extensions import security_manager
+from superset.utils.profiler import SupersetProfiler
 
 
-def get_test_user(id_: int, username: str) -> Any:
-    """Create a sample test user"""
-    return security_manager.user_model(
-        id=id_,
-        username=username,
-        first_name=username,
-        last_name=username,
-        email=f"{username}@example.com",
-    )
+class ProfilingExtension:  # pylint: disable=too-few-public-methods
+    def __init__(self, interval: float = 1e-4) -> None:
+        self.interval = interval
+
+    def init_app(self, app: Flask) -> None:
+        app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore

@@ -32,7 +32,8 @@ import pytest
 import flask
 from flask import current_app
 
-from superset import db, sql_lab
+from superset import sql_lab
+from superset.extensions import db
 from superset.common.db_query_status import QueryStatus
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec

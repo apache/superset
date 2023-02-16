@@ -25,7 +25,7 @@ from zipfile import is_zipfile, ZipFile
 
 from pytest_mock import MockFixture
 
-from superset import security_manager
+from superset.extensions import security_manager
 
 
 def test_export_assets(

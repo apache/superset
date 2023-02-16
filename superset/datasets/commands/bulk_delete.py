@@ -17,7 +17,6 @@
 import logging
 from typing import List, Optional
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -28,7 +27,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
+from superset.extensions import db, security_manager
 
 logger = logging.getLogger(__name__)
 

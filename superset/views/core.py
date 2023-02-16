@@ -43,14 +43,10 @@ from sqlalchemy.orm.session import Session
 
 from superset import (
     app,
-    appbuilder,
     conf,
-    db,
-    event_logger,
     is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
-    security_manager,
     sql_lab,
     viz,
 )
@@ -95,7 +91,14 @@ from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import (
+    appbuilder,
+    async_query_manager,
+    cache_manager,
+    db,
+    event_logger,
+    security_manager,
+)
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard

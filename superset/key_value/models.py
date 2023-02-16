@@ -18,7 +18,7 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import relationship
 
-from superset import security_manager
+from superset.extensions import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
 VALUE_MAX_SIZE = 2**24 - 1

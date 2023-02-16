@@ -16,7 +16,7 @@
 # under the License.
 from collections import defaultdict
 
-from superset import security_manager
+from superset.extensions import security_manager
 
 
 def cleanup_permissions() -> None:

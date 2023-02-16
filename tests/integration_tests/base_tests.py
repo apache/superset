@@ -35,9 +35,9 @@ from sqlalchemy.dialects.mysql import dialect
 
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
-from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database

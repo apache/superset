@@ -21,7 +21,6 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import delete, insert
 
-from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.base import BaseCommand
@@ -41,6 +40,7 @@ from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import db
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.commands.importers.v1.utils import (
     import_saved_query,

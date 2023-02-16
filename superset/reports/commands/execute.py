@@ -24,7 +24,7 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -33,7 +33,11 @@ from superset.dashboards.permalink.commands.create import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
-from superset.extensions import feature_flag_manager, machine_auth_provider_factory
+from superset.extensions import (
+    feature_flag_manager,
+    machine_auth_provider_factory,
+    security_manager,
+)
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,

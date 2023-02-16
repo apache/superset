@@ -28,7 +28,7 @@ from unittest import mock
 import prison
 
 from freezegun import freeze_time
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec

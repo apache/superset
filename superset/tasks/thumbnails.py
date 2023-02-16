@@ -22,8 +22,8 @@ from typing import cast, Optional
 
 from flask import current_app
 
-from superset import security_manager, thumbnail_cache
-from superset.extensions import celery_app
+from superset import thumbnail_cache
+from superset.extensions import celery_app, security_manager
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot

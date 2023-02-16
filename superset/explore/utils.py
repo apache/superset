@@ -16,7 +16,6 @@
 # under the License.
 from typing import Optional
 
-from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
@@ -32,6 +31,7 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
+from superset.extensions import security_manager
 from superset.queries.dao import QueryDAO
 from superset.utils.core import DatasourceType
 

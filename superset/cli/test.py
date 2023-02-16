@@ -21,7 +21,8 @@ from colorama import Fore
 from flask.cli import with_appcontext
 
 import superset.utils.database as database_utils
-from superset import app, security_manager
+from superset import app
+from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
 

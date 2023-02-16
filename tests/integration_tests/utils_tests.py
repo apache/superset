@@ -38,9 +38,10 @@ import marshmallow
 from sqlalchemy.exc import ArgumentError
 
 import tests.integration_tests.test_app
-from superset import app, db, security_manager
+from superset import app
 from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException
+from superset.extensions import db, security_manager
 from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

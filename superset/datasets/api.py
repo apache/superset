@@ -28,7 +28,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
+from superset import is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
@@ -63,6 +63,7 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
 )
+from superset.extensions import event_logger
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (

@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import app, db
+from superset import app
 from superset.common.db_query_status import QueryStatus
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql_lab import execute_sql_statements

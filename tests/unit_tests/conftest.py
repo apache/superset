@@ -28,11 +28,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
-from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder
+from superset.extensions import appbuilder, security_manager
 from superset.initialization import SupersetAppInitializer
 
 

@@ -19,8 +19,9 @@ import json
 import os
 from typing import Any, Dict, List, Set
 
-from superset import app, db
+from superset import app
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"

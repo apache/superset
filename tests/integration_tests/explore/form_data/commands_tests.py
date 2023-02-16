@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
+from superset import app
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.form_data.commands.create import CreateFormDataCommand
@@ -28,6 +28,7 @@ from superset.explore.form_data.commands.delete import DeleteFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.update import UpdateFormDataCommand
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema

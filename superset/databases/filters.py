@@ -23,7 +23,8 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import JSON
 
-from superset import app, security_manager
+from superset import app
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.views.base import BaseFilter
 

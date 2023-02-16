@@ -20,7 +20,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
 
