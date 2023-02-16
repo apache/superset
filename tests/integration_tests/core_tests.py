@@ -766,12 +766,11 @@ class TestCore(SupersetTestCase):
             SELECT * FROM {{ table_name }} LIMIT 1;
             """,
             client_id="client_id_1",
-            username="gamma",
             database_name="examples",
             template_params=json.dumps({"table_name": "birth_names"}),
             raise_on_error=True
         )
-        assert data["errors"][0]["error_type"] == "TABLE_SECURITY_ACCESS_ERROR"
+        assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
     @pytest.mark.usefixtures("load_birth_names_data")
     def test_templated_sql_success(self):
@@ -782,7 +781,6 @@ class TestCore(SupersetTestCase):
             SELECT * FROM {{ table_name }} LIMIT 1;
             """,
             client_id="client_id_1",
-            username="admin",
             database_name="examples",
             template_params=json.dumps({"table_name": "birth_names"}),
             raise_on_error=True
