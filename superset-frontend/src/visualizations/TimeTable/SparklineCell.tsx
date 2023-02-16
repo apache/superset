@@ -17,8 +17,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import moment from 'moment';
+import {
+  css,
+  getTextDimension,
+  formatNumber,
+  formatTime,
+} from '@superset-ui/core';
 import {
   Sparkline,
   LineSeries,
@@ -29,14 +35,14 @@ import {
 } from '@data-ui/sparkline';
 import {
   Axis,
-  GlyphSeries,
   Grid,
   LineSeries as NewLineSeries,
   Tooltip,
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
-import { getTextDimension, formatNumber, formatTime } from '@superset-ui/core';
+import { GridRows } from '@visx/grid';
+import { scaleLinear } from '@visx/scale';
 
 interface Props {
   ariaLabel: string;
@@ -231,6 +237,11 @@ const SparklineCell = ({
         }}
         xScale={{ type: 'band', paddingInner: 0.5 }}
         theme={customTheme}
+        css={css`
+          svg:not(:root) {
+            overflow: visible;
+          }
+        `}
       >
         {showYAxis && (
           <Axis
@@ -242,11 +253,27 @@ const SparklineCell = ({
           />
         )}
         {showYAxis && (
-          <Grid columns={false} numTicks={2} strokeDasharray="3 3" />
+          <GridRows
+            left={margin.left}
+            scale={scaleLinear({
+              range: [height, 0],
+              domain: [min, max],
+            })}
+            width={width}
+            strokeDasharray="3,3"
+            stroke="#bbb"
+            tickValues={[min, max]}
+          />
         )}
+        <NewLineSeries
+          dataKey={ariaLabel}
+          data={newData}
+          xAccessor={xAccessor}
+          yAccessor={yAccessor}
+        />
         <Tooltip
           showVerticalCrosshair
-          snapTooltipToDatumX
+          glyphStyle={{ r: 5 }}
           showSeriesGlyphs
           renderTooltip={({ tooltipData }) => {
             const idx = tooltipData?.datumByKey[ariaLabel].index;
@@ -263,12 +290,6 @@ const SparklineCell = ({
               </div>
             );
           }}
-        />
-        <NewLineSeries
-          dataKey={ariaLabel}
-          data={newData}
-          xAccessor={xAccessor}
-          yAccessor={yAccessor}
         />
       </XYChart>
     </>
