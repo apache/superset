@@ -3,7 +3,7 @@ import { Switch, Route, Redirect } from 'react-router-dom';
 
 import { getDashboardIdOrSlug } from 'src/Superstructure/utils/routesUtils';
 
-import Dashboard from 'src/Superstructure/dashboard/App';
+import DashboardApp from 'src/Superstructure/components/App';
 import { getNavigationConfig } from 'src/Superstructure/parseEnvFile/index';
 
 import AnalyticsMain from 'src/Superstructure/components/MainRoute/index';
@@ -25,6 +25,7 @@ export default function Routes({
         if (mappedRoute.route === NAVIGATION_CONFIG.navigation.main) {
           return (
             <Route
+              // @ts-ignore
               key={mappedRoute.idOrSlug}
               path={`${basename}${navigation.routesObject.Main.route}`}
             >
@@ -34,10 +35,11 @@ export default function Routes({
         }
         return (
           <Route
+            // @ts-ignore
             key={mappedRoute.idOrSlug}
             path={`${basename}${mappedRoute.route}`}
           >
-            <Dashboard
+            <DashboardApp
               store={store}
               theme={theme}
               dashboardIdOrSlug={getDashboardIdOrSlug({

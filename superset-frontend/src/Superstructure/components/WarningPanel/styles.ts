@@ -9,7 +9,7 @@ const StyledP = styled.p`
     margin-bottom: 0;
   }
 `;
-const InfoPanelWrapper = styled.div`
+const WarningPanelWrapper = styled.div`
   height: auto;
   display: flex;
   align-items: center;
@@ -19,9 +19,9 @@ const InfoPanelWrapper = styled.div`
 
 const Alert = styled.div`
   line-height: 22px;
-  color: #004085;
-  background-color: #cce5ff;
-  border: 1px solid #b8daff;
+  color: #856404;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
   border-radius: 4px;
   padding: 30px;
   width: 100%;
@@ -31,14 +31,14 @@ const StyledCode = styled.code`
   padding: 2px 4px;
   font-size: 90%;
   border-radius: 4px;
-  color: #004085;
+  color: #856404;
   background-color: #f7f7f7;
 `;
 
 export {
   StyledH4,
   StyledP,
-  InfoPanelWrapper,
+  WarningPanelWrapper,
   Alert,
   StyledCode
 }

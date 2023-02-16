@@ -1,15 +1,15 @@
 import React from 'react';
-import { InfoPanelWrapper, Alert, StyledH4, StyledCode, StyledP } from './styles';
+import { WarningPanelWrapper, Alert, StyledH4, StyledCode, StyledP } from './styles';
 
 import { PanelMsgParams } from 'src/Superstructure/types/global';
 import { InfoIcon, ColumnWrapper, RowWrapper } from 'src/Superstructure/components';
 
-const InfoPanel = ({ title, subTitle, body, extra, children }: PanelMsgParams) => (
-  <InfoPanelWrapper>
+const WarningPanel = ({ title, subTitle, body, extra, children }: PanelMsgParams) => (
+  <WarningPanelWrapper>
     <Alert>
       <RowWrapper>
         <ColumnWrapper classes="col-md-1 tinycolumn">
-          <InfoIcon color="#004085" />
+          <InfoIcon color="#856404" />
         </ColumnWrapper>
 
         {title &&
@@ -21,11 +21,10 @@ const InfoPanel = ({ title, subTitle, body, extra, children }: PanelMsgParams) =
         {subTitle &&
           <ColumnWrapper classes="col-md-11">
             <StyledP>{subTitle || ''}</StyledP>
-          </ColumnWrapper>        
+          </ColumnWrapper>
         }
-
       </RowWrapper>
-    
+
       {body &&
         <div style={{ marginTop: '20px' }}>
           <RowWrapper>
@@ -53,7 +52,7 @@ const InfoPanel = ({ title, subTitle, body, extra, children }: PanelMsgParams) =
       }
 
     </Alert>
-  </InfoPanelWrapper>
+  </WarningPanelWrapper>
 );
 
-export { InfoPanel };
+export { WarningPanel };

@@ -24,8 +24,8 @@ const {
   getHtmlTemplate,
 } = require('./webpackUtils/constants');
 
-const { rulesStyles } = require('./webpackUtils/styles');
-const { rulesStaticAssets } = require('./webpackUtils/assets');
+// const { rulesStyles } = require('./webpackUtils/styles');
+// const { rulesStaticAssets } = require('./webpackUtils/assets');
 
 const {
   mode = 'development',
@@ -37,8 +37,8 @@ const {
   envFile = '.env',
 } = parsedArgs;
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
+// const isDevServer = process.argv[1].includes('webpack-dev-server');
+// const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const isProd = mode === 'production';
 
@@ -58,7 +58,7 @@ const BUILD_DIR = path.resolve(
  ** APP VERSION BASE is a base from which the app inherited the code base
  ** (i.e. 1.3 => was inherited from Superset 1.3)
 */
-const APP_VERSION_BASE = '1.3';
+const APP_VERSION_BASE = '2.0';
 const date = new Date();
 const month = date.getMonth();
 const day = date.getDate();
@@ -220,9 +220,18 @@ const babelLoader = {
   },
 };
 
+const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
+
+function addPreamble(entry) {
+  return PREAMBLE.concat([path.join(APP_DIR, entry)]);
+}
+
 const config = {
   entry: {
-    supersetDashboardPlugin: (APP_DIR, '/src/Superstructure/main.tsx'),
+    // supersetDashboardPlugin: path.join(APP_DIR, '/src/Superstructure/main.tsx'),
+    preamble: PREAMBLE,
+    theme: path.join(APP_DIR, '/src/theme.ts'),
+    supersetDashboardPlugin: addPreamble('/src/Superstructure/main.tsx'),
   },
   output,
   stats: 'minimal',

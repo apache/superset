@@ -41,7 +41,9 @@ export interface InitConfig {
 
 export interface PanelMsgParams {
   title?: string;
+  subTitle?: string;
   body?: string;
+  extra?: string;
   children?: React.ReactNode;
 }
 

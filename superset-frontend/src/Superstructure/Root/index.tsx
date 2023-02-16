@@ -5,14 +5,14 @@ import { GlobalError, Loading, Version, ServiceNotAvailable } from 'src/Superstr
 import { MicrofrontendParams } from 'src/Superstructure/types/global';
 import { composeAPIConfig } from 'src/Superstructure/config';
 
-import { theme } from 'src/Superstructure/theme';
+import { theme } from 'src/preamble';
 import { store } from 'src/Superstructure/store';
 
 import LeftNavigation from 'src/Superstructure/components/LeftNavigation/index';
 import Main from 'src/Superstructure/components/Main/index';
 
 import setupClient from 'src/Superstructure/setupClient';
-import { initializeAuth } from 'src/Superstructure/Root/initUtils';
+import { initializeAuth, addSlash } from 'src/Superstructure/Root/utils';
 
 import {
   getFullConfig,
@@ -30,12 +30,6 @@ const CONFIG = getFullConfig(
 );
 
 setupClient();
-
-const addSlash = (baseName?: string) => {
-  if (!baseName) return '/';
-  if (baseName[baseName.length - 1] === '/') return baseName;
-  return `${baseName}/`;
-};
 
 export const RootComponent = (incomingParams: MicrofrontendParams) => {
   const params = useMemo(() => {
@@ -93,11 +87,14 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   return (
     <>
       {isError ? (
-        <GlobalError
-          title="Error happened =("
-          body={`${errorMessage}`}
-          stackTrace="Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна."
-        />
+        <div>
+          <Version appVersion={APP_VERSION} />
+          <GlobalError
+            title="Error happened =("
+            body={`${errorMessage}`}
+            stackTrace="Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна."
+          />
+        </div>
       ) : !isLoaded ? (
         <Loading />
       ) : isLoaded && navigation && basename ? (
@@ -129,11 +126,14 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       ) : (
         isLoaded &&
         (!navigation || !basename) && (
-          <GlobalError
-            title="Error happened =("
-            body="There is no navigation object or basename provided"
-            stackTrace="Provide navigation object and|or basename"
-          />
+          <div>
+            <Version appVersion={APP_VERSION} />
+            <GlobalError
+              title="Error happened =("
+              body="There is no navigation object or basename provided"
+              stackTrace="Provide navigation object and|or basename"
+            />
+          </div>
         )
       )}
     </>

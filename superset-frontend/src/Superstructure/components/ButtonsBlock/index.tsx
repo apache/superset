@@ -5,7 +5,7 @@ import {
   DODOPIZZA_KNOWLEDGEBASE_URL,
 } from 'src/Superstructure/constants';
 
-import { GO_TO_ANALYTICS_BTN, RULES_BTN } from 'src/Superstructure/messages';
+import { RULES_RU } from 'src/Superstructure/messages';
 
 import { ButtonsWrapper } from './styles';
 
@@ -18,7 +18,7 @@ const ButtonsBlock = () => (
       rel="noreferrer"
       style={{ marginRight: '20px' }}
     >
-      {GO_TO_ANALYTICS_BTN}
+      {RULES_RU.btnAnalyticsText}
     </a>
     <a
       className="btn btn-warning btn-sm"
@@ -26,7 +26,7 @@ const ButtonsBlock = () => (
       target="_blank"
       rel="noreferrer"
     >
-      {RULES_BTN}
+      {RULES_RU.btnRulesText}
     </a>
   </ButtonsWrapper>
 );

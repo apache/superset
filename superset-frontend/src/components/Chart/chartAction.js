@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
@@ -43,6 +26,8 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { API_HANDLER } from 'src/Superstructure/api';
+import URI from 'urijs';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -135,25 +120,66 @@ const legacyChartDataRequest = async (
       ? { dashboard_id: requestParams.dashboard_id }
       : {},
   });
+
+  
+  // TODO: DODO
+  const newFormData = {
+    ...formData,
+    url_params: {},
+  };
+
   const querySettings = {
     ...requestParams,
     url,
     postPayload: { form_data: formData },
   };
 
-  const clientMethod =
-    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-      ? SupersetClient.get
-      : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json, response }) =>
-    // Make the legacy endpoint return a payload that corresponds to the
-    // V1 chart data endpoint response signature.
-    ({
-      response,
-      json: { result: [json] },
-    }),
-  );
+  const bodyFormData = new FormData();
+  bodyFormData.append('form_data', JSON.stringify(newFormData));
+  // DODO: TODO here
+  console.log('isFeatureEnabled(FeatureFlag.CLIENT_CACHE)', isFeatureEnabled(FeatureFlag.CLIENT_CACHE))
+  // TODO
+  // if (isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
+  //   return API_HANDLER.SupersetClientNoApi({
+  //     method: 'get',
+  //     url,
+  //     // body: { form_data: formData },
+  //     body: bodyFormData,
+  //     // headers: { 'Content-Type': 'multipart/form-data' },
+  //   });
+  // }
+  return API_HANDLER.SupersetClientNoApi({
+    method: 'post',
+    url,
+    body: bodyFormData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  // const clientMethod =
+  //   'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+  //     ? SupersetClient.get
+  //     : SupersetClient.post;
+  // return clientMethod(querySettings).then(({ json, response }) =>
+  //   // Make the legacy endpoint return a payload that corresponds to the
+  //   // V1 chart data endpoint response signature.
+  //   ({
+  //     response,
+  //     json: { result: [json] },
+  //   }),
+  // );
 };
+
+function getChartDataUriAltered({ path, qs }) {
+  let uri = new URI({
+    port: window.location.port ? window.location.port : '',
+    path,
+  });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+
+  return uri;
+}
 
 const v1ChartDataRequest = async (
   formData,
@@ -185,21 +211,72 @@ const v1ChartDataRequest = async (
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
-  const url = getChartDataUri({
+
+  const url = getChartDataUriAltered({
     path: '/api/v1/chart/data',
     qs,
     allowDomainSharding,
   }).toString();
 
-  const querySettings = {
-    ...requestParams,
-    url,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  };
-
-  return SupersetClient.post(querySettings);
+  return API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
 };
+
+// const v1ChartDataRequest = async (
+//   formData,
+//   resultFormat,
+//   resultType,
+//   force,
+//   requestParams,
+//   setDataMask,
+//   ownState,
+// ) => {
+//   const payload = buildV1ChartDataPayload({
+//     formData,
+//     resultType,
+//     resultFormat,
+//     force,
+//     setDataMask,
+//     ownState,
+//   });
+
+//   // The dashboard id is added to query params for tracking purposes
+//   const { slice_id: sliceId } = formData;
+//   const { dashboard_id: dashboardId } = requestParams;
+
+//   const qs = {};
+//   if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
+//   if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
+//   if (force !== false) qs.force = force;
+
+//   const allowDomainSharding =
+//     // eslint-disable-next-line camelcase
+//     domainShardingEnabled && requestParams?.dashboard_id;
+//   const url = getChartDataUri({
+//     path: '/api/v1/chart/data',
+//     qs,
+//     allowDomainSharding,
+//   }).toString();
+
+//   // const url = `'/api/v1/chart/data'${qs}`
+
+//   const querySettings = {
+//     ...requestParams,
+//     url,
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify(payload),
+//   };
+//   console.log(process.env.business)
+//   console.log('urlXX', url)
+//   console.log('querySettingsXX', querySettings)
+
+//   // const tt = API_HANDLER.SupersetClient({ ...querySettings })
+//   // console.log('ttXX', tt)
+
+//   // const t = SupersetClient.post(querySettings)
+
+//   // return SupersetClient.post(querySettings);
+//   return API_HANDLER.SupersetClient({ ...querySettings, method: 'post' });
+// };
 
 export async function getChartDataRequest({
   formData,
@@ -223,6 +300,8 @@ export async function getChartDataRequest({
     };
   }
 
+  console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData))
+  // TODO: HERE is the call to explore_json
   if (shouldUseLegacyApi(formData)) {
     return legacyChartDataRequest(
       formData,
@@ -389,31 +468,38 @@ export function exploreJSON(
       ownState,
     });
 
+    console.log('chartDataRequest', chartDataRequest);
+
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
-      .then(({ response, json }) => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-          // deal with getChartDataRequest transforming the response data
-          const result = 'result' in json ? json.result : json;
-          switch (response.status) {
-            case 200:
-              // Query results returned synchronously, meaning query was already cached.
-              return Promise.resolve(result);
-            case 202:
-              // Query is running asynchronously and we must await the results
-              if (shouldUseLegacyApi(formData)) {
-                return waitForAsyncData(result[0]);
-              }
-              return waitForAsyncData(result);
-            default:
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-          }
-        }
+      .then((response) => {
+        // .then(({ response, json }) => {
+        console.log('responseXXX', response)
+        const t = response.result
+        Promise.resolve(t)
+        // if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        //   // deal with getChartDataRequest transforming the response data
+        //   const result = 'result' in json ? json.result : json;
+        //   switch (response.status) {
+        //     case 200:
+        //       // Query results returned synchronously, meaning query was already cached.
+        //       return Promise.resolve(result);
+        //     case 202:
+        //       // Query is running asynchronously and we must await the results
+        //       if (shouldUseLegacyApi(formData)) {
+        //         return waitForAsyncData(result[0]);
+        //       }
+        //       return waitForAsyncData(result);
+        //     default:
+        //       throw new Error(
+        //         `Received unexpected response status (${response.status}) while fetching chart data`,
+        //       );
+        //   }
+        // }
 
-        return json.result;
+        // return json.result;
+        return t;
       })
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>

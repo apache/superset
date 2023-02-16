@@ -1,14 +1,13 @@
-// DODO-changed
+// DODO was here
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
-import { PLUGIN_SELECTOR } from 'src/Superstructure/constants';
 import getChartIdsFromLayout from 'src/dashboard/util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from 'src/dashboard/util/getLayoutComponentFromChartId';
-import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
@@ -20,7 +19,6 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   Logger,
 } from 'src/logger/LogUtils';
-// import OmniContainer from '../../components/OmniContainer';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 import 'src/dashboard/stylesheets/index.less';
@@ -34,6 +32,7 @@ const propTypes = {
     removeSliceFromDashboard: PropTypes.func.isRequired,
     triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
+    clearDataMaskState: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
@@ -81,11 +80,11 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const appContainer = document.getElementById(PLUGIN_SELECTOR);
-    const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '';
-
+    const appContainer = document.getElementById('app');
+    const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '{}';
     const { dashboardState, layout } = this.props;
     const eventData = {
+      is_soft_navigation: Logger.timeOriginOffset > 0,
       is_edit_mode: dashboardState.editMode,
       mount_duration: Logger.getTimestamp(),
       is_empty: isDashboardEmpty(layout),
@@ -116,6 +115,11 @@ class Dashboard extends React.PureComponent {
   UNSAFE_componentWillReceiveProps(nextProps) {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
+
+    if (this.props.dashboardInfo.id !== nextProps.dashboardInfo.id) {
+      // single-page-app navigation check
+      return;
+    }
 
     if (currentChartIds.length < nextChartIds.length) {
       const newChartIds = nextChartIds.filter(
@@ -173,6 +177,7 @@ class Dashboard extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.props.actions.clearDataMaskState();
   }
 
   onVisibilityChange() {
@@ -269,7 +274,6 @@ class Dashboard extends React.PureComponent {
     }
     return (
       <>
-        {/* <OmniContainer logEvent={this.props.actions.logEvent} /> */}
         <DashboardBuilder />
       </>
     );

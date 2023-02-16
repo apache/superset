@@ -1,21 +1,22 @@
-// DODO-changed
+// DODO was here
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import Dashboard from 'src/Superstructure/dashboard/components/Dashboard';
+import Dashboard from 'src/Superstructure/components/Dashboard';
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 
-import { triggerQuery } from 'src/Superstructure/chart/chartAction';
+import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getAllActiveFilters,
   getRelevantDataMask,
 } from 'src/dashboard/util/activeAllDashboardFilters';
+import { clearDataMaskState } from 'src/dataMask/actions';
 
 function mapStateToProps(state: RootState) {
   const {
@@ -31,8 +32,8 @@ function mapStateToProps(state: RootState) {
   } = state;
 
   return {
-    initMessages: dashboardInfo.common.flash_messages,
-    timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    initMessages: dashboardInfo.common?.flash_messages,
+    timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
     dashboardInfo,
     dashboardState,
@@ -48,15 +49,14 @@ function mapStateToProps(state: RootState) {
       ...getAllActiveFilters({
         // eslint-disable-next-line camelcase
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
-        // nativeFilters: nativeFilters.filters,
-        nativeFilters: nativeFilters ? nativeFilters.filters : {},
+        nativeFilters: nativeFilters.filters,
         dataMask,
         layout: dashboardLayout.present,
       }),
     },
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     ownDataCharts: getRelevantDataMask(dataMask, 'ownState'),
-    slices: sliceEntities ? sliceEntities.slices : {},
+    slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
   };
@@ -67,6 +67,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
     actions: bindActionCreators(
       {
         setDatasources,
+        clearDataMaskState,
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,

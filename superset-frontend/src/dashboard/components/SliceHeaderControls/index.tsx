@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import React from 'react';
 import moment from 'moment';
 import {
@@ -293,7 +276,10 @@ class SliceHeaderControls extends React.PureComponent<
 
         <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
 
-        <Menu.Divider />
+        {/* DODO-changed */}
+        { process.env.business === undefined && 
+          <Menu.Divider />
+        }
 
         {slice.description && (
           <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
@@ -303,65 +289,74 @@ class SliceHeaderControls extends React.PureComponent<
           </Menu.Item>
         )}
 
-        {this.props.supersetCanExplore && (
-          <Menu.Item
-            key={MENU_KEYS.EXPLORE_CHART}
-            onClick={this.props.onExploreChart}
-          >
-            {t('Edit chart')}
-          </Menu.Item>
-        )}
+        {/* DODO-changed */}
+        { process.env.business === undefined && 
+          this.props.supersetCanExplore && (
+            <Menu.Item
+              key={MENU_KEYS.EXPLORE_CHART}
+              onClick={this.props.onExploreChart}
+            >
+              {t('Edit chart')}
+            </Menu.Item>
+          )
+        }
 
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
-            <ModalTrigger
-              triggerNode={
-                <span data-test="view-query-menu-item">{t('View query')}</span>
-              }
-              modalTitle={t('View query')}
-              modalBody={
-                <ViewQueryModal latestQueryFormData={this.props.formData} />
-              }
-              draggable
-              resizable
-              responsive
-            />
-          </Menu.Item>
-        )}
+        {/* DODO-changed */}
+        { process.env.business === undefined && 
+          this.props.supersetCanExplore && (
+            <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+              <ModalTrigger
+                triggerNode={
+                  <span data-test="view-query-menu-item">{t('View query')}</span>
+                }
+                modalTitle={t('View query')}
+                modalBody={
+                  <ViewQueryModal latestQueryFormData={this.props.formData} />
+                }
+                draggable
+                resizable
+                responsive
+              />
+            </Menu.Item>
+          )
+        }
 
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-            <ModalTrigger
-              triggerNode={
-                <span data-test="view-query-menu-item">
-                  {t('View as table')}
-                </span>
-              }
-              modalTitle={t('Chart Data: %s', slice.slice_name)}
-              modalBody={
-                <ResultsPaneOnDashboard
-                  queryFormData={this.props.formData}
-                  queryForce={false}
-                  dataSize={20}
-                  isRequest
-                  isVisible
-                />
-              }
-              modalFooter={
-                <Button
-                  buttonStyle="secondary"
-                  buttonSize="small"
-                  onClick={this.props.onExploreChart}
-                >
-                  {t('Edit chart')}
-                </Button>
-              }
-              draggable
-              resizable
-              responsive
-            />
-          </Menu.Item>
-        )}
+        {/* DODO-changed */}
+        { process.env.business === undefined && 
+          this.props.supersetCanExplore && (
+            <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
+              <ModalTrigger
+                triggerNode={
+                  <span data-test="view-query-menu-item">
+                    {t('View as table')}
+                  </span>
+                }
+                modalTitle={t('Chart Data: %s', slice.slice_name)}
+                modalBody={
+                  <ResultsPaneOnDashboard
+                    queryFormData={this.props.formData}
+                    queryForce={false}
+                    dataSize={20}
+                    isRequest
+                    isVisible
+                  />
+                }
+                modalFooter={
+                  <Button
+                    buttonStyle="secondary"
+                    buttonSize="small"
+                    onClick={this.props.onExploreChart}
+                  >
+                    {t('Edit chart')}
+                  </Button>
+                }
+                draggable
+                resizable
+                responsive
+              />
+            </Menu.Item>
+          )
+        }
 
         {(slice.description || this.props.supersetCanExplore) && (
           <Menu.Divider />
@@ -377,21 +372,23 @@ class SliceHeaderControls extends React.PureComponent<
               <Menu.Divider />
             </>
           )}
-
-        {supersetCanShare && (
-          <Menu.SubMenu title={t('Share')}>
-            <ShareMenuItems
-              dashboardId={dashboardId}
-              dashboardComponentId={componentId}
-              copyMenuItemTitle={t('Copy permalink to clipboard')}
-              emailMenuItemTitle={t('Share chart by email')}
-              emailSubject={t('Superset chart')}
-              emailBody={t('Check out this chart: ')}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-            />
-          </Menu.SubMenu>
-        )}
+        {/* DODO-changed */}
+        { process.env.business === undefined && 
+          supersetCanShare && (
+            <Menu.SubMenu title={t('Share')}>
+              <ShareMenuItems
+                dashboardId={dashboardId}
+                dashboardComponentId={componentId}
+                copyMenuItemTitle={t('Copy permalink to clipboard')}
+                emailMenuItemTitle={t('Share chart by email')}
+                emailSubject={t('Superset chart')}
+                emailBody={t('Check out this chart: ')}
+                addSuccessToast={addSuccessToast}
+                addDangerToast={addDangerToast}
+              />
+            </Menu.SubMenu>
+          )
+        }
 
         {this.props.slice.viz_type !== 'filter_box' &&
           this.props.supersetCanCSV && (

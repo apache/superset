@@ -94,4 +94,10 @@ const initializeAuth = async (
   }
 };
 
-export { initializeAuth };
+const addSlash = (baseName?: string) => {
+  if (!baseName) return '/';
+  if (baseName[baseName.length - 1] === '/') return baseName;
+  return `${baseName}/`;
+};
+
+export { initializeAuth, addSlash };

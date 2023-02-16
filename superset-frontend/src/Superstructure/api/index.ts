@@ -183,7 +183,8 @@ export const API_HANDLER = {
 
       if (url) {
         return API_HANDLER.sendRequest(
-          `${ORIGIN_URL}${API_V1}`,
+          // `${ORIGIN_URL}${API_V1}`,
+          `${ORIGIN_URL}`,
           url,
           method,
           body,
@@ -197,6 +198,64 @@ export const API_HANDLER = {
       throw error;
     }
   },
+
+  // SupersetClient({
+  //   method,
+  //   url,
+  //   body,
+  //   headers,
+  // }: {
+  //   method: AxiosRequestConfig['method'];
+  //   url: AxiosRequestConfig['url'];
+  //   body?: Record<string, any> | string;
+  //   headers?: AxiosRequestHeaders;
+  // }) {
+  //   async function sendApiRequest(): Promise<any> {
+  //     const APIState = APIStore.getState();
+  //     const { FRONTEND_LOGGER } = APIState.configReducer;
+  //     const { ORIGIN_URL } = APIState.configReducer;
+  
+  //     const FULL_URL = `${ORIGIN_URL}${url}`;
+  
+  //     const params = {
+  //       method,
+  //       data: body || {},
+  //       headers: {
+  //         ...headers,
+  //         'x-csrftoken': APIState.authReducer['x-csrftoken'],
+  //         // in production mode it is NOT used
+  //         Authorization: APIState.authReducer.Authorization,
+  //       },
+  //       url: FULL_URL,
+  //     };
+  
+  //     if (FRONTEND_LOGGER) logger(params);
+
+  //     const response = await axios({ ...params })
+
+  //     if (response && response.data) {
+  //       return response.data 
+  //     }
+
+  //     return null
+  //   }
+
+  //   try {
+  //     if (url) {
+  //       sendApiRequest.method = method;
+  //       sendApiRequest.endpoint = url;
+  //       sendApiRequest.headers = headers;
+  //       sendApiRequest.body = body;
+
+  //       return sendApiRequest;
+  //     }
+
+  //     throw new Error('the URL was not provided in SupersetClient');
+  //   } catch (error) {
+  //     console.log('SupersetClient error', error);
+  //     throw error;
+  //   }
+  // },
 
   async SupersetClientNoApi({
     method,
@@ -213,14 +272,20 @@ export const API_HANDLER = {
       const APIState = APIStore.getState();
       const { ORIGIN_URL } = APIState.configReducer;
 
+      const tempUrl = url?.split('http:///superset')[1]
+      console.log('tempUrl', tempUrl)
+
       if (url) {
         const initialResponse = await API_HANDLER.sendRequest(
           `${ORIGIN_URL}${SUPERSET_ENDPOINT}`,
-          url,
+          // `${ORIGIN_URL}`,
+          tempUrl,
           method,
           body,
           headers,
         );
+
+        console.log('initialResponse', initialResponse)
 
         return { result: [initialResponse] };
       }

@@ -18,14 +18,14 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
 
   <head>
     <div id="some-element"></div>
-    <link
-      href="https://dodopizza-a.akamaihd.net/backoffice-static/bootstrap/4.3.1/css/bootstrap.min.css"
+    <!-- <link
+      href="#-a.akamaihd.net/backoffice-static/bootstrap/4.3.1/css/bootstrap.min.css"
       rel="stylesheet"
     />
     <link
-      href="https://dodopizza-a.akamaihd.net/static/antd/4.16.6/antd.min.css"
+      href="#-a.akamaihd.net/static/antd/4.16.6/antd.min.css"
       rel="stylesheet"
-    />
+    /> -->
   </head>
   <body>
     <style>
@@ -41,9 +41,11 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
         padding-bottom: 60px;
         position: relative;
       }
-      .header {
+      header.header {
         border-bottom: 1px solid #e4e4e4;
-        height: 132px;
+        height: 58px;
+        display: flex;
+        align-items: center;
       }
       .content {
         padding: 10px 15px 0;
@@ -52,10 +54,98 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
         width: 100%;
         float: left;
       }
+
+      .navigation {
+        list-style: none;
+        margin-bottom: 0;
+        padding-left: 20px;
+      }
+      .navigation_item {
+        display: inline-block;
+      }
+      .navigation_item:last-of-type {
+        margin-right: 0;
+      }
+      .navigation_link {
+        color: #000;
+        margin-bottom: -1px;
+        padding: 10px 15px;
+        display: block;
+      }
+      .navigation_link:hover {
+        text-decoration: none;
+      }
+      .navigation_link--active {
+        padding: 0 15px;
+      }
+      .navigation_link--active .navigation_linkBorderBlock {
+        color: #e11717;
+        border-bottom: 3px solid #e11717;
+        padding: 8px 0;
+        display: block;
+      }
     </style>
     <div class="all">
       <div class="wrap">
-        <header class="header"></header>
+        <header class="header">
+          <ul class="navigation">
+            <li class="navigation_item">
+              <a class="navigation_link">
+                <span class="navigation_linkBorderBlock">День</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Месяц</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#/ScheduleDay" class="navigation_link">
+                <span class="navigation_linkBorderBlock">График</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Команда</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Отчёты</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Метрики</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Учёт</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Маркетинг</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#/ZoneSettings" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Настройки</span>
+              </a>
+            </li>
+            <li class="navigation_item">
+              <a href="#" class="navigation_link navigation_link--special">
+                <span class="navigation_linkBorderBlock">Новости Додо</span>
+              </a>
+            </li>
+            <li class="navigation_item navigation_link--active">
+              <a href="#" class="navigation_link">
+                <span class="navigation_linkBorderBlock">Аналитика (бета)</span>
+              </a>
+            </li>
+      </ul>
+</header>
         <section class="content">
           <section class="middleColumn">
             <div class="middleColumn_padding">
@@ -74,7 +164,6 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
             ></script>
 
             <script>
-              console.log('htmlWebpackPlugin', ${JSON.stringify(htmlWebpackPlugin.files.js)});
               singleSpa.registerApplication(
               "${MICROFRONTEND_NAME}",
               () => System.import(${JSON.stringify(

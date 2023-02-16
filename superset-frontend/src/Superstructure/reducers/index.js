@@ -10,7 +10,7 @@ import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import datasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
-import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
+import messageToasts from 'src/components/MessageToasts/reducers';
 
 const impressionId = (state = '') => state;
 

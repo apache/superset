@@ -1,4 +1,4 @@
-// DODO was here FIX
+// DODO was here TODO
 import { SupersetClient, logging } from '@superset-ui/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
 import { API_HANDLER } from 'src/Superstructure/api';
@@ -8,8 +8,8 @@ const assembleEndpoint = (
   key?: string | null,
   tabId?: string,
 ) => {
-  // let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
-  let endpoint = `/dashboard/${dashId}/filter_state`;
+  let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
+  // let endpoint = `/dashboard/${dashId}/filter_state`;
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }
@@ -47,7 +47,10 @@ export const createFilterKey = (
     // jsonPayload: { value },
     body: { value },
   })
-    .then(r => r.json.key as string)
+    // .then(r => r.json.key as string)
+    .then(r => {
+      return r.key
+    })
     .catch(err => {
       logging.error(err);
       return null;
