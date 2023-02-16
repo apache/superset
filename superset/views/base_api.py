@@ -112,7 +112,13 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
         try:
             duration, response = time_function(f, self, *args, **kwargs)
         except Exception as ex:
-            self.incr_stats("error", func_name)
+            if (
+                hasattr(ex, "status")
+                and ex.status < 500  # type: ignore # pylint: disable=no-member
+            ):
+                self.incr_stats("warning", func_name)
+            else:
+                self.incr_stats("error", func_name)
             raise ex
 
         self.send_stats_metrics(response, func_name, duration)
@@ -205,6 +211,8 @@ class BaseSupersetApiMixin:
         """
         if 200 <= response.status_code < 400:
             self.incr_stats("success", key)
+        elif 400 <= response.status_code < 500:
+            self.incr_stats("warning", key)
         else:
             self.incr_stats("error", key)
         if time_delta:
