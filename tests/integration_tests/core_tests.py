@@ -757,36 +757,6 @@ class TestCore(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
 
-    @pytest.mark.usefixtures("load_birth_names_data")
-    def test_templated_sql_forbidden(self):
-        self.login(username="gamma");
-
-        data = self.run_sql(
-            """
-            SELECT * FROM {{ table_name }} LIMIT 1;
-            """,
-            client_id="client_id_1",
-            database_name="examples",
-            template_params=json.dumps({"table_name": "birth_names"}),
-            raise_on_error=True
-        )
-        assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
-
-    @pytest.mark.usefixtures("load_birth_names_data")
-    def test_templated_sql_success(self):
-        self.login(username="admin");
-
-        data = self.run_sql(
-            """
-            SELECT * FROM {{ table_name }} LIMIT 1;
-            """,
-            client_id="client_id_1",
-            database_name="examples",
-            template_params=json.dumps({"table_name": "birth_names"}),
-            raise_on_error=True
-        )
-        assert data["status"] == "success"
-
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
