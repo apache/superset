@@ -705,6 +705,7 @@ class ImportV1DatabaseSchema(Schema):
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
@@ -718,6 +719,59 @@ class ImportV1DatabaseSchema(Schema):
         password = make_url_safe(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
+
+    @validates_schema
+    def validate_ssh_tunnel_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
+        """If ssh_tunnel has a masked password, password is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
+        # Our DB has a ssh_tunnel in it
+        if ssh_tunnel := data.get("ssh_tunnel"):
+            password = ssh_tunnel.get("password")
+            if password == PASSWORD_MASK:
+                raise ValidationError("Must provide a password for the ssh tunnel")
+        return
+
+    @validates_schema
+    def validate_ssh_tunnel_private_key(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:
+        """If ssh_tunnel has a masked private key, private key is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
+        # Our DB has a ssh_tunnel in it
+        if ssh_tunnel := data.get("ssh_tunnel"):
+            private_key = ssh_tunnel.get("private_key")
+            if private_key == PASSWORD_MASK:
+                raise ValidationError("Must provide a private key for the ssh tunnel")
+        return
+
+    @validates_schema
+    def validate_ssh_tunnel_pkey_pass(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:
+        """
+        If ssh_tunnel has a masked private key password, private key password is required
+        """
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
+        # Our DB has a ssh_tunnel in it
+        if ssh_tunnel := data.get("ssh_tunnel"):
+            private_key_password = ssh_tunnel.get("private_key_password")
+            if private_key_password == PASSWORD_MASK:
+                raise ValidationError(
+                    "Must provide a private key password for the ssh tunnel"
+                )
+        return
 
 
 class EncryptedField:  # pylint: disable=too-few-public-methods
