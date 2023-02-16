@@ -116,14 +116,14 @@ def load_configs(
         str(uuid): password
         for uuid, password in db.session.query(SSHTunnel.uuid, SSHTunnel.password).all()
     }
-    # load existing databases so we can apply the password validation
+    # load existing ssh_tunnels so we can apply the private_key validation
     db_ssh_tunnel_private_keys: Dict[str, str] = {
         str(uuid): private_key
         for uuid, private_key in db.session.query(
             SSHTunnel.uuid, SSHTunnel.private_key
         ).all()
     }
-    # load existing databases so we can apply the password validation
+    # load existing ssh_tunnels so we can apply the private_key_password validation
     db_ssh_tunnel_priv_key_passws: Dict[str, str] = {
         str(uuid): private_key_password
         for uuid, private_key_password in db.session.query(

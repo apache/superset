@@ -1619,9 +1619,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     fileList.length > 0 &&
     (alreadyExists.length ||
       passwordFields.length ||
-      sshTunnelPasswordFields ||
-      sshTunnelPrivateKeyFields ||
-      sshTunnelPrivateKeyPasswordFields)
+      sshTunnelPasswordFields.length ||
+      sshTunnelPrivateKeyFields.length ||
+      sshTunnelPrivateKeyPasswordFields.length)
   ) {
     return (
       <Modal
