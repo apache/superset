@@ -25,7 +25,7 @@ from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
-CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
+CACHE_IMPORT_PATH = "superset.extension.metastore_cache.SupersetMetastoreCache"
 
 
 class ExploreFormDataCache(Cache):

@@ -25,7 +25,7 @@ from flask.ctx import AppContext
 from freezegun import freeze_time
 
 if TYPE_CHECKING:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
+    from superset.extension.metastore_cache import SupersetMetastoreCache
 
 FIRST_KEY = "foo"
 FIRST_KEY_INITIAL_VALUE = {"foo": "bar"}
@@ -37,7 +37,7 @@ SECOND_VALUE = "qwerty"
 
 @pytest.fixture
 def cache() -> SupersetMetastoreCache:
-    from superset.extensions.metastore_cache import SupersetMetastoreCache
+    from superset.extension.metastore_cache import SupersetMetastoreCache
 
     return SupersetMetastoreCache(
         namespace=UUID("ee173d1b-ccf3-40aa-941c-985c15224496"),

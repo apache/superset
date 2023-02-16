@@ -504,7 +504,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 #                          FIREWALL (only port 22 is open)
 
 # ----------------------------------------------------------------------
-SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
+SSH_TUNNEL_MANAGER_CLASS = "superset.extension.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
