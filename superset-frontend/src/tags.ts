@@ -50,8 +50,7 @@ export function fetchAllTags(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  const url = `/api/v1/tag`;
-  SupersetClient.get({ endpoint: url })
+  SupersetClient.get({ endpoint: `/api/v1/tag` })
     .then(({ json }) => callback(json))
     .catch(response => error(response));
 }

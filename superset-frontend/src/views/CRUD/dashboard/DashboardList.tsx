@@ -366,7 +366,13 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { tags = [] },
           },
-        }: any) => (
+        }: {
+          row: {
+            original: {
+              tags: Tag[];
+            };
+          };
+        }) => (
           // Only show custom type tags
           <TagsList
             tags={tags.filter(

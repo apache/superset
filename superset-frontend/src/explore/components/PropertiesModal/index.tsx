@@ -422,7 +422,7 @@ function PropertiesModal({
               </StyledHelpBlock>
             </FormItem>
             {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
-              <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
+              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
             )}
             {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
               <FormItem>
