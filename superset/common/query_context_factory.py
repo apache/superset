@@ -121,7 +121,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         datasource: BaseDatasource,
     ) -> None:
         temporal_columns = {
-            column.column_name
+            column["column_name"] if isinstance(column, dict) else column.column_name
             for column in datasource.columns
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
