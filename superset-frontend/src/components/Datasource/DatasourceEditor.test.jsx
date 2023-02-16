@@ -24,18 +24,6 @@ import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: ({ fileName, role, ...rest }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
-  StyledIcon: () => <span />,
-}));
-
 const props = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},

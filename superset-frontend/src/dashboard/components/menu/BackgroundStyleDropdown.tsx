@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
@@ -73,11 +73,12 @@ const BackgroundStyleOption = styled.div`
 `;
 
 function renderButton(option: OptionProps) {
+  const BACKGROUND_TEXT = t('background');
   return (
     <BackgroundStyleOption
       className={cx('background-style-option', option.className)}
     >
-      {`${option.label} background`}
+      {`${option.label} ${BACKGROUND_TEXT}`}
     </BackgroundStyleOption>
   );
 }

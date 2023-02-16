@@ -76,17 +76,30 @@ const QueryTable = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
+  const QUERY_HISTORY_TABLE_HEADERS_LOCALIZED = {
+    state: t('State'),
+    started: t('Started'),
+    duration: t('Duration'),
+    progress: t('Progress'),
+    rows: t('Rows'),
+    sql: t('SQL'),
+    results: t('Results'),
+    actions: t('Actions'),
+  };
+
   const setHeaders = (column: string) => {
     if (column === 'sql') {
       return column.toUpperCase();
     }
     return column.charAt(0).toUpperCase().concat(column.slice(1));
   };
+
   const columnsOfTable = useMemo(
     () =>
       columns.map(column => ({
         accessor: column,
-        Header: () => setHeaders(column),
+        Header:
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],

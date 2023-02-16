@@ -198,7 +198,7 @@ function SelectPageSize({
 }
 
 const getNoResultsMessage = (filter: string) =>
-  t(filter ? 'No matching records found' : 'No records found');
+  filter ? t('No matching records found') : t('No records found');
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -478,7 +478,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
-          // If cellProps renderes textContent already, then we don't have to
+          // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>

@@ -35,6 +35,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePort.http)) }}
+      nodePort: {{ .Values.service.nodePort.http }}
+      {{- end }}
   selector:
     app: {{ template "superset.name" . }}
     release: {{ .Release.Name }}
@@ -64,6 +67,9 @@ spec:
       targetPort: flower
       protocol: TCP
       name: flower
+      {{- if and (or (eq .Values.supersetCeleryFlower.service.type "NodePort") (eq .Values.supersetCeleryFlower.service.type "LoadBalancer")) (not (empty .Values.supersetCeleryFlower.service.nodePort.http)) }}
+      nodePort: {{ .Values.supersetCeleryFlower.service.nodePort.http }}
+      {{- end }}
   selector:
     app: {{ template "superset.name" . }}-flower
     release: {{ .Release.Name }}
@@ -94,6 +100,9 @@ spec:
       targetPort: ws
       protocol: TCP
       name: ws
+      {{- if and (or (eq .Values.supersetWebsockets.service.type "NodePort") (eq .Values.supersetWebsockets.service.type "LoadBalancer")) (not (empty .Values.supersetWebsockets.service.nodePort.http)) }}
+      nodePort: {{ .Values.supersetWebsockets.service.nodePort.http }}
+      {{- end }}
   selector:
     app: "{{ template "superset.name" . }}-ws"
     release: {{ .Release.Name }}

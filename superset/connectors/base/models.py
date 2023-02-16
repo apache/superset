@@ -22,6 +22,7 @@ from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING, Union
 
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
@@ -248,10 +249,10 @@ class BaseDatasource(
         for column_name in self.column_names:
             column_name = str(column_name or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + " [asc]")
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + " [desc]")
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         verbose_map = {"__timestamp": "Time"}

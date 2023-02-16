@@ -31,6 +31,7 @@ import {
 } from 'src/featureFlags';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import logger from 'src/middleware/loggerMiddleware';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -116,7 +117,7 @@ const store = createStore(
   rootReducer,
   initialState,
   compose(
-    applyMiddleware(thunkMiddleware),
+    applyMiddleware(thunkMiddleware, logger),
     initEnhancer(
       !isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE),
       sqlLabPersistStateConfig,

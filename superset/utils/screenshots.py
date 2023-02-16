@@ -23,7 +23,13 @@ from typing import Optional, TYPE_CHECKING, Union
 from flask import current_app
 
 from superset.utils.hashing import md5_sha_from_dict
-from superset.utils.webdriver import WebDriverProxy, WindowSize
+from superset.utils.urls import modify_url_query
+from superset.utils.webdriver import (
+    ChartStandaloneMode,
+    DashboardStandaloneMode,
+    WebDriverProxy,
+    WindowSize,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +211,11 @@ class ChartScreenshot(BaseScreenshot):
         window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
     ):
+        # Chart reports are in standalone="true" mode
+        url = modify_url_query(
+            url,
+            standalone=ChartStandaloneMode.HIDE_NAV.value,
+        )
         super().__init__(url, digest)
         self.window_size = window_size or (800, 600)
         self.thumb_size = thumb_size or (800, 600)
@@ -221,6 +232,13 @@ class DashboardScreenshot(BaseScreenshot):
         window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
     ):
+        # per the element above, dashboard screenshots
+        # should always capture in standalone
+        url = modify_url_query(
+            url,
+            standalone=DashboardStandaloneMode.REPORT.value,
+        )
+
         super().__init__(url, digest)
         self.window_size = window_size or (1600, 1200)
         self.thumb_size = thumb_size or (800, 600)

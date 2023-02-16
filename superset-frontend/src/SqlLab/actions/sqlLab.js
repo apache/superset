@@ -598,16 +598,44 @@ export function addQueryEditor(queryEditor) {
   };
 }
 
-export function addNewQueryEditor(queryEditor) {
+export function addNewQueryEditor() {
   return function (dispatch, getState) {
     const {
-      sqlLab: { queryEditors },
+      sqlLab: {
+        queryEditors,
+        tabHistory,
+        unsavedQueryEditor,
+        defaultDbId,
+        databases,
+      },
+      common,
     } = getState();
+    const activeQueryEditor = queryEditors.find(
+      qe => qe.id === tabHistory[tabHistory.length - 1],
+    );
+    const dbIds = Object.values(databases).map(database => database.id);
+    const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
+    const { dbId, schema, queryLimit, autorun } = {
+      ...queryEditors[0],
+      ...activeQueryEditor,
+      ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
+        unsavedQueryEditor),
+    };
+    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? ''
+      : t(
+          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
+        );
+
     const name = newQueryTabName(queryEditors || []);
 
     return dispatch(
       addQueryEditor({
-        ...queryEditor,
+        dbId: dbId || defaultDbId || firstDbId,
+        schema: schema ?? null,
+        autorun: autorun ?? false,
+        sql: `${warning}SELECT ...`,
+        queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
       }),
     );
@@ -1412,7 +1440,7 @@ export function popQuery(queryId) {
           dbId: queryData.database.id,
           schema: queryData.schema,
           sql: queryData.sql,
-          name: `Copy of ${queryData.tab_name}`,
+          name: t('Copy of %s', queryData.tab_name),
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1422,6 +1450,7 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
@@ -1429,7 +1458,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.result.name}`,
+            name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
             autorun: sql !== undefined,
@@ -1484,13 +1513,13 @@ export function createCtasDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
-      endpoint: '/superset/get_or_create_table/',
-      postPayload: { data: vizOptions },
+      endpoint: '/api/v1/dataset/get_or_create/',
+      jsonPayload: vizOptions,
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json));
+        dispatch(createDatasourceSuccess(json.result));
 
-        return json;
+        return json.result;
       })
       .catch(() => {
         const errorMsg = t('An error occurred while creating the data source');

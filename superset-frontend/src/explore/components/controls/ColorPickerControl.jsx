@@ -59,7 +59,7 @@ const styles = {
     ...swatchCommon,
     borderRadius: '2px',
   },
-  checkboard: {
+  checkerboard: {
     ...swatchCommon,
     background:
       'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==") left center',
@@ -105,7 +105,7 @@ export default class ColorPickerControl extends React.Component {
           content={this.renderPopover()}
         >
           <StyledSwatch>
-            <div style={styles.checkboard} />
+            <div style={styles.checkerboard} />
             <div style={colStyle} />
           </StyledSwatch>
         </Popover>

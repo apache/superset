@@ -560,7 +560,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
@@ -683,7 +683,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         current_user = get_current_user()
-        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        url = get_url_path("Superset.slice", slice_id=chart.id)
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)

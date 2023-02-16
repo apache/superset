@@ -30,6 +30,25 @@ const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.SavedQueries]: t('saved queries'),
 };
 
+const welcomeTableEmpty: Record<WelcomeTable, string> = {
+  [WelcomeTable.Charts]: t('No charts yet'),
+  [WelcomeTable.Dashboards]: t('No dashboards yet'),
+  [WelcomeTable.Recents]: t('No recents yet'),
+  [WelcomeTable.SavedQueries]: t('No saved queries yet'),
+};
+
+const welcomeTableWillAppear: Record<WelcomeTable, (other: string) => string> =
+  {
+    [WelcomeTable.Charts]: (other: string) =>
+      t('%(other)s charts will appear here', { other }),
+    [WelcomeTable.Dashboards]: (other: string) =>
+      t('%(other)s dashboards will appear here', { other }),
+    [WelcomeTable.Recents]: (other: string) =>
+      t('%(other)s recents will appear here', { other }),
+    [WelcomeTable.SavedQueries]: (other: string) =>
+      t('%(other)s saved queries will appear here', { other }),
+  };
+
 export interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
@@ -75,11 +94,7 @@ export default function EmptyState({
     [WelcomeTable.Recents]: 'union.svg',
     [WelcomeTable.SavedQueries]: 'empty-queries.svg',
   };
-  const mine = (
-    <span>
-      {t('No %(tableName)s yet', { tableName: welcomeTableLabels[tableName] })}
-    </span>
-  );
+  const mine = <span>{welcomeTableEmpty[tableName]}</span>;
   const recent = (
     <span className="no-recents">
       {(() => {
@@ -94,10 +109,8 @@ export default function EmptyState({
           );
         }
         if (tab === TableTab.Other) {
-          return t('%(other)s %(tableName)s will appear here', {
-            other: otherTabTitle || t('Other'),
-            tableName: tableName.toLowerCase(),
-          });
+          const other = otherTabTitle || t('Other');
+          return welcomeTableWillAppear[tableName](other);
         }
         if (tab === TableTab.Edited) {
           return t(
