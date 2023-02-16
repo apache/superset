@@ -48,7 +48,7 @@ class Api(BaseSupersetView):
 
     @event_logger.log_this
     @api
-    @protect
+    @protect()
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
@@ -71,7 +71,7 @@ class Api(BaseSupersetView):
 
     @event_logger.log_this
     @api
-    @protect
+    @protect()
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
@@ -92,7 +92,7 @@ class Api(BaseSupersetView):
         return json.dumps(form_data)
 
     @api
-    @protect
+    @protect()
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
