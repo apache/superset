@@ -763,7 +763,7 @@ class TestCore(SupersetTestCase):
 
         data = self.run_sql(
             """
-            SELECT * FROM birth_names LIMIT 1;
+            SELECT * FROM {{ table_name }} LIMIT 1;
             """,
             client_id="client_id_1",
             username="gamma",
