@@ -29,6 +29,8 @@ import {
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
 
@@ -125,6 +127,7 @@ class App extends React.PureComponent {
     ) {
       this.showLocalStorageUsageWarning(
         this.props.localStorageUsageInKilobytes,
+        this.props.queries?.lenghth || 0,
       );
     }
   }
@@ -140,7 +143,7 @@ class App extends React.PureComponent {
     this.setState({ hash: window.location.hash });
   }
 
-  showLocalStorageUsageWarning(currentUsage) {
+  showLocalStorageUsageWarning(currentUsage, queryCount) {
     this.props.actions.addDangerToast(
       t(
         "SQL Lab uses your browser's local storage to store queries and results." +
@@ -154,6 +157,14 @@ class App extends React.PureComponent {
         },
       ),
     );
+    const eventData = {
+      current_usage: currentUsage,
+      query_count: queryCount,
+    };
+    this.props.actions.logEvent(
+      LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
+      eventData,
+    );
   }
 
   render() {
@@ -162,7 +173,7 @@ class App extends React.PureComponent {
       return window.location.replace('/superset/sqllab/history/');
     }
     return (
-      <SqlLabStyles className="App SqlLab">
+      <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
         <QueryAutoRefresh
           queries={queries}
           refreshQueries={actions?.refreshQueries}
@@ -193,7 +204,7 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators(Actions, dispatch),
+    actions: bindActionCreators({ ...Actions, logEvent }, dispatch),
   };
 }
 

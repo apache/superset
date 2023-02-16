@@ -332,7 +332,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+        }: any) => (kind === 'physical' ? t('Physical') : t('Virtual')),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -484,7 +484,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate],
+    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 
   const filterTypes: Filters = useMemo(
@@ -574,7 +574,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.contains,
       },
     ],
-    [],
+    [user],
   );
 
   const menuData: SubMenuProps = {

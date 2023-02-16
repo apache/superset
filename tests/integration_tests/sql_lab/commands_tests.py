@@ -15,23 +15,208 @@
 # specific language governing permissions and limitations
 # under the License.
 from unittest import mock, skip
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.errors import SupersetErrorType
-from superset.exceptions import SerializationError, SupersetErrorException
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import (
+    SerializationError,
+    SupersetError,
+    SupersetErrorException,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-from superset.sqllab.commands import results
+from superset.sqllab.commands import export, results
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
+class TestSqlResultExportCommand(SupersetTestCase):
+    @pytest.fixture()
+    def create_database_and_query(self):
+        with self.create_app().app_context():
+            database = get_example_database()
+            query_obj = Query(
+                client_id="test",
+                database=database,
+                tab_name="test_tab",
+                sql_editor_id="test_editor_id",
+                sql="select * from bar",
+                select_sql="select * from bar",
+                executed_sql="select * from bar",
+                limit=100,
+                select_as_cta=False,
+                rows=104,
+                error_message="none",
+                results_key="abc_query",
+            )
+
+            db.session.add(query_obj)
+            db.session.commit()
+
+            yield
+
+            db.session.delete(query_obj)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    def test_validation_query_not_found(self) -> None:
+        command = export.SqlResultExportCommand("asdf")
+
+        with pytest.raises(SupersetErrorException) as ex_info:
+            command.run()
+        assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    def test_validation_invalid_access(self) -> None:
+        command = export.SqlResultExportCommand("test")
+
+        with mock.patch(
+            "superset.security_manager.raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    "dummy",
+                    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    ErrorLevel.ERROR,
+                )
+            ),
+        ):
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
+            )
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @patch("superset.models.core.Database.get_df")
+    def test_run_no_results_backend_select_sql(self, get_df_mock: Mock) -> None:
+        command = export.SqlResultExportCommand("test")
+
+        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        result = command.run()
+
+        data = result.get("data")
+        count = result.get("count")
+        query = result.get("query")
+
+        assert data == "foo\n1\n2\n3\n"
+        assert count == 3
+        assert query.client_id == "test"
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @patch("superset.models.core.Database.get_df")
+    def test_run_no_results_backend_executed_sql(self, get_df_mock: Mock) -> None:
+        query_obj = db.session.query(Query).filter_by(client_id="test").one()
+        query_obj.executed_sql = "select * from bar limit 2"
+        query_obj.select_sql = None
+        db.session.commit()
+
+        command = export.SqlResultExportCommand("test")
+
+        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        result = command.run()
+
+        data = result.get("data")
+        count = result.get("count")
+        query = result.get("query")
+
+        assert data == "foo\n1\n2\n"
+        assert count == 2
+        assert query.client_id == "test"
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @patch("superset.models.core.Database.get_df")
+    def test_run_no_results_backend_executed_sql_limiting_factor(
+        self, get_df_mock: Mock
+    ) -> None:
+        query_obj = db.session.query(Query).filter_by(results_key="abc_query").one()
+        query_obj.executed_sql = "select * from bar limit 2"
+        query_obj.select_sql = None
+        query_obj.limiting_factor = LimitingFactor.DROPDOWN
+        db.session.commit()
+
+        command = export.SqlResultExportCommand("test")
+
+        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+
+        result = command.run()
+
+        data = result.get("data")
+        count = result.get("count")
+        query = result.get("query")
+
+        assert data == "foo\n1\n"
+        assert count == 1
+        assert query.client_id == "test"
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @patch("superset.sqllab.commands.export.results_backend_use_msgpack", False)
+    def test_run_with_results_backend(self) -> None:
+        command = export.SqlResultExportCommand("test")
+
+        data = [{"foo": i} for i in range(5)]
+        payload = {
+            "columns": [{"name": "foo"}],
+            "data": data,
+        }
+        serialized_payload = sql_lab._serialize_payload(payload, False)
+        compressed = utils.zlib_compress(serialized_payload)
+
+        export.results_backend = mock.Mock()
+        export.results_backend.get.return_value = compressed
+
+        result = command.run()
+
+        data = result.get("data")
+        count = result.get("count")
+        query = result.get("query")
+
+        assert data == "foo\n0\n1\n2\n3\n4\n"
+        assert count == 5
+        assert query.client_id == "test"
+
+
 class TestSqlExecutionResultsCommand(SupersetTestCase):
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @pytest.fixture()
+    def create_database_and_query(self):
+        with self.create_app().app_context():
+            database = get_example_database()
+            query_obj = Query(
+                client_id="test",
+                database=database,
+                tab_name="test_tab",
+                sql_editor_id="test_editor_id",
+                sql="select * from bar",
+                select_sql="select * from bar",
+                executed_sql="select * from bar",
+                limit=100,
+                select_as_cta=False,
+                rows=104,
+                error_message="none",
+                results_key="abc_query",
+            )
+
+            db.session.add(query_obj)
+            db.session.commit()
+
+            yield
+
+            db.session.delete(query_obj)
+            db.session.commit()
+
+    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_validation_no_results_backend(self) -> None:
         results.results_backend = None
 
@@ -44,7 +229,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             == SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR
         )
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_validation_data_cannot_be_retrieved(self) -> None:
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = None
@@ -55,8 +240,8 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             command.run()
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
-    def test_validation_query_not_found(self) -> None:
+    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    def test_validation_data_not_found(self) -> None:
         data = [{"col_0": i} for i in range(100)]
         payload = {
             "status": QueryStatus.SUCCESS,
@@ -75,8 +260,9 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             command.run()
         assert ex_info.value.error.error_type == SupersetErrorType.RESULTS_BACKEND_ERROR
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
-    def test_validation_query_not_found2(self) -> None:
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    def test_validation_query_not_found(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
             "status": QueryStatus.SUCCESS,
@@ -89,38 +275,20 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="foo",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="test_abc",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-
         with mock.patch(
             "superset.views.utils._deserialize_results_payload",
             side_effect=SerializationError(),
         ):
             with pytest.raises(SupersetErrorException) as ex_info:
-                command = results.SqlExecutionResultsCommand("test", 1000)
+                command = results.SqlExecutionResultsCommand("test_other", 1000)
                 command.run()
             assert (
                 ex_info.value.error.error_type
                 == SupersetErrorType.RESULTS_BACKEND_ERROR
             )
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
@@ -134,26 +302,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-        query_obj = Query(
-            client_id="foo",
-            database=database,
-            tab_name="test_tab",
-            sql_editor_id="test_editor_id",
-            sql="select * from bar",
-            select_sql="select * from bar",
-            executed_sql="select * from bar",
-            limit=100,
-            select_as_cta=False,
-            rows=104,
-            error_message="none",
-            results_key="test_abc",
-        )
-
-        db.session.add(database)
-        db.session.add(query_obj)
-
-        command = results.SqlExecutionResultsCommand("test_abc", 1000)
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
         result = command.run()
 
         assert result.get("status") == "success"
