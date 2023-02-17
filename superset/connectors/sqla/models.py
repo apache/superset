@@ -755,7 +755,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        # todo(yongjie): create a pysical table column type in seprated PR
+        # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
             return get_virtual_table_metadata(dataset=self)  # type: ignore
         return get_physical_table_metadata(
@@ -1249,7 +1249,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
+            main_metric_expr, label = literal_column("COUNT(*)"), "count"
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
@@ -1419,7 +1419,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # Order by columns are "hidden" columns, some databases require them
         # always be present in SELECT if an aggregation function is used
-        if not db_engine_spec.allows_hidden_ordeby_agg:
+        if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)

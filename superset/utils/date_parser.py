@@ -153,7 +153,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
-    This functiom supports both reading the keys separately (from `since` and
+    This function supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
 
         - ISO 8601
