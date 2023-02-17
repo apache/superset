@@ -182,6 +182,8 @@ const SparklineCell = ({
     ...MARGIN,
     right: MARGIN.right + labelLength,
   };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
 
   const newData = data.map((num, idx) => ({
     x: idx,
@@ -237,11 +239,6 @@ const SparklineCell = ({
         yScale={{ type: 'linear', zero: false }}
         xScale={{ type: 'band', paddingInner: 0.5 }}
         theme={xyTheme}
-        css={css`
-          svg:not(:root) {
-            overflow: visible;
-          }
-        `}
       >
         {showYAxis && (
           <Axis
@@ -253,14 +250,14 @@ const SparklineCell = ({
             tickValues={[min, max]}
           />
         )}
-        {showYAxis && min && max && (
+        {showYAxis && min !== undefined && max !== undefined && (
           <GridRows
             left={margin.left}
             scale={scaleLinear({
               range: [height - margin.top, margin.bottom],
               domain: [min, max],
             })}
-            width={width - margin.right - 7}
+            width={innerWidth}
             strokeDasharray="3 3"
             stroke={`${theme.colors.grayscale.light1}`}
             tickValues={[min, max]}
@@ -273,6 +270,7 @@ const SparklineCell = ({
           yAccessor={yAccessor}
         />
         <Tooltip
+          glyphStyle={{ strokeWidth: 1 }}
           showDatumGlyph
           showVerticalCrosshair
           snapTooltipToDatumX
