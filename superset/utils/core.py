@@ -1700,7 +1700,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
 
 def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     """
-    Extract the columns that a list of metrics are referencing. Expcludes all
+    Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
 
     :param metrics: Ad-hoc metric

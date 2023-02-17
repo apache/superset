@@ -83,7 +83,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
                         description: The key to retrieve the permanent link data.
                       url:
                         type: string
-                        description: pemanent link.
+                        description: permanent link.
             400:
               $ref: '#/components/responses/400'
             401:

@@ -232,10 +232,10 @@ class CsvToDatabaseView(CustomFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -247,7 +247,7 @@ class CsvToDatabaseView(CustomFormView):
                 .filter_by(
                     table_name=csv_table.table,
                     schema=csv_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -256,7 +256,7 @@ class CsvToDatabaseView(CustomFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=csv_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = csv_table.schema
@@ -369,10 +369,10 @@ class ExcelToDatabaseView(SimpleFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a excel, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -384,7 +384,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 .filter_by(
                     table_name=excel_table.table,
                     schema=excel_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -393,7 +393,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=excel_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = excel_table.schema
@@ -510,10 +510,10 @@ class ColumnarToDatabaseView(SimpleFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -525,7 +525,7 @@ class ColumnarToDatabaseView(SimpleFormView):
                 .filter_by(
                     table_name=columnar_table.table,
                     schema=columnar_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -534,7 +534,7 @@ class ColumnarToDatabaseView(SimpleFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=columnar_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = columnar_table.schema

@@ -767,7 +767,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _get_pvms_from_builtin_role(self, role_name: str) -> List[PermissionView]:
         """
-        Gets a list of model PermissionView permissions infered from a builtin role
+        Gets a list of model PermissionView permissions inferred from a builtin role
         definition
         """
         role_from_permissions_names = self.builtin_roles.get(role_name, [])
