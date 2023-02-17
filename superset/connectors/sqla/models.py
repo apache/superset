@@ -234,7 +234,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
-        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     is_dttm = Column(Boolean, default=False)
     expression = Column(MediumText())
@@ -449,7 +448,6 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
-        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     expression = Column(MediumText(), nullable=False)
     extra = Column(Text)
@@ -551,13 +549,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
-        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
     )
     metrics: Mapped[List[SqlMetric]] = relationship(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
-        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
     )
     metric_class = SqlMetric
     column_class = TableColumn
