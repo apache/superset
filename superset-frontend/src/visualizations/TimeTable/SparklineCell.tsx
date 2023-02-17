@@ -17,13 +17,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React from 'react';
 import moment from 'moment';
 import {
   css,
-  getTextDimension,
   formatNumber,
   formatTime,
+  getTextDimension,
+  useTheme,
 } from '@superset-ui/core';
 import {
   Sparkline,
@@ -33,28 +34,28 @@ import {
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';
+import { GridRows } from '@visx/grid';
+import { scaleLinear } from '@visx/scale';
 import {
   Axis,
-  Grid,
   LineSeries as NewLineSeries,
   Tooltip,
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
-import { GridRows } from '@visx/grid';
-import { scaleLinear } from '@visx/scale';
 
 interface Props {
   ariaLabel: string;
   className?: string;
+  data: Array<number>;
+  entries: Array<any>;
   height: number;
   numberFormat?: string;
+  dateFormat?: string;
   renderTooltip: ({ index }: { index: number }) => React.ReactNode;
   showYAxis: boolean;
   width: number;
   yAxisBounds: Array<number | undefined>;
-  data: Array<number>;
-  entries: Array<any>;
 }
 
 interface TooltipProps {
@@ -104,13 +105,6 @@ function isValidBoundValue(value?: number | string) {
     !Number.isNaN(value)
   );
 }
-const customTheme = buildChartTheme({
-  backgroundColor: 'ffffff',
-  colors: ['#767676'],
-  gridColor: '#bbbbbb',
-  gridColorDark: '#bbbbbb',
-  tickLength: 5,
-});
 
 const SparklineCell = ({
   ariaLabel,
@@ -118,11 +112,21 @@ const SparklineCell = ({
   width = 300,
   height = 50,
   numberFormat = '',
+  dateFormat = '',
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
   renderTooltip = () => <div />,
 }: Props) => {
+  const theme = useTheme();
+  const xyTheme = buildChartTheme({
+    backgroundColor: `${theme.colors.grayscale.light5}`,
+    colors: [`${theme.colors.grayscale.base}`],
+    gridColor: `${theme.colors.grayscale.light1}`,
+    gridColorDark: `${theme.colors.grayscale.base}`,
+    tickLength: 6,
+  });
+
   function renderHorizontalReferenceLine(value?: number, label?: string) {
     return (
       <HorizontalReferenceLine
@@ -230,13 +234,9 @@ const SparklineCell = ({
         width={width}
         height={height}
         margin={margin}
-        yScale={{
-          type: 'linear',
-          zero: false,
-          domain: [yScale.min || min, yScale.max || max],
-        }}
+        yScale={{ type: 'linear', zero: false }}
         xScale={{ type: 'band', paddingInner: 0.5 }}
-        theme={customTheme}
+        theme={xyTheme}
         css={css`
           svg:not(:root) {
             overflow: visible;
@@ -245,45 +245,54 @@ const SparklineCell = ({
       >
         {showYAxis && (
           <Axis
-            tickValues={[min, max]}
-            orientation="right"
-            numTicks={2}
             hideAxisLine
+            hideTicks
+            numTicks={2}
+            orientation="right"
             tickFormat={(d: any) => formatNumber(numberFormat, d)}
+            tickValues={[min, max]}
           />
         )}
-        {showYAxis && (
+        {showYAxis && min && max && (
           <GridRows
             left={margin.left}
             scale={scaleLinear({
-              range: [height, 0],
+              range: [height - margin.top, margin.bottom],
               domain: [min, max],
             })}
-            width={width}
-            strokeDasharray="3,3"
-            stroke="#bbb"
+            width={width - margin.right - 7}
+            strokeDasharray="3 3"
+            stroke={`${theme.colors.grayscale.light1}`}
             tickValues={[min, max]}
           />
         )}
         <NewLineSeries
-          dataKey={ariaLabel}
           data={newData}
+          dataKey={ariaLabel}
           xAccessor={xAccessor}
           yAccessor={yAccessor}
         />
         <Tooltip
+          showDatumGlyph
           showVerticalCrosshair
-          glyphStyle={{ r: 5 }}
-          showSeriesGlyphs
+          snapTooltipToDatumX
+          snapTooltipToDatumY
+          verticalCrosshairStyle={{
+            stroke: `${theme.colors.grayscale.dark1}`,
+            strokeDasharray: '3 3',
+            strokeWidth: 1,
+          }}
           renderTooltip={({ tooltipData }) => {
             const idx = tooltipData?.datumByKey[ariaLabel].index;
             return (
               <div>
-                <strong>{idx && formatNumber(numberFormat, data[idx])}</strong>
+                <strong>
+                  {idx !== undefined && formatNumber(numberFormat, data[idx])}
+                </strong>
                 <div>
-                  {idx &&
+                  {idx !== undefined &&
                     formatTime(
-                      numberFormat,
+                      dateFormat,
                       moment.utc(entries[idx].time).toDate(),
                     )}
                 </div>
@@ -292,6 +301,11 @@ const SparklineCell = ({
           }}
         />
       </XYChart>
+      <style>
+        {`svg:not(:root) {
+            overflow: visible;
+          }`}
+      </style>
     </>
   );
 };

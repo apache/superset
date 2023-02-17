@@ -168,6 +168,7 @@ const TimeTable = ({
           data={sparkData}
           data-value={sparkData[sparkData.length - 1]}
           ariaLabel={`spark-${valueField}`}
+          dateFormat={column.dateFormat}
           numberFormat={column.d3format}
           yAxisBounds={column.yAxisBounds}
           showYAxis={column.showYAxis}
