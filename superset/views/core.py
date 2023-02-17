@@ -2363,7 +2363,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),
+            config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
 
