@@ -1241,6 +1241,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def copy_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1257,6 +1258,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
+        dash.css = data.get("css")
 
         old_to_new_slice_ids: Dict[int, int] = {}
         if data["duplicate_slices"]:
@@ -1291,6 +1293,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def save_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1317,6 +1320,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # remove to avoid confusion.
         data.pop("last_modified_time", None)
 
+        if data.get("css") is not None:
+            dash.css = data["css"]
+        if data.get("dashboard_title") is not None:
+            dash.dashboard_title = data["dashboard_title"]
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
