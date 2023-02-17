@@ -215,6 +215,11 @@ class AlertQueryInvalidTypeError(CommandException):
 
 
 class AlertQueryError(CommandException):
+    """
+    SQL query is not valid
+    """
+
+    status = 400
     message = _("Alert found an error while executing a query.")
 
 
