@@ -670,18 +670,18 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
+        query = query.join(
+            models.Database,
+            models.Database.id == self.model.database_id,
+        )
+        database_perms = security_manager.get_databases_accessible_by_user()
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(security_manager.user_model.id == get_user_id())
-        )
         return query.filter(
             or_(
+                self.model.database_id.in_(database_perms),
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
             )
         )
 

@@ -98,6 +98,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DATABASE_PERM_REGEX = re.compile(r"\[\w+\]\.\(id\:(\d+)\)")
+
 
 class DatabaseAndSchema(NamedTuple):
     database: str
@@ -603,6 +605,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ).all()
             return {s.name for s in view_menu_names}
         return set()
+
+    def get_databases_accessible_by_user(self):
+        """
+        Return the list of databases accessible by the user.
+
+        :return: The list of accessible Databases
+        """
+        perms = self.user_view_menu_names("database_access")
+        return [
+            int(match[1])
+            for perm in perms
+            if (match := DATABASE_PERM_REGEX.match(perm))
+        ]
 
     def get_schemas_accessible_by_user(
         self, database: "Database", schemas: List[str], hierarchical: bool = True

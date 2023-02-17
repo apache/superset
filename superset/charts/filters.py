@@ -83,25 +83,39 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
         return query
 
 
+class ChartDaoFilter(BaseFilter):
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.can_access_all_datasources():
+            return query
+
+        query = query.join(SqlaTable, self.model.datasource_id == SqlaTable.id)
+        query = query.join(models.Database, SqlaTable.database_id == models.Database.id)
+        database_perms = security_manager.get_databases_accessible_by_user()
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return query.filter(
+            or_(
+                models.Database.id.in_(database_perms),
+                self.model.perm.in_(perms),
+                self.model.schema_perm.in_(schema_perms),
+            )
+        )
+
+
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
+
+        query = query.join(models.Database)
+        database_perms = security_manager.get_databases_accessible_by_user()
         perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
-        )
         return query.filter(
             or_(
+                models.Database.id.in_(database_perms),
                 self.model.perm.in_(perms),
                 self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
             )
         )
 

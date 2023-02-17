@@ -24,7 +24,8 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
-from superset.models.core import FavStar
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
@@ -119,14 +120,18 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_feature_enabled("DASHBOARD_RBAC"):
             is_rbac_disabled_filter.append(~dashboard_has_roles)
 
+        database_perms = security_manager.get_databases_accessible_by_user()
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
+            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
+            .join(Database, SqlaTable.database_id == Database.id)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
                     *is_rbac_disabled_filter,
                     or_(
+                        Database.id.in_(database_perms),
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
                         security_manager.can_access_all_datasources(),
