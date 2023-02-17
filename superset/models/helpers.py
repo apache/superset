@@ -1620,7 +1620,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Order by columns are "hidden" columns, some databases require them
         # always be present in SELECT if an aggregation function is used
-        if not db_engine_spec.allows_hidden_ordeby_agg:
+        if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = utils.remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)

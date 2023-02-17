@@ -454,7 +454,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         "5 days ago" or "now").
 
         The `extra` arguments are currently used by time shift queries, since
-        different time shifts wil differ only in the `from_dttm`, `to_dttm`,
+        different time shifts will differ only in the `from_dttm`, `to_dttm`,
         `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
@@ -1708,9 +1708,9 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             values=utils.get_metric_name(self.form_data["metric"]),
         )
         chart_data = self.to_series(df)
-        for serie in chart_data:
-            serie["rank"] = rank_lookup[serie["key"]]
-            serie["perc"] = 1 - (serie["rank"] / (max_rank + 1))
+        for series in chart_data:
+            series["rank"] = rank_lookup[series["key"]]
+            series["perc"] = 1 - (series["rank"] / (max_rank + 1))
         return chart_data
 
 
@@ -2020,7 +2020,7 @@ class ChordViz(BaseViz):
 
         df.columns = ["source", "target", "value"]
 
-        # Preparing a symetrical matrix like d3.chords calls for
+        # Preparing a symmetrical matrix like d3.chords calls for
         nodes = list(set(df["source"]) | set(df["target"]))
         matrix = {}
         for source, target in product(nodes, nodes):
