@@ -104,13 +104,9 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        data = result.get("data")
-        count = result.get("count")
-        query = result.get("query")
-
-        assert data == "foo\n1\n2\n3\n"
-        assert count == 3
-        assert query.client_id == "test"
+        assert result["data"] == "foo\n1\n2\n3\n"
+        assert result["count"] == 3
+        assert result["query"].client_id == "test"
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
@@ -126,13 +122,9 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        data = result.get("data")
-        count = result.get("count")
-        query = result.get("query")
-
-        assert data == "foo\n1\n2\n"
-        assert count == 2
-        assert query.client_id == "test"
+        assert result["data"] == "foo\n1\n2\n"
+        assert result["count"] == 2
+        assert result["query"].client_id == "test"
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
@@ -152,13 +144,9 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        data = result.get("data")
-        count = result.get("count")
-        query = result.get("query")
-
-        assert data == "foo\n1\n"
-        assert count == 1
-        assert query.client_id == "test"
+        assert result["data"] == "foo\n1\n"
+        assert result["count"] == 1
+        assert result["query"].client_id == "test"
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
@@ -179,13 +167,9 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        data = result.get("data")
-        count = result.get("count")
-        query = result.get("query")
-
-        assert data == "foo\n0\n1\n2\n3\n4\n"
-        assert count == 5
-        assert query.client_id == "test"
+        assert result["data"] == "foo\n0\n1\n2\n3\n4\n"
+        assert result["count"] == 5
+        assert result["query"].client_id == "test"
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
@@ -217,9 +201,8 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
             db.session.commit()
 
     @patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @patch("superset.sqllab.commands.results.results_backend", None)
     def test_validation_no_results_backend(self) -> None:
-        results.results_backend = None
-
         command = results.SqlExecutionResultsCommand("test", 1000)
 
         with pytest.raises(SupersetErrorException) as ex_info:
@@ -306,5 +289,5 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         result = command.run()
 
         assert result.get("status") == "success"
-        assert result.get("query").get("rows") == 104
+        assert result["query"].get("rows") == 104
         assert result.get("data") == data
