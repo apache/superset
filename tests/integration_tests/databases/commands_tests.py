@@ -626,8 +626,12 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    def test_import_v1_database_masked_ssh_tunnel_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """Test that database imports with masked ssh_tunnel passwords are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
@@ -643,8 +647,12 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    def test_import_v1_database_masked_ssh_tunnel_private_key_and_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """Test that database imports with masked ssh_tunnel private_key and private_key_password are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
@@ -663,8 +671,12 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    def test_import_v1_database_with_ssh_tunnel_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_with_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """Test that a database with ssh_tunnel password can be imported"""
+        mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
         masked_database_config["ssh_tunnel"]["password"] = "TEST"
         contents = {
@@ -698,8 +710,12 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_database_with_ssh_tunnel_private_key_and_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_with_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """Test that a database with ssh_tunnel private_key and private_key_password can be imported"""
+        mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
         masked_database_config["ssh_tunnel"]["private_key"] = "TestPrivateKey"
         masked_database_config["ssh_tunnel"]["private_key_password"] = "TEST"

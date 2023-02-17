@@ -28,9 +28,12 @@ from marshmallow.validate import Length, ValidationError
 from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
-from superset import db
+from superset import db, is_feature_enabled
 from superset.constants import PASSWORD_MASK
 from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelingNotEnabledError,
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -730,6 +733,8 @@ class ImportV1DatabaseSchema(Schema):
 
         # Our DB has a ssh_tunnel in it
         if ssh_tunnel := data.get("ssh_tunnel"):
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
             password = ssh_tunnel.get("password")
             if password == PASSWORD_MASK:
                 raise ValidationError("Must provide a password for the ssh tunnel")
@@ -747,6 +752,8 @@ class ImportV1DatabaseSchema(Schema):
 
         # Our DB has a ssh_tunnel in it
         if ssh_tunnel := data.get("ssh_tunnel"):
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
             private_key = ssh_tunnel.get("private_key")
             if private_key == PASSWORD_MASK:
                 raise ValidationError("Must provide a private key for the ssh tunnel")
@@ -766,6 +773,8 @@ class ImportV1DatabaseSchema(Schema):
 
         # Our DB has a ssh_tunnel in it
         if ssh_tunnel := data.get("ssh_tunnel"):
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
             private_key_password = ssh_tunnel.get("private_key_password")
             if private_key_password == PASSWORD_MASK:
                 raise ValidationError(

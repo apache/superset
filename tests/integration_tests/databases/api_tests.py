@@ -2363,12 +2363,16 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_database_masked_ssh_tunnel_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """
         Database API: Test import database with masked password
         """
         self.login(username="admin")
         uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
 
@@ -2417,12 +2421,16 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    def test_import_database_masked_ssh_tunnel_password_provided(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_password_provided(
+        self, mock_schema_is_feature_enabled
+    ):
         """
         Database API: Test import database with masked password provided
         """
         self.login(username="admin")
         uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
 
@@ -2461,12 +2469,16 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_database_masked_ssh_tunnel_private_key_and_password(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
         """
         Database API: Test import database with masked private_key
         """
         self.login(username="admin")
         uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
 
@@ -2518,12 +2530,16 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    def test_import_database_masked_ssh_tunnel_private_key_and_password_provided(self):
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_private_key_and_password_provided(
+        self, mock_schema_is_feature_enabled
+    ):
         """
         Database API: Test import database with masked password provided
         """
         self.login(username="admin")
         uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
 
@@ -2565,6 +2581,57 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(model_ssh_tunnel.private_key_password, "TEST")
         db.session.delete(database)
         db.session.commit()
+
+    def test_import_database_masked_ssh_tunnel_feature_flag_disabled(self):
+        """
+        Database API: Test import database with ssh_tunnel and feature flag disabled
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert response == {
+            "errors": [
+                {
+                    "message": "SSH Tunneling is not enabled",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
     @mock.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",
