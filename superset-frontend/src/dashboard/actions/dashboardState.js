@@ -450,6 +450,9 @@ export function saveDashboardRequest(data, id, saveType) {
         });
     }
     // changing the data as the endpoint requires
+    if ('positions' in cleanedData && !('positions' in cleanedData.metadata)) {
+      cleanedData.metadata.positions = cleanedData.positions;
+    }
     cleanedData.metadata.default_filters = safeStringify(serializedFilters);
     cleanedData.metadata.filter_scopes = serializedFilterScopes;
     const copyPayload = {
