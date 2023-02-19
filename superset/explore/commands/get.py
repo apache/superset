@@ -107,7 +107,7 @@ class GetExploreCommand(BaseCommand, ABC):
             )
         except SupersetException:
             self._datasource_id = None
-            # fallback unkonw datasource to table type
+            # fallback unknown datasource to table type
             self._datasource_type = SqlaTable.type
 
         datasource: Optional[BaseDatasource] = None
