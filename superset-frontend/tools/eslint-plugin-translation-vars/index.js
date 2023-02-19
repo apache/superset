@@ -41,7 +41,7 @@ module.exports = {
               context.report({
                 node,
                 message:
-                  "Don't use variables in translation string templates. Flask-babel is a static translation translation service, so it can’t handle strings that include variables",
+                  "Don't use variables in translation string templates. Flask-babel is a static translation service, so it can’t handle strings that include variables",
               });
             }
           }
