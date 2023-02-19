@@ -214,27 +214,27 @@ describe('AdhocMetric', () => {
 
   it('should transform count_distinct SQL and do not change label if does not set metric label', () => {
     const withBrackets = new AdhocMetric({
-      column: { type: 'TEXT', column_name: '(column-with-barckets)' },
+      column: { type: 'TEXT', column_name: '(column-with-brackets)' },
       aggregate: AGGREGATES.COUNT_DISTINCT,
       hasCustomLabel: false,
     });
     expect(withBrackets.translateToSql({ transformCountDistinct: true })).toBe(
-      'COUNT(DISTINCT (column-with-barckets))',
+      'COUNT(DISTINCT (column-with-brackets))',
     );
     expect(withBrackets.getDefaultLabel()).toBe(
-      'COUNT_DISTINCT((column-with-barckets))',
+      'COUNT_DISTINCT((column-with-brackets))',
     );
 
     const withoutBrackets = new AdhocMetric({
-      column: { type: 'TEXT', column_name: 'column-without-barckets' },
+      column: { type: 'TEXT', column_name: 'column-without-brackets' },
       aggregate: AGGREGATES.COUNT_DISTINCT,
       hasCustomLabel: false,
     });
     expect(
       withoutBrackets.translateToSql({ transformCountDistinct: true }),
-    ).toBe('COUNT(DISTINCT column-without-barckets)');
+    ).toBe('COUNT(DISTINCT column-without-brackets)');
     expect(withoutBrackets.getDefaultLabel()).toBe(
-      'COUNT_DISTINCT(column-without-barckets)',
+      'COUNT_DISTINCT(column-without-brackets)',
     );
 
     const emptyColumnName = new AdhocMetric({
