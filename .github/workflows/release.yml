@@ -70,7 +70,6 @@ jobs:
           npm whoami
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git remote set-url origin "https://${GITHUB_TOKEN}@github.com/apache-superset/superset-ui.git" > /dev/null 2>&1
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
