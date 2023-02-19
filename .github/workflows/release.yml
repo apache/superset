@@ -16,7 +16,7 @@ jobs:
         node-version: [16]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # pulls all commits (needed for lerna / semantic release to correctly version)
           fetch-depth: 0
