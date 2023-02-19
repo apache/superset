@@ -5,8 +5,23 @@ on:
     types: [created]
 
 jobs:
-  ephemeral_env_comment:
+  config:
+    runs-on: "ubuntu-latest"
     if: github.event.issue.pull_request
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  ephemeral_env_comment:
+    needs: config
+    if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
     outputs:
