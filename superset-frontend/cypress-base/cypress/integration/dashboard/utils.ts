@@ -462,10 +462,10 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
 }
 
 /** ************************************************************************
- * Input default valule in Native filter in filter settings
+ * Input default value in Native filter in filter settings
  * @param defaultValue: default value for native filter
  * @return {null}
- * @summary helper to input default valule in Native filter in filter settings
+ * @summary helper to input default value in Native filter in filter settings
  ************************************************************************* */
 export function inputNativeFilterDefaultValue(
   defaultValue: string,

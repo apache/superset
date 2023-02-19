@@ -83,7 +83,7 @@ export type SupersetStyledSelectProps<
   selectRef?:
     | React.RefCallback<AnyReactSelect<OptionType>>
     | MutableRefObject<AnyReactSelect<OptionType>>;
-  getInputValue?: (selectBalue: ValueType<OptionType>) => string | undefined;
+  getInputValue?: (selectValue: ValueType<OptionType>) => string | undefined;
   optionRenderer?: (option: OptionType) => React.ReactNode;
   valueRenderer?: (option: OptionType) => React.ReactNode;
   valueRenderedAsLabel?: boolean;
