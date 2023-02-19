@@ -38,6 +38,6 @@ def upgrade():
 
 def downgrade():
     # It's Okay to keep these columns as MEDIUMTEXT
-    # Since some oraganizations may have already manually changed the type
+    # Since some organizations may have already manually changed the type
     # and downgrade may loose data so we don't do it.
     pass
