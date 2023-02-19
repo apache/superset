@@ -270,7 +270,7 @@ export enum QueryState {
   TIMED_OUT = 'timed_out',
 }
 
-// Inidcates a Query's state is still processing
+// Indicates a Query's state is still processing
 export const runningQueryStateList: QueryState[] = [
   QueryState.RUNNING,
   QueryState.STARTED,
