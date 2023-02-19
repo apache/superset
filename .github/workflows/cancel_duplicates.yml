@@ -10,6 +10,9 @@ jobs:
   cancel-duplicate-runs:
     name: Cancel duplicate workflow runs
     runs-on: ubuntu-20.04
+    permissions:
+      actions: write
+      contents: read
     steps:
       - name: Check number of queued tasks
         id: check_queued

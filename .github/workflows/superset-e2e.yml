@@ -13,6 +13,9 @@ jobs:
   cypress-matrix:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      pull-requests: read
     strategy:
       # when one test fails, DO NOT cancel the other
       # containers, because this will kill Cypress processes

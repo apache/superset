@@ -11,6 +11,9 @@ jobs:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
     name: Prefer Typescript
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3

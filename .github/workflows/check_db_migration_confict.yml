@@ -8,6 +8,9 @@ jobs:
   check_db_migration_conflict:
     name: Check DB migration conflict
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3

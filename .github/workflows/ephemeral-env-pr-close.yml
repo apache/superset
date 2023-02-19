@@ -23,6 +23,8 @@ jobs:
     if: needs.config.outputs.has-secrets
     name: Cleanup ephemeral envs
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
