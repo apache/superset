@@ -532,7 +532,7 @@ class Database(
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:
-        """Add quotes to potential identifiter expressions if needed"""
+        """Add quotes to potential identifier expressions if needed"""
         return self.get_dialect().identifier_preparer.quote
 
     def get_reserved_words(self) -> Set[str]:
