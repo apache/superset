@@ -316,7 +316,7 @@ class Query(
     @property
     def tracking_url(self) -> Optional[str]:
         """
-        Transfrom tracking url at run time because the exact URL may depends
+        Transform tracking url at run time because the exact URL may depends
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")

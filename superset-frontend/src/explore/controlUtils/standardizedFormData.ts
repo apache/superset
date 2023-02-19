@@ -193,7 +193,7 @@ export class StandardizedFormData {
     controlsState: ControlStateMapping;
   } {
     /*
-     * Transfrom form_data between different viz. Return new form_data and controlsState.
+     * Transform form_data between different viz. Return new form_data and controlsState.
      * 1. get memorized form_data by viz type or get previous form_data
      * 2. collect public control values
      * 3. generate initial targetControlsState
