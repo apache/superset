@@ -2271,7 +2271,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Returns True if the current user is an owner of the resource, False otherwise.
 
         :param resource: The dashboard, dataste, chart, etc. resource
-        :returns: Whethe the current user is an owner of the resource
+        :returns: Whether the current user is an owner of the resource
         """
 
         try:
@@ -2285,7 +2285,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Returns True if the current user is an admin user, False otherwise.
 
-        :returns: Whehther the current user is an admin user
+        :returns: Whether the current user is an admin user
         """
 
         return current_app.config["AUTH_ROLE_ADMIN"] in [
