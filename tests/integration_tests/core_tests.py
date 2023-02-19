@@ -615,7 +615,7 @@ class TestCore(SupersetTestCase):
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_redirect_invalid(self):
-        model_url = models.Url(url="hhttp://invalid.com")
+        model_url = models.Url(url="not-http://invalid.com")
         db.session.add(model_url)
         db.session.commit()
 
