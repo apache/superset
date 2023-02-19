@@ -37,16 +37,22 @@ jobs:
           fetch-depth: 0
       - name: Get tags and filter trigger tags
         run: |
-          git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"
+          if ! git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"; then
+            echo "::notice title=Workflow skipped::No tags present in repository"
+            exit
+          fi
+          echo "HAS_TAGS=1" >> $GITHUB_ENV"
           git fetch --prune --unshallow
           git tag -d `git tag | grep -E '^trigger-'`
 
       - name: Use Node.js ${{ matrix.node-version }}
+        if: env.HAS_TAGS
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Cache npm
+        if: env.HAS_TAGS
         uses: actions/cache@v1
         with:
           path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
@@ -56,9 +62,11 @@ jobs:
             ${{ runner.OS }}-
 
       - name: Get npm cache directory path
+        if: env.HAS_TAGS
         id: npm-cache-dir-path
         run: echo "::set-output name=dir::$(npm config get cache)"
       - name: Cache npm
+        if: env.HAS_TAGS
         uses: actions/cache@v1
         id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
@@ -68,16 +76,20 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm ci
       - name: Run unit tests
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm run test -- plugins packages
       - name: Build packages
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: npm run plugins:build
 
       - name: Configure npm and git
+        if: env.HAS_TAGS
         run: |
           echo "@superset-ui:registry=https://registry.npmjs.org/" > .npmrc
           echo "registry=https://registry.npmjs.org/" >> .npmrc
@@ -90,6 +102,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Bump version and publish package(s)
+        if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: |
           git tag -d `git tag | grep -E '^trigger-'`
