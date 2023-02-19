@@ -91,7 +91,7 @@ export const basicData = {
   data: [
     {
       location: 'AMEA',
-      program_language: 'Javscript',
+      program_language: 'JavaScript',
       Count: 134,
       'Most Recent Data': '2022-07-25 13:00:00.000',
     },
