@@ -202,7 +202,7 @@ describe('should collect control values and create SFD', () => {
     order_desc: true,
     // outer query limit
     row_limit: 100,
-    // x asxs column
+    // x axis column
     x_axis: 'x_axis_column',
     // advanced analytics - rolling window
     rolling_type: 'sum',

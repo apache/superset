@@ -69,7 +69,7 @@ export const publicControls = [
   'order_desc', // via sharedControls
   // outer query limit
   'row_limit', // via sharedControls
-  // x asxs column
+  // x axis column
   'x_axis', // via sharedControls
   // advanced analytics - rolling window
   'rolling_type', // via sections.advancedAnalytics
