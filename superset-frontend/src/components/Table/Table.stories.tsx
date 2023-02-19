@@ -120,14 +120,14 @@ const basicData: BasicData[] = [
   {
     key: 3,
     name: '128 GB SSD',
-    category: 'Hardrive',
+    category: 'Hard Drive',
     price: 49.99,
     description: 'Reliable and fast data storage',
   },
   {
     key: 4,
     name: '128 GB SSD',
-    category: 'Hardrive',
+    category: 'Hard Drive',
     price: 49.99,
     description: 'Reliable and fast data storage',
   },
@@ -148,14 +148,14 @@ const basicData: BasicData[] = [
   {
     key: 7,
     name: '256 GB SSD',
-    category: 'Hardrive',
+    category: 'Hard Drive',
     price: 175,
     description: 'Reliable and fast data storage',
   },
   {
     key: 8,
     name: '1 TB SSD',
-    category: 'Hardrive',
+    category: 'Hard Drive',
     price: 349.99,
     description: 'Reliable and fast data storage',
   },
