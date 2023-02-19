@@ -89,7 +89,7 @@ export default function buildQueryObject<T extends QueryFormData>(
     filters: [...extraFilters, ...appendFilters],
     adhoc_filters: [...(formData.adhoc_filters || []), ...appendAdhocFilters],
   };
-  const extrasAndfilters = processFilters({
+  const extrasAndFilters = processFilters({
     ...formData,
     ...extras,
     ...filterFormData,
@@ -109,7 +109,7 @@ export default function buildQueryObject<T extends QueryFormData>(
     until: until || undefined,
     granularity: granularity || undefined,
     ...extras,
-    ...extrasAndfilters,
+    ...extrasAndFilters,
     columns,
     metrics,
     orderby,
