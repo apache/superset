@@ -391,7 +391,7 @@ export default function transformProps(
 
   if (xAxisType === AxisType.time) {
     /**
-     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Overriding default behavior (false) for time axis regardless of the granularity.
      * Not including this in the initial declaration above so if echarts changes the default
      * behavior for other axist types we won't unintentionally override it
      */
