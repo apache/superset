@@ -78,7 +78,7 @@ def create_user(app_context: AppContext):
             username,
             "firstname",
             "lastname",
-            "email@exaple.com",
+            "email@example.com",
             security_manager.find_role(role),
             password,
         )
