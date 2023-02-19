@@ -1313,7 +1313,7 @@ under the License.
 - [#18060](https://github.com/apache/superset/pull/18060) refactor(example_data): replace the way the birth_names data is loaded to DB (@ofekisr)
 - [#17771](https://github.com/apache/superset/pull/17771) refactor(sql_lab): SQL Lab Persistent Saved State (@AAfghahi)
 - [#18059](https://github.com/apache/superset/pull/18059) chore(plugin-chart-echarts): add types to controls (@villebro)
-- [#18058](https://github.com/apache/superset/pull/18058) chore(supeset.utils.core): move all database utils to database utils module (@ofekisr)
+- [#18058](https://github.com/apache/superset/pull/18058) chore(superset.utils.core): move all database utils to database utils module (@ofekisr)
 - [#18037](https://github.com/apache/superset/pull/18037) chore: important change to MakeFile (@AAfghahi)
 - [#17569](https://github.com/apache/superset/pull/17569) chore: column_type_mappings (@dungdm93)
 - [#18003](https://github.com/apache/superset/pull/18003) chore(DatasourceEditor): Create Datasource Legacy Editor Feature Flag (@AAfghahi)
