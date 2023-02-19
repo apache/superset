@@ -91,7 +91,7 @@ helm install my-superset superset/superset
 | init.enabled | bool | `true` |  |
 | init.helmHook | bool | `true` |  |
 | init.initContainers | list | a container waiting for postgres | List of initContainers |
-| init.initscript | string | a script to create admin user and initailize roles | A Superset init script |
+| init.initscript | string | a script to create admin user and initialize roles | A Superset init script |
 | init.loadExamples | bool | `false` |  |
 | init.podAnnotations | object | `{}` |  |
 | init.podSecurityContext | object | `{}` |  |
