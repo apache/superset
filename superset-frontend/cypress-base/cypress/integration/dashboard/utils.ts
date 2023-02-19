@@ -416,7 +416,7 @@ export function undoDeleteNativeFilter() {
 
 /** ************************************************************************
  * Check Native Filter tooltip content
- * @param index: tooltip indext to check
+ * @param index: tooltip index to check
  * @param value: tooltip value to check
  * @return {null}
  * @summary helper for checking native filter tooltip content by index
