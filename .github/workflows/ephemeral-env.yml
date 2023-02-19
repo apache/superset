@@ -51,7 +51,7 @@ jobs:
         github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
           github.issues.createComment({
@@ -97,7 +97,7 @@ jobs:
       if: steps.check-image.outcome == 'failure'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
           github.issues.createComment({
@@ -171,7 +171,7 @@ jobs:
       if: ${{ success() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
@@ -184,7 +184,7 @@ jobs:
       if: ${{ failure() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},

@@ -14,7 +14,7 @@ jobs:
       - name: Check and notify
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             // API reference: https://octokit.github.io/rest.js
             const currentBranch = context.ref.replace('refs/heads/', '');

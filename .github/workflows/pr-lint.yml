@@ -25,4 +25,4 @@ jobs:
           on-failed-regex-create-review: false
           on-failed-regex-comment:
             "Please format your PR title to match: `%regex%`!"
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: "${{ github.token }}"

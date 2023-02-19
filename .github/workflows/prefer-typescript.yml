@@ -21,7 +21,7 @@ jobs:
         id: changed
         uses: ./.github/actions/file-changes-action
         with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          githubToken: ${{ github.token }}
 
       - name: Determine if a .js or .jsx file was added
         id: check
@@ -42,7 +42,7 @@ jobs:
         uses: ./.github/actions/comment-on-pr
         continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           msg: |
             ### WARNING: Prefer TypeScript
