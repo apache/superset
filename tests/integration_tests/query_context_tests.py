@@ -546,7 +546,7 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
-        # should process empty dateframe correctly
+        # should process empty dataframe correctly
         # due to "name" is random generated, each time_offset slice will be empty
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
