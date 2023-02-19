@@ -1466,7 +1466,7 @@ under the License.
 - [#17232](https://github.com/apache/superset/pull/17232) chore: bump to superset-ui 0.18.15 (@zhaoyongjie)
 - [#17171](https://github.com/apache/superset/pull/17171) chore: Add docs to the Select component props (@geido)
 - [#17132](https://github.com/apache/superset/pull/17132) chore: Breaks the dataViewCommon folder into TableCollection and Pagination folders (@michael-s-molina)
-- [#17215](https://github.com/apache/superset/pull/17215) chore: use official isort in pre-commmit (@zhaoyongjie)
+- [#17215](https://github.com/apache/superset/pull/17215) chore: use official isort in pre-commit (@zhaoyongjie)
 - [#17145](https://github.com/apache/superset/pull/17145) refactor: dashboard->explore url generation (@suddjian)
 - [#17130](https://github.com/apache/superset/pull/17130) chore: Moves the datasource components to the components folder (@michael-s-molina)
 - [#17028](https://github.com/apache/superset/pull/17028) docs: add Symmetrics to users list (@symmetricsfyi)
