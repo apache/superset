@@ -225,11 +225,11 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   }
 }
 
-function openMoreFilters(intercetFilterState = true) {
+function openMoreFilters(interceptFilterState = true) {
   interceptFilterState();
   cy.getBySel('dropdown-container-btn').click();
 
-  if (intercetFilterState) {
+  if (interceptFilterState) {
     cy.wait('@postFilterState');
   }
 }
