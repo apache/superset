@@ -195,9 +195,9 @@ export function expandFilterOnLeftPanel() {
 }
 
 /** ************************************************************************
- * Collapes Native Filter from the left panel on dashboard
+ * Collapse Native Filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for collape native filter
+ * @summary helper for collapse native filter
  ************************************************************************* */
 export function collapseFilterOnLeftPanel() {
   cy.get(nativeFilters.filterFromDashboardView.collapse)
