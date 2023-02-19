@@ -579,7 +579,7 @@ describe('async actions', () => {
         });
       });
 
-      it("doesn't update the tab state in the backend on stoppped query", () => {
+      it("doesn't update the tab state in the backend on stopped query", () => {
         expect.assertions(2);
 
         const results = {
