@@ -220,7 +220,7 @@ export const ExploreChartHeader = ({
           label: t('Chart title'),
         }}
         showTitlePanelItems={!!slice}
-        certificatiedBadgeProps={{
+        certifiedBadgeProps={{
           certifiedBy: slice?.certified_by,
           details: slice?.certification_details,
         }}

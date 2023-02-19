@@ -106,7 +106,7 @@ const additionalActionsContainerStyles = (theme: SupersetTheme) => css`
 export type PageHeaderWithActionsProps = {
   editableTitleProps: DynamicEditableTitleProps;
   showTitlePanelItems: boolean;
-  certificatiedBadgeProps?: CertifiedBadgeProps;
+  certifiedBadgeProps?: CertifiedBadgeProps;
   showFaveStar: boolean;
   faveStarProps: FaveStarProps;
   titlePanelAdditionalItems: ReactNode;
@@ -122,7 +122,7 @@ export type PageHeaderWithActionsProps = {
 export const PageHeaderWithActions = ({
   editableTitleProps,
   showTitlePanelItems,
-  certificatiedBadgeProps,
+  certifiedBadgeProps,
   showFaveStar,
   faveStarProps,
   titlePanelAdditionalItems,
@@ -138,8 +138,8 @@ export const PageHeaderWithActions = ({
         <DynamicEditableTitle {...editableTitleProps} />
         {showTitlePanelItems && (
           <div css={buttonsStyles}>
-            {certificatiedBadgeProps?.certifiedBy && (
-              <CertifiedBadge {...certificatiedBadgeProps} />
+            {certifiedBadgeProps?.certifiedBy && (
+              <CertifiedBadge {...certifiedBadgeProps} />
             )}
             {showFaveStar && <FaveStar {...faveStarProps} />}
             {titlePanelAdditionalItems}

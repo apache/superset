@@ -32,7 +32,7 @@ const defaultProps: PageHeaderWithActionsProps = {
     label: 'Title',
   },
   showTitlePanelItems: true,
-  certificatiedBadgeProps: {},
+  certifiedBadgeProps: {},
   showFaveStar: true,
   faveStarProps: { itemId: 1, saveFaveStar: jest.fn() },
   titlePanelAdditionalItems: <button type="button">Title panel button</button>,

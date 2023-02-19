@@ -513,7 +513,7 @@ class Header extends React.PureComponent {
             label: t('Dashboard title'),
             showTooltip: false,
           }}
-          certificatiedBadgeProps={{
+          certifiedBadgeProps={{
             certifiedBy: dashboardInfo.certified_by,
             details: dashboardInfo.certification_details,
           }}
