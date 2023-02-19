@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event';
 import TooltipParagraph from '.';
 
 test('starts hidden with default props', () => {
-  render(<TooltipParagraph>This is tootlip description.</TooltipParagraph>);
+  render(<TooltipParagraph>This is tooltip description.</TooltipParagraph>);
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
