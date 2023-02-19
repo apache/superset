@@ -104,7 +104,7 @@ describe('QueryAutoRefresh', () => {
     }, 1000);
   });
 
-  it('Does not fail and attempts to refresh when given pending query and invlaid query', () => {
+  it('Does not fail and attempts to refresh when given pending query and invalid query', () => {
     render(
       <QueryAutoRefresh
         // @ts-ignore
