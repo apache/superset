@@ -901,7 +901,7 @@ def upgrade() -> None:
     assign_uuids(NewTable, session)
 
     print(">> Drop intermediate columns...")
-    # These columns are are used during migration, as datasets are independent of tables once created,
+    # These columns are used during migration, as datasets are independent of tables once created,
     # dataset columns also the same to table columns.
     with op.batch_alter_table(NewTable.__tablename__) as batch_op:
         batch_op.drop_column("sqlatable_id")
