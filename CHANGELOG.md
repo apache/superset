@@ -323,7 +323,7 @@ under the License.
 - [#19930](https://github.com/apache/superset/pull/19930) fix: memoize primitives (@betodealmeida)
 - [#19926](https://github.com/apache/superset/pull/19926) fix(dataset): DAO update (@betodealmeida)
 - [#19826](https://github.com/apache/superset/pull/19826) fix: Missing `f` prefix on f-strings (@code-review-doctor)
-- [#18988](https://github.com/apache/superset/pull/18988) fix(column-header-tooltip): make that hide the tooltip when the cloum… (@prosdev0107)
+- [#18988](https://github.com/apache/superset/pull/18988) fix(column-header-tooltip): make that hide the tooltip when the column… (@prosdev0107)
 - [#19782](https://github.com/apache/superset/pull/19782) fix: chart import error with virtual dataset (@codemaster08240328)
 - [#19485](https://github.com/apache/superset/pull/19485) fix: Set fixed maxWidth of the cron schedule modal (@codemaster08240328)
 - [#19885](https://github.com/apache/superset/pull/19885) fix: Chart download as image issue (@codemaster08240328)
