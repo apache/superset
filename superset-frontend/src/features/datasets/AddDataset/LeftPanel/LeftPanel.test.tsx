@@ -240,7 +240,7 @@ test('searches for a table name', async () => {
   });
 });
 
-test('renders a warning icon when a table name has a pre-existing dataset', async () => {
+test('renders a warning icon when a table name has a preexisting dataset', async () => {
   render(
     <LeftPanel
       setDataset={mockFun}

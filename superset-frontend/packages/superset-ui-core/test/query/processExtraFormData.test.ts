@@ -82,7 +82,7 @@ describe('overrideExtraFormData', () => {
     });
   });
 
-  it('should override pre-existing extra value', () => {
+  it('should override preexisting extra value', () => {
     expect(
       overrideExtraFormData(
         {
