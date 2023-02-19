@@ -591,11 +591,11 @@ def postprocess_datasets(session: Session) -> None:
                 updated = True
 
             if not is_physical and drivername and expression:
-                table_refrences = extract_table_references(
+                table_references = extract_table_references(
                     expression, get_dialect_name(drivername), show_warning=False
                 )
                 found_tables = find_tables(
-                    session, database_id, schema, table_refrences
+                    session, database_id, schema, table_references
                 )
                 if found_tables:
                     op.bulk_insert(
