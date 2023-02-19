@@ -20,7 +20,6 @@ import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import FilterableTable, {
-  MAX_COLUMNS_FOR_TABLE,
   convertBigIntStrToNumber,
 } from 'src/components/FilterableTable';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -48,27 +47,6 @@ describe('FilterableTable', () => {
   it('renders a grid with 2 Table rows', () => {
     expect(wrapper.find('.ReactVirtualized__Grid')).toExist();
     expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(3);
-  });
-  it('renders a grid with 2 Grid rows for wide tables', () => {
-    const wideTableColumns = MAX_COLUMNS_FOR_TABLE + 1;
-    const wideTableMockedProps = {
-      orderedColumnKeys: Array.from(
-        Array(wideTableColumns),
-        (_, x) => `col_${x}`,
-      ),
-      data: [
-        {
-          ...Array.from(Array(wideTableColumns)).map((val, x) => ({
-            [`col_${x}`]: x,
-          })),
-        },
-      ],
-      height: 500,
-    };
-    const wideTableWrapper = mount(
-      <FilterableTable {...wideTableMockedProps} />,
-    );
-    expect(wideTableWrapper.find('.ReactVirtualized__Grid')).toHaveLength(2);
   });
   it('filters on a string', () => {
     const props = {

@@ -20,16 +20,6 @@ import JSONbig from 'json-bigint';
 import React, { useEffect, useRef, useState } from 'react';
 import { JSONTree } from 'react-json-tree';
 import {
-  AutoSizer,
-  Column,
-  Grid,
-  ScrollSync,
-  SortDirection,
-  SortDirectionType,
-  SortIndicator,
-  Table,
-} from 'react-virtualized';
-import {
   getMultipleTextDimensions,
   t,
   styled,
@@ -38,6 +28,7 @@ import {
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
+import { Table, TableSize } from '../Table';
 
 function safeJsonObjectParse(
   data: unknown,
@@ -74,7 +65,6 @@ function renderBigIntStrToNumber(value: string | number) {
   return <>{convertBigIntStrToNumber(value)}</>;
 }
 
-const GRID_POSITION_ADJUSTMENT = 4;
 const SCROLL_BAR_HEIGHT = 15;
 // This regex handles all possible number formats in javascript, including ints, floats,
 // exponential notation, NaN, and Infinity.
@@ -188,9 +178,6 @@ const StyledFilterableTable = styled.div`
   `}
 `;
 
-// when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
-export const MAX_COLUMNS_FOR_TABLE = 50;
-
 type CellDataType = string | number | null;
 type Datum = Record<string, CellDataType>;
 
@@ -232,13 +219,8 @@ const FilterableTable = ({
       return newRow;
     });
 
-  const [sortByState, setSortByState] = useState<string | undefined>(undefined);
-  const [sortDirectionState, setSortDirectionState] = useState<
-    SortDirectionType | undefined
-  >(undefined);
   const [fitted, setFitted] = useState(false);
   const [list] = useState<Datum[]>(() => formatTableData(data));
-  const [displayedList, setDisplayedList] = useState<Datum[]>(list);
 
   // columns that have complex type and were expanded into sub columns
   const [complexColumns] = useState<Record<string, boolean>>(
@@ -277,8 +259,6 @@ const FilterableTable = ({
     }
     return jsonTreeTheme;
   };
-
-  const getDatum = (list: Datum[], index: number) => list[index % list.length];
 
   const getWidthsForColumns = () => {
     const PADDING = 50; // accounts for cell padding and width of sorting icon
@@ -377,37 +357,13 @@ const FilterableTable = ({
     return values.some(v => v.includes(lowerCaseText));
   };
 
+  // @ts-ignore
   const rowClassName = ({ index }: { index: number }) => {
     let className = '';
     if (striped) {
       className = index % 2 === 0 ? 'even-row' : 'odd-row';
     }
     return className;
-  };
-
-  const sort = ({
-    sortBy,
-    sortDirection,
-  }: {
-    sortBy: string;
-    sortDirection: SortDirectionType;
-  }) => {
-    const shouldClearSort =
-      sortDirectionState === SortDirection.DESC && sortByState === sortBy;
-
-    if (shouldClearSort) {
-      setSortByState(undefined);
-      setSortDirectionState(undefined);
-      setDisplayedList([...list]);
-    } else {
-      setSortByState(sortBy);
-      setSortDirectionState(sortDirection);
-      setDisplayedList(
-        [...list].sort(
-          sortResults(sortBy, sortDirection === SortDirection.DESC),
-        ),
-      );
-    }
   };
 
   const addJsonModal = (
@@ -444,201 +400,35 @@ const FilterableTable = ({
     return value;
   };
 
-  const sortResults =
-    (sortBy: string, descending: boolean) => (a: Datum, b: Datum) => {
-      const aValue = parseNumberFromString(a[sortBy]);
-      const bValue = parseNumberFromString(b[sortBy]);
+  const sortResults = (key: string, a: Datum, b: Datum) => {
+    const aValue = parseNumberFromString(a[key]);
+    const bValue = parseNumberFromString(b[key]);
 
-      // equal items sort equally
-      if (aValue === bValue) {
-        return 0;
-      }
-
-      // nulls sort after anything else
-      if (aValue === null) {
-        return 1;
-      }
-      if (bValue === null) {
-        return -1;
-      }
-
-      if (descending) {
-        return aValue < bValue ? 1 : -1;
-      }
-      return aValue < bValue ? -1 : 1;
-    };
-
-  const sortGrid = (label: string) => {
-    sort({
-      sortBy: label,
-      sortDirection:
-        sortDirectionState === SortDirection.DESC || sortByState !== label
-          ? SortDirection.ASC
-          : SortDirection.DESC,
-    });
-  };
-
-  const renderTableHeader = ({
-    dataKey,
-    label,
-    sortBy,
-    sortDirection,
-  }: {
-    dataKey: string;
-    label: string;
-    sortBy: string;
-    sortDirection: SortDirectionType;
-  }) => {
-    const className =
-      expandedColumns.indexOf(label) > -1
-        ? 'header-style-disabled'
-        : 'header-style';
-
-    return (
-      <div className={className}>
-        {label}
-        {sortBy === dataKey && <SortIndicator sortDirection={sortDirection} />}
-      </div>
-    );
-  };
-
-  const renderGridCellHeader = ({
-    columnIndex,
-    key,
-    style,
-  }: {
-    columnIndex: number;
-    key: string;
-    style: React.CSSProperties;
-  }) => {
-    const label = orderedColumnKeys[columnIndex];
-    const className =
-      expandedColumns.indexOf(label) > -1
-        ? 'header-style-disabled'
-        : 'header-style';
-    return (
-      <div
-        key={key}
-        style={{
-          ...style,
-          top:
-            typeof style.top === 'number'
-              ? style.top - GRID_POSITION_ADJUSTMENT
-              : style.top,
-        }}
-        className={`${className} grid-cell grid-header-cell`}
-        role="columnheader"
-        tabIndex={columnIndex}
-        onClick={() => sortGrid(label)}
-      >
-        {label}
-        {sortByState === label && (
-          <SortIndicator sortDirection={sortDirectionState} />
-        )}
-      </div>
-    );
-  };
-
-  const renderGridCell = ({
-    columnIndex,
-    key,
-    rowIndex,
-    style,
-  }: {
-    columnIndex: number;
-    key: string;
-    rowIndex: number;
-    style: React.CSSProperties;
-  }) => {
-    const columnKey = orderedColumnKeys[columnIndex];
-    const cellData = displayedList[rowIndex][columnKey];
-    const cellText = getCellContent({ cellData, columnKey });
-    const content =
-      cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
-    const cellNode = (
-      <div
-        key={key}
-        style={{
-          ...style,
-          top:
-            typeof style.top === 'number'
-              ? style.top - GRID_POSITION_ADJUSTMENT
-              : style.top,
-        }}
-        className={`grid-cell ${rowClassName({ index: rowIndex })}`}
-      >
-        <div css={{ width: 'inherit' }}>{content}</div>
-      </div>
-    );
-
-    const jsonObject = safeJsonObjectParse(cellData);
-    if (jsonObject) {
-      return addJsonModal(cellNode, jsonObject, cellData);
+    // equal items sort equally
+    if (aValue === bValue) {
+      return 0;
     }
-    return cellNode;
+
+    // nulls sort after anything else
+    if (aValue === null) {
+      return 1;
+    }
+    if (bValue === null) {
+      return -1;
+    }
+
+    return aValue < bValue ? -1 : 1;
   };
 
-  const renderGrid = () => {
-    // exclude the height of the horizontal scroll bar from the height of the table
-    // and the height of the table container if the content overflows
-    const totalTableHeight =
-      container.current &&
-      totalTableWidth.current > container.current.clientWidth
-        ? height - SCROLL_BAR_HEIGHT
-        : height;
-
-    const getColumnWidth = ({ index }: { index: number }) =>
-      widthsForColumnsByKey[orderedColumnKeys[index]];
-
-    // fix height of filterable table
-    return (
-      <StyledFilterableTable data-test="grid-container">
-        <ScrollSync>
-          {({ onScroll, scrollLeft }) => (
-            <>
-              <AutoSizer disableHeight>
-                {({ width }) => (
-                  <div>
-                    <Grid
-                      cellRenderer={renderGridCellHeader}
-                      columnCount={orderedColumnKeys.length}
-                      columnWidth={getColumnWidth}
-                      height={rowHeight}
-                      rowCount={1}
-                      rowHeight={rowHeight}
-                      scrollLeft={scrollLeft}
-                      width={width}
-                      style={{ overflow: 'hidden' }}
-                    />
-                    <Grid
-                      cellRenderer={renderGridCell}
-                      columnCount={orderedColumnKeys.length}
-                      columnWidth={getColumnWidth}
-                      height={totalTableHeight - rowHeight}
-                      onScroll={onScroll}
-                      overscanColumnCount={overscanColumnCount}
-                      overscanRowCount={overscanRowCount}
-                      rowCount={list.length}
-                      rowHeight={rowHeight}
-                      width={width}
-                    />
-                  </div>
-                )}
-              </AutoSizer>
-            </>
-          )}
-        </ScrollSync>
-      </StyledFilterableTable>
+  let filteredList = list;
+  // filter list
+  if (filterText) {
+    filteredList = filteredList.filter((row: Datum) =>
+      hasMatch(filterText, row),
     );
-  };
+  }
 
-  const renderTableCell = ({
-    cellData,
-    columnKey,
-  }: {
-    cellData: CellDataType;
-    columnKey: string;
-  }) => {
+  const renderTableCell = (cellData: CellDataType, columnKey: string) => {
     const cellNode = getCellContent({ cellData, columnKey });
     const content =
       cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
@@ -649,68 +439,41 @@ const FilterableTable = ({
     return content;
   };
 
-  const renderTable = () => {
-    let sortedAndFilteredList = displayedList;
-    // filter list
-    if (filterText) {
-      sortedAndFilteredList = sortedAndFilteredList.filter((row: Datum) =>
-        hasMatch(filterText, row),
-      );
-    }
+  // exclude the height of the horizontal scroll bar from the height of the table
+  // and the height of the table container if the content overflows
+  const totalTableHeight =
+    container.current && totalTableWidth.current > container.current.clientWidth
+      ? height - SCROLL_BAR_HEIGHT
+      : height;
 
-    // exclude the height of the horizontal scroll bar from the height of the table
-    // and the height of the table container if the content overflows
-    const totalTableHeight =
-      container.current &&
-      totalTableWidth.current > container.current.clientWidth
-        ? height - SCROLL_BAR_HEIGHT
-        : height;
+  const columns = orderedColumnKeys.map(key => ({
+    key,
+    title: key,
+    dataIndex: key,
+    width: widthsForColumnsByKey[key],
+    sorter: (a: Datum, b: Datum) => sortResults(key, a, b),
+    render: (text: CellDataType) => renderTableCell(text, key),
+  }));
 
-    const rowGetter = ({ index }: { index: number }) =>
-      getDatum(sortedAndFilteredList, index);
-    return (
-      <StyledFilterableTable
-        className="filterable-table-container"
-        data-test="table-container"
-        ref={container}
-      >
-        {fitted && (
-          <Table
-            headerHeight={headerHeight}
-            height={totalTableHeight}
-            overscanRowCount={overscanRowCount}
-            rowClassName={rowClassName}
-            rowHeight={rowHeight}
-            rowGetter={rowGetter}
-            rowCount={sortedAndFilteredList.length}
-            sort={sort}
-            sortBy={sortByState}
-            sortDirection={sortDirectionState}
-            width={totalTableWidth.current}
-          >
-            {orderedColumnKeys.map(columnKey => (
-              <Column
-                cellRenderer={({ cellData }) =>
-                  renderTableCell({ cellData, columnKey })
-                }
-                dataKey={columnKey}
-                disableSort={false}
-                headerRenderer={renderTableHeader}
-                width={widthsForColumnsByKey[columnKey]}
-                label={columnKey}
-                key={columnKey}
-              />
-            ))}
-          </Table>
-        )}
-      </StyledFilterableTable>
-    );
-  };
-
-  if (orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
-    return renderGrid();
-  }
-  return renderTable();
+  return (
+    <StyledFilterableTable
+      className="filterable-table-container"
+      data-test="table-container"
+      ref={container}
+    >
+      {fitted && (
+        <Table
+          loading={false}
+          size={TableSize.SMALL}
+          height={totalTableHeight + 65}
+          usePagination={false}
+          columns={columns}
+          data={filteredList}
+          virtualize
+        />
+      )}
+    </StyledFilterableTable>
+  );
 };
 
 export default FilterableTable;
