@@ -127,7 +127,7 @@ class App extends React.PureComponent {
     ) {
       this.showLocalStorageUsageWarning(
         this.props.localStorageUsageInKilobytes,
-        this.props.queries?.lenghth || 0,
+        this.props.queries?.length || 0,
       );
     }
   }
