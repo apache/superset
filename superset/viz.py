@@ -2519,15 +2519,15 @@ class BaseDeckGLViz(BaseViz):
         return []
 
     @staticmethod
-    def parse_coordinates(latlog: Any) -> Optional[Tuple[float, float]]:
-        if not latlog:
+    def parse_coordinates(latlong: Any) -> Optional[Tuple[float, float]]:
+        if not latlong:
             return None
         try:
-            point = Point(latlog)
+            point = Point(latlong)
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _("Invalid spatial point encountered: %s" % latlog)
+                _("Invalid spatial point encountered: %s" % latlong)
             ) from ex
 
     @staticmethod
