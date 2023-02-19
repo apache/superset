@@ -634,7 +634,7 @@ def postprocess_columns(session: Session) -> None:
 
         # Create alias of NewColumn
         new_column_alias = aliased(NewColumn)
-        # Get subquery and give it the alias "sl_colums_2"
+        # Get subquery and give it the alias "sl_columns_2"
         subquery = (
             session.query(new_column_alias)
             .offset(offset)
