@@ -181,7 +181,7 @@ under the License.
 - [#20204](https://github.com/apache/superset/pull/20204) fix: Fixes issue where results panel height was incorrect [sc-49045] (@eric-briscoe)
 - [#20235](https://github.com/apache/superset/pull/20235) fix: Box Plot Chart throws an error when the average (AVG) / SUM is being calculated on the Metrics (@diegomedina248)
 - [#20088](https://github.com/apache/superset/pull/20088) fix: datatype tracking issue on virtual dataset (@codemaster08240328)
-- [#20220](https://github.com/apache/superset/pull/20220) fix: dashbaord unable to refresh (@zhaoyongjie)
+- [#20220](https://github.com/apache/superset/pull/20220) fix: dashboard unable to refresh (@zhaoyongjie)
 - [#20228](https://github.com/apache/superset/pull/20228) fix: failed samples should throw exception (@zhaoyongjie)
 - [#20203](https://github.com/apache/superset/pull/20203) fix: move columns to datasource object for bootstrap data (@hughhhh)
 - [#20151](https://github.com/apache/superset/pull/20151) fix(csv): Ensure df_to_escaped_csv does not coerce integer columns to float (@john-bodley)
