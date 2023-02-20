@@ -61,6 +61,7 @@ These features are **finished** but currently being tested. They are usable, but
 - GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - RLS_IN_SQLLAB
+- SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
 - UX_BETA
 - VERSIONED_EXPORT
