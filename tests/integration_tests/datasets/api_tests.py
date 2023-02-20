@@ -272,7 +272,8 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert response["count"] == 1
+        tables = {tbl["table_name"] for tbl in response["result"]}
+        assert tables == {"ab_user"}
 
         # revert gamma permission
         gamma_role.permissions.remove(main_db_pvm)

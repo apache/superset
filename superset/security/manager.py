@@ -84,6 +84,7 @@ from superset.utils.core import (
     get_user_id,
     RowLevelSecurityFilterType,
 )
+from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
@@ -527,8 +528,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The list of datasources
         """
 
-        user_perms = self.user_view_menu_names("datasource_access")
-        schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
 
         # pylint: disable=import-outside-toplevel
@@ -536,12 +535,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_datasources.update(
             self.get_session.query(SqlaTable)
-            .filter(
-                or_(
-                    SqlaTable.perm.in_(user_perms),
-                    SqlaTable.schema_perm.in_(schema_perms),
-                )
-            )
+            .filter(get_dataset_access_filters(SqlaTable))
             .all()
         )
 
@@ -606,7 +600,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return {s.name for s in view_menu_names}
         return set()
 
-    def get_databases_accessible_by_user(self):
+    def get_accessible_databases(self) -> List[int]:
         """
         Return the list of databases accessible by the user.
 
