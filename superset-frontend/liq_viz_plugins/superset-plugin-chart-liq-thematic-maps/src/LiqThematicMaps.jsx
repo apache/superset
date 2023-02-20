@@ -28,7 +28,6 @@ const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = require('./defaultLayerStyles.js').defaultLayerStyles;
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
-const BDRY_LAYER_MAP = liqSecrets.mapbox.boundaryLayerMap;
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
@@ -164,14 +163,14 @@ export default function LiqThematicMaps(props) {
 
       map.current.addSource('tileset', {
         'type': 'vector',
-        'url': `mapbox://${boundary}`
+        'url': 'mapbox://locationiq.46fox66e'
       });
 
       map.current.addLayer({
         'id': 'tileset',
         'type': 'fill',
         'source': 'tileset',
-        'source-layer': BDRY_LAYER_MAP[boundary],
+        'source-layer': boundary,
         'layout': {},
         'paint': layerStyles.boundaryStyle
       });
@@ -181,7 +180,7 @@ export default function LiqThematicMaps(props) {
     // When the map is moved around, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
       const features = map.current.querySourceFeatures('tileset', {
-        sourceLayer: BDRY_LAYER_MAP[boundary]
+        sourceLayer: boundary
        });
 
        let ids = [];
@@ -203,7 +202,7 @@ export default function LiqThematicMaps(props) {
       map.current.setFeatureState(
         {
           source: 'tileset', 
-          sourceLayer: BDRY_LAYER_MAP[boundary], 
+          sourceLayer: boundary, 
           id: currIDs[i].id
         },
         {

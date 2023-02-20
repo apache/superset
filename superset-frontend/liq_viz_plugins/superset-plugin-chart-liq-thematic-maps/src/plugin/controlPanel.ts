@@ -140,10 +140,18 @@ const config: ControlPanelConfig = {
             name: 'boundary',
             config: {
               type: 'SelectControl',
-              default: 'dkir.d4pc0v1s',
+              default: 'sa1',
               choices: [
-                ['dkir.d4pc0v1s', 'SA1'],
-                ['dkir.1oqr7ii3', 'SA3'],
+                ['sa1', 'SA1'],
+                ['sa2', 'SA2'],
+                ['sa3', 'SA3'],
+                ['sa4', 'SA4'],
+                ['gccsa', 'GCCSA'],
+                ['local_government_area', 'LGA'],
+                ['postcode', 'POA'],
+                ['state', 'State'],
+                ['suburb', 'SAL'],
+                ['worker', 'DZN']
               ],
               renderTrigger: false,
               // ^ this makes it apply instantaneously, without triggering a "run query" button
