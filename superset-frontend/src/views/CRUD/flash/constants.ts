@@ -49,7 +49,7 @@ export const FLASH_STATUS: FilterDropdown[] = [
 export const UPDATE_TYPES = {
   SQL: 'sql',
   TTL: 'ttl',
-  TYPE: 'type',
+  FLASHTYPE: 'flashType',
   SCHEDULE: 'schedule',
   OWNER: 'owner',
   CTAGS: 'ctags',

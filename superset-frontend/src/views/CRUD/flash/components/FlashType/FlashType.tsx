@@ -35,8 +35,9 @@ import {
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import * as chrono from 'chrono-node';
-import { updateFlashType } from '../../services/flash.service';
+import { updateFlash } from '../../services/flash.service';
 import { FlashTypes } from '../../enums';
+import { UPDATE_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -174,13 +175,12 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
-    console.log({ payload });
-    flashTtlService(Number(flash?.id), payload);
+    flashTypeService(Number(flash?.id), UPDATE_TYPES.FLASHTYPE, payload);
   };
 
-  const flashTtlService = useCallback(
-    (id, payload) => {
-      updateFlashType(id, payload)
+  const flashTypeService = useCallback(
+    (id, type, payload) => {
+      updateFlash(id, type, payload)
         .then(() => {
           addSuccessToast(t('Your flash object type has been changed.'));
           onHide();

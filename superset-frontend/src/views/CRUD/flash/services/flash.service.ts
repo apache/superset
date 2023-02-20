@@ -50,16 +50,12 @@ export const updateFlash = (
     | FlashUpdateOwnership
     | FlashExtendTtl
     | FlashUpdateSchedule
-    | FlashUpdateQuery,
+    | FlashUpdateQuery
+    | FlashUpdateType,
 ): Promise<any> => FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
 
 export const removeFlash = (id: number): Promise<any> =>
   FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);
-
-export const updateFlashType = (
-  id: number,
-  payload: FlashUpdateType,
-): Promise<any> => FlashClient.post<any>(`v1/flash/${id}/flashType`, payload);
 
 export const recoverFlashObject = (
   id: number,
