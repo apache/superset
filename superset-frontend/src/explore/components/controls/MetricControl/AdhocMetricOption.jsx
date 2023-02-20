@@ -48,7 +48,7 @@ class AdhocMetricOption extends React.PureComponent {
   }
 
   onRemoveMetric(e) {
-    e.stopPropagation();
+    if (e !== undefined) e.stopPropagation();
     this.props.onRemoveMetric(this.props.index);
   }
 
@@ -67,7 +67,7 @@ class AdhocMetricOption extends React.PureComponent {
       multi,
       datasourceWarningMessage,
     } = this.props;
-
+    console.log('hello');
     return (
       <AdhocMetricPopoverTrigger
         adhocMetric={adhocMetric}
