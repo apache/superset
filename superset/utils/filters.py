@@ -14,13 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Type
 
 from flask_appbuilder import Model
 from sqlalchemy import or_
 from sqlalchemy.sql.elements import BooleanClauseList
 
 
-def get_dataset_access_filters(base_model: Model) -> BooleanClauseList:
+def get_dataset_access_filters(
+    base_model: Type[Model],
+    *args: Any,
+) -> BooleanClauseList:
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
     from superset.connectors.sqla.models import Database
@@ -33,4 +37,5 @@ def get_dataset_access_filters(base_model: Model) -> BooleanClauseList:
         Database.id.in_(database_ids),
         base_model.perm.in_(perms),
         base_model.schema_perm.in_(schema_perms),
+        *args,
     )

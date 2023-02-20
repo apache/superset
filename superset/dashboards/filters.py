@@ -110,7 +110,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.can_access_all_datasources():
+        if security_manager.is_admin():
             return query
 
         is_rbac_disabled_filter = []
@@ -127,7 +127,10 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 and_(
                     Dashboard.published.is_(True),
                     *is_rbac_disabled_filter,
-                    get_dataset_access_filters(Slice),
+                    get_dataset_access_filters(
+                        Slice,
+                        security_manager.can_access_all_datasources(),
+                    ),
                 )
             )
         )
