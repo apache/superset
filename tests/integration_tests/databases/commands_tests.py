@@ -64,8 +64,11 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
+    database_with_ssh_tunnel_config_mix_credentials,
+    database_with_ssh_tunnel_config_no_credentials,
     database_with_ssh_tunnel_config_password,
     database_with_ssh_tunnel_config_private_key,
+    database_with_ssh_tunnel_config_private_pass_only,
     dataset_config,
     dataset_metadata_config,
 )
@@ -665,8 +668,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": [
-                    "Must provide a private key password for the ssh tunnel",
                     "Must provide a private key for the ssh tunnel",
+                    "Must provide a private key password for the ssh tunnel",
                 ]
             }
         }
@@ -750,6 +753,66 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
         db.session.delete(database)
         db.session.commit()
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_no_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have no credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_multiple_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert (
+            str(excinfo.value) == "Cannot have multiple credentials for the SSH Tunnel"
+        )
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_only_priv_key_psswd(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = (
+            database_with_ssh_tunnel_config_private_pass_only.copy()
+        )
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": [
+                    "Must provide a private key for the ssh tunnel",
+                    "Must provide a private key password for the ssh tunnel",
+                ]
+            }
+        }
 
     @patch("superset.databases.commands.importers.v1.import_dataset")
     def test_import_v1_rollback(self, mock_import_dataset):

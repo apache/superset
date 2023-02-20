@@ -68,6 +68,9 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
     database_with_ssh_tunnel_config_password,
     database_with_ssh_tunnel_config_private_key,
+    database_with_ssh_tunnel_config_mix_credentials,
+    database_with_ssh_tunnel_config_no_credentials,
+    database_with_ssh_tunnel_config_private_pass_only,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
@@ -2512,8 +2515,8 @@ class TestDatabaseApi(SupersetTestCase):
                     "extra": {
                         "databases/imported_database.yaml": {
                             "_schema": [
-                                "Must provide a private key password for the ssh tunnel",
                                 "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",
                             ]
                         },
                         "issue_codes": [
@@ -2619,6 +2622,179 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_no_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Must provide credentials for the SSH Tunnel",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_mix_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Cannot have multiple credentials for the SSH Tunnel",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_only_pk_passwd(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = (
+            database_with_ssh_tunnel_config_private_pass_only.copy()
+        )
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": [
+                                "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",
+                            ]
+                        },
                         "issue_codes": [
                             {
                                 "code": 1010,

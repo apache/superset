@@ -19,7 +19,7 @@
 
 import inspect
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -33,6 +33,8 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelingNotEnabledError,
+    SSHTunnelInvalidCredentials,
+    SSHTunnelMissingCredentials,
 )
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
@@ -724,8 +726,10 @@ class ImportV1DatabaseSchema(Schema):
             raise ValidationError("Must provide a password for the database")
 
     @validates_schema
-    def validate_ssh_tunnel_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
-        """If ssh_tunnel has a masked password, password is required"""
+    def validate_ssh_tunnel_credentials(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:
+        """If ssh_tunnel has a masked credentials, credentials are required"""
         uuid = data["uuid"]
         existing = db.session.query(Database).filter_by(uuid=uuid).first()
         if existing:
@@ -733,53 +737,54 @@ class ImportV1DatabaseSchema(Schema):
 
         # Our DB has a ssh_tunnel in it
         if ssh_tunnel := data.get("ssh_tunnel"):
+            # Login methods are (only one from these options):
+            # 1. password
+            # 2. private_key + private_key_password
+            # Based on the data passed we determine what info is required.
+            # You cannot mix the credentials from both methods.
             if not is_feature_enabled("SSH_TUNNELING"):
+                # You are trying to import a Database with SSH Tunnel
+                # But the Feature Flag is not enabled.
                 raise SSHTunnelingNotEnabledError()
             password = ssh_tunnel.get("password")
-            if password == PASSWORD_MASK:
-                raise ValidationError("Must provide a password for the ssh tunnel")
-        return
-
-    @validates_schema
-    def validate_ssh_tunnel_private_key(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> None:
-        """If ssh_tunnel has a masked private key, private key is required"""
-        uuid = data["uuid"]
-        existing = db.session.query(Database).filter_by(uuid=uuid).first()
-        if existing:
-            return
-
-        # Our DB has a ssh_tunnel in it
-        if ssh_tunnel := data.get("ssh_tunnel"):
-            if not is_feature_enabled("SSH_TUNNELING"):
-                raise SSHTunnelingNotEnabledError()
             private_key = ssh_tunnel.get("private_key")
-            if private_key == PASSWORD_MASK:
-                raise ValidationError("Must provide a private key for the ssh tunnel")
-        return
-
-    @validates_schema
-    def validate_ssh_tunnel_pkey_pass(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> None:
-        """
-        If ssh_tunnel has a masked private key password, private key password is required
-        """
-        uuid = data["uuid"]
-        existing = db.session.query(Database).filter_by(uuid=uuid).first()
-        if existing:
-            return
-
-        # Our DB has a ssh_tunnel in it
-        if ssh_tunnel := data.get("ssh_tunnel"):
-            if not is_feature_enabled("SSH_TUNNELING"):
-                raise SSHTunnelingNotEnabledError()
             private_key_password = ssh_tunnel.get("private_key_password")
-            if private_key_password == PASSWORD_MASK:
-                raise ValidationError(
-                    "Must provide a private key password for the ssh tunnel"
-                )
+            if password is not None:
+                # Login method #1 (Password)
+                if private_key is not None or private_key_password is not None:
+                    # You cannot have a mix of login methods
+                    raise SSHTunnelInvalidCredentials()
+                if password == PASSWORD_MASK:
+                    raise ValidationError("Must provide a password for the ssh tunnel")
+            if password is None:
+                # If the SSH Tunnel we're importing has no password then it must
+                # have a private_key + private_key_password combination
+                if private_key is None and private_key_password is None:
+                    # We have found nothing related to other credentials
+                    raise SSHTunnelMissingCredentials()
+                # We need to ask for the missing properties of our method # 2
+                # Some times the property is just missing
+                # or there're times where it's masked.
+                # If both are masked, we need to return a list of errors
+                # so the UI ask for both fields at the same time if needed
+                exception_messages: List[str] = []
+                if private_key is None or private_key == PASSWORD_MASK:
+                    # If we get here we need to ask for the private key
+                    exception_messages.append(
+                        "Must provide a private key for the ssh tunnel"
+                    )
+                if (
+                    private_key_password is None
+                    or private_key_password == PASSWORD_MASK
+                ):
+                    # If we get here we need to ask for the private key password
+                    exception_messages.append(
+                        "Must provide a private key password for the ssh tunnel"
+                    )
+                if exception_messages:
+                    # We can ask for just one field or both if masked, if both
+                    # are empty, SSHTunnelMissingCredentials was already raised
+                    raise ValidationError(exception_messages)
         return
 
 
