@@ -22,12 +22,13 @@
     "ts-types": "tsc --build",
     "test": "jest"
   },
-  "author": "My Name",
+  "author": "Tushar Virk",
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-geocoder": "^5.0.1",
     "mapbox-gl": "^2.9.2"
   },
   "peerDependencies": {
