@@ -12044,7 +12044,7 @@ msgstr "此组件没有足够的空间。请尝试减小其宽度，或增加目
 #: superset-frontend/src/views/CRUD/hooks.ts:522
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
-msgstr "获取此看板的收藏夹状态时出现问题: %s。"
+msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 
 #: superset-frontend/src/views/CRUD/utils.tsx:181
 msgid "There was an error fetching your recent activity:"
