@@ -2272,6 +2272,8 @@ class TestDatasetApi(SupersetTestCase):
         assert len(new_dataset.columns) == 2
         assert new_dataset.columns[0].column_name == "id"
         assert new_dataset.columns[1].column_name == "name"
+        db.session.delete(new_dataset)
+        db.session.commit()
 
     @pytest.mark.usefixtures("create_datasets")
     def test_duplicate_physical_dataset(self):
