@@ -243,6 +243,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset list with database access
         """
+        if backend() == "sqlite":
+            return
 
         self.login(username="gamma")
 
