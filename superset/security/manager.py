@@ -154,40 +154,53 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
+        "RegisterUserModelView",
         "UserDBModelView",
         "UserLDAPModelView",
+        "UserInfoEditView",
         "UserOAuthModelView",
         "UserOIDModelView",
         "UserRemoteUserModelView",
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
+        "Annotation",
+        "CssTemplate",
         "Dataset",
         "Datasource",
-        "CssTemplate",
     } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
+        "Access Requests",
         "AccessRequestsModelView",
-        "SQL Lab",
+        "Action Log",
+        "Log",
+        "List Users",
+        "List Roles",
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
-        "Log",
-        "Security",
         "Row Level Security",
         "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
+        "Security",
+        "SQL Lab",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
         "Manage",
         "CSS Templates",
+        "Annotation Layers",
         "Queries",
         "Import dashboards",
         "Upload a CSV",
         "ReportSchedule",
         "Alerts & Report",
+        "TableSchemaView",
+        "CsvToDatabaseView",
+        "ColumnarToDatabaseView",
+        "ExcelToDatabaseView",
+        "ImportExportRestApi",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -199,6 +212,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
         "can_grant_guest_token",
         "can_set_embedded",
+        "can_warm_up_cache",
     }
 
     READ_ONLY_PERMISSION = {
@@ -222,16 +236,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "datasource_access",
     }
 
-    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
+    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword", "can_recent_activity"}
 
     SQLLAB_ONLY_PERMISSIONS = {
         ("can_my_queries", "SqlLab"),
         ("can_read", "SavedQuery"),
-        ("can_sql_json", "Superset"),
+        ("can_write", "SavedQuery"),
+        ("can_export", "SavedQuery"),
+        ("can_read", "Query"),
+        ("can_export_csv", "Query"),
+        ("can_get_results", "SQLLab"),
+        ("can_execute_sql_query", "SQLLab"),
+        ("can_export_csv", "SQLLab"),
+        ("can_sql_json", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab_history", "Superset"),
         ("can_sqllab_viz", "Superset"),
-        ("can_sqllab_table_viz", "Superset"),
+        ("can_sqllab_table_viz", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab", "Superset"),
+        ("can_stop_query", "Superset"),  # Deprecated permission remove on 3.0.0
+        ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
+        ("can_search_queries", "Superset"),  # Deprecated permission remove on 3.0.0
+        ("can_activate", "TabStateView"),
+        ("can_get", "TabStateView"),
+        ("can_delete_query", "TabStateView"),
+        ("can_post", "TabStateView"),
+        ("can_delete", "TabStateView"),
+        ("can_put", "TabStateView"),
+        ("can_migrate_query", "TabStateView"),
         ("menu_access", "SQL Lab"),
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
@@ -239,7 +270,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
-        ("can_csv", "Superset"),
+        ("can_csv", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_read", "Superset"),
         ("can_read", "Database"),
     }
