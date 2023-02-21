@@ -18,6 +18,7 @@ from typing import Any
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
@@ -84,22 +85,16 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
         return query
 
 
-class ChartDaoFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.can_access_all_datasources():
-            return query
-
-        query = query.join(SqlaTable, self.model.datasource_id == SqlaTable.id)
-        query = query.join(models.Database, SqlaTable.database_id == models.Database.id)
-        return query.filter(get_dataset_access_filters(self.model))
-
-
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
 
-        query = query.join(models.Database)
+        table_alias = aliased(SqlaTable)
+        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
+        query = query.join(
+            models.Database, table_alias.database_id == models.Database.id
+        )
         return query.filter(get_dataset_access_filters(self.model))
 
 

@@ -20,7 +20,7 @@ from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.charts.filters import ChartDaoFilter
+from superset.charts.filters import ChartFilter
 from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 class ChartDAO(BaseDAO):
     model_cls = Slice
-    base_filter = ChartDaoFilter
+    base_filter = ChartFilter
 
     @staticmethod
     def bulk_delete(models: Optional[List[Slice]], commit: bool = True) -> None:
