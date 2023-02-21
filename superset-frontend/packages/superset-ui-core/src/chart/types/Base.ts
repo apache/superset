@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtraFormData } from '../../query';
+import { BinaryQueryObjectFilterClause, ExtraFormData } from '../../query';
 import { JsonObject } from '../..';
 
 export type HandlerFunction = (...args: unknown[]) => void;
@@ -31,6 +31,14 @@ export enum Behavior {
    * when dimensions are right-clicked on.
    */
   DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
+}
+
+export interface ContextMenuFilters {
+  crossFilter?: {
+    dataMask: DataMask;
+    isCurrentValueSelected?: boolean;
+  };
+  drillToDetail?: BinaryQueryObjectFilterClause[];
 }
 
 export enum AppSection {

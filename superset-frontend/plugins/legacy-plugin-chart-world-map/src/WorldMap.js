@@ -24,8 +24,6 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
-  logging,
-  t,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
@@ -114,39 +112,57 @@ function WorldMap(element, props) {
     mapData[d.country] = d;
   });
 
+  const getCrossFilterDataMask = source => {
+    const selected = Object.values(filterState.selectedValues || {});
+    const key = source.id || source.country;
+    const country =
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+
+    if (!country) {
+      return undefined;
+    }
+
+    let values;
+    if (selected.includes(key)) {
+      values = [];
+    } else {
+      values = [country];
+    }
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters: values.length
+            ? [
+                {
+                  col: entity,
+                  op: 'IN',
+                  val: values,
+                },
+              ]
+            : [],
+        },
+        filterState: {
+          value: values.length ? values : null,
+          selectedValues: values.length ? [key] : null,
+        },
+      },
+      isCurrentValueSelected: selected.includes(key),
+    };
+  };
+
   const handleClick = source => {
     if (!emitCrossFilters) {
       return;
     }
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
-    const key = source.id || source.country;
-    let val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
-    if (!val) {
-      return;
-    }
-    if (val === filterState.value) {
-      val = null;
-    }
+    getCrossFilterDataMask(source);
 
-    setDataMask({
-      extraFormData: {
-        filters: val
-          ? [
-              {
-                col: entity,
-                op: 'IN',
-                val: [val],
-              },
-            ]
-          : [],
-      },
-      filterState: {
-        value: val ?? null,
-        selectedValues: val ? [key] : [],
-      },
-    });
+    const dataMask = getCrossFilterDataMask(source)?.dataMask;
+    if (dataMask) {
+      setDataMask(dataMask);
+    }
   };
 
   const handleContextMenu = source => {
@@ -155,8 +171,9 @@ function WorldMap(element, props) {
     const key = source.id || source.country;
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+    let drillToDetailFilters;
     if (val) {
-      const filters = [
+      drillToDetailFilters = [
         {
           col: entity,
           op: '==',
@@ -164,15 +181,11 @@ function WorldMap(element, props) {
           formattedVal: val,
         },
       ];
-      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
-    } else {
-      logging.warn(
-        t(
-          `Unable to process right-click on %s. Check you chart configuration.`,
-        ),
-        key,
-      );
     }
+    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+      drillToDetail: drillToDetailFilters,
+      crossFilter: getCrossFilterDataMask(source),
+    });
   };
 
   const map = new Datamap({
