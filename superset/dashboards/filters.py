@@ -31,7 +31,7 @@ from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter
+from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -73,6 +73,16 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     """
 
     arg_name = "dashboard_is_favorite"
+    class_name = "Dashboard"
+    model = Dashboard
+
+
+class DashboardTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards that a user has favored
+    """
+
+    arg_name = "dashboard_tags"
     class_name = "Dashboard"
     model = Dashboard
 
