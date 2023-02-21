@@ -759,7 +759,7 @@ class TestSqlLab(SupersetTestCase):
         clear=True,
     )
     def test_sql_json_parameter_forbidden(self):
-        self.login("gamma")
+        self.login("gamma_sqllab")
 
         data = self.run_sql(
             "SELECT name FROM {{ table }} LIMIT 10",
