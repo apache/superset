@@ -17,8 +17,20 @@
 import functools
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
+def _memoized(maxsize: int = 1024) -> Callable[..., Any]:
+    """
+    A simple wrapper of functools.lru_cache,
+    encapsulated for increasing the maxsize default value
 
-class _memoized:
+    :param maxsize: LRU size
+    :return: a wrapped function by LRU
+    """
+    def wrapper_cache(func: Callable[..., Any]) -> Callable[..., Any]:
+        return functools.lru_cache(maxsize=maxsize)(func)
+    return wrapper_cache
+
+
+class _memoized2:
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
