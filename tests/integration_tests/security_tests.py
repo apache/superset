@@ -1332,8 +1332,11 @@ class TestRolePermission(SupersetTestCase):
         self.assertNotIn(("menu_access", view_menu), permissions_set)
 
     def assert_cannot_gamma(self, perm_set):
+        self.assert_cannot_write("Annotation", perm_set)
         self.assert_cannot_write("CssTemplate", perm_set)
+        self.assert_cannot_menu("SQL Lab", perm_set)
         self.assert_cannot_menu("CSS Templates", perm_set)
+        self.assert_cannot_menu("Annotation Layers", perm_set)
         self.assert_cannot_menu("Manage", perm_set)
         self.assert_cannot_menu("Queries", perm_set)
         self.assert_cannot_menu("Import dashboards", perm_set)
@@ -1374,7 +1377,6 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("Annotation", perm_set)
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
-        self.assert_can_read("Query", perm_set)
         self.assert_can_read("Database", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
         self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
@@ -1504,6 +1506,8 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_gamma(alpha_perm_tuples)
         self.assert_can_alpha(alpha_perm_tuples)
         self.assert_cannot_alpha(alpha_perm_tuples)
+        self.assertNotIn(("can_this_form_get", "UserInfoEditView"), alpha_perm_tuples)
+        self.assertNotIn(("can_this_form_post", "UserInfoEditView"), alpha_perm_tuples)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_admin_permissions(self):
@@ -1548,6 +1552,8 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", gamma_perm_set)
         self.assert_can_read("Dataset", gamma_perm_set)
+        self.assert_can_read("Annotation", gamma_perm_set)
+        self.assert_can_read("CssTemplate", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", gamma_perm_set)
