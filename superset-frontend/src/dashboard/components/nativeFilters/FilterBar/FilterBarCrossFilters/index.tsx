@@ -25,17 +25,16 @@ import {
   RootState,
 } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
-import {
-  selectChartCrossFilters,
-  Indicator,
-} from 'src/dashboard/components/nativeFilters/selectors';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateDataMask } from 'src/dataMask/actions';
 import FilterBarCrossFiltersVertical from './Vertical';
+import crossFiltersSelector from './selectors';
 
 const FilterBarCrossFilters = (props: {
   orientation: FilterBarOrientation;
 }) => {
   const { orientation } = props;
+  const dispatch = useDispatch();
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -45,27 +44,34 @@ const FilterBarCrossFilters = (props: {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const chartConfiguration = dashboardInfo.metadata?.chart_configuration;
-  const chartsIds = Object.keys(chartConfiguration);
-  let selectedCrossFilters: Indicator[] = [];
-
-  chartsIds.forEach(id => {
-    const chartId = Number(id);
-    const crossFilters = selectChartCrossFilters(
-      dataMask,
-      chartId,
-      dashboardLayout,
-      chartConfiguration,
-    );
-    selectedCrossFilters = [...selectedCrossFilters, ...crossFilters];
+  const selectedCrossFilters = crossFiltersSelector({
+    dataMask,
+    dashboardInfo,
+    dashboardLayout,
   });
+
+  const handleRemoveCrossFilter = (chartId: number) => {
+    dispatch(
+      updateDataMask(chartId, {
+        extraFormData: {
+          filters: [],
+        },
+        filterState: {
+          value: null,
+          selectedValues: null,
+        },
+      }),
+    );
+  };
 
   if (!selectedCrossFilters.length) return null;
 
-  return orientation === FilterBarOrientation.VERTICAL ? (
-    <FilterBarCrossFiltersVertical crossFilters={selectedCrossFilters} />
-  ) : (
-    <span>Horizontal</span>
+  return (
+    <FilterBarCrossFiltersVertical
+      crossFilters={selectedCrossFilters}
+      removeCrossFilter={handleRemoveCrossFilter}
+      orientation={orientation}
+    />
   );
 };
 

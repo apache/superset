@@ -158,6 +158,8 @@ export type Indicator = {
   path?: string[];
 };
 
+export type IndicatorWithEmitterType = Indicator & { emitterId: number };
+
 const cachedIndicatorsForChart = {};
 const cachedDashboardFilterDataForChart = {};
 // inspects redux state to find what the filter indicators should be shown for a given chart
@@ -250,14 +252,23 @@ export const selectChartCrossFilters = (
   chartId: number,
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
-): Indicator[] => {
+  filterEmitter = false,
+): Indicator[] | IndicatorWithEmitterType[] => {
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     const dashboardLayoutValues = Object.values(dashboardLayout);
     crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(chartConfig =>
-        chartConfig.crossFilters?.chartsInScope?.includes(chartId),
-      )
+      .filter(chartConfig => {
+        const inScope =
+          chartConfig.crossFilters?.chartsInScope?.includes(chartId);
+        if (!filterEmitter && inScope) {
+          return true;
+        }
+        if (filterEmitter && !inScope) {
+          return true;
+        }
+        return false;
+      })
       .map(chartConfig => {
         const filterState = dataMask[chartConfig.id]?.filterState;
         const extraFormData = dataMask[chartConfig.id]?.extraFormData;
@@ -270,12 +281,12 @@ export const selectChartCrossFilters = (
         const dashboardLayoutItem = dashboardLayoutValues.find(
           layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
         );
-        return {
+        const filterObject: Indicator = {
           column,
           name: dashboardLayoutItem?.meta?.sliceName as string,
           path: [
             ...(dashboardLayoutItem?.parents ?? []),
-            dashboardLayoutItem?.id,
+            dashboardLayoutItem?.id || '',
           ],
           status: getStatus({
             label,
@@ -283,6 +294,10 @@ export const selectChartCrossFilters = (
           }),
           value: label,
         };
+        if (filterEmitter) {
+          (filterObject as IndicatorWithEmitterType).emitterId = chartId;
+        }
+        return filterObject;
       })
       .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
   }
