@@ -188,7 +188,7 @@ export default function LiqThematicMaps(props) {
       map.current.loadImage(intranetImgs[k], (error, img) => {
         if (error) throw error;
         map.current.addImage(k, img);
-      })
+      });
     });
 
     // Load map tiles and their default styles
