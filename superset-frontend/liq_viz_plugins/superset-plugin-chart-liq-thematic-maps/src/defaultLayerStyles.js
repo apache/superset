@@ -1,26 +1,40 @@
-const scDims = {
-    'city_centre': 15,
-    'lfr': 15,
-    'local_transit_outlet': 15,
-    'neighbourhood': 15,
-    'regional': 45,
-    'sub_regional': 30,
-    'themed': 15,
-    'market': 15
+const intranetImgs = {
+    'city_centre': '/static/scs_png/city_centre.png',
+    'lfr': '/static/scs_png/lfr.png',
+    'local_transit_outlet': '/static/scs_png/local_transit_outlet.png',
+    'neighbourhood': '/static/scs_png/neighbourhood.png',
+    'regional': '/static/scs_png/regional.png',
+    'sub_regional': '/static/scs_png/sub_regional.png',
+    'themed': '/static/scs_png/themed.png',
+    'market': '/static/scs_png/market.png' 
 }
 
-const intranetImgs = {
-    'city_centre': '/static/scs_svg/city_centre.svg',
-    'lfr': '/static/scs_svg/lfr.svg',
-    'local_transit_outlet': '/static/scs_svg/local_transit_outlet.svg',
-    'neighbourhood': '/static/scs_svg/neighbourhood.svg',
-    'regional': '/static/scs_svg/regional.svg',
-    'sub_regional': '/static/scs_svg/sub_regional.svg',
-    'themed': '/static/scs_svg/themed.svg',
-    'market': '/static/scs_svg/market.svg' 
-  }
+const iconSizeExprs = {
+    'shopping_centres': [
+        'case',
+        [
+            'any',
+            ['==', ['get', 'description'], 'Local Centre'],
+            ['==', ['get', 'description'], 'Transit Centre'],
+            ['==', ['get', 'description'], 'Outlet Centre'],
+            ['==', ['get', 'description'], 'Large Format Retail'],
+            ['==', ['get', 'description'], 'Market'],
+            ['==', ['get', 'description'], 'Themed'],
+            ['==', ['get', 'description'], 'Neighbourhood'],
+            ['==', ['get', 'description'], 'City Centre']
+        ],
+        0.46,
+        [
+            'any',
+            ['==', ['get', 'description'], 'Regional'],
+            ['==', ['get', 'description'], 'Super Regional']
+        ],
+        1.38,
+        0.92
+    ]
+}
 
-const intranetExprs = {
+const iconExprs = {
     'shopping_centres': [
         'case',
         [
@@ -65,4 +79,4 @@ const defaultLayerStyles = {
     }
 };
 
-module.exports = { defaultLayerStyles, intranetExprs, scDims, intranetImgs };
+module.exports = { defaultLayerStyles, iconExprs, iconSizeExprs, intranetImgs };

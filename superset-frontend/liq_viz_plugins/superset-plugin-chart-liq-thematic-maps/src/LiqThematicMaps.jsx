@@ -28,9 +28,9 @@ const defaults = require('./defaultLayerStyles.js')
 
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
-const intranetExprs = defaults.intranetExprs;
+const iconExprs = defaults.iconExprs;
 const intranetImgs = defaults.intranetImgs;
-const scDims = defaults.scDims;
+const iconSizeExprs = defaults.iconSizeExprs;
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
 
@@ -74,7 +74,7 @@ export default function LiqThematicMaps(props) {
   const mapContainer = useRef(null);
   const map = useRef(null);
 
-  const [currIDs, setCurrIDs] = useState([]);
+  const [currBdryIDs, setCurrBdryIDs] = useState([]);
   const [colorMap, setColorMap] = useState({});
 
   // When color map settings change, update state and map
@@ -138,6 +138,7 @@ export default function LiqThematicMaps(props) {
 
   // Main map initialization hook
   useEffect(() => {
+
     if (map.current) return;
     
     // Load map with light style and center on Sydney
@@ -164,14 +165,15 @@ export default function LiqThematicMaps(props) {
       })
     );
 
+    Object.keys(intranetImgs).forEach(k => {
+      map.current.loadImage(intranetImgs[k], (error, img) => {
+        if (error) throw error;
+        map.current.addImage(k, img);
+      })
+    });
+
     // Load map tiles and their default styles
     map.current.on('load', () => {
-
-      Object.keys(intranetImgs).forEach(k => {
-        let img = new Image(scDims[k], scDims[k]);
-        img.src = intranetImgs[k];
-        map.current.addImage(k, img);
-      });
 
       map.current.addSource('boundary_tileset', {
         'type': 'vector',
@@ -180,7 +182,7 @@ export default function LiqThematicMaps(props) {
 
       map.current.addSource('intranet_tileset', {
         'type': 'vector',
-        'url': 'mapbox://locationiq.7kzbqzb6'
+        'url': 'mapbox://locationiq.1p83nuhk'
       });
 
       map.current.addLayer({
@@ -191,7 +193,7 @@ export default function LiqThematicMaps(props) {
         'layout': {},
         'paint': layerStyles.boundaryStyle
       });
-      
+
       intranetLayers.forEach(layer => {
         map.current.addLayer({
           'id': layer,
@@ -199,49 +201,51 @@ export default function LiqThematicMaps(props) {
           'source': 'intranet_tileset',
           'source-layer': layer,
           'layout': {
-            'icon-image': intranetExprs[layer],
-            'icon-allow-overlap': true 
+            'icon-image': iconExprs[layer],
+            'icon-allow-overlap': true,
+            'icon-size': iconSizeExprs[layer] ? iconSizeExprs[layer] : 1 
           },
         });
-      })
+      });
 
     });
 
     // When the map is moved around, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
-      const features = map.current.querySourceFeatures('boundary_tileset', {
+      
+      const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
         sourceLayer: boundary
        });
 
-       let ids = [];
-       for (const d in features) {
-        ids.push({
-          id: features[d].id,
-          col: features[d].properties[groupCol]
+      let bdryIds = [];
+       for (const d in bdry_features) {
+        bdryIds.push({
+          id: bdry_features[d].id,
+          val: bdry_features[d].properties[groupCol]
         });
-       }
-       setCurrIDs([...ids]);
+      }
+      setCurrBdryIDs([...bdryIds]);
     });
 
   });
 
   // Hook for styling rendered tiles via feature state
   useEffect(() => {
-    if (currIDs.length === 0 || Object.keys(colorMap).length === 0) return;
-    for (const i in currIDs) {
+    if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0) return;
+    for (const i in currBdryIDs) {
       map.current.setFeatureState(
         {
           source: 'boundary_tileset', 
           sourceLayer: boundary, 
-          id: currIDs[i].id
+          id: currBdryIDs[i].id
         },
         {
-          color: colorMap[currIDs[i].col]
+          color: colorMap[currBdryIDs[i].val]
         }
       );
     }
     map.current.setPaintProperty('boundary_tileset', 'fill-color', ['feature-state', 'color']);
-  }, [currIDs]);
+  }, [currBdryIDs]);
 
   return (
     <Styles
