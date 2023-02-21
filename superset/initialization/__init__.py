@@ -151,8 +151,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
+        from superset.tags.api import TagRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
+        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -186,7 +188,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
-        from superset.views.tags import TagView
+        from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
 
         #
@@ -220,6 +222,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         #
         # Setup regular views
@@ -321,6 +324,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
+        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
 
@@ -363,9 +367,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label=__("SQL Lab"),
         )
-
+        appbuilder.add_view(
+            TaggedObjectsModelView,
+            "All Entities",
+            label=__("All Entities"),
+            icon="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
+        appbuilder.add_view(
+            TagModelView,
+            "Tags",
+            label=__("Tags"),
+            icon="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
             LogModelView,
