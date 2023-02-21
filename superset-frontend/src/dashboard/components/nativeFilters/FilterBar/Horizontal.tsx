@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   DataMaskStateWithId,
   FeatureFlag,
@@ -27,19 +27,13 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import {
-  DashboardInfo,
-  DashboardLayout,
-  FilterBarOrientation,
-  RootState,
-} from 'src/dashboard/types';
+import { DashboardInfo, DashboardLayout, RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import FilterControls from './FilterControls/FilterControls';
 import { getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import FilterBarCrossFilters from './FilterBarCrossFilters';
 import crossFiltersSelector from './FilterBarCrossFilters/selectors';
 
 const HorizontalBar = styled.div`

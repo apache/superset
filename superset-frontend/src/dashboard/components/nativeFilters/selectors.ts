@@ -158,7 +158,7 @@ export type Indicator = {
   path?: string[];
 };
 
-export type IndicatorWithEmitterType = Indicator & { emitterId: number };
+export type CrossFilterIndicator = Indicator & { emitterId: number };
 
 const cachedIndicatorsForChart = {};
 const cachedDashboardFilterDataForChart = {};
@@ -253,7 +253,7 @@ export const selectChartCrossFilters = (
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
   filterEmitter = false,
-): Indicator[] | IndicatorWithEmitterType[] => {
+): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     const dashboardLayoutValues = Object.values(dashboardLayout);
@@ -295,7 +295,7 @@ export const selectChartCrossFilters = (
           value: label,
         };
         if (filterEmitter) {
-          (filterObject as IndicatorWithEmitterType).emitterId = chartId;
+          (filterObject as CrossFilterIndicator).emitterId = chartId;
         }
         return filterObject;
       })

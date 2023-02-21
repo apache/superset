@@ -19,22 +19,19 @@
 
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
-import {
-  IndicatorWithEmitterType,
-  selectChartCrossFilters,
-} from '../../selectors';
+import { CrossFilterIndicator, selectChartCrossFilters } from '../../selectors';
 
 export const crossFiltersSelector = (props: {
   dataMask: DataMaskStateWithId;
   dashboardInfo: DashboardInfo;
   dashboardLayout: DashboardLayout;
-}): IndicatorWithEmitterType[] => {
+}): CrossFilterIndicator[] => {
   const { dataMask, dashboardInfo, dashboardLayout } = props;
   const chartConfiguration = dashboardInfo.metadata?.chart_configuration;
   const chartsIds = Object.keys(chartConfiguration);
   const shouldFilterEmitters = true;
 
-  let selectedCrossFilters: IndicatorWithEmitterType[] = [];
+  let selectedCrossFilters: CrossFilterIndicator[] = [];
 
   for (let i = 0; i < chartsIds.length; i += 1) {
     const chartId = Number(chartsIds[i]);
@@ -47,7 +44,7 @@ export const crossFiltersSelector = (props: {
     );
     selectedCrossFilters = [
       ...selectedCrossFilters,
-      ...(crossFilters as IndicatorWithEmitterType[]),
+      ...(crossFilters as CrossFilterIndicator[]),
     ];
   }
   return selectedCrossFilters;

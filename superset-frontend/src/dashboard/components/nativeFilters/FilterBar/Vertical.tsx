@@ -34,7 +34,6 @@ import { AntdTabs } from 'src/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from './utils';
 import { TabIds, VerticalBarProps } from './types';
 import FilterSets from './FilterSets';
@@ -42,7 +41,7 @@ import { useFilterSets } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import FilterBarCrossFilters from './FilterBarCrossFilters';
+import FilterBarCrossFiltersVertical from './FilterBarCrossFilters/Vertical';
 
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.gridUnit * 8}px;
@@ -283,7 +282,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   const crossFilters = useMemo(
     () =>
       isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
-        <FilterBarCrossFilters orientation={FilterBarOrientation.VERTICAL} />
+        <FilterBarCrossFiltersVertical />
       ) : null,
     [],
   );
