@@ -68,7 +68,7 @@ class SqlLabRestApi(BaseSupersetApi):
     resource_name = "sqllab"
     allow_browser_login = True
 
-    class_permission_name = "Query"
+    class_permission_name = "SQLLab"
 
     execute_model_schema = ExecutePayloadSchema()
 
