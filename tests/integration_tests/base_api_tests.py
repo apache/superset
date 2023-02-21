@@ -284,8 +284,9 @@ class ApiOwnersTestCaseMixin:
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert 4 == response["count"]
+        # assert 4 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
+        raise Exception(sorted_results)
         expected_results = [
             {
                 "extra": {"active": True, "email": "gamma@fab.org"},
