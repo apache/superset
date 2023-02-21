@@ -70,7 +70,6 @@ class Slice(Base):
     datasource_id = Column(Integer)
 
 
-@memoized
 def duration_by_name(database: Database):
     return {grain.name: grain.duration for grain in database.grains()}
 

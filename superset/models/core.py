@@ -24,6 +24,7 @@ from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
@@ -723,7 +724,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
+    @lru_cache()
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
@@ -897,7 +898,6 @@ class Database(
     def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
         return self.has_view(view_name=view_name, schema=schema)
 
-    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

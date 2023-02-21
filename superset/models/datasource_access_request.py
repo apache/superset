@@ -57,7 +57,6 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         return self.get_datasource
 
     @datasource.getter  # type: ignore
-    @memoized
     def get_datasource(self) -> "BaseDatasource":
         ds = db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
         return ds

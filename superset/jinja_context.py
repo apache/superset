@@ -17,7 +17,7 @@
 """Defines the templating context for SQL Lab"""
 import json
 import re
-from functools import partial
+from functools import lru_cache, partial
 from typing import (
     Any,
     Callable,
@@ -70,7 +70,7 @@ ALLOWED_TYPES = (
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 
-@memoized
+@lru_cache()
 def context_addons() -> Dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
@@ -602,7 +602,7 @@ DEFAULT_PROCESSORS = {
 }
 
 
-@memoized
+@lru_cache()
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():

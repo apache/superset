@@ -18,6 +18,7 @@ import calendar
 import logging
 import re
 from datetime import datetime, timedelta
+from functools import lru_cache
 from time import struct_time
 from typing import Dict, List, Optional, Tuple
 
@@ -394,7 +395,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         )
 
 
-@memoized
+@lru_cache()
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,

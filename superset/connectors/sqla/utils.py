@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import (
     Any,
     Callable,
@@ -200,12 +201,12 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-@memoized
+@lru_cache()
 def get_dialect_name(drivername: str) -> str:
     return SqlaURL.create(drivername).get_dialect().name
 
 
-@memoized
+@lru_cache()
 def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
     return SqlaURL.create(drivername).get_dialect()().identifier_preparer.quote
 

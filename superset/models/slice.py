@@ -151,9 +151,12 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    @memoized
     def get_datasource(self) -> Optional["BaseDatasource"]:
-        return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
+        return (
+            db.session.query(self.cls_model)
+            .filter_by(id=self.datasource_id)
+            .one_or_none()
+        )
 
     @renders("datasource_name")
     def datasource_link(self) -> Optional[Markup]:
@@ -190,7 +193,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     # pylint: enable=using-constant-test
 
     @property  # type: ignore
-    @memoized
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
