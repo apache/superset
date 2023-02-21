@@ -748,7 +748,7 @@ class TestSavedQueryApi(SupersetTestCase):
             db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
         )
 
-        self.login(username="gamma")
+        self.login(username="gamma_sqllab")
         argument = [sample_query.id]
         uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
