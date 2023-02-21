@@ -46,7 +46,6 @@ from superset.utils.core import (
     get_user_id,
     merge_extra_filters,
 )
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable

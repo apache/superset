@@ -50,7 +50,6 @@ from superset.models.core import Database
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
 from superset.superset_typing import ResultSetColumnType
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable

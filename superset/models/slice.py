@@ -46,7 +46,6 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils
-from superset.utils.memoized import memoized
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:

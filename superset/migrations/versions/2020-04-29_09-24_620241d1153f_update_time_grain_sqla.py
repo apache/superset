@@ -34,7 +34,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db, db_engine_specs
 from superset.databases.utils import make_url_safe
-from superset.utils.memoized import memoized
 
 Base = declarative_base()
 

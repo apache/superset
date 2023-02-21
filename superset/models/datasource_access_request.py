@@ -22,7 +22,6 @@ from sqlalchemy import Column, Integer, String
 
 from superset import app, db, security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
