@@ -48,6 +48,7 @@ export type DatabaseObject = {
   engine?: string;
   extra?: string;
   id?: number;
+  uuid?: null | string;
   name: string; // synonym to database_name
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;

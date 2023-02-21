@@ -325,6 +325,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDatabaseCommand(item).run()
+            item["uuid"] = new_model.uuid
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
