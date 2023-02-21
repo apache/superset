@@ -21,7 +21,7 @@ from superset import db, security_manager
 from tests.integration_tests.test_app import app
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def create_gamma_sqllab_no_data():
 
     with app.app_context():
