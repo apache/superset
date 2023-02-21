@@ -10,7 +10,13 @@ const intranetImgs = {
     'david_jones': '/static/ds_png/david_jones.png',
     'myer': '/static/ds_png/myer.png',
     'harris_scarfe': '/static/ds_png/harris_scarfe.png',
-    'unknown': '/static/ds_png/unknown.png' 
+    'unknown_ds': '/static/ds_png/unknown.png',
+    'big_w': '/static/dds_png/big_w.png',
+    'kmart': '/static/dds_png/kmart.png',
+    'kmart_hub': '/static/dds_png/kmart_hub.png',
+    'target': '/static/dds_png/target.png',
+    'target_country': '/static/dds_png/target_country.png',
+    'unknown_dds': '/static/dds_png/unknown.png' 
 }
 
 const iconSizeExprs = {
@@ -36,7 +42,8 @@ const iconSizeExprs = {
         1.38,
         0.92
     ],
-    'department_stores': 3
+    'department_stores': 2,
+    'discount_department_stores': 0.5
 }
 
 const iconExprs = {
@@ -75,7 +82,21 @@ const iconExprs = {
         'myer',
         ['==', ['get', 'tenant_id'], 7644],
         'harris_scarfe',
-        'unknown'
+        'unknown_ds'
+    ],
+    'discount_department_stores': [
+        'case',
+        ['==', ['get', 'tenant_id'], 9595],
+        'kmart',
+        ['==', ['get', 'tenant_id'], 92073],
+        'kmart_hub',
+        ['==', ['get', 'tenant_id'], 1759],
+        'big_w',
+        ['==', ['get', 'tenant_id'], 16842],
+        'target',
+        ['==', ['get', 'tenant_id'], 16844],
+        'target_country',
+        'unknown_dds'
     ]
 }
 

@@ -50,6 +50,7 @@ export default function transformProps(chartProps: ChartProps) {
    */
   const { width, height, formData, queriesData } = chartProps;
   const { 
+    mapStyle,
     boundary,
     intranetLayers, 
     linearColorScheme, 
@@ -78,6 +79,7 @@ export default function transformProps(chartProps: ChartProps) {
     groupCol,
     metricCol,
     // and now your control data, manipulated as needed, and passed through as props!
+    mapStyle,
     boundary,
     intranetLayers,
     linearColorScheme,

@@ -61,6 +61,7 @@ export default function LiqThematicMaps(props) {
     metricCol,
     height, 
     width, 
+    mapStyle,
     boundary, 
     intranetLayers,
     linearColorScheme,
@@ -144,11 +145,13 @@ export default function LiqThematicMaps(props) {
     // Load map with light style and center on Sydney
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v10',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: [151.2, -33.8],
       zoom: 9    
     });
     
+    map.current.setProjection('mercator');
+
     // Disable rotating
     map.current.dragRotate.disable();
     map.current.touchZoomRotate.disable();
@@ -228,6 +231,10 @@ export default function LiqThematicMaps(props) {
     });
 
   });
+
+  useEffect(() => {
+    map.current.setStyle(mapStyle);
+  }, [mapStyle])
 
   // Hook for styling rendered tiles via feature state
   useEffect(() => {

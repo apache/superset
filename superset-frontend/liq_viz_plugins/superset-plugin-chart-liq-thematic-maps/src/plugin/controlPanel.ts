@@ -137,6 +137,27 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'map_style',
+            config: {
+              type: 'SelectControl',
+              default: 'mapbox://styles/mapbox/streets-v12',
+              choices: [
+                ['mapbox://styles/mapbox/streets-v12', 'Streets'],
+                ['mapbox://styles/mapbox/outdoors-v12', 'Outdoors'],
+                ['mapbox://styles/mapbox/light-v11', 'Light'],
+                ['mapbox://styles/mapbox/dark-v11', 'Dark'],
+                ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+                ['mapbox://styles/mapbox/satellite-streets-v12', 'Satellite Streets'],
+                ['mapbox://styles/mapbox/navigation-day-v1', 'Navigation Day'],
+                ['mapbox://styles/mapbox/navigation-night-v1', 'Navigation Night']
+              ],
+              renderTrigger: false,
+              label: t('Base Map Style')
+            }
+          }
+        ],
+        [
+          {
             name: 'boundary',
             config: {
               type: 'SelectControl',
