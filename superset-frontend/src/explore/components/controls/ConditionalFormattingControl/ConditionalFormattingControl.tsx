@@ -71,6 +71,7 @@ const ConditionalFormattingControl = ({
   onChange,
   columnOptions,
   verboseMap,
+  removeIrrelevantConditions,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -84,19 +85,15 @@ const ConditionalFormattingControl = ({
   }, [conditionalFormattingConfigs, onChange]);
 
   // remove formatter when corresponding column is removed from controls
-  const removeFormattersWhenColumnsChange = useCallback(() => {
-    const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
-      columnOptions.some(option => option?.value === config?.column),
-    );
-    if (
-      newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
-      onChange
-    ) {
-      setConditionalFormattingConfigs(newFormattingConfigs);
-      onChange(newFormattingConfigs);
-    }
-  }, [JSON.stringify(columnOptions)]);
-  useComponentDidUpdate(removeFormattersWhenColumnsChange);
+  const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
+    columnOptions.some((option: any) => option?.value === config?.column),
+  );
+  if (
+    newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
+    removeIrrelevantConditions
+  ) {
+    setConditionalFormattingConfigs(newFormattingConfigs);
+  }
 
   const onDelete = (index: number) => {
     setConditionalFormattingConfigs(prevConfigs =>
