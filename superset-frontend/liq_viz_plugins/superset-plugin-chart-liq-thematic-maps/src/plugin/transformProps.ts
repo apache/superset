@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
-import d3 from 'd3';
-import { extent as d3Extent } from 'd3-array';
-import {
-  getNumberFormatter,
-  getSequentialSchemeRegistry,
-  CategoricalColorNamespace,
-} from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -57,7 +50,8 @@ export default function transformProps(chartProps: ChartProps) {
    */
   const { width, height, formData, queriesData } = chartProps;
   const { 
-    boundary, 
+    boundary,
+    intranetLayers, 
     linearColorScheme, 
     breaksMode,
     customMode,
@@ -85,6 +79,7 @@ export default function transformProps(chartProps: ChartProps) {
     metricCol,
     // and now your control data, manipulated as needed, and passed through as props!
     boundary,
+    intranetLayers,
     linearColorScheme,
     breaksMode,
     customMode,

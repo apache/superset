@@ -24,8 +24,13 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
+const defaults = require('./defaultLayerStyles.js')
+
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
-const layerStyles = require('./defaultLayerStyles.js').defaultLayerStyles;
+const layerStyles = defaults.defaultLayerStyles;
+const intranetExprs = defaults.intranetExprs;
+const intranetImgs = defaults.intranetImgs;
+const scDims = defaults.scDims;
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
 
@@ -57,6 +62,7 @@ export default function LiqThematicMaps(props) {
     height, 
     width, 
     boundary, 
+    intranetLayers,
     linearColorScheme,
     breaksMode,
     customMode,
@@ -79,7 +85,7 @@ export default function LiqThematicMaps(props) {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 
-    var raw = (!breaksMode || breaksMode.length === 0) ? JSON.stringify({
+    var raw = (!breaksMode || breaksMode === 'Custom') ? JSON.stringify({
       'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
       'breaks': customMode,
       'values': data.map(d => d[metricCol]),
@@ -161,25 +167,49 @@ export default function LiqThematicMaps(props) {
     // Load map tiles and their default styles
     map.current.on('load', () => {
 
-      map.current.addSource('tileset', {
+      Object.keys(intranetImgs).forEach(k => {
+        let img = new Image(scDims[k], scDims[k]);
+        img.src = intranetImgs[k];
+        map.current.addImage(k, img);
+      });
+
+      map.current.addSource('boundary_tileset', {
         'type': 'vector',
         'url': 'mapbox://locationiq.46fox66e'
       });
 
+      map.current.addSource('intranet_tileset', {
+        'type': 'vector',
+        'url': 'mapbox://locationiq.7kzbqzb6'
+      });
+
       map.current.addLayer({
-        'id': 'tileset',
+        'id': 'boundary_tileset',
         'type': 'fill',
-        'source': 'tileset',
+        'source': 'boundary_tileset',
         'source-layer': boundary,
         'layout': {},
         'paint': layerStyles.boundaryStyle
       });
       
+      intranetLayers.forEach(layer => {
+        map.current.addLayer({
+          'id': layer,
+          'type': 'symbol',
+          'source': 'intranet_tileset',
+          'source-layer': layer,
+          'layout': {
+            'icon-image': intranetExprs[layer],
+            'icon-allow-overlap': true 
+          },
+        });
+      })
+
     });
 
     // When the map is moved around, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
-      const features = map.current.querySourceFeatures('tileset', {
+      const features = map.current.querySourceFeatures('boundary_tileset', {
         sourceLayer: boundary
        });
 
@@ -201,7 +231,7 @@ export default function LiqThematicMaps(props) {
     for (const i in currIDs) {
       map.current.setFeatureState(
         {
-          source: 'tileset', 
+          source: 'boundary_tileset', 
           sourceLayer: boundary, 
           id: currIDs[i].id
         },
@@ -210,7 +240,7 @@ export default function LiqThematicMaps(props) {
         }
       );
     }
-    map.current.setPaintProperty('tileset', 'fill-color', ['feature-state', 'color']);
+    map.current.setPaintProperty('boundary_tileset', 'fill-color', ['feature-state', 'color']);
   }, [currIDs]);
 
   return (

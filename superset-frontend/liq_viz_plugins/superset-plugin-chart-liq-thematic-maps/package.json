@@ -32,7 +32,7 @@
     "mapbox-gl": "^2.9.2"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
+    "@superset-ui/chart-controls": "^1.5.0",
     "@superset-ui/core": "*",
     "react": "^16.13.1"
   },

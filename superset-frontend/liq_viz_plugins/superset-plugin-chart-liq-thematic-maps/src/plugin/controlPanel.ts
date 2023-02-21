@@ -160,21 +160,41 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'intranet_layers',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              renderTrigger: false,
+              label: t('Intranet Layers'),
+              description: t('Various retail, non-retail & infrastructure layers from the LIQ Database.'),
+              choices: [
+                ['shopping_centres', 'Shopping Centres'],
+                ['department_store', 'Department Stores'],
+                ['discount_department_stores', 'Discount Department Stores'],
+                ['large_format_retail', 'Large Format Retail'],
+                ['mini_majors', 'Mini Majors'],
+                ['supermarkets', 'Supermarkets']
+              ]
+            }
+          }
+        ],
         ['linear_color_scheme'],
         [
           {
             'name': 'breaks_mode',
             'config': {
               type: 'SelectControl',
-              default: '',
+              default: 'equal_count',
               choices: [
-                ['', ''],
+                ['custom', 'Custom'],
                 ['equal_count', 'Equal Count (Quantile)'],
                 ['equal_interval', 'Equal Interval']
               ],
               renderTrigger: false,
               label: t('Mode'),
-              description: t('Method used for color styling in thematic. If specifying a custom mode below, leave this blank.')
+              description: t('Method used for color styling in thematic. If specifying a custom mode below, select "Custom" here.')
             }
           }
         ],
