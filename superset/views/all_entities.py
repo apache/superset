@@ -18,21 +18,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
-import simplejson as json
 from flask_appbuilder import expose
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.decorators import has_access
 from jinja2.sandbox import SandboxedEnvironment
 from werkzeug.exceptions import NotFound
 
-from superset import db, is_feature_enabled, utils
+from superset import is_feature_enabled
 from superset.jinja_context import ExtraCache
 from superset.superset_typing import FlaskResponse
 from superset.tags.models import Tag
 from superset.views.base import SupersetModelView
 
-from .base import BaseSupersetView, json_success
+from .base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +46,8 @@ def process_template(content: str) -> str:
     return template.render(context)
 
 
-class TagModelView(SupersetModelView):
-    route_base = "/superset/tags"
+class TaggedObjectsModelView(SupersetModelView):
+    route_base = "/superset/all_entities"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
 
@@ -61,7 +60,7 @@ class TagModelView(SupersetModelView):
         return super().render_app_template()
 
 
-class TagView(BaseSupersetView):
+class TaggedObjectView(BaseSupersetView):
     @staticmethod
     def is_enabled() -> bool:
         return is_feature_enabled("TAGGING_SYSTEM")
@@ -70,20 +69,3 @@ class TagView(BaseSupersetView):
     def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-
-    @has_access_api
-    @expose("/tags/", methods=["GET"])
-    def tags(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        query = db.session.query(Tag).all()
-        results = [
-            {
-                "id": obj.id,
-                "type": obj.type.name,
-                "name": obj.name,
-                "changed_on": obj.changed_on,
-                "changed_by": obj.changed_by_fk,
-                "created_by": obj.created_by_fk,
-            }
-            for obj in query
-        ]
-        return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
