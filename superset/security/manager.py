@@ -99,7 +99,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DATABASE_PERM_REGEX = re.compile(r"\[\w+\]\.\(id\:(\d+)\)")
+DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(\d+)\)$")
 
 
 class DatabaseAndSchema(NamedTuple):
