@@ -54,6 +54,22 @@ const Styles = styled.div<LiqThematicMapsStylesProps>`
  *  * FormData (your controls!) provided as props by transformProps.ts
  */
 
+function getCurrBdryIds(map, boundary, groupCol) {
+  const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
+    sourceLayer: boundary
+   });
+
+  let bdryIds = [];
+   for (const d in bdry_features) {
+    bdryIds.push({
+      id: bdry_features[d].id,
+      val: bdry_features[d].properties[groupCol]
+    });
+  }
+
+  return bdryIds;
+}
+
 export default function LiqThematicMaps(props) {
   const { 
     data,
@@ -145,7 +161,7 @@ export default function LiqThematicMaps(props) {
     // Load map with light style and center on Sydney
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
       center: [151.2, -33.8],
       zoom: 9    
     });
@@ -215,18 +231,7 @@ export default function LiqThematicMaps(props) {
 
     // When the map is moved around, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
-      
-      const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
-        sourceLayer: boundary
-       });
-
-      let bdryIds = [];
-       for (const d in bdry_features) {
-        bdryIds.push({
-          id: bdry_features[d].id,
-          val: bdry_features[d].properties[groupCol]
-        });
-      }
+      const bdryIds = getCurrBdryIds(map, boundary, groupCol);
       setCurrBdryIDs([...bdryIds]);
     });
 
