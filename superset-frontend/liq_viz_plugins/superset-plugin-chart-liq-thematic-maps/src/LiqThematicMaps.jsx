@@ -203,7 +203,7 @@ export default function LiqThematicMaps(props) {
           'layout': {
             'icon-image': iconExprs[layer],
             'icon-allow-overlap': true,
-            'icon-size': iconSizeExprs[layer] ? iconSizeExprs[layer] : 1 
+            'icon-size': layer in iconSizeExprs ? iconSizeExprs[layer] : 0.46 
           },
         });
       });

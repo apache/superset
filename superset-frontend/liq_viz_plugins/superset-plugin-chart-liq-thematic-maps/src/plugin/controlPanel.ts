@@ -171,7 +171,7 @@ const config: ControlPanelConfig = {
               description: t('Various retail, non-retail & infrastructure layers from the LIQ Database.'),
               choices: [
                 ['shopping_centres', 'Shopping Centres'],
-                ['department_store', 'Department Stores'],
+                ['department_stores', 'Department Stores'],
                 ['discount_department_stores', 'Discount Department Stores'],
                 ['large_format_retail', 'Large Format Retail'],
                 ['mini_majors', 'Mini Majors'],

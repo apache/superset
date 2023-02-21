@@ -6,7 +6,11 @@ const intranetImgs = {
     'regional': '/static/scs_png/regional.png',
     'sub_regional': '/static/scs_png/sub_regional.png',
     'themed': '/static/scs_png/themed.png',
-    'market': '/static/scs_png/market.png' 
+    'market': '/static/scs_png/market.png',
+    'david_jones': '/static/ds_png/david_jones.png',
+    'myer': '/static/ds_png/myer.png',
+    'harris_scarfe': '/static/ds_png/harris_scarfe.png',
+    'unknown': '/static/ds_png/unknown.png' 
 }
 
 const iconSizeExprs = {
@@ -31,7 +35,8 @@ const iconSizeExprs = {
         ],
         1.38,
         0.92
-    ]
+    ],
+    'department_stores': 3
 }
 
 const iconExprs = {
@@ -61,6 +66,16 @@ const iconExprs = {
         ['==', ['get', 'description'], 'Neighbourhood'],
         'neighbourhood',
         'sub_regional'
+    ],
+    'department_stores': [
+        'case',
+        ['==', ['get', 'tenant_id'], 4537],
+        'david_jones',
+        ['==', ['get', 'tenant_id'], 11884],
+        'myer',
+        ['==', ['get', 'tenant_id'], 7644],
+        'harris_scarfe',
+        'unknown'
     ]
 }
 
