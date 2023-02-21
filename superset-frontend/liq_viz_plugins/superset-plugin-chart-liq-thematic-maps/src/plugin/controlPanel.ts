@@ -196,7 +196,8 @@ const config: ControlPanelConfig = {
                 ['discount_department_stores', 'Discount Department Stores'],
                 ['large_format_retail', 'Large Format Retail'],
                 ['mini_majors', 'Mini Majors'],
-                ['supermarkets', 'Supermarkets']
+                ['supermarkets', 'Supermarkets'],
+                ['liquor', 'Liquor']
               ]
             }
           }

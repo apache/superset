@@ -185,7 +185,7 @@ export default function LiqThematicMaps(props) {
 
       map.current.addSource('intranet_tileset', {
         'type': 'vector',
-        'url': 'mapbox://locationiq.1p83nuhk'
+        'url': 'mapbox://locationiq.4rp909gz'
       });
 
       map.current.addLayer({
