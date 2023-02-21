@@ -196,12 +196,12 @@ export default function LiqThematicMaps(props) {
 
       map.current.addSource('boundary_tileset', {
         'type': 'vector',
-        'url': 'mapbox://locationiq.46fox66e'
+        'url': liqSecrets.mapbox.tilesets.boundary
       });
 
       map.current.addSource('intranet_tileset', {
         'type': 'vector',
-        'url': 'mapbox://locationiq.4rp909gz'
+        'url': liqSecrets.mapbox.tilesets.intranet
       });
 
       map.current.addLayer({
@@ -223,7 +223,7 @@ export default function LiqThematicMaps(props) {
             'icon-image': iconExprs[layer],
             'icon-allow-overlap': true,
             'icon-size': layer in iconSizeExprs ? iconSizeExprs[layer] : 0.46 
-          },
+          }
         });
       });
 
