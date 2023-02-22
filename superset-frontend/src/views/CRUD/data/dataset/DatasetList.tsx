@@ -484,7 +484,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate],
+    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 
   const filterTypes: Filters = useMemo(
@@ -574,7 +574,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.contains,
       },
     ],
-    [],
+    [user],
   );
 
   const menuData: SubMenuProps = {

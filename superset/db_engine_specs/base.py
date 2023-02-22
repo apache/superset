@@ -121,7 +121,7 @@ class TimestampExpression(
 ):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
-        respeting engine-specific quoting rules as part of a string-based expression.
+        respecting engine-specific quoting rules as part of a string-based expression.
 
         :param expr: Sql expression with '{col}' denoting the locations where the col
         object will be rendered.
@@ -331,9 +331,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
-    allows_hidden_ordeby_agg = True
+    allows_hidden_orderby_agg = True
 
-    # Whether ORDER BY clause can use sql caculated expression
+    # Whether ORDER BY clause can use sql calculated expression
     # if True, use alias of select column for `order by`
     # the True is safely for most database
     # But for backward compatibility, False by default

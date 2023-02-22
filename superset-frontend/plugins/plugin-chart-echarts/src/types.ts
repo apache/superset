@@ -21,6 +21,7 @@ import {
   BinaryQueryObjectFilterClause,
   ChartDataResponseResult,
   ChartProps,
+  FilterState,
   HandlerFunction,
   PlainObject,
   QueryFormColumn,
@@ -125,8 +126,11 @@ export interface BaseTransformedProps<F> {
     clientY: number,
     filters?: BinaryQueryObjectFilterClause[],
   ) => void;
+  setDataMask?: SetDataMaskHook;
+  filterState?: FilterState;
   refs: Refs;
   width: number;
+  emitCrossFilters?: boolean;
 }
 
 export type CrossFilterTransformedProps = {
@@ -144,6 +148,7 @@ export type ContextMenuTransformedProps = {
     clientY: number,
     filters?: BinaryQueryObjectFilterClause[],
   ) => void;
+  setDataMask?: SetDataMaskHook;
 };
 
 export interface TitleFormData {

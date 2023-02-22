@@ -40,7 +40,7 @@ def validate_owner(value: int) -> None:
 class BaseSupersetSchema(Schema):
     """
     Extends Marshmallow schema so that we can pass a Model to load
-    (following marshamallow-sqlalchemy pattern). This is useful
+    (following marshmallow-sqlalchemy pattern). This is useful
     to perform partial model merges on HTTP PUT
     """
 

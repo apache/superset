@@ -200,6 +200,9 @@ service:
     {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: null
+  nodePort:
+    # -- (int)
+    http: nil
 
 ingress:
   enabled: false
@@ -466,6 +469,9 @@ supersetCeleryFlower:
     type: ClusterIP
     annotations: {}
     port: 5555
+    nodePort:
+      # -- (int)
+      http: nil
   startupProbe:
     httpGet:
       path: /api/workers
@@ -567,6 +573,9 @@ supersetWebsockets:
     type: ClusterIP
     annotations: {}
     port: 8080
+    nodePort:
+      # -- (int)
+      http: nil
   command: []
   resources: {}
   deploymentAnnotations: {}
@@ -714,7 +723,7 @@ postgresql:
       ## Enable PostgreSQL persistence using Persistent Volume Claims.
       enabled: true
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access modes:
@@ -769,7 +778,7 @@ redis:
       ## Use a PVC to persist data.
       enabled: false
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access mode:

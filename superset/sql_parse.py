@@ -217,7 +217,7 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        # make sure we strip comments; prevents a bug with coments in the CTE
+        # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
         if parsed[0].get_type() == "SELECT":
             return True

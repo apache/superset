@@ -98,7 +98,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
-        col.dbatabase_expr = dttm_and_expr[1]
+        col.database_expression = dttm_and_expr[1]
         col.is_dttm = True
     db.session.merge(obj)
     db.session.commit()
