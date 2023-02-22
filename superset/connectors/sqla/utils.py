@@ -33,7 +33,7 @@ from typing import (
 from uuid import UUID
 
 import sqlparse
-from constants import LRU_CACHE_MAX_SIZE
+from superset.constants import LRU_CACHE_MAX_SIZE
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError

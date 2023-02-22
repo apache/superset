@@ -30,7 +30,7 @@ from typing import (
     Union,
 )
 
-from constants import LRU_CACHE_MAX_SIZE
+from superset.constants import LRU_CACHE_MAX_SIZE
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
