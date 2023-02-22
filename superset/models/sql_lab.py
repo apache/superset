@@ -52,7 +52,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import GenericDataType, QueryStatus, user_label
+from superset.utils.core import QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
