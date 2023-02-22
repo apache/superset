@@ -18,13 +18,12 @@
  */
 
 import React from 'react';
+import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
+import { queryClient } from 'src/views/QueryProvider';
 import userEvent from '@testing-library/user-event';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
 import { EmptyStateSmall } from '../EmptyState';
-
-const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -35,7 +34,7 @@ const createProps = (): DatabaseSelectorProps => ({
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
-  schema: undefined,
+  schema: 'public',
   sqlLabMode: true,
   getDbList: jest.fn(),
   handleError: jest.fn(),
@@ -44,124 +43,133 @@ const createProps = (): DatabaseSelectorProps => ({
   onSchemasLoad: jest.fn(),
 });
 
-beforeEach(() => {
-  jest.resetAllMocks();
-  SupersetClientGet.mockImplementation(
-    async ({ endpoint }: { endpoint: string }) => {
-      if (endpoint.includes('schemas')) {
-        return {
-          json: { result: ['information_schema', 'public'] },
-        } as any;
-      }
-      if (endpoint.includes('/function_names')) {
-        return {
-          json: { function_names: [] },
-        } as any;
-      }
-      return {
-        json: {
-          count: 2,
-          description_columns: {},
-          ids: [1, 2],
-          label_columns: {
-            allow_file_upload: 'Allow Csv Upload',
-            allow_ctas: 'Allow Ctas',
-            allow_cvas: 'Allow Cvas',
-            allow_dml: 'Allow Dml',
-            allow_run_async: 'Allow Run Async',
-            allows_cost_estimate: 'Allows Cost Estimate',
-            allows_subquery: 'Allows Subquery',
-            allows_virtual_table_explore: 'Allows Virtual Table Explore',
-            disable_data_preview: 'Disables SQL Lab Data Preview',
-            backend: 'Backend',
-            changed_on: 'Changed On',
-            changed_on_delta_humanized: 'Changed On Delta Humanized',
-            'created_by.first_name': 'Created By First Name',
-            'created_by.last_name': 'Created By Last Name',
-            database_name: 'Database Name',
-            explore_database_id: 'Explore Database Id',
-            expose_in_sqllab: 'Expose In Sqllab',
-            force_ctas_schema: 'Force Ctas Schema',
-            id: 'Id',
-          },
-          list_columns: [
-            'allow_file_upload',
-            'allow_ctas',
-            'allow_cvas',
-            'allow_dml',
-            'allow_run_async',
-            'allows_cost_estimate',
-            'allows_subquery',
-            'allows_virtual_table_explore',
-            'disable_data_preview',
-            'backend',
-            'changed_on',
-            'changed_on_delta_humanized',
-            'created_by.first_name',
-            'created_by.last_name',
-            'database_name',
-            'explore_database_id',
-            'expose_in_sqllab',
-            'force_ctas_schema',
-            'id',
-          ],
-          list_title: 'List Database',
-          order_columns: [
-            'allow_file_upload',
-            'allow_dml',
-            'allow_run_async',
-            'changed_on',
-            'changed_on_delta_humanized',
-            'created_by.first_name',
-            'database_name',
-            'expose_in_sqllab',
-          ],
-          result: [
-            {
-              allow_file_upload: false,
-              allow_ctas: false,
-              allow_cvas: false,
-              allow_dml: false,
-              allow_run_async: false,
-              allows_cost_estimate: null,
-              allows_subquery: true,
-              allows_virtual_table_explore: true,
-              disable_data_preview: false,
-              backend: 'postgresql',
-              changed_on: '2021-03-09T19:02:07.141095',
-              changed_on_delta_humanized: 'a day ago',
-              created_by: null,
-              database_name: 'test-postgres',
-              explore_database_id: 1,
-              expose_in_sqllab: true,
-              force_ctas_schema: null,
-              id: 1,
-            },
-            {
-              allow_csv_upload: false,
-              allow_ctas: false,
-              allow_cvas: false,
-              allow_dml: false,
-              allow_run_async: false,
-              allows_cost_estimate: null,
-              allows_subquery: true,
-              allows_virtual_table_explore: true,
-              disable_data_preview: false,
-              backend: 'mysql',
-              changed_on: '2021-03-09T19:02:07.141095',
-              changed_on_delta_humanized: 'a day ago',
-              created_by: null,
-              database_name: 'test-mysql',
-              explore_database_id: 1,
-              expose_in_sqllab: true,
-              force_ctas_schema: null,
-              id: 2,
-            },
-          ],
-        },
-      } as any;
+const fakeDatabaseApiResult = {
+  count: 2,
+  description_columns: {},
+  ids: [1, 2],
+  label_columns: {
+    allow_file_upload: 'Allow Csv Upload',
+    allow_ctas: 'Allow Ctas',
+    allow_cvas: 'Allow Cvas',
+    allow_dml: 'Allow Dml',
+    allow_run_async: 'Allow Run Async',
+    allows_cost_estimate: 'Allows Cost Estimate',
+    allows_subquery: 'Allows Subquery',
+    allows_virtual_table_explore: 'Allows Virtual Table Explore',
+    disable_data_preview: 'Disables SQL Lab Data Preview',
+    backend: 'Backend',
+    changed_on: 'Changed On',
+    changed_on_delta_humanized: 'Changed On Delta Humanized',
+    'created_by.first_name': 'Created By First Name',
+    'created_by.last_name': 'Created By Last Name',
+    database_name: 'Database Name',
+    explore_database_id: 'Explore Database Id',
+    expose_in_sqllab: 'Expose In Sqllab',
+    force_ctas_schema: 'Force Ctas Schema',
+    id: 'Id',
+  },
+  list_columns: [
+    'allow_file_upload',
+    'allow_ctas',
+    'allow_cvas',
+    'allow_dml',
+    'allow_run_async',
+    'allows_cost_estimate',
+    'allows_subquery',
+    'allows_virtual_table_explore',
+    'disable_data_preview',
+    'backend',
+    'changed_on',
+    'changed_on_delta_humanized',
+    'created_by.first_name',
+    'created_by.last_name',
+    'database_name',
+    'explore_database_id',
+    'expose_in_sqllab',
+    'force_ctas_schema',
+    'id',
+  ],
+  list_title: 'List Database',
+  order_columns: [
+    'allow_file_upload',
+    'allow_dml',
+    'allow_run_async',
+    'changed_on',
+    'changed_on_delta_humanized',
+    'created_by.first_name',
+    'database_name',
+    'expose_in_sqllab',
+  ],
+  result: [
+    {
+      allow_file_upload: false,
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+      allow_run_async: false,
+      allows_cost_estimate: null,
+      allows_subquery: true,
+      allows_virtual_table_explore: true,
+      disable_data_preview: false,
+      backend: 'postgresql',
+      changed_on: '2021-03-09T19:02:07.141095',
+      changed_on_delta_humanized: 'a day ago',
+      created_by: null,
+      database_name: 'test-postgres',
+      explore_database_id: 1,
+      expose_in_sqllab: true,
+      force_ctas_schema: null,
+      id: 1,
     },
-  );
+    {
+      allow_csv_upload: false,
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+      allow_run_async: false,
+      allows_cost_estimate: null,
+      allows_subquery: true,
+      allows_virtual_table_explore: true,
+      disable_data_preview: false,
+      backend: 'mysql',
+      changed_on: '2021-03-09T19:02:07.141095',
+      changed_on_delta_humanized: 'a day ago',
+      created_by: null,
+      database_name: 'test-mysql',
+      explore_database_id: 1,
+      expose_in_sqllab: true,
+      force_ctas_schema: null,
+      id: 2,
+    },
+  ],
+};
+
+const fakeSchemaApiResult = {
+  count: 2,
+  result: ['information_schema', 'public'],
+};
+
+const fakeFunctionNamesApiResult = {
+  function_names: [],
+};
+
+const databaseApiRoute = 'glob:*/api/v1/database/?*';
+const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
+const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
+
+function setupFetchMock() {
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult);
+  fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
+  fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
+}
+
+beforeEach(() => {
+  queryClient.clear();
+  setupFetchMock();
+});
+
+afterEach(() => {
+  fetchMock.reset();
 });
 
 test('Should render', async () => {
@@ -175,6 +183,8 @@ test('Refresh should work', async () => {
 
   render(<DatabaseSelector {...props} />, { useRedux: true });
 
+  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
+
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
   });
@@ -182,23 +192,22 @@ test('Refresh should work', async () => {
   userEvent.click(select);
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(2);
-    expect(props.getDbList).toBeCalledTimes(0);
+    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
+    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
-    expect(props.onSchemasLoad).toBeCalledTimes(0);
   });
 
+  // click schema reload
   userEvent.click(screen.getByRole('button', { name: 'refresh' }));
 
   await waitFor(() => {
-    expect(SupersetClientGet).toBeCalledTimes(3);
-    expect(props.getDbList).toBeCalledTimes(1);
+    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
+    expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
-    expect(props.onSchemasLoad).toBeCalledTimes(2);
   });
 });
 
@@ -214,9 +223,10 @@ test('Should database select display options', async () => {
 });
 
 test('should show empty state if there are no options', async () => {
-  SupersetClientGet.mockImplementation(
-    async () => ({ json: { result: [] } } as any),
-  );
+  fetchMock.reset();
+  fetchMock.get(databaseApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: [] });
+  fetchMock.get(tablesApiRoute, { result: [] });
   const props = createProps();
   render(
     <DatabaseSelector

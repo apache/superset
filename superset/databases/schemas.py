@@ -43,6 +43,15 @@ database_schemas_query_schema = {
     "properties": {"force": {"type": "boolean"}},
 }
 
+database_tables_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "schema_name": {"type": "string"},
+    },
+    "required": ["schema_name"],
+}
+
 database_name_description = "A database name to identify this connection."
 port_description = "Port number for the database connection."
 cache_timeout_description = (
@@ -470,6 +479,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    uuid = fields.String(required=False)
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
@@ -571,6 +581,12 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class DatabaseTablesResponse(Schema):
+    extra = fields.Dict(description="Extra data used to specify column metadata")
+    type = fields.String(description="table or view")
+    value = fields.String(description="The table or view name")
 
 
 class ValidateSQLRequest(Schema):

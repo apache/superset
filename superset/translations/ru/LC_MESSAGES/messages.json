@@ -5,7 +5,7 @@
       "22": ["22"],
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2)",
+        "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);",
         "lang": "ru"
       },
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
@@ -182,6 +182,11 @@
       ":": [":"],
       "< (Smaller than)": ["< (меньше чем)"],
       "<= (Smaller or equal)": ["<= (меньше или равно)"],
+      "<enter SQL expression here>": ["<введите SQL выражение>"],
+      "<new column>": ["<новый столбец>"],
+      "<new metric>": ["<новая мера>"],
+      "<new spatial>": ["<новая пространственная мера>"],
+      "<no type>": ["<без типа>"],
       "== (Is equal)": ["== (равно)"],
       "> (Larger than)": ["> (больше чем)"],
       ">= (Larger or equal)": [">= (больше или равно)"],
@@ -295,7 +300,6 @@
       "Add Log": ["Добавить запись"],
       "Add Metric": ["Добавить меру"],
       "Add Report": ["Добавить рассылку"],
-      "Add Rule": ["Добавить правило"],
       "Add Saved Query": ["Добавить сохраненный запрос"],
       "Add a Plugin": ["Добавить плагин"],
       "Add a dataset": ["Добавить датасет"],
@@ -350,6 +354,7 @@
         "Добавлено в %s дашбордов"
       ],
       "Additional Parameters": ["Дополнительные параметры"],
+      "Additional fields may be required": [""],
       "Additional information": ["Дополнительная информация"],
       "Additional metadata": ["Дополнительные метаданные"],
       "Additional padding for legend.": ["Дополнительный отступ для легенды"],
@@ -465,7 +470,7 @@
         "Разрешить управление базой данных, используя запросы UPDATE, DELETE, CREATE и т.п."
       ],
       "Allow multiple selections": ["Разрешить множественный выбор"],
-      "Allow node selections": [""],
+      "Allow node selections": ["Разрешить выбор вершин"],
       "Allow sending multiple polygons as a filter event": [""],
       "Allow this database to be explored": [
         "Разрешить изучение этой базы данных"
@@ -777,9 +782,6 @@
       "Are you sure you want to delete the selected queries?": [
         "Вы уверены, что хотите удалить выбранные запросы?"
       ],
-      "Are you sure you want to delete the selected rules?": [
-        "Вы уверены, что хотите удалить выбранные правила?"
-      ],
       "Are you sure you want to delete the selected templates?": [
         "Вы уверены, что хотите удалить выбранные шаблоны?"
       ],
@@ -834,7 +836,6 @@
       ],
       "Bar Values": ["Значения столбцов"],
       "Bar orientation": ["Направление столбцов"],
-      "Base": [""],
       "Base layer map style": [""],
       "Based on a metric": ["На основе меры"],
       "Based on granularity, number of time periods to compare against": [
@@ -969,7 +970,7 @@
       "Category Name": ["Имя категории"],
       "Category and Percentage": ["Категория и процентная доля"],
       "Category and Value": ["Категория и значение"],
-      "Category of target nodes": ["Категория целевых нод"],
+      "Category of target nodes": ["Категория целевых вершин"],
       "Category, Value and Percentage": [
         "Категория, значение и процентная доля"
       ],
@@ -1103,6 +1104,7 @@
       "Choose a source": ["Выберите источник"],
       "Choose a source and a target": ["Выберите источник и цель"],
       "Choose a target": ["Выберите цель"],
+      "Choose a unique name": [""],
       "Choose chart type": ["Выберите тип графика"],
       "Choose one of the available databases from the panel on the left.": [
         "Выберите одну из доступных баз данных из панели слева."
@@ -1375,9 +1377,6 @@
       "Copy the account name of that database you are trying to connect to.": [
         "Впишите имя профиля базы данных, к которой вы пытаетесь подключиться."
       ],
-      "Copy the name of the  HTTP Path of your cluster.": [
-        "Скопировать имя HTTP пути вашего кластера."
-      ],
       "Copy the name of the database you are trying to connect to.": [
         "Впишите имя базы данных, к которой вы пытаетесь подключиться"
       ],
@@ -1472,6 +1471,7 @@
         "Формат времени D3: https://github.com/d3/d3-time-format."
       ],
       "DATETIME": ["Дата/Время (DATETIME/TIMESTAMP)"],
+      "DB column %(col_name)s has unknown type: %(value_type)s": [""],
       "DEC": ["ДЕК"],
       "DELETE": ["УДАЛИТЬ"],
       "DML": ["DML"],
@@ -1495,6 +1495,9 @@
       "Dashboard properties": ["Свойства дашборда"],
       "Dashboard properties updated": ["Свойства дашборда обновлены"],
       "Dashboard scheme": ["Схема дашборда"],
+      "Dashboard time range filters apply to temporal columns defined in\n          the filter section of each chart. Add temporal columns to the chart\n          filters to have this dashboard filter impact those charts.": [
+        ""
+      ],
       "Dashboard title": ["Название дашборда"],
       "Dashboards": ["Дашборды"],
       "Dashboards added to": ["Добавлено в дашборды"],
@@ -1694,7 +1697,6 @@
       "Delete this container and save to remove this message.": [
         "Удалите этот контейнер и сохраните изменения, чтобы убрать это сообщение."
       ],
-      "Deleted": ["Удалено"],
       "Deleted %(num)d annotation": [
         "Удалалена %(num)d аннотация",
         "Удалалены %(num)d аннотации",
@@ -1730,17 +1732,11 @@
         "Удалены %(num)d расписания рассылок",
         "Удалено %(num)d расписаний рассылок"
       ],
-      "Deleted %(num)d rules": [
-        "Удалено %(num)d правило",
-        "Удалены %(num)d правила",
-        "Удалено %(num)d правил"
-      ],
       "Deleted %(num)d saved query": [
         "Удален %(num)d сохраненный запрос",
         "Удалены %(num)d сохраненных запроса",
         "Удалено %(num)d сохраненных запросов"
       ],
-      "Deleted %s": ["Удалено %s"],
       "Deleted: %s": ["Удалено: %s"],
       "Deleting a tab will remove all content within it. You may still reverse this action with the": [
         "Удаление вкладки удалит все ее содержимое. Вы можете отменить это действие при помощи сочетания клавиш"
@@ -1919,9 +1915,10 @@
       "END (EXCLUSIVE)": ["КОНЕЦ (НЕ ВКЛЮЧИТЕЛЬНО)"],
       "ERROR": ["ОШИБКА"],
       "ERROR: %s": ["ОШИБКА: %s"],
-      "Edge length": [""],
-      "Edge length between nodes": [""],
-      "Edge symbols": [""],
+      "Edge length": ["Длина ребер"],
+      "Edge length between nodes": ["Длина ребер между вершинами"],
+      "Edge symbols": ["Оформление ребер"],
+      "Edge width": ["Толщина ребра"],
       "Edit": ["Редактировать"],
       "Edit Alert": ["Редактировать оповещение"],
       "Edit CSS": ["Редактировать CSS"],
@@ -1937,7 +1934,6 @@
       "Edit Metric": ["Редактировать меру"],
       "Edit Plugin": ["Редактировать плагин"],
       "Edit Report": ["Редактировать отчет"],
-      "Edit Rule": ["Редактировать правило"],
       "Edit Saved Query": ["Редактировать сохраненный запрос"],
       "Edit Table": ["Редактировать таблицу"],
       "Edit annotation": ["Редактировать аннотацию"],
@@ -1986,18 +1982,18 @@
       "Empty collection": ["Пустая коллекция"],
       "Empty query result": ["Пустой ответ запроса"],
       "Empty query?": ["Пустой запрос?"],
+      "Empty row": [""],
       "Enable 'Allow file uploads to database' in any database's settings": [
         "Включите \"Разрешить загрузку файлов в базу данных\" в настройках любой базы данных"
       ],
-      "Enable dashboard cross filters": ["Включить кросс-фильтры для дашборда"],
       "Enable data zooming controls": [
         "Включить элементы управления масштабированием данных"
       ],
       "Enable embedding": ["Разрешить встраивание"],
       "Enable forecast": ["Включить прогноз в график"],
       "Enable forecasting": ["Включить прогнозирование данных"],
-      "Enable graph roaming": [""],
-      "Enable node dragging": [""],
+      "Enable graph roaming": ["Включить перемещение по графику"],
+      "Enable node dragging": ["Разрешить перемещение вершин"],
       "Enable query cost estimation": ["Разрешить оценку стоимости запроса"],
       "Enable server side pagination of results (experimental feature)": [
         "Включить серверную пагинацию результатов (экспериментально)"
@@ -2036,6 +2032,7 @@
       "Entity": ["Элемент"],
       "Entity ID": ["ID элемента"],
       "Equal Date Sizes": ["Одинаковые размеры дат"],
+      "Equal to (=)": [""],
       "Error": ["Ошибка"],
       "Error in jinja expression in HAVING clause: %(msg)s": [
         "Ошибка в jinja выражении в операторе HAVING: %(msg)s"
@@ -2153,6 +2150,7 @@
       "Failed at retrieving results": ["Невозможно выполнить запрос"],
       "Failed at stopping query. %s": ["Не удалось остановить запрос. %s"],
       "Failed to create report": ["Не удалось создать рассылку"],
+      "Failed to execute %(query)s": [""],
       "Failed to load chart data": ["Не удалось загрузить данные графика"],
       "Failed to load chart data.": ["Не удалось загрузить данные графика."],
       "Failed to retrieve advanced type": [
@@ -2264,7 +2262,7 @@
       "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
         ""
       ],
-      "Force": [""],
+      "Force": ["Силовой алгоритм"],
       "Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.": [
         "Принудить создание новых таблиц через CTAS или CVAS в Лаборатории SQL в этой схеме при нажатии соответствующих кнопок"
       ],
@@ -2293,8 +2291,8 @@
       "Found invalid orderby options": [""],
       "Fraction digits": ["Десятичные знаки"],
       "Frequency": ["Частота"],
-      "Friction": [""],
-      "Friction between nodes": [""],
+      "Friction": ["Трение"],
+      "Friction between nodes": ["Сила трения между вершинами"],
       "Friday": ["Пятница"],
       "From date cannot be larger than to date": [
         "Дата начала не может быть позже даты конца"
@@ -2326,8 +2324,8 @@
       "Gold": ["Золотой"],
       "Google Sheet Name and URL": ["Имя или URL Google Таблицы"],
       "Grace period": ["Перерыв между оповещением"],
-      "Graph Chart": [""],
-      "Graph layout": [""],
+      "Graph Chart": ["Сетевой график"],
+      "Graph layout": ["Формат сетевого графика"],
       "Gravity": ["Гравитация"],
       "Grid": ["Сетка"],
       "Grid Size": ["Размер сетки"],
@@ -2349,7 +2347,7 @@
       "Has created by": ["Создан(а)"],
       "Header": ["Заголовок"],
       "Header Row": ["Строка заголовка"],
-      "Heatmap": ["Тепловая карт"],
+      "Heatmap": ["Тепловая карта"],
       "Heatmap Options": ["Настройки тепловой карты"],
       "Height": ["Высота"],
       "Height of the sparkline": ["Высота спарклайна"],
@@ -2382,7 +2380,7 @@
       "ISO 3166-2 Codes": ["Коды ISO 3166-2"],
       "ISO 8601": ["ISO 8601"],
       "Id": ["ID"],
-      "Id of root node of the tree.": ["Id корневого узла дерева."],
+      "Id of root node of the tree.": ["Id корневой вершины дерева."],
       "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Если вы используете Presto или Trino, все запросы в Лаборатории SQL будут выполняться от авторизованного пользователя, который должен иметь разрешение на их выполнение. Если включены Hive и hive.server2.enable.doAs, то запросы будут выполняться через техническую учетную запись, но имперсонировать зарегистрированного пользователя можно через свойство hive.server2.proxy.user."
       ],
@@ -2401,9 +2399,6 @@
       ],
       "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
         "Если таблица уже существует, выберите действие: Ошибка (ничего не делать), Заменить (удалить и воссоздать таблицу) или Добавить (вставить данные)."
-      ],
-      "If you wish to specify a different target column than the original column, it can be entered here": [
-        "Если вы хотите указать другое целевой столбец, нежели исходный, вы можете ввести его тут"
       ],
       "Ignore cache when generating screenshot": [
         "Игнорировать кэш при создании скриншота"
@@ -2554,7 +2549,7 @@
       "Javascript tooltip generator": [
         "Javascript генератор всплывающих подсказок"
       ],
-      "Jinja templating": ["Шаблонизацию Jinja"],
+      "Jinja templating": ["Шаблонизацию Jinja."],
       "Json list of the column names that should be read": [
         "Список столбцов в формате JSON из файла, которые будут использованы."
       ],
@@ -2624,9 +2619,11 @@
       "Legend Orientation": ["Ориентация легенды"],
       "Legend Position": ["Расположение легенды"],
       "Legend type": ["Тип легенды"],
+      "Less than (<)": [""],
       "Lift percent precision": [""],
       "Light": ["Светлый"],
       "Light mode": ["Светлый режим"],
+      "Like": [""],
       "Limit reached": ["Достигнут предел"],
       "Limit selector values": [""],
       "Limit type": ["Тип ограничения"],
@@ -2749,10 +2746,10 @@
       "Mean values": ["Средние значения"],
       "Median": ["Медиана"],
       "Median edge width, the thickest edge will be 4 times thicker than the thinnest.": [
-        ""
+        "Медианная толщина ребра, самое толстое ребро будет в 4 раза толще самой тонкой."
       ],
       "Median node size, the largest node will be 4 times larger than the smallest": [
-        ""
+        "Медианный размер вершины, самая большая вершина будет в 4 раза больше самой маленькой."
       ],
       "Median values": ["Медианные значения"],
       "Medium": ["Средний"],
@@ -2772,7 +2769,7 @@
       ],
       "Metric descending": ["Мера по убыванию"],
       "Metric factor change from `since` to `until`": [""],
-      "Metric for node values": ["Мера для значений узлов"],
+      "Metric for node values": ["Мера для значений вершин"],
       "Metric name": ["Имя меры"],
       "Metric name [%s] is duplicated": ["Дубль имени меры [%s]"],
       "Metric percent change in value from `since` to `until`": [
@@ -2816,7 +2813,7 @@
       "Min Periods": ["Минимальный период"],
       "Min Width": ["Минимальная ширина"],
       "Min periods": ["Минимальный период"],
-      "Min/max (no outliers)": [""],
+      "Min/max (no outliers)": ["Мин/макс (без выбросов)"],
       "Mine": ["Мои"],
       "Minimum": ["Минимум"],
       "Minimum Font Size": ["Минимальный размер шрифта"],
@@ -2829,7 +2826,7 @@
         "Минимальный порог в процентных пунктах для отображения меток"
       ],
       "Minimum value for label to be displayed on graph.": [
-        "Минимальное значение для метки, отображаемой на графике"
+        "Минимальное значение метки для отображения на графике."
       ],
       "Minimum value on the gauge axis": ["Минимальное значение индикатора"],
       "Minor Split Line": ["Разметка полотна линиями"],
@@ -2856,7 +2853,7 @@
       "Multiple": ["Несколько"],
       "Multiple Line Charts": ["Несколько линейных диаграмм"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
-        ""
+        "Несколько расширений файлов столбчатого формата не разрешены к загрузке. Пожалуйста, убедитесь, что все файлы имеют одинаковое расширение."
       ],
       "Multiple filtering": ["Множественная фильтрация"],
       "Multiple formats accepted, look the geopy.points Python library for more details": [
@@ -2887,7 +2884,7 @@
       "NUMERIC": ["Числовой (NUMERIC/DECIMAL)"],
       "Name": ["Имя"],
       "Name is required": ["Имя обязательно"],
-      "Name must be unique": [""],
+      "Name must be unique": ["Имя должно быть уникальным"],
       "Name of table to be created from columnar data.": [
         "Имя таблицы, созданной из файла столбчатого формата."
       ],
@@ -2897,11 +2894,15 @@
       "Name of table to be created with CSV file": [
         "Имя таблицы, созданной из CSV файла."
       ],
-      "Name of the column containing the id of the parent node": [""],
+      "Name of the column containing the id of the parent node": [
+        "Имя столбца, содержащее id родительской вершины"
+      ],
       "Name of the id column": ["Имя столбца id"],
-      "Name of the source nodes": [""],
-      "Name of the table that exists in the source database": [""],
-      "Name of the target nodes": [""],
+      "Name of the source nodes": ["Имя исходных вершин"],
+      "Name of the table that exists in the source database": [
+        "Имя таблицы, которая существует в базе данных"
+      ],
+      "Name of the target nodes": ["Имя конечных вершин"],
       "Name your database": ["Дайте имя базе данных"],
       "Need help? Learn how to connect your database": [
         "Нужна помощь? Узнайте, как подключаться к вашей базе данных"
@@ -2920,12 +2921,10 @@
       "Next": ["Следующий"],
       "Nightingale Rose Chart": ["Диаграмма Найтингейл"],
       "No": ["Нет"],
-      "No %(tableName)s yet": ["Пока нет %(tableName)s"],
       "No %s yet": ["Пока нет %s"],
       "No Access!": ["Нет доступа!"],
       "No Data": ["Нет данных"],
       "No Results": ["Нет результатов"],
-      "No Rules yet": ["Пока нет правил"],
       "No annotation layers": ["Нет слоев аннотаций"],
       "No annotation layers yet": ["Пока нет слоев аннотаций"],
       "No annotation yet": ["Пока нет аннотаций"],
@@ -2996,18 +2995,19 @@
       "No validator named {} found (configured for the {} engine)": [
         "Не найден валидатор с именем {} (сконфигурированный для драйвера {})"
       ],
-      "Node label position": ["Расположение метки узла"],
-      "Node select mode": ["Режим выбора узлов"],
-      "Node size": ["Размер узла"],
+      "Node label position": ["Расположение метки вершины"],
+      "Node select mode": ["Режим выбора вершин"],
+      "Node size": ["Размер вершины"],
       "None": ["Пусто"],
-      "None -> Arrow": [""],
-      "None -> None": ["Пусто -> Пусто"],
+      "None -> Arrow": ["Ничего -> Стрелка"],
+      "None -> None": ["Ничего -> Ничего"],
       "Normal": ["Обычный"],
       "Normalize Across": [""],
-      "Normalized": [""],
+      "Normalized": ["Нормализовать"],
       "Not Time Series": ["Не временные ряды"],
       "Not added to any dashboard": ["Не добавлен ни в один дашборд"],
       "Not available": ["Не доступно"],
+      "Not equal to (≠)": ["Не равно (≠)"],
       "Not null": ["Не пусто"],
       "Not triggered": ["Условие не выполнялось"],
       "Not up to date": ["Не актуально"],
@@ -3138,9 +3138,6 @@
       "Open Datasource tab": ["Открыть вкладку источника данных"],
       "Open in SQL Lab": ["Открыть в SQL редакторе"],
       "Open query in SQL Lab": ["Открыть в SQL редакторе"],
-      "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
-        "Работа с базой данных в асинхронном режиме означает, что запросы исполняются на удалённых воркерах, а не на веб-сервере Superset. Это подразумевает, что у вас есть установка с воркерами Celery. Обратитесь к документации по настройке за дополнительной информацией."
-      ],
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         "Работа с базой данных в асинхронном режиме означает, что запросы исполняются на удалённых воркерах, а не на веб-сервере Superset. Это подразумевает, что у вас есть установка с воркерами Celery. Обратитесь к документации по настройке за дополнительной информацией."
       ],
@@ -3162,6 +3159,7 @@
       "Optional warning about use of this metric": [
         "Необязательное предупреждение об использовании этой меры"
       ],
+      "Optionally add a detailed description": [""],
       "Options": ["Опции"],
       "Or choose from a list of other databases we support:": [
         "Или выберите из списка других поддерживаемых баз данных:"
@@ -3331,6 +3329,7 @@
       ],
       "Please filter set name": ["Введите имя набора фильтров"],
       "Please re-enter the password.": ["Пожалуйста, введите пароль еще раз"],
+      "Please re-export your file and try importing again": [""],
       "Please reach out to the Chart Owner for assistance.": [
         "Пожалуйста, обратитесь к создателю графика за помощью.",
         "Пожалуйста, обратитесь к создателям графика за помощью.",
@@ -3375,7 +3374,9 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Порт %(port)s хоста \"%(hostname)s\" отказал в подключении."
       ],
-      "Position of child node label on tree": [""],
+      "Position of child node label on tree": [
+        "Расположение метки дочерней вершины на дереве"
+      ],
       "Position of column level subtotal": [
         "Расположение промежуточного итога на уровне столбца"
       ],
@@ -3451,8 +3452,6 @@
       "Query was stopped.": ["Запрос прерван"],
       "RANGE TYPE": ["ТИП ИНТЕРВАЛА"],
       "RGB Color": ["Цвет RGB"],
-      "RLS Rule could not be deleted.": ["Не удалось удалить правило RLS."],
-      "RLS Rule not found.": ["Правило RLS не найдено"],
       "Radar": ["Радар"],
       "Radar Chart": ["Диаграмма радар"],
       "Radar render type, whether to display 'circle' shape.": [""],
@@ -3511,9 +3510,6 @@
       "Refresh the default values": ["Обновить значения по умолчанию"],
       "Refreshing charts": ["Обновление графиков"],
       "Refreshing columns": ["Обновление столбцов"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "Обычные фильтры добавляют операторы where к запросам, если пользователь принадлежит к роли, на которую ссылается фильтр. Базовые фильтры применяют фильтры ко всем запросам, кроме ролей, определенных в фильтре, и могут использоваться для определения того, что пользователи могут видеть, если к ним не применяются фильтры RLS в группе фильтров."
-      ],
       "Relational": ["Относительный"],
       "Relationships between community channels": [""],
       "Relative Date/Time": ["Относительная дата/время"],
@@ -3587,8 +3583,8 @@
       "Report sent": ["Отчет отправлен"],
       "Report updated": ["Отчет обновлен"],
       "Reports": ["Отчеты"],
-      "Repulsion": [""],
-      "Repulsion strength between nodes": [""],
+      "Repulsion": ["Отталкивание"],
+      "Repulsion strength between nodes": ["Сила отталкивания вершин"],
       "Request Permissions": [""],
       "Request is incorrect: %(error)s": ["Неверный запрос: %(error)s"],
       "Request is not JSON": ["Запрос не является JSON"],
@@ -3639,9 +3635,6 @@
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
         "Список ролей, определяющий доступ к дашборду. Предоставляя доступ определенной роли, пользователь сможет обойти ограничения своей роли. Если роли не указаны, дашборд доступен всем ролям."
       ],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles defined then the dashboard is available to all roles.": [
-        "Список ролей, определяющий доступ к дашборду. Предоставляя доступ определенной роли, пользователь сможет обойти ограничения своей роли. Если роли не указаны, дашборд доступен всем ролям."
-      ],
       "Roles to grant": ["Роли для предоставления"],
       "Rolling Function": ["Скользящая средняя"],
       "Rolling Window": ["Скользящее окно"],
@@ -3671,8 +3664,6 @@
       "Rows subtotal position": ["Расположение строк подытогов"],
       "Rows to Read": ["Строки для чтения"],
       "Rule": ["Правило"],
-      "Rule Name": ["Название правила"],
-      "Rule added": ["Правило добавлено"],
       "Run": ["Выполнить"],
       "Run a query to display query history": [
         "Выполните запрос для отображения истории"
@@ -3686,6 +3677,7 @@
       "Run query in a new tab": ["Выполнить запрос на новой вкладке"],
       "Run selection": ["Выполнить выбранное"],
       "Running": ["Выполняется"],
+      "Running statement %(statement_num)s out of %(statement_count)s": [""],
       "SAT": ["СБ"],
       "SEP": ["СЕН"],
       "SHA": [""],
@@ -3713,6 +3705,7 @@
       "SSH Tunnel parameters are invalid.": [
         "Параметры SSH туннеля недопустимы."
       ],
+      "SSH Tunneling is not enabled": [""],
       "SSL Mode \"require\" will be used.": [
         "Будет использовано шифрование SSL"
       ],
@@ -3928,6 +3921,9 @@
       "Set auto-refresh interval": ["Задать интервал обновления"],
       "Set filter mapping": ["Установить действие фильтра"],
       "Set up an email report": ["Запланировать рассылку по почте"],
+      "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
+        ""
+      ],
       "Settings": ["Настройки"],
       "Settings for time series": ["Настройки временных рядов"],
       "Share": ["Поделиться"],
@@ -3991,7 +3987,7 @@
       "Show info tooltip": ["Показать информационную подсказку"],
       "Show label": ["Показывать метку"],
       "Show labels when the node has children.": [
-        "Показывать метки, когда у узла есть дочерние элементы"
+        "Показывать метки, когда у вершины есть дочерние элементы."
       ],
       "Show legend": ["Показывать легенду"],
       "Show less columns": ["Показать меньше столбцов"],
@@ -4123,7 +4119,7 @@
       "Source": ["Источник"],
       "Source / Target": ["Источник / Цель"],
       "Source SQL": ["Исходный SQL"],
-      "Source category": ["Категория источника"],
+      "Source category": ["Исходная категория"],
       "Sparkline": ["Спарклайн"],
       "Spatial": [""],
       "Specific Date/Time": ["Конкретная дата/время"],
@@ -4170,6 +4166,7 @@
         "Начать ось Y в нуле. Снимите флаг, чтобы ось Y начиналась на минимальном значении данных"
       ],
       "State": ["Состояние"],
+      "Statement %(statement_num)s out of %(statement_count)s": [""],
       "Statistical": ["Статистический учет"],
       "Status": ["Статус"],
       "Step - end": [""],
@@ -4184,7 +4181,9 @@
       "Stop running (Ctrl + x)": ["Остановить выполнение (CTRL + X)"],
       "Stopped an unsafe database connection": [""],
       "Streets": ["Схема"],
-      "Strength to pull the graph toward center": [""],
+      "Strength to pull the graph toward center": [
+        "Сила притяжения вершин к центру"
+      ],
       "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [
         "Имя листа (по умолчанию первый лист)"
@@ -4203,6 +4202,7 @@
       "Submit": ["Отправить"],
       "Subtotal": ["Подытог"],
       "Success": ["Успешно"],
+      "Successfully changed dataset!": [""],
       "Suffix to apply after the percentage display": [
         "Текст после отображения процентной доли"
       ],
@@ -4232,10 +4232,10 @@
       "Swap Groups and Columns": ["Поменять местами группы и столбцы"],
       "Swap dataset": ["Сменить датасет"],
       "Swap rows and columns": ["Поменять местами строки и столбцы"],
-      "Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
+      "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
-      "Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.": [
+      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
       "Symbol": [""],
@@ -4245,9 +4245,6 @@
       "TABLES": ["ТАБЛИЦЫ"],
       "THU": ["ЧТ"],
       "TUE": ["ВТ"],
-      "TYPE \"OVERWRITE\" TO CONFIRM": [
-        "Введите \"ПЕРЕЗАПИСАТЬ\" для подтверждения"
-      ],
       "Tab name": ["Имя вкладки"],
       "Tab title": ["Имя вкладки"],
       "Table": ["Таблица"],
@@ -4304,11 +4301,15 @@
         "Диаграмма принимает данные в формате GeoJSON и отображает их в виде интерактивных полигонов, линий и точек (кругов, значков и/или текста)."
       ],
       "The URL is missing the dataset_id or slice_id parameters.": [""],
+      "The X-axis is not on the filters list": [""],
+      "The X-axis is not on the filters list which will prevent it from being used in\n            time range filters in dashboards. Would you like to add it to the filters list?": [
+        ""
+      ],
       "The access requests seem to have been deleted": [""],
       "The annotation has been saved": ["Аннотация сохранена"],
       "The annotation has been updated": ["Аннотация обновлена"],
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
-        ""
+        "Категория исходных вершин предназначена для задания цветов. Если вершина связана более, чем с одной категорией, только первая будет использована."
       ],
       "The chart datasource does not exist": [
         "Источник данных графика не существует"
@@ -4451,9 +4452,6 @@
       ],
       "The number of rows displayed is limited to %(rows)d by the query and limit dropdown.": [
         "Количество отображаемых строк ограничено: не более %(rows)d."
-      ],
-      "The number of rows displayed is limited to %s by the dropdown.": [
-        "Количество отображаемых строк ограничено: не более %s."
       ],
       "The number of seconds before expiring the cache": [
         "Количество секунд до истечения срока действия кэша"
@@ -4655,9 +4653,6 @@
       "There was an issue deleting %s: %s": [
         "Произошла ошибка при удалении %s: %s"
       ],
-      "There was an issue deleting rules: %s": [
-        "Произошла ошибка при удалении правил: %s"
-      ],
       "There was an issue deleting the selected %s: %s": [
         "Произошла ошибка при удалении выбранных %s: %s"
       ],
@@ -4816,6 +4811,9 @@
       "This filter doesn't exist in dashboard. It will not be applied.": [
         "Этот фильтр не существует в дашборде. Он не будет применен."
       ],
+      "This filter is the last temporal filter. If you proceed,\n          this chart won't be affected by time range filters in dashboards.": [
+        ""
+      ],
       "This filter might be incompatible with current dataset": [
         "Этот фильтр может быть несовместим с этим датасетом"
       ],
@@ -4840,9 +4838,6 @@
       "This may be triggered by:": ["Возможные причины:"],
       "This metric might be incompatible with current dataset": [
         "Эта мера может быть несовместима с этим датасетом"
-      ],
-      "This section allows you to configure how to use the slice\n               to generate annotations.": [
-        "Этот раздел позволяет вам настроить использования графика для создания аннотаций."
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "В этом разделе содержатся параметры, которые позволяют производить аналитическую постобработку результатов запроса"
@@ -4988,7 +4983,8 @@
       "Top left": ["Сверху слева"],
       "Top right": ["Сверху справа"],
       "Top to Bottom": ["Сверху вниз"],
-      "Total": ["Общий итог"],
+      "Total (%(aggfunc)s)": [""],
+      "Total (%(aggregatorName)s)": [""],
       "Total: %s": ["Итого: %s"],
       "Totals": ["Общая сумма"],
       "Track job": ["Отслеживать работу"],
@@ -5470,7 +5466,9 @@
       "Whether to display the timestamp": ["Отображение временную метку"],
       "Whether to display the trend line": ["Отображение трендовой линии"],
       "Whether to enable changing graph position and scaling.": [""],
-      "Whether to enable node dragging in force layout mode.": [""],
+      "Whether to enable node dragging in force layout mode.": [
+        "Включить перемещение вершин в режиме силового алгоритма."
+      ],
       "Whether to fill the objects": ["Использовать заливку для объектов"],
       "Whether to ignore locations that are null": [
         "Игнорировать местоположения, которые не содержат данных о расположении"
@@ -5681,6 +5679,9 @@
       ],
       "You have removed this filter.": ["Вы удалили фильтр."],
       "You have unsaved changes.": ["У вас есть несохраненные изменения."],
+      "You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.": [
+        ""
+      ],
       "You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.": [
         "Вы должны быть владельцем датасета для его редактирования. Пожалуйста, обратитесь к владельцу с просьбой предоставить доступ."
       ],
@@ -5732,6 +5733,7 @@
       ],
       "[Untitled]": ["[Без названия]"],
       "[dashboard name]": ["[имя дашборда]"],
+      "[desc]": [""],
       "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
         "[необязательно] вторичная мера используется для определения цвета как доли по отношению к основной мере. Если не выбрано, цвет задается согласно имени категории"
       ],
@@ -5765,7 +5767,9 @@
       "at": ["в"],
       "auto": ["Автоматически"],
       "auto (Smooth)": ["Автоматически (плавно)"],
+      "background": [""],
       "below (example:": ["ниже (пример:"],
+      "between {down} and {up} {name}": [""],
       "bfill": ["bfill (заполняет пропуски предыдущими значениями)"],
       "bolt": [""],
       "boolean type icon": [""],
@@ -5787,12 +5791,14 @@
       ],
       "column": ["столбец"],
       "connecting to %(dbModelName)s.": ["подключении к %(dbModelName)s"],
+      "count": ["количество"],
       "create": ["создать"],
       "create a new chart": ["создать новый график"],
       "create dataset from SQL query": ["создайте датасет из SQL запроса"],
       "css": ["css"],
       "css_template": ["шаблон_css"],
       "cumsum": ["Кумулятивная сумма"],
+      "cumulative": ["кумулятивно"],
       "dashboard": ["дашборд"],
       "dashboards": ["дашборды(ов)"],
       "database": ["база данных"],
@@ -5807,8 +5813,8 @@
       "deck.gl Geojson": ["deck.gl GeoJSON"],
       "deck.gl Grid": ["deck.gl Сетка"],
       "deck.gl Multiple Layers": ["deck.gl Многослойный"],
-      "deck.gl Polygon": ["deck.gl - Полигон"],
-      "deck.gl Scatterplot": ["deck.gl - Точечная карта"],
+      "deck.gl Polygon": ["deck.gl Полигон"],
+      "deck.gl Scatterplot": ["deck.gl Точечная карта"],
       "deckGL": ["Карта deckGL"],
       "default": ["по умолчанию"],
       "delete": ["удалить"],
@@ -5822,7 +5828,9 @@
       "e.g. ********": ["например, ********"],
       "e.g. 127.0.0.1": ["например, 127.0.0.1"],
       "e.g. 5432": ["например, 5432"],
+      "e.g. AccountAdmin": [""],
       "e.g. Analytics": ["например, Analytics"],
+      "e.g. compute_wh": [""],
       "e.g. param1=value1&param2=value2": [
         "например, параметр1=значение1&параметр2=значение2"
       ],
@@ -5853,7 +5861,9 @@
       "geohash (square)": [""],
       "green": ["Зеленая"],
       "heatmap": ["тепловая карта"],
-      "heatmap: values are normalized across the entire heatmap": [""],
+      "heatmap: values are normalized across the entire heatmap": [
+        "тепловая карта: значения нормализованы внутри всей карты"
+      ],
       "here": ["здесь"],
       "hour": ["час"],
       "id": ["идентификатор"],
@@ -5876,6 +5886,7 @@
       "last year": ["последний год"],
       "latest partition:": ["последний раздел:"],
       "left": ["слева"],
+      "less than {min} {name}": [""],
       "log": ["журнал"],
       "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile.": [
         "Нижний процентиль должен быть больше 0 и меньше 100. Должен быть ниже верхнего процентиля"
@@ -5888,6 +5899,7 @@
       "minute": ["минута"],
       "minute(s)": ["минут"],
       "month": ["месяц"],
+      "more than {max} {name}": [""],
       "must have a value": ["значение обязательно"],
       "name": ["имя"],
       "no SQL validator is configured": ["не настроен ни один SQL валидатор"],
@@ -5908,7 +5920,7 @@
       "page_size.all": [""],
       "page_size.entries": [""],
       "page_size.show": [""],
-      "percentile (exclusive)": [""],
+      "percentile (exclusive)": ["перцентиль (исключая)"],
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         ""
       ],
@@ -5930,7 +5942,6 @@
       "reports": ["рассылки"],
       "restore zoom": ["восстановить масштабирование"],
       "right": ["справа"],
-      "rowlevelsecurity": ["Безопасность на уровне строк"],
       "saved queries": ["сохраненные(ых) запросы(ов)"],
       "seconds": ["секунд"],
       "series": ["категории"],
@@ -5946,6 +5957,7 @@
       "syntax.": [""],
       "temporal type icon": [""],
       "textarea": ["текстовая область"],
+      "to": ["по"],
       "top": ["сверху"],
       "undo": ["отмены"],
       "unknown type icon": [""],
@@ -5963,9 +5975,13 @@
       "week ending Saturday": ["неделя, заканчивающаяся в субботу"],
       "week starting Sunday": ["неделя, начинающаяся в воскресенье"],
       "x": ["x"],
-      "x: values are normalized within each column": [""],
+      "x: values are normalized within each column": [
+        "x: значения нормализованы внутри каждого столбца"
+      ],
       "y": ["y"],
-      "y: values are normalized within each row": [""],
+      "y: values are normalized within each row": [
+        "y: значения нормализованы внутри каждой строки"
+      ],
       "year": ["год"],
       "yellow": ["Желтая"],
       "zoom area": ["область масштабирования"]

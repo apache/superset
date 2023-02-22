@@ -19,7 +19,8 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { List, AutoSizer } from 'react-virtualized';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { FixedSizeList as List } from 'react-window';
 import { createFilter } from 'react-search-input';
 import {
   t,
@@ -333,13 +334,14 @@ class SliceAdder extends React.Component {
                 <List
                   width={width}
                   height={height}
-                  rowCount={this.state.filteredSlices.length}
-                  rowHeight={DEFAULT_CELL_HEIGHT}
-                  rowRenderer={this.rowRenderer}
+                  itemCount={this.state.filteredSlices.length}
+                  itemSize={DEFAULT_CELL_HEIGHT}
                   searchTerm={this.state.searchTerm}
                   sortBy={this.state.sortBy}
                   selectedSliceIds={this.props.selectedSliceIds}
-                />
+                >
+                  {this.rowRenderer}
+                </List>
               )}
             </AutoSizer>
           </ChartList>

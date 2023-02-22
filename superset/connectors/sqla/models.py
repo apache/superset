@@ -92,7 +92,7 @@ from superset.connectors.sqla.utils import (
     validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
-from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
@@ -212,7 +212,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
-        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     is_dttm = Column(Boolean, default=False)
     expression = Column(MediumText())
@@ -456,7 +455,6 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
-        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     expression = Column(MediumText(), nullable=False)
     extra = Column(Text)
@@ -560,13 +558,11 @@ class SqlaTable(
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
-        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
     )
     metrics: Mapped[List[SqlMetric]] = relationship(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
-        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
     )
     metric_class = SqlMetric
     column_class = TableColumn
@@ -768,7 +764,7 @@ class SqlaTable(
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        # todo(yongjie): create a pysical table column type in seprated PR
+        # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
             return get_virtual_table_metadata(dataset=self)  # type: ignore
         return get_physical_table_metadata(
@@ -934,7 +930,7 @@ class SqlaTable(
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
-            table(CTE_ALIAS)
+            table(self.db_engine_spec.cte_alias)
             if cte
             else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
         )

@@ -50,12 +50,11 @@ export default function DatasetLayout({
     <StyledLayoutWrapper data-test="dataset-layout-wrapper">
       {header && <StyledLayoutHeader>{header}</StyledLayoutHeader>}
       <OuterRow>
-        <LeftColumn>
-          {leftPanel && (
+        {leftPanel && (
+          <LeftColumn>
             <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
-          )}
-        </LeftColumn>
-
+          </LeftColumn>
+        )}
         <RightColumn>
           <PanelRow>
             {datasetPanel && (

@@ -91,16 +91,22 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(Integer)
+    object_id = Column(
+        Integer,
+        ForeignKey("dashboards.id"),
+        ForeignKey("slices.id"),
+        ForeignKey("saved_query.id"),
+    )
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", backref="objects")
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
-    tag = session.query(Tag).filter_by(name=name, type=type_).one_or_none()
+    tag_name = name.strip()
+    tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=name, type=type_)
+        tag = Tag(name=tag_name, type=type_)
         session.add(tag)
         session.commit()
     return tag
@@ -269,7 +275,7 @@ class FavStarUpdater:
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
-        name = "favorited_by:{0}".format(target.user_id)
+        name = f"favorited_by:{target.user_id}"
         query = (
             session.query(TaggedObject.id)
             .join(Tag)

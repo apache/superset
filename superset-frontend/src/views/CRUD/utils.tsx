@@ -66,6 +66,10 @@ import { WelcomeTable } from './welcome/types';
   risonRef.next_id = new RegExp(idrx, 'g');
 })();
 
+export const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 const createFetchResourceMethod =
   (method: string) =>
   (
@@ -178,7 +182,7 @@ export const getUserOwnedObjects = (
     endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
   }).then(res => res.json?.result);
 
-export const getRecentAcitivtyObjs = (
+export const getRecentActivityObjs = (
   userId: string | number,
   recent: string,
   addDangerToast: (arg1: string, arg2: any) => any,

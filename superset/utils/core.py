@@ -364,24 +364,9 @@ class RowLevelSecurityFilterType(str, Enum):
     BASE = "Base"
 
 
-class TemporalType(str, Enum):
-    """
-    Supported temporal types
-    """
-
-    DATE = "DATE"
-    DATETIME = "DATETIME"
-    SMALLDATETIME = "SMALLDATETIME"
-    TEXT = "TEXT"
-    TIME = "TIME"
-    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
-    TIMESTAMP = "TIMESTAMP"
-    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
-
-
 class ColumnTypeSource(Enum):
     GET_TABLE = 1
-    CURSOR_DESCRIPION = 2
+    CURSOR_DESCRIPTION = 2
 
 
 class ColumnSpec(NamedTuple):
@@ -1715,7 +1700,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
 
 def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     """
-    Extract the columns that a list of metrics are referencing. Expcludes all
+    Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
 
     :param metrics: Ad-hoc metric

@@ -44,7 +44,6 @@ from superset.reports.notifications.exceptions import (
     NotificationUnprocessableException,
 )
 from superset.utils.decorators import statsd_gauge
-from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +62,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _message_template(self, table: str = "") -> str:
-        url = (
-            modify_url_query(self._content.url, standalone="0")
-            if self._content.url is not None
-            else ""
-        )
         return __(
             """*%(name)s*
 
@@ -79,7 +73,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 """,
             name=self._content.name,
             description=self._content.description or "",
-            url=url,
+            url=self._content.url,
             table=table,
         )
 

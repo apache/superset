@@ -328,7 +328,7 @@ const DndMetricSelect = (props: any) => {
       }
       return new AdhocMetric(config);
     }
-    return new AdhocMetric({ isNew: true });
+    return new AdhocMetric({});
   }, [droppedItem]);
 
   const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
@@ -370,6 +370,7 @@ const DndMetricSelect = (props: any) => {
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
+        isNew
       >
         <div />
       </AdhocMetricPopoverTrigger>

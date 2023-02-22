@@ -30,7 +30,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app, g
-from sqlalchemy import Column, text
+from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -45,10 +45,12 @@ from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
+    from pyhive.hive import Cursor
+    from TCLIService.ttypes import TFetchOrientation
+
     from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -94,7 +96,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine_name = "Apache Hive"
     max_column_name_length = 767
     allows_alias_to_source_column = True
-    allows_hidden_ordeby_agg = False
+    allows_hidden_orderby_agg = False
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -140,12 +142,10 @@ class HiveEngineSpec(PrestoEngineSpec):
             ttypes as patched_ttypes,
         )
 
-        from superset.db_engines import hive as patched_hive
-
         hive.TCLIService = patched_TCLIService
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
-        hive.Cursor.fetch_logs = patched_hive.fetch_logs
+        hive.Cursor.fetch_logs = fetch_logs
 
     @classmethod
     def fetch_data(
@@ -249,10 +249,11 @@ class HiveEngineSpec(PrestoEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm
                 .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
         return None
@@ -490,7 +491,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
-        # the configuraiton dictionary. See get_configuration_for_impersonation
+        # the configuration dictionary. See get_configuration_for_impersonation
         return url
 
     @classmethod
@@ -611,3 +612,50 @@ class HiveEngineSpec(PrestoEngineSpec):
             cursor.execute(sql)
             results = cursor.fetchall()
             return {row[0] for row in results}
+
+
+# TODO: contribute back to pyhive.
+def fetch_logs(  # pylint: disable=protected-access
+    self: "Cursor",
+    _max_rows: int = 1024,
+    orientation: Optional["TFetchOrientation"] = None,
+) -> str:
+    """Mocked. Retrieve the logs produced by the execution of the query.
+    Can be called multiple times to fetch the logs produced after
+    the previous call.
+    :returns: list<str>
+    :raises: ``ProgrammingError`` when no query has been started
+    .. note::
+        This is not a part of DB-API.
+    """
+    # pylint: disable=import-outside-toplevel
+    from pyhive import hive
+    from TCLIService import ttypes
+    from thrift import Thrift
+
+    orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT
+    try:
+        req = ttypes.TGetLogReq(operationHandle=self._operationHandle)
+        logs = self._connection.client.GetLog(req).log
+        return logs
+    # raised if Hive is used
+    except (ttypes.TApplicationException, Thrift.TApplicationException) as ex:
+        if self._state == self._STATE_NONE:
+            raise hive.ProgrammingError("No query yet") from ex
+        logs = []
+        while True:
+            req = ttypes.TFetchResultsReq(
+                operationHandle=self._operationHandle,
+                orientation=ttypes.TFetchOrientation.FETCH_NEXT,
+                maxRows=self.arraysize,
+                fetchType=1,  # 0: results, 1: logs
+            )
+            response = self._connection.client.FetchResults(req)
+            hive._check_status(response)
+            assert not response.results.rows, "expected data in columnar format"
+            assert len(response.results.columns) == 1, response.results.columns
+            new_logs = hive._unwrap_column(response.results.columns[0])
+            logs += new_logs
+            if not new_logs:
+                break
+        return "\n".join(logs)

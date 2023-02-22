@@ -692,6 +692,61 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    def test_update_chart_linked_with_not_owned_dashboard(self):
+        """
+        Chart API: Test update chart which is linked to not owned dashboard
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        chart = self.insert_chart("title", [user_alpha1.id], 1)
+
+        original_dashboard = Dashboard()
+        original_dashboard.dashboard_title = "Original Dashboard"
+        original_dashboard.slug = "slug"
+        original_dashboard.owners = [user_alpha1]
+        original_dashboard.slices = [chart]
+        original_dashboard.published = False
+        db.session.add(original_dashboard)
+
+        new_dashboard = Dashboard()
+        new_dashboard.dashboard_title = "Cloned Dashboard"
+        new_dashboard.slug = "new_slug"
+        new_dashboard.owners = [user_alpha2]
+        new_dashboard.slices = [chart]
+        new_dashboard.published = False
+        db.session.add(new_dashboard)
+
+        self.login(username="alpha1", password="password")
+        chart_data_with_invalid_dashboard = {
+            "slice_name": "title1_changed",
+            "dashboards": [original_dashboard.id, 0],
+        }
+        chart_data = {
+            "slice_name": "title1_changed",
+            "dashboards": [original_dashboard.id, new_dashboard.id],
+        }
+        uri = f"api/v1/chart/{chart.id}"
+
+        rv = self.put_assert_metric(uri, chart_data_with_invalid_dashboard, "put")
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"dashboards": ["Dashboards do not exist"]}}
+        self.assertEqual(response, expected_response)
+
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        db.session.delete(chart)
+        db.session.delete(original_dashboard)
+        db.session.delete(new_dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
     def test_update_chart_validate_datasource(self):
         """
         Chart API: Test update validate datasource

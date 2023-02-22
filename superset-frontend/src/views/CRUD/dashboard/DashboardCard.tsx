@@ -19,11 +19,10 @@
 import React from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
-import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles } from 'src/views/CRUD/utils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
@@ -36,33 +35,27 @@ interface DashboardCardProps {
   dashboard: Dashboard;
   hasPerm: (name: string) => boolean;
   bulkSelectEnabled: boolean;
-  refreshData: () => void;
   loading: boolean;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
   openDashboardEditModal?: (d: Dashboard) => void;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
-  dashboardFilter?: string;
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
+  onDelete: (dashboard: Dashboard) => void;
 }
 
 function DashboardCard({
   dashboard,
   hasPerm,
   bulkSelectEnabled,
-  dashboardFilter,
-  refreshData,
   userId,
-  addDangerToast,
-  addSuccessToast,
   openDashboardEditModal,
   favoriteStatus,
   saveFavoriteStatus,
   showThumbnails,
   handleBulkDashboardExport,
+  onDelete,
 }: DashboardCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -100,37 +93,15 @@ function DashboardCard({
       )}
       {canDelete && (
         <Menu.Item>
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={
-              <>
-                {t('Are you sure you want to delete')}{' '}
-                <b>{dashboard.dashboard_title}</b>?
-              </>
-            }
-            onConfirm={() =>
-              handleDashboardDelete(
-                dashboard,
-                refreshData,
-                addSuccessToast,
-                addDangerToast,
-                dashboardFilter,
-                userId,
-              )
-            }
+          <div
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={() => onDelete(dashboard)}
+            data-test="dashboard-card-option-delete-button"
           >
-            {confirmDelete => (
-              <div
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={confirmDelete}
-                data-test="dashboard-card-option-delete-button"
-              >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
-              </div>
-            )}
-          </ConfirmStatusChange>
+            <Icons.Trash iconSize="l" /> {t('Delete')}
+          </div>
         </Menu.Item>
       )}
     </Menu>

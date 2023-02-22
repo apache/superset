@@ -60,7 +60,7 @@ cron-descriptor==1.2.24
     # via apache-superset
 croniter==1.0.15
     # via apache-superset
-cryptography==39.0.0
+cryptography==39.0.1
     # via
     #   apache-superset
     #   paramiko
@@ -173,7 +173,7 @@ packaging==21.3
     # via
     #   bleach
     #   deprecation
-pandas==1.5.2
+pandas==1.5.3
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel

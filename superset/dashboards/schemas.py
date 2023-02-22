@@ -149,6 +149,12 @@ class RolesSchema(Schema):
     name = fields.String()
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
+
+
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
@@ -168,6 +174,7 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
+    tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
 
