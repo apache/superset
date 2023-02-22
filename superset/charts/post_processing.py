@@ -39,6 +39,11 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
+from superset import (
+    app
+)
+
+config = app.config
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -368,7 +373,7 @@ def apply_post_process(
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf)
+            processed_df.to_csv(buf, **config["CSV_INDEX"])
             buf.seek(0)
             query["data"] = buf.getvalue()
 
