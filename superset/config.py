@@ -748,7 +748,7 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
 
-#It Is used for enable/disable the index sequence for csv which came at runtime,
+#It Is used for enable/disable the index sequence for csv which came at email-time,
 #rearly someone want the index in csv so by-default it is false
 CSV_INDEX={"index":False}
 
