@@ -170,7 +170,7 @@ helm install my-superset superset/superset
 | supersetNode.deploymentAnnotations | object | `{}` | Annotations to be added to supersetNode deployment |
 | supersetNode.deploymentLabels | object | `{}` | Labels to be added to supersetNode deployment |
 | supersetNode.env | object | `{}` |  |
-| supersetNode.extraContainers | list | `[]` |  |
+| supersetNode.extraContainers | list | `[]` | Launch additional containers into supersetNode pod |
 | supersetNode.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
 | supersetNode.initContainers | list | a container waiting for postgres | Init containers |
 | supersetNode.livenessProbe.failureThreshold | int | `3` |  |
@@ -248,7 +248,7 @@ helm install my-superset superset/superset
 | supersetWorker.containerSecurityContext | object | `{}` |  |
 | supersetWorker.deploymentAnnotations | object | `{}` | Annotations to be added to supersetWorker deployment |
 | supersetWorker.deploymentLabels | object | `{}` | Labels to be added to supersetWorker deployment |
-| supersetWorker.extraContainers | list | `[]` |  |
+| supersetWorker.extraContainers | list | `[]` | Launch additional containers into supersetWorker pod |
 | supersetWorker.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
 | supersetWorker.initContainers | list | a container waiting for postgres and redis | Init container |
 | supersetWorker.livenessProbe.exec.command | list | a `celery inspect ping` command | Liveness probe command |
