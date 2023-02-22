@@ -191,7 +191,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: enable=using-constant-test
 
-    @property  # type: ignore
+    @property
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
