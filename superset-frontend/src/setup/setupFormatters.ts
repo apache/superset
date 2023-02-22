@@ -89,7 +89,7 @@ export default function setupFormatters() {
           grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
           currency: ['', ''],
         },
-        formatString: '$,.2f',
+        formatString: '$,.0f',
       }),
     );
 
