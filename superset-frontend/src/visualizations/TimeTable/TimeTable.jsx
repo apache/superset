@@ -26,7 +26,6 @@ import {
   InfoTooltipWithTrigger,
   MetricOption,
 } from '@superset-ui/chart-controls';
-import moment from 'moment';
 import sortNumericValues from 'src/utils/sortNumericValues';
 
 import FormattedNumber from './FormattedNumber';
