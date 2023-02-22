@@ -60,7 +60,7 @@ cron-descriptor==1.2.24
     # via apache-superset
 croniter==1.0.15
     # via apache-superset
-cryptography==39.0.0
+cryptography==39.0.1
     # via
     #   apache-superset
     #   paramiko
