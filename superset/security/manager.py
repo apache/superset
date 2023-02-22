@@ -99,7 +99,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(\d+)\)$")
+DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
 class DatabaseAndSchema(NamedTuple):
@@ -608,7 +608,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         perms = self.user_view_menu_names("database_access")
         return [
-            int(match[1])
+            int(match.group("id"))
             for perm in perms
             if (match := DATABASE_PERM_REGEX.match(perm))
         ]
