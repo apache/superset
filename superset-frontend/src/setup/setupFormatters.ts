@@ -77,6 +77,18 @@ export default function setupFormatters() {
           grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
           currency: ['₹', ''],
         },
+        formatString: '$,.0f',
+      }),
+    )
+    .registerValue(
+      'NUMBER_INDIA',
+      createD3NumberFormatter({
+        locale: {
+          decimal: '.',
+          thousands: ',',
+          grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+          currency: ['', ''],
+        },
         formatString: '$,.2f',
       }),
     );
