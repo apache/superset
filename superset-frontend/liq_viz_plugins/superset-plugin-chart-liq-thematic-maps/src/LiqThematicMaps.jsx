@@ -24,6 +24,8 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
+import entity from '../../liq_data/entity.json';
+
 const defaults = require('./defaultLayerStyles.js')
 
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
@@ -88,6 +90,11 @@ export default function LiqThematicMaps(props) {
 
   const rootElem = createRef();
 
+  const geocodeMarker = document.createElement('img');
+  geocodeMarker.height = 50;
+  geocodeMarker.width = 50;
+  geocodeMarker.src = '/static/liq_pin_geocode_marker.svg';
+
   const mapContainer = useRef(null);
   const map = useRef(null);
 
@@ -95,6 +102,19 @@ export default function LiqThematicMaps(props) {
   const [colorMap, setColorMap] = useState({});
   const [mapPos, setMapPos] = useState({lng: 151.2, lat: -33.8, zoom: 9});
   const [renderedIntranetLayers, setRenderedIntranetLayers] = useState([]);
+
+  const forwardGeocoder = (query) => {
+    const matchingFeatures = [];
+    for (const feature of entity.features) {
+      if (feature.properties.name.toLowerCase().includes(query.toLowerCase())) {
+        feature['place_name'] = feature.properties.name;
+        feature['center'] = feature.geometry.coordinates;
+        feature['local'] = true;
+        matchingFeatures.push(feature)
+      }
+    }
+    return matchingFeatures;
+  }
 
   const loadIntranetLayers = (layers) => {
     layers.forEach(layer => {
@@ -113,7 +133,6 @@ export default function LiqThematicMaps(props) {
   };
 
   const initMap = () => {
-    // Load map with light style and center on Sydney
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
@@ -135,6 +154,25 @@ export default function LiqThematicMaps(props) {
         countries: 'au',
         marker: {
           color: '#BB1431'
+          // element: geocodeMarker
+        },
+        localGeocoder: forwardGeocoder,
+        minLength: 4,
+        limit: 10,
+        render: (item) => {
+          const src = item.local ?
+            '/static/liq_pin_geocode_result.svg' :
+              item.properties.maki ?  
+                `https://unpkg.com/@mapbox/maki@6.1.0/icons/${item.properties.maki}-15.svg` :
+                'https://unpkg.com/@mapbox/maki@6.1.0/icons/marker-15.svg';
+          return `
+            <div class='geocoder-dropdown-item'>
+              <img class='geocoder-dropdown-icon' src='${src}' width=24 height=24 />
+              <span class='geocoder-dropdown-text'>
+                ${item.place_name}
+              </span>
+            </div>
+          `
         }
       })
     );
@@ -186,7 +224,7 @@ export default function LiqThematicMaps(props) {
         lng: lng.toFixed(4),
         lat: lat.toFixed(4),
         zoom: zoom
-      }
+      };
       setMapPos({...newMapPos});
     });
   }
@@ -204,7 +242,7 @@ export default function LiqThematicMaps(props) {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 
-    var raw = (!breaksMode || breaksMode === 'Custom') ? JSON.stringify({
+    var raw = (!breaksMode || breaksMode === 'custom') ? JSON.stringify({
       'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
       'breaks': customMode,
       'values': data.map(d => d[metricCol]),
@@ -247,7 +285,7 @@ export default function LiqThematicMaps(props) {
     map.current.resize();
   }, [width, height])
 
-  // Refresh map from scratch everytime there is new data
+  // Refresh map from scratch everytime there is new data or the base style is changed
   useEffect(() => {
     if (map.current) instigateReload();
   }, [data, mapStyle])

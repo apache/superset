@@ -53,7 +53,7 @@ const intranetImgs = {
     'hs_home': '/static/mm_png/hs_home.png',
     'jbhifi': '/static/mm_png/jbhifi.png',
     'kathmandu': '/static/mm_png/kathmandu.png',
-    'mecca_coesmetica': '/static/mm_png/mecca_cosmetica.png',
+    'mecca_cosmetica': '/static/mm_png/mecca_cosmetica.png',
     'priceline_pharmacy': '/static/mm_png/priceline_pharmacy.png',
     'rebel_sports': '/static/mm_png/rebel_sports.png',
     'rivers': '/static/mm_png/rivers.png',
