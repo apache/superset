@@ -67,7 +67,7 @@ class AdhocMetricOption extends React.PureComponent {
       multi,
       datasourceWarningMessage,
     } = this.props;
-    console.log('hello');
+
     return (
       <AdhocMetricPopoverTrigger
         adhocMetric={adhocMetric}
