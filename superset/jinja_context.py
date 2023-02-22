@@ -30,7 +30,6 @@ from typing import (
     Union,
 )
 
-from superset.constants import LRU_CACHE_MAX_SIZE
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
@@ -39,6 +38,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager

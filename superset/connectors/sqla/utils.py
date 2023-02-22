@@ -33,7 +33,6 @@ from typing import (
 from uuid import UUID
 
 import sqlparse
-from superset.constants import LRU_CACHE_MAX_SIZE
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
@@ -42,6 +41,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
