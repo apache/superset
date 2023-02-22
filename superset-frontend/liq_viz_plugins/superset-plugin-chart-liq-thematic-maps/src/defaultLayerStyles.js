@@ -62,7 +62,13 @@ const intranetImgs = {
     'the_reject_shop': '/static/mm_png/the_reject_shop.png',
     'tk_maxx': '/static/mm_png/tk_maxx.png',
     'uniqlo': '/static/mm_png/uniqlo.png',
-    'zara': '/static/mm_png/zara.png' 
+    'zara': '/static/mm_png/zara.png',
+    'aldi_liquor': '/static/liquor_png/aldi_liquor.png',
+    'bws': '/static/liquor_png/bws.png',
+    'iga_liquor': '/static/liquor_png/iga_liquor.png',
+    'liquorland': '/static/liquor_png/liquorland.png',
+    'vintage_cellars': '/static/liquor_png/vintage_cellars.png',
+    'other_liquor': '/static/liquor_png/others.png'
 }
 
 const iconSizeExprs = {
@@ -255,6 +261,24 @@ const iconExprs = {
         ['==', ['get', 'tenant_id'], 22168],
         'zara',
         ''
+    ],
+    'liquor': [
+        'case',
+        ['==', ['get', 'tenant_id'], 10154],
+        'liquorland',
+        ['==', ['get', 'tenant_id'], 2494],
+        'bws',
+        ['==', ['get', 'tenant_id'], 93808],
+        'iga_liquor',
+        ['==', ['get', 'tenant_id'], 39252],
+        'aldi_liquor',
+        ['==', ['get', 'tenant_id'], 18514],
+        'vintage_cellars',
+        ['==', ['get', 'tenant_id'], 6058],
+        'first_choice_liquor',
+        ['==', ['get', 'tenant_id'], 4492],
+        'dan_murphys',
+        'other_liquor'
     ]
 }
 
