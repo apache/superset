@@ -249,6 +249,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  controlOverrides: {
+    linear_color_scheme: {
+      renderTrigger: false
+    }
+  }
 };
 
 export default config;
