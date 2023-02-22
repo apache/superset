@@ -146,7 +146,7 @@ export default function LiqThematicMaps(props) {
     map.current.dragRotate.disable();
     map.current.touchZoomRotate.disable();
 
-    // Add geocoder
+    // Add geocoder with custom local geocoding and dropdown render
     map.current.addControl(
       new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,

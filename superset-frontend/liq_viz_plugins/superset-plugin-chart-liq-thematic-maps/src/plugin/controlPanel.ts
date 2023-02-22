@@ -132,7 +132,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Thematic Settings'),
+      label: t('Map Style Settings'),
       expanded: true,
       controlSetRows: [
         [
@@ -155,7 +155,40 @@ const config: ControlPanelConfig = {
               label: t('Base Map Style')
             }
           }
-        ],
+        ]
+      ]
+    },
+    {
+      label: t('Base Layer Settings'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'intranet_layers',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              renderTrigger: true,
+              label: t('Intranet Layers'),
+              description: t('Various retail, non-retail & infrastructure layers from the LIQ Database.'),
+              choices: [
+                ['shopping_centres', 'Shopping Centres'],
+                ['department_stores', 'Department Stores'],
+                ['discount_department_stores', 'Discount Department Stores'],
+                ['large_format_retail', 'Large Format Retail'],
+                ['mini_majors', 'Mini Majors'],
+                ['supermarkets', 'Supermarkets'],
+                ['liquor', 'Liquor']
+              ]
+            }
+          }
+        ]
+      ]
+    },
+    {
+      label: t('Thematic Settings'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'boundary',
@@ -180,27 +213,6 @@ const config: ControlPanelConfig = {
               description: t('ABS boundaries'),
             },
           },
-        ],
-        [
-          {
-            name: 'intranet_layers',
-            config: {
-              type: 'SelectControl',
-              multi: true,
-              renderTrigger: true,
-              label: t('Intranet Layers'),
-              description: t('Various retail, non-retail & infrastructure layers from the LIQ Database.'),
-              choices: [
-                ['shopping_centres', 'Shopping Centres'],
-                ['department_stores', 'Department Stores'],
-                ['discount_department_stores', 'Discount Department Stores'],
-                ['large_format_retail', 'Large Format Retail'],
-                ['mini_majors', 'Mini Majors'],
-                ['supermarkets', 'Supermarkets'],
-                ['liquor', 'Liquor']
-              ]
-            }
-          }
         ],
         ['linear_color_scheme'],
         [
@@ -248,6 +260,11 @@ const config: ControlPanelConfig = {
         ]
       ],
     },
+    {
+      label: t('Trade Area Settings'),
+      expanded: true,
+      controlSetRows: []
+    }
   ],
   controlOverrides: {
     linear_color_scheme: {
