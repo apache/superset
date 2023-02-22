@@ -1674,11 +1674,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and self.main_dttm_col != dttm_col.column_name
             ):
                 time_filters.append(
-                    # columns_by_name[self.main_dttm_col].get_time_filter(
-                    #     start_dttm=from_dttm,
-                    #     end_dttm=to_dttm,
-                    #     template_processor=template_processor,
-                    # )
                     self.get_time_filter(
                         time_col=columns_by_name[self.main_dttm_col],
                         start_dttm=from_dttm,
@@ -1694,14 +1689,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 template_processor=template_processor,
             )
             time_filters.append(time_filter_column)
-
-            # time_filters.append(
-            #     dttm_col.get_time_filter(
-            #         start_dttm=from_dttm,
-            #         end_dttm=to_dttm,
-            #         template_processor=template_processor,
-            #     )
-            # )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
