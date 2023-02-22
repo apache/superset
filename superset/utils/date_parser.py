@@ -46,7 +46,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.constants import NO_TIME_RANGE
+from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
 ParserElement.enablePackrat()
 
@@ -394,7 +394,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         )
 
 
-@lru_cache()
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,

@@ -55,7 +55,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK
+from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -723,7 +723,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @lru_cache()
+    @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:

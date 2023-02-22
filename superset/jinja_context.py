@@ -30,6 +30,7 @@ from typing import (
     Union,
 )
 
+from constants import LRU_CACHE_MAX_SIZE
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
@@ -69,7 +70,7 @@ ALLOWED_TYPES = (
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 
-@lru_cache()
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> Dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
@@ -601,7 +602,7 @@ DEFAULT_PROCESSORS = {
 }
 
 
-@lru_cache()
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():

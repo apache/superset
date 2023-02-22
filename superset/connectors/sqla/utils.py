@@ -33,6 +33,7 @@ from typing import (
 from uuid import UUID
 
 import sqlparse
+from constants import LRU_CACHE_MAX_SIZE
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
@@ -200,12 +201,12 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-@lru_cache()
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_dialect_name(drivername: str) -> str:
     return SqlaURL.create(drivername).get_dialect().name
 
 
-@lru_cache()
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
     return SqlaURL.create(drivername).get_dialect()().identifier_preparer.quote
 
