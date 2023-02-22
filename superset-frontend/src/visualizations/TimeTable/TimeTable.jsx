@@ -162,6 +162,7 @@ const TimeTable = ({
 
       return (
         <SparklineCell
+          ariaLabel={`spark-${valueField}`}
           width={parseInt(column.width, 10) || 300}
           height={parseInt(column.height, 10) || 50}
           data={sparkData}

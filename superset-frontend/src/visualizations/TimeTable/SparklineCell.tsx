@@ -37,13 +37,14 @@ import {
 } from '@visx/xychart';
 
 interface Props {
+  ariaLabel: string;
   dataKey: string;
   className?: string;
   data: Array<number>;
   entries: Array<any>;
   height: number;
-  numberFormat?: string;
-  dateFormat?: string;
+  numberFormat: string;
+  dateFormat: string;
   renderTooltip: ({ index }: { index: number }) => React.ReactNode;
   showYAxis: boolean;
   width: number;
@@ -80,6 +81,7 @@ function isValidBoundValue(value?: number | string) {
 }
 
 const SparklineCell = ({
+  ariaLabel,
   dataKey,
   data,
   width = 300,
@@ -160,6 +162,7 @@ const SparklineCell = ({
   return (
     <>
       <XYChart
+        accessibilityLabel={ariaLabel}
         width={width}
         height={height}
         margin={margin}
