@@ -75,7 +75,7 @@ export default function setupFormatters() {
           decimal: '.',
           thousands: ',',
           grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-          currency: ['₹', '']
+          currency: ['₹', ''],
         },
         formatString: '$,.2f',
       }),
