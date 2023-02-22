@@ -114,6 +114,7 @@
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/preset-chart-xy": "file:./plugins/preset-chart-xy",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
+    "@visx/axis": "^3.0.1",
     "@visx/grid": "^3.0.1",
     "@visx/responsive": "^3.0.0",
     "@visx/scale": "^3.0.0",

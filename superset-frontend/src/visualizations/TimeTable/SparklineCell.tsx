@@ -20,32 +20,24 @@
 import React from 'react';
 import moment from 'moment';
 import {
-  css,
   formatNumber,
   formatTime,
   getTextDimension,
   useTheme,
 } from '@superset-ui/core';
-import {
-  Sparkline,
-  LineSeries,
-  PointSeries,
-  HorizontalReferenceLine,
-  VerticalReferenceLine,
-  WithTooltip,
-} from '@data-ui/sparkline';
 import { GridRows } from '@visx/grid';
-import { scaleLinear } from '@visx/scale';
+import { LinearScaleConfig, scaleLinear } from '@visx/scale';
+import { AxisScaleOutput } from '@visx/axis';
 import {
   Axis,
-  LineSeries as NewLineSeries,
+  LineSeries,
   Tooltip,
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
 
 interface Props {
-  ariaLabel: string;
+  dataKey: string;
   className?: string;
   data: Array<number>;
   entries: Array<any>;
@@ -58,30 +50,11 @@ interface Props {
   yAxisBounds: Array<number | undefined>;
 }
 
-interface TooltipProps {
-  onMouseLeave: () => void;
-  onMouseMove: () => void;
-  tooltipData: {
-    index: number;
-  };
-}
-
-interface Yscale {
-  min?: number;
-  max?: number;
-}
-
 const MARGIN = {
   top: 8,
   right: 8,
   bottom: 8,
   left: 8,
-};
-const tooltipProps = {
-  style: {
-    opacity: 0.8,
-  },
-  offsetTop: 0,
 };
 
 function getSparklineTextWidth(text: string) {
@@ -107,7 +80,7 @@ function isValidBoundValue(value?: number | string) {
 }
 
 const SparklineCell = ({
-  ariaLabel,
+  dataKey,
   data,
   width = 300,
   height = 50,
@@ -116,7 +89,6 @@ const SparklineCell = ({
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
-  renderTooltip = () => <div />,
 }: Props) => {
   const theme = useTheme();
   const xyTheme = buildChartTheme({
@@ -127,49 +99,43 @@ const SparklineCell = ({
     tickLength: 6,
   });
 
-  function renderHorizontalReferenceLine(value?: number, label?: string) {
-    return (
-      <HorizontalReferenceLine
-        reference={value}
-        labelPosition="right"
-        renderLabel={() => label}
-        stroke="#bbb"
-        strokeDasharray="3 3"
-        strokeWidth={1}
-      />
-    );
-  }
-
-  const yScale: Yscale = {};
+  const yScaleConfig: LinearScaleConfig<AxisScaleOutput> = {
+    type: 'linear',
+    zero: false,
+  };
   let hasMinBound = false;
   let hasMaxBound = false;
+  let min: number = data.reduce(
+    (acc, current) => Math.min(acc, current),
+    data[0],
+  );
+  let max: number = data.reduce(
+    (acc, current) => Math.max(acc, current),
+    data[0],
+  );
 
   if (yAxisBounds) {
     const [minBound, maxBound] = yAxisBounds;
     hasMinBound = isValidBoundValue(minBound);
     if (hasMinBound) {
-      yScale.min = minBound;
+      if (minBound !== undefined && minBound <= 0) {
+        yScaleConfig.zero = true;
+      }
+      min = minBound || min;
     }
+
     hasMaxBound = isValidBoundValue(maxBound);
     if (hasMaxBound) {
-      yScale.max = maxBound;
+      max = maxBound || max;
     }
+    yScaleConfig.domain = [min, max];
   }
 
-  let min: number | undefined;
-  let max: number | undefined;
   let minLabel: string;
   let maxLabel: string;
   let labelLength = 0;
   if (showYAxis) {
-    const [minBound, maxBound] = yAxisBounds;
-    min = hasMinBound
-      ? minBound
-      : data.reduce((acc, current) => Math.min(acc, current), data[0]);
-    max = hasMaxBound
-      ? maxBound
-      : data.reduce((acc, current) => Math.max(acc, current), data[0]);
-
+    yScaleConfig.domain = [min, max];
     minLabel = formatNumber(numberFormat, min);
     maxLabel = formatNumber(numberFormat, max);
     labelLength = Math.max(
@@ -183,9 +149,7 @@ const SparklineCell = ({
     right: MARGIN.right + labelLength,
   };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
-
-  const newData = data.map((num, idx) => ({
+  const chartData = data.map((num, idx) => ({
     x: idx,
     y: num,
   }));
@@ -195,48 +159,13 @@ const SparklineCell = ({
 
   return (
     <>
-      <WithTooltip
-        tooltipProps={tooltipProps}
-        hoverStyles={null}
-        renderTooltip={renderTooltip}
-      >
-        {({ onMouseLeave, onMouseMove, tooltipData }: TooltipProps) => (
-          <Sparkline
-            ariaLabel={ariaLabel}
-            width={width}
-            height={height}
-            margin={margin}
-            data={data}
-            onMouseLeave={onMouseLeave}
-            onMouseMove={onMouseMove}
-            {...yScale}
-          >
-            {showYAxis && renderHorizontalReferenceLine(min, minLabel)}
-            {showYAxis && renderHorizontalReferenceLine(max, maxLabel)}
-            <LineSeries showArea={false} stroke="#767676" />
-            {tooltipData && (
-              <VerticalReferenceLine
-                reference={tooltipData.index}
-                strokeDasharray="3 3"
-                strokeWidth={1}
-              />
-            )}
-            {tooltipData && (
-              <PointSeries
-                points={[tooltipData.index]}
-                fill="#767676"
-                strokeWidth={1}
-              />
-            )}
-          </Sparkline>
-        )}
-      </WithTooltip>
-
       <XYChart
         width={width}
         height={height}
         margin={margin}
-        yScale={{ type: 'linear', zero: false }}
+        yScale={{
+          ...yScaleConfig,
+        }}
         xScale={{ type: 'band', paddingInner: 0.5 }}
         theme={xyTheme}
       >
@@ -263,9 +192,9 @@ const SparklineCell = ({
             tickValues={[min, max]}
           />
         )}
-        <NewLineSeries
-          data={newData}
-          dataKey={ariaLabel}
+        <LineSeries
+          data={chartData}
+          dataKey={dataKey}
           xAccessor={xAccessor}
           yAccessor={yAccessor}
         />
@@ -281,7 +210,7 @@ const SparklineCell = ({
             strokeWidth: 1,
           }}
           renderTooltip={({ tooltipData }) => {
-            const idx = tooltipData?.datumByKey[ariaLabel].index;
+            const idx = tooltipData?.datumByKey[dataKey].index;
             return (
               <div>
                 <strong>
