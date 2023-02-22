@@ -216,7 +216,7 @@ export const SaveDatasetModal = ({
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
-          all_columns: datasource?.columns?.map(column => column.name),
+          all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
     ]);
