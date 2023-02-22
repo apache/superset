@@ -151,7 +151,7 @@ const config: ControlPanelConfig = {
                 ['mapbox://styles/mapbox/navigation-day-v1', 'Navigation Day'],
                 ['mapbox://styles/mapbox/navigation-night-v1', 'Navigation Night']
               ],
-              renderTrigger: false,
+              renderTrigger: true,
               label: t('Base Map Style')
             }
           }
@@ -187,7 +187,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               multi: true,
-              renderTrigger: false,
+              renderTrigger: true,
               label: t('Intranet Layers'),
               description: t('Various retail, non-retail & infrastructure layers from the LIQ Database.'),
               choices: [

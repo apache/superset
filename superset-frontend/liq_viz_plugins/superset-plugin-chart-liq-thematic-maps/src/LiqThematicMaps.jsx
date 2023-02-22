@@ -93,6 +93,108 @@ export default function LiqThematicMaps(props) {
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]);
   const [colorMap, setColorMap] = useState({});
+  const [mapPos, setMapPos] = useState({lng: 151.2, lat: -33.8, zoom: 9});
+  const [renderedIntranetLayers, setRenderedIntranetLayers] = useState([]);
+
+  const loadIntranetLayers = (layers) => {
+    layers.forEach(layer => {
+      map.current.addLayer({
+        'id': layer,
+        'type': 'symbol',
+        'source': 'intranet_tileset',
+        'source-layer': layer,
+        'layout': {
+          'icon-image': iconExprs[layer],
+          'icon-allow-overlap': true,
+          'icon-size': layer in iconSizeExprs ? iconSizeExprs[layer] : 0.46 
+        }
+      });
+    });
+  };
+
+  const initMap = () => {
+    // Load map with light style and center on Sydney
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
+      center: [mapPos.lng, mapPos.lat],
+      zoom: mapPos.zoom    
+    });
+    
+    map.current.setProjection('mercator');
+
+    // Disable rotating
+    map.current.dragRotate.disable();
+    map.current.touchZoomRotate.disable();
+
+    // Add geocoder
+    map.current.addControl(
+      new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        countries: 'au',
+        marker: {
+          color: '#BB1431'
+        }
+      })
+    );
+
+    Object.keys(intranetImgs).forEach(k => {
+      map.current.loadImage(intranetImgs[k], (error, img) => {
+        if (error) throw error;
+        map.current.addImage(k, img);
+      });
+    });
+
+    // Load map tiles and their default styles
+    map.current.on('load', () => {
+
+      map.current.addSource('boundary_tileset', {
+        'type': 'vector',
+        'url': liqSecrets.mapbox.tilesets.boundary
+      });
+
+      map.current.addSource('intranet_tileset', {
+        'type': 'vector',
+        'url': liqSecrets.mapbox.tilesets.intranet
+      });
+
+      map.current.addLayer({
+        'id': 'boundary_tileset',
+        'type': 'fill',
+        'source': 'boundary_tileset',
+        'source-layer': boundary,
+        'layout': {},
+        'paint': layerStyles.boundaryStyle
+      });
+
+      loadIntranetLayers(intranetLayers);
+      setRenderedIntranetLayers([...intranetLayers]);
+
+    });
+
+    // When the map is moved around, get rendered tile features and store them in state for styling
+    map.current.on('data', () => {
+      const bdryIds = getCurrBdryIds(map, boundary, groupCol);
+      setCurrBdryIDs([...bdryIds]);
+    });
+
+    map.current.on('move', () => {
+      const {lng, lat} = map.current.getCenter();
+      const zoom = map.current.getZoom().toFixed(2);
+      const newMapPos = {
+        lng: lng.toFixed(4),
+        lat: lat.toFixed(4),
+        zoom: zoom
+      }
+      setMapPos({...newMapPos});
+    });
+  }
+
+  const instigateReload = () => {
+    map.current.remove();
+    map.current = null;
+  }
 
   // When color map settings change, update state and map
   useEffect(() => {
@@ -147,99 +249,26 @@ export default function LiqThematicMaps(props) {
 
   // Refresh map from scratch everytime there is new data
   useEffect(() => {
-    if (map.current) {
-      map.current.remove();
-      map.current = null;
-    } 
-  }, [data])
+    if (map.current) instigateReload();
+  }, [data, mapStyle])
+
+  // Add or remove intranet layers in real time
+  useEffect(() => {
+    if (!map.current) return;
+    renderedIntranetLayers.forEach(l => {
+      map.current.removeLayer(l);
+    });
+    loadIntranetLayers(intranetLayers);
+    setRenderedIntranetLayers([...intranetLayers]);
+  }, [intranetLayers])
 
   // Main map initialization hook
   useEffect(() => {
 
     if (map.current) return;
-    
-    // Load map with light style and center on Sydney
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
-      center: [151.2, -33.8],
-      zoom: 9    
-    });
-    
-    map.current.setProjection('mercator');
-
-    // Disable rotating
-    map.current.dragRotate.disable();
-    map.current.touchZoomRotate.disable();
-
-    // Add geocoder
-    map.current.addControl(
-      new MapboxGeocoder({
-        accessToken: mapboxgl.accessToken,
-        mapboxgl: mapboxgl,
-        countries: 'au',
-        marker: {
-          color: '#BB1431'
-        }
-      })
-    );
-
-    Object.keys(intranetImgs).forEach(k => {
-      map.current.loadImage(intranetImgs[k], (error, img) => {
-        if (error) throw error;
-        map.current.addImage(k, img);
-      });
-    });
-
-    // Load map tiles and their default styles
-    map.current.on('load', () => {
-
-      map.current.addSource('boundary_tileset', {
-        'type': 'vector',
-        'url': liqSecrets.mapbox.tilesets.boundary
-      });
-
-      map.current.addSource('intranet_tileset', {
-        'type': 'vector',
-        'url': liqSecrets.mapbox.tilesets.intranet
-      });
-
-      map.current.addLayer({
-        'id': 'boundary_tileset',
-        'type': 'fill',
-        'source': 'boundary_tileset',
-        'source-layer': boundary,
-        'layout': {},
-        'paint': layerStyles.boundaryStyle
-      });
-
-      intranetLayers.forEach(layer => {
-        map.current.addLayer({
-          'id': layer,
-          'type': 'symbol',
-          'source': 'intranet_tileset',
-          'source-layer': layer,
-          'layout': {
-            'icon-image': iconExprs[layer],
-            'icon-allow-overlap': true,
-            'icon-size': layer in iconSizeExprs ? iconSizeExprs[layer] : 0.46 
-          }
-        });
-      });
-
-    });
-
-    // When the map is moved around, get rendered tile features and store them in state for styling
-    map.current.on('data', () => {
-      const bdryIds = getCurrBdryIds(map, boundary, groupCol);
-      setCurrBdryIDs([...bdryIds]);
-    });
+    initMap();
 
   });
-
-  useEffect(() => {
-    map.current.setStyle(mapStyle);
-  }, [mapStyle])
 
   // Hook for styling rendered tiles via feature state
   useEffect(() => {
