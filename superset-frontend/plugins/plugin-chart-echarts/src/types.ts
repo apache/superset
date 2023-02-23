@@ -18,9 +18,9 @@
  */
 import React, { RefObject } from 'react';
 import {
-  BinaryQueryObjectFilterClause,
   ChartDataResponseResult,
   ChartProps,
+  ContextMenuFilters,
   FilterState,
   HandlerFunction,
   PlainObject,
@@ -124,7 +124,7 @@ export interface BaseTransformedProps<F> {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
   filterState?: FilterState;
@@ -146,7 +146,7 @@ export type ContextMenuTransformedProps = {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
 };
