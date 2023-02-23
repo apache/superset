@@ -1977,7 +1977,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericErrorException(
                 __(
                     "One or more required fields are missing in the request. Please try "
-                    "again, and if the problem persists conctact your administrator."
+                    "again, and if the problem persists contact your administrator."
                 ),
                 status=400,
             ) from ex
@@ -2363,7 +2363,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),
+            config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
 

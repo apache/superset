@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
 import logging
 from typing import Any, cast, List, TypedDict
 
 import pandas as pd
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 
 from superset import app, db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
@@ -31,7 +30,6 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
-from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
 
 config = app.config
@@ -74,7 +72,7 @@ class SqlResultExportCommand(BaseCommand):
 
         try:
             self._query.raise_for_access()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
             raise SupersetErrorException(
                 SupersetError(
                     message=__("Cannot access the query"),
@@ -82,7 +80,7 @@ class SqlResultExportCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=403,
-            )
+            ) from ex
 
     def run(
         self,

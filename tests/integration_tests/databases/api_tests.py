@@ -884,9 +884,9 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.views.core.app.config",
         {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
     )
-    def test_create_database_fail_sqllite(self):
+    def test_create_database_fail_sqlite(self):
         """
-        Database API: Test create fail with sqllite
+        Database API: Test create fail with sqlite
         """
         database_data = {
             "database_name": "test-create-sqlite-database",
@@ -1378,7 +1378,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         example_db = get_example_database()
-        # sqllite will not raise a NoSuchTableError
+        # sqlite will not raise a NoSuchTableError
         if example_db.backend == "sqlite":
             return
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"

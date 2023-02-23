@@ -529,15 +529,18 @@ class Header extends React.PureComponent {
             isStarred: this.props.isStarred,
             showTooltip: true,
           }}
-          titlePanelAdditionalItems={
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              isPublished={isPublished}
-              savePublished={this.props.savePublished}
-              canEdit={userCanEdit}
-              canSave={userCanSaveAs}
-            />
-          }
+          titlePanelAdditionalItems={[
+            !editMode && (
+              <PublishedStatus
+                dashboardId={dashboardInfo.id}
+                isPublished={isPublished}
+                savePublished={this.props.savePublished}
+                canEdit={userCanEdit}
+                canSave={userCanSaveAs}
+                visible={!editMode}
+              />
+            ),
+          ]}
           rightPanelAdditionalItems={
             <div className="button-container">
               {userCanSaveAs && (
@@ -684,7 +687,7 @@ class Header extends React.PureComponent {
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
-          showTitlePanelItems={!editMode}
+          showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
           <PropertiesModal

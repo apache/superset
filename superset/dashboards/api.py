@@ -61,6 +61,7 @@ from superset.dashboards.filters import (
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
+    DashboardTagFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -187,6 +188,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "is_managed_externally",
     ]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
@@ -212,20 +215,37 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
 
     search_columns = (
-        "created_by",
-        "changed_by",
-        "dashboard_title",
-        "id",
-        "owners",
-        "published",
-        "roles",
-        "slug",
+        (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+            "tags",
+        )
+        if is_feature_enabled("TAGGING_SYSTEM")
+        else (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+        )
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        search_filters["tags"] = [DashboardTagFilter]
+
     base_order = ("changed_on", "desc")
 
     add_model_schema = DashboardPostSchema()

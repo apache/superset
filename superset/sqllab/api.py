@@ -68,7 +68,7 @@ class SqlLabRestApi(BaseSupersetApi):
     resource_name = "sqllab"
     allow_browser_login = True
 
-    class_permission_name = "Query"
+    class_permission_name = "SQLLab"
 
     execute_model_schema = ExecutePayloadSchema()
 
@@ -121,9 +121,7 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         result = SqlResultExportCommand(client_id=client_id).run()
 
-        query = result.get("query")
-        data = result.get("data")
-        row_count = result.get("count")
+        query, data, row_count = result["query"], result["data"], result["count"]
 
         quoted_csv_name = parse.quote(query.name)
         response = CsvResponse(
@@ -292,7 +290,7 @@ class SqlLabRestApi(BaseSupersetApi):
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),
+            config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
@@ -41,6 +41,9 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import TagType from 'src/types/TagType';
+import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
+import { loadTags } from 'src/components/Tags/utils';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -101,7 +104,17 @@ const PropertiesModal = ({
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
+  const [tags, setTags] = useState<TagType[]>([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+
+  const tagsAsSelectValues = useMemo(() => {
+    const selectTags = tags.map(tag => ({
+      value: tag.name,
+      label: tag.name,
+      key: tag.name,
+    }));
+    return selectTags;
+  }, [tags.length]);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -293,6 +306,41 @@ const PropertiesModal = ({
     setColorScheme(colorScheme);
   };
 
+  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
+    // update the tags for this object
+    // add tags that are in new tags, but not in old tags
+    // eslint-disable-next-line array-callback-return
+    newTags.map((tag: TagType) => {
+      if (!oldTags.some(t => t.name === tag.name)) {
+        addTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        );
+      }
+    });
+    // delete tags that are in old tags, but not in new tags
+    // eslint-disable-next-line array-callback-return
+    oldTags.map((tag: TagType) => {
+      if (!newTags.some(t => t.name === tag.name)) {
+        deleteTaggedObjects(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+          },
+          tag,
+          () => {},
+          () => {},
+        );
+      }
+    });
+  };
+
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
@@ -349,6 +397,25 @@ const PropertiesModal = ({
     onColorSchemeChange(currentColorScheme, {
       updateMetadata: false,
     });
+
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+      // update tags
+      try {
+        fetchTags(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+            includeTypes: false,
+          },
+          (currentTags: TagType[]) => updateTags(currentTags, tags),
+          error => {
+            handleErrorResponse(error);
+          },
+        );
+      } catch (error) {
+        handleErrorResponse(error);
+      }
+    }
 
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
@@ -454,6 +521,7 @@ const PropertiesModal = ({
             <StyledFormItem label={t('Owners')}>
               <AsyncSelect
                 allowClear
+                allowNewOptions
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
                 mode="multiple"
@@ -530,6 +598,33 @@ const PropertiesModal = ({
       });
     }
   }, [dashboardInfo, dashboardTitle, form]);
+
+  useEffect(() => {
+    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    try {
+      fetchTags(
+        {
+          objectType: OBJECT_TYPES.DASHBOARD,
+          objectId: dashboardId,
+          includeTypes: false,
+        },
+        (tags: TagType[]) => setTags(tags),
+        (error: Response) => {
+          addDangerToast(`Error fetching tags: ${error.text}`);
+        },
+      );
+    } catch (error) {
+      handleErrorResponse(error);
+    }
+  }, [dashboardId]);
+
+  const handleChangeTags = (values: { label: string; value: number }[]) => {
+    // triggered whenever a new tag is selected or a tag was deselected
+    // on new tag selected, add the tag
+
+    const uniqueTags = [...new Set(values.map(v => v.label))];
+    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  };
 
   return (
     <Modal
@@ -629,6 +724,33 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            </Col>
+          </Row>
+        ) : null}
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <StyledFormItem>
+                <AsyncSelect
+                  ariaLabel="Tags"
+                  mode="multiple"
+                  allowNewOptions
+                  value={tagsAsSelectValues}
+                  options={loadTags}
+                  onChange={handleChangeTags}
+                  allowClear
+                />
+              </StyledFormItem>
+              <p className="help-block">
+                {t('A list of tags that have been applied to this chart.')}
+              </p>
+            </Col>
+          </Row>
+        ) : null}
         <Row>
           <Col xs={24} md={24}>
             <h3 style={{ marginTop: '1em' }}>

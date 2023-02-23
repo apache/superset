@@ -96,7 +96,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine_name = "Apache Hive"
     max_column_name_length = 767
     allows_alias_to_source_column = True
-    allows_hidden_ordeby_agg = False
+    allows_hidden_orderby_agg = False
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -491,7 +491,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
-        # the configuraiton dictionary. See get_configuration_for_impersonation
+        # the configuration dictionary. See get_configuration_for_impersonation
         return url
 
     @classmethod
