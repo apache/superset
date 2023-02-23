@@ -65,8 +65,6 @@ export function fetchSlices(
     });
   }
 
-  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
-
   const cloneSlices = { ...slices };
 
   return SupersetClient.get({
