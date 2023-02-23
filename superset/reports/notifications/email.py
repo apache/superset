@@ -164,14 +164,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             """
         )
 
-        if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
-        return EmailContent(
-            body=body,
-            images=images,
-            data=csv_data,
-            header_data=self._content.header_data,
-        )
+        if self._content.data and self._content.data_format:
+            attachment = {
+                __(
+                    "%(name)s.%(format)s",
+                    name=self._content.name,
+                    format=self._content.data_format.lower(),
+                ): self._content.data
+            }
+        return EmailContent(body=body, images=images, data=attachment)
 
     def _get_subject(self) -> str:
         return __(

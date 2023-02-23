@@ -74,6 +74,7 @@ class ReportDataFormat(str, enum.Enum):
     VISUALIZATION = "PNG"
     DATA = "CSV"
     TEXT = "TEXT"
+    PDF = "PDF"
 
 
 class ReportCreationMethod(str, enum.Enum):

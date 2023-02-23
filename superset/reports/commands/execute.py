@@ -17,11 +17,13 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, List, Optional, Union
 from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from superset import app, security_manager
@@ -230,6 +232,21 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return [image]
 
+    def get_pdf(self) -> Optional[bytes]:
+        images = []
+        Snapshots = self._get_screenshots()
+
+        for snap in Snapshots:
+            img = Image.open(BytesIO(snap))
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            images.append(img)
+
+        new_pdf = BytesIO()
+        images[0].save(new_pdf, "PDF", save_all=True, append_images=images[1:])
+        new_pdf.seek(0)
+        return new_pdf.read()
+
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
@@ -333,7 +350,7 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        csv_data = None
+        data = None
         embedded_data = None
         error_text = None
         screenshot_data = []
@@ -347,12 +364,17 @@ class BaseReportState:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
+            
+            elif self._report_schedule.report_format == ReportDataFormat.PDF:
+                data = self.get_pdf()
+                if not data:
+                    error_text = "Unexpected missing PDF"
             elif (
                 self._report_schedule.chart
                 and self._report_schedule.report_format == ReportDataFormat.DATA
             ):
-                csv_data = self._get_csv_data()
-                if not csv_data:
+                data = self._get_csv_data()
+                if not data:
                     error_text = "Unexpected missing csv file"
             if error_text:
                 return NotificationContent(
@@ -383,7 +405,8 @@ class BaseReportState:
             url=url,
             screenshots=screenshot_data,
             description=self._report_schedule.description,
-            csv=csv_data,
+            data=data,
+            data_format=self._report_schedule.report_format,
             embedded_data=embedded_data,
             header_data=header_data,
         )
