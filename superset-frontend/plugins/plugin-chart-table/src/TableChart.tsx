@@ -365,7 +365,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu && !isRawRecords
       ? (
           value: D,
-          cellPoint: { key: string; value: DataRecordValue },
+          cellPoint: {
+            key: string;
+            value: DataRecordValue;
+            isMetric?: boolean;
+          },
           clientX: number,
           clientY: number,
         ) => {
@@ -383,7 +387,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           });
           onContextMenu(clientX, clientY, {
             drillToDetail: drillToDetailFilters,
-            crossFilter: getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+            crossFilter: cellPoint.isMetric
+              ? undefined
+              : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
           });
         }
       : undefined;
@@ -423,7 +429,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
-      if (emitCrossFilters) {
+      if (emitCrossFilters && !isMetric) {
         className += ' dt-is-filter';
       }
 
@@ -486,7 +492,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
-              emitCrossFilters && !valueRange
+              emitCrossFilters && !valueRange && !isMetric
                 ? () => toggleFilter(key, value)
                 : undefined,
             onContextMenu: (e: MouseEvent) => {
@@ -495,7 +501,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 e.stopPropagation();
                 handleContextMenu(
                   row.original,
-                  { key, value },
+                  { key, value, isMetric },
                   e.nativeEvent.clientX,
                   e.nativeEvent.clientY,
                 );
