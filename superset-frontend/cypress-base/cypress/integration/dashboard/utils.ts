@@ -139,11 +139,15 @@ export function interceptLog() {
 }
 
 export function interceptFav() {
-  cy.intercept(`/superset/favstar/Dashboard/*/select/`).as('select');
+  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+    'select',
+  );
 }
 
 export function interceptUnfav() {
-  cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
+  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+    'unselect',
+  );
 }
 
 export function interceptDataset() {
