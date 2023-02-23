@@ -57,7 +57,7 @@ const ellipsisCss = css`
   vertical-align: middle;
 `;
 
-const StyledCrossFilterValue = styled('b')`
+const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
     max-width: ${theme.gridUnit * 25}px;
   `}
