@@ -56,7 +56,6 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
-- ENABLE_FILTER_BOX_MIGRATION
 - ENABLE_JAVASCRIPT_CONTROLS
 - GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
