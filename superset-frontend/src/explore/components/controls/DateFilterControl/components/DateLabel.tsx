@@ -18,7 +18,7 @@
  */
 
 import React, { forwardRef, ReactNode, RefObject } from 'react';
-import { css, styled, useTheme } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 export type DateLabelProps = {
@@ -88,7 +88,7 @@ export const DateLabel = forwardRef(
     return (
       <LabelContainer {...props} tabIndex={0}>
         <span className="date-label-content" ref={ref}>
-          {props.label}
+          {t(String(props.label))}
         </span>
         <Icons.CalendarOutlined
           iconSize="s"
