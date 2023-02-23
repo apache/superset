@@ -37,12 +37,15 @@ const StyledCrossFilterTitle = styled.div`
 
 const StyledIconSearch = styled(Icons.SearchOutlined)`
   ${({ theme }) => `
-    color: ${theme.colors.grayscale.light1};
-    margin-left: ${theme.gridUnit}px;
-    transition: 0.3s;
-    vertical-align: middle;
-    &:hover {
-      color: ${theme.colors.grayscale.base};
+    & > span.anticon.anticon-search {
+      color: ${theme.colors.grayscale.light1};
+      margin-left: ${theme.gridUnit}px;
+      transition: 0.3s;
+      vertical-align: middle;
+      line-height: 0;
+      &:hover {
+        color: ${theme.colors.grayscale.base};
+      }
     }
   `}
 `;

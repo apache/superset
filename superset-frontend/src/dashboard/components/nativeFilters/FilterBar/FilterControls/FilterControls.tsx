@@ -143,20 +143,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     [filtersWithValues, portalNodes],
   );
 
-  const rendererCrossFilter = useCallback(
-    (crossFilter, orientation, last) => (
-      <CrossFilter
-        filter={crossFilter}
-        orientation={orientation}
-        last={
-          `${last.name}${last.emitterId}` ===
-          `${crossFilter.name}${crossFilter.emitterId}`
-        }
-      />
-    ),
-    [],
-  );
-
   const renderVerticalContent = () => (
     <>
       {filtersInScope.map(renderer)}
@@ -168,6 +154,41 @@ const FilterControls: FC<FilterControlsProps> = ({
         />
       )}
     </>
+  );
+
+  const overflowedFiltersInScope = useMemo(
+    () => filtersInScope.filter(({ id }) => overflowedIds?.includes(id)),
+    [filtersInScope, overflowedIds],
+  );
+
+  const overflowedCrossFilters = useMemo(
+    () =>
+      selectedCrossFilters.filter(({ emitterId, name }) =>
+        overflowedIds?.includes(`${name}${emitterId}`),
+      ),
+    [overflowedIds, selectedCrossFilters],
+  );
+
+  const activeOverflowedFiltersInScope = useMemo(() => {
+    const activeOverflowedFilters = overflowedFiltersInScope.filter(filter =>
+      isNativeFilterWithDataMask(filter),
+    );
+    return [...activeOverflowedFilters, ...overflowedCrossFilters];
+  }, [overflowedCrossFilters, overflowedFiltersInScope]);
+
+  const rendererCrossFilter = useCallback(
+    (crossFilter, orientation, last) => (
+      <CrossFilter
+        filter={crossFilter}
+        orientation={orientation}
+        last={
+          filtersInScope.length > 0 &&
+          `${last.name}${last.emitterId}` ===
+            `${crossFilter.name}${crossFilter.emitterId}`
+        }
+      />
+    ),
+    [filtersInScope.length],
   );
 
   const items = useMemo(() => {
@@ -196,26 +217,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     }));
     return [...crossFilters, ...nativeFiltersInScope];
   }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
-
-  const overflowedFiltersInScope = useMemo(
-    () => filtersInScope.filter(({ id }) => overflowedIds?.includes(id)),
-    [filtersInScope, overflowedIds],
-  );
-
-  const overflowedCrossFilters = useMemo(
-    () =>
-      selectedCrossFilters.filter(({ emitterId, name }) =>
-        overflowedIds?.includes(`${name}${emitterId}`),
-      ),
-    [overflowedIds, selectedCrossFilters],
-  );
-
-  const activeOverflowedFiltersInScope = useMemo(() => {
-    const activeOverflowedFilters = overflowedFiltersInScope.filter(filter =>
-      isNativeFilterWithDataMask(filter),
-    );
-    return [...activeOverflowedFilters, ...overflowedCrossFilters];
-  }, [overflowedCrossFilters, overflowedFiltersInScope]);
 
   const renderHorizontalContent = () => (
     <div
@@ -253,6 +254,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         }
         dropdownContent={
           overflowedFiltersInScope.length ||
+          overflowedCrossFilters.length ||
           (filtersOutOfScope.length && showCollapsePanel)
             ? () => (
                 <FiltersDropdownContent
