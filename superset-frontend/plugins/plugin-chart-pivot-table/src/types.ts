@@ -26,8 +26,8 @@ import {
   NumberFormatter,
   QueryFormMetric,
   QueryFormColumn,
-  BinaryQueryObjectFilterClause,
   TimeGranularity,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 
@@ -77,7 +77,7 @@ interface PivotTableCustomizeProps {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
   timeGrainSqla?: TimeGranularity;
 }
