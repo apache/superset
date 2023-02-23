@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
 import {
   ExtraFormDataAppend,
   ExtraFormDataOverrideExtras,
@@ -26,7 +25,7 @@ import {
 } from './types';
 
 export const DTTM_ALIAS = '__timestamp';
-export const NO_TIME_RANGE = t('No filter');
+export const NO_TIME_RANGE = 'No filter';
 
 export const EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS: (keyof ExtraFormDataOverrideExtras)[] =
   ['relative_start', 'relative_end', 'time_grain_sqla'];
