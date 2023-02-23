@@ -23,9 +23,10 @@ import {
   ExtraFormDataOverride,
   QueryObject,
 } from './types';
+import { t } from '../translation';
 
 export const DTTM_ALIAS = '__timestamp';
-export const NO_TIME_RANGE = 'No filter';
+export const NO_TIME_RANGE = t('No filter');
 
 export const EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS: (keyof ExtraFormDataOverrideExtras)[] =
   ['relative_start', 'relative_end', 'time_grain_sqla'];
