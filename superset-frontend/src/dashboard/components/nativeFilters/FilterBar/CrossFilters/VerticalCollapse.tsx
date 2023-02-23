@@ -19,25 +19,22 @@
 
 import React, { useMemo } from 'react';
 import Collapse from 'src/components/Collapse';
-import { styled, t, DataMaskStateWithId } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
-import {
-  DashboardInfo,
-  DashboardLayout,
-  FilterBarOrientation,
-  RootState,
-} from 'src/dashboard/types';
+import { styled, t, useTheme, css } from '@superset-ui/core';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilter from './CrossFilter';
-import crossFiltersSelector from './selectors';
+import { CrossFilterIndicator } from '../../selectors';
 
 const StyledCollapse = styled(Collapse)`
   ${({ theme }) => `
+    .ant-collapse-header {
+      margin-bottom: ${theme.gridUnit * 4}px;
+    }
     .ant-collapse-item > .ant-collapse-header {
       padding-bottom: 0;
     }
     .ant-collapse-item > .ant-collapse-header > .ant-collapse-arrow {
       font-size: ${theme.typography.sizes.xs}px;
-      padding-top: ${theme.gridUnit * 3.5}px;
+      padding-top: ${theme.gridUnit * 3}px;
     }
     .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
       padding-top: 0;
@@ -46,38 +43,29 @@ const StyledCollapse = styled(Collapse)`
 `;
 
 const StyledCrossFiltersTitle = styled.span`
-  font-size: ${({ theme }) => `${theme.typography.sizes.s}px;`};
+  ${({ theme }) => `
+    font-size: ${theme.typography.sizes.s}px;
+  `}
 `;
 
-const FilterBarCrossFiltersVertical = () => {
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
-  );
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
-  const selectedCrossFilters = crossFiltersSelector({
-    dataMask,
-    dashboardInfo,
-    dashboardLayout,
-  });
-
+const CrossFiltersVerticalCollapse = (props: {
+  crossFilters: CrossFilterIndicator[];
+}) => {
+  const { crossFilters } = props;
+  const theme = useTheme();
   const crossFiltersIndicators = useMemo(
     () =>
-      selectedCrossFilters.map(filter => (
+      crossFilters.map(filter => (
         <CrossFilter
           key={filter.emitterId}
           filter={filter}
           orientation={FilterBarOrientation.VERTICAL}
         />
       )),
-    [selectedCrossFilters],
+    [crossFilters],
   );
 
-  if (!selectedCrossFilters.length) {
+  if (!crossFilters.length) {
     return null;
   }
 
@@ -96,9 +84,19 @@ const FilterBarCrossFiltersVertical = () => {
         }
       >
         {crossFiltersIndicators}
+        <span
+          data-test="cross-filters-divider"
+          css={css`
+            width: 100%;
+            height: 1px;
+            display: block;
+            background: ${theme.colors.grayscale.light3};
+            margin: ${theme.gridUnit * 8}px auto 0 auto;
+          `}
+        />
       </Collapse.Panel>
     </StyledCollapse>
   );
 };
 
-export default FilterBarCrossFiltersVertical;
+export default CrossFiltersVerticalCollapse;

@@ -59,8 +59,8 @@ import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
-import crossFiltersSelector from '../FilterBarCrossFilters/selectors';
-import CrossFilter from '../FilterBarCrossFilters/CrossFilter';
+import crossFiltersSelector from '../CrossFilters/selectors';
+import CrossFilter from '../CrossFilters/CrossFilter';
 
 type FilterControlsProps = {
   focusedFilterId?: string;
@@ -211,10 +211,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 
   const activeOverflowedFiltersInScope = useMemo(() => {
-    const activerOverflowedFilters = overflowedFiltersInScope.filter(filter =>
+    const activeOverflowedFilters = overflowedFiltersInScope.filter(filter =>
       isNativeFilterWithDataMask(filter),
     );
-    return [...activerOverflowedFilters, ...overflowedCrossFilters];
+    return [...activeOverflowedFilters, ...overflowedCrossFilters];
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
 
   const renderHorizontalContent = () => (

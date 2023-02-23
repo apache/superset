@@ -41,7 +41,7 @@ import { useFilterSets } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import FilterBarCrossFiltersVertical from './FilterBarCrossFilters/Vertical';
+import CrossFiltersVertical from './CrossFilters/Vertical';
 
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.gridUnit * 8}px;
@@ -282,7 +282,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   const crossFilters = useMemo(
     () =>
       isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
-        <FilterBarCrossFiltersVertical />
+        <CrossFiltersVertical />
       ) : null,
     [],
   );
