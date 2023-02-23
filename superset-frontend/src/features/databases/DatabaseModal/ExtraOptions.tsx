@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, EventHandler } from 'react';
+import React, { ChangeEvent, EventHandler, FunctionComponent } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme, getExtensionsRegistry } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -31,6 +31,13 @@ import {
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
 
+const extensionsRegistry = getExtensionsRegistry();
+export interface IExtensionProps {
+  db?: DatabaseObject | null;
+  registerPostProcess: Function;
+  unregisterPostProcess: Function;
+}
+
 const ExtraOptions = ({
   db,
   onInputChange,
@@ -38,6 +45,8 @@ const ExtraOptions = ({
   onEditorChange,
   onExtraInputChange,
   onExtraEditorChange,
+  registerPostProcess,
+  unregisterPostProcess,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
@@ -45,6 +54,8 @@ const ExtraOptions = ({
   onEditorChange: Function;
   onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   onExtraEditorChange: Function;
+  registerPostProcess: Function;
+  unregisterPostProcess: Function;
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
@@ -60,6 +71,16 @@ const ExtraOptions = ({
     }
     return value;
   });
+
+  const extensionProps: IExtensionProps = {
+    db,
+    registerPostProcess,
+    unregisterPostProcess,
+  };
+
+  const dbConfigExtensions = extensionsRegistry.get(
+    'databaseconnection.extensions',
+  );
 
   return (
     <Collapse
@@ -437,6 +458,33 @@ const ExtraOptions = ({
           </StyledInputContainer>
         )}
       </Collapse.Panel>
+      {dbConfigExtensions?.map?.(extension => {
+        const Extension =
+          extension.component as FunctionComponent<IExtensionProps>;
+        return (
+          <Collapse.Panel
+            header={
+              <div>
+                {extension.logo ? (
+                  <img
+                    alt="dbt Cloud"
+                    src={extension.logo}
+                    style={{ height: '16px' }}
+                  />
+                ) : (
+                  <h4>{extension?.title}</h4>
+                )}
+                <p className="helper">{extension?.description}</p>
+              </div>
+            }
+            key={extension?.title}
+          >
+            <StyledInputContainer css={no_margin_bottom}>
+              <Extension {...extensionProps} />
+            </StyledInputContainer>
+          </Collapse.Panel>
+        );
+      })}
       <Collapse.Panel
         header={
           <div>

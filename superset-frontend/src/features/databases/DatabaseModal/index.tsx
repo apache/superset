@@ -518,6 +518,42 @@ export function dbReducer(
 
 const DEFAULT_TAB_KEY = '1';
 
+/**
+ * Enum to differentiate create and update post processing
+ */
+export enum EDbPostProcessType {
+  /**
+   * Indicates a post process for a newly created DB connection
+   */
+  CREATE = 'create',
+  /**
+   * Indicates a post process for existing DB connection that has been updated
+   */
+  UPDATE = 'update',
+}
+/**
+ * Interface representing a DatabaseModal save / update post process
+ */
+interface IDbPostProcess {
+  /**
+   * Unique id of the post process used as a key for registration / lookup. Using a static key for each post process
+   * is important so that component render cycles do not re-register the same post processes
+   */
+  id: string;
+  /**
+   * Human readable name for the post processes to assist with logging / debugging
+   */
+  name: string;
+  /**
+   * The function that will get invoked after the DatabaseModal has saved / updated the database connection
+   */
+  callback: Function;
+  /**
+   * Type of post processing to perform to distinguish as create vs update existing DB Connection
+   */
+  type: EDbPostProcessType;
+}
+
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -583,6 +619,93 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
   const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+
+  const createPostProcessingCallbacks = useRef<any>({});
+  const updatePostProcessingCallbacks = useRef<any>({});
+
+  /**
+   * Invokes all registered callback functions from config items in ExtraOptions AFTER the
+   * save occurs for the DatabaseConnection create / edit
+   * @param db The database connection data
+   * @param type Differentiates between a create and edit to filter post processing to the correct callbacks
+   */
+  const runPostProcesses = (
+    db: Partial<DatabaseObject>,
+    type: EDbPostProcessType,
+  ) => {
+    let processCallbacks: { [x: string]: IDbPostProcess } = {};
+    // Differentiate between post processing registered for create vs update
+    switch (type) {
+      case EDbPostProcessType.CREATE:
+        processCallbacks = createPostProcessingCallbacks.current;
+        break;
+      case EDbPostProcessType.UPDATE:
+        processCallbacks = updatePostProcessingCallbacks.current;
+        break;
+      default:
+        break;
+    }
+
+    Object.keys(processCallbacks).forEach(key => {
+      const postProcess = processCallbacks[key];
+      if (typeof postProcess?.callback === 'function') {
+        try {
+          postProcess?.callback?.(db);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `Database connection post process callback function failed for ${postProcess?.name}`,
+          );
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      }
+    });
+  };
+
+  /**
+   * Allows components in the ExtraOptions panel to register post processing callback functions
+   * @param process IDbPostProcess object
+   */
+  const registerPostProcess = (process: IDbPostProcess) => {
+    switch (process?.type) {
+      case EDbPostProcessType.CREATE:
+        createPostProcessingCallbacks.current[process.id] = process;
+        break;
+      case EDbPostProcessType.UPDATE:
+        updatePostProcessingCallbacks.current[process.id] = process;
+        break;
+      default:
+        // eslint-disable-next-line no-console
+        console.error(
+          `The database connection post process object has an invalid type and was not registered`,
+          process,
+        );
+        break;
+    }
+  };
+
+  /**
+   * Allows components in the ExtraOptions panel to unregister post processing callback functions
+   * @param process IDbPostProcess object
+   */
+  const unregisterPostProcess = (process: IDbPostProcess) => {
+    switch (process?.type) {
+      case EDbPostProcessType.CREATE:
+        delete createPostProcessingCallbacks.current[process.id];
+        break;
+      case EDbPostProcessType.UPDATE:
+        delete updatePostProcessingCallbacks.current[process.id];
+        break;
+      default:
+        // eslint-disable-next-line no-console
+        console.error(
+          `The database connection post process object has an invalid type and was not unregistered`,
+          process,
+        );
+        break;
+    }
+  };
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -715,6 +838,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
+    runPostProcesses({ uuid: db?.uuid }, EDbPostProcessType.CREATE);
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
@@ -803,6 +927,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
+        runPostProcesses(db, EDbPostProcessType.UPDATE);
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -817,6 +942,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
+        runPostProcesses(db, EDbPostProcessType.CREATE);
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save
@@ -1596,6 +1722,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!editNewDb) {
       return (
         <ExtraOptions
+          registerPostProcess={registerPostProcess}
+          unregisterPostProcess={unregisterPostProcess}
           db={db as DatabaseObject}
           onInputChange={({ target }: { target: HTMLInputElement }) =>
             onChange(ActionType.inputChange, {
@@ -1807,6 +1935,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
+            registerPostProcess={registerPostProcess}
+            unregisterPostProcess={unregisterPostProcess}
             db={db as DatabaseObject}
             onInputChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.inputChange, {

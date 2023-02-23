@@ -29,7 +29,7 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 
 /**
  * This type defines all available extensions of Superset's default UI.
- * Namespace the keys here to follow the form of 'some_domain.functonality.item'.
+ * Namespace the keys here to follow the form of 'some_domain.functionality.item'.
  * Take care to name your keys well, as the name describes what this extension point's role is in Superset.
  *
  * When defining a new option here, take care to keep any parameters to functions (or components) minimal.
@@ -69,6 +69,28 @@ type DatabaseDeleteRelatedExtensionProps = {
   databaseId: number;
 };
 
+/**
+ * Interface for extensions to database connections
+ */
+interface DatabaseConnectionExtension {
+  /**
+   * Display title text for the extension show when creating a database connection
+   */
+  title: string;
+  /**
+   * url or dataURI (recommended) of a logo to use in place of a title.  title is fallback display if no logo is provided
+   */
+  logo?: string;
+  /**
+   * Descriptive text displayed under the logo or title to provide user with more context about the configuration section
+   */
+  description: string;
+  /**
+   * React component to render for display in the database connection configuration
+   */
+  component: React.ComponentType<any>;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -83,6 +105,7 @@ export type Extensions = Partial<{
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
   'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'databaseconnection.extensions': DatabaseConnectionExtension[];
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
 }>;
 
