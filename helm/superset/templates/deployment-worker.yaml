@@ -135,6 +135,9 @@ spec:
           {{- else }}
             {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
+{{- if .Values.supersetWorker.extraContainers }}
+{{- toYaml .Values.supersetWorker.extraContainers | nindent 8 }}
+{{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
