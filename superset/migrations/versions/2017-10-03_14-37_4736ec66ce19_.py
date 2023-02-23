@@ -65,7 +65,6 @@ def upgrade():
     # datasources.datasource_name column.
     for foreign in ["columns", "metrics"]:
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Add the datasource_id column with the relevant constraints.
             batch_op.add_column(sa.Column("datasource_id", sa.Integer))
 
@@ -94,7 +93,6 @@ def upgrade():
             )
 
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Drop the datasource_name column and associated constraints. Note
             # due to prior revisions (1226819ee0e3, 3b626e2a6783) there may
             # incorrectly be multiple duplicate constraints.
@@ -146,7 +144,6 @@ def downgrade():
     # datasources.datasource_id column.
     for foreign in ["columns", "metrics"]:
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Add the datasource_name column with the relevant constraints.
             batch_op.add_column(sa.Column("datasource_name", sa.String(255)))
 
@@ -175,7 +172,6 @@ def downgrade():
             )
 
         with op.batch_alter_table(foreign, naming_convention=conv) as batch_op:
-
             # Drop the datasource_id column and associated constraint.
             batch_op.drop_constraint(
                 "fk_{}_datasource_id_datasources".format(foreign), type_="foreignkey"
@@ -184,7 +180,6 @@ def downgrade():
             batch_op.drop_column("datasource_id")
 
     with op.batch_alter_table("datasources", naming_convention=conv) as batch_op:
-
         # Prior to dropping the uniqueness constraint, the foreign key
         # associated with the cluster_name column needs to be dropped.
         batch_op.drop_constraint(

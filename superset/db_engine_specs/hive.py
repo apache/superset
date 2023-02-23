@@ -191,7 +191,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             raise SupersetException("Append operation not currently supported")
 
         if to_sql_kwargs["if_exists"] == "fail":
-
             # Ensure table doesn't already exist.
             if table.schema:
                 table_exists = not database.get_df(

@@ -170,8 +170,7 @@ const processColumns = memoizeOne(function processColumns(
     typeof percentMetrics,
     typeof columns,
   ];
-},
-isEqualColumns);
+}, isEqualColumns);
 
 /**
  * Automatically set page size based on number of cells.

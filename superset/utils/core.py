@@ -1785,7 +1785,6 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-
     temporal_columns: Set[Any]
     if datasource.type == "query":
         temporal_columns = {

@@ -35,12 +35,10 @@ export const FiltersDropdownContent = ({
   showCollapsePanel,
 }: FiltersDropdownContentProps) => (
   <div
-    css={(theme: SupersetTheme) =>
-      css`
-        width: ${theme.gridUnit * 56}px;
-        padding: ${theme.gridUnit}px 0;
-      `
-    }
+    css={(theme: SupersetTheme) => css`
+      width: ${theme.gridUnit * 56}px;
+      padding: ${theme.gridUnit}px 0;
+    `}
   >
     {filtersInScope.map(renderer)}
     {showCollapsePanel && (

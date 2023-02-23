@@ -163,7 +163,6 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         rendered_query: str,
         log_params: Optional[Dict[str, Any]],
     ) -> SqlJsonExecutionStatus:
-
         query_id = execution_context.query.id
         logger.info("Query %i: Running query on a Celery worker", query_id)
         try:

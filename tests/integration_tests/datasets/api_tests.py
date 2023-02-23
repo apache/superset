@@ -61,7 +61,6 @@ from tests.integration_tests.fixtures.importexport import (
 
 
 class TestDatasetApi(SupersetTestCase):
-
     fixture_tables_names = ("ab_permission", "ab_permission_view", "ab_view_menu")
     fixture_virtual_table_names = ("sql_virtual_dataset_1", "sql_virtual_dataset_2")
 

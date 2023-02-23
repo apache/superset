@@ -69,8 +69,8 @@ const StyledMenu = styled(Menu)`
       font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
       padding: ${theme.gridUnit}px ${theme.gridUnit * 3}px ${
-    theme.gridUnit
-  }px ${theme.gridUnit * 3}px;
+        theme.gridUnit
+      }px ${theme.gridUnit * 3}px;
     }
     .ant-dropdown-menu-item-selected {
       color: ${theme.colors.grayscale.dark1};

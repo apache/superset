@@ -483,7 +483,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
-
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(

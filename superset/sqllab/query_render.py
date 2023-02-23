@@ -48,7 +48,6 @@ class SqlQueryRenderImpl(SqlQueryRender):
     def __init__(
         self, sql_template_factory: Callable[..., BaseTemplateProcessor]
     ) -> None:
-
         self._sql_template_processor_factory = sql_template_factory  # type: ignore
 
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
