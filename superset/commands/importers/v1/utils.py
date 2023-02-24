@@ -24,6 +24,7 @@ from marshmallow.exceptions import ValidationError
 
 from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.models.core import Database
 
 METADATA_FILE_NAME = "metadata.yaml"
@@ -93,11 +94,15 @@ def validate_metadata_type(
             exceptions.append(exc)
 
 
+# pylint: disable=too-many-locals,too-many-arguments
 def load_configs(
     contents: Dict[str, str],
     schemas: Dict[str, Schema],
     passwords: Dict[str, str],
     exceptions: List[ValidationError],
+    ssh_tunnel_passwords: Dict[str, str],
+    ssh_tunnel_private_keys: Dict[str, str],
+    ssh_tunnel_priv_key_passwords: Dict[str, str],
 ) -> Dict[str, Any]:
     configs: Dict[str, Any] = {}
 
@@ -105,6 +110,25 @@ def load_configs(
     db_passwords: Dict[str, str] = {
         str(uuid): password
         for uuid, password in db.session.query(Database.uuid, Database.password).all()
+    }
+    # load existing ssh_tunnels so we can apply the password validation
+    db_ssh_tunnel_passwords: Dict[str, str] = {
+        str(uuid): password
+        for uuid, password in db.session.query(SSHTunnel.uuid, SSHTunnel.password).all()
+    }
+    # load existing ssh_tunnels so we can apply the private_key validation
+    db_ssh_tunnel_private_keys: Dict[str, str] = {
+        str(uuid): private_key
+        for uuid, private_key in db.session.query(
+            SSHTunnel.uuid, SSHTunnel.private_key
+        ).all()
+    }
+    # load existing ssh_tunnels so we can apply the private_key_password validation
+    db_ssh_tunnel_priv_key_passws: Dict[str, str] = {
+        str(uuid): private_key_password
+        for uuid, private_key_password in db.session.query(
+            SSHTunnel.uuid, SSHTunnel.private_key_password
+        ).all()
     }
     for file_name, content in contents.items():
         # skip directories
@@ -122,6 +146,42 @@ def load_configs(
                     config["password"] = passwords[file_name]
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
+
+                # populate ssh_tunnel_passwords from the request or from existing DBs
+                if file_name in ssh_tunnel_passwords:
+                    config["ssh_tunnel"]["password"] = ssh_tunnel_passwords[file_name]
+                elif (
+                    prefix == "databases" and config["uuid"] in db_ssh_tunnel_passwords
+                ):
+                    config["ssh_tunnel"]["password"] = db_ssh_tunnel_passwords[
+                        config["uuid"]
+                    ]
+
+                # populate ssh_tunnel_private_keys from the request or from existing DBs
+                if file_name in ssh_tunnel_private_keys:
+                    config["ssh_tunnel"]["private_key"] = ssh_tunnel_private_keys[
+                        file_name
+                    ]
+                elif (
+                    prefix == "databases"
+                    and config["uuid"] in db_ssh_tunnel_private_keys
+                ):
+                    config["ssh_tunnel"]["private_key"] = db_ssh_tunnel_private_keys[
+                        config["uuid"]
+                    ]
+
+                # populate ssh_tunnel_passwords from the request or from existing DBs
+                if file_name in ssh_tunnel_priv_key_passwords:
+                    config["ssh_tunnel"][
+                        "private_key_password"
+                    ] = ssh_tunnel_priv_key_passwords[file_name]
+                elif (
+                    prefix == "databases"
+                    and config["uuid"] in db_ssh_tunnel_priv_key_passws
+                ):
+                    config["ssh_tunnel"][
+                        "private_key_password"
+                    ] = db_ssh_tunnel_priv_key_passws[config["uuid"]]
 
                 schema.load(config)
                 configs[file_name] = config
