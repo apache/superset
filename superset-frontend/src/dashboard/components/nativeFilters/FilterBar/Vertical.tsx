@@ -197,11 +197,13 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
       filterValues.length === 0 ? (
         <FilterBarEmptyStateContainer>
           <EmptyStateSmall
-            title={t('No filters are currently added')}
+            title={t('No global filters are currently added')}
             image="filter.svg"
             description={
               canEdit &&
-              t('Click the button above to add a filter to the dashboard')
+              t(
+                'Click on "+Add/Edit Filters" button to create new dashboard filters',
+              )
             }
           />
         </FilterBarEmptyStateContainer>
