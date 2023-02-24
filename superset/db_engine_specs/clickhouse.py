@@ -216,10 +216,23 @@ class ClickHouseParametersSchema(Schema):
 
 
 try:
-    from clickhouse_connect.cc_superset.datatypes import configure_types
     from clickhouse_connect.common import set_setting
+    from clickhouse_connect.datatypes.format import set_default_formats
 
-    configure_types()
+    # override default formats for compatibility
+    set_default_formats(
+        "FixedString",
+        "string",
+        "IPv*",
+        "string",
+        "signed",
+        "UUID",
+        "string",
+        "*Int256",
+        "string",
+        "*Int128",
+        "string",
+    )
     set_setting(
         "product_name",
         f"superset/{current_app.config.get('VERSION_STRING', 'dev')}",
@@ -280,7 +293,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         return type_code
 
     @classmethod
-    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+    def build_sqlalchemy_uri(
         cls,
         parameters: BasicParametersType,
         encrypted_extra: Optional[Dict[str, str]] = None,
