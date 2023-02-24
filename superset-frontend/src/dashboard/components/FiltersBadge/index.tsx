@@ -23,7 +23,6 @@ import cx from 'classnames';
 import { DataMaskStateWithId, Filters } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
-import { setFocusedNativeFilter } from 'src/dashboard/actions/nativeFilters';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import {
@@ -38,6 +37,7 @@ import {
   DashboardLayout,
   RootState,
 } from '../../types';
+import { setDirectPathToChild } from '../../actions/dashboardState';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -87,7 +87,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
-      dispatch(setFocusedNativeFilter(path[0]));
+      dispatch(setDirectPathToChild(path));
     },
     [dispatch],
   );
