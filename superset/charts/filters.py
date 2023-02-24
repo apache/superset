@@ -18,13 +18,15 @@ from typing import Any
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
@@ -87,23 +89,13 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+
+        table_alias = aliased(SqlaTable)
+        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
+        query = query.join(
+            models.Database, table_alias.database_id == models.Database.id
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
