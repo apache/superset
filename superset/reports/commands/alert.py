@@ -19,6 +19,7 @@ import logging
 from operator import eq, ge, gt, le, lt, ne
 from timeit import default_timer
 from typing import Optional
+import requests
 
 import numpy as np
 import pandas as pd
@@ -36,8 +37,9 @@ from superset.reports.commands.exceptions import (
     AlertValidatorConfigError,
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
-from superset.utils.core import override_user
+from superset.utils.core import override_user, raise_incident
 from superset.utils.retries import retry_call
+from superset import app
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +70,24 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         :raises AlertValidatorConfigError: The validator query data is not valid
         """
-        self.validate()
-
-        if self._is_validator_not_null:
-            self._report_schedule.last_value_row_json = str(self._result)
-            return self._result not in (0, None, np.nan)
-        self._report_schedule.last_value = self._result
         try:
-            operator = json.loads(self._report_schedule.validator_config_json)["op"]
-            threshold = json.loads(self._report_schedule.validator_config_json)[
-                "threshold"
-            ]
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
-        except (KeyError, json.JSONDecodeError) as ex:
-            raise AlertValidatorConfigError() from ex
+            self.validate()
+
+            if self._is_validator_not_null:
+                self._report_schedule.last_value_row_json = str(self._result)
+                return self._result not in (0, None, np.nan)
+            self._report_schedule.last_value = self._result
+            try:
+                operator = json.loads(self._report_schedule.validator_config_json)["op"]
+                threshold = json.loads(self._report_schedule.validator_config_json)[
+                    "threshold"
+                ]
+                return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
+            except (KeyError, json.JSONDecodeError) as ex:
+                raise AlertValidatorConfigError() from ex
+        except Exception as ex:
+            raise_incident(app.config, self._report_schedule, ex)
+            logger.error("SAMRA EXCEPT ERROR", str(ex))
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
