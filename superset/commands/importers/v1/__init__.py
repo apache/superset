@@ -47,6 +47,15 @@ class ImportModelsCommand(BaseCommand):
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
+        self.ssh_tunnel_passwords: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_passwords") or {}
+        )
+        self.ssh_tunnel_private_keys: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_private_keys") or {}
+        )
+        self.ssh_tunnel_priv_key_passwords: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_priv_key_passwords") or {}
+        )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: Dict[str, Any] = {}
 
@@ -88,7 +97,13 @@ class ImportModelsCommand(BaseCommand):
 
         # load the configs and make sure we have confirmation to overwrite existing models
         self._configs = load_configs(
-            self.contents, self.schemas, self.passwords, exceptions
+            self.contents,
+            self.schemas,
+            self.passwords,
+            exceptions,
+            self.ssh_tunnel_passwords,
+            self.ssh_tunnel_private_keys,
+            self.ssh_tunnel_priv_key_passwords,
         )
         self._prevent_overwrite_existing_model(exceptions)
 
