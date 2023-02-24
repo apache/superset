@@ -57,7 +57,10 @@ export default function transformProps(chartProps: ChartProps) {
     breaksMode,
     customMode,
     numClasses,
-    opacity
+    opacity,
+    latitude,
+    longitude,
+    zoom
   } = formData;
   const data = queriesData[0].data;
   
@@ -87,6 +90,9 @@ export default function transformProps(chartProps: ChartProps) {
     breaksMode,
     customMode,
     numClasses,
-    opacity
+    opacity,
+    latitude,
+    longitude,
+    zoom
   };
 }

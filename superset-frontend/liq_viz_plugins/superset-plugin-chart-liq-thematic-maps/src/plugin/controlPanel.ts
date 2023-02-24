@@ -281,6 +281,46 @@ const config: ControlPanelConfig = {
       label: t('Trade Area Settings'),
       expanded: true,
       controlSetRows: []
+    },
+    {
+      label: t('Initial Map Position'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'latitude',
+            config : {
+              type: 'TextControl',
+              isFloat: true,
+              renderTrigger: false,
+              default: -33.8,
+              label: t('Latitude')
+            }
+          },
+          {
+            name: 'longitude',
+            config: {
+              type: 'TextControl',
+              isFloat: true,
+              renderTrigger: false,
+              default: 151.2,
+              label: t('Longitude')
+            }
+          }
+        ],
+        [
+          {
+            name: 'zoom',
+            config: {
+              type: 'TextControl',
+              isFloat: true,
+              renderTrigger: false,
+              default: 9,
+              label: t('Zoom')
+            }
+          }
+        ]
+      ]
     }
   ],
   controlOverrides: {

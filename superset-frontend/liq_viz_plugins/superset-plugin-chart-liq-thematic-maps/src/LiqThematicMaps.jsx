@@ -73,7 +73,10 @@ export default function LiqThematicMaps(props) {
     breaksMode, // how to break up data
     customMode, // if breaksMode is "custom", user defined breaks 
     numClasses, // number of classes for breaks, i.e. number of ranges
-    opacity // opacity value for thematic
+    opacity, // opacity value for thematic
+    latitude, // starting lat
+    longitude, // starting lng,
+    zoom, //starting zoom
   } = props;
 
   const rootElem = createRef();
@@ -89,7 +92,7 @@ export default function LiqThematicMaps(props) {
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
-  const [mapPos, setMapPos] = useState({lng: 151.2, lat: -33.8, zoom: 9});
+  const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
 
   /*
     State used to store the names of intranet layers currently rendered onto the map. Since the control
@@ -358,7 +361,6 @@ export default function LiqThematicMaps(props) {
   // Hook for changing opacity in real time
   useEffect(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
-    console.log(opacity > 0.0);
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [opacity])
 
