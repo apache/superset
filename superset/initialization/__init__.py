@@ -458,7 +458,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
     def check_secret_key(self) -> None:
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+        def display_default_secret_key_warning() -> None:
             top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
             bottom_banner = 80 * "-" + "\n" + 80 * "-"
             logger.warning(top_banner)
@@ -470,6 +470,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "a sufficiently random sequence, ex: openssl rand -base64 42"
             )
             logger.warning(bottom_banner)
+
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            if "SUPERSET_SECRET_KEY" in os.environ:
+                self.config["SECRET_KEY"] = os.environ["SUPERSET_SECRET_KEY"]
+                return
+            if self.superset_app.debug:
+                logger.warning("Debug mode identified with default secret key")
+                display_default_secret_key_warning()
+                return
+            display_default_secret_key_warning()
+            logger.error("Refusing to start due to insecure SECRET_KEY")
+            exit(1)
 
     def init_app(self) -> None:
         """

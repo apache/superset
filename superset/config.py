@@ -188,7 +188,8 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key. Make sure you override it on superset_config.py.
+# Your App secret key. Make sure you override it on superset_config.py
+# or use `SUPERSET_SECRET_KEY` environment variable.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
 SECRET_KEY = CHANGE_ME_SECRET_KEY
