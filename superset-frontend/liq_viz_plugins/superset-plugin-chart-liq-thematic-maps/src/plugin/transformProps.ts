@@ -56,7 +56,8 @@ export default function transformProps(chartProps: ChartProps) {
     linearColorScheme, 
     breaksMode,
     customMode,
-    numClasses
+    numClasses,
+    opacity
   } = formData;
   const data = queriesData[0].data;
   
@@ -85,6 +86,7 @@ export default function transformProps(chartProps: ChartProps) {
     linearColorScheme,
     breaksMode,
     customMode,
-    numClasses
+    numClasses,
+    opacity
   };
 }

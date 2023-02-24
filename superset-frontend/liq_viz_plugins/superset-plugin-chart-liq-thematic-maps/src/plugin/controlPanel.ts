@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
+import { t, validateNonEmpty, legacyValidateInteger, validateNumber } from '@superset-ui/core';
 import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -217,8 +217,8 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         [
           {
-            'name': 'breaks_mode',
-            'config': {
+            name: 'breaks_mode',
+            config: {
               type: 'SelectControl',
               default: 'equal_count',
               choices: [
@@ -240,7 +240,8 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               default: '',
               label: t('Custom Mode'),
-              description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.')
+              description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
+              visibility: ({ controls }) => Boolean(controls.breaks_mode.value === 'custom')
             }
           }
         ],
@@ -255,8 +256,24 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Number of classes'),
               description: t('The number of breaks for the thematic'),
+              visibility: ({ controls }) => Boolean(!(controls.breaks_mode.value === 'categorized'))
             },
           },
+        ],
+        [
+          {
+            name: 'opacity',
+            config: {
+              type: 'SliderControl',
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: 0.5,
+              renderTrigger: true,
+              label: t('Opacity'),
+              description: t('Opacity of thematic')
+            }
+          }
         ]
       ],
     },

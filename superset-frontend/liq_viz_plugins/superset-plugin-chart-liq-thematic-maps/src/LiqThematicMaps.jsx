@@ -24,6 +24,9 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
+// UI imports
+import { Button } from 'antd';
+
 import entity from '../../liq_data/entity.json';
 
 const defaults = require('./defaultLayerStyles.js')
@@ -56,22 +59,6 @@ const Styles = styled.div<LiqThematicMapsStylesProps>`
  *  * FormData (your controls!) provided as props by transformProps.ts
  */
 
-// function getCurrBdryIds(map, boundary, groupCol) {
-//   const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
-//     sourceLayer: boundary
-//    });
-
-//   let bdryIds = [];
-//    for (const d in bdry_features) {
-//     bdryIds.push({
-//       id: bdry_features[d].id,
-//       val: bdry_features[d].properties[groupCol]
-//     });
-//   }
-
-//   return bdryIds;
-// }
-
 export default function LiqThematicMaps(props) {
   const { 
     data, // from databricks/other databases
@@ -85,7 +72,8 @@ export default function LiqThematicMaps(props) {
     linearColorScheme, // color palette for thematic
     breaksMode, // how to break up data
     customMode, // if breaksMode is "custom", user defined breaks 
-    numClasses // number of classes for breaks, i.e. number of ranges
+    numClasses, // number of classes for breaks, i.e. number of ranges
+    opacity // opacity value for thematic
   } = props;
 
   const rootElem = createRef();
@@ -252,7 +240,7 @@ export default function LiqThematicMaps(props) {
 
     // When the map reveices new tile data, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
-      const bdryIds = getCurrBdryIds(map, boundary, groupCol);
+      const bdryIds = getCurrBdryIds();
       setCurrBdryIDs([...bdryIds]);
     });
 
@@ -363,7 +351,16 @@ export default function LiqThematicMaps(props) {
       );
     }
     map.current.setPaintProperty('boundary_tileset', 'fill-color', ['feature-state', 'color']);
+
+    map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [currBdryIDs]);
+
+  // Hook for changing opacity in real time
+  useEffect(() => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+    console.log(opacity > 0.0);
+    map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
+  }, [opacity])
 
   return (
     <Styles
@@ -376,6 +373,16 @@ export default function LiqThematicMaps(props) {
         className="map-container" 
         style={{height: height, width: width}}
       />
+      <Button
+        style={{
+          top: '1.2vh',
+          left: '1vw',
+          zIndex: 0,
+          position: 'absolute'
+        }}
+      >
+        Legend
+      </Button>
     </Styles>
   );  
 }
