@@ -51,8 +51,7 @@ class SSHManager:
     ) -> SSHTunnelForwarder:
         url = make_url_safe(sqlalchemy_database_uri)
         params = {
-            "ssh_address_or_host": ssh_tunnel.server_address,
-            "ssh_port": ssh_tunnel.server_port,
+            "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
             "remote_bind_address": (url.host, url.port),  # bind_port, bind_host
             "local_bind_address": (self.local_bind_address,),
