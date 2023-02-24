@@ -56,53 +56,76 @@ const Styles = styled.div<LiqThematicMapsStylesProps>`
  *  * FormData (your controls!) provided as props by transformProps.ts
  */
 
-function getCurrBdryIds(map, boundary, groupCol) {
-  const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
-    sourceLayer: boundary
-   });
+// function getCurrBdryIds(map, boundary, groupCol) {
+//   const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
+//     sourceLayer: boundary
+//    });
 
-  let bdryIds = [];
-   for (const d in bdry_features) {
-    bdryIds.push({
-      id: bdry_features[d].id,
-      val: bdry_features[d].properties[groupCol]
-    });
-  }
+//   let bdryIds = [];
+//    for (const d in bdry_features) {
+//     bdryIds.push({
+//       id: bdry_features[d].id,
+//       val: bdry_features[d].properties[groupCol]
+//     });
+//   }
 
-  return bdryIds;
-}
+//   return bdryIds;
+// }
 
 export default function LiqThematicMaps(props) {
   const { 
-    data,
-    groupCol,
-    metricCol,
+    data, // from databricks/other databases
+    groupCol, // index col i.e. SA1 code, entity_id, etc.
+    metricCol, // thematic col i.e. Population, a calculated column, GLA, etc.
     height, 
     width, 
-    mapStyle,
-    boundary, 
-    intranetLayers,
-    linearColorScheme,
-    breaksMode,
-    customMode,
-    numClasses
+    mapStyle, // Mapbox "base map" style, i.e. Streets, Light, etc.
+    boundary, // boundary layer for the map, i.e. SA1, POA, etc.
+    intranetLayers, // list of intranet layers, i.e. shopping centres, supermarkets, etc.
+    linearColorScheme, // color palette for thematic
+    breaksMode, // how to break up data
+    customMode, // if breaksMode is "custom", user defined breaks 
+    numClasses // number of classes for breaks, i.e. number of ranges
   } = props;
 
   const rootElem = createRef();
 
-  const geocodeMarker = document.createElement('img');
-  geocodeMarker.height = 50;
-  geocodeMarker.width = 50;
-  geocodeMarker.src = '/static/liq_pin_geocode_marker.svg';
+  // Custom marker on geocode
+  // const geocodeMarker = document.createElement('img');
+  // geocodeMarker.height = 50;
+  // geocodeMarker.width = 50;
+  // geocodeMarker.src = '/static/liq_pin_geocode_marker.svg';
 
   const mapContainer = useRef(null);
   const map = useRef(null);
 
-  const [currBdryIDs, setCurrBdryIDs] = useState([]);
-  const [colorMap, setColorMap] = useState({});
+  const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
+  const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: 151.2, lat: -33.8, zoom: 9});
+
+  /*
+    State used to store the names of intranet layers currently rendered onto the map. Since the control
+    for adding or removing intranet layers to the map is instantaneous, we need to store state for
+    currently rendered layers to manage that
+  */
   const [renderedIntranetLayers, setRenderedIntranetLayers] = useState([]);
 
+  // Get the tile IDs and data values for all currently rendered boundary tiles
+  const getCurrBdryIds = () => {
+    const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
+      sourceLayer: boundary
+     });
+    let bdryIds = [];
+     for (const d in bdry_features) {
+      bdryIds.push({
+        id: bdry_features[d].id,
+        val: bdry_features[d].properties[groupCol]
+      });
+    }
+    return bdryIds;
+  }
+
+  // Custom geocoding function for local entity data. Performs just a simple substring search for now
   const forwardGeocoder = (query) => {
     const matchingFeatures = [];
     for (const feature of entity.features) {
@@ -116,6 +139,7 @@ export default function LiqThematicMaps(props) {
     return matchingFeatures;
   }
 
+  // Loads each layer in "layers" onto the map with the default intranet layer styling
   const loadIntranetLayers = (layers) => {
     layers.forEach(layer => {
       map.current.addLayer({
@@ -132,6 +156,18 @@ export default function LiqThematicMaps(props) {
     });
   };
 
+  /*
+    Initializes the map. The initialization process consists of:
+    1. Instantiating a new Map with the ref to the map container, the map style defined in "mapStyle",
+       the current map center defined in "mapPos" and the current map zoom defined in "mapPos"
+    2. Setting the projection to flat map mercator and disabling rotation controls
+    3. Instantiating and adding the geocoder with custom search functionality to the map
+    4. Loading all required icons into the map
+    5. Defining the map on load event to add the boundary and intranet tile sources to the map and adding the
+       boundary and intranet layers with styling to the map
+    6. Defining the map on data event to update the current data tileset IDs and values in state
+    7. Defining the map on move event to update the current map postition in state
+  */
   const initMap = () => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -140,6 +176,7 @@ export default function LiqThematicMaps(props) {
       zoom: mapPos.zoom    
     });
     
+    // Flat map projection
     map.current.setProjection('mercator');
 
     // Disable rotating
@@ -159,6 +196,7 @@ export default function LiqThematicMaps(props) {
         localGeocoder: forwardGeocoder,
         minLength: 4,
         limit: 10,
+        // Define custom render with LIQ pins on the side of the dropdown to distinguish local results
         render: (item) => {
           const src = item.local ?
             '/static/liq_pin_geocode_result.svg' :
@@ -177,6 +215,7 @@ export default function LiqThematicMaps(props) {
       })
     );
 
+    // Load all icons required for the intranet layers into the map
     Object.keys(intranetImgs).forEach(k => {
       map.current.loadImage(intranetImgs[k], (error, img) => {
         if (error) throw error;
@@ -211,12 +250,13 @@ export default function LiqThematicMaps(props) {
 
     });
 
-    // When the map is moved around, get rendered tile features and store them in state for styling
+    // When the map reveices new tile data, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
       const bdryIds = getCurrBdryIds(map, boundary, groupCol);
       setCurrBdryIDs([...bdryIds]);
     });
 
+    // When the map is moved around, store current position in state
     map.current.on('move', () => {
       const {lng, lat} = map.current.getCenter();
       const zoom = map.current.getZoom().toFixed(2);
@@ -229,6 +269,7 @@ export default function LiqThematicMaps(props) {
     });
   }
 
+  // Force main map initialization hook to trigger, essentially instigating a reload
   const instigateReload = () => {
     map.current.remove();
     map.current = null;
@@ -302,13 +343,11 @@ export default function LiqThematicMaps(props) {
 
   // Main map initialization hook
   useEffect(() => {
-
     if (map.current) return;
     initMap();
-
   });
 
-  // Hook for styling rendered tiles via feature state
+  // Hook for styling rendered tiles via feature state, triggered whenever new tiles are rendered
   useEffect(() => {
     if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0) return;
     for (const i in currBdryIDs) {
