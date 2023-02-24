@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, cast, Dict, List, Optional, Type, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as __
@@ -34,6 +34,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     BasicParametersType,
+    BasicPropertiesType,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -48,7 +49,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ClickHouseBaseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_secondary_columns = True
@@ -134,7 +135,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-meth
         return None
 
 
-class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):  # pylint: disable=abstract-method
+class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     """Engine spec for clickhouse_sqlalchemy connector"""
 
     engine = "clickhouse"
@@ -234,7 +235,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     engine_name = "ClickHouse Connect"
 
     default_driver = "connect"
-    _function_names = []
+    _function_names: List[str] = []
 
     sqlalchemy_uri_placeholder = (
         "clickhousedb://user:password@host[:port][/dbname][?secure=value&=value...]"
@@ -257,6 +258,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_function_names(cls, database: Database) -> List[str]:
+        # pylint: disable=import-outside-toplevel,import-error
         from clickhouse_connect.driver.exceptions import ClickHouseError
 
         if cls._function_names:
@@ -278,7 +280,11 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         return type_code
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BasicParametersType, *_args):
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: Optional[Dict[str, str]] = None,
+    ) -> str:
         url_params = parameters.copy()
         if url_params.get("encryption"):
             query = parameters.get("query", {}).copy()
@@ -290,7 +296,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         return str(URL(f"{cls.engine}+{cls.default_driver}", **url_params))
 
     @classmethod
-    def get_parameters_from_uri(  # pylint: disable=unused-argument
+    def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
@@ -305,17 +311,19 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
             password=url.password,
             host=url.host,
             port=url.port,
-            database=None if url.database == "__default__" else url.database,
+            database="" if url.database == "__default__" else cast(str, url.database),
             query=dict(query),
             encryption=encryption,
         )
 
     @classmethod
-    # pylint: disable=arguments-renamed
-    def validate_parameters(cls, properties) -> List[SupersetError]:
+    def validate_parameters(
+        cls, properties: BasicPropertiesType
+    ) -> List[SupersetError]:
+        # pylint: disable=import-outside-toplevel,import-error
         from clickhouse_connect.driver import default_port
 
-        parameters = properties.get("parameters", properties)
+        parameters = properties.get("parameters", {})
         host = parameters.get("host", None)
         if not host:
             return [
