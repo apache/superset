@@ -84,6 +84,7 @@ from superset.utils.core import (
     get_user_id,
     RowLevelSecurityFilterType,
 )
+from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
@@ -97,6 +98,8 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
+
+DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
 class DatabaseAndSchema(NamedTuple):
@@ -525,8 +528,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The list of datasources
         """
 
-        user_perms = self.user_view_menu_names("datasource_access")
-        schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
 
         # pylint: disable=import-outside-toplevel
@@ -534,12 +535,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_datasources.update(
             self.get_session.query(SqlaTable)
-            .filter(
-                or_(
-                    SqlaTable.perm.in_(user_perms),
-                    SqlaTable.schema_perm.in_(schema_perms),
-                )
-            )
+            .filter(get_dataset_access_filters(SqlaTable))
             .all()
         )
 
@@ -603,6 +599,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ).all()
             return {s.name for s in view_menu_names}
         return set()
+
+    def get_accessible_databases(self) -> List[int]:
+        """
+        Return the list of databases accessible by the user.
+
+        :return: The list of accessible Databases
+        """
+        perms = self.user_view_menu_names("database_access")
+        return [
+            int(match.group("id"))
+            for perm in perms
+            if (match := DATABASE_PERM_REGEX.match(perm))
+        ]
 
     def get_schemas_accessible_by_user(
         self, database: "Database", schemas: List[str], hierarchical: bool = True
