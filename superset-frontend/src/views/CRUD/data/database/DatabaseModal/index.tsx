@@ -1532,6 +1532,69 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </StyledBtns>
   );
 
+  const renderDatabaseConnectionForm = () => (
+    <>
+      <DatabaseConnectionForm
+        isEditMode={isEditMode}
+        db={db as DatabaseObject}
+        sslForced={sslForced}
+        dbModel={dbModel}
+        onAddTableCatalog={() => {
+          setDB({ type: ActionType.addTableCatalogSheet });
+        }}
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.queryChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.extraInputChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        onRemoveTableCatalog={(idx: number) => {
+          setDB({
+            type: ActionType.removeTableCatalogSheet,
+            payload: { indexToDelete: idx },
+          });
+        }}
+        onParametersChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.parametersChange, {
+            type: target.type,
+            name: target.name,
+            checked: target.checked,
+            value: target.value,
+          })
+        }
+        onChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.textChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        getValidation={() => getValidation(db)}
+        validationErrors={validationErrors}
+        getPlaceholder={getPlaceholder}
+      />
+      <SSHTunnelContainer>
+        <SSHTunnelSwitchComponent
+          isEditMode={isEditMode}
+          dbFetched={dbFetched}
+          disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
+          useSSHTunneling={useSSHTunneling}
+          setUseSSHTunneling={setUseSSHTunneling}
+          setDB={setDB}
+          isSSHTunneling={isSSHTunneling}
+        />
+      </SSHTunnelContainer>
+      {useSSHTunneling && (
+        <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
+      )}
+    </>
+  );
+
   const renderFinishState = () => {
     if (!editNewDb) {
       return (
@@ -1568,51 +1631,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
-    return (
-      <DatabaseConnectionForm
-        isEditMode
-        sslForced={sslForced}
-        dbModel={dbModel}
-        db={db as DatabaseObject}
-        onParametersChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.parametersChange, {
-            type: target.type,
-            name: target.name,
-            checked: target.checked,
-            value: target.value,
-          })
-        }
-        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.extraInputChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        onChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.textChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        onQueryChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.queryChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        onAddTableCatalog={() =>
-          setDB({ type: ActionType.addTableCatalogSheet })
-        }
-        onRemoveTableCatalog={(idx: number) =>
-          setDB({
-            type: ActionType.removeTableCatalogSheet,
-            payload: { indexToDelete: idx },
-          })
-        }
-        getValidation={() => getValidation(db)}
-        validationErrors={validationErrors}
-      />
-    );
+    return renderDatabaseConnectionForm();
   };
 
   if (
@@ -1758,49 +1777,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               )}
             </StyledAlignment>
           ) : (
-            <DatabaseConnectionForm
-              isEditMode
-              sslForced={sslForced}
-              dbModel={dbModel}
-              db={db as DatabaseObject}
-              onParametersChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.parametersChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                })
-              }
-              onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.extraInputChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.textChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onQueryChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.queryChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onAddTableCatalog={() =>
-                setDB({ type: ActionType.addTableCatalogSheet })
-              }
-              onRemoveTableCatalog={(idx: number) =>
-                setDB({
-                  type: ActionType.removeTableCatalogSheet,
-                  payload: { indexToDelete: idx },
-                })
-              }
-              getValidation={() => getValidation(db)}
-              validationErrors={validationErrors}
-            />
+            renderDatabaseConnectionForm()
           )}
           {!isEditMode && (
             <StyledAlertMargin>
@@ -1950,73 +1927,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbModel={dbModel}
                 />
                 {hasAlert && renderStepTwoAlert()}
-                <DatabaseConnectionForm
-                  db={db}
-                  sslForced={sslForced}
-                  dbModel={dbModel}
-                  onAddTableCatalog={() => {
-                    setDB({ type: ActionType.addTableCatalogSheet });
-                  }}
-                  onQueryChange={({ target }: { target: HTMLInputElement }) =>
-                    onChange(ActionType.queryChange, {
-                      name: target.name,
-                      value: target.value,
-                    })
-                  }
-                  onExtraInputChange={({
-                    target,
-                  }: {
-                    target: HTMLInputElement;
-                  }) =>
-                    onChange(ActionType.extraInputChange, {
-                      name: target.name,
-                      value: target.value,
-                    })
-                  }
-                  onRemoveTableCatalog={(idx: number) => {
-                    setDB({
-                      type: ActionType.removeTableCatalogSheet,
-                      payload: { indexToDelete: idx },
-                    });
-                  }}
-                  onParametersChange={({
-                    target,
-                  }: {
-                    target: HTMLInputElement;
-                  }) =>
-                    onChange(ActionType.parametersChange, {
-                      type: target.type,
-                      name: target.name,
-                      checked: target.checked,
-                      value: target.value,
-                    })
-                  }
-                  onChange={({ target }: { target: HTMLInputElement }) =>
-                    onChange(ActionType.textChange, {
-                      name: target.name,
-                      value: target.value,
-                    })
-                  }
-                  getValidation={() => getValidation(db)}
-                  validationErrors={validationErrors}
-                  getPlaceholder={getPlaceholder}
-                />
-                <SSHTunnelContainer>
-                  <SSHTunnelSwitchComponent
-                    isEditMode={isEditMode}
-                    dbFetched={dbFetched}
-                    disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-                    useSSHTunneling={useSSHTunneling}
-                    setUseSSHTunneling={setUseSSHTunneling}
-                    setDB={setDB}
-                    isSSHTunneling={isSSHTunneling}
-                  />
-                </SSHTunnelContainer>
-                {useSSHTunneling && (
-                  <SSHTunnelContainer>
-                    {renderSSHTunnelForm()}
-                  </SSHTunnelContainer>
-                )}
+                {renderDatabaseConnectionForm()}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
                     <>
