@@ -66,7 +66,6 @@ class SSHManager:
                 private_key_file, ssh_tunnel.private_key_password
             )
             params["ssh_pkey"] = private_key
-            params["ssh_private_key_password"] = ssh_tunnel.private_key_password
 
         return open_tunnel(**params)
 
