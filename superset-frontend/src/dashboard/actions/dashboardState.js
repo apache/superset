@@ -36,7 +36,10 @@ import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
-import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
+import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
 import {
   addSuccessToast,
   addWarningToast,
@@ -277,25 +280,17 @@ export function saveDashboardRequest(data, id, saveType) {
 
     const handleChartConfiguration = () => {
       const {
+        dashboardLayout,
+        charts,
         dashboardInfo: {
           metadata: { chart_configuration = {} },
         },
       } = getState();
-      const chartConfiguration = Object.values(chart_configuration).reduce(
-        (prev, next) => {
-          // If chart removed from dashboard - remove it from metadata
-          if (
-            Object.values(layout).find(
-              layoutItem => layoutItem?.meta?.chartId === next.id,
-            )
-          ) {
-            return { ...prev, [next.id]: next };
-          }
-          return prev;
-        },
-        {},
+      return getCrossFiltersConfiguration(
+        dashboardLayout.present,
+        chart_configuration,
+        charts,
       );
-      return chartConfiguration;
     };
 
     const onCopySuccess = response => {
@@ -318,6 +313,7 @@ export function saveDashboardRequest(data, id, saveType) {
       // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
+        console.log('onUpdateSuccess dashboardState', metadata);
         dispatch(
           dashboardInfoChanged({
             metadata,
@@ -376,6 +372,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         chartConfiguration = handleChartConfiguration();
       }
+      console.log('dash save', { chartConfiguration });
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
           ? data
