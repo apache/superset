@@ -23,6 +23,13 @@ import cx from 'classnames';
 import { DataMaskStateWithId, Filters } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import {
+  ChartsState,
+  DashboardInfo,
+  DashboardLayout,
+  RootState,
+} from 'src/dashboard/types';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import {
@@ -31,13 +38,6 @@ import {
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
 } from './selectors';
-import {
-  ChartsState,
-  DashboardInfo,
-  DashboardLayout,
-  RootState,
-} from '../../types';
-import { setDirectPathToChild } from '../../actions/dashboardState';
 
 export interface FiltersBadgeProps {
   chartId: number;
