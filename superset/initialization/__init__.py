@@ -479,7 +479,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
-                or "PYTEST_CURRENT_TEST" in os.environ
+                # There must be a better way
+                or "pytest" in sys.modules
             ):
                 logger.warning("Debug mode identified with default secret key")
                 log_default_secret_key_warning()
