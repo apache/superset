@@ -35,7 +35,7 @@ export const isCrossFiltersEnabled = (
 
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,
-  initialConfig: DashboardInfo['metadata']['chart_configuration'],
+  initialConfig: DashboardInfo['metadata']['chart_configuration'] = {},
   chartQueries: ChartsState,
 ) => {
   if (!isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
