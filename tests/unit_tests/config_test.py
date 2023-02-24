@@ -73,10 +73,6 @@ def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: Dict[str, Any]) -> No
             dbcol.expression = dttm_column_defaults["expression"]
 
 
-def test_default_secret_key() -> None:
-    check_secret_key
-
-
 @pytest.fixture
 def test_table(session: Session) -> "SqlaTable":
     """
