@@ -225,6 +225,7 @@ try:
         "string",
         "IPv*",
         "string",
+        "UInt64",
         "signed",
         "UUID",
         "string",
