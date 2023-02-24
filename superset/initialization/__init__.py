@@ -473,9 +473,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.warning(bottom_banner)
 
         if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
-            if "SUPERSET_SECRET_KEY" in os.environ:
-                self.config["SECRET_KEY"] = os.environ["SUPERSET_SECRET_KEY"]
-                return
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
