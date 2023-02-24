@@ -107,12 +107,12 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r".*U?DateTime.*", re.IGNORECASE),
+            re.compile(r".*DateTime.*", re.IGNORECASE),
             types.DateTime(),
             GenericDataType.TEMPORAL,
         ),
         (
-            re.compile(r".*U?Date.*", re.IGNORECASE),
+            re.compile(r".*Date.*", re.IGNORECASE),
             types.Date(),
             GenericDataType.TEMPORAL,
         ),
