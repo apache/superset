@@ -61,9 +61,10 @@ class SSHManager:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
             private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(private_key_file)
+            private_key = RSAKey.from_private_key(
+                private_key_file, ssh_tunnel.private_key_password
+            )
             params["ssh_pkey"] = private_key
-            params["ssh_private_key_password"] = ssh_tunnel.private_key_password
 
         return open_tunnel(**params)
 
