@@ -141,7 +141,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   actions,
   canEdit,
   dataMaskSelected,
-  focusedFilterId,
   filtersOpen,
   filterValues,
   height,
@@ -258,7 +257,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
                   <FilterControlsWrapper>
                     <FilterControls
                       dataMaskSelected={dataMaskSelected}
-                      focusedFilterId={focusedFilterId}
                       onFilterSelectionChange={onSelectionChange}
                     />
                   </FilterControlsWrapper>
@@ -300,7 +298,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
                 <FilterControlsWrapper>
                   <FilterControls
                     dataMaskSelected={dataMaskSelected}
-                    focusedFilterId={focusedFilterId}
                     onFilterSelectionChange={onSelectionChange}
                   />
                 </FilterControlsWrapper>
