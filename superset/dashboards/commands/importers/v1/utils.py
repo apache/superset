@@ -156,7 +156,8 @@ def import_dashboard(
         config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
-            "Dashboard doesn't exist and user doesn't have permission to create dashboard"
+            "Dashboard doesn't exist and user doesn't "
+            "have permission to create dashboards"
         )
 
     # TODO (betodealmeida): move this logic to import_from_dict

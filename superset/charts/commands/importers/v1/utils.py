@@ -31,6 +31,8 @@ def import_chart(
 ) -> Slice:
     can_write = security_manager.can_access("can_write", "Chart")
     existing = session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    print("BETO")
+    print(can_write, existing)
     if existing:
         if not overwrite or not can_write:
             return existing
