@@ -313,7 +313,6 @@ export function saveDashboardRequest(data, id, saveType) {
       // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
-        console.log('onUpdateSuccess dashboardState', metadata);
         dispatch(
           dashboardInfoChanged({
             metadata,
@@ -372,7 +371,6 @@ export function saveDashboardRequest(data, id, saveType) {
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         chartConfiguration = handleChartConfiguration();
       }
-      console.log('dash save', { chartConfiguration });
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
           ? data
