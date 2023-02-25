@@ -126,6 +126,7 @@ setup(
         "wtforms>=2.3.3, <2.4",
         "wtforms-json",
         "xlsxwriter>=3.0.7, <3.1",
+        "translate == 3.6.1",
     ],
     extras_require={
         "athena": ["pyathena[pandas]>=2, <3"],

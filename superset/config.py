@@ -377,6 +377,23 @@ LANGUAGES = {
 LANGUAGES = {}
 
 # ---------------------------------------------------
+# Jinja translation function: `translate`
+# ---------------------------------------------------
+# Available providers for translation:
+#   - mymemory, microsoft, deepl, libre
+
+TRANSLATION_PROVIDER: str = "mymemory"
+# TRANSLATION_SECRET_ACCESS_KEY: str = os.getenv("MY_SECRET")
+
+# uncomment `PROVIDER_CREDENTIALS_DICT` and use a `secret_access_key`
+# to get your provider oAuth token
+# PROVIDER_CREDENTIALS_DICT = {}
+# PROVIDER_CREDENTIALS_DICT = {
+#   "secret_access_key": "os.getenv('YOUR_VERY_SECRET_KEY')",
+#   # "pro": True # for: DeepL’s pro API,
+# }
+
+# ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
 # Feature flags that are set by default go here. Their values can be
@@ -1583,7 +1600,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

@@ -36,6 +36,7 @@ from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
+from translate import Translator
 from typing_extensions import TypedDict
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -94,7 +95,8 @@ class ExtraCache:
         r"current_user_id\(.*\)|"
         r"current_username\(.*\)|"
         r"cache_key_wrapper\(.*\)|"
-        r"url_param\(.*\)"
+        r"url_param\(.*\)|"
+        r"translate\(.*\)"
         r").*\}\}"
     )
 
@@ -344,6 +346,54 @@ class ExtraCache:
 
         return filters
 
+    def translate(
+        self,
+        string_to_translate: str,
+        to_language: str,
+        from_language: str = "en",
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
+    ) -> str:
+        """
+        To get a translation dynamically through Jinja templating
+
+        Usage example: (Translation to french)
+            SELECT '{{ translate('my sentence', 'fr') }}' AS translation
+
+        Output:
+            translation
+            -----------
+            ma phrase
+
+        Python package : https://pypi.org/project/translate/
+        Available languages:
+
+        https://en.wikipedia.org/wiki/ISO_639-1
+        Examples: (e.g. en, ja, ko, pt, zh, zh-TW, ...)
+        """
+        if to_language is None:
+            return string_to_translate
+
+        provider_name = current_app.config.get("PROVIDER_CREDENTIALS_DICT", "mymemory")
+        secret = current_app.config.get("TRANSLATION_SECRET_ACCESS_KEY", None)
+
+        translator = Translator(
+            provider=provider_name,
+            from_lang=from_language,
+            to_lang=to_language,
+            secret_access_key=secret,
+        )
+        _result = translator.translate(string_to_translate)
+        if _result and escape_result and self.dialect:
+            # use the dialect specific quoting logic to escape string
+            _result = String().literal_processor(dialect=self.dialect)(value=_result)[
+                1:-1
+            ]
+        if add_to_cache_keys:
+            self.cache_key_wrapper(_result)
+
+        return _result
+
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return_value = func(*args, **kwargs)
@@ -497,6 +547,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro),
+                "translate": partial(safe_proxy, extra_cache.translate),
             }
         )
 
