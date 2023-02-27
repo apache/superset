@@ -29,7 +29,7 @@
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/node": "^18.14.1",
-    "@types/uuid": "^9.0.0",
+    "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
