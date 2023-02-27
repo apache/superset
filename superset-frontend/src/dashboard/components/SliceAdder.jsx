@@ -22,13 +22,7 @@ import PropTypes from 'prop-types';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 import { createFilter } from 'react-search-input';
-import {
-  t,
-  styled,
-  isFeatureEnabled,
-  FeatureFlag,
-  css,
-} from '@superset-ui/core';
+import { t, styled, css } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
@@ -43,7 +37,6 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import _ from 'lodash';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
@@ -58,7 +51,6 @@ const propTypes = {
   userId: PropTypes.string.isRequired,
   selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
   editMode: PropTypes.bool,
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
   dashboardId: PropTypes.number,
 };
 
@@ -66,7 +58,6 @@ const defaultProps = {
   selectedSliceIds: [],
   editMode: false,
   errorMessage: '',
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
@@ -150,12 +141,7 @@ class SliceAdder extends React.Component {
   }
 
   componentDidMount() {
-    const { userId, filterboxMigrationState } = this.props;
-    this.slicesRequest = this.props.fetchAllSlices(
-      userId,
-      isFeatureEnabled(FeatureFlag.ENABLE_FILTER_BOX_MIGRATION) &&
-        filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.SNOOZED,
-    );
+    this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -198,13 +184,8 @@ class SliceAdder extends React.Component {
   handleChange = _.debounce(value => {
     this.searchUpdated(value);
 
-    const { userId, filterboxMigrationState } = this.props;
-    this.slicesRequest = this.props.fetchFilteredSlices(
-      userId,
-      isFeatureEnabled(FeatureFlag.ENABLE_FILTER_BOX_MIGRATION) &&
-        filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.SNOOZED,
-      value,
-    );
+    const { userId } = this.props;
+    this.slicesRequest = this.props.fetchFilteredSlices(userId, value);
   }, 300);
 
   searchUpdated(searchTerm) {
@@ -226,13 +207,8 @@ class SliceAdder extends React.Component {
       ),
     }));
 
-    const { userId, filterboxMigrationState } = this.props;
-    this.slicesRequest = this.props.fetchSortedSlices(
-      userId,
-      isFeatureEnabled(FeatureFlag.ENABLE_FILTER_BOX_MIGRATION) &&
-        filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.SNOOZED,
-      sortBy,
-    );
+    const { userId } = this.props;
+    this.slicesRequest = this.props.fetchSortedSlices(userId, sortBy);
   }
 
   rowRenderer({ key, index, style }) {

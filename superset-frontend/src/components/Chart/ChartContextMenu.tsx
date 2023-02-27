@@ -18,18 +18,23 @@
  */
 import React, {
   forwardRef,
+  ReactNode,
   RefObject,
   useCallback,
   useImperativeHandle,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
-  BinaryQueryObjectFilterClause,
+  Behavior,
+  ContextMenuFilters,
   FeatureFlag,
+  getChartMetadataRegistry,
   isFeatureEnabled,
   QueryFormData,
+  t,
+  useTheme,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
@@ -37,6 +42,8 @@ import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 import { DrillDetailMenuItems } from './DrillDetail';
 import { getMenuAdjustedY } from './utils';
+import { updateDataMask } from '../../dataMask/actions';
+import { MenuItemTooltip } from './DisabledMenuItemTooltip';
 
 export interface ChartContextMenuProps {
   id: number;
@@ -49,7 +56,7 @@ export interface Ref {
   open: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
 }
 
@@ -57,26 +64,119 @@ const ChartContextMenu = (
   { id, formData, onSelection, onClose }: ChartContextMenuProps,
   ref: RefObject<Ref>,
 ) => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
+  );
+  const crossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
   const [{ filters, clientX, clientY }, setState] = useState<{
     clientX: number;
     clientY: number;
-    filters?: BinaryQueryObjectFilterClause[];
+    filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
   const menuItems = [];
+
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
 
+  const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
+    .get(formData.viz_type)
+    ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
+
+  let itemsCount = 0;
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    itemsCount += 1;
+  }
+  if (showDrillToDetail) {
+    itemsCount += 2; // Drill to detail always has 2 top-level menu items
+  }
+  if (itemsCount === 0) {
+    itemsCount = 1; // "No actions" appears if no actions in menu
+  }
+
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    const isCrossFilterDisabled =
+      !isCrossFilteringSupportedByChart ||
+      !crossFiltersEnabled ||
+      !filters?.crossFilter;
+
+    let crossFilteringTooltipTitle: ReactNode = null;
+    if (!isCrossFilterDisabled) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>
+            {t(
+              'Cross-filter will be applied to all of the charts that use this dataset.',
+            )}
+          </div>
+          <div>
+            {t('You can also just click on the chart to apply cross-filter.')}
+          </div>
+        </>
+      );
+    } else if (!crossFiltersEnabled) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>{t('Cross-filtering is not enabled for this dashboard.')}</div>
+        </>
+      );
+    } else if (!isCrossFilteringSupportedByChart) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>
+            {t('This visualization type does not support cross-filtering.')}
+          </div>
+        </>
+      );
+    } else if (!filters?.crossFilter) {
+      crossFilteringTooltipTitle = (
+        <>
+          <div>{t(`You can't apply cross-filter on this data point.`)}</div>
+        </>
+      );
+    }
+    menuItems.push(
+      <>
+        <Menu.Item
+          key="cross-filtering-menu-item"
+          disabled={isCrossFilterDisabled}
+          onClick={() => {
+            if (filters?.crossFilter) {
+              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            }
+          }}
+        >
+          {filters?.crossFilter?.isCurrentValueSelected ? (
+            t('Remove cross-filter')
+          ) : (
+            <div>
+              {t('Add cross-filter')}
+              <MenuItemTooltip
+                title={crossFilteringTooltipTitle}
+                color={
+                  !isCrossFilterDisabled
+                    ? theme.colors.grayscale.base
+                    : undefined
+                }
+              />
+            </div>
+          )}
+        </Menu.Item>
+        {itemsCount > 1 && <Menu.Divider />}
+      </>,
+    );
+  }
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
         chartId={id}
         formData={formData}
-        filters={filters}
+        filters={filters?.drillToDetail}
         isContextMenu
         contextMenuY={clientY}
         onSelection={onSelection}
@@ -85,16 +185,7 @@ const ChartContextMenu = (
   }
 
   const open = useCallback(
-    (
-      clientX: number,
-      clientY: number,
-      filters?: BinaryQueryObjectFilterClause[],
-    ) => {
-      const itemsCount =
-        [
-          showDrillToDetail ? 2 : 0, // Drill to detail always has 2 top-level menu items
-        ].reduce((a, b) => a + b, 0) || 1; // "No actions" appears if no actions in menu
-
+    (clientX: number, clientY: number, filters?: ContextMenuFilters) => {
       const adjustedY = getMenuAdjustedY(clientY, itemsCount);
       setState({
         clientX,
@@ -108,7 +199,7 @@ const ChartContextMenu = (
       // from the charts.
       document.getElementById(`hidden-span-${id}`)?.click();
     },
-    [id, showDrillToDetail],
+    [id, itemsCount],
   );
 
   useImperativeHandle(

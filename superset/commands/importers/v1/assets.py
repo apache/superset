@@ -68,6 +68,15 @@ class ImportAssetsCommand(BaseCommand):
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
+        self.ssh_tunnel_passwords: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_passwords") or {}
+        )
+        self.ssh_tunnel_private_keys: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_private_keys") or {}
+        )
+        self.ssh_tunnel_priv_key_passwords: Dict[str, str] = (
+            kwargs.get("ssh_tunnel_priv_key_passwords") or {}
+        )
         self._configs: Dict[str, Any] = {}
 
     @staticmethod
@@ -153,7 +162,13 @@ class ImportAssetsCommand(BaseCommand):
         validate_metadata_type(metadata, "assets", exceptions)
 
         self._configs = load_configs(
-            self.contents, self.schemas, self.passwords, exceptions
+            self.contents,
+            self.schemas,
+            self.passwords,
+            exceptions,
+            self.ssh_tunnel_passwords,
+            self.ssh_tunnel_private_keys,
+            self.ssh_tunnel_priv_key_passwords,
         )
 
         if exceptions:

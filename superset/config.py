@@ -444,7 +444,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
-    "ENABLE_FILTER_BOX_MIGRATION": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message

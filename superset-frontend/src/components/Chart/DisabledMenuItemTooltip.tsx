@@ -16,24 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { PieChartTransformedProps } from './types';
-import Echart from '../components/Echart';
-import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsPie(props: PieChartTransformedProps) {
-  const { height, width, echartOptions, selectedValues, refs } = props;
+import React, { ReactNode } from 'react';
+import { css, SupersetTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 
-  const eventHandlers = allEventHandlers(props);
-
-  return (
-    <Echart
-      refs={refs}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      selectedValues={selectedValues}
+export const MenuItemTooltip = ({
+  title,
+  color,
+}: {
+  title: ReactNode;
+  color?: string;
+}) => (
+  <Tooltip title={title} placement="top">
+    <Icons.InfoCircleOutlined
+      data-test="tooltip-trigger"
+      css={(theme: SupersetTheme) => css`
+        color: ${color || theme.colors.text.label};
+        margin-left: ${theme.gridUnit * 2}px;
+        &.anticon {
+          font-size: unset;
+          .anticon {
+            line-height: unset;
+            vertical-align: unset;
+          }
+        }
+      `}
     />
-  );
-}
+  </Tooltip>
+);

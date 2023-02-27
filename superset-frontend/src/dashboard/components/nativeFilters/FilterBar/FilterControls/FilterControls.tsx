@@ -61,15 +61,14 @@ import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
+import { useFilterOutlined } from '../useFilterOutlined';
 
 type FilterControlsProps = {
-  focusedFilterId?: string;
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
-  focusedFilterId,
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
@@ -79,6 +78,8 @@ const FilterControls: FC<FilterControlsProps> = ({
         ? dashboardInfo.filterBarOrientation
         : FilterBarOrientation.VERTICAL,
   );
+
+  const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
   const popoverRef = useRef<DropdownContainerRef>(null);
@@ -108,7 +109,6 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
-    focusedFilterId,
     onFilterSelectionChange,
   );
   const portalNodes = useMemo(() => {
@@ -298,10 +298,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
 
   useEffect(() => {
-    if (focusedFilterId && overflowedIds.includes(focusedFilterId)) {
+    if (outlinedFilterId && overflowedIds.includes(outlinedFilterId)) {
       popoverRef?.current?.open();
     }
-  }, [focusedFilterId, popoverRef, overflowedIds]);
+  }, [outlinedFilterId, lastUpdated, popoverRef, overflowedIds]);
 
   return (
     <>

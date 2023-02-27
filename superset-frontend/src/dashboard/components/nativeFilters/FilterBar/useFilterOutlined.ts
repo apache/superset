@@ -16,24 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { PieChartTransformedProps } from './types';
-import Echart from '../components/Echart';
-import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsPie(props: PieChartTransformedProps) {
-  const { height, width, echartOptions, selectedValues, refs } = props;
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
+import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
-  const eventHandlers = allEventHandlers(props);
-
-  return (
-    <Echart
-      refs={refs}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      selectedValues={selectedValues}
-    />
+export const useFilterOutlined = () =>
+  useSelector<RootState, { outlinedFilterId: string; lastUpdated: number }>(
+    state => ({
+      outlinedFilterId: (
+        getChartAndLabelComponentIdFromPath(
+          state.dashboardState.directPathToChild || [],
+        ) as Record<string, string>
+      )?.native_filter,
+      lastUpdated: state.dashboardState.directPathLastUpdated,
+    }),
   );
-}

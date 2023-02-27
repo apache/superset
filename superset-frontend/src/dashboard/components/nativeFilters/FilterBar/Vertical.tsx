@@ -142,7 +142,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   actions,
   canEdit,
   dataMaskSelected,
-  focusedFilterId,
   filtersOpen,
   filterValues,
   height,
@@ -211,18 +210,11 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
         <FilterControlsWrapper>
           <FilterControls
             dataMaskSelected={dataMaskSelected}
-            focusedFilterId={focusedFilterId}
             onFilterSelectionChange={onSelectionChange}
           />
         </FilterControlsWrapper>
       ),
-    [
-      canEdit,
-      dataMaskSelected,
-      filterValues.length,
-      focusedFilterId,
-      onSelectionChange,
-    ],
+    [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
   );
 
   const filterSetsTabs = useMemo(

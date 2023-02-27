@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { GraphChartTransformedProps } from './types';
@@ -36,127 +36,123 @@ type Event = {
   dataType: 'node' | 'edge';
 };
 
-const EchartsGraph = React.memo(
-  ({
-    height,
-    width,
-    echartOptions,
-    formData,
-    onContextMenu,
-    setDataMask,
-    filterState,
-    refs,
-    emitCrossFilters,
-  }: GraphChartTransformedProps) => {
-    const eventHandlers: EventHandlers = useMemo(
-      () => ({
-        click: (e: Event) => {
-          if (!emitCrossFilters || !setDataMask) {
-            return;
-          }
-          e.event.stop();
-          const data = (echartOptions as any).series[0].data as Data;
-          const node = data.find(item => item.id === e.data.id);
-          const val = filterState?.value === node?.name ? null : node?.name;
-          if (node?.col) {
-            setDataMask({
-              extraFormData: {
-                filters: val
-                  ? [
-                      {
-                        col: node.col,
-                        op: '==',
-                        val,
-                      },
-                    ]
-                  : [],
-              },
-              filterState: {
-                value: val,
-                selectedValues: [val],
-              },
-            });
-          }
+export default function EchartsGraph({
+  height,
+  width,
+  echartOptions,
+  formData,
+  onContextMenu,
+  setDataMask,
+  filterState,
+  emitCrossFilters,
+  refs,
+}: GraphChartTransformedProps) {
+  const getCrossFilterDataMask = (node: DataRow | undefined) => {
+    if (!node?.name || !node?.col) {
+      return undefined;
+    }
+    const { name, col } = node;
+    const selected = Object.values(
+      filterState?.selectedValues || {},
+    ) as string[];
+    let values: string[];
+    if (selected.includes(name)) {
+      values = selected.filter(v => v !== name);
+    } else {
+      values = [name];
+    }
+    return {
+      dataMask: {
+        extraFormData: {
+          filters: values.length
+            ? [
+                {
+                  col,
+                  op: 'IN' as const,
+                  val: values,
+                },
+              ]
+            : [],
         },
-        contextmenu: (e: Event) => {
-          const handleNodeClick = (data: Data) => {
-            const node = data.find(item => item.id === e.data.id);
-            if (node?.name) {
-              return [
-                {
-                  col: node.col,
-                  op: '==' as const,
-                  val: node.name,
-                  formattedVal: node.name,
-                },
-              ];
-            }
-            return undefined;
-          };
-          const handleEdgeClick = (data: Data) => {
-            const sourceValue = data.find(
-              item => item.id === e.data.source,
-            )?.name;
-            const targetValue = data.find(
-              item => item.id === e.data.target,
-            )?.name;
-            if (sourceValue && targetValue) {
-              return [
-                {
-                  col: formData.source,
-                  op: '==' as const,
-                  val: sourceValue,
-                  formattedVal: sourceValue,
-                },
-                {
-                  col: formData.target,
-                  op: '==' as const,
-                  val: targetValue,
-                  formattedVal: targetValue,
-                },
-              ];
-            }
-            return undefined;
-          };
-          if (onContextMenu) {
-            e.event.stop();
-            const pointerEvent = e.event.event;
-            const data = (echartOptions as any).series[0].data as Data;
-            const filters =
-              e.dataType === 'node'
-                ? handleNodeClick(data)
-                : handleEdgeClick(data);
-
-            if (filters) {
-              onContextMenu(
-                pointerEvent.clientX,
-                pointerEvent.clientY,
-                filters,
-              );
-            }
-          }
+        filterState: {
+          value: values.length ? values : null,
+          selectedValues: values.length ? values : null,
         },
-      }),
-      [
-        echartOptions,
-        emitCrossFilters,
-        filterState?.value,
-        formData.source,
-        formData.target,
-        onContextMenu,
-        setDataMask,
-      ],
-    );
-    return (
-      <Echart
-        refs={refs}
-        height={height}
-        width={width}
-        echartOptions={echartOptions}
-        eventHandlers={eventHandlers}
-      />
-    );
-  },
-);
-
-export default EchartsGraph;
+      },
+      isCurrentValueSelected: selected.includes(name),
+    };
+  };
+  const eventHandlers: EventHandlers = {
+    click: (e: Event) => {
+      if (!emitCrossFilters || !setDataMask) {
+        return;
+      }
+      e.event.stop();
+      const data = (echartOptions as any).series[0].data as Data;
+      const node = data.find(item => item.id === e.data.id);
+      const dataMask = getCrossFilterDataMask(node)?.dataMask;
+      if (dataMask) {
+        setDataMask(dataMask);
+      }
+    },
+    contextmenu: (e: Event) => {
+      const handleNodeClick = (data: Data) => {
+        const node = data.find(item => item.id === e.data.id);
+        if (node?.name) {
+          return [
+            {
+              col: node.col,
+              op: '==' as const,
+              val: node.name,
+              formattedVal: node.name,
+            },
+          ];
+        }
+        return undefined;
+      };
+      const handleEdgeClick = (data: Data) => {
+        const sourceValue = data.find(item => item.id === e.data.source)?.name;
+        const targetValue = data.find(item => item.id === e.data.target)?.name;
+        if (sourceValue && targetValue) {
+          return [
+            {
+              col: formData.source,
+              op: '==' as const,
+              val: sourceValue,
+              formattedVal: sourceValue,
+            },
+            {
+              col: formData.target,
+              op: '==' as const,
+              val: targetValue,
+              formattedVal: targetValue,
+            },
+          ];
+        }
+        return undefined;
+      };
+      if (onContextMenu) {
+        e.event.stop();
+        const pointerEvent = e.event.event;
+        const data = (echartOptions as any).series[0].data as Data;
+        const drillToDetailFilters =
+          e.dataType === 'node' ? handleNodeClick(data) : handleEdgeClick(data);
+        onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+          drillToDetail: drillToDetailFilters,
+          crossFilter: getCrossFilterDataMask(
+            data.find(item => item.id === e.data.id),
+          ),
+        });
+      }
+    },
+  };
+  return (
+    <Echart
+      refs={refs}
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+    />
+  );
+}
