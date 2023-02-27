@@ -45,6 +45,7 @@ export interface FiltersBadgeProps {
 const StyledFilterCount = styled.div`
   ${({ theme }) => `
     margin-left: ${theme.gridUnit * 4}px;
+
     .anticon {
       cursor: pointer;
       vertical-align: middle;
@@ -63,9 +64,8 @@ const StyledFilterCount = styled.div`
       margin-right: ${theme.gridUnit}px;
       vertical-align: middle;
       text-align: center;
-      width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
-      line-height: 1.4;
+      padding: 0 ${theme.gridUnit + 1}px 0 ${theme.gridUnit + 1}px;
+      line-height: 1.6;
     }
 
     .incompatible-count {
