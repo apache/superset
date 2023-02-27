@@ -24,10 +24,12 @@ import yaml
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
+from superset.utils.ssh_tunnel import mask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,15 @@ class ExportDatasetsCommand(ExportModelsCommand):
                     payload["extra"] = json.loads(payload["extra"])
                 except json.decoder.JSONDecodeError:
                     logger.info("Unable to decode `extra` field: %s", payload["extra"])
+
+            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.database.id):
+                ssh_tunnel_payload = ssh_tunnel.export_to_dict(
+                    recursive=False,
+                    include_parent_ref=False,
+                    include_defaults=True,
+                    export_uuids=False,
+                )
+                payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
 
             payload["version"] = EXPORT_VERSION
 

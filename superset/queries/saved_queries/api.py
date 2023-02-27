@@ -324,6 +324,30 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing saved queries?
                       type: boolean
+                    ssh_tunnel_passwords:
+                      description: >-
+                        JSON map of passwords for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the password should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+                    ssh_tunnel_private_keys:
+                      description: >-
+                        JSON map of private_keys for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key"}`.
+                      type: string
+                    ssh_tunnel_private_key_passwords:
+                      description: >-
+                        JSON map of private_key_passwords for each ssh_tunnel associated
+                        to a featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
+                      type: string
           responses:
             200:
               description: Saved Query import result
@@ -360,9 +384,29 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        ssh_tunnel_passwords = (
+            json.loads(request.form["ssh_tunnel_passwords"])
+            if "ssh_tunnel_passwords" in request.form
+            else None
+        )
+        ssh_tunnel_private_keys = (
+            json.loads(request.form["ssh_tunnel_private_keys"])
+            if "ssh_tunnel_private_keys" in request.form
+            else None
+        )
+        ssh_tunnel_priv_key_passwords = (
+            json.loads(request.form["ssh_tunnel_private_key_passwords"])
+            if "ssh_tunnel_private_key_passwords" in request.form
+            else None
+        )
 
         command = ImportSavedQueriesCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            ssh_tunnel_passwords=ssh_tunnel_passwords,
+            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
+            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
         return self.response(200, message="OK")

@@ -46,7 +46,6 @@ export function fetchAllSlicesFailed(error) {
 
 export function fetchSlices(
   userId,
-  excludeFilterBox,
   dispatch,
   filter_value,
   sortColumn = 'changed_on',
@@ -84,11 +83,7 @@ export function fetchSlices(
     })}`,
   })
     .then(({ json }) => {
-      let { result } = json;
-      // disable add filter_box viz to dashboard
-      if (excludeFilterBox) {
-        result = result.filter(slice => slice.viz_type !== 'filter_box');
-      }
+      const { result } = json;
       result.forEach(slice => {
         let form_data = JSON.parse(slice.params);
         form_data = {
@@ -135,46 +130,31 @@ export function fetchSlices(
     );
 }
 
-export function fetchAllSlices(userId, excludeFilterBox = false) {
+export function fetchAllSlices(userId) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
-      return fetchSlices(userId, excludeFilterBox, dispatch, undefined);
+      return fetchSlices(userId, dispatch, undefined);
     }
 
     return dispatch(setAllSlices(sliceEntities.slices));
   };
 }
 
-export function fetchSortedSlices(
-  userId,
-  excludeFilterBox = false,
-  order_column,
-) {
+export function fetchSortedSlices(userId, order_column) {
   return dispatch => {
     dispatch(fetchAllSlicesStarted());
-    return fetchSlices(
-      userId,
-      excludeFilterBox,
-      dispatch,
-      undefined,
-      order_column,
-    );
+    return fetchSlices(userId, dispatch, undefined, order_column);
   };
 }
 
-export function fetchFilteredSlices(
-  userId,
-  excludeFilterBox = false,
-  filter_value,
-) {
+export function fetchFilteredSlices(userId, filter_value) {
   return (dispatch, getState) => {
     dispatch(fetchAllSlicesStarted());
     const { sliceEntities } = getState();
     return fetchSlices(
       userId,
-      excludeFilterBox,
       dispatch,
       filter_value,
       undefined,
