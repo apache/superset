@@ -21,6 +21,7 @@ import {
   Behavior,
   FeatureFlag,
   getChartMetadataRegistry,
+  isDefined,
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from './constants';
@@ -36,7 +37,7 @@ export const isCrossFiltersEnabled = (
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,
   initialConfig: DashboardInfo['metadata']['chart_configuration'] = {},
-  chartQueries: ChartsState,
+  charts: ChartsState,
 ) => {
   if (!isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     return undefined;
@@ -46,11 +47,15 @@ export const getCrossFiltersConfiguration = (
   const chartConfiguration = {};
   Object.values(dashboardLayout).forEach(layoutItem => {
     const chartId = layoutItem.meta?.chartId;
+
+    if (!isDefined(chartId)) {
+      return;
+    }
+
     const behaviors =
       (
-        getChartMetadataRegistry().get(
-          chartQueries[chartId]?.form_data?.viz_type,
-        ) ?? {}
+        getChartMetadataRegistry().get(charts[chartId]?.form_data?.viz_type) ??
+        {}
       )?.behaviors ?? [];
 
     if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
@@ -71,7 +76,7 @@ export const getCrossFiltersConfiguration = (
       chartConfiguration[chartId].crossFilters.chartsInScope =
         getChartIdsInFilterScope(
           chartConfiguration[chartId].crossFilters.scope,
-          chartQueries,
+          charts,
           dashboardLayout,
         );
     }
