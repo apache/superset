@@ -28,35 +28,13 @@ import entity from '../../liq_data/entity.json';
 
 // UI imports
 import {
-  AppstoreOutlined,
-  ContainerOutlined,
-  DesktopOutlined,
-  MailOutlined,
+  BarsOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PieChartOutlined,
 } from '@ant-design/icons';
-import { Button, Menu, Layout } from 'antd';
+import { Button, Menu, Layout, Drawer } from 'antd';
 
 const { Content, Sider } = Layout;
-
-const items = [
-  {
-    icon: <PieChartOutlined />,
-    label: 'Option 1',
-    key: '1'
-  },
-  {
-    icon: <DesktopOutlined />,
-    label: 'Option 2',
-    key: '2'
-  },
-  {
-    icon: <ContainerOutlined />,
-    label: 'Option 3',
-    key: '3'
-  }
-];
 
 const defaults = require('./defaultLayerStyles.js')
 
@@ -123,7 +101,23 @@ export default function LiqThematicMaps(props) {
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const items = [
+    {
+      icon: collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
+      label: <span>{collapsed ? 'Uncollapse' : 'Collapse'}</span>,
+      key: '0',
+      onClick: () => setCollapsed(!collapsed)
+    },
+    {
+      icon: <BarsOutlined />,
+      label: <span>Legend</span>,
+      key: '1',
+      onClick: () => setDrawerOpen(true)
+    }
+  ];
 
   /*
     State used to store the names of intranet layers currently rendered onto the map. Since the control
@@ -396,13 +390,18 @@ export default function LiqThematicMaps(props) {
   }, [opacity])
 
   return (
-    <Layout style={{height: height, width: width}}>
-      <Sider collapsible collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)}>
-        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" >
+    <Layout style={{height: height, width: width}} ref={rootElem}>
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed} 
+        onCollapse={() => setCollapsed(!collapsed)}
+      >
+        <Menu mode="inline" theme='dark'>
           {items.map(i => (
-            <Menu.Item key={i.key}>
+            <Menu.Item key={i.key} onClick={i.onClick}>
               {i.icon}
-              <span>{i.label}</span>
+              {i.label}
             </Menu.Item>
           ))}
         </Menu>
@@ -412,7 +411,21 @@ export default function LiqThematicMaps(props) {
           <div
             ref={mapContainer}
             style={{ padding: 24, height: height, width: '100%' }}
-          />
+          >
+            <Drawer 
+              title='Basic Drawer' 
+              placement='right' 
+              onClose={() => setDrawerOpen(false)} 
+              visible={drawerOpen}
+              getContainer={false}
+              style={{position: 'absolute'}}
+              mask={false}
+            >
+              <p>Some contents...</p>
+              <p>Some contents...</p>
+              <p>Some contents...</p>
+            </Drawer>
+          </div>
         </Content>
       </Layout>
     </Layout>
