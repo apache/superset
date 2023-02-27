@@ -26,6 +26,7 @@ import {
   isFeatureEnabled,
   NativeFilterType,
   NO_TIME_RANGE,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
@@ -151,7 +152,7 @@ const getRejectedColumns = (chart: any): Set<string> =>
   );
 
 export type Indicator = {
-  column?: string;
+  column?: QueryFormColumn;
   name: string;
   value?: any;
   status?: IndicatorStatus;
