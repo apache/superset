@@ -51,13 +51,19 @@ test('CrossFilterTag should render', () => {
 });
 
 test('CrossFilterTag with adhoc column should render', () => {
-  const props = { ...mockedProps };
-  props.filter.column = {
-    label: 'My column',
-    sqlExpression: 'country_name',
-    expressionType: 'SQL',
+  const props = {
+    ...mockedProps,
+    filter: {
+      ...mockedProps.filter,
+      column: {
+        label: 'My column',
+        sqlExpression: 'country_name',
+        expressionType: 'SQL' as const,
+      },
+    },
   };
-  const { container } = setup(mockedProps);
+
+  const { container } = setup(props);
   expect(container).toBeInTheDocument();
   expect(screen.getByText('My column')).toBeInTheDocument();
   expect(screen.getByText('Italy')).toBeInTheDocument();
