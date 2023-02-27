@@ -35,7 +35,11 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    BasicParametersSchema,
+)
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
@@ -173,6 +177,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_connection_query_params = {"local_infile"}
 
     @classmethod
     def convert_dttm(

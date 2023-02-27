@@ -354,6 +354,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # A set of disallowed connection query parameters
+    disallow_connection_query_params: Set[str] = set()
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -1723,6 +1725,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
         }
+
+    @classmethod
+    def validate_database_uri(cls, sqlalchemy_uri: URL) -> None:
+        """
+        Validates a database SQLAlchemy URI per engine spec.
+        Use this to implement a final validation for unwanted connection configuration
+
+        :param sqlalchemy_uri:
+        """
+        for query_param in sqlalchemy_uri.query.keys():
+            if query_param in cls.disallow_connection_query_params:
+                raise ValueError("Disallowed query parameter")
+        return
 
 
 # schema for adding a database by providing parameters instead of the
