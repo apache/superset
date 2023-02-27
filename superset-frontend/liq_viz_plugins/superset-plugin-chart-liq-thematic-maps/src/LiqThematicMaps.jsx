@@ -24,10 +24,39 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
-// UI imports
-import { Button } from 'antd';
-
 import entity from '../../liq_data/entity.json';
+
+// UI imports
+import {
+  AppstoreOutlined,
+  ContainerOutlined,
+  DesktopOutlined,
+  MailOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  PieChartOutlined,
+} from '@ant-design/icons';
+import { Button, Menu, Layout } from 'antd';
+
+const { Content, Sider } = Layout;
+
+const items = [
+  {
+    icon: <PieChartOutlined />,
+    label: 'Option 1',
+    key: '1'
+  },
+  {
+    icon: <DesktopOutlined />,
+    label: 'Option 2',
+    key: '2'
+  },
+  {
+    icon: <ContainerOutlined />,
+    label: 'Option 3',
+    key: '3'
+  }
+];
 
 const defaults = require('./defaultLayerStyles.js')
 
@@ -93,6 +122,8 @@ export default function LiqThematicMaps(props) {
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
+
+  const [collapsed, setCollapsed] = useState(false);
 
   /*
     State used to store the names of intranet layers currently rendered onto the map. Since the control
@@ -236,8 +267,8 @@ export default function LiqThematicMaps(props) {
         'paint': layerStyles.boundaryStyle
       });
 
-      loadIntranetLayers(intranetLayers);
-      setRenderedIntranetLayers([...intranetLayers]);
+      loadIntranetLayers(intranetLayers ? intranetLayers : []);
+      setRenderedIntranetLayers(intranetLayers ? [...intranetLayers] : []);
 
     });
 
@@ -365,53 +396,60 @@ export default function LiqThematicMaps(props) {
   }, [opacity])
 
   return (
-    <Styles
-      ref={rootElem}
-      height={height}
-      width={width}
-    >
-      <div 
-        ref={mapContainer} 
-        className="map-container" 
-        style={{height: height, width: width}}
-      />
-      <Button
-        style={{
-          top: '1.2vh',
-          left: '1vw',
-          zIndex: 0,
-          position: 'absolute'
-        }}
-      >
-        Legend
-      </Button>
-    </Styles>
-  );  
+    <Layout style={{height: height, width: width}}>
+      <Sider collapsible collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)}>
+        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" >
+          {items.map(i => (
+            <Menu.Item key={i.key}>
+              {i.icon}
+              <span>{i.label}</span>
+            </Menu.Item>
+          ))}
+        </Menu>
+        {/* <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
+          <Menu.Item key="1">
+            <span>Marker 1</span>
+          </Menu.Item>
+          <Menu.Item key="2">
+            <span>Marker 2</span>
+          </Menu.Item>
+          <Menu.Item key="3">
+            <span>Marker 3</span>
+          </Menu.Item>
+        </Menu> */}
+      </Sider>
+      <Layout className="site-layout">
+        <Content>
+          <div
+            ref={mapContainer}
+            style={{ padding: 24, height: height, width: '100%' }}
+          />
+        </Content>
+      </Layout>
+    </Layout>
+  );
+
+  // return (
+  //   <Styles
+  //     ref={rootElem}
+  //     height={height}
+  //     width={width}
+  //   >
+  //     <div 
+  //       ref={mapContainer} 
+  //       className="map-container" 
+  //       style={{height: height, width: width}}
+  //     />
+  //     <Button
+  //       style={{
+  //         top: '1.2vh',
+  //         left: '1vw',
+  //         zIndex: 0,
+  //         position: 'absolute'
+  //       }}
+  //     >
+  //       Legend
+  //     </Button>
+  //   </Styles>
+  // );  
 }
-
-
-{/* <Layout>
-<Sider trigger={null} collapsible collapsed={collapsed}>
-  <div className="logo" />
-  <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
-    <Menu.Item key="1">
-      <span>Marker 1</span>
-    </Menu.Item>
-    <Menu.Item key="2">
-      <span>Marker 2</span>
-    </Menu.Item>
-    <Menu.Item key="3">
-      <span>Marker 3</span>
-    </Menu.Item>
-  </Menu>
-</Sider>
-<Layout className="site-layout">
-  <Content style={{ margin: '0 16px' }}>
-    <div
-      ref={mapRef}
-      className="site-layout-background"
-      style={{ padding: 24, minHeight: 360 }}
-    />
-  </Content>
-</Layout>
-</Layout> */}
