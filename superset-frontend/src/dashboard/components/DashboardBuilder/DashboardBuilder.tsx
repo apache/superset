@@ -445,6 +445,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
   );
+  const crossFiltersEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+  );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
       isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
@@ -523,7 +526,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterSetEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
-  const showFilterBar = nativeFiltersEnabled && !editMode;
+  const showFilterBar =
+    (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
