@@ -36,6 +36,7 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
   styled,
+  SupersetTheme,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -339,17 +340,8 @@ class SliceHeaderControls extends React.PureComponent<
       addDangerToast = () => {},
       supersetCanShare = false,
       isCached = [],
-      crossFiltersEnabled,
     } = this.props;
-    const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
-    const isCrossFilter = Object.entries(crossFilterItems)
-      // @ts-ignore
-      .filter(([, { value }]) =>
-        value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
-      )
-      .find(([key]) => key === slice.viz_type);
-
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
     );
@@ -534,6 +526,9 @@ class SliceHeaderControls extends React.PureComponent<
           placement="bottomRight"
         >
           <span
+            css={(theme: SupersetTheme) => css`
+              padding-top: ${theme.gridUnit / 2}px;
+            `}
             id={`slice_${slice.slice_id}-controls`}
             role="button"
             aria-label="More Options"

@@ -36,10 +36,8 @@ import SliceHeaderControls, {
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
-import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -57,11 +55,14 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 
 const annotationsLoading = t('Annotation layers are still loading.');
 const annotationsError = t('One ore more annotation layers failed loading.');
-const CrossFilterIcon = styled(Icons.CursorTarget)`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.base};
-  height: 22px;
-  width: 22px;
+const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
+  ${({ theme }) => `
+    cursor: default;
+    color: ${theme.colors.primary.base};
+    padding-top: ${theme.gridUnit}px;
+    height: ${theme.gridUnit * 5}px;
+    width: ${theme.gridUnit * 5}px;
+  `}
 `;
 
 const ChartHeaderStyles = styled.div`
@@ -250,16 +251,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {crossFilterValue && (
               <Tooltip
                 placement="top"
-                title={
-                  <FilterIndicator
-                    indicator={indicator}
-                    text={t('Click to clear emitted filters')}
-                  />
-                }
+                title={t(
+                  'This chart emits/applies cross-filters to other charts that use the same dataset',
+                )}
               >
-                <CrossFilterIcon
-                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
-                />
+                <CrossFilterIcon iconSize="l" />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (

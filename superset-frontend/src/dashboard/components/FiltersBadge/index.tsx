@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import { DataMaskStateWithId, Filters } from '@superset-ui/core';
+import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
@@ -31,7 +31,6 @@ import {
   RootState,
 } from 'src/dashboard/types';
 import DetailsPanelPopover from './DetailsPanel';
-import { Pill } from './Styles';
 import {
   Indicator,
   IndicatorStatus,
@@ -42,6 +41,31 @@ import {
 export interface FiltersBadgeProps {
   chartId: number;
 }
+
+const StyledFilterCount = styled.div`
+  ${({ theme }) => `
+    .anticon {
+      cursor: pointer;
+      vertical-align: middle;
+      color: ${theme.colors.grayscale.base};
+      &:hover {
+        color: ${theme.colors.grayscale.light1}
+      }
+    }
+    .applied-count {
+      display: inline-block;
+      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colors.primary.base};
+      border-radius: 100%;
+      font-size: ${theme.typography.sizes.s - 1}px;
+      margin-left: ${theme.gridUnit * 2}px;
+      vertical-align: middle;
+      text-align: center;
+      width: ${theme.gridUnit * 4}px;
+      height: ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
 
 const sortByStatus = (indicators: Indicator[]): Indicator[] => {
   const statuses = [
@@ -248,7 +272,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
     >
-      <Pill
+      <StyledFilterCount
         className={cx(
           'filter-counts',
           !!incompatibleIndicators.length && 'has-incompatible-filters',
@@ -258,7 +282,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       >
         <Icons.Filter iconSize="m" />
         {!isInactive && (
-          <span data-test="applied-filter-count">
+          <span data-test="applied-filter-count" className="applied-count">
             {appliedIndicators.length + appliedCrossFilterIndicators.length}
           </span>
         )}
@@ -271,7 +295,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             </span>
           </>
         ) : null}
-      </Pill>
+      </StyledFilterCount>
     </DetailsPanelPopover>
   );
 };
