@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import (
     Any,
     Callable,
@@ -40,6 +41,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
@@ -49,7 +51,6 @@ from superset.models.core import Database
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
 from superset.superset_typing import ResultSetColumnType
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -200,12 +201,12 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_dialect_name(drivername: str) -> str:
     return SqlaURL.create(drivername).get_dialect().name
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
     return SqlaURL.create(drivername).get_dialect()().identifier_preparer.quote
 
