@@ -37,6 +37,8 @@ NO_TIME_RANGE = "No filter"
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 
+LRU_CACHE_MAX_SIZE = 256
+
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
