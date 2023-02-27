@@ -406,17 +406,6 @@ export default function LiqThematicMaps(props) {
             </Menu.Item>
           ))}
         </Menu>
-        {/* <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
-          <Menu.Item key="1">
-            <span>Marker 1</span>
-          </Menu.Item>
-          <Menu.Item key="2">
-            <span>Marker 2</span>
-          </Menu.Item>
-          <Menu.Item key="3">
-            <span>Marker 3</span>
-          </Menu.Item>
-        </Menu> */}
       </Sider>
       <Layout className="site-layout">
         <Content>
@@ -427,29 +416,5 @@ export default function LiqThematicMaps(props) {
         </Content>
       </Layout>
     </Layout>
-  );
-
-  // return (
-  //   <Styles
-  //     ref={rootElem}
-  //     height={height}
-  //     width={width}
-  //   >
-  //     <div 
-  //       ref={mapContainer} 
-  //       className="map-container" 
-  //       style={{height: height, width: width}}
-  //     />
-  //     <Button
-  //       style={{
-  //         top: '1.2vh',
-  //         left: '1vw',
-  //         zIndex: 0,
-  //         position: 'absolute'
-  //       }}
-  //     >
-  //       Legend
-  //     </Button>
-  //   </Styles>
-  // );  
+  ); 
 }
