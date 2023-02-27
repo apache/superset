@@ -29,8 +29,8 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.commands.exceptions import ImportFailedError
+from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
 
