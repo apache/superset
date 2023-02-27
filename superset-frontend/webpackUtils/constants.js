@@ -43,7 +43,6 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
       }
       header.header {
         border-bottom: 1px solid #e4e4e4;
-        height: 58px;
         display: flex;
         align-items: center;
       }
