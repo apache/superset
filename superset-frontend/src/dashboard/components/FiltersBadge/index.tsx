@@ -44,6 +44,7 @@ export interface FiltersBadgeProps {
 
 const StyledFilterCount = styled.div`
   ${({ theme }) => `
+    margin-left: ${theme.gridUnit * 4}px;
     .anticon {
       cursor: pointer;
       vertical-align: middle;
@@ -57,12 +58,18 @@ const StyledFilterCount = styled.div`
       color: ${theme.colors.grayscale.light5};
       background: ${theme.colors.primary.base};
       border-radius: 100%;
-      font-size: ${theme.typography.sizes.s - 1}px;
+      font-size: ${theme.typography.sizes.s}px;
       margin-left: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.gridUnit}px;
       vertical-align: middle;
       text-align: center;
       width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
+      line-height: 1.4;
+    }
+
+    .incompatible-count {
+      font-size: ${theme.typography.sizes.s}px;
     }
   `}
 `;
@@ -289,8 +296,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         {incompatibleIndicators.length ? (
           <>
             {' '}
-            <Icons.AlertSolid />
-            <span data-test="incompatible-filter-count">
+            <Icons.AlertSolid iconSize="m" />
+            <span
+              data-test="incompatible-filter-count"
+              className="incompatible-count"
+            >
               {incompatibleIndicators.length}
             </span>
           </>

@@ -21,14 +21,13 @@ import React, {
   ReactNode,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
@@ -59,9 +58,7 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
     color: ${theme.colors.primary.base};
-    padding-top: ${theme.gridUnit}px;
-    height: ${theme.gridUnit * 5}px;
-    width: ${theme.gridUnit * 5}px;
+    line-height: 1.8;
   `}
 `;
 
@@ -161,7 +158,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
-  const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
@@ -172,14 +168,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
-
-  const indicator = useMemo(
-    () => ({
-      value: crossFilterValue,
-      name: t('Emitted values'),
-    }),
-    [crossFilterValue],
   );
 
   const canExplore = !editMode && supersetCanExplore;
@@ -255,7 +243,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                   'This chart emits/applies cross-filters to other charts that use the same dataset',
                 )}
               >
-                <CrossFilterIcon iconSize="l" />
+                <CrossFilterIcon iconSize="m" />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (

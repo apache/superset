@@ -31,9 +31,7 @@ import {
 } from 'react-router-dom';
 import moment from 'moment';
 import {
-  Behavior,
   css,
-  getChartMetadataRegistry,
   QueryFormData,
   styled,
   SupersetTheme,
