@@ -91,14 +91,14 @@ class CreateDatabaseCommand(BaseCommand):
                     ).run()
                 except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                     event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
                     # So we can show the original message
                     raise ex
                 except Exception as ex:
                     event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
                     raise DatabaseCreateFailedError() from ex
@@ -111,6 +111,7 @@ class CreateDatabaseCommand(BaseCommand):
                 )
 
             db.session.commit()
+
         except DAOCreateFailedError as ex:
             db.session.rollback()
             event_logger.log_with_context(
@@ -118,6 +119,13 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseCreateFailedError() from ex
+
+        action_str = "db_creation_success.ssh_tunnel" if ssh_tunnel else "db_creation_success"
+        event_logger.log_with_context(
+            action=action_str,
+            engine=database.db_engine_spec.__name__,
+        )
+
         return database
 
     def validate(self) -> None:
