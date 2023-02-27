@@ -19,19 +19,29 @@
 
 import React, { ReactNode } from 'react';
 import { css, Divider, Filter, SupersetTheme } from '@superset-ui/core';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
+import { CrossFilterIndicator } from '../../selectors';
 
 export interface FiltersDropdownContentProps {
+  overflowedCrossFilters: CrossFilterIndicator[];
   filtersInScope: (Filter | Divider)[];
   filtersOutOfScope: (Filter | Divider)[];
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
+  rendererCrossFilter: (
+    crossFilter: CrossFilterIndicator,
+    orientation: FilterBarOrientation.VERTICAL,
+    last: CrossFilterIndicator,
+  ) => ReactNode;
   showCollapsePanel?: boolean;
 }
 
 export const FiltersDropdownContent = ({
+  overflowedCrossFilters,
   filtersInScope,
   filtersOutOfScope,
   renderer,
+  rendererCrossFilter,
   showCollapsePanel,
 }: FiltersDropdownContentProps) => (
   <div
@@ -42,6 +52,13 @@ export const FiltersDropdownContent = ({
       `
     }
   >
+    {overflowedCrossFilters.map(crossFilter =>
+      rendererCrossFilter(
+        crossFilter,
+        FilterBarOrientation.VERTICAL,
+        overflowedCrossFilters.at(-1) as CrossFilterIndicator,
+      ),
+    )}
     {filtersInScope.map(renderer)}
     {showCollapsePanel && (
       <FiltersOutOfScopeCollapsible

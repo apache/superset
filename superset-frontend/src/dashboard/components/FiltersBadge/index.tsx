@@ -24,19 +24,19 @@ import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import {
-  ChartsState,
-  DashboardInfo,
-  DashboardLayout,
-  RootState,
-} from 'src/dashboard/types';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
   IndicatorStatus,
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
-} from './selectors';
+} from '../nativeFilters/selectors';
+import {
+  ChartsState,
+  DashboardInfo,
+  DashboardLayout,
+  RootState,
+} from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
