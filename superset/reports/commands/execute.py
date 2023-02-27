@@ -234,9 +234,9 @@ class BaseReportState:
 
     def get_pdf(self) -> Optional[bytes]:
         images = []
-        Snapshots = self._get_screenshots()
+        snapshots = self._get_screenshots()
 
-        for snap in Snapshots:
+        for snap in snapshots:
             img = Image.open(BytesIO(snap))
             if img.mode == "RGBA":
                 img = img.convert("RGB")
@@ -364,7 +364,6 @@ class BaseReportState:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
-            
             elif self._report_schedule.report_format == ReportDataFormat.PDF:
                 data = self.get_pdf()
                 if not data:

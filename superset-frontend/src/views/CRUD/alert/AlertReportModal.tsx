@@ -487,14 +487,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [chartVizType, setChartVizType] = useState<string>('');
 
   const isEditMode = alert !== null;
-  const formatOptionEnabled =
-    contentType === 'chart' &&
-    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
-
+  const isReportEnable =
+    isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport;
+  const chartFormatOptionEnabled = contentType === 'chart' && isReportEnable;
   const dashboardFormatOptionEnabled =
-    contentType === 'dashboard' &&
-    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
-
+    contentType === 'dashboard' && isReportEnable;
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
   const [notificationSettings, setNotificationSettings] = useState<
@@ -1097,6 +1094,33 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(false);
   }
 
+  const supportedFormats = (
+    <>
+      <div className="inline-container">
+        <StyledRadioGroup onChange={onFormatChange} value={reportFormat}>
+          <StyledRadio value="PNG">{TRANSLATIONS.SEND_AS_PNG_TEXT}</StyledRadio>
+          {chartFormatOptionEnabled && (
+            <>
+              <StyledRadio value="CSV">
+                {TRANSLATIONS.SEND_AS_CSV_TEXT}
+              </StyledRadio>
+              {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                <StyledRadio value="TEXT">
+                  {TRANSLATIONS.SEND_AS_TEXT}
+                </StyledRadio>
+              )}
+            </>
+          )}
+          {dashboardFormatOptionEnabled && (
+            <StyledRadio value="PDF">
+              {TRANSLATIONS.SEND_AS_PDF_TEXT}
+            </StyledRadio>
+          )}
+        </StyledRadioGroup>
+      </div>
+    </>
+  );
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -1415,28 +1439,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 onChange={onDashboardChange}
               />
             )}
-            {formatOptionEnabled && (
-              <>
-                <div className="inline-container">
-                  <StyledRadioGroup
-                    onChange={onFormatChange}
-                    value={reportFormat}
-                  >
-                    <StyledRadio value="PNG">
-                      {TRANSLATIONS.SEND_AS_PNG_TEXT}
-                    </StyledRadio>
-                    <StyledRadio value="CSV">
-                      {TRANSLATIONS.SEND_AS_CSV_TEXT}
-                    </StyledRadio>
-                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                      <StyledRadio value="TEXT">
-                        {TRANSLATIONS.SEND_AS_TEXT}
-                      </StyledRadio>
-                    )}
-                  </StyledRadioGroup>
-                </div>
-              </>
-            )}
             {(isReport || contentType === 'dashboard') && (
               <div className="inline-container">
                 <StyledCheckbox
@@ -1449,23 +1451,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </StyledCheckbox>
               </div>
             )}
-            {dashboardFormatOptionEnabled && (
-              <>
-                <div className="inline-container">
-                  <StyledRadioGroup
-                    onChange={onFormatChange}
-                    value={reportFormat}
-                  >
-                    <StyledRadio value="PNG">
-                      {TRANSLATIONS.SEND_AS_PNG_TEXT}
-                    </StyledRadio>
-                    <StyledRadio value="PDF">
-                      {TRANSLATIONS.SEND_AS_PDF_TEXT}
-                    </StyledRadio>
-                  </StyledRadioGroup>
-                </div>
-              </>
-            )}
+            {supportedFormats}
             <StyledSectionTitle>
               <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
               <span className="required">*</span>
