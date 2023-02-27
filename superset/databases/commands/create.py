@@ -45,6 +45,7 @@ from superset.extensions import db, event_logger, security_manager
 logger = logging.getLogger(__name__)
 stats_logger = current_app.config["STATS_LOGGER"]
 
+
 class CreateDatabaseCommand(BaseCommand):
     def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
