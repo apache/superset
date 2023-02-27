@@ -20,10 +20,14 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { IndicatorStatus } from '../../selectors';
+import { CrossFilterIndicator, IndicatorStatus } from '../../selectors';
 import CrossFilterTag from './CrossFilterTag';
 
-const mockedProps = {
+const mockedProps: {
+  filter: CrossFilterIndicator;
+  orientation: FilterBarOrientation;
+  removeCrossFilter: (filterId: number) => void;
+} = {
   filter: {
     name: 'test',
     emitterId: 1,
@@ -44,6 +48,25 @@ const setup = (props: typeof mockedProps) =>
 test('CrossFilterTag should render', () => {
   const { container } = setup(mockedProps);
   expect(container).toBeInTheDocument();
+});
+
+test('CrossFilterTag with adhoc column should render', () => {
+  const props = {
+    ...mockedProps,
+    filter: {
+      ...mockedProps.filter,
+      column: {
+        label: 'My column',
+        sqlExpression: 'country_name',
+        expressionType: 'SQL' as const,
+      },
+    },
+  };
+
+  const { container } = setup(props);
+  expect(container).toBeInTheDocument();
+  expect(screen.getByText('My column')).toBeInTheDocument();
+  expect(screen.getByText('Italy')).toBeInTheDocument();
 });
 
 test('Column and value should be visible', () => {
