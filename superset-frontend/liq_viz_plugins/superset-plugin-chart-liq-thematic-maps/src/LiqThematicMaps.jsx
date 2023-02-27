@@ -388,3 +388,30 @@ export default function LiqThematicMaps(props) {
     </Styles>
   );  
 }
+
+
+{/* <Layout>
+<Sider trigger={null} collapsible collapsed={collapsed}>
+  <div className="logo" />
+  <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
+    <Menu.Item key="1">
+      <span>Marker 1</span>
+    </Menu.Item>
+    <Menu.Item key="2">
+      <span>Marker 2</span>
+    </Menu.Item>
+    <Menu.Item key="3">
+      <span>Marker 3</span>
+    </Menu.Item>
+  </Menu>
+</Sider>
+<Layout className="site-layout">
+  <Content style={{ margin: '0 16px' }}>
+    <div
+      ref={mapRef}
+      className="site-layout-background"
+      style={{ padding: 24, minHeight: 360 }}
+    />
+  </Content>
+</Layout>
+</Layout> */}
