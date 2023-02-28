@@ -54,10 +54,12 @@ import {
   MetaObject,
   Operator,
   Recipient,
+  RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { ERROR_MESSAGES } from './constants';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -409,7 +411,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [invalidEmail, setInvalidEmail] = useState<boolean>(false);
+  const [invalidInput, setInvalidInputs] = useState<any>({
+    invalid : false,
+    emailError : "",
+    voError : ""
+  });
 
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
@@ -499,15 +505,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
+
+
   const onSave = () => {
     // Notification Settings
-    setInvalidEmail(false);
+    setInvalidInputs({invalid: false, emailError : "", voError: ""});
     const recipients: Recipient[] = [];
-    let invalidEmails : any = [];
+    let invalidEmails : string[] = [];
+    let invalidRoutingKeys : string[] = [];
+    let routingKeys : string[] = []
     let notificationType  = ""
+
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        if (setting.method === 'Email') {
+        if (setting.method === RecipientIconName.Email) {
           notificationType = setting.method
           const emailStr = setting.recipients;
           const emails = ([] as string[])
@@ -515,19 +526,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             .map(item => item.trim())
             .filter(item => item !== '');
 
-          invalidEmails = emails.filter(
+            invalidEmails = emails.filter(
             email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
           );
         }
-        else if(setting.method == "VictorOps"){
+        else if(setting.method === RecipientIconName.VO){
           notificationType = setting.method
           const routingKeyStr = setting.recipients;
-          const routingKeys = ([] as string[])
+          routingKeys = ([] as string[])
             .concat(...routingKeyStr.split(',').map(item => item.split(';')))
             .map(item => item.trim())
             .filter(item => item !== '');
-
-          invalidEmails = routingKeys.filter(
+          invalidRoutingKeys = routingKeys.filter(
             routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
           );
         }
@@ -541,28 +551,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           },
           type: setting.method,
         });
+
       }
     });
 
+    if(invalidEmails.length > 0 ||
+      invalidRoutingKeys.length > 0 ||
+      routingKeys.length > 1
+      ){
+        let emailError =  invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : ""
+        let voError =   invalidRoutingKeys.length > 0 ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR : ""
+        voError = routingKeys.length > 1 ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION   : voError
 
-    if (invalidEmails.length > 0) {
-      setInvalidEmail(true);
-      if(notificationType == 'Email'){
+        setInvalidInputs({invalid: true, emailError: emailError, voError: voError});
         addDangerToast(
           t(
-            'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
+            ERROR_MESSAGES.GENERIC_INVALID_INPUT
           ),
         );
+        return;
       }
-      else if(notificationType == "VictorOps"){
-        addDangerToast(
-          invalidEmails.length > 1 ?  t('Atmost one routing key is allowed') : t(
-            'Routing Key must not contain any special charaters other than undescores(_) or hyphens(-)',
-          ),
-        );
-      }
-      return;
-    }
+;
 
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
@@ -1508,7 +1517,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
-                invalid={invalidEmail}
+                invalidInput={invalidInput}
               />
             ))}
             <NotificationMethodAdd
