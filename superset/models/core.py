@@ -424,6 +424,8 @@ class Database(
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
         )
+        self.db_engine_spec.validate_database_uri(sqlalchemy_url)
+
         sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
