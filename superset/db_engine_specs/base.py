@@ -1737,7 +1737,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if existing_disallowed := cls.disallow_uri_query_params.intersection(
             sqlalchemy_uri.query
         ):
-            raise ValueError("Disallowed query parameter(s) %s", existing_disallowed)
+            raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 
 # schema for adding a database by providing parameters instead of the
