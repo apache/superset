@@ -109,6 +109,7 @@ export default function LiqThematicMaps(props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContent, setDrawerContent] = useState(<></>);
   const [drawerTitle, setDrawerTitle] = useState('');
+  const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
     {
@@ -123,7 +124,13 @@ export default function LiqThematicMaps(props) {
       key: '1',
       onClick: () => {
         setDrawerTitle('Map Legend')
-        setDrawerContent(<Legend intranetLayers={intranetLayers}/>);
+        setDrawerContent(
+          <Legend 
+            intranetLayers={intranetLayers} 
+            thematicData={thematicLegend} 
+            thematicCol={metricCol} 
+          />
+        );
         setDrawerOpen(true);
       }
     }
@@ -277,12 +284,6 @@ export default function LiqThematicMaps(props) {
 
     });
 
-    // When the map reveices new tile data, get rendered tile features and store them in state for styling
-    map.current.on('data', () => {
-      const bdryIds = getCurrBdryIds();
-      setCurrBdryIDs([...bdryIds]);
-    });
-
     // When the map is moved around, store current position in state
     map.current.on('move', () => {
       const {lng, lat} = map.current.getCenter();
@@ -294,6 +295,13 @@ export default function LiqThematicMaps(props) {
       };
       setMapPos({...newMapPos});
     });
+
+    // When the map reveices new tile data, get rendered tile features and store them in state for styling
+    map.current.on('data', () => {
+      const bdryIds = getCurrBdryIds();
+      setCurrBdryIDs([...bdryIds]);
+    });
+
   }
 
   // Force main map initialization hook to trigger, essentially instigating a reload
@@ -343,6 +351,7 @@ export default function LiqThematicMaps(props) {
           cMap[d[groupCol]] = result.colors[i]
         });
         setColorMap({...cMap});
+        setThematicLegend({...result.breaks});
       })
       .then(error => console.log('error', error));
   }, [linearColorScheme, breaksMode, customMode, numClasses, data])
@@ -355,6 +364,7 @@ export default function LiqThematicMaps(props) {
 
   // Refresh map from scratch everytime there is new data or the base style is changed
   useEffect(() => {
+    setDrawerOpen(false);
     if (map.current) instigateReload();
   }, [data, mapStyle])
 
@@ -393,7 +403,7 @@ export default function LiqThematicMaps(props) {
     map.current.setPaintProperty('boundary_tileset', 'fill-color', ['feature-state', 'color']);
 
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
-  }, [currBdryIDs]);
+  }, [currBdryIDs, colorMap]);
 
   // Hook for changing opacity in real time
   useEffect(() => {

@@ -14,6 +14,7 @@ export default function Legend(props) {
 
   const {
     thematicData,
+    thematicCol,
     boundaryData,
     intranetLayers
   } = props;
@@ -122,12 +123,35 @@ export default function Legend(props) {
   return (
     <>
       <Divider orientation='left'>
+        Thematic
+      </Divider>
+      <Collapse>
+        <Panel header={thematicCol} key='0'>
+          <List
+            size='small'
+            itemLayout='horizontal'
+            dataSource={(thematicData ? Object.keys(thematicData) : []).map(k => {
+              return { title: k, color: thematicData[k] }
+            })}
+            renderItem={item => (
+              <List.Item extra={<Button type='text' shape='circle' icon={<EyeOutlined />} />}>
+                <List.Item.Meta
+                avatar={<div style={{width: 24, height: 24, background: item.color}} />}
+                title={item.title}
+                />
+              </List.Item>
+            )}  
+          />
+        </Panel>
+      </Collapse>
+      <Divider orientation='left'>
         Intranet Layers
       </Divider>
       <Collapse>
         {(intranetLayers ? intranetLayers : []).map((l, i) => (
           <Panel header={nameMap[l]} key={i}>
             <List
+              size='small'
               itemLayout='horizontal'
               dataSource={(l in legend ? legend[l] : []).map(d => {
                 return { title: d[0], img: d[1], desc: d[2] }
@@ -136,7 +160,7 @@ export default function Legend(props) {
                 <List.Item extra={<Button type='text' shape='circle' icon={<EyeOutlined />} />}>
                   <List.Item.Meta
                     avatar={<Avatar src={item.img} shape='square' size={24} />}
-                    title={<p>{item.title}</p>}
+                    title={item.title}
                   />
                 </List.Item>
               )}
@@ -144,9 +168,6 @@ export default function Legend(props) {
           </Panel>
         ))}
       </Collapse>
-      <Divider orientation='left'>
-        Thematic
-      </Divider>
       <Divider orientation='left'>
         Boundary
       </Divider>
