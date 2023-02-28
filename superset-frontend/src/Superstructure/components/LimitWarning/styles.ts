@@ -29,9 +29,4 @@ const Alert = styled.div`
   padding: 30px;
 `;
 
-export {
-  StyledH4,
-  StyledP,
-  LimitWarningWrapper,
-  Alert
-}
+export { StyledH4, StyledP, LimitWarningWrapper, Alert };

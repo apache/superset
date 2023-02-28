@@ -1,5 +1,4 @@
 // DODO was here
-
 import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
@@ -220,7 +219,6 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-
 const generateFileName = (filename, extension) =>
   `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
 
@@ -254,7 +252,11 @@ export const exportChart = ({
     });
   }
 
-  console.log('exportChart [ process.env.business => ', process.env.business, ']')
+  console.log(
+    'exportChart [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     SupersetClient.postForm(url, { form_data: safeStringify(payload) });
   } else {
@@ -263,20 +265,30 @@ export const exportChart = ({
       resultFormat,
       resultType,
       force,
-      ownState
+      ownState,
     });
 
-    exportResultPromise.then(csvExportResult => {
-      if (csvExportResult) {
-        const csvFile = new Blob([csvExportResult], { type: 'text/csv;charset=utf-8;' });
+    exportResultPromise
+      .then(csvExportResult => {
+        if (csvExportResult) {
+          const csvFile = new Blob([csvExportResult], {
+            type: 'text/csv;charset=utf-8;',
+          });
 
-        FileSaver.saveAs(csvFile, generateFileName(`${formData.datasource}_${formData.viz_type}`, 'csv'));
-      } else {
-        console.log('csvExportResult error', csvExportResult)
-      }
-    }).catch(csvExportError => {
-      console.log('csvExportError', csvExportError)
-    })
+          FileSaver.saveAs(
+            csvFile,
+            generateFileName(
+              `${formData.datasource}_${formData.viz_type}`,
+              'csv',
+            ),
+          );
+        } else {
+          console.log('csvExportResult error', csvExportResult);
+        }
+      })
+      .catch(csvExportError => {
+        console.log('csvExportError', csvExportError);
+      });
   }
 };
 
@@ -288,9 +300,9 @@ export const getCSV = async (url, payload, isLegacy) => {
       url,
       body: payload,
     });
-  
+
     if (response && response.result) {
-      return response.result[0]
+      return response.result[0];
     }
   } else {
     const response = await API_HANDLER.SupersetClient({
@@ -299,11 +311,11 @@ export const getCSV = async (url, payload, isLegacy) => {
       body: payload,
     });
 
-    if (response) return response
+    if (response) return response;
   }
 
-  return null
-}
+  return null;
+};
 
 // DODO-changed (added)
 export const exportChartPlugin = ({
@@ -326,16 +338,16 @@ export const exportChartPlugin = ({
     payload = formData;
 
     return getCSV(url, payload, true);
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-    });
   }
+
+  url = '/api/v1/chart/data';
+  payload = buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+  });
 
   return getCSV(url, payload, false);
 };

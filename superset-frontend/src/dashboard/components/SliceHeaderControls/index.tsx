@@ -277,9 +277,7 @@ class SliceHeaderControls extends React.PureComponent<
         <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
 
         {/* DODO-changed */}
-        { process.env.business === undefined && 
-          <Menu.Divider />
-        }
+        {process.env.business === undefined && <Menu.Divider />}
 
         {slice.description && (
           <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
@@ -290,73 +288,67 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {/* DODO-changed */}
-        { process.env.business === undefined && 
-          this.props.supersetCanExplore && (
-            <Menu.Item
-              key={MENU_KEYS.EXPLORE_CHART}
-              onClick={this.props.onExploreChart}
-            >
-              {t('Edit chart')}
-            </Menu.Item>
-          )
-        }
+        {process.env.business === undefined && this.props.supersetCanExplore && (
+          <Menu.Item
+            key={MENU_KEYS.EXPLORE_CHART}
+            onClick={this.props.onExploreChart}
+          >
+            {t('Edit chart')}
+          </Menu.Item>
+        )}
 
         {/* DODO-changed */}
-        { process.env.business === undefined && 
-          this.props.supersetCanExplore && (
-            <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
-              <ModalTrigger
-                triggerNode={
-                  <span data-test="view-query-menu-item">{t('View query')}</span>
-                }
-                modalTitle={t('View query')}
-                modalBody={
-                  <ViewQueryModal latestQueryFormData={this.props.formData} />
-                }
-                draggable
-                resizable
-                responsive
-              />
-            </Menu.Item>
-          )
-        }
+        {process.env.business === undefined && this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">{t('View query')}</span>
+              }
+              modalTitle={t('View query')}
+              modalBody={
+                <ViewQueryModal latestQueryFormData={this.props.formData} />
+              }
+              draggable
+              resizable
+              responsive
+            />
+          </Menu.Item>
+        )}
 
         {/* DODO-changed */}
-        { process.env.business === undefined && 
-          this.props.supersetCanExplore && (
-            <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-              <ModalTrigger
-                triggerNode={
-                  <span data-test="view-query-menu-item">
-                    {t('View as table')}
-                  </span>
-                }
-                modalTitle={t('Chart Data: %s', slice.slice_name)}
-                modalBody={
-                  <ResultsPaneOnDashboard
-                    queryFormData={this.props.formData}
-                    queryForce={false}
-                    dataSize={20}
-                    isRequest
-                    isVisible
-                  />
-                }
-                modalFooter={
-                  <Button
-                    buttonStyle="secondary"
-                    buttonSize="small"
-                    onClick={this.props.onExploreChart}
-                  >
-                    {t('Edit chart')}
-                  </Button>
-                }
-                draggable
-                resizable
-                responsive
-              />
-            </Menu.Item>
-          )
-        }
+        {process.env.business === undefined && this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">
+                  {t('View as table')}
+                </span>
+              }
+              modalTitle={t('Chart Data: %s', slice.slice_name)}
+              modalBody={
+                <ResultsPaneOnDashboard
+                  queryFormData={this.props.formData}
+                  queryForce={false}
+                  dataSize={20}
+                  isRequest
+                  isVisible
+                />
+              }
+              modalFooter={
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={this.props.onExploreChart}
+                >
+                  {t('Edit chart')}
+                </Button>
+              }
+              draggable
+              resizable
+              responsive
+            />
+          </Menu.Item>
+        )}
 
         {(slice.description || this.props.supersetCanExplore) && (
           <Menu.Divider />
@@ -373,22 +365,20 @@ class SliceHeaderControls extends React.PureComponent<
             </>
           )}
         {/* DODO-changed */}
-        { process.env.business === undefined && 
-          supersetCanShare && (
-            <Menu.SubMenu title={t('Share')}>
-              <ShareMenuItems
-                dashboardId={dashboardId}
-                dashboardComponentId={componentId}
-                copyMenuItemTitle={t('Copy permalink to clipboard')}
-                emailMenuItemTitle={t('Share chart by email')}
-                emailSubject={t('Superset chart')}
-                emailBody={t('Check out this chart: ')}
-                addSuccessToast={addSuccessToast}
-                addDangerToast={addDangerToast}
-              />
-            </Menu.SubMenu>
-          )
-        }
+        {process.env.business === undefined && supersetCanShare && (
+          <Menu.SubMenu title={t('Share')}>
+            <ShareMenuItems
+              dashboardId={dashboardId}
+              dashboardComponentId={componentId}
+              copyMenuItemTitle={t('Copy permalink to clipboard')}
+              emailMenuItemTitle={t('Share chart by email')}
+              emailSubject={t('Superset chart')}
+              emailBody={t('Check out this chart: ')}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
+            />
+          </Menu.SubMenu>
+        )}
 
         {this.props.slice.viz_type !== 'filter_box' &&
           this.props.supersetCanCSV && (

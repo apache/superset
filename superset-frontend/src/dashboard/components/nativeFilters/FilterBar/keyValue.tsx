@@ -9,7 +9,11 @@ const assembleEndpoint = (
   key?: string | null,
   tabId?: string,
 ) => {
-  console.log('assembleEndpoint [ process.env.business => ', process.env.business, ']');
+  console.log(
+    'assembleEndpoint [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
     if (key) {
@@ -53,7 +57,11 @@ export const createFilterKey = (
   value: string,
   tabId?: string,
 ) => {
-  console.log('createFilterKey [ process.env.business => ', process.env.business, ']');
+  console.log(
+    'createFilterKey [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     return SupersetClient.post({
       endpoint: assembleEndpoint(dashId, undefined, tabId),
@@ -71,7 +79,7 @@ export const createFilterKey = (
       body: { value },
     })
       .then(r => {
-        return r.key
+        return r.key;
       })
       .catch(err => {
         logging.error(err);
@@ -81,8 +89,15 @@ export const createFilterKey = (
 };
 
 // DODO-changed
-export const getFilterValue = (dashId: string | number, key?: string | null) => {
-  console.log('getFilterValue [ process.env.business => ', process.env.business, ']');
+export const getFilterValue = (
+  dashId: string | number,
+  key?: string | null,
+) => {
+  console.log(
+    'getFilterValue [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     return SupersetClient.get({
       endpoint: assembleEndpoint(dashId, key),
@@ -95,7 +110,7 @@ export const getFilterValue = (dashId: string | number, key?: string | null) => 
   } else {
     return API_HANDLER.SupersetClient({
       method: 'get',
-      url: assembleEndpoint(dashId, key)
+      url: assembleEndpoint(dashId, key),
     })
       .then(({ json }) => JSON.parse(json.value))
       .catch(err => {
@@ -103,7 +118,7 @@ export const getFilterValue = (dashId: string | number, key?: string | null) => 
         return null;
       });
   }
-}
+};
 
 export const getPermalinkValue = (key: string) =>
   SupersetClient.get({

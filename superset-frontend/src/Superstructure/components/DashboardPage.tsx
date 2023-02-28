@@ -57,7 +57,7 @@ const DashboardContainer = React.lazy(
       /* webpackPreload: true */
       'src/Superstructure/components/DashboardContainer'
     ),
-    // 'src/dashboard/containers/Dashboard'
+  // 'src/dashboard/containers/Dashboard'
 );
 
 const originalDocumentTitle = document.title;

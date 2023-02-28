@@ -35,10 +35,4 @@ const StyledCode = styled.code`
   background-color: #f7f7f7;
 `;
 
-export {
-  StyledH4,
-  StyledP,
-  InfoPanelWrapper,
-  Alert,
-  StyledCode
-}
+export { StyledH4, StyledP, InfoPanelWrapper, Alert, StyledCode };

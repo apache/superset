@@ -13,9 +13,8 @@ import {
 //     body: payload,
 //   });
 
-
 export const getCSV = async (url: string, payload: Record<string, any>) => {
-  const urlNoProtocol = url.replace(/^https?\:\/\//i, "");
+  const urlNoProtocol = url.replace(/^https?\:\/\//i, '');
 
   console.log('urlNoProtocol', urlNoProtocol);
   console.log('url', url);
@@ -28,19 +27,19 @@ export const getCSV = async (url: string, payload: Record<string, any>) => {
   });
 
   if (response && response.result) {
-    return response.result[0]
+    return response.result[0];
   }
 
-  return null
-}
+  return null;
+};
 
 export const exportChart = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
-  // force = false,
-  // ownState = {},
-}: any) => {
+}: // force = false,
+// ownState = {},
+any) => {
   let url;
   let payload;
 
@@ -48,13 +47,13 @@ export const exportChart = ({
 
   // if (shouldUseLegacyApi(formData)) {
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-  console.log('exportChart')
-  console.log('endpointType', endpointType)
+  console.log('exportChart');
+  console.log('endpointType', endpointType);
   url = getExploreUrl({
     formData,
     endpointType,
     allowDomainSharding: false,
-    cleanUrlFromHostname: true
+    cleanUrlFromHostname: true,
   });
   payload = formData;
   // }

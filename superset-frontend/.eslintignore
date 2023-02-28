@@ -18,8 +18,14 @@
 **/*.sh
 coverage/**
 dist/*
+public/*
+packages/*
+plugins/*
+cypress-base/*
+spec/*
 src/assets/images/*
 src/assets/stylesheets/*
+src/webpackUtils/*
 node_modules/*
 node_modules*/*
 vendor/*

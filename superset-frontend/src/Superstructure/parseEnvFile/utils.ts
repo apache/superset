@@ -75,7 +75,7 @@ const validateConfig = (
   } else if (env === 'prod') {
     ENVIRONMENT = 'production';
   } else {
-    throw new Error (`Unknown env [${env}]`)
+    throw new Error(`Unknown env [${env}]`);
   }
 
   BUSINESS = validateBusiness(env, BUSINESS_CHECK, AVAILABLE_BUSINESSES);

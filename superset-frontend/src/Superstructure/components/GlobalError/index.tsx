@@ -1,10 +1,23 @@
 import React from 'react';
-import { GlobalErrorWrapper, Alert, StyledH4, StyledCode, StyledP } from './styles';
+import {
+  GlobalErrorWrapper,
+  Alert,
+  StyledH4,
+  StyledCode,
+  StyledP,
+} from './styles';
 
 import { ErrorParams } from 'src/Superstructure/types/global';
-import { InfoIcon, ColumnWrapper, RowWrapper } from 'src/Superstructure/components';
+import {
+  InfoIcon,
+  ColumnWrapper,
+  RowWrapper,
+} from 'src/Superstructure/components';
 
-import { GLOBAL_WARNING_DEFAULT_HEADER, GLOBAL_WARNING_DEFAULT_BODY } from 'src/Superstructure/messages';
+import {
+  GLOBAL_WARNING_DEFAULT_HEADER,
+  GLOBAL_WARNING_DEFAULT_BODY,
+} from 'src/Superstructure/messages';
 
 const GlobalError = ({ title, body, stackTrace }: ErrorParams) => (
   <GlobalErrorWrapper>
@@ -22,14 +35,15 @@ const GlobalError = ({ title, body, stackTrace }: ErrorParams) => (
           <StyledP>{body || GLOBAL_WARNING_DEFAULT_BODY}</StyledP>
         </ColumnWrapper>
       </RowWrapper>
-      {stackTrace && <div style={{ marginTop: '20px' }}>
-        <RowWrapper>
-          <ColumnWrapper classes="col-md-8 offset-md-1">
-            <StyledCode>{stackTrace}</StyledCode>
-          </ColumnWrapper>
-        </RowWrapper>
-      </div>
-      }
+      {stackTrace && (
+        <div style={{ marginTop: '20px' }}>
+          <RowWrapper>
+            <ColumnWrapper classes="col-md-8 offset-md-1">
+              <StyledCode>{stackTrace}</StyledCode>
+            </ColumnWrapper>
+          </RowWrapper>
+        </div>
+      )}
     </Alert>
   </GlobalErrorWrapper>
 );

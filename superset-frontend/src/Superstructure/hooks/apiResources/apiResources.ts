@@ -93,8 +93,9 @@ export function useApiResourceFullBody<RESULT>(
 
     API_HANDLER.SupersetClient({
       method: 'get',
-      url: endpoint
-    }).then(result => {
+      url: endpoint,
+    })
+      .then(result => {
         if (!cancelled) {
           setResource({
             status: ResourceStatus.COMPLETE,

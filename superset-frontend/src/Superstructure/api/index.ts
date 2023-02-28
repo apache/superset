@@ -214,9 +214,9 @@ export const API_HANDLER = {
   //     const APIState = APIStore.getState();
   //     const { FRONTEND_LOGGER } = APIState.configReducer;
   //     const { ORIGIN_URL } = APIState.configReducer;
-  
+
   //     const FULL_URL = `${ORIGIN_URL}${url}`;
-  
+
   //     const params = {
   //       method,
   //       data: body || {},
@@ -228,13 +228,13 @@ export const API_HANDLER = {
   //       },
   //       url: FULL_URL,
   //     };
-  
+
   //     if (FRONTEND_LOGGER) logger(params);
 
   //     const response = await axios({ ...params })
 
   //     if (response && response.data) {
-  //       return response.data 
+  //       return response.data
   //     }
 
   //     return null
@@ -272,8 +272,7 @@ export const API_HANDLER = {
       const APIState = APIStore.getState();
       const { ORIGIN_URL } = APIState.configReducer;
 
-      const tempUrl = url?.split('http:///superset')[1]
-      console.log('tempUrl', tempUrl)
+      const tempUrl = url?.split('http:///superset')[1];
 
       if (url) {
         const initialResponse = await API_HANDLER.sendRequest(
@@ -285,7 +284,6 @@ export const API_HANDLER = {
           headers,
         );
 
-        console.log('initialResponse', initialResponse)
 
         return { result: [initialResponse] };
       }

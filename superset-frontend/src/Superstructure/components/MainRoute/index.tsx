@@ -4,7 +4,13 @@ import React from 'react';
 // Messages
 import { RULES_RU, CSV_TEMP_PROBLEM_RU } from 'src/Superstructure/messages';
 
-import { ButtonsBlock, RowWrapper, ColumnWrapper, WarningPanel, InfoPanel } from 'src/Superstructure/components';
+import {
+  ButtonsBlock,
+  RowWrapper,
+  ColumnWrapper,
+  WarningPanel,
+  InfoPanel,
+} from 'src/Superstructure/components';
 
 const AnalyticsMain = () => {
   // In dodois the div.all has css property min-height, that forces the footer to be overlapped
@@ -34,7 +40,7 @@ const AnalyticsMain = () => {
               title={CSV_TEMP_PROBLEM_RU.title}
               subTitle={CSV_TEMP_PROBLEM_RU.date}
             >
-               <RowWrapper>
+              <RowWrapper>
                 <ColumnWrapper classes="col-md-11">
                   <p>{CSV_TEMP_PROBLEM_RU.subTitle}</p>
                   <ol style={{ paddingLeft: '28px' }}>

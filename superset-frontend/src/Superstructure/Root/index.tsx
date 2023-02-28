@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 
-import { GlobalError, Loading, Version, ServiceNotAvailable } from 'src/Superstructure/components';
+import {
+  GlobalError,
+  Loading,
+  Version,
+  ServiceNotAvailable,
+} from 'src/Superstructure/components';
 import { MicrofrontendParams } from 'src/Superstructure/types/global';
 import { composeAPIConfig } from 'src/Superstructure/config';
 
@@ -19,7 +24,10 @@ import {
   getNavigationConfig,
   APP_VERSION,
 } from 'src/Superstructure/parseEnvFile/index';
-import { RootComponentWrapper, DashboardComponentWrapper } from 'src/Superstructure/Root/styles';
+import {
+  RootComponentWrapper,
+  DashboardComponentWrapper,
+} from 'src/Superstructure/Root/styles';
 import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
 
 const NAV_CONFIG = getNavigationConfig();
@@ -54,7 +62,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
 
   if (IS_UNAVAILABLE) {
-    return (<ServiceNotAvailable />)
+    return <ServiceNotAvailable />;
   }
 
   const [isLoaded, setLoaded] = useState(false);

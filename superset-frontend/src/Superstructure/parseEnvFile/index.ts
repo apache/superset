@@ -85,8 +85,7 @@ const IS_WITH_COMMON_DASHBOARDS =
   serializeValue(process.env.withCommonDashboards) === 'true';
 const IS_WITH_MAIN_MENU_HELPER =
   serializeValue(process.env.withMainMenuHelper) === 'true';
-const IS_UNAVAILABLE =
-  serializeValue(process.env.isUnavailable) === 'true';
+const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
 
 console.groupCollapsed('ENV file');
 console.log('ENVIRONMENT', ENVIRONMENT);

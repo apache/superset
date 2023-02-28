@@ -1,10 +1,17 @@
 import React from 'react';
 import { LimitWarningWrapper, Alert, StyledH4, StyledP } from './styles';
 
-import { InfoIcon, ColumnWrapper, RowWrapper } from 'src/Superstructure/components';
-import { LIMIT_WARNING_HEADER, LIMIT_WARNING_BODY } from 'src/Superstructure/messages';
+import {
+  InfoIcon,
+  ColumnWrapper,
+  RowWrapper,
+} from 'src/Superstructure/components';
+import {
+  LIMIT_WARNING_HEADER,
+  LIMIT_WARNING_BODY,
+} from 'src/Superstructure/messages';
 
-const LimitWarning = ({ limit }: {limit: Number}) => (
+const LimitWarning = ({ limit }: { limit: Number }) => (
   <LimitWarningWrapper>
     <Alert>
       <RowWrapper>
@@ -17,7 +24,9 @@ const LimitWarning = ({ limit }: {limit: Number}) => (
       </RowWrapper>
       <RowWrapper>
         <ColumnWrapper classes="col-md-11 offset-md-1">
-          <StyledP>{LIMIT_WARNING_BODY} <b>{limit}</b></StyledP>
+          <StyledP>
+            {LIMIT_WARNING_BODY} <b>{limit}</b>
+          </StyledP>
         </ColumnWrapper>
       </RowWrapper>
     </Alert>

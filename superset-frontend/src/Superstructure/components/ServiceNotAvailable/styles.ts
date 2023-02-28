@@ -27,9 +27,4 @@ const Alert = styled.div`
   width: 100%;
 `;
 
-export {
-  StyledH4,
-  StyledP,
-  ServiceNotAvailableWrapper,
-  Alert
-}
+export { StyledH4, StyledP, ServiceNotAvailableWrapper, Alert };

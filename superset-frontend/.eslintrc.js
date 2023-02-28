@@ -44,6 +44,7 @@ module.exports = {
     'plugin:react-hooks/recommended',
   ],
   parser: '@babel/eslint-parser',
+  requireConfigFile: false,
   parserOptions: {
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
@@ -203,7 +204,7 @@ module.exports = {
         'packages/superset-ui-core/src/style/index.tsx',
       ],
       rules: {
-        'theme-colors/no-literal-colors': 0,
+        'theme-colors/no-literal-colors': 1,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
       },

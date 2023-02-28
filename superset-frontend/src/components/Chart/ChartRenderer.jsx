@@ -7,7 +7,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 // DODO-changed
 import {
   EmptyStateBig as EmptyStateBigPlugin,
-  EmptyStateSmall as EmptyStateSmallPlugin
+  EmptyStateSmall as EmptyStateSmallPlugin,
 } from 'src/Superstructure/components/EmptyState';
 
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
@@ -222,7 +222,11 @@ class ChartRenderer extends React.Component {
         : undefined;
     const noResultImage = 'chart.svg';
 
-    console.log('ChartRenderer [ process.env.business => ', process.env.business, ']');
+    console.log(
+      'ChartRenderer [ process.env.business => ',
+      process.env.business,
+      ']',
+    );
 
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
       if (process.env.business === undefined) {

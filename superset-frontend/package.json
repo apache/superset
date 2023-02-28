@@ -47,6 +47,7 @@
     "format": "npm run _prettier -- --write",
     "lint": "npm run _lint && npm run type",
     "lint-fix": "npm run _lint -- --fix && npm run type",
+    "pl:dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --port 3000 --config webpack.config.plugin.js",
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
     "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
@@ -64,8 +65,7 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit",
-    "pl:dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --port 3000 --config webpack.config.plugin.js"
+    "type": "tsc --noEmit"
   },
   "browserslist": [
     "last 3 chrome versions",

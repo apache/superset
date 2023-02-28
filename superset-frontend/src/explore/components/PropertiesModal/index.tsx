@@ -78,7 +78,6 @@ function PropertiesModal({
   const fetchChartOwners = useCallback(
     async function fetchChartOwners() {
       try {
-        console.log('hereXX fetchChartOwners')
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });

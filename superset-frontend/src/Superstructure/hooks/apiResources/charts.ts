@@ -1,7 +1,10 @@
 // DODO was here
 import rison from 'rison';
 import Chart from 'src/types/Chart';
-import { useApiV1Resource, useTransformedResource } from 'src/Superstructure/hooks/apiResources/apiResources';
+import {
+  useApiV1Resource,
+  useTransformedResource,
+} from 'src/Superstructure/hooks/apiResources/apiResources';
 
 function extractOwnerNames({ owners }: Chart) {
   if (!owners) return null;
@@ -14,7 +17,7 @@ const ownerNamesQuery = rison.encode({
 });
 
 export function useChartOwnerNames(chartId: string) {
-  console.log('SS useChartOwnerNames')
+  console.log('SS useChartOwnerNames');
   return useTransformedResource(
     useApiV1Resource<Chart>(`/api/v1/chart/${chartId}?q=${ownerNamesQuery}`),
     extractOwnerNames,

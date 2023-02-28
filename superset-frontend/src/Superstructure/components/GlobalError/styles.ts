@@ -38,10 +38,4 @@ const StyledCode = styled.code`
   background-color: #f7f7f7;
 `;
 
-export {
-  StyledH4,
-  StyledP,
-  GlobalErrorWrapper,
-  Alert,
-  StyledCode
-}
+export { StyledH4, StyledP, GlobalErrorWrapper, Alert, StyledCode };

@@ -13,15 +13,15 @@ import { ColumnWrapper } from 'src/Superstructure/components/Wrappers/ColumnWrap
 import { ServiceNotAvailable } from 'src/Superstructure/components/ServiceNotAvailable';
 
 export {
-    GlobalError,
-    LimitWarning,
-    InfoPanel,
-    WarningPanel,
-    Version,
-    Loading,
-    InfoIcon,
-    RowWrapper,
-    ColumnWrapper,
-    ButtonsBlock,
-    ServiceNotAvailable
+  GlobalError,
+  LimitWarning,
+  InfoPanel,
+  WarningPanel,
+  Version,
+  Loading,
+  InfoIcon,
+  RowWrapper,
+  ColumnWrapper,
+  ButtonsBlock,
+  ServiceNotAvailable,
 };

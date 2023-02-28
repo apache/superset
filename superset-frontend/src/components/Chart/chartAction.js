@@ -107,7 +107,11 @@ const legacyChartDataRequest = async (
   method = 'POST',
   requestParams = {},
 ) => {
-  console.log('legacyChartDataRequest [ process.env.business => ', process.env.business, ']')
+  console.log(
+    'legacyChartDataRequest [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     const allowDomainSharding =
@@ -128,7 +132,7 @@ const legacyChartDataRequest = async (
       url,
       postPayload: { form_data: formData },
     };
-  
+
     const clientMethod =
       'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
         ? SupersetClient.get
@@ -157,7 +161,6 @@ const legacyChartDataRequest = async (
         : {},
     });
 
-    
     // TODO: DODO
     const newFormData = {
       ...formData,
@@ -178,7 +181,7 @@ const legacyChartDataRequest = async (
       return API_HANDLER.SupersetClientNoApi({
         method: 'get',
         url,
-        body: bodyFormData
+        body: bodyFormData,
       });
     }
     if (process.env.business === undefined) {
@@ -227,7 +230,11 @@ const v1ChartDataRequest = async (
   setDataMask,
   ownState,
 ) => {
-  console.log('v1ChartDataRequest [ process.env.business => ', process.env.business, ']')
+  console.log(
+    'v1ChartDataRequest [ process.env.business => ',
+    process.env.business,
+    ']',
+  );
   if (process.env.business === undefined) {
     const payload = buildV1ChartDataPayload({
       formData,
@@ -273,26 +280,26 @@ const v1ChartDataRequest = async (
       setDataMask,
       ownState,
     });
-  
+
     // The dashboard id is added to query params for tracking purposes
     const { slice_id: sliceId } = formData;
     const { dashboard_id: dashboardId } = requestParams;
-  
+
     const qs = {};
     if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
     if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
     if (force !== false) qs.force = force;
-  
+
     const allowDomainSharding =
       // eslint-disable-next-line camelcase
       domainShardingEnabled && requestParams?.dashboard_id;
-  
+
     const url = getChartDataUriAltered({
       path: '/api/v1/chart/data',
       qs,
       allowDomainSharding,
     }).toString();
-  
+
     return API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
   }
 };
@@ -486,11 +493,15 @@ export function exploreJSON(
     });
 
     dispatch(chartUpdateStarted(controller, formData, key));
-    console.log('exploreJSON dispatch [ process.env.business => ', process.env.business, ']')
+    console.log(
+      'exploreJSON dispatch [ process.env.business => ',
+      process.env.business,
+      ']',
+    );
     if (process.env.business === undefined) {
       const chartDataRequestCaught = chartDataRequest
         .then(({ response, json }) => {
-          console.log('response', response, 'json', json)
+          console.log('response', response, 'json', json);
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result : json;
@@ -514,7 +525,7 @@ export function exploreJSON(
           return json.result;
         })
         .then(queriesResponse => {
-          console.log('queriesResponseXXX (standalone)', queriesResponse)
+          console.log('queriesResponseXXX (standalone)', queriesResponse);
           queriesResponse.forEach(resultItem =>
             dispatch(
               logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -596,13 +607,13 @@ export function exploreJSON(
       ]);
     } else {
       const chartDataRequestCaught = chartDataRequest
-        .then((response) => {
-          const t = response.result
-          Promise.resolve(t)
+        .then(response => {
+          const t = response.result;
+          Promise.resolve(t);
           return t;
         })
         .then(queriesResponse => {
-          console.log('queriesResponseXXX (plugin)', queriesResponse)
+          console.log('queriesResponseXXX (plugin)', queriesResponse);
           queriesResponse.forEach(resultItem =>
             dispatch(
               logEvent(LOG_ACTIONS_LOAD_CHART, {

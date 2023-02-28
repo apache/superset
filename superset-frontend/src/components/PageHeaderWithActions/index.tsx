@@ -124,7 +124,7 @@ export const PageHeaderWithActions = ({
         )}
       </div>
       {/* DODO-changed */}
-      {process.env.business === undefined &&
+      {process.env.business === undefined && (
         <div className="right-button-panel">
           {rightPanelAdditionalItems}
           <div css={additionalActionsContainerStyles}>
@@ -146,7 +146,7 @@ export const PageHeaderWithActions = ({
             </AntdDropdown>
           </div>
         </div>
-    }
+      )}
     </div>
   );
 };
