@@ -42,18 +42,6 @@ class TestTagging(SupersetTestCase):
         db.session.query(TaggedObject).delete()
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=False)
-    def test_tag_view_disabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertEqual(404, response.status_code)
-
-    @with_feature_flags(TAGGING_SYSTEM=True)
-    def test_tag_view_enabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertNotEqual(404, response.status_code)
-
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dataset_tagging(self):
         """

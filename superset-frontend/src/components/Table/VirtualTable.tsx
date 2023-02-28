@@ -238,7 +238,7 @@ const VirtualTable = (props: TableProps) => {
         components={{
           body: renderVirtualList,
         }}
-        pagination={modifiedPagination}
+        pagination={pagination ? modifiedPagination : false}
       />
     </div>
   );

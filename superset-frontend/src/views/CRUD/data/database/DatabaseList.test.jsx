@@ -64,14 +64,6 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: ({ fileName, role }) => (
-    <span role={role ?? 'img'} aria-label={fileName.replace('_', '-')} />
-  ),
-  StyledIcon: () => <span />,
-}));
-
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_write'],
 });

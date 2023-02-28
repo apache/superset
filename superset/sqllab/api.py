@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from typing import Any, cast, Dict, Optional
+from urllib import parse
 
 import simplejson as json
 from flask import request, Response
@@ -33,6 +34,7 @@ from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.commands.estimate import QueryEstimationCommand
 from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
+from superset.sqllab.commands.export import SqlResultExportCommand
 from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -55,7 +57,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import json_success
+from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 config = app.config
@@ -68,7 +70,7 @@ class SqlLabRestApi(BaseSupersetApi):
     resource_name = "sqllab"
     allow_browser_login = True
 
-    class_permission_name = "Query"
+    class_permission_name = "SQLLab"
 
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
@@ -134,6 +136,67 @@ class SqlLabRestApi(BaseSupersetApi):
         command = QueryEstimationCommand(model)
         result = command.run()
         return self.response(200, result=result)
+
+    @expose("/export/<string:client_id>/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".export_csv",
+        log_to_statsd=False,
+    )
+    def export_csv(self, client_id: str) -> CsvResponse:
+        """Exports the SQL query results to a CSV
+        ---
+        get:
+          summary: >-
+            Exports the SQL query results to a CSV
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: client_id
+            description: The SQL query result identifier
+          responses:
+            200:
+              description: SQL query results
+              content:
+                text/csv:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        result = SqlResultExportCommand(client_id=client_id).run()
+
+        query, data, row_count = result["query"], result["data"], result["count"]
+
+        quoted_csv_name = parse.quote(query.name)
+        response = CsvResponse(
+            data, headers=generate_download_headers("csv", quoted_csv_name)
+        )
+        event_info = {
+            "event_type": "data_export",
+            "client_id": client_id,
+            "row_count": row_count,
+            "database": query.database.name,
+            "schema": query.schema,
+            "sql": query.sql,
+            "exported_format": "csv",
+        }
+        event_rep = repr(event_info)
+        logger.debug(
+            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
+        )
+        return response
 
     @expose("/results/")
     @protect()
@@ -283,7 +346,7 @@ class SqlLabRestApi(BaseSupersetApi):
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),
+            config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
 

@@ -41,6 +41,7 @@ from superset.databases.commands.tables import TablesDatabaseCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorsException,
@@ -63,6 +64,11 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
+    database_with_ssh_tunnel_config_mix_credentials,
+    database_with_ssh_tunnel_config_no_credentials,
+    database_with_ssh_tunnel_config_password,
+    database_with_ssh_tunnel_config_private_key,
+    database_with_ssh_tunnel_config_private_pass_only,
     dataset_config,
     dataset_metadata_config,
 )
@@ -620,6 +626,191 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the database"]
+            }
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that database imports with masked ssh_tunnel passwords are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_password.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": ["Must provide a password for the ssh tunnel"]
+            }
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that database imports with masked ssh_tunnel private_key and private_key_password are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": [
+                    "Must provide a private key for the ssh tunnel",
+                    "Must provide a private key password for the ssh tunnel",
+                ]
+            }
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_with_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that a database with ssh_tunnel password can be imported"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_password.copy()
+        masked_database_config["ssh_tunnel"]["password"] = "TEST"
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_file_upload
+        assert database.allow_ctas
+        assert database.allow_cvas
+        assert database.allow_dml
+        assert not database.allow_run_async
+        assert database.cache_timeout is None
+        assert database.database_name == "imported_database"
+        assert database.expose_in_sqllab
+        assert database.extra == "{}"
+        assert database.sqlalchemy_uri == "sqlite:///test.db"
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database.id)
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.password, "TEST")
+
+        db.session.delete(database)
+        db.session.commit()
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_with_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that a database with ssh_tunnel private_key and private_key_password can be imported"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+        masked_database_config["ssh_tunnel"]["private_key"] = "TestPrivateKey"
+        masked_database_config["ssh_tunnel"]["private_key_password"] = "TEST"
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        command.run()
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.allow_file_upload
+        assert database.allow_ctas
+        assert database.allow_cvas
+        assert database.allow_dml
+        assert not database.allow_run_async
+        assert database.cache_timeout is None
+        assert database.database_name == "imported_database"
+        assert database.expose_in_sqllab
+        assert database.extra == "{}"
+        assert database.sqlalchemy_uri == "sqlite:///test.db"
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database.id)
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.private_key, "TestPrivateKey")
+        self.assertEqual(model_ssh_tunnel.private_key_password, "TEST")
+
+        db.session.delete(database)
+        db.session.commit()
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_no_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have no credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_multiple_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert (
+            str(excinfo.value) == "Cannot have multiple credentials for the SSH Tunnel"
+        )
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_v1_database_masked_ssh_tunnel_only_priv_key_psswd(
+        self, mock_schema_is_feature_enabled
+    ):
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        mock_schema_is_feature_enabled.return_value = True
+        masked_database_config = (
+            database_with_ssh_tunnel_config_private_pass_only.copy()
+        )
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": [
+                    "Must provide a private key for the ssh tunnel",
+                    "Must provide a private key password for the ssh tunnel",
+                ]
             }
         }
 

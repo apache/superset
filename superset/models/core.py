@@ -24,6 +24,7 @@ from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
@@ -54,7 +55,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK
+from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -67,7 +68,6 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
-from superset.utils.memoized import memoized
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -723,7 +723,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
+    @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
@@ -897,7 +897,6 @@ class Database(
     def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
         return self.has_view(view_name=view_name, schema=schema)
 
-    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

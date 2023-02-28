@@ -7886,7 +7886,7 @@ msgstr ""
 #: superset/views/core.py:2075
 msgid ""
 "One or more required fields are missing in the request. Please try again,"
-" and if the problem persists conctact your administrator."
+" and if the problem persists contact your administrator."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:46
@@ -9235,7 +9235,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:226
-msgid "Report Schedule sellenium user not found"
+msgid "Report Schedule selenium user not found"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:230

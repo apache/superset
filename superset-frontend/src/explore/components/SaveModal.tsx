@@ -198,7 +198,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
-      const { url_params, ...formData } = this.props.form_data || {};
+      const formData = this.props.form_data || {};
+      delete formData.url_params;
 
       let dashboard: DashboardGetResponse | null = null;
       if (this.state.newDashboardName || this.state.saveToDashboardId) {

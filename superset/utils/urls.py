@@ -48,7 +48,9 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
             v = [v]
         params[k] = v
 
-    parts[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
+    parts[3] = "&".join(
+        f"{k}={urllib.parse.quote(str(v[0]))}" for k, v in params.items()
+    )
     return urllib.parse.urlunsplit(parts)
 
 

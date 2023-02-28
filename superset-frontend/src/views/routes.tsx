@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
@@ -104,6 +105,15 @@ const SavedQueryList = lazy(
     import(
       /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
     ),
+);
+const AllEntitiesPage = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AllEntities" */ 'src/views/CRUD/allentities/AllEntities'
+    ),
+);
+const TagsPage = lazy(
+  () => import(/* webpackChunkName: "TagList" */ 'src/views/CRUD/tags/TagList'),
 );
 
 type Routes = {
@@ -201,6 +211,17 @@ export const routes: Routes = [
     Component: AddDataset,
   },
 ];
+
+if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+  routes.push({
+    path: '/superset/all_entities/',
+    Component: AllEntitiesPage,
+  });
+  routes.push({
+    path: '/superset/tags/',
+    Component: TagsPage,
+  });
+}
 
 const frontEndRoutes = routes
   .map(r => r.path)

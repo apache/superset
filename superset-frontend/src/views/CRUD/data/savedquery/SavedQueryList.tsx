@@ -43,10 +43,12 @@ import ListView, {
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
+import Tag from 'src/types/TagType';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
@@ -113,6 +115,16 @@ function SavedQueryList({
   const [importingSavedQuery, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -362,6 +374,20 @@ function SavedQueryList({
         size: 'xl',
       },
       {
+        Cell: ({
+          row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          // Only show custom type tags
+          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
@@ -461,6 +487,13 @@ function SavedQueryList({
         paginate: true,
       },
       {
+        Header: t('Tags'),
+        id: 'tags',
+        key: 'tags',
+        input: 'search',
+        operator: FilterOperator.savedQueryTags,
+      },
+      {
         Header: t('Search'),
         id: 'label',
         key: 'search',
@@ -554,6 +587,14 @@ function SavedQueryList({
         onHide={closeSavedQueryImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
+        sshTunnelPasswordFields={sshTunnelPasswordFields}
+        setSSHTunnelPasswordFields={setSSHTunnelPasswordFields}
+        sshTunnelPrivateKeyFields={sshTunnelPrivateKeyFields}
+        setSSHTunnelPrivateKeyFields={setSSHTunnelPrivateKeyFields}
+        sshTunnelPrivateKeyPasswordFields={sshTunnelPrivateKeyPasswordFields}
+        setSSHTunnelPrivateKeyPasswordFields={
+          setSSHTunnelPrivateKeyPasswordFields
+        }
       />
       {preparingExport && <Loading />}
     </>

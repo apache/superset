@@ -156,16 +156,6 @@ export const TIME_FILTER_MAP = {
   granularity: '__granularity',
 };
 
-export enum FILTER_BOX_MIGRATION_STATES {
-  CONVERTED = 'CONVERTED',
-  NOOP = 'NOOP',
-  REVIEWING = 'REVIEWING',
-  SNOOZED = 'SNOOZED',
-  UNDECIDED = 'UNDECIDED',
-}
-
-export const FILTER_BOX_TRANSITION_SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
 export const UNRESIZABLE_POPOVER_WIDTH = 296;

@@ -204,3 +204,21 @@ export const renderSelectOptions = (options: SelectOptionsType) =>
       </Option>
     );
   });
+
+export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
+  labelInValue
+    ? values.map(opt => ({
+        key: opt.value,
+        value: opt.value,
+        label: opt.label,
+      }))
+    : values.map(opt => opt.value);
+
+export const mapOptions = (values: SelectOptionsType) =>
+  values.map(opt => ({
+    children: opt.label,
+    key: opt.value,
+    value: opt.value,
+    label: opt.label,
+    disabled: opt.disabled,
+  }));
