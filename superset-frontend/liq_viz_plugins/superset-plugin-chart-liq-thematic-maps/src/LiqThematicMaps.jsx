@@ -100,11 +100,11 @@ export default function LiqThematicMaps(props) {
 
   const mapContainer = useRef(null);
   const map = useRef(null);
+  let hovered = useRef({});
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
-  const [hoveredStateId, setHoveredStateId] = useState(null);
 
   const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -153,7 +153,8 @@ export default function LiqThematicMaps(props) {
      for (const d in bdry_features) {
       bdryIds.push({
         id: bdry_features[d].id,
-        val: bdry_features[d].properties[groupCol]
+        val: bdry_features[d].properties[groupCol],
+        metric: bdry_features[d].properties[metricCol]
       });
     }
     return bdryIds;
@@ -285,6 +286,43 @@ export default function LiqThematicMaps(props) {
 
     });
 
+    map.current.on('mousemove', 'boundary_tileset', (e) => {
+      if (e.features.length > 0) {
+        if (hovered.current['boundary_tileset'] !== null && typeof hovered.current['boundary_tileset'] === 'number') {
+          map.current.setFeatureState(
+            {
+              source: 'boundary_tileset',
+              sourceLayer: boundary,
+              id: hovered.current['boundary_tileset']
+            },
+            { hover: false }
+          );
+        }
+      }
+      hovered.current['boundary_tileset'] = e.features[0].id;
+      map.current.setFeatureState(
+        {
+          source: 'boundary_tileset',
+          sourceLayer: boundary,
+          id: hovered.current['boundary_tileset']
+        },
+        { hover: true }
+      );
+    });
+
+    map.current.on('mouseleave', 'boundary_tileset', () => {
+      if (hovered.current['boundary_tileset'] !== null) {
+        map.current.setFeatureState(
+          {
+            source: 'boundary_tileset',
+            sourceLayer: boundary,
+            id: hovered.current['boundary_tileset']
+          },
+          { hover: false }
+        );
+      }
+    })
+
     // When the map is moved around, store current position in state
     map.current.on('move', () => {
       const {lng, lat} = map.current.getCenter();
@@ -397,12 +435,17 @@ export default function LiqThematicMaps(props) {
           id: currBdryIDs[i].id
         },
         {
-          color: colorMap[currBdryIDs[i].val]
+          color: colorMap[currBdryIDs[i].val],
+          metric: currBdryIDs[i].metric
         }
       );
     }
-    map.current.setPaintProperty('boundary_tileset', 'fill-color', ['feature-state', 'color']);
-
+    map.current.setPaintProperty('boundary_tileset', 'fill-color', [
+      'case',
+      ['boolean', ['feature-state', 'hover'], false],
+      '#D3D3D3',
+      ['feature-state', 'color']
+    ]);
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [currBdryIDs, colorMap]);
 
