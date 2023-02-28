@@ -31,6 +31,7 @@ const intranetImgs = {
     'the_good_guys': '/static/lfr_png/the_good_guys.png',
     'aldi': '/static/smkt_png/aldi.png',
     'coles': '/static/smkt_png/coles.png',
+    'spar': '/static/smkt_png/spar.png',
     'costco': '/static/smkt_png/costco.png',
     'drakes_supermarket': '/static/smkt_png/drakes_supermarket.png',
     'foodworks': '/static/smkt_png/foodworks.png',

@@ -32,11 +32,15 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-import { Button, Menu, Layout, Drawer } from 'antd';
+import { Button, Menu, Layout } from 'antd';
+
+// Component imports
+import SideDrawer from './components/SideDrawer.js';
+import Legend from './components/Legend.js';
 
 const { Content, Sider } = Layout;
 
-const defaults = require('./defaultLayerStyles.js')
+const defaults = require('./defaultLayerStyles.js');
 
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
@@ -103,6 +107,8 @@ export default function LiqThematicMaps(props) {
 
   const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContent, setDrawerContent] = useState(<></>);
+  const [drawerTitle, setDrawerTitle] = useState('');
 
   const items = [
     {
@@ -115,7 +121,11 @@ export default function LiqThematicMaps(props) {
       icon: <BarsOutlined />,
       label: <span>Legend</span>,
       key: '1',
-      onClick: () => setDrawerOpen(true)
+      onClick: () => {
+        setDrawerTitle('Map Legend')
+        setDrawerContent(<Legend intranetLayers={intranetLayers}/>);
+        setDrawerOpen(true);
+      }
     }
   ];
 
@@ -412,19 +422,12 @@ export default function LiqThematicMaps(props) {
             ref={mapContainer}
             style={{ padding: 24, height: height, width: '100%' }}
           >
-            <Drawer 
-              title='Basic Drawer' 
-              placement='right' 
-              onClose={() => setDrawerOpen(false)} 
-              visible={drawerOpen}
-              getContainer={false}
-              style={{position: 'absolute'}}
-              mask={false}
-            >
-              <p>Some contents...</p>
-              <p>Some contents...</p>
-              <p>Some contents...</p>
-            </Drawer>
+            <SideDrawer 
+              drawerTitle={drawerTitle}
+              drawerContent={drawerContent}
+              open={drawerOpen}
+              setDrawerOpen={setDrawerOpen}
+            />
           </div>
         </Content>
       </Layout>
