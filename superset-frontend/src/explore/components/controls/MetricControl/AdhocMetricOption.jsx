@@ -48,7 +48,7 @@ class AdhocMetricOption extends React.PureComponent {
   }
 
   onRemoveMetric(e) {
-    if (e !== undefined) e.stopPropagation();
+    e?.stopPropagation();
     this.props.onRemoveMetric(this.props.index);
   }
 
