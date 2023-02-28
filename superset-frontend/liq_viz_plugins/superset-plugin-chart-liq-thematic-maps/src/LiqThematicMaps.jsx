@@ -237,7 +237,8 @@ export default function LiqThematicMaps(props) {
               </span>
             </div>
           `
-        }
+        },
+        collapsed: true
       })
     );
 
@@ -363,6 +364,7 @@ export default function LiqThematicMaps(props) {
     renderedIntranetLayers.forEach(l => {
       map.current.removeLayer(l);
     });
+    setDrawerOpen(false);
     loadIntranetLayers(intranetLayers);
     setRenderedIntranetLayers([...intranetLayers]);
   }, [intranetLayers])
