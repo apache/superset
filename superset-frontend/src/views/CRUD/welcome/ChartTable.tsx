@@ -39,8 +39,8 @@ import {
   getFilterValues,
   PAGE_SIZE,
 } from 'src/views/CRUD/utils';
-import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
-import ChartCard from 'src/pages/ChartList/ChartCard';
+import { LoadingCards } from 'src/pages/Home';
+import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
