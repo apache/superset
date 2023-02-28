@@ -33,6 +33,7 @@ from sqlalchemy.dialects.mysql import (
     TINYINT,
     TINYTEXT,
 )
+from sqlalchemy.engine.url import make_url
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -97,6 +98,25 @@ def test_convert_dttm(
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,error",
+    [
+        ("mysql://user:password@host/db1?local_infile=1", True),
+        ("mysql://user:password@host/db1?local_infile=0", True),
+        ("mysql://user:password@host/db1", False),
+    ],
+)
+def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    url = make_url(sqlalchemy_uri)
+    if error:
+        with pytest.raises(ValueError):
+            MySQLEngineSpec.validate_database_uri(url)
+        return
+    MySQLEngineSpec.validate_database_uri(url)
 
 
 @patch("sqlalchemy.engine.Engine.connect")
