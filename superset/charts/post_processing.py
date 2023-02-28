@@ -39,11 +39,9 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
-from superset import (
-    app
-)
+from flask import current_app
 
-config = app.config
+config = current_app.config
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
