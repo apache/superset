@@ -44,8 +44,8 @@ module.exports = {
     'plugin:react-hooks/recommended',
   ],
   parser: '@babel/eslint-parser',
-  requireConfigFile: false,
   parserOptions: {
+    requireConfigFile: false,
     ecmaFeatures: {
       experimentalObjectRestSpread: true,
     },
