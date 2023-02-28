@@ -13,7 +13,9 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
-import { ChartErrorMessage } from 'src/Superstructure/components/ChartErrorMessage';
+// DODO-changed
+import { ChartErrorMessage as ChartErrorMessagePlugin } from 'src/Superstructure/components/ChartErrorMessage';
+import { ChartErrorMessage } from 'src/components/Chart/ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
@@ -210,18 +212,34 @@ class Chart extends React.PureComponent {
       );
     }
 
-    return (
-      <ChartErrorMessage
-        key={chartId}
-        chartId={chartId}
-        error={error}
-        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-        copyText={message}
-        link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? 'dashboard' : 'explore'}
-        stackTrace={chartStackTrace}
-      />
-    );
+    // DODO-changed
+    if (process.env.business === undefined) {
+      return (
+        <ChartErrorMessage
+          key={chartId}
+          chartId={chartId}
+          error={error}
+          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+          copyText={message}
+          link={queryResponse ? queryResponse.link : null}
+          source={dashboardId ? 'dashboard' : 'explore'}
+          stackTrace={chartStackTrace}
+        />
+      );
+    } else {
+      return (
+        <ChartErrorMessagePlugin
+          key={chartId}
+          chartId={chartId}
+          error={error}
+          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+          copyText={message}
+          link={queryResponse ? queryResponse.link : null}
+          source={dashboardId ? 'dashboard' : 'explore'}
+          stackTrace={chartStackTrace}
+        />
+      );
+    }
   }
 
   render() {

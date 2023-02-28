@@ -3,20 +3,32 @@ import { SupersetClient, logging } from '@superset-ui/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
 import { API_HANDLER } from 'src/Superstructure/api';
 
+// DODO-changed
 const assembleEndpoint = (
   dashId: string | number,
   key?: string | null,
   tabId?: string,
 ) => {
-  let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
-  // let endpoint = `/dashboard/${dashId}/filter_state`;
-  if (key) {
-    endpoint = endpoint.concat(`/${key}`);
+  console.log('assembleEndpoint [ process.env.business => ', process.env.business, ']');
+  if (process.env.business === undefined) {
+    let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+    if (key) {
+      endpoint = endpoint.concat(`/${key}`);
+    }
+    if (tabId) {
+      endpoint = endpoint.concat(`?tab_id=${tabId}`);
+    }
+    return endpoint;
+  } else {
+    let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
+    if (key) {
+      endpoint = endpoint.concat(`/${key}`);
+    }
+    if (tabId) {
+      endpoint = endpoint.concat(`?tab_id=${tabId}`);
+    }
+    return endpoint;
   }
-  if (tabId) {
-    endpoint = endpoint.concat(`?tab_id=${tabId}`);
-  }
-  return endpoint;
 };
 
 export const updateFilterKey = (
@@ -35,40 +47,63 @@ export const updateFilterKey = (
       return null;
     });
 
+// DODO-changed
 export const createFilterKey = (
   dashId: string | number,
   value: string,
   tabId?: string,
-) =>
-  // SupersetClient.post({
-  API_HANDLER.SupersetClient({
-    method: 'post',
-    url: assembleEndpoint(dashId, undefined, tabId),
-    // jsonPayload: { value },
-    body: { value },
-  })
-    // .then(r => r.json.key as string)
-    .then(r => {
-      return r.key
+) => {
+  console.log('createFilterKey [ process.env.business => ', process.env.business, ']');
+  if (process.env.business === undefined) {
+    return SupersetClient.post({
+      endpoint: assembleEndpoint(dashId, undefined, tabId),
+      jsonPayload: { value },
     })
-    .catch(err => {
-      logging.error(err);
-      return null;
-    });
+      .then(r => r.json.key as string)
+      .catch(err => {
+        logging.error(err);
+        return null;
+      });
+  } else {
+    return API_HANDLER.SupersetClient({
+      method: 'post',
+      url: assembleEndpoint(dashId, undefined, tabId),
+      body: { value },
+    })
+      .then(r => {
+        return r.key
+      })
+      .catch(err => {
+        logging.error(err);
+        return null;
+      });
+  }
+};
 
-export const getFilterValue = (dashId: string | number, key?: string | null) =>
-  API_HANDLER.SupersetClient({
-    method: 'get',
-    url: assembleEndpoint(dashId, key)
-  })
-  // SupersetClient.get({
-  //   endpoint: assembleEndpoint(dashId, key),
-  // })
-    .then(({ json }) => JSON.parse(json.value))
-    .catch(err => {
-      logging.error(err);
-      return null;
-    });
+// DODO-changed
+export const getFilterValue = (dashId: string | number, key?: string | null) => {
+  console.log('getFilterValue [ process.env.business => ', process.env.business, ']');
+  if (process.env.business === undefined) {
+    return SupersetClient.get({
+      endpoint: assembleEndpoint(dashId, key),
+    })
+      .then(({ json }) => JSON.parse(json.value))
+      .catch(err => {
+        logging.error(err);
+        return null;
+      });
+  } else {
+    return API_HANDLER.SupersetClient({
+      method: 'get',
+      url: assembleEndpoint(dashId, key)
+    })
+      .then(({ json }) => JSON.parse(json.value))
+      .catch(err => {
+        logging.error(err);
+        return null;
+      });
+  }
+}
 
 export const getPermalinkValue = (key: string) =>
   SupersetClient.get({

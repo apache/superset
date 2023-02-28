@@ -5,7 +5,12 @@ import React from 'react';
 import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 // DODO-changed
-import { EmptyStateBig, EmptyStateSmall } from 'src/Superstructure/components/EmptyState';
+import {
+  EmptyStateBig as EmptyStateBigPlugin,
+  EmptyStateSmall as EmptyStateSmallPlugin
+} from 'src/Superstructure/components/EmptyState';
+
+import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -216,18 +221,37 @@ class ChartRenderer extends React.Component {
           )
         : undefined;
     const noResultImage = 'chart.svg';
+
+    console.log('ChartRenderer [ process.env.business => ', process.env.business, ']');
+
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
-      noResultsComponent = (
-        <EmptyStateBig
-          title={noResultTitle}
-          description={noResultDescription}
-          image={noResultImage}
-        />
-      );
+      if (process.env.business === undefined) {
+        noResultsComponent = (
+          <EmptyStateBig
+            title={noResultTitle}
+            description={noResultDescription}
+            image={noResultImage}
+          />
+        );
+      } else {
+        noResultsComponent = (
+          <EmptyStateBigPlugin
+            title={noResultTitle}
+            description={noResultDescription}
+            image={noResultImage}
+          />
+        );
+      }
     } else {
-      noResultsComponent = (
-        <EmptyStateSmall title={noResultTitle} image={noResultImage} />
-      );
+      if (process.env.business === undefined) {
+        noResultsComponent = (
+          <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+        );
+      } else {
+        noResultsComponent = (
+          <EmptyStateSmallPlugin title={noResultTitle} image={noResultImage} />
+        );
+      }
     }
 
     return (

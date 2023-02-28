@@ -224,6 +224,7 @@ export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
 const generateFileName = (filename, extension) =>
   `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
 
+// DODO-changed
 export const exportChart = ({
   formData,
   resultFormat = 'json',
@@ -252,6 +253,8 @@ export const exportChart = ({
       ownState,
     });
   }
+
+  console.log('exportChart [ process.env.business => ', process.env.business, ']')
   if (process.env.business === undefined) {
     SupersetClient.postForm(url, { form_data: safeStringify(payload) });
   } else {
@@ -277,6 +280,7 @@ export const exportChart = ({
   }
 };
 
+// DODO-changed (added)
 export const getCSV = async (url, payload, isLegacy) => {
   if (isLegacy) {
     const response = await API_HANDLER.SupersetClientNoApi({
@@ -301,6 +305,7 @@ export const getCSV = async (url, payload, isLegacy) => {
   return null
 }
 
+// DODO-changed (added)
 export const exportChartPlugin = ({
   formData,
   resultFormat = 'json',

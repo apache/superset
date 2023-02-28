@@ -50,19 +50,31 @@ const guessFrame = (timeRange: string): FrameType => {
   return 'Advanced';
 };
 
+// DODO-changed
 const fetchTimeRange = async (timeRange: string) => {
   const query = rison.encode_uri(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
-    // const response = await SupersetClient.get({ endpoint });
-    const response = await API_HANDLER.SupersetClient({ method: 'get', url: endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
-    );
-    return {
-      value: formatTimeRange(timeRangeString),
-    };
+    console.log('fetchTimeRange [ process.env.business => ', process.env.business, ']')
+    if (process.env.business === undefined) {
+      const response = await SupersetClient.get({ endpoint });
+      const timeRangeString = buildTimeRangeString(
+        response?.json?.result?.since || '',
+        response?.json?.result?.until || '',
+      );
+      return {
+        value: formatTimeRange(timeRangeString),
+      };
+    } else {
+      const response = await API_HANDLER.SupersetClient({ method: 'get', url: endpoint });
+      const timeRangeString = buildTimeRangeString(
+        response?.json?.result?.since || '',
+        response?.json?.result?.until || '',
+      );
+      return {
+        value: formatTimeRange(timeRangeString),
+      };
+    }
   } catch (response) {
     const clientError = await getClientErrorObject(response);
     return {
