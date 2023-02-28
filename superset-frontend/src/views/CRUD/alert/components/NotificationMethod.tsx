@@ -136,6 +136,26 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     setRecipientValue(recipients);
   }
 
+  const getMethodHelpText = (method: string) => {
+    if(method === 'Email'){
+      return <div className="helper">
+      {t(
+        'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+      )}
+    </div>
+    }
+    else if(method === 'VictorOps'){
+      return <div className="helper">
+      {t(
+        'Routing key must not contain any special character other than underscores(_) or hyphens(-)'
+      )}
+    </div>
+    }
+    else{
+      return <div>{t('Recipients are separated by "," or ";"')}</div>
+    }
+  }
+
   return (
     <StyledNotificationMethod>
       <div className="inline-container">
@@ -169,11 +189,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
+          <div className="control-label">{ method === "VictorOps" ? t("Routing key") : t(method)}</div>
           <div className="input-container">
             <textarea
               className={
-                invalidEmail && method === 'Email'
+                invalidEmail && (method === 'Email' || method === "VictorOps")
                   ? 'prominent-error-input'
                   : ''
               }
@@ -182,22 +202,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
-          {invalidEmail && method === 'Email' ? (
+          {(invalidEmail && (method === 'Email' || method === 'VictorOps')) ? (
             <div className="error-text">
-              {t(
+              {  method === 'Email' ? t(
                 'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
-              )}
+              ) : t(
+                'Routing Key must not contain any special characters other than underscores(_) and hyphens(-)',
+              )
+              }
             </div>
           ) : null}
-          {method === 'Email' ? (
-            <div className="helper">
-              {t(
-                'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
-              )}
-            </div>
-          ) : (
-            <div>{t('Recipients are separated by "," or ";"')}</div>
-          )}
+          {getMethodHelpText(method)}
         </StyledInputContainer>
       ) : null}
     </StyledNotificationMethod>

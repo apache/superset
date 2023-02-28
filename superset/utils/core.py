@@ -2023,26 +2023,34 @@ def get_alert_link(conf, report_schedule) -> str:
 
 
 def raise_incident(conf, report_schedule, exception) -> None:
-    WEBHOOK_URL = conf["VO_URL"] + conf["VO_ROUTING_KEY"]
-    victor_ops_data = {
-        "message_type": "CRITICAL",
-        # identifier for resource failing ex- airflow/bdp_morning/k2_analytics
-        "entity_id": "[" + str(report_schedule.id) + "] " + str(report_schedule.name)
-        or "",
-        "entity_display_name": str(exception) or "",  # display text
-        "state_message": get_alert_link(
-            conf, report_schedule
-        ),  # detailed message, stack trace, exceptions
-    }
-    logger.info("SAMRA VICTOR OPS PAYLOAD", str(victor_ops_data))
-    logger.info("SAMRA VICTOR OPS webhook url", str(WEBHOOK_URL))
-    # try:
-    #     response = requests.post(WEBHOOK_URL, data=json.dumps(victor_ops_data), headers={'Content-Type': 'application/json'})
-    #     logger.info("RESPONSE JSON",str(response.json()))
-    # except requests.exceptions.HTTPError as e:
-    #     logger.info("HTTP EXCEPTION", e)
-    #     logger.info("RESPONSE JSON",response.json())
-    # logger.info("SAMRA VOOOOO RESPONSE",response)
-    # if response.status_code != 200:
-    #     raise ValueError(
-    #         'Request to victor_ops returned an error %s, the response is:\n%s' % (response.status_code, response.text))
+    routing_key = None
+    for recipient in report_schedule.recipients:
+        if recipient.type == "VictorOps":
+            recipient_config = json.loads(recipient.recipient_config_json)
+            routing_key = recipient_config["target"]
+            logger.info("ROUTING_KEY", routing_key)
+            logger.info("INSIDE VO")
+            logger.info("RECIPIENT", recipient.__dict__)
+    if routing_key:
+        WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
+        victor_ops_data = {
+            "message_type": "CRITICAL",
+            "entity_id": str(report_schedule.id) + "_"+ re.sub('[^A-Za-z0-9]+', '_', report_schedule.name)
+            or "",
+            "entity_display_name": str(exception) or "",  # display text
+            "state_message": get_alert_link(
+                conf, report_schedule
+            ),  # detailed message, stack trace, exceptions
+        }
+        logger.info("SAMRA VICTOR OPS PAYLOAD", str(victor_ops_data))
+        logger.info("SAMRA VICTOR OPS webhook url", str(WEBHOOK_URL))
+        # try:
+        #     response = requests.post(WEBHOOK_URL, data=json.dumps(victor_ops_data), headers={'Content-Type': 'application/json'})
+        #     logger.info("RESPONSE JSON",str(response.json()))
+        # except requests.exceptions.HTTPError as e:
+        #     logger.info("HTTP EXCEPTION", e)
+        #     logger.info("RESPONSE JSON",response.json())
+        # logger.info("SAMRA VOOOOO RESPONSE",response)
+        # if response.status_code != 200:
+        #     raise ValueError(
+        #         'Request to victor_ops returned an error %s, the response is:\n%s' % (response.status_code, response.text))

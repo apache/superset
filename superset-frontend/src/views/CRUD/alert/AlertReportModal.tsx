@@ -503,10 +503,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // Notification Settings
     setInvalidEmail(false);
     const recipients: Recipient[] = [];
-    let invalidEmails = [];
+    let invalidEmails : any = [];
+    let notificationType  = ""
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
         if (setting.method === 'Email') {
+          notificationType = setting.method
           const emailStr = setting.recipients;
           const emails = ([] as string[])
             .concat(...emailStr.split(',').map(item => item.split(';')))
@@ -516,6 +518,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           invalidEmails = emails.filter(
             email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
           );
+        }
+        else if(setting.method == "VictorOps"){
+          notificationType = setting.method
+          const routingKeyStr = setting.recipients;
+          const routingKeys = ([] as string[])
+            .concat(...routingKeyStr.split(',').map(item => item.split(';')))
+            .map(item => item.trim())
+            .filter(item => item !== '');
+
+          invalidEmails = routingKeys.filter(
+            routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
+          );
+        }
+        else {
+
         }
 
         recipients.push({
@@ -527,13 +544,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
+
     if (invalidEmails.length > 0) {
       setInvalidEmail(true);
-      addDangerToast(
-        t(
-          'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
-        ),
-      );
+      if(notificationType == 'Email'){
+        addDangerToast(
+          t(
+            'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
+          ),
+        );
+      }
+      else if(notificationType == "VictorOps"){
+        addDangerToast(
+          invalidEmails.length > 1 ?  t('Atmost one routing key is allowed') : t(
+            'Routing Key must not contain any special charaters other than undescores(_) or hyphens(-)',
+          ),
+        );
+      }
       return;
     }
 

@@ -60,6 +60,7 @@ class ReportScheduleValidatorType(str, enum.Enum):
 class ReportRecipientType(str, enum.Enum):
     EMAIL = "Email"
     SLACK = "Slack"
+    VO = "VictorOps"
 
 
 class ReportState(str, enum.Enum):

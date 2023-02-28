@@ -382,6 +382,8 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
             ReportRecipientType.EMAIL,
             ReportRecipientType.SLACK,
         ]
+        if conf.get("VO_URL"):
+            frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(ReportRecipientType.VO)
     else:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
