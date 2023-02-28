@@ -274,7 +274,7 @@ export const API_HANDLER = {
 
       const tempUrl = url?.split('http:///superset')[1];
 
-      if (url) {
+      if (url && tempUrl) {
         const initialResponse = await API_HANDLER.sendRequest(
           `${ORIGIN_URL}${SUPERSET_ENDPOINT}`,
           // `${ORIGIN_URL}`,
@@ -284,11 +284,12 @@ export const API_HANDLER = {
           headers,
         );
 
-
         return { result: [initialResponse] };
       }
 
-      throw new Error('the URL was not provided in SupersetClientNoApi');
+      throw new Error(
+        `the URL was not provided in SupersetClientNoApi [${url}], [${tempUrl}]`,
+      );
     } catch (error) {
       console.log('SupersetClientNoApi error', error);
       throw error;

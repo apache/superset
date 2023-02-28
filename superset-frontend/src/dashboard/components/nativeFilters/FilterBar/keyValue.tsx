@@ -23,16 +23,16 @@ const assembleEndpoint = (
       endpoint = endpoint.concat(`?tab_id=${tabId}`);
     }
     return endpoint;
-  } else {
-    let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
-    if (key) {
-      endpoint = endpoint.concat(`/${key}`);
-    }
-    if (tabId) {
-      endpoint = endpoint.concat(`?tab_id=${tabId}`);
-    }
-    return endpoint;
   }
+
+  let endpoint = `/api/v1/dashboard/${dashId}/filter_state`;
+  if (key) {
+    endpoint = endpoint.concat(`/${key}`);
+  }
+  if (tabId) {
+    endpoint = endpoint.concat(`?tab_id=${tabId}`);
+  }
+  return endpoint;
 };
 
 export const updateFilterKey = (
@@ -72,20 +72,17 @@ export const createFilterKey = (
         logging.error(err);
         return null;
       });
-  } else {
-    return API_HANDLER.SupersetClient({
-      method: 'post',
-      url: assembleEndpoint(dashId, undefined, tabId),
-      body: { value },
-    })
-      .then(r => {
-        return r.key;
-      })
-      .catch(err => {
-        logging.error(err);
-        return null;
-      });
   }
+  return API_HANDLER.SupersetClient({
+    method: 'post',
+    url: assembleEndpoint(dashId, undefined, tabId),
+    body: { value },
+  })
+    .then(r => r.key)
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
 };
 
 // DODO-changed
@@ -107,17 +104,16 @@ export const getFilterValue = (
         logging.error(err);
         return null;
       });
-  } else {
-    return API_HANDLER.SupersetClient({
-      method: 'get',
-      url: assembleEndpoint(dashId, key),
-    })
-      .then(({ json }) => JSON.parse(json.value))
-      .catch(err => {
-        logging.error(err);
-        return null;
-      });
   }
+  return API_HANDLER.SupersetClient({
+    method: 'get',
+    url: assembleEndpoint(dashId, key),
+  })
+    .then(({ json }) => JSON.parse(json.value))
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
 };
 
 export const getPermalinkValue = (key: string) =>

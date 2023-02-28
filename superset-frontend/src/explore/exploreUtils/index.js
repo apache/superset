@@ -17,9 +17,9 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
-import { optionLabel } from '../../utils/common';
 import { API_HANDLER } from 'src/Superstructure/api';
 import FileSaver from 'file-saver';
+import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
   const { slice } = explore;
@@ -222,6 +222,66 @@ export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
 const generateFileName = (filename, extension) =>
   `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
 
+// DODO-changed (added)
+export const getCSV = async (url, payload, isLegacy) => {
+  if (isLegacy) {
+    const response = await API_HANDLER.SupersetClientNoApi({
+      method: 'post',
+      url,
+      body: payload,
+    });
+
+    if (response && response.result) {
+      return response.result[0];
+    }
+  } else {
+    const response = await API_HANDLER.SupersetClient({
+      method: 'post',
+      url,
+      body: payload,
+    });
+
+    if (response) return response;
+  }
+
+  return null;
+};
+
+// DODO-changed (added)
+export const exportChartPlugin = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+  ownState = {},
+}) => {
+  let url;
+  let payload;
+
+  if (shouldUseLegacyApi(formData)) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      allowDomainSharding: false,
+    });
+    payload = formData;
+
+    return getCSV(url, payload, true);
+  }
+
+  url = '/api/v1/chart/data';
+  payload = buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+  });
+
+  return getCSV(url, payload, false);
+};
+
 // DODO-changed
 export const exportChart = ({
   formData,
@@ -290,66 +350,6 @@ export const exportChart = ({
         console.log('csvExportError', csvExportError);
       });
   }
-};
-
-// DODO-changed (added)
-export const getCSV = async (url, payload, isLegacy) => {
-  if (isLegacy) {
-    const response = await API_HANDLER.SupersetClientNoApi({
-      method: 'post',
-      url,
-      body: payload,
-    });
-
-    if (response && response.result) {
-      return response.result[0];
-    }
-  } else {
-    const response = await API_HANDLER.SupersetClient({
-      method: 'post',
-      url,
-      body: payload,
-    });
-
-    if (response) return response;
-  }
-
-  return null;
-};
-
-// DODO-changed (added)
-export const exportChartPlugin = ({
-  formData,
-  resultFormat = 'json',
-  resultType = 'full',
-  force = false,
-  ownState = {},
-}) => {
-  let url;
-  let payload;
-
-  if (shouldUseLegacyApi(formData)) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      allowDomainSharding: false,
-    });
-    payload = formData;
-
-    return getCSV(url, payload, true);
-  }
-
-  url = '/api/v1/chart/data';
-  payload = buildV1ChartDataPayload({
-    formData,
-    force,
-    resultFormat,
-    resultType,
-    ownState,
-  });
-
-  return getCSV(url, payload, false);
 };
 
 export const exploreChart = formData => {

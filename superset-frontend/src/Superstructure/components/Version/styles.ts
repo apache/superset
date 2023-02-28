@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 import { styled } from '@superset-ui/core';
 
 export const StyledVersion = styled.div`

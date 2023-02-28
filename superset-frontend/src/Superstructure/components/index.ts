@@ -1,4 +1,3 @@
-import { Version } from './Version';
 import Loading from 'src/components/Loading';
 import { InfoIcon } from 'src/Superstructure/components/InfoIcon';
 import { ButtonsBlock } from 'src/Superstructure/components/ButtonsBlock';
@@ -11,6 +10,7 @@ import { WarningPanel } from 'src/Superstructure/components/WarningPanel';
 import { RowWrapper } from 'src/Superstructure/components/Wrappers/RowWrapper';
 import { ColumnWrapper } from 'src/Superstructure/components/Wrappers/ColumnWrapper';
 import { ServiceNotAvailable } from 'src/Superstructure/components/ServiceNotAvailable';
+import { Version } from './Version';
 
 export {
   GlobalError,

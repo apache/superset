@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 // DODO-changed
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';

@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-  WarningPanelWrapper,
-  Alert,
-  StyledH4,
-  StyledCode,
-  StyledP,
-} from './styles';
 
 import { PanelMsgParams } from 'src/Superstructure/types/global';
 import {
@@ -13,6 +6,14 @@ import {
   ColumnWrapper,
   RowWrapper,
 } from 'src/Superstructure/components';
+
+import {
+  WarningPanelWrapper,
+  Alert,
+  StyledH4,
+  StyledCode,
+  StyledP,
+} from './styles';
 
 const WarningPanel = ({
   title,

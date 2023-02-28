@@ -1,5 +1,4 @@
 import React from 'react';
-import { LimitWarningWrapper, Alert, StyledH4, StyledP } from './styles';
 
 import {
   InfoIcon,
@@ -10,6 +9,7 @@ import {
   LIMIT_WARNING_HEADER,
   LIMIT_WARNING_BODY,
 } from 'src/Superstructure/messages';
+import { LimitWarningWrapper, Alert, StyledH4, StyledP } from './styles';
 
 const LimitWarning = ({ limit }: { limit: Number }) => (
   <LimitWarningWrapper>

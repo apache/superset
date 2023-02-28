@@ -12,10 +12,9 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import ChartRenderer from './ChartRenderer';
-// DODO-changed
 import { ChartErrorMessage as ChartErrorMessagePlugin } from 'src/Superstructure/components/ChartErrorMessage';
 import { ChartErrorMessage } from 'src/components/Chart/ChartErrorMessage';
+import ChartRenderer from './ChartRenderer';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
@@ -226,20 +225,19 @@ class Chart extends React.PureComponent {
           stackTrace={chartStackTrace}
         />
       );
-    } else {
-      return (
-        <ChartErrorMessagePlugin
-          key={chartId}
-          chartId={chartId}
-          error={error}
-          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-          copyText={message}
-          link={queryResponse ? queryResponse.link : null}
-          source={dashboardId ? 'dashboard' : 'explore'}
-          stackTrace={chartStackTrace}
-        />
-      );
     }
+    return (
+      <ChartErrorMessagePlugin
+        key={chartId}
+        chartId={chartId}
+        error={error}
+        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+        copyText={message}
+        link={queryResponse ? queryResponse.link : null}
+        source={dashboardId ? 'dashboard' : 'explore'}
+        stackTrace={chartStackTrace}
+      />
+    );
   }
 
   render() {

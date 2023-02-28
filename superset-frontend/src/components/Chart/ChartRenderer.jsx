@@ -1,3 +1,4 @@
+/* eslint-disable no-lonely-if */
 // DODO was here
 import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';

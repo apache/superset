@@ -2,7 +2,6 @@
 
 import React, { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
-// import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 import { NoResultsIcon } from 'src/Superstructure/components/NoResultsIcon';
 
@@ -100,22 +99,6 @@ const ActionButton = styled(Button)`
     z-index: 1;
   `}
 `;
-
-// const getImage = (image: string | ReactNode) =>
-//   typeof image === 'string' ? `/static/assets/images/${image}` : image;
-
-// const getImageHeight = (size: EmptyStateSize) => {
-//   switch (size) {
-//     case EmptyStateSize.Small:
-//       return { height: '50px' };
-//     case EmptyStateSize.Medium:
-//       return { height: '80px' };
-//     case EmptyStateSize.Big:
-//       return { height: '150px' };
-//     default:
-//       return { height: '50px' };
-//   }
-// };
 
 const handleMouseDown = (e: SyntheticEvent) => {
   e.preventDefault();

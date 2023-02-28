@@ -1,5 +1,4 @@
 import React from 'react';
-import { ServiceNotAvailableWrapper, Alert, StyledH4, StyledP } from './styles';
 
 import {
   InfoIcon,
@@ -12,6 +11,7 @@ import {
   UNAVAILABLE_BODY,
   UNAVAILABLE_BODY_RU,
 } from 'src/Superstructure/messages';
+import { ServiceNotAvailableWrapper, Alert, StyledH4, StyledP } from './styles';
 
 const ServiceNotAvailable = () => (
   <ServiceNotAvailableWrapper>

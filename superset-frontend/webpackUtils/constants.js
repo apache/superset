@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 // The same as in package JSON
 const DODOIS_CDN_PATH =
   'https://cdn.dodostatic.net/dodois-static/shared-frontends';
@@ -166,14 +167,11 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
               singleSpa.registerApplication(
               "${MICROFRONTEND_NAME}",
               () => System.import(${JSON.stringify(
-                htmlWebpackPlugin.files.js.map(
-                  file =>
-                    `${
-                      file.includes('https')
-                        ? file
-                        : `./${file}`
-                    }`,
-                ).filter(entry => entry.includes('supersetDashboardPlugin'))[0],
+                htmlWebpackPlugin.files.js
+                  .map(file => `${file.includes('https') ? file : `./${file}`}`)
+                  .filter(entry =>
+                    entry.includes('supersetDashboardPlugin'),
+                  )[0],
               )}),
               () => true,
               ${JSON.stringify({ token: '' })}

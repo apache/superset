@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 // DODO was here
 
 import React from 'react';

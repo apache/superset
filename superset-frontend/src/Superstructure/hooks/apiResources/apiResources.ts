@@ -1,5 +1,4 @@
 // DODO was here
-// import { makeApi } from '@superset-ui/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_HANDLER } from 'src/Superstructure/api';
 
@@ -14,17 +13,6 @@ export enum ResourceStatus {
  * as well as loading and error info
  */
 export type Resource<T> = LoadingState | CompleteState<T> | ErrorState;
-
-// Trying out something a little different: a separate type per status.
-// This should let Typescript know whether a Resource has a result or error.
-// It's possible that I'm expecting too much from Typescript here.
-// If this ends up causing problems, we can change the type to:
-//
-// export type Resource<T> = {
-//   status: ResourceStatus;
-//   result: null | T;
-//   error: null | Error;
-// }
 
 type LoadingState = {
   status: ResourceStatus.LOADING;
@@ -85,11 +73,6 @@ export function useApiResourceFullBody<RESULT>(
     cancelRef.current = () => {
       cancelled = true;
     };
-
-    // const fetchResource = API_HANDLER.SupersetClient({
-    //   method: 'get',
-    //   url: endpoint
-    // })
 
     API_HANDLER.SupersetClient({
       method: 'get',
@@ -168,7 +151,7 @@ const extractInnerResult = <T>(responseBody: { result: T }) =>
  * @param endpoint The url where the resource is located.
  */
 export function useApiV1Resource<RESULT>(endpoint: string): Resource<RESULT> {
-  //@ts-ignore
+  // @ts-ignore
   return useTransformedResource(
     useApiResourceFullBody<{ result: RESULT }>(endpoint),
     extractInnerResult,

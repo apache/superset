@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-  GlobalErrorWrapper,
-  Alert,
-  StyledH4,
-  StyledCode,
-  StyledP,
-} from './styles';
 
 import { ErrorParams } from 'src/Superstructure/types/global';
 import {
@@ -18,6 +11,13 @@ import {
   GLOBAL_WARNING_DEFAULT_HEADER,
   GLOBAL_WARNING_DEFAULT_BODY,
 } from 'src/Superstructure/messages';
+import {
+  GlobalErrorWrapper,
+  Alert,
+  StyledH4,
+  StyledCode,
+  StyledP,
+} from './styles';
 
 const GlobalError = ({ title, body, stackTrace }: ErrorParams) => (
   <GlobalErrorWrapper>

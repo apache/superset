@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 

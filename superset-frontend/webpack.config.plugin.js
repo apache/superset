@@ -8,15 +8,12 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const {
-  WebpackManifestPlugin,
-} = require('webpack-manifest-plugin');
+const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
-const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package');
 const Dotenv = require('dotenv');
 const rm = require('rimraf');
+const packageConfig = require('./package');
 
 const {
   PROD_OUTPUT_FOLDER,
@@ -31,6 +28,7 @@ const {
   mode = 'development',
   devserverPort = 3000,
   measure = false,
+  publicPath = '',
   analyzeBundle = false,
   analyzerPort = 8888,
   nameChunks = false,
@@ -53,11 +51,10 @@ const BUILD_DIR = path.resolve(
   isProd ? PROD_OUTPUT_FOLDER : DEV_OUTPUT_FOLDER,
 );
 
-
 /*
  ** APP VERSION BASE is a base from which the app inherited the code base
  ** (i.e. 1.3 => was inherited from Superset 1.3)
-*/
+ */
 const APP_VERSION_BASE = '2.0';
 const date = new Date();
 const month = date.getMonth();
@@ -115,7 +112,6 @@ const FULL_ENV = {
 console.log('FULL_ENV =>', FULL_ENV);
 console.log('');
 console.groupEnd();
-
 
 // if (isDevMode) {
 //   output.filename = '[name].[contenthash:8].entry.js';

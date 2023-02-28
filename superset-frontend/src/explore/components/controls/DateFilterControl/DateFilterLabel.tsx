@@ -23,9 +23,9 @@ import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
 import { noOp } from 'src/utils/common';
+import { API_HANDLER } from 'src/Superstructure/api';
 import { FrameType } from './types';
 import ControlPopover from '../ControlPopover/ControlPopover';
-import { API_HANDLER } from 'src/Superstructure/api';
 
 import {
   CommonFrame,
@@ -69,19 +69,18 @@ const fetchTimeRange = async (timeRange: string) => {
       return {
         value: formatTimeRange(timeRangeString),
       };
-    } else {
-      const response = await API_HANDLER.SupersetClient({
-        method: 'get',
-        url: endpoint,
-      });
-      const timeRangeString = buildTimeRangeString(
-        response?.json?.result?.since || '',
-        response?.json?.result?.until || '',
-      );
-      return {
-        value: formatTimeRange(timeRangeString),
-      };
     }
+    const response = await API_HANDLER.SupersetClient({
+      method: 'get',
+      url: endpoint,
+    });
+    const timeRangeString = buildTimeRangeString(
+      response?.json?.result?.since || '',
+      response?.json?.result?.until || '',
+    );
+    return {
+      value: formatTimeRange(timeRangeString),
+    };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
     return {

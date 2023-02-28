@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 const API_V1 = '/api/v1';
 const SUPERSET_ENDPOINT = '/superset';
 const PLUGIN_SELECTOR = 'single-spa-application:supersetDashboardPlugin';
