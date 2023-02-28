@@ -306,9 +306,6 @@ export const hydrateDashboard =
     const nativeFilters = getInitialNativeFilterState({
       filterConfig: metadata?.native_filter_configuration || [],
     });
-    metadata.show_native_filters = isFeatureEnabled(
-      FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-    );
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
       // If user just added cross filter to dashboard it's not saving it scope on server,

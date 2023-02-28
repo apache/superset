@@ -119,7 +119,6 @@ function prepareDashboardFilters(
     });
     if (dashboardId) {
       const jsonMetadata = {
-        show_native_filters: true,
         native_filter_configuration: allFilters,
         timed_refresh_immune_slices: [],
         expanded_slices: {},
