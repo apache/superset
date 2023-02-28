@@ -133,12 +133,18 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config["schema"] = get_example_default_schema()
 
                 dataset = import_dataset(
-                    session, config, overwrite=overwrite, force_data=force_data
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    force_data=force_data,
                 )
 
                 try:
                     dataset = import_dataset(
-                        session, config, overwrite=overwrite, force_data=force_data
+                        session,
+                        config,
+                        overwrite=overwrite,
+                        force_data=force_data,
                     )
                 except MultipleResultsFound:
                     # Multiple result can be found for datasets. There was a bug in
