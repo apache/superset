@@ -45,25 +45,6 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: ({
-    fileName,
-    role,
-    ...rest
-  }: {
-    fileName: string;
-    role: string;
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
-  StyledIcon: () => <span />,
-}));
-
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -1509,6 +1490,27 @@ describe('DatabaseModal', () => {
       });
       expect(allowFileUploadText).not.toBeInTheDocument();
       expect(schemasForFileUploadText).not.toBeInTheDocument();
+    });
+
+    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+      const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
+      expect(SSHTunnelingToggle).not.toBeInTheDocument();
+      const SSHTunnelServerAddressInput = screen.queryByTestId(
+        'ssh-tunnel-server_address-input',
+      );
+      expect(SSHTunnelServerAddressInput).not.toBeInTheDocument();
+      const SSHTunnelServerPortInput = screen.queryByTestId(
+        'ssh-tunnel-server_port-input',
+      );
+      expect(SSHTunnelServerPortInput).not.toBeInTheDocument();
+      const SSHTunnelUsernameInput = screen.queryByTestId(
+        'ssh-tunnel-username-input',
+      );
+      expect(SSHTunnelUsernameInput).not.toBeInTheDocument();
+      const SSHTunnelPasswordInput = screen.queryByTestId(
+        'ssh-tunnel-password-input',
+      );
+      expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
     });
   });
 

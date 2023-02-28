@@ -17,6 +17,7 @@
 # pylint: disable=too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
@@ -142,9 +143,12 @@ class ExecuteSqlCommand(BaseCommand):
         self._save_new_query(query)
         try:
             logger.info("Triggering query_id: %i", query.id)
-            self._validate_access(query)
+
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
+            validate_rendered_query = copy.copy(query)
+            validate_rendered_query.sql = rendered_query
+            self._validate_access(validate_rendered_query)
             self._set_query_limit_if_required(rendered_query)
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}

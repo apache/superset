@@ -27,7 +27,7 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 def get_language_pack(locale: str) -> Optional[Dict[str, Any]]:
     """Get/cache a language pack
 
-    Returns the langugage pack from cache if it exists, caches otherwise
+    Returns the language pack from cache if it exists, caches otherwise
 
     >>> get_language_pack('fr')['Dashboards']
     "Tableaux de bords"

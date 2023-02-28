@@ -345,7 +345,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -356,7 +356,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -502,13 +502,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "end_dttm": {
             "format": "date-time",
@@ -3032,13 +3032,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -5247,7 +5247,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5290,7 +5290,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5334,6 +5334,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5350,23 +5367,6 @@
         "required": [
           "first_name",
           "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
           "username"
         ],
         "type": "object"
@@ -10728,6 +10728,18 @@
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -11450,6 +11462,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -13031,6 +13055,18 @@
                   },
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -14800,6 +14836,18 @@
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -16287,6 +16335,18 @@
                   "sync_metrics": {
                     "description": "sync metrics?",
                     "type": "boolean"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -17341,7 +17401,7 @@
                       "type": "string"
                     },
                     "url": {
-                      "description": "pemanent link.",
+                      "description": "permanent link.",
                       "type": "string"
                     }
                   },
@@ -19484,6 +19544,18 @@
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
+                  },
+                  "ssh_tunnel_passwords": {
+                    "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keys": {
+                    "description": "JSON map of private_keys for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key\"}`.",
+                    "type": "string"
+                  },
+                  "ssh_tunnel_private_keyspasswords": {
+                    "description": "JSON map of private_key_passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the private_key_password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_private_key_password\"}`.",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -20053,6 +20125,57 @@
             "jwt": []
           }
         ],
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/export/{client_id}/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The SQL query result identifier",
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "SQL query results"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Exports the SQL query results to a CSV",
         "tags": [
           "SQL Lab"
         ]

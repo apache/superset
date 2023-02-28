@@ -51,6 +51,11 @@ class DashboardStandaloneMode(Enum):
     REPORT = 3
 
 
+class ChartStandaloneMode(Enum):
+    HIDE_NAV = "true"
+    SHOW_NAV = 0
+
+
 def find_unexpected_errors(driver: WebDriver) -> List[str]:
     error_messages = []
 

@@ -137,6 +137,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
@@ -145,7 +146,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
 
-    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
 

@@ -24,7 +24,7 @@ from sqlalchemy.orm.query import Query
 
 from superset.models.sql_lab import SavedQuery
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter
+from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
 
 class SavedQueryAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -54,6 +54,16 @@ class SavedQueryFavoriteFilter(
     """
 
     arg_name = "saved_query_is_fav"
+    class_name = "query"
+    model = SavedQuery
+
+
+class SavedQueryTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards that a user has favored
+    """
+
+    arg_name = "saved_query_tags"
     class_name = "query"
     model = SavedQuery
 

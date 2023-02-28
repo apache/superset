@@ -163,6 +163,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -484,7 +494,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate],
+    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate, user],
   );
 
   const filterTypes: Filters = useMemo(
@@ -574,7 +584,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.contains,
       },
     ],
-    [],
+    [user],
   );
 
   const menuData: SubMenuProps = {
@@ -822,6 +832,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onHide={closeDatasetImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
+        sshTunnelPasswordFields={sshTunnelPasswordFields}
+        setSSHTunnelPasswordFields={setSSHTunnelPasswordFields}
+        sshTunnelPrivateKeyFields={sshTunnelPrivateKeyFields}
+        setSSHTunnelPrivateKeyFields={setSSHTunnelPrivateKeyFields}
+        sshTunnelPrivateKeyPasswordFields={sshTunnelPrivateKeyPasswordFields}
+        setSSHTunnelPrivateKeyPasswordFields={
+          setSSHTunnelPrivateKeyPasswordFields
+        }
       />
       {preparingExport && <Loading />}
     </>

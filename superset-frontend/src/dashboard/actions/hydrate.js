@@ -50,11 +50,9 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
-import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
 import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
@@ -63,14 +61,7 @@ import { FilterBarOrientation } from '../types';
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  ({
-    history,
-    dashboard,
-    charts,
-    filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
-    dataMask,
-    activeTabs,
-  }) =>
+  ({ history, dashboard, charts, dataMask, activeTabs }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
     const { metadata, position_data: positionData } = dashboard;
@@ -232,25 +223,18 @@ export const hydrateDashboard =
         const componentId = chartIdToLayoutId[key];
         const directPathToFilter = (layout[componentId].parents || []).slice();
         directPathToFilter.push(componentId);
-        if (
-          [
-            FILTER_BOX_MIGRATION_STATES.NOOP,
-            FILTER_BOX_MIGRATION_STATES.SNOOZED,
-          ].includes(filterboxMigrationState)
-        ) {
-          dashboardFilters[key] = {
-            ...dashboardFilter,
-            chartId: key,
-            componentId,
-            datasourceId: slice.form_data.datasource,
-            filterName: slice.slice_name,
-            directPathToFilter,
-            columns,
-            labels,
-            scopes: scopesByChartId,
-            isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-          };
-        }
+        dashboardFilters[key] = {
+          ...dashboardFilter,
+          chartId: key,
+          componentId,
+          datasourceId: slice.form_data.datasource,
+          filterName: slice.slice_name,
+          directPathToFilter,
+          columns,
+          labels,
+          scopes: scopesByChartId,
+          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
+        };
       }
 
       // sync layout names with current slice names in case a slice was edited
@@ -319,28 +303,12 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
-    // should convert filter_box to filter component?
-    let filterConfig = metadata?.native_filter_configuration || [];
-    if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
-      filterConfig = getNativeFilterConfig(
-        charts,
-        filterScopes,
-        preselectFilters,
-      );
-      metadata.native_filter_configuration = filterConfig;
-      metadata.show_native_filters = true;
-    }
     const nativeFilters = getInitialNativeFilterState({
-      filterConfig,
+      filterConfig: metadata?.native_filter_configuration || [],
     });
-    metadata.show_native_filters =
-      dashboard?.metadata?.show_native_filters ??
-      (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-        [
-          FILTER_BOX_MIGRATION_STATES.CONVERTED,
-          FILTER_BOX_MIGRATION_STATES.REVIEWING,
-          FILTER_BOX_MIGRATION_STATES.NOOP,
-        ].includes(filterboxMigrationState));
+    metadata.show_native_filters = isFeatureEnabled(
+      FeatureFlag.DASHBOARD_NATIVE_FILTERS,
+    );
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
       // If user just added cross filter to dashboard it's not saving it scope on server,
@@ -465,7 +433,6 @@ export const hydrateDashboard =
           isRefreshing: false,
           isFiltersRefreshing: false,
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          filterboxMigrationState,
           datasetsStatus: ResourceStatus.LOADING,
         },
         dashboardLayout,

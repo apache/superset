@@ -1513,13 +1513,13 @@ export function createCtasDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
-      endpoint: '/superset/get_or_create_table/',
-      postPayload: { data: vizOptions },
+      endpoint: '/api/v1/dataset/get_or_create/',
+      jsonPayload: vizOptions,
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json));
+        dispatch(createDatasourceSuccess(json.result));
 
-        return json;
+        return json.result;
       })
       .catch(() => {
         const errorMsg = t('An error occurred while creating the data source');

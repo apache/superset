@@ -200,6 +200,9 @@ service:
     {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: null
+  nodePort:
+    # -- (int)
+    http: nil
 
 ingress:
   enabled: false
@@ -279,6 +282,8 @@ supersetNode:
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
 
+  # -- Launch additional containers into supersetNode pod
+  extraContainers: []
   # -- Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
   # -- Labels to be added to supersetNode deployment
@@ -360,6 +365,8 @@ supersetWorker:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Launch additional containers into supersetWorker pod
+  extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
   # -- Labels to be added to supersetWorker deployment
@@ -466,6 +473,9 @@ supersetCeleryFlower:
     type: ClusterIP
     annotations: {}
     port: 5555
+    nodePort:
+      # -- (int)
+      http: nil
   startupProbe:
     httpGet:
       path: /api/workers
@@ -567,6 +577,9 @@ supersetWebsockets:
     type: ClusterIP
     annotations: {}
     port: 8080
+    nodePort:
+      # -- (int)
+      http: nil
   command: []
   resources: {}
   deploymentAnnotations: {}
@@ -714,7 +727,7 @@ postgresql:
       ## Enable PostgreSQL persistence using Persistent Volume Claims.
       enabled: true
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access modes:
@@ -769,7 +782,7 @@ redis:
       ## Use a PVC to persist data.
       enabled: false
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access mode:
