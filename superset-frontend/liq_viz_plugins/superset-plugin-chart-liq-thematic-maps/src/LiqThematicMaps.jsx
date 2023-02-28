@@ -32,7 +32,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-import { Button, Menu, Layout } from 'antd';
+import { Menu, Layout } from 'antd';
 
 // Component imports
 import SideDrawer from './components/SideDrawer.js';
@@ -104,6 +104,7 @@ export default function LiqThematicMaps(props) {
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
+  const [hoveredStateId, setHoveredStateId] = useState(null);
 
   const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
