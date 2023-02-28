@@ -221,7 +221,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
-    col: str
+    col: Column
     op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
