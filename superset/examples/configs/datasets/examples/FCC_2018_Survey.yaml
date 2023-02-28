@@ -930,7 +930,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: rsrc_pluralsght
+- column_name: rsrc_pluralsight
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -1320,7 +1320,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: curr_emplymnt_other
+- column_name: curr_employment_other
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -1450,7 +1450,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: curr_emplymnt
+- column_name: curr_employment
   verbose_name: null
   is_dttm: false
   is_active: null

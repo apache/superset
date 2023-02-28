@@ -43,13 +43,17 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
+import {
+  onFiltersRefreshSuccess,
+  setDirectPathToChild,
+} from 'src/dashboard/actions/dashboardState';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
+import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
 
@@ -79,7 +83,6 @@ const useShouldFilterRefresh = () => {
 const FilterValue: React.FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
-  focusedFilterId,
   onFilterSelectionChange,
   inView = true,
   showOverflow,
@@ -110,6 +113,8 @@ const FilterValue: React.FC<FilterControlProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
+
+  const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
   const handleFilterLoadFinish = useCallback(() => {
     setIsRefreshing(false);
@@ -212,26 +217,34 @@ const FilterValue: React.FC<FilterControlProps> = ({
   ]);
 
   useEffect(() => {
-    if (focusedFilterId && focusedFilterId === filter.id) {
-      setTimeout(() => {
-        inputRef?.current?.focus();
-      }, FAST_DEBOUNCE);
+    if (outlinedFilterId && outlinedFilterId === filter.id) {
+      setTimeout(
+        () => {
+          inputRef?.current?.focus();
+        },
+        overflow ? FAST_DEBOUNCE : 0,
+      );
     }
-  }, [inputRef, focusedFilterId, filter.id]);
+  }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
 
   const setDataMask = useCallback(
     (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
     [filter, onFilterSelectionChange],
   );
 
-  const setFocusedFilter = useCallback(
-    () => dispatchFocusAction(dispatch, id),
-    [dispatch, id],
-  );
-  const unsetFocusedFilter = useCallback(
-    () => dispatchFocusAction(dispatch),
-    [dispatch],
-  );
+  const setFocusedFilter = useCallback(() => {
+    // don't highlight charts in scope if filter was focused programmatically
+    if (outlinedFilterId !== id) {
+      dispatchFocusAction(dispatch, id);
+    }
+  }, [dispatch, id, outlinedFilterId]);
+
+  const unsetFocusedFilter = useCallback(() => {
+    dispatchFocusAction(dispatch);
+    if (outlinedFilterId === id) {
+      dispatch(setDirectPathToChild([]));
+    }
+  }, [dispatch, id, outlinedFilterId]);
 
   const setHoveredFilter = useCallback(
     () => dispatchHoverAction(dispatch, id),

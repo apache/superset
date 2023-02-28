@@ -18,11 +18,10 @@
  */
 import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { useCallback, useEffect, useState, useContext } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
-import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
 import {
   useFilters,
   useNativeFiltersDataMask,
@@ -30,7 +29,6 @@ import {
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
-  const filterboxMigrationState = useContext(MigrationContext);
   const [isInitialized, setIsInitialized] = useState(false);
   const showNativeFilters = useSelector<RootState, boolean>(
     state =>
@@ -78,15 +76,13 @@ export const useNativeFilters = () => {
   useEffect(() => {
     if (
       expandFilters === false ||
-      (filterValues.length === 0 &&
-        nativeFiltersEnabled &&
-        ['CONVERTED', 'REVIEWING', 'NOOP'].includes(filterboxMigrationState))
+      (filterValues.length === 0 && nativeFiltersEnabled)
     ) {
       toggleDashboardFiltersOpen(false);
     } else {
       toggleDashboardFiltersOpen(true);
     }
-  }, [filterValues.length, filterboxMigrationState]);
+  }, [filterValues.length]);
 
   useEffect(() => {
     if (showDashboard) {

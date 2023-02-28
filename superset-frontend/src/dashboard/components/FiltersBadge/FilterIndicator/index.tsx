@@ -28,7 +28,7 @@ import {
   ItemIcon,
   Title,
 } from 'src/dashboard/components/FiltersBadge/Styles';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 
 export interface IndicatorProps {
   indicator: Indicator;

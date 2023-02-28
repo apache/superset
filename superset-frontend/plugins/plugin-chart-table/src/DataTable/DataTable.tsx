@@ -23,7 +23,6 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
-  MouseEvent,
 } from 'react';
 import {
   useTable,
@@ -67,7 +66,6 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
-  onContextMenu?: (value: D, clientX: number, clientY: number) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -100,7 +98,6 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
-  onContextMenu,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -273,21 +270,7 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr
-                key={rowKey || row.id}
-                {...rowProps}
-                onContextMenu={(e: MouseEvent) => {
-                  if (onContextMenu) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onContextMenu(
-                      row.original,
-                      e.nativeEvent.clientX,
-                      e.nativeEvent.clientY,
-                    );
-                  }
-                }}
-              >
+              <tr key={rowKey || row.id} {...rowProps}>
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
