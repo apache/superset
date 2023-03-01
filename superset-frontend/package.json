@@ -66,7 +66,7 @@
     "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
-    "pl:dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --port 3000 --config webpack.config.plugin.js",
+    "pl:dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --port 3000 --config webpack.config.plugin.js --env .env",
     "pl:build:dev": "npm run pl:build:app:dev && npm run pl:build:cleanup && npm run pl:build:addCss:dev",
     "pl:build:local": "npm run pl:build:app:local && npm run pl:build:cleanup && npm run pl:build:addCss:local",
     "pl:build:prod": "npm run pl:build:app:prod && npm run pl:build:cleanup && npm run pl:build:addCss:prod",

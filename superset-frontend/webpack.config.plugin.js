@@ -27,10 +27,8 @@ const {
   mode = 'development',
   devserverPort = 3000,
   measure = false,
-  publicPath = 'https://dodopizza-a.akamaihd.net/dodois-static/shared-frontends',
   analyzeBundle = false,
   analyzerPort = 8888,
-  nameChunks = false,
   env = '.env',
 } = parsedArgs;
 
@@ -41,8 +39,8 @@ const isDevMode = mode !== 'production';
 
 const isProd = mode === 'production';
 
-const getPublicPath = isProdMode =>
-  isProdMode ? (publicPath ? `${publicPath}/` : '') : '';
+const getPublicPath = (isProdMode, path) =>
+  isProdMode ? (path ? `${path}/` : '') : '';
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -70,25 +68,10 @@ console.log('isProd =>', JSON.stringify(isProd));
 console.log('input APP_DIR =>', JSON.stringify(APP_DIR));
 console.log('webpack mode =>', JSON.stringify(mode));
 console.log('output BUILD_DIR =>', JSON.stringify(BUILD_DIR));
-console.log('publicPath =>', JSON.stringify(getPublicPath(isProd)));
 console.log('APP_VERSION =>', JSON.stringify(APP_VERSION));
 console.log('______');
 console.log('');
 console.groupEnd();
-
-// clearing the directory
-rm(BUILD_DIR, err => {
-  if (err) throw err;
-});
-
-const output = {
-  path: BUILD_DIR,
-  // publicPath: `${ASSET_BASE_URL}/static/assets/`,
-  publicPath: getPublicPath(isProd),
-  filename: '[name].[hash].js',
-  library: '[name]',
-  libraryTarget: 'this',
-};
 
 console.group('Config:');
 const envFileParsed = `./${envFile}`;
@@ -109,31 +92,33 @@ const FULL_ENV = {
   'process.env.WEBPACK_MODE': JSON.stringify(mode),
   'process.env.APP_VERSION': JSON.stringify(APP_VERSION),
 };
+const publicPath = FULL_ENV['process.env.publicPath']
 
 console.log('FULL_ENV =>', FULL_ENV);
+console.log('publicPath =>', publicPath);
+console.log('getPublicPath =>', getPublicPath(isProd, publicPath));
 console.log('');
 console.groupEnd();
 
-// if (isDevMode) {
-//   output.filename = '[name].[contenthash:8].entry.js';
-//   output.chunkFilename = '[name].[contenthash:8].chunk.js';
-// } else if (nameChunks) {
-//   output.filename = '[name].[chunkhash].entry.js';
-//   output.chunkFilename = '[name].[chunkhash].chunk.js';
-// } else {
-//   output.filename = '[name].[chunkhash].entry.js';
-//   output.chunkFilename = '[chunkhash].chunk.js';
-// }
+// clearing the directory
+rm(BUILD_DIR, err => {
+  if (err) throw err;
+});
+
+const output = {
+  path: BUILD_DIR,
+  // publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  publicPath: getPublicPath(isProd, publicPath),
+  filename: '[name].[hash].js',
+  library: '[name]',
+  libraryTarget: 'this',
+};
 
 if (!isDevMode) {
   output.clean = true;
 }
 
 const plugins = [
-  // new webpack.ProvidePlugin({
-  //   process: 'process/browser.js',
-  // }),
-
   new webpack.DefinePlugin(FULL_ENV),
 
   new WebpackManifestPlugin({
@@ -175,13 +160,13 @@ if (!process.env.CI) {
 }
 
 if (!isDevMode) {
-  // text loading (webpack 4+)
-  plugins.push(
-    new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
-    }),
-  );
+//   // text loading (webpack 4+)
+//   plugins.push(
+//     new MiniCssExtractPlugin({
+//       filename: '[name].[chunkhash].entry.css',
+//       chunkFilename: '[name].[chunkhash].chunk.css',
+//     }),
+//   );
 
   plugins.push(
     // runs type checking on a separate process to speed up the build
