@@ -412,9 +412,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [invalidInput, setInvalidInputs] = useState<any>({
-    invalid : false,
-    emailError : "",
-    voError : ""
+    invalid: false,
+    emailError: '',
+    voError: '',
   });
 
   const [currentAlert, setCurrentAlert] =
@@ -505,33 +505,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-
-
   const onSave = () => {
     // Notification Settings
-    setInvalidInputs({invalid: false, emailError : "", voError: ""});
+    setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
-    let invalidEmails : string[] = [];
-    let invalidRoutingKeys : string[] = [];
-    let routingKeys : string[] = []
-    let notificationType  = ""
+    let invalidEmails: string[] = [];
+    let invalidRoutingKeys: string[] = [];
+    let routingKeys: string[] = [];
 
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
         if (setting.method === RecipientIconName.Email) {
-          notificationType = setting.method
           const emailStr = setting.recipients;
           const emails = ([] as string[])
             .concat(...emailStr.split(',').map(item => item.split(';')))
             .map(item => item.trim())
             .filter(item => item !== '');
 
-            invalidEmails = emails.filter(
+          invalidEmails = emails.filter(
             email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
           );
-        }
-        else if(setting.method === RecipientIconName.VO){
-          notificationType = setting.method
+        } else if (setting.method === RecipientIconName.VO) {
           const routingKeyStr = setting.recipients;
           routingKeys = ([] as string[])
             .concat(...routingKeyStr.split(',').map(item => item.split(';')))
@@ -541,9 +535,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
           );
         }
-        else {
-
-        }
 
         recipients.push({
           recipient_config_json: {
@@ -551,28 +542,33 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           },
           type: setting.method,
         });
-
       }
     });
 
-    if(invalidEmails.length > 0 ||
+    if (
+      invalidEmails.length > 0 ||
       invalidRoutingKeys.length > 0 ||
       routingKeys.length > 1
-      ){
-        let emailError =  invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : ""
-        let voError =   invalidRoutingKeys.length > 0 ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR : ""
-        voError = routingKeys.length > 1 ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION   : voError
+    ) {
+      const emailError =
+        invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : '';
+      let voError =
+        invalidRoutingKeys.length > 0
+          ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
+          : '';
+      voError =
+        routingKeys.length > 1
+          ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION
+          : voError;
 
-        setInvalidInputs({invalid: true, emailError: emailError, voError: voError});
-        addDangerToast(
-          t(
-            ERROR_MESSAGES.GENERIC_INVALID_INPUT
-          ),
-        );
-        return;
-      }
-;
-
+      setInvalidInputs({
+        invalid: true,
+        emailError,
+        voError,
+      });
+      addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
+      return;
+    }
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,

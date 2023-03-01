@@ -22,7 +22,10 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
-import { NotificationMethodOption, RecipientIconName } from 'src/views/CRUD/alert/types';
+import {
+  NotificationMethodOption,
+  RecipientIconName,
+} from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
 import { ERROR_MESSAGES } from '../constants';
 
@@ -88,10 +91,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   );
   const [invalid, setInvalid] = useState<any>(
     invalidInput || {
-      invalid : false,
-      emailError : "",
-      voError : ""
-    }
+      invalid: false,
+      emailError: '',
+      voError: '',
+    },
   );
 
   useEffect(() => {
@@ -99,7 +102,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       setInvalid(invalidInput);
     }
 
-    console.log(invalidInput)
+    console.log(invalidInput);
   }, [invalidInput]);
   const theme = useTheme();
 
@@ -110,8 +113,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
     setInvalid({
-      invalid : false,
-      error : ""
+      invalid: false,
+      error: '',
     });
     setRecipientValue('');
     if (onUpdate) {
@@ -147,24 +150,25 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }
 
   const getMethodHelpText = (method: string) => {
-    if(method === RecipientIconName.Email){
-      return <div className="helper">
-      {t(
-        'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
-      )}
-    </div>
+    if (method === RecipientIconName.Email) {
+      return (
+        <div className="helper">
+          {t(
+            'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+          )}
+        </div>
+      );
     }
-    else if(method === RecipientIconName.VO){
-      return <div className="helper">
-      {t(
-        ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
-      )}
-    </div>
+    if (method === RecipientIconName.VO) {
+      return (
+        <div className="helper">
+          {t(ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR)}
+        </div>
+      );
     }
-    else{
-      return <div>{t('Recipients are separated by "," or ";"')}</div>
-    }
-  }
+
+    return <div>{t('Recipients are separated by "," or ";"')}</div>;
+  };
 
   return (
     <StyledNotificationMethod>
@@ -199,11 +203,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{ method === RecipientIconName.VO ? t("Routing key") : t(method)}</div>
+          <div className="control-label">
+            {method === RecipientIconName.VO ? t('Routing key') : t(method)}
+          </div>
           <div className="input-container">
             <textarea
               className={
-                invalid?.invalid && (method === RecipientIconName.Email|| method === RecipientIconName.VO)
+                invalid?.invalid &&
+                (method === RecipientIconName.Email ||
+                  method === RecipientIconName.VO)
                   ? 'prominent-error-input'
                   : ''
               }
@@ -212,15 +220,13 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
-          {invalid?.invalid && (method === RecipientIconName.Email) ? (
+          {invalid?.invalid && method === RecipientIconName.Email ? (
             <div className="error-text">
-             {t(ERROR_MESSAGES.EMAIL_PATTERN_ERROR)}
+              {t(ERROR_MESSAGES.EMAIL_PATTERN_ERROR)}
             </div>
           ) : null}
-          {invalid?.invalid && (method === RecipientIconName.VO) ? (
-            <div className="error-text">
-              {invalid?.voError}
-            </div>
+          {invalid?.invalid && method === RecipientIconName.VO ? (
+            <div className="error-text">{invalid?.voError}</div>
           ) : null}
           {getMethodHelpText(method)}
         </StyledInputContainer>
