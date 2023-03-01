@@ -16,23 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { isFrontendRoute, routes } from './routes';
+import React, { FC } from 'react';
+import { useParams } from 'react-router-dom';
+import { DashboardPage } from 'src/dashboard/containers/DashboardPage';
 
-jest.mock('src/featureFlags', () => ({
-  ...jest.requireActual<object>('src/featureFlags'),
-  isFeatureEnabled: jest.fn().mockReturnValue(true),
-}));
-jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
+const DashboardRoute: FC = () => {
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  return <DashboardPage idOrSlug={idOrSlug} />;
+};
 
-describe('isFrontendRoute', () => {
-  it('returns true if a route matches', () => {
-    routes.forEach(r => {
-      expect(isFrontendRoute(r.path)).toBe(true);
-    });
-  });
-
-  it('returns false if a route does not match', () => {
-    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
-  });
-});
+export default DashboardRoute;
