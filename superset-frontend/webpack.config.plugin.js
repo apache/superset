@@ -92,13 +92,15 @@ const FULL_ENV = {
   'process.env.WEBPACK_MODE': JSON.stringify(mode),
   'process.env.APP_VERSION': JSON.stringify(APP_VERSION),
 };
-const publicPath = FULL_ENV['process.env.publicPath']
+const publicPath = FULL_ENV['process.env.publicPath'].split("\"").join('');
 
 console.log('FULL_ENV =>', FULL_ENV);
 console.log('publicPath =>', publicPath);
 console.log('getPublicPath =>', getPublicPath(isProd, publicPath));
 console.log('');
 console.groupEnd();
+
+// process.exit();
 
 // clearing the directory
 rm(BUILD_DIR, err => {
