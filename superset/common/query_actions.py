@@ -99,6 +99,7 @@ def _get_full(
     force_cached: Optional[bool] = False,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
+    query_obj.datasource = datasource
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
     df = payload["df"]

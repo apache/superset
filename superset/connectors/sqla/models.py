@@ -1146,6 +1146,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[ColumnTyping]] = None,
+        datasource_column_names: Optional[List[str]] = [],
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1789,14 +1790,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             col
             for col in filter_columns
             if not is_adhoc_column(col)
-            and col not in columns
+            and col not in datasource_column_names
             and col not in applied_template_filters
         ] + rejected_adhoc_filters_columns
         applied_filter_columns = [
             col
             for col in filter_columns
             if not is_adhoc_column(col)
-            and (col in columns or col in applied_template_filters)
+            and (col in datasource_column_names or col in applied_template_filters)
         ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
