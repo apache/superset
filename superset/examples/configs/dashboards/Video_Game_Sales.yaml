@@ -366,7 +366,7 @@ metadata:
   timed_refresh_immune_slices: []
   expanded_slices: {}
   refresh_frequency: 0
-  default_filters: '{"3547": {"Platform": ["PS", "PS2", "PS3", "XB", "X360"], "__time_range":
+  default_filters: '{"3547": {"platform": ["PS", "PS2", "PS3", "XB", "X360"], "__time_range":
     "No filter"}}'
   color_scheme: supersetColors
   filter_scopes:
