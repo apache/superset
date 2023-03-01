@@ -70,6 +70,7 @@ import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
+import FacePile from 'src/components/FacePile';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -446,19 +447,13 @@ function ChartList(props: ChartListProps) {
         size: 'xl',
       },
       {
-        accessor: 'owners',
-        hidden: true,
-        disableSortBy: true,
-      },
-      {
         Cell: ({
           row: {
-            original: { created_by: createdBy },
+            original: { owners = [] },
           },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        Header: t('Created by'),
-        accessor: 'created_by',
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
       },
@@ -604,6 +599,13 @@ function ChartList(props: ChartListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperator.chartAllText,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -617,28 +619,6 @@ function ChartList(props: ChartListProps) {
             addDangerToast(
               t(
                 'An error occurred while fetching chart owners values: %s',
-                errMsg,
-              ),
-            ),
-          ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'created_by',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart created by values: %s',
                 errMsg,
               ),
             ),
@@ -719,13 +699,6 @@ function ChartList(props: ChartListProps) {
         fetchSelects: loadTags,
       });
     }
-    filters_list.push({
-      Header: t('Search'),
-      key: 'search',
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperator.chartAllText,
-    });
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

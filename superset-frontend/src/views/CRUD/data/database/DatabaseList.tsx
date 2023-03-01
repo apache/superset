@@ -458,6 +458,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'database_name',
+        input: 'search',
+        operator: FilterOperator.contains,
+      },
+      {
         Header: t('Expose in SQL Lab'),
         key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
@@ -488,13 +495,6 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'database_name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [],

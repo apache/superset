@@ -364,7 +364,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { changed_on_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
@@ -500,6 +500,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const filterTypes: Filters = useMemo(
     () => [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'table_name',
+        input: 'search',
+        operator: FilterOperator.contains,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -575,13 +582,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'table_name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [user],

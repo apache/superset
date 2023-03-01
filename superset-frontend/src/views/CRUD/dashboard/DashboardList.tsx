@@ -308,7 +308,17 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
-
+      {
+        Cell: ({
+          row: {
+            original: { status },
+          },
+        }: any) =>
+          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
+        Header: t('Status'),
+        accessor: 'published',
+        size: 'xl',
+      },
       {
         Cell: ({
           row: {
@@ -330,21 +340,10 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { status },
-          },
-        }: any) =>
-          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
-        Header: t('Status'),
-        accessor: 'published',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
             original: { changed_on_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Modified'),
+        Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
