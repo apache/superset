@@ -22,38 +22,36 @@ const AnalyticsMain = () => {
 
   return (
     <RowWrapper>
-      <RowWrapper>
-        <ColumnWrapper classes="col-sm-12 col-md-8">
-          <InfoPanel
-            title={RULES_RU.title}
-            body={`${RULES_RU.messages.one} ${RULES_RU.messages.two}`}
-            extra={RULES_RU.messages.three}
+      <ColumnWrapper classes="col-sm-12 col-md-8">
+        <InfoPanel
+          title={RULES_RU.title}
+          body={`${RULES_RU.messages.one} ${RULES_RU.messages.two}`}
+          extra={RULES_RU.messages.three}
+        >
+          <RowWrapper>
+            <ColumnWrapper classes="col-md-11 offset-md-1">
+              <ButtonsBlock />
+            </ColumnWrapper>
+          </RowWrapper>
+        </InfoPanel>
+        <div style={{ marginTop: '20px' }}>
+          <WarningPanel
+            title={CSV_TEMP_PROBLEM_RU.title}
+            subTitle={CSV_TEMP_PROBLEM_RU.date}
           >
             <RowWrapper>
-              <ColumnWrapper classes="col-md-11 offset-md-1">
-                <ButtonsBlock />
+              <ColumnWrapper classes="col-md-11">
+                <p>{CSV_TEMP_PROBLEM_RU.subTitle}</p>
+                <ol style={{ paddingLeft: '28px' }}>
+                  <li>{CSV_TEMP_PROBLEM_RU.message1}</li>
+                  <li>{CSV_TEMP_PROBLEM_RU.message2}</li>
+                  <li>{CSV_TEMP_PROBLEM_RU.message3}</li>
+                </ol>
               </ColumnWrapper>
             </RowWrapper>
-          </InfoPanel>
-          <div style={{ marginTop: '20px' }}>
-            <WarningPanel
-              title={CSV_TEMP_PROBLEM_RU.title}
-              subTitle={CSV_TEMP_PROBLEM_RU.date}
-            >
-              <RowWrapper>
-                <ColumnWrapper classes="col-md-11">
-                  <p>{CSV_TEMP_PROBLEM_RU.subTitle}</p>
-                  <ol style={{ paddingLeft: '28px' }}>
-                    <li>{CSV_TEMP_PROBLEM_RU.message1}</li>
-                    <li>{CSV_TEMP_PROBLEM_RU.message2}</li>
-                    <li>{CSV_TEMP_PROBLEM_RU.message3}</li>
-                  </ol>
-                </ColumnWrapper>
-              </RowWrapper>
-            </WarningPanel>
-          </div>
-        </ColumnWrapper>
-      </RowWrapper>
+          </WarningPanel>
+        </div>
+      </ColumnWrapper>
     </RowWrapper>
   );
 };

@@ -6,7 +6,6 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
@@ -19,7 +18,7 @@ const {
   PROD_OUTPUT_FOLDER,
   DEV_OUTPUT_FOLDER,
   getHtmlTemplate,
-} = require('./webpackUtils/constants');
+} = require('./src/webpackUtils/constants');
 
 // const { rulesStyles } = require('./webpackUtils/styles');
 // const { rulesStaticAssets } = require('./webpackUtils/assets');
@@ -28,12 +27,14 @@ const {
   mode = 'development',
   devserverPort = 3000,
   measure = false,
-  publicPath = '',
+  publicPath = 'https://dodopizza-a.akamaihd.net/dodois-static/shared-frontends',
   analyzeBundle = false,
   analyzerPort = 8888,
   nameChunks = false,
-  envFile = '.env',
+  env = '.env',
 } = parsedArgs;
+
+const envFile = env || '.env';
 const isDevMode = mode !== 'production';
 // const isDevServer = process.argv[1].includes('webpack-dev-server');
 // const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
@@ -216,18 +217,9 @@ const babelLoader = {
   },
 };
 
-const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
-
-function addPreamble(entry) {
-  return PREAMBLE.concat([path.join(APP_DIR, entry)]);
-}
-
 const config = {
   entry: {
-    // supersetDashboardPlugin: path.join(APP_DIR, '/src/Superstructure/main.tsx'),
-    preamble: PREAMBLE,
-    theme: path.join(APP_DIR, '/src/theme.ts'),
-    supersetDashboardPlugin: addPreamble('/src/Superstructure/main.tsx'),
+    supersetDashboardPlugin: path.join(APP_DIR, '/src/Superstructure/main.tsx'),
   },
   output,
   stats: 'minimal',
@@ -238,63 +230,7 @@ const config = {
     },
   },
   optimization: {
-    sideEffects: true,
-    splitChunks: {
-      chunks: 'all',
-      // increase minSize for devMode to 1000kb because of sourcemap
-      minSize: isDevMode ? 1000000 : 20000,
-      name: nameChunks,
-      automaticNameDelimiter: '-',
-      minChunks: 2,
-      cacheGroups: {
-        automaticNamePrefix: 'chunk',
-        // basic stable dependencies
-        vendors: {
-          priority: 50,
-          name: 'vendors',
-          test: new RegExp(
-            `/node_modules/(${[
-              'abortcontroller-polyfill',
-              'react',
-              'react-dom',
-              'prop-types',
-              'react-prop-types',
-              'prop-types-extra',
-              'redux',
-              'react-redux',
-              'react-hot-loader',
-              'react-select',
-              'react-sortable-hoc',
-              'react-virtualized',
-              'react-table',
-              'react-ace',
-              '@hot-loader.*',
-              'webpack.*',
-              '@?babel.*',
-              'lodash.*',
-              'antd',
-              '@ant-design.*',
-              '.*bootstrap',
-              'moment',
-              'jquery',
-              'core-js.*',
-              '@emotion.*',
-              'd3',
-              'd3-(array|color|scale|interpolate|format|selection|collection|time|time-format)',
-            ].join('|')})/`,
-          ),
-        },
-        // viz thumbnails are used in `addSlice` and `explore` page
-        thumbnail: {
-          name: 'thumbnail',
-          test: /thumbnail(Large)?\.(png|jpg)/i,
-          priority: 20,
-          enforce: true,
-        },
-      },
-    },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
@@ -377,7 +313,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isProd,
             },
           },
         ],
@@ -390,13 +326,13 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isProd,
             },
           },
           {
             loader: 'less-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isProd,
               lessOptions: {
                 javascriptEnabled: true,
               },
@@ -489,8 +425,6 @@ if (isDevMode) {
     port: devserverPort,
     devMiddleware: {
       index: true,
-      // mimeTypes: { phtml: 'text/html' },
-      // publicPath: '/publicPathForDevServe',
       publicPath: path.join(process.cwd(), DEV_OUTPUT_FOLDER),
       serverSideRender: true,
       writeToDisk: true,
@@ -503,7 +437,6 @@ if (isDevMode) {
       },
       logging: 'error',
     },
-    // static: path.join(process.cwd(), '../static/assets'),
   };
 }
 
