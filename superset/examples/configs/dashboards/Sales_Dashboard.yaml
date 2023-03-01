@@ -385,13 +385,14 @@ metadata:
   expanded_slices: {}
   refresh_frequency: 0
   default_filters: '{"671": {"__time_range": "No filter"}}'
+  color_scheme: supersetColors
   filter_scopes:
-    '671':
-      ProductLine:
+    "671":
+      product_line:
         scope:
         - TAB-4fthLQmdX
         immune: []
-      DealSize:
+      deal_size:
         scope:
         - ROOT_ID
         immune: []
@@ -399,7 +400,6 @@ metadata:
         scope:
         - ROOT_ID
         immune: []
-  color_scheme: supersetColors
   label_colors:
     Medium: '#1FA8C9'
     Small: '#454E7C'
