@@ -36,7 +36,6 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
 import {
   getClientErrorMessage,
