@@ -16,9 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable camelcase */
-import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
-
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -26,7 +23,10 @@ import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
-import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
+import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -54,7 +54,6 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import { updateColorSchema } from './dashboardInfo';
-import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
 
@@ -124,7 +123,7 @@ export const hydrateDashboard =
 
     charts.forEach(slice => {
       const key = slice.slice_id;
-      const form_data = {
+      const formData = {
         ...slice.form_data,
         url_params: {
           ...slice.form_data.url_params,
@@ -134,7 +133,7 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: applyDefaultFormData(form_data),
+        form_data: applyDefaultFormData(formData),
       };
 
       slices[key] = {
@@ -311,54 +310,11 @@ export const hydrateDashboard =
     );
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      // If user just added cross filter to dashboard it's not saving it scope on server,
-      // so we tweak it until user will update scope and will save it in server
-      Object.values(dashboardLayout.present).forEach(layoutItem => {
-        const chartId = layoutItem.meta?.chartId;
-        const behaviors =
-          (
-            getChartMetadataRegistry().get(
-              chartQueries[chartId]?.form_data?.viz_type,
-            ) ?? {}
-          )?.behaviors ?? [];
-
-        if (!metadata.chart_configuration) {
-          metadata.chart_configuration = {};
-        }
-        if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
-          if (!metadata.chart_configuration[chartId]) {
-            metadata.chart_configuration[chartId] = {
-              id: chartId,
-              crossFilters: {
-                scope: {
-                  rootPath: [DASHBOARD_ROOT_ID],
-                  excluded: [chartId], // By default it doesn't affects itself
-                },
-              },
-            };
-          }
-          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
-            getChartIdsInFilterScope(
-              metadata.chart_configuration[chartId].crossFilters.scope,
-              chartQueries,
-              dashboardLayout.present,
-            );
-        }
-        if (
-          behaviors.includes(Behavior.INTERACTIVE_CHART) &&
-          !metadata.chart_configuration[chartId]
-        ) {
-          metadata.chart_configuration[chartId] = {
-            id: chartId,
-            crossFilters: {
-              scope: {
-                rootPath: [DASHBOARD_ROOT_ID],
-                excluded: [chartId], // By default it doesn't affects itself
-              },
-            },
-          };
-        }
-      });
+      metadata.chart_configuration = getCrossFiltersConfiguration(
+        dashboardLayout.present,
+        metadata.chart_configuration,
+        chartQueries,
+      );
     }
 
     const { roles } = user;

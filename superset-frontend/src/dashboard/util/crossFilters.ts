@@ -17,10 +17,69 @@
  * under the License.
  */
 
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  Behavior,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  isDefined,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import { DASHBOARD_ROOT_ID } from './constants';
+import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
+import { ChartsState, DashboardInfo, DashboardLayout } from '../types';
 
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
   isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
   (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);
+
+export const getCrossFiltersConfiguration = (
+  dashboardLayout: DashboardLayout,
+  initialConfig: DashboardInfo['metadata']['chart_configuration'] = {},
+  charts: ChartsState,
+) => {
+  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    return undefined;
+  }
+  // If user just added cross filter to dashboard it's not saving it scope on server,
+  // so we tweak it until user will update scope and will save it in server
+  const chartConfiguration = {};
+  Object.values(dashboardLayout).forEach(layoutItem => {
+    const chartId = layoutItem.meta?.chartId;
+
+    if (!isDefined(chartId)) {
+      return;
+    }
+
+    const behaviors =
+      (
+        getChartMetadataRegistry().get(charts[chartId]?.form_data?.viz_type) ??
+        {}
+      )?.behaviors ?? [];
+
+    if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
+      if (initialConfig[chartId]) {
+        chartConfiguration[chartId] = initialConfig[chartId];
+      }
+      if (!chartConfiguration[chartId]) {
+        chartConfiguration[chartId] = {
+          id: chartId,
+          crossFilters: {
+            scope: {
+              rootPath: [DASHBOARD_ROOT_ID],
+              excluded: [chartId], // By default it doesn't affects itself
+            },
+          },
+        };
+      }
+      chartConfiguration[chartId].crossFilters.chartsInScope =
+        getChartIdsInFilterScope(
+          chartConfiguration[chartId].crossFilters.scope,
+          charts,
+          dashboardLayout,
+        );
+    }
+  });
+  return chartConfiguration;
+};
