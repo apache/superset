@@ -16,22 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { CLAUSES, EXPRESSION_TYPES } from './types';
 
-export default PropTypes.oneOfType([
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
-    subject: PropTypes.string.isRequired,
-    comparator: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.arrayOf(PropTypes.string),
-    ]).isRequired,
-  }),
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SQL]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.WHERE, CLAUSES.HAVING]).isRequired,
-    sqlExpression: PropTypes.string.isRequired,
-  }),
-]);
+export enum EXPRESSION_TYPES {
+  SIMPLE = 'SIMPLE',
+  SQL = 'SQL',
+}
+
+export enum CLAUSES {
+  HAVING = 'HAVING',
+  WHERE = 'WHERE',
+}
