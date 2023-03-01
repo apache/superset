@@ -1146,7 +1146,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[ColumnTyping]] = None,
-        datasource_column_names: Optional[List[str]] = [],
+        datasource: Optional[BaseDatasource] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1175,6 +1175,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
+        datasource_column_names = datasource.column_names if datasource else []
         extras = extras or {}
         time_grain = extras.get("time_grain_sqla")
 
