@@ -7,12 +7,18 @@
 #
 build==0.8.0
     # via pip-tools
+cachetools==5.3.0
+    # via tox
 cfgv==3.3.0
     # via pre-commit
+chardet==5.1.0
+    # via tox
 click==8.0.4
     # via
     #   pip-compile-multi
     #   pip-tools
+colorama==0.4.6
+    # via tox
 distlib==0.3.6
     # via virtualenv
 filelock==3.9.0
@@ -23,9 +29,10 @@ identify==2.2.13
     # via pre-commit
 nodeenv==1.6.0
     # via pre-commit
-packaging==21.3
+packaging==23.0
     # via
     #   build
+    #   pyproject-api
     #   tox
 pep517==0.11.0
     # via build
@@ -34,26 +41,22 @@ pip-compile-multi==2.6.2
 pip-tools==6.8.0
     # via pip-compile-multi
 platformdirs==2.6.2
-    # via virtualenv
-pluggy==0.13.1
+    # via
+    #   tox
+    #   virtualenv
+pluggy==1.0.0
     # via tox
 pre-commit==3.1.0
     # via -r integration.in
-py==1.10.0
+pyproject-api==1.5.0
     # via tox
-pyparsing==3.0.6
-    # via packaging
 pyyaml==5.4.1
     # via pre-commit
-six==1.16.0
-    # via tox
-toml==0.10.2
-    # via tox
 tomli==1.2.1
     # via pep517
 toposort==1.6
     # via pip-compile-multi
-tox==3.25.1
+tox==4.4.6
     # via -r integration.in
 virtualenv==20.17.1
     # via
