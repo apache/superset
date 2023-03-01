@@ -130,6 +130,7 @@ export default function Legend(props) {
   const [currHiddenThematic, setCurrHiddenThematic] = useState([]);
 
   const updateMapThematic = (hidden) => {
+    if (!map.current) return;
     if (hidden.length === 0) {
       map.current.setFilter('boundary_tileset', null);
     } else {
@@ -184,6 +185,7 @@ export default function Legend(props) {
             <Button 
               type='text'
               shape='circle'
+              size='small'
               icon={
                 currHiddenThematic.length === 0 ? <EyeOutlined /> : <EyeInvisibleOutlined />
               }
@@ -205,6 +207,7 @@ export default function Legend(props) {
                   <Button 
                     type='text' 
                     shape='circle' 
+                    size='small'
                     icon={
                       currHiddenThematic.includes(item.color) ? <EyeInvisibleOutlined /> : <EyeOutlined />
                     }

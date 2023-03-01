@@ -437,7 +437,7 @@ export default function LiqThematicMaps(props) {
 
   // Hook for styling rendered tiles via feature state, triggered whenever new tiles are rendered
   useEffect(() => {
-    if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0) return;
+    if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0 || !map.current.isStyleLoaded()) return;
     for (const i in currBdryIDs) {
       map.current.setFeatureState(
         {
