@@ -17,22 +17,31 @@
  * under the License.
  */
 import React from 'react';
-import { isFrontendRoute, routes } from './routes';
+import { render, screen } from 'spec/helpers/testing-library';
+import AddDataset from 'src/pages/DatasetCreation';
 
-jest.mock('src/featureFlags', () => ({
-  ...jest.requireActual<object>('src/featureFlags'),
-  isFeatureEnabled: jest.fn().mockReturnValue(true),
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+  useParams: () => ({ datasetId: undefined }),
 }));
-jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 
-describe('isFrontendRoute', () => {
-  it('returns true if a route matches', () => {
-    routes.forEach(r => {
-      expect(isFrontendRoute(r.path)).toBe(true);
-    });
-  });
+describe('AddDataset', () => {
+  it('renders a blank state AddDataset', async () => {
+    render(<AddDataset />, { useRedux: true });
 
-  it('returns false if a route does not match', () => {
-    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
+    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
+
+    // Header
+    expect(await screen.findByText(/new dataset/i)).toBeVisible();
+    // Left panel
+    expect(blankeStateImgs[0]).toBeVisible();
+    // Footer
+    expect(screen.getByText(/Cancel/i)).toBeVisible();
+
+    expect(blankeStateImgs.length).toBe(1);
   });
 });
