@@ -19,11 +19,9 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterPopoverTrigger from '.';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
