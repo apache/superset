@@ -283,6 +283,39 @@ const iconExprs = {
   ]
 }
 
+const tradeAreaColors = {
+  'P1': '#fde63c',
+  'P2': '#fcdb47',
+  'P3': '#fbcf53',
+  'P4': '#fac45e',
+  'P5': '#f9b969',
+  'P6': '#f9ad75',
+  'P7': '#f8a280',
+  'P8': '#f7978b',
+  'P9': '#f68b97',
+  'P10': '#f580a2',
+  'S1': '#d2c6df',
+  'S2': '#ccbadf',
+  'S3': '#c6afdf',
+  'S4': '#c1a3df',
+  'S5': '#bb98df',
+  'S6': '#b58cde',
+  'S7': '#af81de',
+  'S8': '#aa75de',
+  'S9': '#a46ade',
+  'S10': '#9e5ede',
+  'T1': '#e8c6a5',
+  'T2': '#e6c19e',
+  'T3': '#e4bd97',
+  'T4': '#e2b890',
+  'T5': '#e0b489',
+  'T6': '#ddaf81',
+  'T7': '#dbab7a',
+  'T8': '#d9a673',
+  'T9': '#d7a26c',
+  'T10': '#d59d65'
+}
+
 const defaultLayerStyles = {
   boundaryStyle: {
     'fill-color': 'transparent',
@@ -298,4 +331,4 @@ const defaultLayerStyles = {
   }
 };
 
-module.exports = { defaultLayerStyles, iconExprs, iconSizeExprs, intranetImgs };
+module.exports = { defaultLayerStyles, iconExprs, iconSizeExprs, intranetImgs, tradeAreaColors };

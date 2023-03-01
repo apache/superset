@@ -228,7 +228,7 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: false,
               label: t('Mode'),
-              description: t('Method used for color styling in thematic. If specifying a custom mode below, select "Custom" here.')
+              description: t('Method used for color styling in thematic.')
             }
           }
         ],

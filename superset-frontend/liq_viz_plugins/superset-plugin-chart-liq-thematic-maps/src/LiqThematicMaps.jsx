@@ -124,12 +124,23 @@ export default function LiqThematicMaps(props) {
       label: <span>Legend</span>,
       key: '1',
       onClick: () => {
-        setDrawerTitle('Map Legend')
+        let reverseMap = {};
+        Object.keys(colorMap).map(x => {
+          if (colorMap[x] in reverseMap) {
+            reverseMap[colorMap[x]].push(x);
+          } else {
+            reverseMap[colorMap[x]] = [x];
+          }
+        });
+        setDrawerTitle('Map Legend');
         setDrawerContent(
           <Legend 
             intranetLayers={intranetLayers} 
-            thematicData={thematicLegend} 
-            thematicCol={metricCol} 
+            thematicData={thematicLegend}
+            colorMap={reverseMap} 
+            thematicCol={metricCol}
+            groupCol={groupCol}
+            map={map}
           />
         );
         setDrawerOpen(true);
