@@ -94,7 +94,7 @@ const legend = {
     ['Woolworths', intranetImgs['woolworths'], ''],
     ['Coles', intranetImgs['coles'], ''],
     ['Aldi', intranetImgs['aldi'], ''],
-    ['IGA', intranetImgs['IGA'], ''],
+    ['IGA', intranetImgs['iga'], ''],
     ['FoodWorks', intranetImgs['foodworks'], ''],
     ['Costco', intranetImgs['costco'], ''],
     ['Drakes', intranetImgs['drakes_supermarket'], ''],
@@ -128,7 +128,7 @@ export default function Legend(props) {
 
   const [currHiddenThematic, setCurrHiddenThematic] = useState([]);
   const [currHiddenIntranet, setCurrHiddenIntranet] = useState(
-    Object.fromEntries(intranetLayers.map(l => [l, []]))
+    Object.fromEntries(Object.keys(intranetLegendExprs).map(x => [x, []]))
   );
 
   const getThematicFilterExpr = (color) => {
@@ -200,6 +200,8 @@ export default function Legend(props) {
       if (!(l in hidden)) hidden[l] = [];
     }
     setCurrHiddenIntranet({...hidden});
+    console.log(hidden);
+    console.log(intranetLayers);
   }, [intranetLayers])
 
   return (
@@ -269,7 +271,8 @@ export default function Legend(props) {
               renderItem={item => (
                 <List.Item 
                   extra={
-                    <Button 
+                    currHiddenIntranet &&
+                    (<Button 
                       type='text' 
                       shape='circle'
                       size='small' 
@@ -281,7 +284,7 @@ export default function Legend(props) {
                           () => unhideIntranet(item.layer, item.title) :
                           () => hideIntranet(item.layer, item.title)
                       } 
-                    />
+                    />)
                   }
                 >
                   <List.Item.Meta

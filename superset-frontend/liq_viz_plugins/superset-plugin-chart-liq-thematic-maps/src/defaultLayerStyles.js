@@ -81,16 +81,16 @@ const intranetLegendExprs = {
     'City Centre': ['!', ['==', ['get', 'description'], 'City Centre']],
     'Themed': ['!', ['==', ['get', 'description'], 'Themed']],
     'Large Format Retail': ['!', ['==', ['get', 'description'], 'Large Format Retail']],
-    'Outlet': ['!', ['==', ['get', 'description'], 'Outlet']],
+    'Outlet': ['!', ['==', ['get', 'description'], 'Outlet Centre']],
     'Market': ['!', ['==', ['get', 'description'], 'Market']],
-    'Local': ['!', ['==', ['get', 'description'], 'Local']],
-    'Transit': ['!', ['==', ['get', 'description'], 'Transit']]
+    'Local': ['!', ['==', ['get', 'description'], 'Local Centre']],
+    'Transit': ['!', ['==', ['get', 'description'], 'Transit Centre']]
   },
   'department_stores': {
     'David Jones': ['!', ['==', ['get', 'tenant_id'], 4537]],
-    'Myer': ['==', ['!', ['get', 'tenant_id'], 11884]],
+    'Myer': ['!', ['==', ['get', 'tenant_id'], 11884]],
     'Harris Scarfe': ['!', ['==', ['get', 'tenant_id'], 7644]],
-    'Uknown DS': ['in', ['get', 'tenant_id'], ['literal', [4537, 11884, 7644]]]
+    'Unknown DS': ['in', ['get', 'tenant_id'], ['literal', [4537, 11884, 7644]]]
   },
   'discount_department_stores': {
     'Kmart': ['!', ['==', ['get', 'tenant_id'], 9595]],
@@ -99,6 +99,91 @@ const intranetLegendExprs = {
     'Target': ['!', ['==', ['get', 'tenant_id'], 16842]],
     'Target Country': ['!', ['==', ['get', 'tenant_id'], 16844]],
     'Unknown DDS': ['in', ['get', 'tenant_id'], ['literal', [9595, 92073, 1759, 16842, 16844]]]
+  },
+  'large_format_retail': {
+    'Amart': ['!', ['==', ['get', 'tenant_id'], 16550]],
+    'Anaconda': ['!', ['==', ['get', 'tenant_id'], 525]],
+    'Bunnings': ['!', ['==', ['get', 'tenant_id'], 2431]],
+    'Domayne': ['!', ['==', ['get', 'tenant_id'], 4992]],
+    'Fantastic Furniture': ['!', ['==', ['get', 'tenant_id'], 5881]],
+    'Forty Winks': ['!', ['==', ['get', 'tenant_id'], 6334]],
+    'Harvey Norman Group': ['!', ['==', ['get', 'tenant_id'], 7656]],
+    'Ikea': ['!', ['==', ['get', 'tenant_id'], 8299]],
+    'Lincraft': ['!', ['==', ['get', 'tenant_id'], 10112]],
+    'Snooze': ['!', ['==', ['get', 'tenant_id'], 2893]],
+    'Spotlight': ['!', ['==', ['get', 'tenant_id'], 15974]],
+    'The Good Guys': ['!', ['==', ['get', 'tenant_id'], 17321]]
+  },
+  'supermarkets': {
+    'Woolworths': [
+      '!', 
+      [
+        'any',
+        ['==', ['get', 'tenant_id'], 19145],
+        ['==', ['get', 'tenant_id'], 19153]
+      ]
+    ],
+    'Coles': [
+      '!', 
+      [
+        'any',
+        ['==', ['get', 'tenant_id'], 3898],
+        ['==', ['get', 'tenant_id'], 44728]
+      ]
+    ],
+    'Aldi': ['!', ['==', ['get', 'tenant_id'], 341]],
+    'IGA': ['!', ['==', ['get', 'tenant_id'], 8291]],
+    'FoodWorks': ['!', ['==', ['get', 'tenant_id'], 6267]],
+    'Costco': ['!', ['==', ['get', 'tenant_id'], 4149]],
+    'Drakes': ['!', ['==', ['get', 'tenant_id'], 39173]],
+    'Spar': ['!', ['==', ['get', 'tenant_id'], 15874]],
+    'IGA Express': ['!', ['==', ['get', 'tenant_id'], 8294]],
+    'Others': [
+      'in',
+      ['get', 'tenant_id'],
+      ['literal', [19145, 19153, 3898, 44728, 341, 8291, 6267, 4149, 39173, 15874, 8294, 18239]]
+    ],
+    'Unknown Smkt': ['!', ['==', ['get', 'tenant_id'], 18239]]
+  },
+  'mini_majors': {
+    'Apple Store': ['!', ['==', ['get', 'tenant_id'], 20105]],
+    'Best & Less': ['!', ['==', ['get', 'tenant_id'], 1655]],
+    'Chemist Warehouse': ['!', ['==', ['get', 'tenant_id'], 3342]],
+    'Cotton On': ['!', ['==', ['get', 'tenant_id'], 4167]],
+    'Country Road': ['!', ['==', ['get', 'tenant_id'], 4171]],
+    'Daiso': ['!', ['==', ['get', 'tenant_id'], 22164]],
+    'Dan Murphy\'s': ['!', ['==', ['get', 'tenant_id'], 4492]],
+    'First Choice Liquor': ['!', ['==', ['get', 'tenant_id'], 6058]],
+    'Glue Store': ['!', ['==', ['get', 'tenant_id'], 20461]],
+    'H & M': ['!', ['==', ['get', 'tenant_id'], 24715]],
+    'Harris Farm Markets': ['!', ['==', ['get', 'tenant_id'], 7650]],
+    'HS Home': ['!', ['==', ['get', 'tenant_id'], 24930]],
+    'JB Hi-Fi': ['!', ['==', ['get', 'tenant_id'], 8725]],
+    'Kathmandu': ['!', ['==', ['get', 'tenant_id'], 9218]],
+    'Mecca Cosmetica': ['!', ['==', ['get', 'tenant_id'], 11041]],
+    'Priceline Pharmacy': ['!', ['==', ['get', 'tenant_id'], 13827]],
+    'Rebel Sport': ['!', ['==', ['get', 'tenant_id'], 14218]],
+    'Rivers': ['!', ['==', ['get', 'tenant_id'], 14519]],
+    'Sephora': ['!', ['==', ['get', 'tenant_id'], 25346]],
+    'Terry White Chemist': ['!', ['==', ['get', 'tenant_id'], 17006]],
+    'The Reject Shop': ['!', ['==', ['get', 'tenant_id'], 17494]],
+    'TK Maxx': ['!', ['==', ['get', 'tenant_id'], 17925]],
+    'Uniqlo': ['!', ['==', ['get', 'tenant_id'], 24586]],
+    'Zara': ['!', ['==', ['get', 'tenant_id'], 22168]]
+  },
+  'liquor': {
+    'Liquorland': ['!', ['==', ['get', 'tenant_id'], 10154]],
+    'BWS': ['!', ['==', ['get', 'tenant_id'], 2494]],
+    'IGA Liquor': ['!', ['==', ['get', 'tenant_id'], 93808]],
+    'Aldi Liquor': ['!', ['==', ['get', 'tenant_id'], 39252]],
+    'Vintage Cellars': ['!', ['==', ['get', 'tenant_id'], 18514]],
+    'First Choice Liquor': ['!', ['==', ['get', 'tenant_id'], 6058]],
+    'Dan Murphys': ['!', ['==', ['get', 'tenant_id'], 4492]],
+    'Other Liquor': [
+      'in',
+      ['get', 'tenant_id'],
+      ['literal', [10154, 2494, 93808, 39252, 18514, 6058, 4492]]
+    ]
   }
 };
 
