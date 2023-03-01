@@ -120,11 +120,13 @@ def _get_full(
     del payload["applied_filter_columns"]
     del payload["rejected_filter_columns"]
     payload["applied_filters"] = [
-        {"column": get_column_name(col)}
-        for col in applied_filter_columns
+        {"column": get_column_name(col)} for col in applied_filter_columns
     ] + applied_time_columns
     payload["rejected_filters"] = [
-        {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": get_column_name(col)}
+        {
+            "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+            "column": get_column_name(col),
+        }
         for col in rejected_filter_columns
     ] + rejected_time_columns
 

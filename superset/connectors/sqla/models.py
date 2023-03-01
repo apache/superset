@@ -1785,14 +1785,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             labels_expected = [label]
 
         filter_columns = [flt.get("col") for flt in filter]
-        rejected_filter_columns = [col for col in filter_columns
-                                   if not is_adhoc_column(col)
-                                   and col not in columns
-                                   and col not in applied_template_filters] + rejected_adhoc_filters_columns
-        applied_filter_columns = [col for col in filter_columns
-                                  if not is_adhoc_column(col)
-                                  and (col in columns or col
-                                       in applied_template_filters)] + applied_adhoc_filters_columns
+        rejected_filter_columns = [
+            col
+            for col in filter_columns
+            if not is_adhoc_column(col)
+            and col not in columns
+            and col not in applied_template_filters
+        ] + rejected_adhoc_filters_columns
+        applied_filter_columns = [
+            col
+            for col in filter_columns
+            if not is_adhoc_column(col)
+            and (col in columns or col in applied_template_filters)
+        ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
