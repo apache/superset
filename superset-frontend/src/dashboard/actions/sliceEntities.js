@@ -22,6 +22,7 @@ import rison from 'rison';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 const FETCH_SLICES_PAGE_SIZE = 200;
@@ -54,6 +55,14 @@ export function fetchSlices(
   const additional_filters = filter_value
     ? [{ col: 'slice_name', opr: 'chart_all_text', value: filter_value }]
     : [];
+
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+    additional_filters.push({
+      col: 'viz_type',
+      opr: 'neq',
+      value: 'filter_box',
+    });
+  }
 
   const cloneSlices = { ...slices };
 
