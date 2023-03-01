@@ -72,6 +72,36 @@ const intranetImgs = {
   'other_liquor': '/static/liquor_png/others.png'
 }
 
+const intranetLegendExprs = {
+  'shopping_centres': {
+    'Super Regional': ['!', ['==', ['get', 'description'], 'Super Regional']],
+    'Regional': ['!', ['==', ['get', 'description'], 'Regional']],
+    'Sub-regional': ['!', ['==', ['get', 'description'], 'Sub-regional']],
+    'Neighbourhood': ['!', ['==', ['get', 'description'], 'Neighbourhood']],
+    'City Centre': ['!', ['==', ['get', 'description'], 'City Centre']],
+    'Themed': ['!', ['==', ['get', 'description'], 'Themed']],
+    'Large Format Retail': ['!', ['==', ['get', 'description'], 'Large Format Retail']],
+    'Outlet': ['!', ['==', ['get', 'description'], 'Outlet']],
+    'Market': ['!', ['==', ['get', 'description'], 'Market']],
+    'Local': ['!', ['==', ['get', 'description'], 'Local']],
+    'Transit': ['!', ['==', ['get', 'description'], 'Transit']]
+  },
+  'department_stores': {
+    'David Jones': ['!', ['==', ['get', 'tenant_id'], 4537]],
+    'Myer': ['==', ['!', ['get', 'tenant_id'], 11884]],
+    'Harris Scarfe': ['!', ['==', ['get', 'tenant_id'], 7644]],
+    'Uknown DS': ['in', ['get', 'tenant_id'], ['literal', [4537, 11884, 7644]]]
+  },
+  'discount_department_stores': {
+    'Kmart': ['!', ['==', ['get', 'tenant_id'], 9595]],
+    'Kmart Hub': ['!', ['==', ['get', 'tenant_id'], 92073]],
+    'Big W': ['!', ['==', ['get', 'tenant_id'], 1759]],
+    'Target': ['!', ['==', ['get', 'tenant_id'], 16842]],
+    'Target Country': ['!', ['==', ['get', 'tenant_id'], 16844]],
+    'Unknown DDS': ['in', ['get', 'tenant_id'], ['literal', [9595, 92073, 1759, 16842, 16844]]]
+  }
+};
+
 const iconSizeExprs = {
   'shopping_centres': [
     'case',
@@ -331,4 +361,11 @@ const defaultLayerStyles = {
   }
 };
 
-module.exports = { defaultLayerStyles, iconExprs, iconSizeExprs, intranetImgs, tradeAreaColors };
+module.exports = { 
+  defaultLayerStyles, 
+  iconExprs, 
+  iconSizeExprs, 
+  intranetImgs, 
+  tradeAreaColors,
+  intranetLegendExprs 
+};

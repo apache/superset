@@ -8,6 +8,7 @@ import {
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
 const tradeAreaColors = defaults.tradeAreaColors;
+const intranetLegendExprs = defaults.intranetLegendExprs;
 
 const { Panel } = Collapse;
 
@@ -45,6 +46,8 @@ const legend = {
     ['Kmart', intranetImgs['kmart'], ''],
     ['Kmart Hub', intranetImgs['kmart_hub'], ''],
     ['Target', intranetImgs['target'], ''],
+    ['Big W', intranetImgs['big_w'], ''],
+    ['Target Country', intranetImgs['target_country'], ''],
     ['Unknown DDS', intranetImgs['unknown_dds'], '']
   ],
   'large_format_retail': [
@@ -123,54 +126,72 @@ export default function Legend(props) {
     map
   } = props;
 
-  const getThematicFilterExpr = (c) => {
-    return ['!', ['in', ['get', groupCol], ['literal', colorMap[c]]]];
+  const [currHiddenThematic, setCurrHiddenThematic] = useState([]);
+  const [currHiddenIntranet, setCurrHiddenIntranet] = useState(
+    Object.fromEntries(intranetLayers.map(l => [l, []]))
+  );
+
+  const getThematicFilterExpr = (color) => {
+    return ['!', ['in', ['get', groupCol], ['literal', colorMap[color]]]];
   };
 
-  const [currHiddenThematic, setCurrHiddenThematic] = useState([]);
-
-  const updateMapThematic = (hidden) => {
+  const updateMapThematic = (layer, layerType, hidden) => {
     if (!map.current) return;
     if (hidden.length === 0) {
-      map.current.setFilter('boundary_tileset', null);
+      map.current.setFilter(layer, null);
     } else {
       let filterExpr = ['all'];
       for (const k of hidden) {
-        filterExpr.push(getThematicFilterExpr(k));
+        if (layerType === 'thematic') {
+          filterExpr.push(getThematicFilterExpr(k));
+        } else if (layerType === 'intranet') {
+          filterExpr.push(intranetLegendExprs[layer][k]);
+        }
       }
-      map.current.setFilter('boundary_tileset', filterExpr);
+      map.current.setFilter(layer, filterExpr);
     }
   }
 
-  const hideThematic = (c) => {
-    if (currHiddenThematic.includes(c)) return;
+  const hideIntranet = (layer, store) => {
+    if (currHiddenIntranet[layer].includes(store)) return;
+    let hidden = {...currHiddenIntranet}
+    hidden[layer].push(store);
+    updateMapThematic(layer, 'intranet', hidden[layer]);
+    setCurrHiddenIntranet({...hidden});
+  }
+
+  const hideThematic = (color) => {
+    if (currHiddenThematic.includes(color)) return;
     let hidden = [...currHiddenThematic];
-    hidden.push(c);
-    updateMapThematic(hidden);
+    hidden.push(color);
+    updateMapThematic('boundary_tileset', 'thematic', hidden);
     setCurrHiddenThematic([...hidden]);
   };
 
-  const unhideThematic = (c) => {
-    let hidden = [...currHiddenThematic].filter(x => !(x == c));
-    updateMapThematic(hidden);
+  const unhideIntranet = (layer, store) => {
+    let hidden = {...currHiddenIntranet};
+    hidden[layer] = hidden[layer].filter(x => !(x == store));
+    updateMapThematic(layer, 'intranet', hidden[layer]);
+    setCurrHiddenIntranet({...hidden});
+  }
+
+  const unhideThematic = (color) => {
+    let hidden = [...currHiddenThematic].filter(x => !(x == color));
+    updateMapThematic('boundary_tileset', 'thematic', hidden);
     setCurrHiddenThematic([...hidden]);
   };
 
   const hideAll = (e) => {
     e.stopPropagation();
-    updateMapThematic([...Object.keys(colorMap)]);
+    updateMapThematic('boundary_tileset', 'thematic', [...Object.keys(colorMap)]);
     setCurrHiddenThematic([...Object.keys(colorMap)]);
   }
 
   const unhideAll = (e) => {
     e.stopPropagation();
-    updateMapThematic([]);
+    updateMapThematic('boundary_tileset', 'thematic', []);
     setCurrHiddenThematic([]);
   }
-
-  useEffect(() => {
-
-  }, [])
 
   return (
     <>
@@ -234,10 +255,26 @@ export default function Legend(props) {
               size='small'
               itemLayout='horizontal'
               dataSource={(l in legend ? legend[l] : []).map(d => {
-                return { title: d[0], img: d[1], desc: d[2] }
+                return { title: d[0], img: d[1], desc: d[2], layer: l }
               })}
               renderItem={item => (
-                <List.Item extra={<Button type='text' shape='circle' icon={<EyeOutlined />} />}>
+                <List.Item 
+                  extra={
+                    <Button 
+                      type='text' 
+                      shape='circle'
+                      size='small' 
+                      icon={
+                        currHiddenIntranet[item.layer].includes(item.title) ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                      }
+                      onClick={
+                        currHiddenIntranet[item.layer].includes(item.title) ? 
+                          () => unhideIntranet(item.layer, item.title) :
+                          () => hideIntranet(item.layer, item.title)
+                      } 
+                    />
+                  }
+                >
                   <List.Item.Meta
                     avatar={<Avatar src={item.img} shape='square' size={24} />}
                     title={item.title}

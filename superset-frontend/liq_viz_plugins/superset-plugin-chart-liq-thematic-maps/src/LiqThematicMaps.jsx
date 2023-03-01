@@ -494,6 +494,7 @@ export default function LiqThematicMaps(props) {
               drawerContent={drawerContent}
               open={drawerOpen}
               setDrawerOpen={setDrawerOpen}
+              width={width}
             />
           </div>
         </Content>
