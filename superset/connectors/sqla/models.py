@@ -99,12 +99,12 @@ from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
+    ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
-    SupersetSecurityException,
     SupersetGenericDBErrorException,
-    ColumnNotFoundException,
+    SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
@@ -1194,8 +1194,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         }
         columns = columns or []
         groupby = groupby or []
-        rejected_adhoc_filters_columns = []
-        applied_adhoc_filters_columns = []
+        rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
+        applied_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
@@ -1461,7 +1461,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
-                col_obj = columns_by_name.get(flt_col)
+                col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
@@ -1786,18 +1786,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             qry = select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
-        filter_columns = [flt.get("col") for flt in filter]
+        filter_columns = [flt.get("col") for flt in filter] if filter else []
         rejected_filter_columns = [
             col
             for col in filter_columns
-            if not is_adhoc_column(col)
+            if col
+            and not is_adhoc_column(col)
             and col not in datasource_column_names
             and col not in applied_template_filters
         ] + rejected_adhoc_filters_columns
         applied_filter_columns = [
             col
             for col in filter_columns
-            if not is_adhoc_column(col)
+            if col
+            and not is_adhoc_column(col)
             and (col in datasource_column_names or col in applied_template_filters)
         ] + applied_adhoc_filters_columns
 

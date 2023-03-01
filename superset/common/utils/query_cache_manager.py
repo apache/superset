@@ -29,9 +29,9 @@ from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
 from superset.stats_logger import BaseStatsLogger
+from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
-from superset.superset_typing import Column
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
