@@ -476,14 +476,14 @@ export default function LiqThematicMaps(props) {
       >
         <Menu mode="inline" theme='dark'>
           {items.map(i => (
-            <Menu.Item key={i.key} onClick={i.onClick}>
+            <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0}>
               {i.icon}
               {i.label}
             </Menu.Item>
           ))}
         </Menu>
       </Sider>
-      <Layout className="site-layout">
+      <Layout>
         <Content>
           <div
             ref={mapContainer}

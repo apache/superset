@@ -193,6 +193,15 @@ export default function Legend(props) {
     setCurrHiddenThematic([]);
   }
 
+  // Update intranet layer added in real time
+  useEffect(() => {
+    let hidden = {...currHiddenIntranet};
+    for (const l of intranetLayers) {
+      if (!(l in hidden)) hidden[l] = [];
+    }
+    setCurrHiddenIntranet({...hidden});
+  }, [intranetLayers])
+
   return (
     <>
       <Divider orientation='left'>
@@ -249,7 +258,7 @@ export default function Legend(props) {
         Intranet Layers
       </Divider>
       <Collapse>
-        {(intranetLayers ? intranetLayers : []).map((l, i) => (
+        {intranetLayers && intranetLayers.map((l, i) => (
           <Panel header={nameMap[l]} key={i}>
             <List
               size='small'
