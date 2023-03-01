@@ -22,7 +22,7 @@ const nameMap = {
   'liquor': 'Liquor'
 };
 
-const legend = {
+const intranetLegend = {
   'shopping_centres': [
     ['Super Regional', intranetImgs['regional'], ''],
     ['Regional', intranetImgs['regional'], ''],
@@ -135,7 +135,7 @@ export default function Legend(props) {
     return ['!', ['in', ['get', groupCol], ['literal', colorMap[color]]]];
   };
 
-  const updateMapThematic = (layer, layerType, hidden) => {
+  const updateMapFilter = (layer, layerType, hidden) => {
     if (!map.current) return;
     if (hidden.length === 0) {
       map.current.setFilter(layer, null);
@@ -148,6 +148,7 @@ export default function Legend(props) {
           filterExpr.push(intranetLegendExprs[layer][k]);
         }
       }
+      console.log(filterExpr);
       map.current.setFilter(layer, filterExpr);
     }
   }
@@ -156,7 +157,7 @@ export default function Legend(props) {
     if (currHiddenIntranet[layer].includes(store)) return;
     let hidden = {...currHiddenIntranet}
     hidden[layer].push(store);
-    updateMapThematic(layer, 'intranet', hidden[layer]);
+    updateMapFilter(layer, 'intranet', hidden[layer]);
     setCurrHiddenIntranet({...hidden});
   }
 
@@ -164,32 +165,49 @@ export default function Legend(props) {
     if (currHiddenThematic.includes(color)) return;
     let hidden = [...currHiddenThematic];
     hidden.push(color);
-    updateMapThematic('boundary_tileset', 'thematic', hidden);
+    updateMapFilter('boundary_tileset', 'thematic', hidden);
     setCurrHiddenThematic([...hidden]);
   };
 
   const unhideIntranet = (layer, store) => {
     let hidden = {...currHiddenIntranet};
     hidden[layer] = hidden[layer].filter(x => !(x == store));
-    updateMapThematic(layer, 'intranet', hidden[layer]);
+    updateMapFilter(layer, 'intranet', hidden[layer]);
     setCurrHiddenIntranet({...hidden});
   }
 
   const unhideThematic = (color) => {
     let hidden = [...currHiddenThematic].filter(x => !(x == color));
-    updateMapThematic('boundary_tileset', 'thematic', hidden);
+    updateMapFilter('boundary_tileset', 'thematic', hidden);
     setCurrHiddenThematic([...hidden]);
   };
 
-  const hideAll = (e) => {
+  const hideAllIntranet = (e, l) => {
     e.stopPropagation();
-    updateMapThematic('boundary_tileset', 'thematic', [...Object.keys(colorMap)]);
+    let hiddenLayers = intranetLegend[l].map(x => x[0]);
+    updateMapFilter(l, 'intranet', hiddenLayers);
+    let hidden = {...currHiddenIntranet};
+    hidden[l] = [...hiddenLayers];
+    setCurrHiddenIntranet({...hidden});
+  }
+
+  const hideAllThematic = (e) => {
+    e.stopPropagation();
+    updateMapFilter('boundary_tileset', 'thematic', [...Object.keys(colorMap)]);
     setCurrHiddenThematic([...Object.keys(colorMap)]);
   }
 
-  const unhideAll = (e) => {
+  const unhideAllIntranet = (e, l) => {
     e.stopPropagation();
-    updateMapThematic('boundary_tileset', 'thematic', []);
+    updateMapFilter(l, 'intranet', []);
+    let hidden = {...currHiddenIntranet};
+    hidden[l] = [];
+    setCurrHiddenIntranet({...hidden});
+  }
+
+  const unhideAllThematic = (e) => {
+    e.stopPropagation();
+    updateMapFilter('boundary_tileset', 'thematic', []);
     setCurrHiddenThematic([]);
   }
 
@@ -200,8 +218,6 @@ export default function Legend(props) {
       if (!(l in hidden)) hidden[l] = [];
     }
     setCurrHiddenIntranet({...hidden});
-    console.log(hidden);
-    console.log(intranetLayers);
   }, [intranetLayers])
 
   return (
@@ -219,10 +235,10 @@ export default function Legend(props) {
               shape='circle'
               size='small'
               icon={
-                currHiddenThematic.length === 0 ? <EyeOutlined /> : <EyeInvisibleOutlined />
+                currHiddenThematic.length === Object.keys(colorMap).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
               }
               onClick={
-                currHiddenThematic.length === 0 ? (e) => hideAll(e) : (e) => unhideAll(e)
+                currHiddenThematic.length === Object.keys(colorMap).length ? (e) => unhideAllThematic(e) : (e) => hideAllThematic(e)
               }
             />
           }
@@ -261,11 +277,27 @@ export default function Legend(props) {
       </Divider>
       <Collapse>
         {intranetLayers && intranetLayers.map((l, i) => (
-          <Panel header={nameMap[l]} key={i}>
+          <Panel 
+            header={nameMap[l]} 
+            key={i}
+            extra={
+              <Button 
+                type='text'
+                shape='circle'
+                size='small'
+                icon={
+                  currHiddenIntranet[l].length === Object.keys(intranetLegend[l]).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                }
+                onClick={
+                  currHiddenIntranet[l].length === Object.keys(intranetLegend[l]).length ? (e) => unhideAllIntranet(e, l) : (e) => hideAllIntranet(e, l)
+                }
+              />
+            }
+          >
             <List
               size='small'
               itemLayout='horizontal'
-              dataSource={(l in legend ? legend[l] : []).map(d => {
+              dataSource={(l in intranetLegend ? intranetLegend[l] : []).map(d => {
                 return { title: d[0], img: d[1], desc: d[2], layer: l }
               })}
               renderItem={item => (
