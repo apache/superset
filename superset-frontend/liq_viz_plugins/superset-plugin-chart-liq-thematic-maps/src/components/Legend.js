@@ -7,7 +7,6 @@ import {
 
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
-const tradeAreaColors = defaults.tradeAreaColors;
 const intranetLegendExprs = defaults.intranetLegendExprs;
 
 const { Panel } = Collapse;
