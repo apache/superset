@@ -18,7 +18,11 @@ import LeftNavigation from 'src/Superstructure/components/LeftNavigation/index';
 import Main from 'src/Superstructure/components/Main/index';
 
 import setupClient from 'src/Superstructure/setupClient';
-import { initializeAuth, addSlash, logConfigs } from 'src/Superstructure/Root/utils';
+import {
+  initializeAuth,
+  addSlash,
+  logConfigs,
+} from 'src/Superstructure/Root/utils';
 
 import {
   getFullConfig,
@@ -30,7 +34,6 @@ import {
   DashboardComponentWrapper,
 } from 'src/Superstructure/Root/styles';
 import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
-
 
 // import '../../preamble';
 

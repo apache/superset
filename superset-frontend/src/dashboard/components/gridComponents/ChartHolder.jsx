@@ -110,7 +110,7 @@ const FilterFocusHighlight = React.forwardRef(
     const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
     const focusedChartStyles = {
       pointerEvents: 'auto',
-      //DODO-changed
+      // DODO-changed
       borderColor: theme.colors.primary.base,
       opacity: 1,
       boxShadow: `0px 0px ${theme.gridUnit * 1}px ${theme.colors.primary.base}`,
