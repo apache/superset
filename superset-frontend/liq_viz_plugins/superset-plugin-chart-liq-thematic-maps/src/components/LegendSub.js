@@ -25,7 +25,6 @@ export default function LegendSub(props) {
 
   const {
     dividerHeader,
-    panels,
     layers,
     listData,
     type,
