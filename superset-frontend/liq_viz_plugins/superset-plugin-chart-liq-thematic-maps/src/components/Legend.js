@@ -118,6 +118,54 @@ const intranetLegend = {
 };
 
 export default function Legend(props) {
+  
+  const {
+    colorMap,
+    groupCol,
+    thematicData,
+    thematicCol,
+    intranetLayers,
+    tradeAreas,
+    taSectorMap,
+    map
+  } = props;
+
+  const thematicHeader = 'Thematic';
+  const thematicPanelHeaders = [thematicCol];
+  const thematicInit = {'boundary_tileset': []};
+  const thematicLayers = {'boundary_tileset': Object.keys(colorMap)};
+  const thematicListData = {
+    'boundary_tileset': Object.keys(thematicData).map(k => {
+      return {
+        title: k,
+        color: thematicData[k],
+        avatar: <div style={{width: 24, height: 24, background: item.color}} />
+      }
+    })
+  };
+
+  const intranetHeader = 'Intranet Layers';
+  const intranetPanelHeaders = intranetLayers.map(x => nameMap[x]);
+  const intranetInit = Object.fromEntries(intranetLayers.map(x => [x, []]));
+  const intranetLegLayers = Object.fromEntries(
+    intranetLayers.map(x => [x, intranetLegend[x].map(d => d[0])])
+  );
+  const intranetListData = Object.fromEntries(
+    intranetLayers.map(x => [x, intranetLegend[x].map(d => {
+      return {
+        title: d[0], 
+        img: d[1], 
+        desc: d[2],
+        avatar: <Avatar src={d[1]} shape='square' size={24} />
+      }
+    })])
+  );
+
+  
+
+}
+
+function Legend2(props) {
 
   const {
     colorMap, 

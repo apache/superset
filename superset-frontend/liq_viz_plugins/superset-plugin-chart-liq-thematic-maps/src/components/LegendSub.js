@@ -25,11 +25,11 @@ export default function LegendSub(props) {
 
   const {
     dividerHeader,
+    panelHeaders,
     layers,
     listData,
     type,
     initState,
-    allState,
     map
   } = props;
 
@@ -78,7 +78,7 @@ export default function LegendSub(props) {
       <Collapse>
         {Object.keys(layers).map((l, i) => (
           <Panel
-            header={l.header}
+            header={panelHeaders[l]}
             key={i}
             extra={
               hideButton(
@@ -105,7 +105,7 @@ export default function LegendSub(props) {
                   <List.Item.Meta 
                     avatar={item.avatar}
                     title={item.title}
-                    description={item.descirption}
+                    description={item.desc}
                   />
                 </List.Item>
               )}
