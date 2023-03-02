@@ -100,4 +100,19 @@ const addSlash = (baseName?: string) => {
   return `${baseName}/`;
 };
 
-export { initializeAuth, addSlash };
+const logConfigs = (
+  CONFIG: Record<string, any>,
+  incomingParams: Record<string, any>,
+  params: Record<string, any>,
+) => {
+  console.groupCollapsed('CONFIGS:');
+  console.log('\n');
+  console.log('Initial =>', CONFIG);
+  console.log('Incoming =>', incomingParams);
+  console.log('\n');
+  console.log('Used Config:');
+  console.log(params);
+  console.groupEnd();
+};
+
+export { initializeAuth, addSlash, logConfigs };

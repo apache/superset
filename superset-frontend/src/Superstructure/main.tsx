@@ -6,6 +6,8 @@ import { RootComponent } from 'src/Superstructure/Root';
 
 import './styles';
 
+console.log('process.env.publicPath', process.env.publicPath);
+
 export const { bootstrap, mount, unmount } = singleSpaReact({
   React,
   ReactDOM,

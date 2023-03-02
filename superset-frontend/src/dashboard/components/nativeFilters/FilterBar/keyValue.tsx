@@ -109,7 +109,7 @@ export const getFilterValue = (
     method: 'get',
     url: assembleEndpoint(dashId, key),
   })
-    .then(({ json }) => JSON.parse(json.value))
+    .then(response => response.value)
     .catch(err => {
       logging.error(err);
       return null;

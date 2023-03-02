@@ -1,5 +1,5 @@
 /* eslint-disable theme-colors/no-literal-colors */
-// DODO-changed
+// DODO was here
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';

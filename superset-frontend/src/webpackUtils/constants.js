@@ -19,14 +19,6 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
 
   <head>
     <div id="some-element"></div>
-    <!-- <link
-      href="#-a.akamaihd.net/backoffice-static/bootstrap/4.3.1/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="#-a.akamaihd.net/static/antd/4.16.6/antd.min.css"
-      rel="stylesheet"
-    /> -->
   </head>
   <body>
     <style>

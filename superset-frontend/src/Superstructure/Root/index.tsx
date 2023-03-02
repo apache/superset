@@ -18,7 +18,7 @@ import LeftNavigation from 'src/Superstructure/components/LeftNavigation/index';
 import Main from 'src/Superstructure/components/Main/index';
 
 import setupClient from 'src/Superstructure/setupClient';
-import { initializeAuth, addSlash } from 'src/Superstructure/Root/utils';
+import { initializeAuth, addSlash, logConfigs } from 'src/Superstructure/Root/utils';
 
 import {
   getFullConfig,
@@ -30,6 +30,9 @@ import {
   DashboardComponentWrapper,
 } from 'src/Superstructure/Root/styles';
 import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
+
+
+// import '../../preamble';
 
 const NAV_CONFIG = getNavigationConfig();
 
@@ -51,14 +54,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     };
   }, [incomingParams]);
 
-  console.groupCollapsed('CONFIGS:');
-  console.log('\n');
-  console.log('Initial =>', CONFIG);
-  console.log('Incoming =>', incomingParams);
-  console.log('\n');
-  console.log('Used Config:');
-  console.log(params);
-  console.groupEnd();
+  logConfigs(CONFIG, incomingParams, params);
 
   const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
 

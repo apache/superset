@@ -3,39 +3,28 @@ import axios, { AxiosRequestConfig, AxiosRequestHeaders } from 'axios';
 import { InitConfig } from '../types/global';
 import { APIStore } from './store/index';
 import { API_V1, SUPERSET_ENDPOINT } from '../constants';
-
-const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');
-const csrfToken = csrfNode ? csrfNode.value : '';
-
-const logger = (params: AxiosRequestConfig) => {
-  console.groupCollapsed(`${params.url} [${params.method}]`);
-  console.log('data', params.data);
-  console.log('data JSON:', JSON.stringify(params.data));
-  console.log('headers', params.headers);
-  console.log('headers JSON:', JSON.stringify(params.headers));
-  console.groupEnd();
-};
+import { logger, handleCsrfToken } from './utils';
 
 export const API_HANDLER = {
   // TODO: move to store, finish logic
   errorObject: null,
 
   async authanticateInDodoInner() {
+    const APIState = APIStore.getState();
+    const { FRONTEND_LOGGER, ORIGIN_URL, CREDS } = APIState.configReducer;
+
+    const FULL_URL = `${ORIGIN_URL}${API_V1}/security/login`;
+
+    const params = {
+      method: 'post' as AxiosRequestConfig['method'],
+      data: CREDS,
+      headers: {},
+      url: FULL_URL,
+    };
+
+    logger(params, FRONTEND_LOGGER);
+
     try {
-      const APIState = APIStore.getState();
-      const { FRONTEND_LOGGER } = APIState.configReducer;
-
-      const FULL_URL = `${APIState.configReducer.ORIGIN_URL}${API_V1}/security/login`;
-
-      const params = {
-        method: 'post' as AxiosRequestConfig['method'],
-        data: APIState.configReducer.CREDS,
-        headers: {},
-        url: FULL_URL,
-      };
-
-      if (FRONTEND_LOGGER) logger(params);
-
       const {
         data,
         data: { access_token },
@@ -51,51 +40,42 @@ export const API_HANDLER = {
   },
 
   async getCSRFToken({ useAuth }: { useAuth: boolean }) {
-    try {
-      const APIState = APIStore.getState();
-      const { FRONTEND_LOGGER } = APIState.configReducer;
+    const APIState = APIStore.getState();
+    const { FRONTEND_LOGGER, ORIGIN_URL } = APIState.configReducer;
+    const { Authorization } = APIState.authReducer;
 
-      const FULL_URL = `${APIState.configReducer.ORIGIN_URL}${API_V1}/security/csrf_token/`;
+    const FULL_URL = `${ORIGIN_URL}${API_V1}/security/csrf_token/`;
 
-      let params = {
-        method: 'get' as AxiosRequestConfig['method'],
-        data: {},
-        headers: {},
-        url: FULL_URL,
+    let params = {
+      method: 'get' as AxiosRequestConfig['method'],
+      data: {},
+      headers: {},
+      url: FULL_URL,
+    };
+
+    if (useAuth) {
+      params = {
+        ...params,
+        headers: { Authorization },
       };
+    }
 
-      if (useAuth) {
-        params = {
-          ...params,
-          headers: {
-            Authorization: APIState.authReducer.Authorization,
-          },
-        };
-      }
+    logger(params, FRONTEND_LOGGER);
 
-      if (FRONTEND_LOGGER) logger(params);
-
+    try {
       const {
         data,
         data: { result },
       } = await axios({ ...params });
 
+      const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');
+      const csrfToken = csrfNode ? csrfNode.value : '';
+
       const finalCsrfToken = result || csrfToken;
 
       APIStore.dispatch({ type: 'auth/updateCSRF', payload: finalCsrfToken });
 
-      const csrfOnThePage = document.getElementById('csrf_token');
-
-      if (!csrfOnThePage) {
-        const csrfTokenElement = document.createElement('input');
-        csrfTokenElement.type = 'hidden';
-        csrfTokenElement.name = 'csrf_token';
-        csrfTokenElement.value = finalCsrfToken;
-        csrfTokenElement.id = 'csrf_token';
-        document.body.appendChild(csrfTokenElement);
-      } else {
-        csrfOnThePage.setAttribute('value', finalCsrfToken);
-      }
+      handleCsrfToken(finalCsrfToken);
 
       return data;
     } catch (error) {
@@ -137,6 +117,7 @@ export const API_HANDLER = {
   ): Promise<any> {
     const APIState = APIStore.getState();
     const { FRONTEND_LOGGER } = APIState.configReducer;
+    const { Authorization } = APIState.authReducer;
 
     const FULL_URL = `${originUrl}${url}`;
 
@@ -147,12 +128,12 @@ export const API_HANDLER = {
         ...headers,
         'x-csrftoken': APIState.authReducer['x-csrftoken'],
         // in production mode it is NOT used
-        Authorization: APIState.authReducer.Authorization,
+        Authorization,
       },
       url: FULL_URL,
     };
 
-    if (FRONTEND_LOGGER) logger(params);
+    logger(params, FRONTEND_LOGGER);
 
     return axios({ ...params })
       .then(({ data }: any) => {
@@ -177,13 +158,12 @@ export const API_HANDLER = {
     body?: Record<string, any> | string;
     headers?: AxiosRequestHeaders;
   }) {
-    try {
-      const APIState = APIStore.getState();
-      const { ORIGIN_URL } = APIState.configReducer;
+    const APIState = APIStore.getState();
+    const { ORIGIN_URL } = APIState.configReducer;
 
+    try {
       if (url) {
         return API_HANDLER.sendRequest(
-          // `${ORIGIN_URL}${API_V1}`,
           `${ORIGIN_URL}`,
           url,
           method,
@@ -199,64 +179,6 @@ export const API_HANDLER = {
     }
   },
 
-  // SupersetClient({
-  //   method,
-  //   url,
-  //   body,
-  //   headers,
-  // }: {
-  //   method: AxiosRequestConfig['method'];
-  //   url: AxiosRequestConfig['url'];
-  //   body?: Record<string, any> | string;
-  //   headers?: AxiosRequestHeaders;
-  // }) {
-  //   async function sendApiRequest(): Promise<any> {
-  //     const APIState = APIStore.getState();
-  //     const { FRONTEND_LOGGER } = APIState.configReducer;
-  //     const { ORIGIN_URL } = APIState.configReducer;
-
-  //     const FULL_URL = `${ORIGIN_URL}${url}`;
-
-  //     const params = {
-  //       method,
-  //       data: body || {},
-  //       headers: {
-  //         ...headers,
-  //         'x-csrftoken': APIState.authReducer['x-csrftoken'],
-  //         // in production mode it is NOT used
-  //         Authorization: APIState.authReducer.Authorization,
-  //       },
-  //       url: FULL_URL,
-  //     };
-
-  //     if (FRONTEND_LOGGER) logger(params);
-
-  //     const response = await axios({ ...params })
-
-  //     if (response && response.data) {
-  //       return response.data
-  //     }
-
-  //     return null
-  //   }
-
-  //   try {
-  //     if (url) {
-  //       sendApiRequest.method = method;
-  //       sendApiRequest.endpoint = url;
-  //       sendApiRequest.headers = headers;
-  //       sendApiRequest.body = body;
-
-  //       return sendApiRequest;
-  //     }
-
-  //     throw new Error('the URL was not provided in SupersetClient');
-  //   } catch (error) {
-  //     console.log('SupersetClient error', error);
-  //     throw error;
-  //   }
-  // },
-
   async SupersetClientNoApi({
     method,
     url,
@@ -268,17 +190,16 @@ export const API_HANDLER = {
     body?: Record<string, any> | string;
     headers?: AxiosRequestHeaders;
   }) {
+    const APIState = APIStore.getState();
+    const { ORIGIN_URL } = APIState.configReducer;
+
     try {
-      const APIState = APIStore.getState();
-      const { ORIGIN_URL } = APIState.configReducer;
+      const cleanedUrl = url?.split('http:///superset')[1];
 
-      const tempUrl = url?.split('http:///superset')[1];
-
-      if (url && tempUrl) {
+      if (cleanedUrl) {
         const initialResponse = await API_HANDLER.sendRequest(
           `${ORIGIN_URL}${SUPERSET_ENDPOINT}`,
-          // `${ORIGIN_URL}`,
-          tempUrl,
+          cleanedUrl,
           method,
           body,
           headers,
@@ -288,7 +209,7 @@ export const API_HANDLER = {
       }
 
       throw new Error(
-        `the URL was not provided in SupersetClientNoApi [${url}], [${tempUrl}]`,
+        `the URL was not provided in SupersetClientNoApi [${url}], [${cleanedUrl}]`,
       );
     } catch (error) {
       console.log('SupersetClientNoApi error', error);
