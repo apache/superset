@@ -50,44 +50,43 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            if self._base_model and self._database:
-                table_name = self._properties["table_name"]
-                owners = self._properties["owners"]
-                table = SqlaTable(table_name=table_name, owners=owners)
-                table.database = self._database
-                table.schema = self._base_model.schema
-                table.template_params = self._base_model.template_params
-                table.is_sqllab_view = True
-                table.sql = ParsedQuery(self._base_model.sql).stripped()
-                db.session.add(table)
-                cols = []
-                for config_ in self._base_model.columns:
-                    column_name = config_.column_name
-                    col = TableColumn(
-                        column_name=column_name,
-                        verbose_name=config_.verbose_name,
-                        expression=config_.expression,
-                        filterable=config_.filterable,
-                        groupby=config_.groupby,
-                        is_dttm=config_.is_dttm,
-                        type=config_.type,
-                        description=config_.description,
-                    )
-                    cols.append(col)
-                table.columns = cols
-                mets = []
-                for config_ in self._base_model.metrics:
-                    metric_name = config_.metric_name
-                    met = SqlMetric(
-                        metric_name=metric_name,
-                        verbose_name=config_.verbose_name,
-                        expression=config_.expression,
-                        metric_type=config_.metric_type,
-                        description=config_.description,
-                    )
-                    mets.append(met)
-                table.metrics = mets
-                db.session.commit()
+            table_name = self._properties["table_name"]
+            owners = self._properties["owners"]
+            table = SqlaTable(table_name=table_name, owners=owners)
+            table.database = self._database  # type: ignore
+            table.schema = self._base_model.schema  # type: ignore
+            table.template_params = self._base_model.template_params  # type: ignore
+            table.is_sqllab_view = True
+            table.sql = ParsedQuery(self._base_model.sql).stripped()  # type: ignore
+            db.session.add(table)
+            cols = []
+            for config_ in self._base_model.columns:  # type: ignore
+                column_name = config_.column_name
+                col = TableColumn(
+                    column_name=column_name,
+                    verbose_name=config_.verbose_name,
+                    expression=config_.expression,
+                    filterable=config_.filterable,
+                    groupby=config_.groupby,
+                    is_dttm=config_.is_dttm,
+                    type=config_.type,
+                    description=config_.description,
+                )
+                cols.append(col)
+            table.columns = cols
+            mets = []
+            for config_ in self._base_model.metrics:  # type: ignore
+                metric_name = config_.metric_name
+                met = SqlMetric(
+                    metric_name=metric_name,
+                    verbose_name=config_.verbose_name,
+                    expression=config_.expression,
+                    metric_type=config_.metric_type,
+                    description=config_.description,
+                )
+                mets.append(met)
+            table.metrics = mets
+            db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
