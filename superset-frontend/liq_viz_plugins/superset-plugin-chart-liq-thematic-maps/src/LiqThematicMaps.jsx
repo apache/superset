@@ -85,6 +85,8 @@ export default function LiqThematicMaps(props) {
     customMode, // if breaksMode is "custom", user defined breaks 
     numClasses, // number of classes for breaks, i.e. number of ranges
     opacity, // opacity value for thematic
+    tradeAreas, // trade area data if any
+    tradeAreaSA1s, // trade area SA1 data
     latitude, // starting lat
     longitude, // starting lng,
     zoom, //starting zoom
@@ -292,6 +294,24 @@ export default function LiqThematicMaps(props) {
         'paint': layerStyles.boundaryStyle
       });
 
+      tradeAreas.map(ta => {
+        map.current.addLayer({
+          'id': ta,
+          'type': 'fill',
+          'source': 'boundary_tileset',
+          'source-layer': boundary,
+          'layout': {},
+          'paint': {
+              'fill-color': [
+                'case',
+                ['==', ['feature-state', ta], null],
+                'transparent',
+                ['feature-state', ta]
+            ]
+          }
+        });
+      })
+
       loadIntranetLayers(intranetLayers ? intranetLayers : []);
       setRenderedIntranetLayers(intranetLayers ? [...intranetLayers] : []);
 
@@ -439,24 +459,25 @@ export default function LiqThematicMaps(props) {
   useEffect(() => {
     if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0 || !map.current.isStyleLoaded()) return;
     for (const i in currBdryIDs) {
+      let state = {
+        color: colorMap[currBdryIDs[i].val],
+        metric: currBdryIDs[i].metric
+      }
+      const taData = tradeAreaSA1s[currBdryIDs[i].val];
+      if (taData) {
+        for (const centre of Object.keys(taData)) {
+          state[centre] = taData[centre].colour;
+        }
+      }
       map.current.setFeatureState(
         {
           source: 'boundary_tileset', 
           sourceLayer: boundary, 
           id: currBdryIDs[i].id
         },
-        {
-          color: colorMap[currBdryIDs[i].val],
-          metric: currBdryIDs[i].metric
-        }
+        {...state}
       );
     }
-    map.current.setPaintProperty('boundary_tileset', 'fill-color', [
-      'case',
-      ['boolean', ['feature-state', 'hover'], false],
-      '#D3D3D3',
-      ['feature-state', 'color']
-    ]);
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [currBdryIDs, colorMap]);
 

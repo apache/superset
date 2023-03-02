@@ -210,7 +210,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               // ^ this makes it apply instantaneously, without triggering a "run query" button
               label: t('Boundary'),
-              description: t('ABS boundaries'),
+              description: t('ABS boundaries')
             },
           },
         ],
@@ -280,7 +280,20 @@ const config: ControlPanelConfig = {
     {
       label: t('Trade Area Settings'),
       expanded: true,
-      controlSetRows: []
+      controlSetRows: [
+        [
+          {
+            name: 'is_trade_area',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: false,
+              default: false,
+              label: t('Trade Area?'),
+              description: t('Whether the data is for one or more trade areas')
+            }
+          }
+        ]
+      ]
     },
     {
       label: t('Initial Map Position'),

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Collapse, Divider, List, Avatar, Button, Icon } from 'antd';
+import { Collapse, Divider, List, Avatar, Button, Typography } from 'antd';
 import {
   EyeOutlined,
   EyeInvisibleOutlined
@@ -11,6 +11,7 @@ const tradeAreaColors = defaults.tradeAreaColors;
 const intranetLegendExprs = defaults.intranetLegendExprs;
 
 const { Panel } = Collapse;
+const { Text } = Typography;
 
 const nameMap = {
   'shopping_centres': 'Shopping Centres',
@@ -148,7 +149,6 @@ export default function Legend(props) {
           filterExpr.push(intranetLegendExprs[layer][k]);
         }
       }
-      console.log(filterExpr);
       map.current.setFilter(layer, filterExpr);
     }
   }
@@ -213,6 +213,7 @@ export default function Legend(props) {
 
   // Update intranet layer added in real time
   useEffect(() => {
+    if (!intranetLayers) return;
     let hidden = {...currHiddenIntranet};
     for (const l of intranetLayers) {
       if (!(l in hidden)) hidden[l] = [];
@@ -265,7 +266,7 @@ export default function Legend(props) {
               >
                 <List.Item.Meta
                 avatar={<div style={{width: 24, height: 24, background: item.color}} />}
-                title={item.title}
+                title={<Text>{item.title}</Text>}
                 />
               </List.Item>
             )}  
@@ -321,7 +322,7 @@ export default function Legend(props) {
                 >
                   <List.Item.Meta
                     avatar={<Avatar src={item.img} shape='square' size={24} />}
-                    title={item.title}
+                    title={<Text>{item.title}</Text>}
                   />
                 </List.Item>
               )}

@@ -399,15 +399,15 @@ const iconExprs = {
 }
 
 const tradeAreaColors = {
-  'P1': '#fde63c',
-  'P2': '#fcdb47',
-  'P3': '#fbcf53',
-  'P4': '#fac45e',
-  'P5': '#f9b969',
-  'P6': '#f9ad75',
-  'P7': '#f8a280',
-  'P8': '#f7978b',
-  'P9': '#f68b97',
+  'P1': '#fde6ec',
+  'P2': '#fcdbe4',
+  'P3': '#fbcfdc',
+  'P4': '#fac4d3',
+  'P5': '#f9b9cb',
+  'P6': '#f9adc3',
+  'P7': '#f8a2bb',
+  'P8': '#f797b2',
+  'P9': '#f68baa',
   'P10': '#f580a2',
   'S1': '#d2c6df',
   'S2': '#ccbadf',
@@ -433,7 +433,14 @@ const tradeAreaColors = {
 
 const defaultLayerStyles = {
   boundaryStyle: {
-    'fill-color': 'transparent',
+    'fill-color': [
+      'case',
+      ['==', ['feature-state', 'hover'], true],
+      '#D3D3D3',
+      ['==', ['feature-state', 'color'], null],
+      'transparent',
+      ['feature-state', 'color']
+    ],
     'fill-outline-color': '#2E2EFF',
     'fill-opacity': 0.5
   },

@@ -18,6 +18,9 @@
  */
 import { ChartProps } from '@superset-ui/core';
 
+const defaults = require('../defaultLayerStyles.js');
+const tradeAreaColors = defaults.tradeAreaColors;
+ 
 export default function transformProps(chartProps: ChartProps) {
   /**
    * This function is called after a successful response has been
@@ -58,6 +61,7 @@ export default function transformProps(chartProps: ChartProps) {
     customMode,
     numClasses,
     opacity,
+    isTradeArea,
     latitude,
     longitude,
     zoom
@@ -67,14 +71,25 @@ export default function transformProps(chartProps: ChartProps) {
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.label;
 
-  // const linearColorScale = getSequentialSchemeRegistry()
-  //   .get(linearColorScheme)
-  //   .createLinearScale(d3Extent(data, v => v[metricCol]));
+  // let tradeAreas = {};
+  //   if (isTradeArea) {
+  //     data.map(d => {
+  //     if (!(d.Centre in tradeAreas)) tradeAreas[d.Centre] = {};
+  //     tradeAreas[d.Centre][d.SA1_CODE21] = { sector: d.Sector, colour: d.Colour};
+  //   });
+  // };
 
-  // const colorMap = {};
-  // data.forEach(d => {
-  //   colorMap[d[groupCol]] = linearColorScale(d[metricCol]);
-  // });
+  const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
+  let tradeAreaSA1s = {};
+  
+  if (isTradeArea) {
+    data.map(d => {
+      if (!(d.SA1_CODE21 in tradeAreaSA1s)) tradeAreaSA1s[d.SA1_CODE21] = {};
+      if (!(d.Centre in tradeAreaSA1s[d.SA1_CODE21])) tradeAreaSA1s[d.SA1_CODE21][d.Centre] = {
+        sector: d.Sector, colour: tradeAreaColors[d.Colour]
+      };
+    });
+  };
 
   return {
     width,
@@ -90,6 +105,8 @@ export default function transformProps(chartProps: ChartProps) {
     breaksMode,
     customMode,
     numClasses,
+    tradeAreas,
+    tradeAreaSA1s,
     opacity,
     latitude,
     longitude,
