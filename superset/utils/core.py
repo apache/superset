@@ -2021,19 +2021,8 @@ def get_alert_link(conf, report_schedule) -> str:
     baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
     return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
-
-def raise_incident(conf, report_schedule, exception) -> None:
-    routing_key = None
-    for recipient in report_schedule.recipients:
-        if recipient.type == "VictorOps":
-            recipient_config = json.loads(recipient.recipient_config_json)
-            routing_key = recipient_config["target"]
-            logger.info("ROUTING_KEY", routing_key)
-            logger.info("INSIDE VO")
-            logger.info("RECIPIENT", recipient.__dict__)
-    if routing_key:
-        WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
-        victor_ops_data = {
+def get_vo_payload(conf,report_schedule,exception):
+    payload = {
             "message_type": "CRITICAL",
             "entity_id": str(report_schedule.id) + "_"+ re.sub('[^A-Za-z0-9]+', '_', report_schedule.name)
             or "",
@@ -2042,15 +2031,44 @@ def raise_incident(conf, report_schedule, exception) -> None:
                 conf, report_schedule
             ),  # detailed message, stack trace, exceptions
         }
-        logger.info("SAMRA VICTOR OPS PAYLOAD", str(victor_ops_data))
+    return payload
+
+def validate_routing_key(conf,routing_key):
+    if routing_key:
+        REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
+        try:
+            response = requests.get(REQUEST_URL)
+            data = response.json()
+            logger.info("ROUTING_KEY_RE_URL",str(REQUEST_URL))
+            logger.info("ROUTING_KEY_VALIDATE_DATA",str(data))
+        except requests.exceptions.HTTPError as e:
+            logger.info("HTTP EXCEPTION", str(e))
+            logger.info("RESPONSE JSON ERROR",response.json())
+        logger.info("SAMRA VOOOOO RESPONSE",response)
+        if response.status_code != 200:
+                raise ValueError(
+                'Request to victor_ops returned an error %s, the response is:\n%s' % (response.status_code, response.text))
+
+def raise_incident(conf, report_schedule, exception) -> None:
+    routing_key = None
+    for recipient in report_schedule.recipients:
+        if recipient.type == "VictorOps":
+            recipient_config = json.loads(recipient.recipient_config_json)
+            routing_key = recipient_config["target"]
+    if routing_key:
+        validate_routing_key(conf,routing_key)
+        WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
+        victor_ops_data = get_vo_payload(conf, report_schedule, exception)
+        logger.info("SAMRA VICTOR OPS PAYLOAD NEW", str(victor_ops_data))
         logger.info("SAMRA VICTOR OPS webhook url", str(WEBHOOK_URL))
-        # try:
-        #     response = requests.post(WEBHOOK_URL, data=json.dumps(victor_ops_data), headers={'Content-Type': 'application/json'})
-        #     logger.info("RESPONSE JSON",str(response.json()))
-        # except requests.exceptions.HTTPError as e:
-        #     logger.info("HTTP EXCEPTION", e)
-        #     logger.info("RESPONSE JSON",response.json())
-        # logger.info("SAMRA VOOOOO RESPONSE",response)
-        # if response.status_code != 200:
-        #     raise ValueError(
-        #         'Request to victor_ops returned an error %s, the response is:\n%s' % (response.status_code, response.text))
+        try:
+            response = requests.post(WEBHOOK_URL, data=json.dumps(victor_ops_data), headers={'Content-Type': 'application/json'})
+            logger.info("RESPONSE JSON",str(response.json()))
+            logger.info("RESPONSE STATUS",str(response.status_code))
+        except requests.exceptions.HTTPError as e:
+            logger.info("HTTP EXCEPTION", str(e))
+            logger.info("RESPONSE JSON ERROR",response.json())
+        logger.info("SAMRA VOOOOO RESPONSE",response)
+        if response.status_code != 200:
+            raise ValueError(
+                'Request to victor_ops returned an error %s, the response is:\n%s' % (response.status_code, response.text))

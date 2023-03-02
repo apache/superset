@@ -86,8 +86,8 @@ class AlertCommand(BaseCommand):
             except (KeyError, json.JSONDecodeError) as ex:
                 raise AlertValidatorConfigError() from ex
         except Exception as ex:
-            raise_incident(app.config, self._report_schedule, ex)
-            logger.error("SAMRA EXCEPT ERROR", str(ex))
+            # raise_incident(app.config, self._report_schedule, ex)
+            logger.error("SAMRA EXCEPT ERROR CHANGED", str(ex))
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
@@ -169,9 +169,11 @@ class AlertCommand(BaseCommand):
                 )
                 return df
         except SoftTimeLimitExceeded as ex:
+            raise_incident(app.config, self._report_schedule, AlertQueryTimeout())
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
+            raise_incident(app.config, self._report_schedule, ex)
             raise AlertQueryError(message=str(ex)) from ex
 
     def validate(self) -> None:
