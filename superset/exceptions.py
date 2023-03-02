@@ -273,4 +273,4 @@ class QueryNotFoundException(SupersetException):
 
 
 class ColumnNotFoundException(SupersetException):
-    pass
+    status = 404
