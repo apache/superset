@@ -124,6 +124,7 @@ export default function Legend(props) {
     thematicData,
     thematicCol,
     intranetLayers,
+    tradeAreas,
     map
   } = props;
 
@@ -131,6 +132,7 @@ export default function Legend(props) {
   const [currHiddenIntranet, setCurrHiddenIntranet] = useState(
     Object.fromEntries(Object.keys(intranetLegendExprs).map(x => [x, []]))
   );
+  const [currHiddenTAs, setCurrHiddenTAs] = useState([]);
 
   const getThematicFilterExpr = (color) => {
     return ['!', ['in', ['get', groupCol], ['literal', colorMap[color]]]];
@@ -153,6 +155,22 @@ export default function Legend(props) {
     }
   }
 
+  const updateMapLayout = (hidden) => {
+    tradeAreas.map(ta => {
+      hidden.includes(ta) ? 
+        map.current.setLayoutProperty(ta, 'visibility', 'none') : 
+        map.current.setLayoutProperty(ta, 'visibility', 'visible')
+    })
+  }
+
+  const hideTA = (layer) => {
+    if (currHiddenTAs.includes(layer)) return;
+    let hidden = [...currHiddenTAs];
+    hidden.push(layer);
+    updateMapLayout(hidden);
+    setCurrHiddenTAs([...hidden])
+  }
+
   const hideIntranet = (layer, store) => {
     if (currHiddenIntranet[layer].includes(store)) return;
     let hidden = {...currHiddenIntranet}
@@ -169,6 +187,12 @@ export default function Legend(props) {
     setCurrHiddenThematic([...hidden]);
   };
 
+  const unhideTA = (layer) => {
+    let hidden = [...currHiddenTAs].filter(x => !(x == layer));
+    updateMapLayout(hidden);
+    setCurrHiddenTAs([...hidden]);
+  }
+
   const unhideIntranet = (layer, store) => {
     let hidden = {...currHiddenIntranet};
     hidden[layer] = hidden[layer].filter(x => !(x == store));
@@ -180,6 +204,13 @@ export default function Legend(props) {
     let hidden = [...currHiddenThematic].filter(x => !(x == color));
     updateMapFilter('boundary_tileset', 'thematic', hidden);
     setCurrHiddenThematic([...hidden]);
+  };
+
+  const hideAllTAs = (e) => {
+    e.stopPropagation();
+    let hidden = [...tradeAreas];
+    updateMapLayout(hidden);
+    setCurrHiddenTAs([...hidden]);
   };
 
   const hideAllIntranet = (e, l) => {
@@ -195,6 +226,12 @@ export default function Legend(props) {
     e.stopPropagation();
     updateMapFilter('boundary_tileset', 'thematic', [...Object.keys(colorMap)]);
     setCurrHiddenThematic([...Object.keys(colorMap)]);
+  }
+
+  const unhideAllTAs = (e) => {
+    e.stopPropagation();
+    updateMapLayout([]);
+    setCurrHiddenTAs([]);
   }
 
   const unhideAllIntranet = (e, l) => {
@@ -329,6 +366,55 @@ export default function Legend(props) {
             />
           </Panel>
         ))}
+      </Collapse>
+      <Divider orientation='left'>
+        Trade Areas
+      </Divider>
+      <Collapse>
+        <Panel 
+            header='All trade areas' 
+            key='0'
+            extra={
+              <Button 
+                type='text'
+                shape='circle'
+                size='small'
+                icon={
+                  currHiddenTAs.length === tradeAreas.length ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                }
+                onClick={
+                  currHiddenTAs.length === tradeAreas.length ? (e) => unhideAllTAs(e) : (e) => hideAllTAs(e)
+                }
+              />
+            }
+          >
+            <List
+              size='small'
+              itemLayout='horizontal'
+              dataSource={tradeAreas.map(k => {
+                return { title: k }
+              })}
+              renderItem={item => (
+                <List.Item 
+                  extra={
+                    <Button 
+                      type='text' 
+                      shape='circle' 
+                      size='small'
+                      icon={
+                        currHiddenTAs.includes(item.title) ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                      }
+                      onClick={currHiddenTAs.includes(item.title) ? () => unhideTA(item.title) : () => hideTA(item.title)} 
+                    />
+                  }
+                >
+                  <List.Item.Meta
+                  title={<Text>{item.title}</Text>}
+                  />
+                </List.Item>
+              )}  
+            />
+          </Panel>
       </Collapse>
     </>
   );

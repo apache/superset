@@ -137,7 +137,8 @@ export default function LiqThematicMaps(props) {
         setDrawerTitle('Map Legend');
         setDrawerContent(
           <Legend 
-            intranetLayers={intranetLayers} 
+            intranetLayers={intranetLayers}
+            tradeAreas={tradeAreas} 
             thematicData={thematicLegend}
             colorMap={reverseMap} 
             thematicCol={metricCol}
@@ -302,12 +303,18 @@ export default function LiqThematicMaps(props) {
           'source-layer': boundary,
           'layout': {},
           'paint': {
-              'fill-color': [
-                'case',
-                ['==', ['feature-state', ta], null],
-                'transparent',
-                ['feature-state', ta]
-            ]
+            'fill-color': [
+              'case',
+              ['==', ['feature-state', ta], null],
+              'transparent',
+              ['feature-state', ta]
+            ],
+            'fill-outline-color': [
+              'case',
+              ['==', ['feature-state', ta], null],
+              'transparent',
+              '#FFFFFF'
+            ],
           }
         });
       })
