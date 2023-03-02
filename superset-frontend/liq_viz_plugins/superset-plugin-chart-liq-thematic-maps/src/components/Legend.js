@@ -13,6 +13,7 @@ const intranetLegendExprs = defaults.intranetLegendExprs;
 const { Panel } = Collapse;
 const { Text } = Typography;
 
+// Map tile layer names to a more human readable format
 const nameMap = {
   'shopping_centres': 'Shopping Centres',
   'department_stores': 'Department Stores',
@@ -23,6 +24,7 @@ const nameMap = {
   'liquor': 'Liquor'
 };
 
+// Map each tile intranet layer and it's corresponding data for the legend in the format [Name, Image Icon Source, Description]
 const intranetLegend = {
   'shopping_centres': [
     ['Super Regional', intranetImgs['regional'], ''],
@@ -119,26 +121,31 @@ const intranetLegend = {
 export default function Legend(props) {
 
   const {
-    colorMap,
+    colorMap, 
     groupCol,
-    thematicData, 
-    thematicCol,
+    thematicData, // maps thematic breaks to their respective colours 
+    thematicCol, // name of the thematic metric column
     intranetLayers,
-    tradeAreas,
+    tradeAreas, // list of trade area names rendered on the map
     taSectorSA1Map,
     map
   } = props;
 
-  const [currHiddenThematic, setCurrHiddenThematic] = useState([]);
-  const [currHiddenIntranet, setCurrHiddenIntranet] = useState(
+  const [currHiddenThematic, setCurrHiddenThematic] = useState([]); // track hidden ranges of thematic
+  const [currHiddenIntranet, setCurrHiddenIntranet] = useState( // track hidden sub-levels of intranet layers e.g. Regional for Shopping Centres
     Object.fromEntries(Object.keys(intranetLegendExprs).map(x => [x, []]))
   );
-  const [currHiddenTAs, setCurrHiddenTAs] = useState([]);
+  const [currHiddenTAs, setCurrHiddenTAs] = useState([]); // track hidden trade areas
 
+  // Generate filter expression for thematic range, we don't want to display anything with that colour
   const getThematicFilterExpr = (color) => {
     return ['!', ['in', ['get', groupCol], ['literal', colorMap[color]]]];
   };
 
+  /* 
+    Updates the map's current filter for a given layer, the expressions are different based on whether the layer is a thematic layer
+    or intranet layer
+  */
   const updateMapFilter = (layer, layerType, hidden) => {
     if (!map.current) return;
     if (hidden.length === 0) {
@@ -156,6 +163,7 @@ export default function Legend(props) {
     }
   }
 
+  // Specific to trade areas, updates the maps layout to toggle their visibility
   const updateMapLayout = (hidden) => {
     tradeAreas.map(ta => {
       hidden.includes(ta) ? 
@@ -252,6 +260,7 @@ export default function Legend(props) {
   // Update intranet layer added in real time
   useEffect(() => {
     if (!intranetLayers) return;
+    console.log(thematicData);
     let hidden = {...currHiddenIntranet};
     for (const l of intranetLayers) {
       if (!(l in hidden)) hidden[l] = [];
