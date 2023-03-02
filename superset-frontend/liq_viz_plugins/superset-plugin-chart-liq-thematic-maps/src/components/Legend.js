@@ -121,10 +121,11 @@ export default function Legend(props) {
   const {
     colorMap,
     groupCol,
-    thematicData,
+    thematicData, 
     thematicCol,
     intranetLayers,
     tradeAreas,
+    taSectorSA1Map,
     map
   } = props;
 
@@ -310,11 +311,11 @@ export default function Legend(props) {
           />
         </Panel>
       </Collapse>
-      <Divider orientation='left'>
+      {intranetLayers && intranetLayers.length > 0 && (<Divider orientation='left'>
         Intranet Layers
-      </Divider>
-      <Collapse>
-        {intranetLayers && intranetLayers.map((l, i) => (
+      </Divider>)}
+      {intranetLayers && intranetLayers.length > 0 && (<Collapse>
+        {intranetLayers.map((l, i) => (
           <Panel 
             header={nameMap[l]} 
             key={i}
@@ -366,11 +367,37 @@ export default function Legend(props) {
             />
           </Panel>
         ))}
-      </Collapse>
-      <Divider orientation='left'>
+      </Collapse>)}
+      {tradeAreas.length > 0 && (<Divider orientation='left'>
         Trade Areas
-      </Divider>
-      <Collapse>
+      </Divider>)}
+      {/* {
+        tradeAreas.length > 0 ?
+          (
+            <Collapse>
+              {tradeAreas.map(ta => (
+                <Panel
+                  header={ta}
+                  key={ta}
+                  extra={
+                    <Button
+                      size='small'
+
+                    >
+
+                    </Button>
+                    currHiddenTAs[ta].length === Object.keys(taSectorSA1Map[ta]).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                  }
+                >
+
+                </Panel>
+              ))}
+            </Collapse>
+          )
+        :
+          <></>
+      } */}
+      {tradeAreas.length > 0 && (<Collapse>
         <Panel 
             header='All trade areas' 
             key='0'
@@ -415,7 +442,7 @@ export default function Legend(props) {
               )}  
             />
           </Panel>
-      </Collapse>
+      </Collapse>)}
     </>
   );
 }

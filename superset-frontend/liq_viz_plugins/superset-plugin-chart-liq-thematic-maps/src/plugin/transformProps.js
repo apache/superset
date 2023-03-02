@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
 
 const defaults = require('../defaultLayerStyles.js');
 const tradeAreaColors = defaults.tradeAreaColors;
  
-export default function transformProps(chartProps: ChartProps) {
+export default function transformProps(chartProps) {
   /**
    * This function is called after a successful response has been
    * received from the chart data endpoint, and is used to transform
@@ -71,23 +70,21 @@ export default function transformProps(chartProps: ChartProps) {
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.label;
 
-  // let tradeAreas = {};
-  //   if (isTradeArea) {
-  //     data.map(d => {
-  //     if (!(d.Centre in tradeAreas)) tradeAreas[d.Centre] = {};
-  //     tradeAreas[d.Centre][d.SA1_CODE21] = { sector: d.Sector, colour: d.Colour};
-  //   });
-  // };
-
   const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
   let tradeAreaSA1s = {};
-  
+  let taSectorSA1Map = {};
+
   if (isTradeArea) {
     data.map(d => {
-      if (!(d.SA1_CODE21 in tradeAreaSA1s)) tradeAreaSA1s[d.SA1_CODE21] = {};
-      if (!(d.Centre in tradeAreaSA1s[d.SA1_CODE21])) tradeAreaSA1s[d.SA1_CODE21][d.Centre] = {
+      if (!(d[groupCol] in tradeAreaSA1s)) tradeAreaSA1s[d[groupCol]] = {};
+      if (!(d.Centre in tradeAreaSA1s[d[groupCol]])) tradeAreaSA1s[d[groupCol]][d.Centre] = {
         sector: d.Sector, colour: tradeAreaColors[d.Colour]
       };
+
+      if (!(d.Centre in taSectorSA1Map)) taSectorSA1Map[d.Centre] = {};
+      if (!(d.Sector in taSectorSA1Map[d.Centre])) taSectorSA1Map[d.Centre][d.Sector] = []
+      taSectorSA1Map[d.Centre][d.Sector].push(d[groupCol]);
+      
     });
   };
 
@@ -107,6 +104,7 @@ export default function transformProps(chartProps: ChartProps) {
     numClasses,
     tradeAreas,
     tradeAreaSA1s,
+    taSectorSA1Map,
     opacity,
     latitude,
     longitude,

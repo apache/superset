@@ -18,7 +18,7 @@
  */
 import React, { useEffect, createRef, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import mapboxgl from 'mapbox-gl';
+import mapboxgl, { Popup } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
@@ -87,6 +87,7 @@ export default function LiqThematicMaps(props) {
     opacity, // opacity value for thematic
     tradeAreas, // trade area data if any
     tradeAreaSA1s, // trade area SA1 data
+    taSectorSA1Map, // for each treade area sector, list of constituent SA1s
     latitude, // starting lat
     longitude, // starting lng,
     zoom, //starting zoom
@@ -102,6 +103,7 @@ export default function LiqThematicMaps(props) {
 
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const taPopup = useRef(null);
   let hovered = useRef({});
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
@@ -140,6 +142,7 @@ export default function LiqThematicMaps(props) {
             intranetLayers={intranetLayers}
             tradeAreas={tradeAreas} 
             thematicData={thematicLegend}
+            taSectorSA1Map={taSectorSA1Map}
             colorMap={reverseMap} 
             thematicCol={metricCol}
             groupCol={groupCol}
@@ -225,6 +228,11 @@ export default function LiqThematicMaps(props) {
       zoom: mapPos.zoom    
     });
     
+    taPopup.current = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    });
+
     // Flat map projection
     map.current.setProjection('mercator');
 
@@ -323,6 +331,22 @@ export default function LiqThematicMaps(props) {
       setRenderedIntranetLayers(intranetLayers ? [...intranetLayers] : []);
 
     });
+
+    // tradeAreas.map(ta => {
+    //   map.current.on('mouseenter', ta, (e) => {
+    //     if (ta in e.features[0]) {
+    //       map.current.getCanvas().style.cursor = 'pointer';
+    //       const coords = e.lngLat;
+    //       const sector = e.features[0].state[`${ta} Sector`];
+    //       const desc = `<strong>Sector</strong><p>${sector}</p>`;
+    //       taPopup.current.setLngLat(coords).setHTML(desc).addTo(map.current);
+    //     }
+    //   });
+    //   map.current.on('mouseleave', ta, () => {
+    //     map.current.getCanvas().style.cursor = '';
+    //     taPopup.current.remove();
+    //   });
+    // });
 
     map.current.on('mousemove', 'boundary_tileset', (e) => {
       if (e.features.length > 0) {
@@ -474,6 +498,7 @@ export default function LiqThematicMaps(props) {
       if (taData) {
         for (const centre of Object.keys(taData)) {
           state[centre] = taData[centre].colour;
+          state[`${centre} Sector`] = taData[centre].sector;
         }
       }
       map.current.setFeatureState(
