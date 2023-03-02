@@ -194,7 +194,7 @@ export const API_HANDLER = {
     const { ORIGIN_URL } = APIState.configReducer;
 
     try {
-      const cleanedUrl = url?.split('http:///superset')[1];
+      const cleanedUrl = url?.replace(/(http|https):\/\/\/superset/, '');
 
       if (cleanedUrl) {
         const initialResponse = await API_HANDLER.sendRequest(
