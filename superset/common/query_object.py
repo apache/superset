@@ -318,7 +318,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         query_object_dict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
             "columns": self.columns,
-            "datasource": self.datasource,
             "extras": self.extras,
             "filter": self.filter,
             "from_dttm": self.from_dttm,

@@ -424,7 +424,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
-            "datasource": self.datasource,
         }
 
     @property

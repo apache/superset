@@ -65,9 +65,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
-        for query_obj in queries:
-            if query_obj.get("datasource", None) is not None:
-                del query_obj["datasource"]
         queries_ = [
             self._process_query_object(
                 datasource_model_instance,
