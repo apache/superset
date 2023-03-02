@@ -35,6 +35,7 @@ export const FiltersOutOfScopeCollapsible = ({
   horizontalOverflow,
 }: FiltersOutOfScopeCollapsibleProps) => (
   <AntdCollapse
+    defaultActiveKey="1"
     ghost
     bordered
     expandIconPosition="right"
