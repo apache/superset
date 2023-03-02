@@ -16,14 +16,12 @@
 # under the License.
 from typing import Any, Dict, List, Set, Tuple
 
-from flask import current_app
-from flask_login import login_user
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
-from superset import db, security_manager
+from superset import db
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
@@ -69,24 +67,18 @@ class ImportExamplesCommand(ImportModelsCommand):
     def run(self) -> None:
         self.validate()
 
-        # login as the admin so we have the correct permissions to import everything
-        admin = security_manager.find_user("admin")
-        with current_app.app_context():
-            with current_app.test_request_context("/login"):
-                login_user(admin)
-
-                # rollback to prevent partial imports
-                try:
-                    self._import(
-                        db.session,
-                        self._configs,
-                        self.overwrite,
-                        self.force_data,
-                    )
-                    db.session.commit()
-                except Exception as ex:
-                    db.session.rollback()
-                    raise self.import_error() from ex
+        # rollback to prevent partial imports
+        try:
+            self._import(
+                db.session,
+                self._configs,
+                self.overwrite,
+                self.force_data,
+            )
+            db.session.commit()
+        except Exception as ex:
+            db.session.rollback()
+            raise self.import_error() from ex
 
     @classmethod
     def _get_uuids(cls) -> Set[str]:
