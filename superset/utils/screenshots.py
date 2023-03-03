@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
-from typing import cast, Optional, TYPE_CHECKING, TypedDict, Union
+from typing import Optional, TYPE_CHECKING, TypedDict, Union
 from uuid import UUID
 
 from flask import current_app
@@ -219,13 +219,15 @@ class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
 
-    def __init__(self, url: str, digest: str, *args: ScreenshotDetails):
+    def __init__(
+        self, url: str, digest: str, options: Optional[ScreenshotDetails] = None
+    ):
         # Chart reports and thumbnails are in standalone="true" mode
         url = modify_url_query(
             url,
             standalone=ChartStandaloneMode.HIDE_NAV.value,
         )
-        options = cast(ScreenshotDetails, {*args})
+        options = options or {}
         super().__init__(url, digest, options.get("execution_id"))
         self.window_size = options.get("window_size") or (800, 600)
         self.thumb_size = options.get("thumb_size") or (800, 600)
@@ -235,14 +237,16 @@ class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "standalone"
 
-    def __init__(self, url: str, digest: str, *args: ScreenshotDetails):
+    def __init__(
+        self, url: str, digest: str, options: Optional[ScreenshotDetails] = None
+    ):
         # per the element above, dashboard screenshots
         # should always capture in standalone
         url = modify_url_query(
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-        options = cast(ScreenshotDetails, {*args})
+        options = options or {}
         super().__init__(url, digest, options.get("execution_id"))
         self.window_size = options.get("window_size") or (1600, 1200)
         self.thumb_size = options.get("thumb_size") or (800, 600)

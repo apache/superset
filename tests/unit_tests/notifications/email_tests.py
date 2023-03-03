@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import uuid
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
@@ -55,3 +56,45 @@ def test_render_description_with_html() -> None:
     )
     assert '<p>This is <a href="#">a test</a> alert</p><br>' in email_body
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
+
+
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.reports.notifications.email.logger")
+def test_send_email(logger_mock: MagicMock, send_email_mock: MagicMock) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    execution_id = uuid.uuid4()
+    content = NotificationContent(
+        name="test alert",
+        embedded_data=pd.DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": ["111", "222", '<a href="http://www.example.com">333</a>'],
+            }
+        ),
+        description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "execution_id": execution_id,
+        },
+    )
+    EmailNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.EMAIL,
+            recipient_config_json='{"target": "foo@bar.com"}',
+        ),
+        content=content,
+    ).send()
+    logger_mock.info.assert_called_with(
+        "Report sent to email", extra={"execution_id": execution_id}
+    )

@@ -19,6 +19,7 @@
 
 import json
 import urllib.request
+import uuid
 from io import BytesIO
 from typing import Tuple
 from unittest import skipUnless
@@ -210,12 +211,16 @@ class TestWebDriverProxy(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
-        logger_mock.info.assert_called_with(
-            "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
+        webdriver.get_screenshot(
+            url=url,
+            element_name="chart-container",
+            user=user,
+        )
+        logger_mock.debug.assert_called_with(
+            "Taking a PNG screenshot of url %s as user %s",
             "http://0.0.0.0:8081/superset/slice/1/?standalone=true",
             "admin",
-            None,
+            extra={"execution_id": None},
         )
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -229,14 +234,18 @@ class TestWebDriverProxy(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        execution_id = uuid.uuid4()
         webdriver.get_screenshot(
-            url=url, element_name="chart-container", user=user, execution_id="12345"
+            url=url,
+            element_name="chart-container",
+            user=user,
+            execution_id=execution_id,
         )
-        logger_mock.info.assert_called_with(
-            "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
+        logger_mock.debug.assert_called_with(
+            "Taking a PNG screenshot of url %s as user %s",
             "http://0.0.0.0:8081/superset/slice/1/?standalone=true",
             "admin",
-            "12345",
+            extra={"execution_id": execution_id},
         )
 
 

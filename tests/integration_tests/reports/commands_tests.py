@@ -814,11 +814,36 @@ def test_email_chart_alert_schedule(
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
-        screenshot_mock.assert_called_with(
-            user=create_alert_email_chart.owners[0], execution_id=ANY
-        )
+        screenshot_mock.assert_called_with(user=create_alert_email_chart.owners[0])
 
-        logger_mock.assert_called_with("foo")
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.webdriver.logger.debug")
+def test_email_chart_screenshot(
+    logger_mock,
+    email_mock,
+    create_alert_email_chart,
+):
+    """
+    ExecuteReport Command: Test chart email alert schedule with screenshot
+    """
+    # setup screenshot mock
+    from superset.utils.webdriver import WebDriverProxy
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(WebDriverProxy, "get_screenshot") as screenshot_mock:
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_alert_email_chart.id, datetime.utcnow()
+            ).run()
+            screenshot_mock.assert_called_with(
+                url=f"http://0.0.0.0:8081/explore/?form_data=%7B%22slice_id%22%3A%20{create_alert_email_chart.chart_id}%7D&force=true&standalone=true",
+                element_name="chart-container",
+                user=create_alert_email_chart.owners[0],
+                execution_id=UUID(TEST_ID),
+            )
 
 
 @pytest.mark.usefixtures(

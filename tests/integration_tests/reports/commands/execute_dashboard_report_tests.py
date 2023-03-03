@@ -53,8 +53,9 @@ def test_report_for_dashboard_with_tabs(
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard
+        execution_id = uuid4()
         AsyncExecuteReportScheduleCommand(
-            str(uuid4()), report_schedule.id, datetime.utcnow()
+            str(execution_id), report_schedule.id, datetime.utcnow()
         ).run()
         dashboard_state = report_schedule.extra.get("dashboard", {})
         permalink_key = CreateDashboardPermalinkCommand(
@@ -62,10 +63,15 @@ def test_report_for_dashboard_with_tabs(
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        (url, digest, options) = dashboard_screenshot_mock.call_args.args
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
         assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
+        assert options == {
+            "execution_id": execution_id,
+            "thumb_size": (1400, 2000),
+            "window_size": (1400, 2000),
+        }
         assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 1
 
 
@@ -92,8 +98,9 @@ def test_report_with_header_data(
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard
+        execution_id = uuid4()
         AsyncExecuteReportScheduleCommand(
-            str(uuid4()), report_schedule.id, datetime.utcnow()
+            str(execution_id), report_schedule.id, datetime.utcnow()
         ).run()
         dashboard_state = report_schedule.extra.get("dashboard", {})
         permalink_key = CreateDashboardPermalinkCommand(
@@ -101,13 +108,18 @@ def test_report_with_header_data(
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        (url, digest, options) = dashboard_screenshot_mock.call_args.args
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
         assert digest == dashboard.digest
+        assert options == {
+            "execution_id": execution_id,
+            "thumb_size": (1400, 2000),
+            "window_size": (1400, 2000),
+        }
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id
         assert header_data.get("notification_format") == report_schedule.report_format
         assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
         assert header_data.get("notification_type") == report_schedule.type
-        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 6
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7

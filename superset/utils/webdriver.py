@@ -202,11 +202,11 @@ class WebDriverProxy:
             ]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
-            logger.info(
-                "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
+            logger.debug(
+                "Taking a PNG screenshot of url %s as user %s",
                 url,
                 user.username,
-                execution_id,
+                extra={"execution_id": execution_id},
             )
 
             if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:

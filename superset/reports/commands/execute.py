@@ -719,9 +719,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 user = security_manager.find_user(username)
                 with override_user(user):
                     logger.info(
-                        "Running report schedule %s as user %s",
-                        self._execution_id,
+                        "Running report schedule as user %s",
                         username,
+                        extra={
+                            "execution_id": self._execution_id,
+                        },
                     )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm
@@ -736,9 +738,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     ) -> None:
         # Validate/populate model exists
         logger.info(
-            "session is validated: id %s, executionid: %s",
+            "session is validated: id %s",
             self._model_id,
-            self._execution_id,
+            extra={"execution_id": self._execution_id},
         )
         self._model = (
             session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
