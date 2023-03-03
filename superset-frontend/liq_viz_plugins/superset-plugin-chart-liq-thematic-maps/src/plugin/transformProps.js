@@ -68,7 +68,7 @@ export default function transformProps(chartProps) {
   const data = queriesData[0].data;
   
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
-  const metricCol = formData.metric.label;
+  const metricCol = formData.metric.constructor === Array ? formData.metric[0].label : formData.metric.label;
 
   const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
   let tradeAreaSA1s = {};
