@@ -77,7 +77,7 @@ ADHOC_COLUMN_FIXTURE: AdhocColumn = {
 INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
     "hasCustomLabel": True,
     "label": "exciting_or_boring",
-    "sqlExpression": "case when genre = 'Action' then 'Exciting' " "else 'Boring' end",
+    "sqlExpression": "case when genre = 'Action' then 'Exciting' else 'Boring' end",
 }
 
 
