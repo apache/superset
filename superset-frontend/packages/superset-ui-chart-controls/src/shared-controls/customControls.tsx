@@ -23,7 +23,6 @@ import {
   getColumnLabel,
   getMetricLabel,
   isDefined,
-  isEqualArray,
   QueryFormColumn,
   QueryFormMetric,
   t,
@@ -59,32 +58,12 @@ export const xAxisSortControl = {
   name: 'x_axis_sort',
   config: {
     type: 'XAxisSortControl',
-    label: t('X-Axis Sort By'),
-    description: t('Whether to sort descending or ascending on the X-Axis.'),
-    shouldMapStateToProps: (
-      prevState: ControlPanelState,
-      state: ControlPanelState,
-    ) => {
-      const prevOptions = [
-        getColumnLabel(prevState?.controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(prevState?.controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-        ...ensureIsArray(
-          prevState?.controls?.timeseries_limit_metric?.value,
-        ).map(metric => getMetricLabel(metric as QueryFormMetric)),
-      ];
-      const currOptions = [
-        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-        ...ensureIsArray(state?.controls?.timeseries_limit_metric?.value).map(
-          metric => getMetricLabel(metric as QueryFormMetric),
-        ),
-      ];
-      return !isEqualArray(prevOptions, currOptions);
-    },
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort By')
+        : t('X-Axis Sort By'),
+    description: t('Decides which column to sort the base axis by.'),
+    shouldMapStateToProps: () => true,
     mapStateToProps: (
       { controls }: { controls: ControlStateMapping },
       controlState: ControlState,
@@ -123,9 +102,12 @@ export const xAxisSortAscControl = {
   name: 'x_axis_sort_asc',
   config: {
     type: 'CheckboxControl',
-    label: t('X-Axis Sort Ascending'),
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort Ascending')
+        : t('X-Axis Sort Ascending'),
     default: true,
-    description: t('Whether to sort descending or ascending on the X-Axis.'),
+    description: t('Whether to sort ascending or descending on the base Axis.'),
     visibility: xAxisSortVisibility,
   },
 };
