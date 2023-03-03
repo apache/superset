@@ -1042,6 +1042,14 @@ class ChartDataQueryObjectSchema(Schema):
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
         allow_none=True,
     )
+    extra_metrics = fields.List(
+        fields.Raw(),
+        description="Metrics that are intended to be used for other purposes"
+        "than series. Note that these need to be listed in the metrics property,"
+        "similarly to how series_columns also need to be listed in the columns"
+        "property.",
+        allow_none=True,
+    )
     post_processing = fields.List(
         fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
         allow_none=True,
