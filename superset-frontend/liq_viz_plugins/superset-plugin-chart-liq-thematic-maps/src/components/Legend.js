@@ -190,7 +190,7 @@ export default function Legend(props) {
         tradeAreas.map(x => [x, Object.keys(taSectorSA1Map[x])])
       ),
       listData: Object.fromEntries(
-        tradeAreas.map(x => [x, Object.keys(taSectorSA1Map[x]).map(d => {
+        tradeAreas.map(x => [x, Object.keys(taSectorSA1Map[x]).sort((a, b) => a.localeCompare(b)).map(d => {
           return {
             title: d,
             desc: '',
