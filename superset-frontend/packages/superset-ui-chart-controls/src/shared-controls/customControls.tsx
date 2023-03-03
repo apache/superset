@@ -70,11 +70,17 @@ export const xAxisSortControl = {
         ...ensureIsArray(prevState?.controls?.metrics?.value).map(metric =>
           getMetricLabel(metric as QueryFormMetric),
         ),
+        ...ensureIsArray(
+          prevState?.controls?.timeseries_limit_metric?.value,
+        ).map(metric => getMetricLabel(metric as QueryFormMetric)),
       ];
       const currOptions = [
         getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
         ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
           getMetricLabel(metric as QueryFormMetric),
+        ),
+        ...ensureIsArray(state?.controls?.timeseries_limit_metric?.value).map(
+          metric => getMetricLabel(metric as QueryFormMetric),
         ),
       ];
       return !isEqualArray(prevOptions, currOptions);
@@ -86,6 +92,9 @@ export const xAxisSortControl = {
       const choices = [
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         ...ensureIsArray(controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
+        ),
+        ...ensureIsArray(controls?.timeseries_limit_metric?.value).map(metric =>
           getMetricLabel(metric as QueryFormMetric),
         ),
       ].filter(Boolean);

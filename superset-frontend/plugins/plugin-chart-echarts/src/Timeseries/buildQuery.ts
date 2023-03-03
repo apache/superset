@@ -19,28 +19,29 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getXAxisColumn,
+  isXAxisSet,
   normalizeOrderBy,
   PostProcessingPivot,
   QueryFormData,
-  getXAxisColumn,
-  isXAxisSet,
 } from '@superset-ui/core';
 import {
-  rollingWindowOperator,
-  timeCompareOperator,
+  contributionOperator,
+  extractExtraMetrics,
+  flattenOperator,
   isTimeComparison,
   pivotOperator,
-  resampleOperator,
-  renameOperator,
-  contributionOperator,
   prophetOperator,
-  timeComparePivotOperator,
-  flattenOperator,
+  renameOperator,
+  resampleOperator,
+  rollingWindowOperator,
   sortOperator,
+  timeComparePivotOperator,
+  timeCompareOperator,
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { groupby } = formData;
+  const { groupby, timeseries_limit_metric: timeseriesLimitMetric } = formData;
   return buildQueryContext(formData, baseQueryObject => {
     /* the `pivotOperatorInRuntime` determines how to pivot the dataframe returned from the raw query.
        1. If it's a time compared query, there will return a pivoted dataframe that append time compared metrics. for instance:
@@ -62,22 +63,32 @@ export default function buildQuery(formData: QueryFormData) {
           2015-03-01      318.0         0.0
 
      */
+    // only add series limit metric if it's explicitly needed e.g. for sorting
+    const extra_metrics = extractExtraMetrics(formData);
+
     const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
       formData,
       baseQueryObject,
     )
-      ? timeComparePivotOperator(formData, baseQueryObject)
-      : pivotOperator(formData, baseQueryObject);
+      ? timeComparePivotOperator(formData, {
+          ...baseQueryObject,
+          extra_metrics,
+        })
+      : pivotOperator(formData, {
+          ...baseQueryObject,
+          extra_metrics,
+        });
+
+    const columns = [
+      ...(isXAxisSet(formData) ? ensureIsArray(getXAxisColumn(formData)) : []),
+      ...ensureIsArray(groupby),
+    ];
 
     return [
       {
         ...baseQueryObject,
-        columns: [
-          ...(isXAxisSet(formData)
-            ? ensureIsArray(getXAxisColumn(formData))
-            : []),
-          ...ensureIsArray(groupby),
-        ],
+        metrics: [...(baseQueryObject.metrics || []), ...extra_metrics],
+        columns,
         series_columns: groupby,
         ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
         // todo: move `normalizeOrderBy to extractQueryFields`
@@ -96,7 +107,7 @@ export default function buildQuery(formData: QueryFormData) {
           resampleOperator(formData, baseQueryObject),
           renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
-          sortOperator(formData, baseQueryObject),
+          sortOperator(formData, { ...baseQueryObject, extra_metrics }),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),

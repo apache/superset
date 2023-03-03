@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -14,11 +13,26 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitationsxw
+ * specific language governing permissions and limitations
  * under the License.
  */
-export { getMetricOffsetsMap } from './getMetricOffsetsMap';
-export { isTimeComparison } from './isTimeComparison';
-export { isDerivedSeries } from './isDerivedSeries';
-export { extractExtraMetrics } from './extractExtraMetrics';
-export { TIME_COMPARISON_SEPARATOR } from './constants';
+import {
+  getMetricLabel,
+  QueryFormData,
+  QueryFormMetric,
+} from '@superset-ui/core';
+
+export function extractExtraMetrics(
+  formData: QueryFormData,
+): QueryFormMetric[] {
+  const { groupby, timeseries_limit_metric, x_axis_sort } = formData;
+  const extra_metrics: QueryFormMetric[] = [];
+  if (
+    !(groupby || []).length &&
+    timeseries_limit_metric &&
+    getMetricLabel(timeseries_limit_metric) === x_axis_sort
+  ) {
+    extra_metrics.push(timeseries_limit_metric);
+  }
+  return extra_metrics;
+}
