@@ -4,6 +4,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons';
+import LegendSub from './LegendSub.js';
 
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
@@ -122,383 +123,110 @@ export default function Legend(props) {
   const {
     colorMap,
     groupCol,
-    thematicData,
-    thematicCol,
-    intranetLayers,
-    tradeAreas,
-    taSectorMap,
-    map
-  } = props;
-
-  const thematicHeader = 'Thematic';
-  const thematicPanelHeaders = [thematicCol];
-  const thematicInit = {'boundary_tileset': []};
-  const thematicLayers = {'boundary_tileset': Object.keys(colorMap)};
-  const thematicListData = {
-    'boundary_tileset': Object.keys(thematicData).map(k => {
-      return {
-        title: k,
-        color: thematicData[k],
-        avatar: <div style={{width: 24, height: 24, background: item.color}} />
-      }
-    })
-  };
-
-  const intranetHeader = 'Intranet Layers';
-  const intranetPanelHeaders = intranetLayers.map(x => nameMap[x]);
-  const intranetInit = Object.fromEntries(intranetLayers.map(x => [x, []]));
-  const intranetLegLayers = Object.fromEntries(
-    intranetLayers.map(x => [x, intranetLegend[x].map(d => d[0])])
-  );
-  const intranetListData = Object.fromEntries(
-    intranetLayers.map(x => [x, intranetLegend[x].map(d => {
-      return {
-        title: d[0], 
-        img: d[1], 
-        desc: d[2],
-        avatar: <Avatar src={d[1]} shape='square' size={24} />
-      }
-    })])
-  );
-
-  
-
-}
-
-function Legend2(props) {
-
-  const {
-    colorMap, 
-    groupCol,
     thematicData, // maps thematic breaks to their respective colours 
     thematicCol, // name of the thematic metric column
     intranetLayers,
     tradeAreas, // list of trade area names rendered on the map
     taSectorSA1Map,
+    taSectorColorMap,
     map
   } = props;
 
-  const [currHiddenThematic, setCurrHiddenThematic] = useState([]); // track hidden ranges of thematic
-  const [currHiddenIntranet, setCurrHiddenIntranet] = useState( // track hidden sub-levels of intranet layers e.g. Regional for Shopping Centres
-    Object.fromEntries(Object.keys(intranetLegendExprs).map(x => [x, []]))
-  );
-  const [currHiddenTAs, setCurrHiddenTAs] = useState([]); // track hidden trade areas
-
-  // Generate filter expression for thematic range, we don't want to display anything with that colour
-  const getThematicFilterExpr = (color) => {
-    return ['!', ['in', ['get', groupCol], ['literal', colorMap[color]]]];
-  };
-
-  /* 
-    Updates the map's current filter for a given layer, the expressions are different based on whether the layer is a thematic layer
-    or intranet layer
-  */
-  const updateMapFilter = (layer, layerType, hidden) => {
-    if (!map.current) return;
-    if (hidden.length === 0) {
-      map.current.setFilter(layer, null);
-    } else {
-      let filterExpr = ['all'];
-      for (const k of hidden) {
-        if (layerType === 'thematic') {
-          filterExpr.push(getThematicFilterExpr(k));
-        } else if (layerType === 'intranet') {
-          filterExpr.push(intranetLegendExprs[layer][k]);
-        }
-      }
-      map.current.setFilter(layer, filterExpr);
+  // Function to instantiate thematic legend config
+  const thematicLegendData = (thematicData, thematicCol, colorMap, groupCol) => {
+    return {
+      header: 'Thematic',
+      panelHeaders: [thematicCol],
+      init: { 'boundary_tileset': []},
+      layers: { 'boundary_tileset': Object.keys(colorMap) },
+      listData: {
+        'boundary_tileset': Object.keys(thematicData).map(k => {
+          return {
+            title: k,
+            desc: '',
+            avatar: <div style={{width: 24, height: 24, background: thematicData[k]}}/>,
+            hide: thematicData[k]
+          }
+        }),
+      },
+      filterExpr: (l, k) => ['!', ['in', ['get', groupCol], ['literal', colorMap[k]]]]
     }
   }
 
-  // Specific to trade areas, updates the maps layout to toggle their visibility
-  const updateMapLayout = (hidden) => {
-    tradeAreas.map(ta => {
-      hidden.includes(ta) ? 
-        map.current.setLayoutProperty(ta, 'visibility', 'none') : 
-        map.current.setLayoutProperty(ta, 'visibility', 'visible')
-    })
-  }
-
-  const hideTA = (layer) => {
-    if (currHiddenTAs.includes(layer)) return;
-    let hidden = [...currHiddenTAs];
-    hidden.push(layer);
-    updateMapLayout(hidden);
-    setCurrHiddenTAs([...hidden])
-  }
-
-  const hideIntranet = (layer, store) => {
-    if (currHiddenIntranet[layer].includes(store)) return;
-    let hidden = {...currHiddenIntranet}
-    hidden[layer].push(store);
-    updateMapFilter(layer, 'intranet', hidden[layer]);
-    setCurrHiddenIntranet({...hidden});
-  }
-
-  const hideThematic = (color) => {
-    if (currHiddenThematic.includes(color)) return;
-    let hidden = [...currHiddenThematic];
-    hidden.push(color);
-    updateMapFilter('boundary_tileset', 'thematic', hidden);
-    setCurrHiddenThematic([...hidden]);
+  // Function to instantiate intranet legend config
+  const intranetLegendData = (intranetLayers) => {
+    return {
+      header: 'Intranet Layers',
+      panelHeaders: intranetLayers.map(x => nameMap[x]),
+      init: Object.fromEntries(
+        Object.keys(intranetLegend).map(x => [x, []])
+      ),
+      layers: Object.fromEntries(
+        intranetLayers.map(x => [x, intranetLegend[x].map(d => d[0])])
+      ),
+      listData: Object.fromEntries(
+        intranetLayers.map(x => [x, intranetLegend[x].map(d => {
+          return {
+            title: d[0],
+            desc: d[2],
+            avatar: <Avatar src={d[1]} shape='square' size={24} />,
+            hide: d[0]
+          }
+        })])
+      ),
+      filterExpr: (l, k) => intranetLegendExprs[l][k]
+    }
   };
 
-  const unhideTA = (layer) => {
-    let hidden = [...currHiddenTAs].filter(x => !(x == layer));
-    updateMapLayout(hidden);
-    setCurrHiddenTAs([...hidden]);
+  // Function to instantiate trade area legend config
+  const treadeAreaLegendData = (tradeAreas, taSectorSA1Map, taSectorColorMap, groupCol) => {
+    return {
+      header: 'All trade areas',
+      panelHeaders: Object.keys(taSectorSA1Map),
+      init: Object.fromEntries(
+        tradeAreas.map(x => [x, []])
+      ),
+      layers: Object.fromEntries(
+        tradeAreas.map(x => [x, Object.keys(taSectorSA1Map[x])])
+      ),
+      listData: Object.fromEntries(
+        tradeAreas.map(x => [x, Object.keys(taSectorSA1Map[x]).map(d => {
+          return {
+            title: d,
+            desc: '',
+            avatar: <div style={{width: 24, height: 24, background: taSectorColorMap[x][d]}}/>,
+            hide: d
+          }
+        })])
+      ),
+      filterExpr: (l, k) => ['!', ['in', ['get', groupCol], ['literal', taSectorSA1Map[l][k]]]]
+    }
   }
 
-  const unhideIntranet = (layer, store) => {
-    let hidden = {...currHiddenIntranet};
-    hidden[layer] = hidden[layer].filter(x => !(x == store));
-    updateMapFilter(layer, 'intranet', hidden[layer]);
-    setCurrHiddenIntranet({...hidden});
-  }
+  // Keep track of which legends to display
+  const [configs, setConfigs] = useState([]);
 
-  const unhideThematic = (color) => {
-    let hidden = [...currHiddenThematic].filter(x => !(x == color));
-    updateMapFilter('boundary_tileset', 'thematic', hidden);
-    setCurrHiddenThematic([...hidden]);
-  };
-
-  const hideAllTAs = (e) => {
-    e.stopPropagation();
-    let hidden = [...tradeAreas];
-    updateMapLayout(hidden);
-    setCurrHiddenTAs([...hidden]);
-  };
-
-  const hideAllIntranet = (e, l) => {
-    e.stopPropagation();
-    let hiddenLayers = intranetLegend[l].map(x => x[0]);
-    updateMapFilter(l, 'intranet', hiddenLayers);
-    let hidden = {...currHiddenIntranet};
-    hidden[l] = [...hiddenLayers];
-    setCurrHiddenIntranet({...hidden});
-  }
-
-  const hideAllThematic = (e) => {
-    e.stopPropagation();
-    updateMapFilter('boundary_tileset', 'thematic', [...Object.keys(colorMap)]);
-    setCurrHiddenThematic([...Object.keys(colorMap)]);
-  }
-
-  const unhideAllTAs = (e) => {
-    e.stopPropagation();
-    updateMapLayout([]);
-    setCurrHiddenTAs([]);
-  }
-
-  const unhideAllIntranet = (e, l) => {
-    e.stopPropagation();
-    updateMapFilter(l, 'intranet', []);
-    let hidden = {...currHiddenIntranet};
-    hidden[l] = [];
-    setCurrHiddenIntranet({...hidden});
-  }
-
-  const unhideAllThematic = (e) => {
-    e.stopPropagation();
-    updateMapFilter('boundary_tileset', 'thematic', []);
-    setCurrHiddenThematic([]);
-  }
-
-  // Update intranet layer added in real time
+  // Hook to update configs
   useEffect(() => {
-    if (!intranetLayers) return;
-    console.log(thematicData);
-    let hidden = {...currHiddenIntranet};
-    for (const l of intranetLayers) {
-      if (!(l in hidden)) hidden[l] = [];
-    }
-    setCurrHiddenIntranet({...hidden});
-  }, [intranetLayers])
+    let newConfigs = [];
+    if (thematicData) newConfigs.push(
+      thematicLegendData(thematicData, thematicCol, colorMap, groupCol)
+    );
+    if (intranetLayers && intranetLayers.length > 0) newConfigs.push(
+      intranetLegendData(intranetLayers)
+    );
+    if (tradeAreas && tradeAreas.length > 0) newConfigs.push(
+      treadeAreaLegendData(tradeAreas, taSectorSA1Map, taSectorColorMap, groupCol)
+    );
+    setConfigs([...newConfigs]);
+  }, [thematicData, intranetLayers, tradeAreas])
 
   return (
     <>
-      <Divider orientation='left'>
-        Thematic
-      </Divider>
-      <Collapse>
-        <Panel 
-          header={thematicCol} 
-          key='0'
-          extra={
-            <Button 
-              type='text'
-              shape='circle'
-              size='small'
-              icon={
-                currHiddenThematic.length === Object.keys(colorMap).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
-              }
-              onClick={
-                currHiddenThematic.length === Object.keys(colorMap).length ? (e) => unhideAllThematic(e) : (e) => hideAllThematic(e)
-              }
-            />
-          }
-        >
-          <List
-            size='small'
-            itemLayout='horizontal'
-            dataSource={(thematicData ? Object.keys(thematicData) : []).map(k => {
-              return { title: k, color: thematicData[k] }
-            })}
-            renderItem={item => (
-              <List.Item 
-                extra={
-                  <Button 
-                    type='text' 
-                    shape='circle' 
-                    size='small'
-                    icon={
-                      currHiddenThematic.includes(item.color) ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                    }
-                    onClick={currHiddenThematic.includes(item.color) ? () => unhideThematic(item.color) : () => hideThematic(item.color)} 
-                  />
-                }
-              >
-                <List.Item.Meta
-                avatar={<div style={{width: 24, height: 24, background: item.color}} />}
-                title={<Text>{item.title}</Text>}
-                />
-              </List.Item>
-            )}  
-          />
-        </Panel>
-      </Collapse>
-      {intranetLayers && intranetLayers.length > 0 && (<Divider orientation='left'>
-        Intranet Layers
-      </Divider>)}
-      {intranetLayers && intranetLayers.length > 0 && (<Collapse>
-        {intranetLayers.map((l, i) => (
-          <Panel 
-            header={nameMap[l]} 
-            key={i}
-            extra={
-              <Button 
-                type='text'
-                shape='circle'
-                size='small'
-                icon={
-                  currHiddenIntranet[l].length === Object.keys(intranetLegend[l]).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                }
-                onClick={
-                  currHiddenIntranet[l].length === Object.keys(intranetLegend[l]).length ? (e) => unhideAllIntranet(e, l) : (e) => hideAllIntranet(e, l)
-                }
-              />
-            }
-          >
-            <List
-              size='small'
-              itemLayout='horizontal'
-              dataSource={(l in intranetLegend ? intranetLegend[l] : []).map(d => {
-                return { title: d[0], img: d[1], desc: d[2], layer: l }
-              })}
-              renderItem={item => (
-                <List.Item 
-                  extra={
-                    currHiddenIntranet &&
-                    (<Button 
-                      type='text' 
-                      shape='circle'
-                      size='small' 
-                      icon={
-                        currHiddenIntranet[item.layer].includes(item.title) ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                      }
-                      onClick={
-                        currHiddenIntranet[item.layer].includes(item.title) ? 
-                          () => unhideIntranet(item.layer, item.title) :
-                          () => hideIntranet(item.layer, item.title)
-                      } 
-                    />)
-                  }
-                >
-                  <List.Item.Meta
-                    avatar={<Avatar src={item.img} shape='square' size={24} />}
-                    title={<Text>{item.title}</Text>}
-                  />
-                </List.Item>
-              )}
-            />
-          </Panel>
-        ))}
-      </Collapse>)}
-      {tradeAreas.length > 0 && (<Divider orientation='left'>
-        Trade Areas
-      </Divider>)}
-      {/* {
-        tradeAreas.length > 0 ?
-          (
-            <Collapse>
-              {tradeAreas.map(ta => (
-                <Panel
-                  header={ta}
-                  key={ta}
-                  extra={
-                    <Button
-                      size='small'
-
-                    >
-
-                    </Button>
-                    currHiddenTAs[ta].length === Object.keys(taSectorSA1Map[ta]).length ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                  }
-                >
-
-                </Panel>
-              ))}
-            </Collapse>
-          )
-        :
-          <></>
-      } */}
-      {tradeAreas.length > 0 && (<Collapse>
-        <Panel 
-            header='All trade areas' 
-            key='0'
-            extra={
-              <Button 
-                type='text'
-                shape='circle'
-                size='small'
-                icon={
-                  currHiddenTAs.length === tradeAreas.length ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                }
-                onClick={
-                  currHiddenTAs.length === tradeAreas.length ? (e) => unhideAllTAs(e) : (e) => hideAllTAs(e)
-                }
-              />
-            }
-          >
-            <List
-              size='small'
-              itemLayout='horizontal'
-              dataSource={tradeAreas.map(k => {
-                return { title: k }
-              })}
-              renderItem={item => (
-                <List.Item 
-                  extra={
-                    <Button 
-                      type='text' 
-                      shape='circle' 
-                      size='small'
-                      icon={
-                        currHiddenTAs.includes(item.title) ? <EyeInvisibleOutlined /> : <EyeOutlined />
-                      }
-                      onClick={currHiddenTAs.includes(item.title) ? () => unhideTA(item.title) : () => hideTA(item.title)} 
-                    />
-                  }
-                >
-                  <List.Item.Meta
-                  title={<Text>{item.title}</Text>}
-                  />
-                </List.Item>
-              )}  
-            />
-          </Panel>
-      </Collapse>)}
+      {configs.map((c, i) => (
+        <LegendSub config={c} map={map} key={i} /> 
+      ))}
     </>
-  );
+  )
+
 }

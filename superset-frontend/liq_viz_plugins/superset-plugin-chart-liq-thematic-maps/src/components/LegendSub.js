@@ -7,7 +7,7 @@ import {
 
 const { Panel } = Collapse;
 
-function hideButton(check, hide, unhide) {
+function hideButton(check, hide, unhide, arg) {
   return (
     <Button 
       type='text'
@@ -16,7 +16,7 @@ function hideButton(check, hide, unhide) {
       icon={
         check ? <EyeInvisibleOutlined /> : <EyeOutlined />
       }
-      onClick={(e) => check ? unhide(e) : hide(e)}
+      onClick={(e) => check ? unhide(e, arg) : hide(e, arg)}
     />
   )
 }
@@ -24,41 +24,45 @@ function hideButton(check, hide, unhide) {
 export default function LegendSub(props) {
 
   const {
-    dividerHeader,
-    panelHeaders,
-    layers,
-    listData,
-    type,
-    initState,
+    config,
     map
   } = props;
 
-  const [currHidden, setCurrHidden] = useState(initState);
+  const [currHidden, setCurrHidden] = useState(config.init);
 
-  const updateMapFilter = (layer, layerType, hidden) => {
-    return;
+  const updateMapFilter = (layer, hidden) => {
+    if (!map.current) return;
+    if (hidden.length === 0) {
+      map.current.setFilter(layer, null);
+    } else {
+      let filterExpr = ['all'];
+      for (const k of hidden) filterExpr.push(
+        config.filterExpr(layer, k)
+      );
+      map.current.setFilter(layer, filterExpr);
+    }
   }
 
-  const hide = (i) => {
+  const hide = (e, i) => {
     if (currHidden[i.layer].includes(i.item)) return;
     let hidden = {...currHidden};
-    currHidden[x.layer].push(x.item);
-    updateMapFilter(i.layer, type, hidden[i.layer]);
+    currHidden[i.layer].push(i.item);
+    updateMapFilter(i.layer, hidden[i.layer]);
     setCurrHidden({...hidden});
   };
 
-  const unHide = (i) => {
+  const unHide = (e, i) => {
     let hidden = {...currHidden};
     hidden[i.layer] = hidden[i.layer].filter(x => !(x === i.item));
-    updateMapFilter(i.layer, type, hidden[i.layer]);
+    updateMapFilter(i.layer, hidden[i.layer]);
     setCurrHidden({...hidden});
   };
 
   const hideAll = (e, layer) => {
     e.stopPropagation();
     let hidden = {...currHidden};
-    hidden[layer] = [...allState[layer]];
-    updateMapFilter(layer, type, hidden[layer]);
+    hidden[layer] = [...config.layers[layer]];
+    updateMapFilter(layer, hidden[layer]);
     setCurrHidden({...hidden});
   };
 
@@ -66,39 +70,41 @@ export default function LegendSub(props) {
     e.stopPropagation();
     let hidden = {...currHidden};
     hidden[layer] = [];
-    updateMapFilter(layer, type, []);
+    updateMapFilter(layer, []);
     setCurrHidden({...hidden});
   }
 
   return (
     <>
       <Divider orientation='left'>
-        {dividerHeader}
+        {config.header}
       </Divider>
       <Collapse>
-        {Object.keys(layers).map((l, i) => (
+        {Object.keys(config.layers).map((l, i) => (
           <Panel
-            header={panelHeaders[l]}
+            header={config.panelHeaders[i]}
             key={i}
             extra={
               hideButton(
-                currHidden[l].length === layers[l].length,
+                currHidden[l].length === config.layers[l].length,
                 hideAll,
-                unhideAll
+                unhideAll,
+                l
               )
             }
           >
             <List 
               size='small'
               itemLayout='horizontal'
-              dataSource={listData[l]}
+              dataSource={config.listData[l]}
               renderItem={item => (
                 <List.Item 
                   extra={
                     hideButton(
-                      currHidden.includes(item.title),
+                      currHidden[l].includes(item.hide),
                       hide,
-                      unHide
+                      unHide,
+                      { layer: l, item: item.hide }
                     )
                   }
                 >

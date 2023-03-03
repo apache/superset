@@ -73,6 +73,7 @@ export default function transformProps(chartProps) {
   const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
   let tradeAreaSA1s = {};
   let taSectorSA1Map = {};
+  let taSectorColorMap = {};
 
   if (isTradeArea) {
     data.map(d => {
@@ -83,8 +84,10 @@ export default function transformProps(chartProps) {
 
       if (!(d.Centre in taSectorSA1Map)) taSectorSA1Map[d.Centre] = {};
       if (!(d.Sector in taSectorSA1Map[d.Centre])) taSectorSA1Map[d.Centre][d.Sector] = []
-      taSectorSA1Map[d.Centre][d.Sector].push(d[groupCol]);
+      taSectorSA1Map[d.Centre][d.Sector].push(d[groupCol].toString());
       
+      if (!(d.Centre in taSectorColorMap)) taSectorColorMap[d.Centre] = {};
+      if (!(d.Sector in taSectorColorMap[d.Centre])) taSectorColorMap[d.Centre][d.Sector] = tradeAreaColors[d.Colour];
     });
   };
 
@@ -105,6 +108,7 @@ export default function transformProps(chartProps) {
     tradeAreas,
     tradeAreaSA1s,
     taSectorSA1Map,
+    taSectorColorMap,
     opacity,
     latitude,
     longitude,

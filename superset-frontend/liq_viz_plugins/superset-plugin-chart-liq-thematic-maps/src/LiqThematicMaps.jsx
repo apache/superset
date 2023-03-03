@@ -87,7 +87,8 @@ export default function LiqThematicMaps(props) {
     opacity, // opacity value for thematic
     tradeAreas, // trade area data if any
     tradeAreaSA1s, // trade area SA1 data
-    taSectorSA1Map, // for each treade area sector, list of constituent SA1s
+    taSectorSA1Map, // for each centre trade area sector, list of constituent SA1s
+    taSectorColorMap, // for each centre trade area, map from sector to colour
     latitude, // starting lat
     longitude, // starting lng,
     zoom, //starting zoom
@@ -143,6 +144,7 @@ export default function LiqThematicMaps(props) {
             tradeAreas={tradeAreas} 
             thematicData={thematicLegend}
             taSectorSA1Map={taSectorSA1Map}
+            taSectorColorMap={taSectorColorMap}
             colorMap={reverseMap} 
             thematicCol={metricCol}
             groupCol={groupCol}
@@ -331,22 +333,6 @@ export default function LiqThematicMaps(props) {
       setRenderedIntranetLayers(intranetLayers ? [...intranetLayers] : []);
 
     });
-
-    // tradeAreas.map(ta => {
-    //   map.current.on('mouseenter', ta, (e) => {
-    //     if (ta in e.features[0]) {
-    //       map.current.getCanvas().style.cursor = 'pointer';
-    //       const coords = e.lngLat;
-    //       const sector = e.features[0].state[`${ta} Sector`];
-    //       const desc = `<strong>Sector</strong><p>${sector}</p>`;
-    //       taPopup.current.setLngLat(coords).setHTML(desc).addTo(map.current);
-    //     }
-    //   });
-    //   map.current.on('mouseleave', ta, () => {
-    //     map.current.getCanvas().style.cursor = '';
-    //     taPopup.current.remove();
-    //   });
-    // });
 
     map.current.on('mousemove', 'boundary_tileset', (e) => {
       if (e.features.length > 0) {
@@ -541,15 +527,14 @@ export default function LiqThematicMaps(props) {
           <div
             ref={mapContainer}
             style={{ padding: 24, height: height, width: '100%' }}
-          >
-            <SideDrawer 
-              drawerTitle={drawerTitle}
-              drawerContent={drawerContent}
-              open={drawerOpen}
-              setDrawerOpen={setDrawerOpen}
-              width={width}
-            />
-          </div>
+          />
+          <SideDrawer 
+            drawerTitle={drawerTitle}
+            drawerContent={drawerContent}
+            open={drawerOpen}
+            setDrawerOpen={setDrawerOpen}
+            width={width}
+          />
         </Content>
       </Layout>
     </Layout>
