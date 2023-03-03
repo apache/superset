@@ -74,6 +74,7 @@ export default function transformProps(chartProps) {
   let tradeAreaSA1s = {};
   let taSectorSA1Map = {};
   let taSectorColorMap = {};
+  let sectorCentroids = {};
 
   if (isTradeArea) {
     data.map(d => {
@@ -88,6 +89,24 @@ export default function transformProps(chartProps) {
       
       if (!(d.Centre in taSectorColorMap)) taSectorColorMap[d.Centre] = {};
       if (!(d.Sector in taSectorColorMap[d.Centre])) taSectorColorMap[d.Centre][d.Sector] = tradeAreaColors[d.Colour];
+
+      if (!(d.Sector in sectorCentroids) && ('lng' in d) && ('lat' in d)) sectorCentroids[d.Sector] = {
+        coordinates: [d.lng, d.lat],
+        centre: d.Centre
+      }
+    });
+  };
+
+  let taSectorCentroids = {
+    type: 'FeatureCollection',
+    features: []
+  };
+
+  for (const k of Object.keys(sectorCentroids)) {
+    taSectorCentroids.features.push({
+      type: 'Feautre',
+      geometry: {type: 'Point', coordinates: sectorCentroids[k].coordinates},
+      properties: {label: k, centre: sectorCentroids[k].centre}
     });
   };
 
@@ -109,6 +128,7 @@ export default function transformProps(chartProps) {
     tradeAreaSA1s,
     taSectorSA1Map,
     taSectorColorMap,
+    taSectorCentroids,
     opacity,
     latitude,
     longitude,

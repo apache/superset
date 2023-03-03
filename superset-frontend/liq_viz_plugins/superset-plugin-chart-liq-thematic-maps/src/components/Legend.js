@@ -199,7 +199,17 @@ export default function Legend(props) {
           }
         })])
       ),
-      filterExpr: (l, k) => ['!', ['in', ['get', groupCol], ['literal', taSectorSA1Map[l][k]]]]
+      filterExpr: (l, k) => ['!', ['in', ['get', groupCol], ['literal', taSectorSA1Map[l][k]]]],
+      textLayer: {
+        layer: 'trade_area_sector_centroids',
+        filterExpr: (l, k) => [
+          '!',
+          ['all',
+            ['==', ['get', 'label'], k],
+            ['==', ['get', 'centre'], l]
+          ] 
+        ]
+      }
     }
   }
 

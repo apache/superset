@@ -33,12 +33,16 @@ export default function LegendSub(props) {
   const updateMapFilter = (layer, hidden) => {
     if (!map.current) return;
     if (hidden.length === 0) {
+      if ('textLayer' in config) map.current.setFilter(config.textLayer.layer, null);
       map.current.setFilter(layer, null);
     } else {
       let filterExpr = ['all'];
-      for (const k of hidden) filterExpr.push(
-        config.filterExpr(layer, k)
-      );
+      let textFilterExpr = ['all'];
+      for (const k of hidden) {
+        filterExpr.push(config.filterExpr(layer, k));
+        if ('textLayer' in config) textFilterExpr.push(config.textLayer.filterExpr(layer, k));
+      }
+      if (textFilterExpr.length > 1) map.current.setFilter(config.textLayer.layer, textFilterExpr);
       map.current.setFilter(layer, filterExpr);
     }
   }

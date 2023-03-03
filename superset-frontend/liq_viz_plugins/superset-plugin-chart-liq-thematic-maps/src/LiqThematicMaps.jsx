@@ -89,6 +89,7 @@ export default function LiqThematicMaps(props) {
     tradeAreaSA1s, // trade area SA1 data
     taSectorSA1Map, // for each centre trade area sector, list of constituent SA1s
     taSectorColorMap, // for each centre trade area, map from sector to colour
+    taSectorCentroids, // geojson file for sector centroid points, used to label them in a symbol layer
     latitude, // starting lat
     longitude, // starting lng,
     zoom, //starting zoom
@@ -296,6 +297,11 @@ export default function LiqThematicMaps(props) {
         'url': liqSecrets.mapbox.tilesets.intranet
       });
 
+      map.current.addSource('trade_area_sector_centroids', {
+        'type': 'geojson',
+        'data': taSectorCentroids
+      });
+
       map.current.addLayer({
         'id': 'boundary_tileset',
         'type': 'fill',
@@ -327,6 +333,18 @@ export default function LiqThematicMaps(props) {
             ],
           }
         });
+      })
+
+      map.current.addLayer({
+        'id': 'trade_area_sector_centroids',
+        'type': 'symbol',
+        'source': 'trade_area_sector_centroids',
+        'layout': {
+          'text-field': ['get', 'label'],
+          'text-anchor': 'left',
+          'text-allow-overlap': true,
+          'text-size': 12
+        }
       })
 
       loadIntranetLayers(intranetLayers ? intranetLayers : []);
