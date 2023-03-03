@@ -41,7 +41,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { groupby, timeseries_limit_metric: timeseriesLimitMetric } = formData;
+  const { groupby } = formData;
   return buildQueryContext(formData, baseQueryObject => {
     /* the `pivotOperatorInRuntime` determines how to pivot the dataframe returned from the raw query.
        1. If it's a time compared query, there will return a pivoted dataframe that append time compared metrics. for instance:
