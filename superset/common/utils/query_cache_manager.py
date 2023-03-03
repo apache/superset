@@ -141,7 +141,7 @@ class QueryCacheManager:
 
         cache_value = _cache[region].get(key)
         if cache_value:
-            logger.info("Cache key: %s", key)
+            logger.debug("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
@@ -165,7 +165,7 @@ class QueryCacheManager:
                     error_msg_from_exception(ex),
                     exc_info=True,
                 )
-            logger.info("Serving from cache")
+            logger.debug("Serving from cache")
 
         if force_cached and not query_cache.is_loaded:
             logger.warning(
