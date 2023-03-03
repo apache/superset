@@ -211,9 +211,7 @@ class QueryContextProcessor:
             # todo(hugh): add logic to manage all sip68 models here
             result = query_context.datasource.exc_query(query_object.to_dict())
         else:
-            query_object_dict = query_object.to_dict()
-            query_object_dict.update({"datasource": query_context.datasource})
-            result = query_context.datasource.query(query_object_dict)
+            result = query_context.datasource.query(query_object.to_dict())
             query = result.query + ";\n\n"
 
         df = result.df

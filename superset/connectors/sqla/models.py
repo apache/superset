@@ -1146,7 +1146,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[ColumnTyping]] = None,
-        datasource: Optional[BaseDatasource] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1175,7 +1174,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        datasource_column_names = datasource.column_names if datasource else []
         extras = extras or {}
         time_grain = extras.get("time_grain_sqla")
 
@@ -1792,7 +1790,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             for col in filter_columns
             if col
             and not is_adhoc_column(col)
-            and col not in datasource_column_names
+            and col not in self.column_names
             and col not in applied_template_filters
         ] + rejected_adhoc_filters_columns
         applied_filter_columns = [
@@ -1800,7 +1798,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             for col in filter_columns
             if col
             and not is_adhoc_column(col)
-            and (col in datasource_column_names or col in applied_template_filters)
+            and (col in self.column_names or col in applied_template_filters)
         ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
