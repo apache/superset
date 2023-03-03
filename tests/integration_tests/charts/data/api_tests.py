@@ -1073,10 +1073,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
-        request_payload["queries"][0]["columns"] = [
-            ADHOC_COLUMN_FIXTURE,
-            INCOMPATIBLE_ADHOC_COLUMN_FIXTURE,
-        ]
+        request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
         request_payload["queries"][0]["filters"] = [
             {"col": INCOMPATIBLE_ADHOC_COLUMN_FIXTURE, "op": "IN", "val": ["Exciting"]},
             {"col": ADHOC_COLUMN_FIXTURE, "op": "IN", "val": ["male", "female"]},
