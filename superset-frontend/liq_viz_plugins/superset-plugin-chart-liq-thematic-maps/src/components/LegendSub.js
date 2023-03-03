@@ -86,7 +86,7 @@ export default function LegendSub(props) {
             key={i}
             extra={
               hideButton(
-                currHidden[l].length === config.layers[l].length,
+                (l in currHidden) && currHidden[l].length === config.layers[l].length,
                 hideAll,
                 unhideAll,
                 l
@@ -101,7 +101,7 @@ export default function LegendSub(props) {
                 <List.Item 
                   extra={
                     hideButton(
-                      currHidden[l].includes(item.hide),
+                      (l in currHidden) && currHidden[l].includes(item.hide),
                       hide,
                       unHide,
                       { layer: l, item: item.hide }
