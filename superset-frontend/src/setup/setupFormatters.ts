@@ -24,6 +24,7 @@ import {
   getTimeFormatterRegistry,
   smartDateFormatter,
   smartDateVerboseFormatter,
+  createIndianNumberFormatter,
 } from '@superset-ui/core';
 
 export default function setupFormatters() {
@@ -66,6 +67,38 @@ export default function setupFormatters() {
     .registerValue(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_NUMBER,
+      createIndianNumberFormatter({
+        prefix: '',
+        foldToUnit: false,
+        refoldAfterCrs: false,
+      }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_CURRENCY,
+      createIndianNumberFormatter({
+        prefix: '₹',
+        foldToUnit: false,
+        refoldAfterCrs: false,
+      }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_NUMBER_SHORT,
+      createIndianNumberFormatter({
+        prefix: '',
+        foldToUnit: true,
+        refoldAfterCrs: true,
+      }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_CURRENCY_SHORT,
+      createIndianNumberFormatter({
+        prefix: '₹',
+        foldToUnit: true,
+        refoldAfterCrs: false,
+      }),
     );
 
   getTimeFormatterRegistry()
