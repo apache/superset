@@ -39,6 +39,7 @@ Base = declarative_base()
 
 class Dashboard(Base):
     __tablename__ = "dashboards"
+
     id = sa.Column(sa.Integer, primary_key=True)
     json_metadata = sa.Column(sa.Text)
 
