@@ -23,6 +23,7 @@ import {
   FeatureFlag,
   Filters,
   FilterState,
+  getColumnLabel,
   isFeatureEnabled,
   NativeFilterType,
   NO_TIME_RANGE,
@@ -146,8 +147,8 @@ const getAppliedColumns = (chart: any): Set<string> =>
 
 const getRejectedColumns = (chart: any): Set<string> =>
   new Set(
-    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
-      (filter: any) => filter.column,
+    (chart?.queriesResponse?.[0]?.rejected_filters || []).map((filter: any) =>
+      getColumnLabel(filter.column),
     ),
   );
 
