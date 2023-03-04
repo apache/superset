@@ -165,6 +165,8 @@ class QueryContextProcessor:
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,
+            "applied_filter_columns": cache.applied_filter_columns,
+            "rejected_filter_columns": cache.rejected_filter_columns,
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
