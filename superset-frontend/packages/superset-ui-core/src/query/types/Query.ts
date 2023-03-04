@@ -146,9 +146,6 @@ export interface QueryObject
   /** Free-form WHERE SQL: multiple clauses are concatenated by AND */
   where?: string;
 
-  /** extra metrics that should not be used for series */
-  extra_metrics?: QueryFormMetric[];
-
   /** Limit number of series */
   series_columns?: QueryFormColumn[];
   series_limit?: number;

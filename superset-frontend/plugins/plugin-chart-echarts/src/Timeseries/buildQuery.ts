@@ -70,14 +70,8 @@ export default function buildQuery(formData: QueryFormData) {
       formData,
       baseQueryObject,
     )
-      ? timeComparePivotOperator(formData, {
-          ...baseQueryObject,
-          extra_metrics,
-        })
-      : pivotOperator(formData, {
-          ...baseQueryObject,
-          extra_metrics,
-        });
+      ? timeComparePivotOperator(formData, baseQueryObject)
+      : pivotOperator(formData, baseQueryObject);
 
     const columns = [
       ...(isXAxisSet(formData) ? ensureIsArray(getXAxisColumn(formData)) : []),
@@ -107,7 +101,7 @@ export default function buildQuery(formData: QueryFormData) {
           resampleOperator(formData, baseQueryObject),
           renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
-          sortOperator(formData, { ...baseQueryObject, extra_metrics }),
+          sortOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),

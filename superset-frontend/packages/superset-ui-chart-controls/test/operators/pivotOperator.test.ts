@@ -192,10 +192,12 @@ test('pivot by x_axis with extra metrics', () => {
       {
         ...formData,
         x_axis: 'foo',
+        x_axis_sort: 'bar',
+        groupby: [],
+        timeseries_limit_metric: 'bar',
       },
       {
         ...queryObject,
-        extra_metrics: ['bar'],
         series_columns: [],
       },
     ),
