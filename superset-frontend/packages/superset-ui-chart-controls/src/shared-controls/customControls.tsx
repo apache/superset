@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import { ControlPanelState, ControlState, ControlStateMapping } from '../types';
 import { isTemporalColumn } from '../utils';
+import column from '@superset-ui/core/lib/query/types/Column';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -64,22 +65,35 @@ export const xAxisSortControl = {
         : t('X-Axis Sort By'),
     description: t('Decides which column to sort the base axis by.'),
     shouldMapStateToProps: () => true,
-    mapStateToProps: (
-      { controls }: { controls: ControlStateMapping },
-      controlState: ControlState,
-    ) => {
-      const choices = [
-        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-        ...ensureIsArray(controls?.timeseries_limit_metric?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
+    mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+      const { controls, datasource } = state;
+      const columns = [controls?.x_axis?.value as QueryFormColumn].filter(
+        Boolean,
+      );
+      const metrics = [
+        ...ensureIsArray(controls?.metrics?.value as QueryFormMetric),
+        controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
+      const options = [
+        ...columns.map(column => {
+          const value = getColumnLabel(column);
+          return {
+            value,
+            label: datasource?.verbose_map?.[value] || value,
+          };
+        }),
+        ...metrics.map(metric => {
+          const value = getMetricLabel(metric);
+          return {
+            value,
+            label: datasource?.verbose_map?.[value] || value,
+          };
+        }),
+      ];
+
       const shouldReset = !(
         typeof controlState.value === 'string' &&
-        choices.includes(controlState.value) &&
+        options.map(option => option.value).includes(controlState.value) &&
         !isTemporalColumn(
           getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
           controls?.datasource?.datasource,
@@ -88,10 +102,7 @@ export const xAxisSortControl = {
 
       return {
         shouldReset,
-        options: choices.map(entry => ({
-          value: entry,
-          label: entry,
-        })),
+        options,
       };
     },
     visibility: xAxisSortVisibility,
