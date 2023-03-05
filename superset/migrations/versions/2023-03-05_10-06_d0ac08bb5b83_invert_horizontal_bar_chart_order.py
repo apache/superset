@@ -37,6 +37,9 @@ from superset import db
 
 Base = declarative_base()
 
+ORIENTATION = "horizontal"
+CHART_TYPE = "echarts_timeseries_bar"
+
 
 class Slice(Base):
     """Declarative class to do query in upgrade"""
@@ -55,9 +58,10 @@ def upgrade():
         session.query(Slice)
         .filter(
             and_(
-                Slice.viz_type == "echarts_timeseries_bar",
+                Slice.viz_type == CHART_TYPE,
                 Slice.params.like("%x_axis_sort%"),
                 Slice.params.like("%x_axis_sort_asc%"),
+                Slice.params.like(f"%{ORIENTATION}%"),
             )
         )
         .all()
@@ -69,9 +73,9 @@ def upgrade():
             orientation = params.get("orientation")
             x_axis_sort = params.get("x_axis_sort")
             x_axis_sort_asc = params.get("x_axis_sort_asc", None)
-            if orientation == "horizontal" and x_axis_sort:
+            if orientation == ORIENTATION and x_axis_sort:
                 changes += 1
-                params["x_axis_sort_asc"] = False if x_axis_sort else True
+                params["x_axis_sort_asc"] = not x_axis_sort_asc
                 slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             print(e)
@@ -92,9 +96,10 @@ def downgrade():
         session.query(Slice)
         .filter(
             and_(
-                Slice.viz_type == "echarts_timeseries_bar",
+                Slice.viz_type == CHART_TYPE,
                 Slice.params.like("%x_axis_sort%"),
                 Slice.params.like("%x_axis_sort_asc%"),
+                Slice.params.like(f"%{ORIENTATION}%"),
             )
         )
         .all()
@@ -106,9 +111,9 @@ def downgrade():
             orientation = params.get("orientation")
             x_axis_sort = params.get("x_axis_sort")
             x_axis_sort_asc = params.pop("x_axis_sort_asc", None)
-            if orientation == "horizontal" and x_axis_sort:
+            if orientation == ORIENTATION and x_axis_sort:
                 changes += 1
-                params["x_axis_sort_asc"] = False if x_axis_sort else True
+                params["x_axis_sort_asc"] = not x_axis_sort_asc
                 slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:
             print(e)
