@@ -27,9 +27,13 @@ import {
   QueryFormMetric,
   t,
 } from '@superset-ui/core';
-import { ControlPanelState, ControlState, ControlStateMapping } from '../types';
+import {
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+  isDataset,
+} from '../types';
 import { isTemporalColumn } from '../utils';
-import column from '@superset-ui/core/lib/query/types/Column';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -67,6 +71,7 @@ export const xAxisSortControl = {
     shouldMapStateToProps: () => true,
     mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
       const { controls, datasource } = state;
+      const dataset = isDataset(datasource) ? datasource : undefined;
       const columns = [controls?.x_axis?.value as QueryFormColumn].filter(
         Boolean,
       );
@@ -79,14 +84,14 @@ export const xAxisSortControl = {
           const value = getColumnLabel(column);
           return {
             value,
-            label: datasource?.verbose_map?.[value] || value,
+            label: dataset?.verbose_map?.[value] || value,
           };
         }),
         ...metrics.map(metric => {
           const value = getMetricLabel(metric);
           return {
             value,
-            label: datasource?.verbose_map?.[value] || value,
+            label: dataset?.verbose_map?.[value] || value,
           };
         }),
       ];
