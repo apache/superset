@@ -31,6 +31,7 @@ import {
   BarsOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  RadiusSettingOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
 
@@ -154,6 +155,12 @@ export default function LiqThematicMaps(props) {
         );
         setDrawerOpen(true);
       }
+    },
+    {
+      icon: <RadiusSettingOutlined />,
+      label: <span>Radius</span>,
+      key: '2',
+      onClick: () => {}
     }
   ];
 
