@@ -19,6 +19,7 @@ from typing import Type
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.security.decorators import has_access_api
 
 from superset.dashboards.filter_state.commands.create import CreateFilterStateCommand
 from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCommand
@@ -26,6 +27,7 @@ from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
 from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.temporary_cache.api import TemporaryCacheRestApi
+from superset.views.base import api
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     def get_delete_command(self) -> Type[DeleteFilterStateCommand]:
         return DeleteFilterStateCommand
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state", methods=["POST"])
     @protect()
     @safe
@@ -97,6 +101,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().post(pk)
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=["PUT"])
     @protect()
     @safe
@@ -153,6 +159,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().put(pk, key)
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=["GET"])
     @protect()
     @safe
@@ -199,6 +207,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().get(pk, key)
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=["DELETE"])
     @protect()
     @safe
