@@ -35,7 +35,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     class_permission_name = "DashboardFilterStateRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Filter State"
-    allow_browser_login = True
 
     def get_create_command(self) -> Type[CreateFilterStateCommand]:
         return CreateFilterStateCommand
