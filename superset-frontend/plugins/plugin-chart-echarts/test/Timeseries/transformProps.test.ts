@@ -87,6 +87,44 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
+  it('should transform chart props for horizontal viz', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        orientation: 'horizontal',
+      },
+    });
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+      expect.objectContaining({
+        width: 800,
+        height: 600,
+        echartOptions: expect.objectContaining({
+          legend: expect.objectContaining({
+            data: ['San Francisco', 'New York'],
+          }),
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: [
+                [1, 599616000000],
+                [3, 599916000000],
+              ],
+              name: 'San Francisco',
+            }),
+            expect.objectContaining({
+              data: [
+                [2, 599616000000],
+                [4, 599916000000],
+              ],
+              name: 'New York',
+            }),
+          ]),
+          yAxis: expect.objectContaining({ inverse: true }),
+        }),
+      }),
+    );
+  });
+
   it('should add a formula annotation to viz', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
