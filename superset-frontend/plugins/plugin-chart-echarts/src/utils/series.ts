@@ -113,6 +113,7 @@ export function extractSeries(
   opts: {
     fillNeighborValue?: number;
     xAxis?: string;
+    extraMetricLabels?: string[];
     removeNulls?: boolean;
     stack?: StackType;
     totalStackedValues?: number[];
@@ -122,6 +123,7 @@ export function extractSeries(
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
+    extraMetricLabels = [],
     removeNulls = false,
     stack = false,
     totalStackedValues = [],
@@ -135,6 +137,7 @@ export function extractSeries(
 
   return Object.keys(rows[0])
     .filter(key => key !== xAxis && key !== DTTM_ALIAS)
+    .filter(key => !extraMetricLabels.includes(key))
     .map(key => ({
       id: key,
       name: key,
