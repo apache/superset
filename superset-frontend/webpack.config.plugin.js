@@ -53,7 +53,7 @@ const BUILD_DIR = path.resolve(
  ** APP VERSION BASE is a base from which the app inherited the code base
  ** (i.e. 1.3 => was inherited from Superset 1.3)
  */
-const APP_VERSION_BASE = '2.0';
+const APP_VERSION_BASE = '2.0.1';
 const date = new Date();
 const month = date.getMonth();
 const day = date.getDate();
