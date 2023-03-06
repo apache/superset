@@ -255,29 +255,37 @@ export const exportChartPlugin = ({
   force = false,
   ownState = {},
 }) => {
-  let url;
-  let payload;
+  // let url;
+  // let payload;
 
-  if (shouldUseLegacyApi(formData)) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      allowDomainSharding: false,
-    });
-    payload = formData;
+  // TODO: DODO check how this workds in plugin
+  // Looks like shouldUseLegacyApi is not needed anymore
+  console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
+  // if (shouldUseLegacyApi(formData)) {
+  //   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+  //   url = getExploreUrl({
+  //     formData,
+  //     endpointType,
+  //     allowDomainSharding: false,
+  //   });
+  //   payload = formData;
 
-    return getCSV(url, payload, true);
-  }
+  //   return getCSV(url, payload, true);
+  // }
 
-  url = '/api/v1/chart/data';
-  payload = buildV1ChartDataPayload({
+  const url = '/api/v1/chart/data';
+  const payload = buildV1ChartDataPayload({
     formData,
     force,
     resultFormat,
     resultType,
     ownState,
   });
+
+  console.groupCollapsed('EXPORT CSV');
+  console.log('url', url);
+  console.log('payload', payload);
+  console.groupEnd();
 
   return getCSV(url, payload, false);
 };
@@ -290,68 +298,37 @@ export const exportChart = ({
   force = false,
   ownState = {},
 }) => {
-  let url;
-  let payload;
+  const exportResultPromise = exportChartPlugin({
+    formData,
+    resultFormat,
+    resultType,
+    force,
+    ownState,
+  });
 
-  if (shouldUseLegacyApi(formData)) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      allowDomainSharding: false,
+  return exportResultPromise
+    .then(csvExportResult => {
+      if (csvExportResult) {
+        const universalBOM = '\uFEFF';
+        const alteredResult = universalBOM + csvExportResult;
+        const csvFile = new Blob([alteredResult], {
+          type: 'text/csv;charset=utf-8;',
+        });
+
+        FileSaver.saveAs(
+          csvFile,
+          generateFileName(
+            `${formData.datasource}_${formData.viz_type}`,
+            'csv',
+          ),
+        );
+      } else {
+        console.log('csvExportResult error', csvExportResult);
+      }
+    })
+    .catch(csvExportError => {
+      console.log('csvExportError', csvExportError);
     });
-    payload = formData;
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-    });
-  }
-
-  console.log(
-    'exportChart [ process.env.business => ',
-    process.env.business,
-    ']',
-  );
-  if (process.env.business === undefined) {
-    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
-  } else {
-    const exportResultPromise = exportChartPlugin({
-      formData,
-      resultFormat,
-      resultType,
-      force,
-      ownState,
-    });
-
-    exportResultPromise
-      .then(csvExportResult => {
-        if (csvExportResult) {
-          const universalBOM = '\uFEFF';
-          const alteredResult = universalBOM + csvExportResult;
-          const csvFile = new Blob([alteredResult], {
-            type: 'text/csv;charset=utf-8;',
-          });
-
-          FileSaver.saveAs(
-            csvFile,
-            generateFileName(
-              `${formData.datasource}_${formData.viz_type}`,
-              'csv',
-            ),
-          );
-        } else {
-          console.log('csvExportResult error', csvExportResult);
-        }
-      })
-      .catch(csvExportError => {
-        console.log('csvExportError', csvExportError);
-      });
-  }
 };
 
 export const exploreChart = formData => {
