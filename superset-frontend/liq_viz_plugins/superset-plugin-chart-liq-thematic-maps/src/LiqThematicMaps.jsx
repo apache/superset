@@ -29,8 +29,6 @@ import entity from '../../liq_data/entity.json';
 // UI imports
 import {
   BarsOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   RadiusSettingOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
@@ -113,19 +111,12 @@ export default function LiqThematicMaps(props) {
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
 
-  const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContent, setDrawerContent] = useState(<></>);
   const [drawerTitle, setDrawerTitle] = useState('');
   const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
-    {
-      icon: collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
-      label: <span>{collapsed ? 'Uncollapse' : 'Collapse'}</span>,
-      key: '0',
-      onClick: () => setCollapsed(!collapsed)
-    },
     {
       icon: <BarsOutlined />,
       label: <span>Legend</span>,
@@ -535,8 +526,7 @@ export default function LiqThematicMaps(props) {
       <Sider 
         trigger={null} 
         collapsible 
-        collapsed={collapsed} 
-        onCollapse={() => setCollapsed(!collapsed)}
+        collapsed
       >
         <Menu mode="inline" theme='dark'>
           {items.map(i => (
