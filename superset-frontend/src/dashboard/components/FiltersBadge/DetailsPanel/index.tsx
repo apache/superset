@@ -125,7 +125,7 @@ const DetailsPanelPopover = ({
           <div>
             <SectionName>
               {t(
-                'Applied Cross Filters (%d)',
+                'Applied cross-filters (%d)',
                 appliedCrossFilterIndicators.length,
               )}
             </SectionName>
@@ -170,7 +170,7 @@ const DetailsPanelPopover = ({
       visible={visible}
       onVisibleChange={handlePopoverStatus}
       placement="bottomRight"
-      trigger="click"
+      trigger="hover"
     >
       {children}
     </Popover>
