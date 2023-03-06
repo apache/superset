@@ -56,6 +56,7 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
+from dotenv import load_dotenv
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -71,6 +72,7 @@ from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
@@ -442,7 +444,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "VERSIONED_EXPORT": True,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
+    "ALERT_REPORTS": True,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -874,21 +876,29 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
 
-class CeleryConfig:  # pylint: disable=too-few-public-methods
-    broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab",)
-    result_backend = "db+sqlite:///celery_results.sqlite"
-    worker_prefetch_multiplier = 1
-    task_acks_late = False
+class CeleryConfig(object):  # pylint: disable=too-few-public-methods
+    broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    imports = (
+        'superset.sql_lab',
+        'superset.tasks',
+    )
+    result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    worker_log_level = 'DEBUG'
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
     task_annotations = {
-        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
-        "email_reports.send": {
-            "rate_limit": "1/s",
-            "time_limit": int(timedelta(seconds=120).total_seconds()),
-            "soft_time_limit": int(timedelta(seconds=150).total_seconds()),
-            "ignore_result": True,
+        'sql_lab.get_sql_results': {
+            'rate_limit': '100/s',
         },
+        'email_reports.send': {
+            'rate_limit': '1/s',
+            'time_limit': 120,
+            'soft_time_limit': 150,
+            'ignore_result': True,
+        }
     }
     beat_schedule = {
         "email_reports.schedule_hourly": {
@@ -1083,13 +1093,13 @@ ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
-SMTP_HOST = "localhost"
-SMTP_STARTTLS = True
-SMTP_SSL = False
-SMTP_USER = "superset"
-SMTP_PORT = 25
-SMTP_PASSWORD = "superset"
-SMTP_MAIL_FROM = "superset@superset.com"
+SMTP_HOST = "smtp.gmail.com"
+SMTP_STARTTLS = False
+SMTP_SSL = True
+SMTP_USER = "******"
+SMTP_PORT = 465
+SMTP_PASSWORD = "*****"
+SMTP_MAIL_FROM = "*******"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
 SMTP_SSL_SERVER_AUTH = False
@@ -1306,7 +1316,7 @@ WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
 
 # The base URL to query for accessing the user interface
-WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
+WEBDRIVER_BASEURL = "http://0.0.0.0:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time selenium will wait for the page to load and render for the email report.

@@ -77,6 +77,9 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
                 if isinstance(value, str):
                     df.at[idx, name] = escape_value(value)
 
+    if 'index' in kwargs.keys() and not kwargs['index']:
+        df.reset_index()
+
     return df.to_csv(**kwargs)
 
 
