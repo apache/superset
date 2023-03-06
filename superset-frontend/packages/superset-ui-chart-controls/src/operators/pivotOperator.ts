@@ -30,9 +30,10 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   formData,
   queryObject,
 ) => {
-  const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  const extraMetrics = extractExtraMetrics(formData);
-  metricLabels.push(...extraMetrics.map(getMetricLabel));
+  const metricLabels = [
+    ...ensureIsArray(queryObject.metrics),
+    ...extractExtraMetrics(formData),
+  ].map(getMetricLabel);
   const xAxisLabel = getXAxisLabel(formData);
   const columns = queryObject.series_columns || queryObject.columns;
 
