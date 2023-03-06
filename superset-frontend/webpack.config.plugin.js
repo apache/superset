@@ -153,6 +153,7 @@ const plugins = [
   }),
   new MiniCssExtractPlugin({
     filename: '[name].[hash].css',
+    linkType: 'text/css',
   }),
   // new OptimizeCSSAssetsPlugin(),
 ];
@@ -211,12 +212,6 @@ function addPreamble(entry) {
 }
 const config = {
   entry: {
-    // supersetDashboardPlugin: path.join(
-    //   ROOT_DIR,
-    //   '/src/Superstructure/main.tsx',
-    // ),
-    // preamble: PREAMBLE,
-    // theme: path.join(ROOT_DIR, '/src/theme.ts'),
     supersetDashboardPlugin: addPreamble('/src/Superstructure/main.tsx'),
   },
   output,
@@ -229,6 +224,16 @@ const config = {
   },
   optimization: {
     usedExports: 'global',
+    splitChunks: {
+      cacheGroups: {
+        styles: {
+          name: 'supersetDashboardPlugin',
+          type: 'css/mini-extract',
+          chunks: 'all',
+          enforce: true,
+        },
+      },
+    },
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
@@ -307,14 +312,14 @@ const config = {
         test: /\.css$/,
         include: [ROOT_DIR, /superset-ui.+\/src/],
         use: [
-          {
-            loader: 'style-loader',
-            options: {
-              injectType: 'singletonStyleTag',
-              insert: 'body',
-            },
-          },
-          // MiniCssExtractPlugin.loader,
+          // {
+          //   loader: 'style-loader',
+          //   options: {
+          //     injectType: 'singletonStyleTag',
+          //     insert: 'body',
+          //   },
+          // },
+          MiniCssExtractPlugin.loader,
           {
             loader: 'css-loader',
             options: {
