@@ -41,6 +41,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   styled,
@@ -493,7 +494,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
               emitCrossFilters && !valueRange && !isMetric
-                ? () => toggleFilter(key, value)
+                ? () => {
+                    // allow selecting text in a cell
+                    if (!getSelectedText()) {
+                      toggleFilter(key, value);
+                    }
+                  }
                 : undefined,
             onContextMenu: (e: MouseEvent) => {
               if (handleContextMenu) {
