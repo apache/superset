@@ -159,8 +159,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().put(pk, key)
 
-    @api
-    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=["GET"])
     @protect()
     @safe
@@ -207,8 +205,6 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().get(pk, key)
 
-    @api
-    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=["DELETE"])
     @protect()
     @safe
