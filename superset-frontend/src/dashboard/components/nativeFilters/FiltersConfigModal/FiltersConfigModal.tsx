@@ -89,7 +89,11 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
-export const ALLOW_DEPENDENCIES = ['filter_select'];
+export const ALLOW_DEPENDENCIES = [
+  'filter_range',
+  'filter_select',
+  'filter_time',
+];
 
 const DEFAULT_EMPTY_FILTERS: string[] = [];
 const DEFAULT_REMOVED_FILTERS: Record<string, FilterRemoval> = {};
