@@ -21,11 +21,10 @@ import React, {
   ReactNode,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -36,10 +35,10 @@ import SliceHeaderControls, {
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
-import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
+import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -173,14 +172,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
-  const indicator = useMemo(
-    () => ({
-      value: crossFilterValue,
-      name: t('Emitted values'),
-    }),
-    [crossFilterValue],
-  );
-
   const canExplore = !editMode && supersetCanExplore;
 
   useEffect(() => {
@@ -251,10 +242,19 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               <Tooltip
                 placement="top"
                 title={
-                  <FilterIndicator
-                    indicator={indicator}
-                    text={t('Click to clear emitted filters')}
-                  />
+                  <div>
+                    <span>{t('Emitted values: ')}</span>
+                    <span>{getFilterValueForDisplay(crossFilterValue)}</span>
+                    <div
+                      css={(theme: SupersetTheme) =>
+                        css`
+                          margin-top: ${theme.gridUnit * 2}px;
+                        `
+                      }
+                    >
+                      {t('Click to clear emitted filters')}
+                    </div>
+                  </div>
                 }
               >
                 <CrossFilterIcon
