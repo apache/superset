@@ -7,7 +7,6 @@ import Routes from './Routes';
 export default function Main({
   navigation,
   store,
-  theme,
   basename,
 }: MainComponentProps) {
   window.featureFlags = {
@@ -17,12 +16,7 @@ export default function Main({
 
   return navigation ? (
     <>
-      <Routes
-        basename={basename}
-        navigation={navigation}
-        store={store}
-        theme={theme}
-      />
+      <Routes basename={basename} navigation={navigation} store={store} />
     </>
   ) : (
     <div>There is no navigation defined</div>

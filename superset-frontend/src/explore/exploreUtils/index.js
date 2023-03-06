@@ -331,7 +331,9 @@ export const exportChart = ({
     exportResultPromise
       .then(csvExportResult => {
         if (csvExportResult) {
-          const csvFile = new Blob([csvExportResult], {
+          const universalBOM = '\uFEFF';
+          const alteredResult = universalBOM + csvExportResult;
+          const csvFile = new Blob([alteredResult], {
             type: 'text/csv;charset=utf-8;',
           });
 

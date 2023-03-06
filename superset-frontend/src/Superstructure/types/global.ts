@@ -27,7 +27,7 @@ export type MainRoute = MicrofrontendNavigation['main'];
 export interface MainComponentProps {
   navigation: MicrofrontendNavigation;
   store: any;
-  theme: any;
+  theme?: any;
   basename: string;
 }
 

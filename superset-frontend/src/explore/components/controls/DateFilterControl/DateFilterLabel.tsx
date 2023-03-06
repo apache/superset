@@ -74,9 +74,10 @@ const fetchTimeRange = async (timeRange: string) => {
       method: 'get',
       url: endpoint,
     });
+
     const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
+      response?.result?.since || '',
+      response?.result?.until || '',
     );
     return {
       value: formatTimeRange(timeRangeString),

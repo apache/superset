@@ -11,7 +11,6 @@ import {
 import { MicrofrontendParams } from 'src/Superstructure/types/global';
 import { composeAPIConfig } from 'src/Superstructure/config';
 
-import { theme } from 'src/preamble';
 import { store } from 'src/Superstructure/store';
 
 import LeftNavigation from 'src/Superstructure/components/LeftNavigation/index';
@@ -35,6 +34,7 @@ import {
 } from 'src/Superstructure/Root/styles';
 import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
 
+import '../../theme';
 // import '../../preamble';
 
 const NAV_CONFIG = getNavigationConfig();
@@ -118,7 +118,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                 <Main
                   navigation={navigation}
                   store={store}
-                  theme={theme}
+                  // theme={theme}
                   basename={basename}
                 />
               </DashboardComponentWrapper>

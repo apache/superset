@@ -136,8 +136,8 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
                 <span class="navigation_linkBorderBlock">Аналитика (бета)</span>
               </a>
             </li>
-      </ul>
-</header>
+          </ul>
+        </header>
         <section class="content">
           <section class="middleColumn">
             <div class="middleColumn_padding">

@@ -12,6 +12,7 @@ import {
 } from 'src/Superstructure/components/EmptyState';
 
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { LimitWarning } from 'src/Superstructure/components/LimitWarning'
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -163,7 +164,7 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, chartId } = this.props;
+    const { chartAlert, chartStatus, chartId, formData: { row_limit } } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -190,6 +191,9 @@ class ChartRenderer extends React.Component {
     const currentFormData =
       chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     const vizType = currentFormData.viz_type || this.props.vizType;
+
+    const rowCount = Number(queriesResponse[0].rowcount) || 0
+    const rowLimit = Number(row_limit) || 0
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
     // container. It may cause css conflicts as in the case of legacy table chart.
@@ -257,6 +261,10 @@ class ChartRenderer extends React.Component {
           <EmptyStateSmallPlugin title={noResultTitle} image={noResultImage} />
         );
       }
+    }
+
+    if ((rowCount > 0) && (rowLimit > 0) && (rowCount >= rowLimit)) {
+      return <LimitWarning limit={rowLimit} />
     }
 
     return (

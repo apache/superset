@@ -204,12 +204,20 @@ const babelLoader = {
   },
 };
 
+const PREAMBLE = [path.join(ROOT_DIR, '/src/preamble.ts')];
+
+function addPreamble(entry) {
+  return PREAMBLE.concat([path.join(ROOT_DIR, entry)]);
+}
 const config = {
   entry: {
-    supersetDashboardPlugin: path.join(
-      ROOT_DIR,
-      '/src/Superstructure/main.tsx',
-    ),
+    // supersetDashboardPlugin: path.join(
+    //   ROOT_DIR,
+    //   '/src/Superstructure/main.tsx',
+    // ),
+    // preamble: PREAMBLE,
+    // theme: path.join(ROOT_DIR, '/src/theme.ts'),
+    supersetDashboardPlugin: addPreamble('/src/Superstructure/main.tsx'),
   },
   output,
   stats: 'minimal',
@@ -299,7 +307,14 @@ const config = {
         test: /\.css$/,
         include: [ROOT_DIR, /superset-ui.+\/src/],
         use: [
-          MiniCssExtractPlugin.loader,
+          {
+            loader: 'style-loader',
+            options: {
+              injectType: 'singletonStyleTag',
+              insert: 'body',
+            },
+          },
+          // MiniCssExtractPlugin.loader,
           {
             loader: 'css-loader',
             options: {
@@ -312,7 +327,14 @@ const config = {
         test: /\.less$/,
         include: ROOT_DIR,
         use: [
-          MiniCssExtractPlugin.loader,
+          // MiniCssExtractPlugin.loader,
+          {
+            loader: 'style-loader',
+            options: {
+              injectType: 'singletonStyleTag',
+              insert: 'head',
+            },
+          },
           {
             loader: 'css-loader',
             options: {

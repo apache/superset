@@ -35,21 +35,35 @@ const assembleEndpoint = (
   return endpoint;
 };
 
+// DODO-changed
 export const updateFilterKey = (
   dashId: string,
   value: string,
   key: string,
   tabId?: string,
-) =>
-  SupersetClient.put({
-    endpoint: assembleEndpoint(dashId, key, tabId),
-    jsonPayload: { value },
+) => {
+  if (process.env.business === undefined) {
+    return SupersetClient.put({
+      endpoint: assembleEndpoint(dashId, key, tabId),
+      jsonPayload: { value },
+    })
+      .then(r => r.json.message)
+      .catch(err => {
+        logging.error(err);
+        return null;
+      });
+  }
+  return API_HANDLER.SupersetClient({
+    method: 'put',
+    url: assembleEndpoint(dashId, key, tabId),
+    body: { value },
   })
-    .then(r => r.json.message)
+    .then(result => result)
     .catch(err => {
       logging.error(err);
       return null;
     });
+};
 
 // DODO-changed
 export const createFilterKey = (

@@ -12,7 +12,6 @@ import { MainComponentProps } from 'src/Superstructure/types/global';
 export default function Routes({
   navigation,
   store,
-  theme,
   basename,
 }: MainComponentProps) {
   const NAVIGATION_CONFIG = getNavigationConfig();
@@ -41,7 +40,6 @@ export default function Routes({
           >
             <DashboardApp
               store={store}
-              theme={theme}
               dashboardIdOrSlug={getDashboardIdOrSlug({
                 navigation,
                 route: mappedRoute.route,
