@@ -26,6 +26,7 @@ from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
 from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.temporary_cache.api import TemporaryCacheRestApi
+from superset.views.base import api
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     class_permission_name = "DashboardFilterStateRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Filter State"
+    allow_browser_login = True
 
     def get_create_command(self) -> Type[CreateFilterStateCommand]:
         return CreateFilterStateCommand
@@ -48,6 +50,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         return DeleteFilterStateCommand
 
     @expose("/<int:pk>/filter_state", methods=["POST"])
+    @api
     @protect()
     @safe
     @event_logger.log_this_with_context(
