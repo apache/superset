@@ -30,6 +30,7 @@ import {
   isAdhocColumn,
   BinaryQueryObjectFilterClause,
   t,
+  getSelectedText,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -353,6 +354,11 @@ export default function PivotTableChart(props: PivotTableProps) {
       isGrandTotal: boolean,
     ) => {
       if (isSubtotal || isGrandTotal || !emitCrossFilters) {
+        return;
+      }
+
+      // allow selecting text in a cell
+      if (getSelectedText()) {
         return;
       }
 
