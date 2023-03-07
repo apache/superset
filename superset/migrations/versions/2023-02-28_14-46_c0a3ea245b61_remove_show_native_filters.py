@@ -28,10 +28,20 @@ down_revision = "f3c2d8ec8595"
 
 import json
 
+import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
-from superset.models.dashboard import Dashboard
+
+Base = declarative_base()
+
+
+class Dashboard(Base):
+    __tablename__ = "dashboards"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    json_metadata = sa.Column(sa.Text)
 
 
 def upgrade():
@@ -45,7 +55,6 @@ def upgrade():
             if "show_native_filters" in json_metadata:
                 del json_metadata["show_native_filters"]
                 dashboard.json_metadata = json.dumps(json_metadata)
-                session.merge(dashboard)
         except Exception:  # pylint: disable=broad-except
             pass
 
