@@ -24,7 +24,7 @@ import {
   getTimeFormatterRegistry,
   smartDateFormatter,
   smartDateVerboseFormatter,
-  createD3NumberFormatter,
+  createIndianNumberFormatter,
 } from '@superset-ui/core';
 
 export default function setupFormatters() {
@@ -69,27 +69,35 @@ export default function setupFormatters() {
       createDurationFormatter({ formatSubMilliseconds: true }),
     )
     .registerValue(
-      'CURRENCY_INDIA',
-      createD3NumberFormatter({
-        locale: {
-          decimal: '.',
-          thousands: ',',
-          grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-          currency: ['₹', ''],
-        },
-        formatString: '$,.0f',
+      NumberFormats.INDIAN_FORMAT_NUMBER,
+      createIndianNumberFormatter({
+        prefix: '',
+        foldToUnit: false,
+        refoldAfterCrs: false,
       }),
     )
     .registerValue(
-      'NUMBER_INDIA',
-      createD3NumberFormatter({
-        locale: {
-          decimal: '.',
-          thousands: ',',
-          grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-          currency: ['', ''],
-        },
-        formatString: '$,.0f',
+      NumberFormats.INDIAN_FORMAT_CURRENCY,
+      createIndianNumberFormatter({
+        prefix: '₹',
+        foldToUnit: false,
+        refoldAfterCrs: false,
+      }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_NUMBER_SHORT,
+      createIndianNumberFormatter({
+        prefix: '',
+        foldToUnit: true,
+        refoldAfterCrs: true,
+      }),
+    )
+    .registerValue(
+      NumberFormats.INDIAN_FORMAT_CURRENCY_SHORT,
+      createIndianNumberFormatter({
+        prefix: '₹',
+        foldToUnit: true,
+        refoldAfterCrs: false,
       }),
     );
 
