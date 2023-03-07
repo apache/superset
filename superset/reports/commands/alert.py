@@ -70,24 +70,31 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         :raises AlertValidatorConfigError: The validator query data is not valid
         """
-        try:
-            self.validate()
+        # try:
+        self.validate()
 
-            if self._is_validator_not_null:
-                self._report_schedule.last_value_row_json = str(self._result)
-                return self._result not in (0, None, np.nan)
-            self._report_schedule.last_value = self._result
-            try:
-                operator = json.loads(self._report_schedule.validator_config_json)["op"]
-                threshold = json.loads(self._report_schedule.validator_config_json)[
-                    "threshold"
-                ]
-                return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
-            except (KeyError, json.JSONDecodeError) as ex:
-                raise AlertValidatorConfigError() from ex
-        except Exception as ex:
-            # raise_incident(app.config, self._report_schedule, ex)
-            logger.error("SAMRA EXCEPT ERROR CHANGED", str(ex))
+        if self._is_validator_not_null:
+            self._report_schedule.last_value_row_json = str(self._result)
+            return self._result not in (0, None, np.nan)
+        self._report_schedule.last_value = self._result
+        try:
+            operator = json.loads(self._report_schedule.validator_config_json)["op"]
+            threshold = json.loads(self._report_schedule.validator_config_json)[
+                "threshold"
+            ]
+            # if OPERATOR_FUNCTIONS[operator](self._result, threshold) == True:
+            # raise_incident(app.config, self._report_schedule)
+            logger.info(
+                "CONDITION LOGGER",
+                OPERATOR_FUNCTIONS[operator](self._result, threshold),
+            )
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+            # type: ignore
+        except (KeyError, json.JSONDecodeError) as ex:
+            raise AlertValidatorConfigError() from ex
+        # except Exception as ex:
+        #     raise_incident(app.config, self._report_schedule, ex)
+        #     logger.error("SAMRA EXCEPT ERROR CHANGED", str(ex))
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
@@ -169,11 +176,9 @@ class AlertCommand(BaseCommand):
                 )
                 return df
         except SoftTimeLimitExceeded as ex:
-            raise_incident(app.config, self._report_schedule, AlertQueryTimeout())
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise_incident(app.config, self._report_schedule, ex)
             raise AlertQueryError(message=str(ex)) from ex
 
     def validate(self) -> None:

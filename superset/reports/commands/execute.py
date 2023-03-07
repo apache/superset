@@ -69,7 +69,7 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
-from superset.utils.core import HeaderDataType
+from superset.utils.core import HeaderDataType, raise_incident
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -438,19 +438,23 @@ class BaseReportState:
         """
         notification_errors = []
         for recipient in recipients:
-            notification = create_notification(recipient, notification_content)
-            try:
-                if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
-                    logger.info(
-                        "Would send notification for alert %s, to %s",
-                        self._report_schedule.name,
-                        recipient.recipient_config_json,
-                    )
-                else:
-                    notification.send()
-            except NotificationError as ex:
-                # collect notification errors but keep processing them
-                notification_errors.append(str(ex))
+            if recipient.type == ReportRecipientType.VO and recipient.type == "Alert":
+                raise_incident(app.config, self._report_schedule)
+                logger.info("ALERT TRIGGERED", str(self._report_schedule))
+            else:
+                notification = create_notification(recipient, notification_content)
+                try:
+                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                        logger.info(
+                            "Would send notification for alert %s, to %s",
+                            self._report_schedule.name,
+                            recipient.recipient_config_json,
+                        )
+                    else:
+                        notification.send()
+                except NotificationError as ex:
+                    # collect notification errors but keep processing them
+                    notification_errors.append(str(ex))
         if notification_errors:
             raise ReportScheduleNotificationError(";".join(notification_errors))
 
