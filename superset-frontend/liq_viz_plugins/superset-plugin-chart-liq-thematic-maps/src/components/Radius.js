@@ -16,7 +16,7 @@ export default function Radius(props) {
   const drawRadius = (e) => {
     map.current.addSource('radius', {
       'type': 'geojson',
-      'data': getRadius([e.lngLat.lng, e.lngLat.lat], distance)
+      'data': getRadius([e.lngLat.lng, e.lngLat.lat], distance, 256)
     });
     map.current.addLayer({
       'id': 'radius',

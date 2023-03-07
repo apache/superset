@@ -390,7 +390,7 @@ export default function LiqThematicMaps(props) {
           { hover: false }
         );
       }
-    })
+    });
 
     // When the map is moved around, store current position in state
     map.current.on('move', () => {
@@ -460,8 +460,7 @@ export default function LiqThematicMaps(props) {
         });
         setColorMap({...cMap});
         setThematicLegend({...result.breaks});
-      })
-      .then(error => console.log('error', error));
+      });
   }, [linearColorScheme, breaksMode, customMode, numClasses, data])
 
   // Make sure map is always resized relative to parent container
@@ -546,7 +545,7 @@ export default function LiqThematicMaps(props) {
         <Content>
           <div
             ref={mapContainer}
-            style={{ padding: 24, height: height, width: '100%' }}
+            style={{ height: height, width: '100%' }}
           />
           <SideDrawer 
             drawerTitle={drawerTitle}
