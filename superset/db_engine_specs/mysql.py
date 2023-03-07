@@ -173,6 +173,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_uri_query_params = {"local_infile"}
 
     @classmethod
     def convert_dttm(
