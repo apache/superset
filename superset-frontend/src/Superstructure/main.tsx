@@ -4,8 +4,6 @@ import singleSpaReact from 'single-spa-react';
 import { GlobalError } from 'src/Superstructure/components/GlobalError';
 import { RootComponent } from 'src/Superstructure/Root';
 
-console.log('process.env.publicPath', process.env.publicPath);
-
 export const { bootstrap, mount, unmount } = singleSpaReact({
   React,
   ReactDOM,
