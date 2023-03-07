@@ -154,7 +154,7 @@ export default function LiqThematicMaps(props) {
       key: '2',
       onClick: () => {
         setDrawerTitle('Radius Settings');
-        setDrawerContent(<Radius map={map} />);
+        setDrawerContent(<Radius map={map} groupCol={groupCol} boundary={boundary} />);
         setDrawerOpen(true);
       }
     }
@@ -448,10 +448,7 @@ export default function LiqThematicMaps(props) {
       redirect: 'follow'
     }
 
-    fetch(
-      liqSecrets.lambdaFunctions.cMap.url,
-      requestOptions
-    )
+    fetch(liqSecrets.lambdaFunctions.cMap.url, requestOptions)
       .then(response => response.json())
       .then(result => {
         var cMap = {};
