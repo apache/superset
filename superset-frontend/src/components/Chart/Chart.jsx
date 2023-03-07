@@ -59,7 +59,6 @@ const propTypes = {
   triggerRender: PropTypes.bool,
   force: PropTypes.bool,
   isFiltersInitialized: PropTypes.bool,
-  isDeactivatedViz: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -94,7 +93,6 @@ const defaultProps = {
   triggerRender: false,
   dashboardId: null,
   chartStackTrace: null,
-  isDeactivatedViz: false,
   force: false,
   isInView: true,
 };
@@ -140,25 +138,13 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
 
   componentDidUpdate() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
-      // if the chart is deactivated (filter_box), only load once
-      if (this.props.isDeactivatedViz && this.props.queriesResponse) {
-        return;
-      }
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
@@ -261,7 +247,6 @@ class Chart extends React.PureComponent {
       errorMessage,
       chartIsStale,
       queriesResponse = [],
-      isDeactivatedViz = false,
       width,
     } = this.props;
 
@@ -332,7 +317,7 @@ class Chart extends React.PureComponent {
               <Loading />
             )}
           </div>
-          {isLoading && !isDeactivatedViz && <Loading />}
+          {isLoading && <Loading />}
         </Styles>
       </ErrorBoundary>
     );

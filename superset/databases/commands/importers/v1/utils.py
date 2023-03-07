@@ -20,6 +20,7 @@ from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.models.core import Database
 
 
@@ -42,8 +43,15 @@ def import_database(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
+    # Before it gets removed in import_from_dict
+    ssh_tunnel = config.pop("ssh_tunnel", None)
+
     database = Database.import_from_dict(session, config, recursive=False)
     if database.id is None:
         session.flush()
+
+    if ssh_tunnel:
+        ssh_tunnel["database_id"] = database.id
+        SSHTunnel.import_from_dict(session, ssh_tunnel, recursive=False)
 
     return database

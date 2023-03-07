@@ -145,6 +145,16 @@ function DashboardList(props: DashboardListProps) {
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const enableBroadUserAccess =
     bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -789,6 +799,14 @@ function DashboardList(props: DashboardListProps) {
         onHide={closeDashboardImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
+        sshTunnelPasswordFields={sshTunnelPasswordFields}
+        setSSHTunnelPasswordFields={setSSHTunnelPasswordFields}
+        sshTunnelPrivateKeyFields={sshTunnelPrivateKeyFields}
+        setSSHTunnelPrivateKeyFields={setSSHTunnelPrivateKeyFields}
+        sshTunnelPrivateKeyPasswordFields={sshTunnelPrivateKeyPasswordFields}
+        setSSHTunnelPrivateKeyPasswordFields={
+          setSSHTunnelPrivateKeyPasswordFields
+        }
       />
 
       {preparingExport && <Loading />}

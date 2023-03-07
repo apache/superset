@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  ContextMenuFilters,
+  DataMask,
+  QueryFormColumn,
+} from '@superset-ui/core';
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
@@ -28,17 +33,67 @@ export type Event = {
   event: { stop: () => void; event: PointerEvent };
 };
 
-export const clickEventHandler =
+const getCrossFilterDataMask =
   (
     selectedValues: Record<number, string>,
-    handleChange: (values: string[]) => void,
+    groupby: QueryFormColumn[],
+    labelMap: Record<string, string[]>,
+  ) =>
+  (value: string) => {
+    const selected = Object.values(selectedValues);
+    let values: string[];
+    if (selected.includes(value)) {
+      values = selected.filter(v => v !== value);
+    } else {
+      values = [value];
+    }
+
+    const groupbyValues = values.map(value => labelMap[value]);
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters:
+            values.length === 0
+              ? []
+              : groupby.map((col, idx) => {
+                  const val = groupbyValues.map(v => v[idx]);
+                  if (val === null || val === undefined)
+                    return {
+                      col,
+                      op: 'IS NULL' as const,
+                    };
+                  return {
+                    col,
+                    op: 'IN' as const,
+                    val: val as (string | number | boolean)[],
+                  };
+                }),
+        },
+        filterState: {
+          value: groupbyValues.length ? groupbyValues : null,
+          selectedValues: values.length ? values : null,
+        },
+      },
+      isCurrentValueSelected: selected.includes(value),
+    };
+  };
+
+export const clickEventHandler =
+  (
+    getCrossFilterDataMask: (
+      value: string,
+    ) => ContextMenuFilters['crossFilter'],
+    setDataMask: (dataMask: DataMask) => void,
+    emitCrossFilters?: boolean,
   ) =>
   ({ name }: { name: string }) => {
-    const values = Object.values(selectedValues);
-    if (values.includes(name)) {
-      handleChange(values.filter(v => v !== name));
-    } else {
-      handleChange([name]);
+    if (!emitCrossFilters) {
+      return;
+    }
+    const dataMask = getCrossFilterDataMask(name)?.dataMask;
+    if (dataMask) {
+      setDataMask(dataMask);
     }
   };
 
@@ -48,16 +103,19 @@ export const contextMenuEventHandler =
       CrossFilterTransformedProps)['groupby'],
     onContextMenu: BaseTransformedProps<any>['onContextMenu'],
     labelMap: Record<string, string[]>,
+    getCrossFilterDataMask: (
+      value: string,
+    ) => ContextMenuFilters['crossFilter'],
   ) =>
   (e: Event) => {
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const filters: BinaryQueryObjectFilterClause[] = [];
+      const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
-          filters.push({
+          drillToDetailFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
@@ -65,18 +123,36 @@ export const contextMenuEventHandler =
           }),
         );
       }
-      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: getCrossFilterDataMask(e.name),
+      });
     }
   };
 
 export const allEventHandlers = (
   transformedProps: BaseTransformedProps<any> & CrossFilterTransformedProps,
-  handleChange: (values: string[]) => void,
 ) => {
-  const { groupby, selectedValues, onContextMenu, labelMap } = transformedProps;
+  const {
+    groupby,
+    onContextMenu,
+    setDataMask,
+    labelMap,
+    emitCrossFilters,
+    selectedValues,
+  } = transformedProps;
   const eventHandlers: EventHandlers = {
-    click: clickEventHandler(selectedValues, handleChange),
-    contextmenu: contextMenuEventHandler(groupby, onContextMenu, labelMap),
+    click: clickEventHandler(
+      getCrossFilterDataMask(selectedValues, groupby, labelMap),
+      setDataMask,
+      emitCrossFilters,
+    ),
+    contextmenu: contextMenuEventHandler(
+      groupby,
+      onContextMenu,
+      labelMap,
+      getCrossFilterDataMask(selectedValues, groupby, labelMap),
+    ),
   };
   return eventHandlers;
 };
