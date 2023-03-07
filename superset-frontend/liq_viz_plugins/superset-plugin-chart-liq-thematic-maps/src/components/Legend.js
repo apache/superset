@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Collapse, Divider, List, Avatar, Button, Typography } from 'antd';
-import {
-  EyeOutlined,
-  EyeInvisibleOutlined
-} from '@ant-design/icons';
+import {Avatar } from 'antd';
 import LegendSub from './LegendSub.js';
 
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
 const intranetLegendExprs = defaults.intranetLegendExprs;
-
-const { Panel } = Collapse;
-const { Text } = Typography;
 
 // Map tile layer names to a more human readable format
 const nameMap = {

@@ -36,6 +36,7 @@ import { Menu, Layout } from 'antd';
 // Component imports
 import SideDrawer from './components/SideDrawer.js';
 import Legend from './components/Legend.js';
+import Radius from './components/Radius.js';
 
 const { Content, Sider } = Layout;
 
@@ -151,7 +152,11 @@ export default function LiqThematicMaps(props) {
       icon: <RadiusSettingOutlined />,
       label: <span>Radius</span>,
       key: '2',
-      onClick: () => {}
+      onClick: () => {
+        setDrawerTitle('Radius Settings');
+        setDrawerContent(<Radius map={map} />);
+        setDrawerOpen(true);
+      }
     }
   ];
 

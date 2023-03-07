@@ -15,14 +15,15 @@ const createGeoJSONRadius = (center, radius, nPoints) => {
   }
   ret.push(ret[0]);
   return {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [ret]
-        }
-      }]
+    "type": 'FeatureCollection',
+    "features": [{
+      "type": 'Feature',
+      "properties": {"id": 0},
+      "geometry": {
+        "type": 'Polygon',
+        "coordinates": [ret]
+      }
+    }]
   }
 };
 
