@@ -11,12 +11,12 @@ const LIMIT_WARNING_HEADER = 'Измените параметры фильтро
 const LIMIT_WARNING_BODY =
   'Визуальный элемент не может быть отрисован, так как количество данных выборки превысило лимит. Количество строк выборки не должно превышать ';
 
-const UNAVAILABLE_HEADER = 'Maintanance message';
-const UNAVAILABLE_BODY =
-  'Superset Dashboard Plugin is currently not available. It is either broken or major updates are happening at this time. The tech team is currently working on resolving this problem. Please be patient';
-
-const UNAVAILABLE_BODY_RU =
-  'Superset Dashboard Plugin в настоящее время недоступен. Он либо сломан, либо происходят важные обновления. Техническая команда работает над решением этой проблемы. Пожалуйста, будьте терпеливы';
+const UNAVAILABLE = {
+  header: 'Maintanance message',
+  body: 'Superset Dashboard Plugin is currently not available. It is either broken or major updates are happening at this time. The tech team is currently working on resolving this problem. Please be patient',
+  bodyRu:
+    'Superset Dashboard Plugin в настоящее время недоступен. Он либо сломан, либо происходят важные обновления. Техническая команда работает над решением этой проблемы. Пожалуйста, будьте терпеливы',
+};
 
 const IF_QUESTIONS_RU =
   'Если у Вас возникли вопросы, то можно обратиться в команду Data Engineering';
@@ -65,8 +65,7 @@ const UPGRADE_2_0_RU = {
     'Исправлены проблемы со стилистикой дашбордов',
     'Улучшена работа с нативными фильтрами (урезан URL)',
   ],
-  listTitleExtra:
-    'Возможные проблемы в версии 2.0 (по не стабильной работе системы просим оповестить команду DE)',
+  listTitleExtra: 'Возможные проблемы в версии 2.0',
   messagesExtra: [
     'Возможные проблемы с d3 форматированием',
     'Возможные проблемы с отображением некоторых графиков',
@@ -79,9 +78,7 @@ export {
   GLOBAL_WARNING_DEFAULT_BODY,
   LIMIT_WARNING_HEADER,
   LIMIT_WARNING_BODY,
-  UNAVAILABLE_HEADER,
-  UNAVAILABLE_BODY,
-  UNAVAILABLE_BODY_RU,
+  UNAVAILABLE,
   CSV_TEMP_PROBLEM_RU,
   UPGRADE_2_0_RU,
 };

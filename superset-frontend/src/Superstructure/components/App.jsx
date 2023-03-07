@@ -7,12 +7,10 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from 'src/setup/setupApp';
-import setupPlugins from 'src/setup/setupPlugins';
 import DashboardPage from 'src/Superstructure/components/DashboardPage';
 import { theme } from '../../preamble';
 
 setupApp();
-setupPlugins();
 
 const App = ({ store, dashboardIdOrSlug }) => (
   <Provider store={store}>

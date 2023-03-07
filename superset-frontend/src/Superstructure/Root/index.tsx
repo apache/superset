@@ -24,18 +24,18 @@ import {
 } from 'src/Superstructure/Root/utils';
 
 import {
+  RootComponentWrapper,
+  DashboardComponentWrapper,
+} from 'src/Superstructure/Root/styles';
+
+import {
   getFullConfig,
   getNavigationConfig,
   APP_VERSION,
 } from 'src/Superstructure/parseEnvFile/index';
-import {
-  RootComponentWrapper,
-  DashboardComponentWrapper,
-} from 'src/Superstructure/Root/styles';
 import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
 
 import '../../theme';
-// import '../../preamble';
 
 const NAV_CONFIG = getNavigationConfig();
 
@@ -93,57 +93,55 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   const useNavigationMenu = navigation?.showNavigationMenu;
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative' }}>
-      {isError ? (
-        <div>
-          <Version appVersion={APP_VERSION} />
+    <div>
+      <Version appVersion={APP_VERSION} />
+      <div style={{ minHeight: '100vh', position: 'relative' }}>
+        {isError ? (
           <GlobalError
             title="Error happened =("
             body={`${errorMessage}`}
             stackTrace="Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна."
           />
-        </div>
-      ) : !isLoaded ? (
-        <Loading />
-      ) : isLoaded && navigation && basename ? (
-        <RootComponentWrapper withNavigation={useNavigationMenu}>
-          {useNavigationMenu && navigation && navigation.main ? (
-            <Router>
-              <LeftNavigation
-                routesConfig={navigation.routes}
-                baseRoute={basename}
-              />
-              <DashboardComponentWrapper withNavigation={useNavigationMenu}>
-                <Version appVersion={APP_VERSION} />
-                <Main
-                  navigation={navigation}
-                  store={store}
-                  // theme={theme}
-                  basename={basename}
+        ) : !isLoaded ? (
+          <Loading />
+        ) : isLoaded && navigation && basename ? (
+          <RootComponentWrapper withNavigation={useNavigationMenu}>
+            {useNavigationMenu && navigation && navigation.main ? (
+              <Router>
+                <LeftNavigation
+                  routesConfig={navigation.routes}
+                  baseRoute={basename}
                 />
-              </DashboardComponentWrapper>
-            </Router>
-          ) : (
-            <GlobalError
-              title="Error happened =("
-              body="There is no dashboard ID or slug provided."
-              stackTrace="Either provide dashboard ID or slug or enable navigation via useNavigationMenu flag"
-            />
-          )}
-        </RootComponentWrapper>
-      ) : (
-        isLoaded &&
-        (!navigation || !basename) && (
-          <div>
-            <Version appVersion={APP_VERSION} />
-            <GlobalError
-              title="Error happened =("
-              body="There is no navigation object or basename provided"
-              stackTrace="Provide navigation object and|or basename"
-            />
-          </div>
-        )
-      )}
+                <DashboardComponentWrapper withNavigation={useNavigationMenu}>
+                  <Main
+                    navigation={navigation}
+                    store={store}
+                    basename={basename}
+                  />
+                </DashboardComponentWrapper>
+              </Router>
+            ) : (
+              <GlobalError
+                title="Error happened =("
+                body="There is no dashboard ID or slug provided."
+                stackTrace="Either provide dashboard ID or slug or enable navigation via useNavigationMenu flag"
+              />
+            )}
+          </RootComponentWrapper>
+        ) : (
+          isLoaded &&
+          (!navigation || !basename) && (
+            <div>
+              <Version appVersion={APP_VERSION} />
+              <GlobalError
+                title="Error happened =("
+                body="There is no navigation object or basename provided"
+                stackTrace="Provide navigation object and|or basename"
+              />
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 };
