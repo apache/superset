@@ -12,9 +12,15 @@ export const useDashboard = (idOrSlug: string | number) =>
     dashboard => ({
       ...dashboard,
       metadata:
-        (dashboard.json_metadata && JSON.parse(dashboard.json_metadata)) || {},
+        (dashboard &&
+          dashboard.json_metadata &&
+          JSON.parse(dashboard.json_metadata)) ||
+        {},
       position_data:
-        dashboard.position_json && JSON.parse(dashboard.position_json),
+        (dashboard &&
+          dashboard.position_json &&
+          JSON.parse(dashboard.position_json)) ||
+        {},
     }),
   );
 

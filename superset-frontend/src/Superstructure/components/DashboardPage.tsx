@@ -171,6 +171,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+
+      console.log('permalinkKey', permalinkKey);
+      console.log('nativeFilterKeyValue', nativeFilterKeyValue);
+      console.log('dataMaskFromUrl', dataMaskFromUrl);
+      console.log('isOldRison', isOldRison);
+
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {

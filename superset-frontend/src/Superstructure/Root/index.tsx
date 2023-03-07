@@ -93,7 +93,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   const useNavigationMenu = navigation?.showNavigationMenu;
 
   return (
-    <>
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
       {isError ? (
         <div>
           <Version appVersion={APP_VERSION} />
@@ -144,6 +144,6 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
           </div>
         )
       )}
-    </>
+    </div>
   );
 };

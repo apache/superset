@@ -50,3 +50,15 @@ export interface PanelMsgParams {
 export interface ErrorParams extends PanelMsgParams {
   stackTrace?: string;
 }
+
+export interface IPanelMsgObj {
+  title: string;
+  date?: string;
+  subTitle: string;
+  extra?: string;
+  listTitle?: string;
+  listTitleExtra?: string;
+  messages?: string[];
+  messagesExtra?: string[];
+  buttons?: { txt: string; link: string; class?: string }[];
+}
