@@ -370,16 +370,16 @@ metadata:
     "No filter"}}'
   color_scheme: supersetColors
   filter_scopes:
-    '3547':
-      Platform:
+    "3547":
+      platform:
         scope:
         - TAB-2_QXp8aNq
         immune: []
-      Genre:
+      genre:
         scope:
         - ROOT_ID
         immune: []
-      Publisher:
+      publisher:
         scope:
         - ROOT_ID
         immune: []
