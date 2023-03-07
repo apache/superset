@@ -318,15 +318,15 @@ metadata:
     COUNT(*): "#D1C6BC"
   filter_scopes:
     "3965":
-      Country_Name:
+      country_name:
         scope:
           - ROOT_ID
         immune: []
-      Product_Category:
+      product_category:
         scope:
           - ROOT_ID
         immune: []
-      Clinical Stage:
+      clinical_stage:
         scope:
           - ROOT_ID
         immune: []
