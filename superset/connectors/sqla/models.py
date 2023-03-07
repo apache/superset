@@ -99,9 +99,11 @@ from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
+    ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -150,6 +152,8 @@ ADDITIVE_METRIC_TYPES_LOWER = {op.lower() for op in ADDITIVE_METRIC_TYPES}
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
+    applied_filter_columns: List[ColumnTyping]
+    rejected_filter_columns: List[ColumnTyping]
     cte: Optional[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
@@ -159,6 +163,8 @@ class SqlaQuery(NamedTuple):
 
 class QueryStringExtended(NamedTuple):
     applied_template_filters: Optional[List[str]]
+    applied_filter_columns: List[ColumnTyping]
+    rejected_filter_columns: List[ColumnTyping]
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
@@ -878,6 +884,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
+            applied_filter_columns=sqlaq.applied_filter_columns,
+            rejected_filter_columns=sqlaq.rejected_filter_columns,
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
@@ -1020,13 +1028,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
             is_dttm = col_in_metadata.is_temporal
         else:
-            sqla_column = literal_column(expression)
-            # probe adhoc column type
-            tbl, _ = self.get_from_clause(template_processor)
-            qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-            sql = self.database.compile_sqla_query(qry)
-            col_desc = get_columns_description(self.database, sql)
-            is_dttm = col_desc[0]["is_dttm"]
+            try:
+                sqla_column = literal_column(expression)
+                # probe adhoc column type
+                tbl, _ = self.get_from_clause(template_processor)
+                qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                sql = self.database.compile_sqla_query(qry)
+                col_desc = get_columns_description(self.database, sql)
+                is_dttm = col_desc[0]["is_dttm"]
+            except SupersetGenericDBErrorException as ex:
+                raise ColumnNotFoundException(message=str(ex)) from ex
 
         if (
             is_dttm
@@ -1181,6 +1192,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         }
         columns = columns or []
         groupby = groupby or []
+        rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
+        applied_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
@@ -1439,9 +1452,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
-                sqla_col = self.adhoc_column_to_sqla(flt_col)
+                try:
+                    sqla_col = self.adhoc_column_to_sqla(flt_col)
+                    applied_adhoc_filters_columns.append(flt_col)
+                except ColumnNotFoundException:
+                    rejected_adhoc_filters_columns.append(flt_col)
+                    continue
             else:
-                col_obj = columns_by_name.get(flt_col)
+                col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
@@ -1766,8 +1784,27 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             qry = select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
+        filter_columns = [flt.get("col") for flt in filter] if filter else []
+        rejected_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and col not in self.column_names
+            and col not in applied_template_filters
+        ] + rejected_adhoc_filters_columns
+        applied_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and (col in self.column_names or col in applied_template_filters)
+        ] + applied_adhoc_filters_columns
+
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
+            rejected_filter_columns=rejected_filter_columns,
+            applied_filter_columns=applied_filter_columns,
             cte=cte,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
@@ -1906,6 +1943,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return QueryResult(
             applied_template_filters=query_str_ext.applied_template_filters,
+            applied_filter_columns=query_str_ext.applied_filter_columns,
+            rejected_filter_columns=query_str_ext.rejected_filter_columns,
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,

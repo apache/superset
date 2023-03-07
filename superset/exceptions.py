@@ -270,3 +270,7 @@ class SupersetCancelQueryException(SupersetException):
 
 class QueryNotFoundException(SupersetException):
     status = 404
+
+
+class ColumnNotFoundException(SupersetException):
+    status = 404

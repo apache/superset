@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { styled, css, useTheme } from '@superset-ui/core';
+import { styled, css, useTheme, getColumnLabel } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { Tag } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -62,6 +62,7 @@ const CrossFilterTag = (props: {
     useCSSTextTruncation<HTMLSpanElement>();
   const [valueRef, valueIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
+  const columnLabel = getColumnLabel(filter.column ?? '');
   return (
     <StyledTag
       css={css`
@@ -76,9 +77,9 @@ const CrossFilterTag = (props: {
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
     >
-      <Tooltip title={columnIsTruncated ? filter.column : null}>
+      <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>
-          {filter.column}
+          {columnLabel}
         </StyledCrossFilterColumn>
       </Tooltip>
       <Tooltip title={valueIsTruncated ? filter.value : null}>
