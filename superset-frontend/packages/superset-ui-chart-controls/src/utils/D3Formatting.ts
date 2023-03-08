@@ -35,7 +35,10 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.INDIAN_FORMAT_NUMBER, t('Indian format')],
   [NumberFormats.INDIAN_FORMAT_CURRENCY, t('Indian currency format')],
   [NumberFormats.INDIAN_FORMAT_NUMBER_SHORT, t('Indian format (in units)')],
-  [NumberFormats.INDIAN_FORMAT_CURRENCY_SHORT, t('Indian currency format (in units)')],
+  [
+    NumberFormats.INDIAN_FORMAT_CURRENCY_SHORT,
+    t('Indian currency format (in units)'),
+  ],
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
   [',d', ',d (12345.432 => 12,345)'],

@@ -21,7 +21,7 @@ set -eo pipefail
 REPO_NAME="setusuraj/superset"
 
 
-REFSPEC="2.0.4"
+REFSPEC="2.0.6"
 LATEST_TAG="latest"
 
 cat<<EOF

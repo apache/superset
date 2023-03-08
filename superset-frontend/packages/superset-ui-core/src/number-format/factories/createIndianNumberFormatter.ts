@@ -23,37 +23,37 @@ import NumberFormatter from '../NumberFormatter';
 // const float2PointFormatter = d3Format(`.2~f`);
 const indianLocaleFormatter = Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2,
-  minimumFractionDigits: 0
-}).format // d3Format or regex whould be alternative
+  minimumFractionDigits: 0,
+}).format; // d3Format or regex whould be alternative
 
 function formatIndianUnitNumber(
   value: number,
   { refoldAfterCrs = false },
 ): string {
   let formated_number = 0;
-  let sufix = [];
-
+  const sufix = [];
+  let local_value = value;
   do {
-    if (value >= 10000000) {
-      formated_number = value / 10000000;
+    if (local_value >= 10000000) {
+      formated_number = local_value / 10000000;
       sufix.unshift('Cr');
-    } else if (value >= 100000) {
-      formated_number = value / 100000;
+    } else if (local_value >= 100000) {
+      formated_number = local_value / 100000;
       sufix.unshift('L');
-    } else if (value >= 1000) {
-      formated_number = value / 1000;
+    } else if (local_value >= 1000) {
+      formated_number = local_value / 1000;
       sufix.unshift('K');
     } else {
-      formated_number = value;
+      formated_number = local_value;
     }
-    value = formated_number;
-  } while (refoldAfterCrs && value >= 1000);
+    local_value = formated_number;
+  } while (refoldAfterCrs && local_value >= 1000);
 
-  return indianLocaleFormatter(value) + sufix.join(' ');
+  return indianLocaleFormatter(local_value) + sufix.join(' ');
 }
 
 function formatIndianNumber(value: number): string {
-  return indianLocaleFormatter(value)
+  return indianLocaleFormatter(value);
 }
 
 export default function createIndianNumberFormatter(
@@ -74,9 +74,8 @@ export default function createIndianNumberFormatter(
 
   return new NumberFormatter({
     description: description || 'Indian Number Formatter',
-    formatFunc: function (value) {
+    formatFunc: value => {
       const sign = value >= 0 ? '' : '-';
-      debugger
       const formattedNumber = foldToUnit
         ? formatIndianUnitNumber(Math.abs(value), { refoldAfterCrs })
         : formatIndianNumber(Math.abs(value));
