@@ -505,7 +505,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-  const onSave = () => {
+  const onSave = async () => {
     // Notification Settings
     setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
@@ -569,6 +569,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
       return;
     }
+
+    // VO routing key validation
+    const isInValid = await validateRoutingKey(recipients);
+    if (isInValid) {
+      return;
+    }
+
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
@@ -640,6 +647,37 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         hide();
       });
     }
+  };
+
+  const validateRoutingKey = async (recipients: any) => {
+    let response: any = null;
+    let invalid = true;
+    let voRoutingKey = '';
+    for (let i = 0; i < recipients.length; i++) {
+      if (recipients[i].type === RecipientIconName.VO) {
+        if (recipients[i].recipient_config_json.target) {
+          voRoutingKey = recipients[i].recipient_config_json.target;
+          const options = {
+            headers: conf.VO_HEADERS,
+          };
+          response = await (
+            await fetch(conf.VO_VALIDATE_ROUTING_KEY, options)
+          ).json();
+        }
+      }
+    }
+
+    if (response) {
+      response?.routingKeys.map((key: any) => {
+        if (key.routingKey === voRoutingKey) {
+          invalid = false;
+        }
+      });
+    }
+    if (invalid) {
+      addDangerToast(t(ERROR_MESSAGES.VO_ROUTING_KEY_ERROR));
+    }
+    return invalid;
   };
 
   // Fetch data to populate form dropdowns

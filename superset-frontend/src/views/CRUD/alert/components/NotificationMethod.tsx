@@ -101,8 +101,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     if (invalidInput) {
       setInvalid(invalidInput);
     }
-
-    console.log(invalidInput);
   }, [invalidInput]);
   const theme = useTheme();
 

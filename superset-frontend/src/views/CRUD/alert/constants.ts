@@ -24,4 +24,6 @@ export const ERROR_MESSAGES = {
   ROUTING_KEY_LIMITATION: 'Only one routing key is allowed',
   GENERIC_INVALID_INPUT:
     'INVALID INPUT LOGGED, Please refer to the respective help text for more information',
+  VO_ROUTING_KEY_ERROR:
+    'INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists',
 };

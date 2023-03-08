@@ -2039,35 +2039,35 @@ def get_vo_payload(conf, report_schedule):
     return payload
 
 
-def validate_routing_key(conf, routing_key):
-    if routing_key:
-        REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
-        headers = conf["VO_HEADERS"]
-        try:
-            response = requests.get(REQUEST_URL, headers=headers)
-            data = response.json()
-            isRoutingKey = (
-                len(
-                    list(
-                        filter(
-                            lambda x: x["routingKey"] == routing_key,
-                            data["routingKeys"],
-                        )
-                    )
-                )
-                > 0
-            )
-        except requests.exceptions.HTTPError as e:
-            raise Exception(str(e))
-        if response.status_code != 200:
-            raise ValueError(
-                "Request to victor_ops returned an error %s, the response is:\n%s"
-                % (response.status_code, response.text)
-            )
-        if isRoutingKey:
-            return isRoutingKey
-        else:
-            raise ValueError("Routing key might not be valid")
+# def validate_routing_key(conf, routing_key):
+#     if routing_key:
+#         REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
+#         headers = conf["VO_HEADERS"]
+#         try:
+#             response = requests.get(REQUEST_URL, headers=headers)
+#             data = response.json()
+#             isRoutingKey = (
+#                 len(
+#                     list(
+#                         filter(
+#                             lambda x: x["routingKey"] == routing_key,
+#                             data["routingKeys"],
+#                         )
+#                     )
+#                 )
+#                 > 0
+#             )
+#         except requests.exceptions.HTTPError as e:
+#             raise Exception(str(e))
+#         if response.status_code != 200:
+#             raise ValueError(
+#                 "Request to victor_ops returned an error %s, the response is:\n%s"
+#                 % (response.status_code, response.text)
+#             )
+#         if isRoutingKey:
+#             return isRoutingKey
+#         else:
+#             raise ValueError("Routing key might not be valid")
 
 
 def raise_incident(conf, report_schedule) -> None:
@@ -2076,7 +2076,7 @@ def raise_incident(conf, report_schedule) -> None:
         if recipient.type == "VictorOps":
             recipient_config = json.loads(recipient.recipient_config_json)
             routing_key = recipient_config["target"]
-    if routing_key and validate_routing_key(conf, routing_key):
+    if routing_key:
         WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
         victor_ops_data = get_vo_payload(conf, report_schedule)
         try:
