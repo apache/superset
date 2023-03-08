@@ -94,6 +94,11 @@ const FilterControls: FC<FilterControlsProps> = ({
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
 
+  const hasRequiredFirst = useMemo(
+    () => filtersWithValues.some(filter => filter.requiredFirst),
+    [filtersWithValues],
+  );
+
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
@@ -119,6 +124,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {showCollapsePanel && (
         <FiltersOutOfScopeCollapsible
           filtersOutOfScope={filtersOutOfScope}
+          forceRender={hasRequiredFirst}
           hasTopMargin={filtersInScope.length > 0}
           renderer={renderer}
         />
@@ -200,6 +206,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                   filtersOutOfScope={filtersOutOfScope}
                   renderer={renderer}
                   showCollapsePanel={showCollapsePanel}
+                  forceRenderOutOfScope={hasRequiredFirst}
                 />
               )
             : undefined

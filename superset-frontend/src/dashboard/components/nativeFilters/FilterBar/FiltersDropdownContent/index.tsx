@@ -26,6 +26,7 @@ export interface FiltersDropdownContentProps {
   filtersOutOfScope: (Filter | Divider)[];
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
   showCollapsePanel?: boolean;
+  forceRenderOutOfScope?: boolean;
 }
 
 export const FiltersDropdownContent = ({
@@ -33,6 +34,7 @@ export const FiltersDropdownContent = ({
   filtersOutOfScope,
   renderer,
   showCollapsePanel,
+  forceRenderOutOfScope,
 }: FiltersDropdownContentProps) => (
   <div
     css={(theme: SupersetTheme) =>
@@ -47,6 +49,7 @@ export const FiltersDropdownContent = ({
       <FiltersOutOfScopeCollapsible
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
+        forceRender={forceRenderOutOfScope}
         horizontalOverflow
       />
     )}
