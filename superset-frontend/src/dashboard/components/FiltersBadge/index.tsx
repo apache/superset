@@ -24,6 +24,7 @@ import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -44,32 +45,41 @@ export interface FiltersBadgeProps {
 
 const StyledFilterCount = styled.div`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 4}px;
-
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: ${theme.gridUnit}px;
+    padding-left: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.light4};
+    border-radius: 4px;
     .anticon {
-      cursor: pointer;
       vertical-align: middle;
       color: ${theme.colors.grayscale.base};
       &:hover {
         color: ${theme.colors.grayscale.light1}
       }
     }
-    .applied-count {
-      display: inline-block;
-      color: ${theme.colors.grayscale.light5};
-      background: ${theme.colors.primary.base};
-      border-radius: 100%;
-      font-size: ${theme.typography.sizes.s}px;
-      margin-left: ${theme.gridUnit * 2}px;
-      margin-right: ${theme.gridUnit}px;
-      vertical-align: middle;
-      text-align: center;
-      padding: 0 ${theme.gridUnit + 1}px 0 ${theme.gridUnit + 1}px;
-      line-height: 1.6;
-    }
 
     .incompatible-count {
       font-size: ${theme.typography.sizes.s}px;
+    }
+  `}
+`;
+
+const StyledBadge = styled(Badge)`
+  ${({ theme }) => `
+    vertical-align: middle;
+    margin-left: ${theme.gridUnit * 2 + 2}px;
+    &>sup {
+      padding: 0;
+      min-width: ${theme.gridUnit * 4}px;
+      height: ${theme.gridUnit * 4}px;
+      line-height: 1.5;
+      font-weight: ${theme.typography.weights.medium};
+      font-size: ${theme.typography.sizes.s - 1}px;
+      box-shadow: none;
     }
   `}
 `;
@@ -289,9 +299,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       >
         <Icons.Filter iconSize="m" />
         {!isInactive && (
-          <span data-test="applied-filter-count" className="applied-count">
-            {appliedIndicators.length + appliedCrossFilterIndicators.length}
-          </span>
+          <StyledBadge
+            data-test="applied-filter-count"
+            className="applied-count"
+            count={
+              appliedIndicators.length + appliedCrossFilterIndicators.length
+            }
+            showZero
+          />
         )}
         {incompatibleIndicators.length ? (
           <>

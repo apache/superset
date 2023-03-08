@@ -59,6 +59,7 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
     cursor: default;
     color: ${theme.colors.primary.base};
     line-height: 1.8;
+    margin-right: ${theme.gridUnit * 2}px;
   `}
 `;
 
