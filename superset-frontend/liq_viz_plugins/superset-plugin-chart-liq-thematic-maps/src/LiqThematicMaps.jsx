@@ -91,8 +91,10 @@ export default function LiqThematicMaps(props) {
     taSectorColorMap, // for each centre trade area, map from sector to colour
     taSectorCentroids, // geojson file for sector centroid points, used to label them in a symbol layer
     latitude, // starting lat
-    longitude, // starting lng,
-    zoom, //starting zoom
+    longitude, // starting lng
+    zoom, // starting zoom
+    newRadiusColor, // color of radius in rgba
+    radiusThreshold // intersection area threshold
   } = props;
 
   const rootElem = createRef();
@@ -115,6 +117,7 @@ export default function LiqThematicMaps(props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContent, setDrawerContent] = useState(<></>);
   const [drawerTitle, setDrawerTitle] = useState('');
+
   const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
@@ -154,7 +157,15 @@ export default function LiqThematicMaps(props) {
       key: '2',
       onClick: () => {
         setDrawerTitle('Radius Settings');
-        setDrawerContent(<Radius map={map} groupCol={groupCol} boundary={boundary} />);
+        setDrawerContent(
+          <Radius 
+            map={map} 
+            groupCol={groupCol} 
+            boundary={boundary}
+            radiusColor={newRadiusColor}
+            radiusThreshold={radiusThreshold} 
+          />
+        );
         setDrawerOpen(true);
       }
     }
@@ -521,6 +532,13 @@ export default function LiqThematicMaps(props) {
     if (!map.current || !map.current.isStyleLoaded()) return;
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [opacity])
+
+  // Hooks for applying radius style settings in real time
+  useEffect(() => {
+    if (map.current.isStyleLoaded() && 'radius' in map.current.getStyle().sources) {
+      map.current.setPaintProperty('radius', 'fill-color', newRadiusColor);
+    }
+  }, [newRadiusColor])
 
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>

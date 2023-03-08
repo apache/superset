@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, InputNumber, Button, Typography, Slider } from 'antd';
-import { HexColorPicker } from 'react-colorful';
+import { Form, InputNumber, Button, Typography } from 'antd';
 
 const liqSecrets = require('../../../liq_secrets.js').liqSecrets;
 
@@ -12,14 +11,16 @@ export default function Radius(props) {
   const {
     boundary,
     groupCol,
+    radiusColor,
+    radiusThreshold,
     map
   } = props;
 
   const [distance, setDistance] = useState(5);
   const [message, setMessage] = useState('');
-  const [color, setColor] = useState('#0000FF');
-  const [opacity, setOpacity] = useState(0.5);
-  const [threshold, setThreshold] = useState(0.5);
+  // const [color, setColor] = useState('#0000FF');
+  // const [opacity, setOpacity] = useState(0.5);
+  // const [threshold, setThreshold] = useState(0.5);
 
   const removeRadius = () => {
     if ('radius' in map.current.getStyle().sources) {
@@ -41,8 +42,7 @@ export default function Radius(props) {
       'source': 'radius',
       'layout': {},
       'paint': {
-        'fill-color': color,
-        'fill-opacity': opacity
+        'fill-color': radiusColor,
       }
     });
     map.current.addLayer({
@@ -51,7 +51,7 @@ export default function Radius(props) {
       'source': 'boundary_tileset',
       'source-layer': boundary,
       'paint': {
-        'line-color': 'transparent'
+        'line-color': 'transparent',
       }
     });
     map.current.off('click', drawRadius);
@@ -72,7 +72,7 @@ export default function Radius(props) {
     var raw = {
       'secret': liqSecrets.lambdaFunctions.intersection.secret,
       'GeoJSON': radius,
-      'threshold': threshold
+      'threshold': radiusThreshold
     }
 
     var requestOptions = {
@@ -97,35 +97,14 @@ export default function Radius(props) {
 
   useEffect(() => {
     if ('radius' in map.current.getStyle().sources) {
-      map.current.setPaintProperty('radius', 'fill-color', color);
+      map.current.setPaintProperty('radius', 'fill-color', radiusColor);
     }
-  }, [color])
-
-  useEffect(() => {
-    if ('radius' in map.current.getStyle().sources) {
-      map.current.setPaintProperty('radius', 'fill-opacity', opacity);
-    }
-  }, [opacity])
+  }, [radiusColor])
 
   return (
     <Form layout='vertical'>
       <Form.Item label='Distance (km)'>
         <InputNumber min={0} max={50} defaultValue={5} onChange={v => setDistance(v)}/>
-      </Form.Item>
-      <Form.Item label='Colour'>
-        <HexColorPicker color={color} onChange={setColor} placeholder='Hex code' />
-      </Form.Item>
-      <Form.Item label='Opacity'>
-        <Slider 
-          min={0.0}
-          max={1.0}
-          step={0.1}
-          onChange={v => setOpacity(v)}
-          value={opacity}
-        />
-      </Form.Item>
-      <Form.Item label='Intersection Threshold'>
-        <InputNumber min={0.0} max={1.0} defaultValue={0.5} onChange={v => setThreshold(v)}/>
       </Form.Item>
       <Form.Item>
           <Button type='primary' htmlType='submit' onClick={onSettingsSave}>
