@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent } from 'react';
-import { Row, Col } from 'src/components';
+import { Row } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import withToasts, {
