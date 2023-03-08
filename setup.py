@@ -135,6 +135,7 @@ setup(
             "sqlalchemy-bigquery>=1.5.0",
             "google-cloud-bigquery>=3.4.0",
         ],
+        "bytehouse": ["bytehouse-sqlalchemy >= 1.0.0"],
         "clickhouse": ["clickhouse-connect>=0.4.6, <0.5"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
