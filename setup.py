@@ -52,7 +52,6 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
-
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
@@ -136,6 +135,7 @@ setup(
             "google-cloud-bigquery>=3.4.0",
         ],
         "clickhouse": ["clickhouse-connect>=0.4.6, <0.5"],
+        "databend": ["databend-sqlalchemy>=0.2.4, < 0.5"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
