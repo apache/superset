@@ -18,9 +18,6 @@ export default function Radius(props) {
 
   const [distance, setDistance] = useState(5);
   const [message, setMessage] = useState('');
-  // const [color, setColor] = useState('#0000FF');
-  // const [opacity, setOpacity] = useState(0.5);
-  // const [threshold, setThreshold] = useState(0.5);
 
   const removeRadius = () => {
     if ('radius' in map.current.getStyle().sources) {
