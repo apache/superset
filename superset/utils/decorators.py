@@ -113,7 +113,7 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
 
 
 def on_security_exception(self: Any, ex: Exception) -> Union[Response, werkz_Response]:
-    if not g.user or not utils.get_user_id():
+    if not g.user or not g.user.is_authenticated:
         return redirect(appbuilder.get_url_for_login)
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
