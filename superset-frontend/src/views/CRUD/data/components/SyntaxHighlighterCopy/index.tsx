@@ -22,6 +22,7 @@ import { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
+import plainTextSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/plaintext';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
@@ -33,6 +34,7 @@ SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
 SyntaxHighlighter.registerLanguage('json', jsonSyntax);
+SyntaxHighlighter.registerLanguage('plaintext', plainTextSyntax);
 
 const SyntaxHighlighterWrapper = styled.div`
   margin-top: -24px;
@@ -62,13 +64,13 @@ export default function SyntaxHighlighterCopy({
   children: string;
   addDangerToast?: ToastProps['addDangerToast'];
   addSuccessToast?: ToastProps['addSuccessToast'];
-  language: 'sql' | 'markdown' | 'html' | 'json';
+  language: 'sql' | 'markdown' | 'html' | 'json' | 'plaintext';
 }) {
   function copyToClipboard(textToCopy: string) {
     copyTextToClipboard(() => Promise.resolve(textToCopy))
       .then(() => {
         if (addSuccessToast) {
-          addSuccessToast(t('SQL Copied!'));
+          addSuccessToast(t('Copied!'));
         }
       })
       .catch(() => {

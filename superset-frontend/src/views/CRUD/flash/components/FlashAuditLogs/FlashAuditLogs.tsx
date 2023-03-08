@@ -19,15 +19,16 @@
 
 import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
-import ReactJson from 'react-json-view';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { FlashAuditLogs } from '../../types';
+import ErrorStackTrace from './ErrorStackTrace';
 
 const PAGE_SIZE = 10;
 
@@ -42,6 +43,10 @@ const StyledHeader = styled.div`
       font-size: ${theme.typography.sizes.s};
       font-weight: ${theme.typography.weights.normal};
       text-decoration: underline;
+    }
+
+    .wrap-text {
+      word-wrap: break-word;
     }
   `}
 `;
@@ -61,6 +66,8 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
     t('auditlogs'),
     addDangerToast,
   );
+  const [showErrorView, setShowErrorView] = useState<boolean>(false);
+  const [currentLog, setCurrentLog] = useState<FlashAuditLogs | {}>({});
 
   const initialSort = [{ id: 'timestamp', desc: true }];
   const columns = useMemo(
@@ -72,15 +79,16 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       {
         accessor: 'description',
         Header: t('Description'),
-        Cell: ({
-          row: {
-            original: { description = '' },
-          },
-        }: any) => (
-          <Tooltip title={description} placement="topLeft">
-            <span>{description}</span>
-          </Tooltip>
-        ),
+        size: 'xl',
+        // Cell: ({
+        //   row: {
+        //     original: { description = '' },
+        //   },
+        // }: any) => (
+
+        //     <span className="wrap-text">{description}</span>
+
+        // ),
       },
       {
         accessor: 'user',
@@ -92,44 +100,52 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           row: {
             original: { timestamp: timeStamp },
           },
-        }: any) => moment(new Date(timeStamp)).format('YYYY-MM-DD hh:mm:ss a'),
+        }: any) => moment(new Date(timeStamp)).format('LLLL'),
         Header: t('Time Stamp'),
         accessor: 'timestamp',
       },
-
       {
-        accessor: 'newValue',
-        Header: t('New Value'),
-        size: 'xl',
+        accessor: 'error',
+        Header: t('Error'),
+        size: 'l',
         Cell: ({
           row: {
-            original: { newValue = '' },
+            original: { error_type = '', error_category = '' },
           },
         }: any) => (
-          <ReactJson
-            name="New Value"
-            enableClipboard
-            theme="rjv-default"
-            src={JSON.parse(newValue)}
-          />
+          <span>
+            <strong>{error_type} : </strong>
+            {error_category}
+          </span>
         ),
       },
       {
-        accessor: 'oldValue',
-        Header: t('Old Value'),
-        size: 'xl',
-        Cell: ({
-          row: {
-            original: { oldValue = '' },
-          },
-        }: any) => (
-          <ReactJson
-            name="Old Value"
-            enableClipboard
-            theme="rjv-default"
-            src={JSON.parse(oldValue)}
-          />
-        ),
+        Cell: ({ row: { original } }: any) => {
+          const handleValueDifference = () =>
+            console.log('FLASH DIFFERENCE', original);
+          const handleErrorTrace = () => changeViewErrorStack(original);
+          const actions: ActionProps[] | [] = [
+            {
+              label: 'difference-action',
+              tooltip: t('View Flash Difference'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Binoculars',
+              onClick: handleValueDifference,
+            },
+            {
+              label: 'view-action',
+              tooltip: t('View Error Stacktrace'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Eye',
+              onClick: handleErrorTrace,
+            },
+          ].filter(item => !!item);
+
+          return <ActionsBar actions={actions as ActionProps[]} />;
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
       },
     ],
     [],
@@ -137,6 +153,11 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
   const path = `/flash/list/`;
   const title =
     logs && logs.length > 0 ? JSON.parse(logs[0].newValue).tableName : '';
+
+  const changeViewErrorStack = (log: any) => {
+    setCurrentLog(log);
+    setShowErrorView(true);
+  };
   return (
     <>
       <SubMenu
@@ -149,6 +170,13 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           </StyledHeader>
         }
       />
+      {showErrorView && (
+        <ErrorStackTrace
+          log={currentLog as FlashAuditLogs}
+          show={showErrorView}
+          onHide={() => setShowErrorView(false)}
+        />
+      )}
       <ListView<FlashAuditLogs>
         className="audit-log-list-view"
         columns={columns}
