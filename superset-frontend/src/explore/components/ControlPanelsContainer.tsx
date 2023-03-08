@@ -70,6 +70,7 @@ import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
+import { CLAUSES } from './controls/FilterControl/types';
 
 const { confirm } = Modal;
 
@@ -235,7 +236,7 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
@@ -317,7 +318,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
-                clause: 'WHERE',
+                clause: CLAUSES.WHERE,
                 subject: x_axis,
                 operator: Operators.TEMPORAL_RANGE,
                 comparator: defaultTimeFilter || NO_TIME_RANGE,

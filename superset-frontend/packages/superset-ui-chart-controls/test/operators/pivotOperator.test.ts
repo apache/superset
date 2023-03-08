@@ -185,3 +185,33 @@ test('pivot by adhoc x_axis', () => {
     },
   });
 });
+
+test('pivot by x_axis with extra metrics', () => {
+  expect(
+    pivotOperator(
+      {
+        ...formData,
+        x_axis: 'foo',
+        x_axis_sort: 'bar',
+        groupby: [],
+        timeseries_limit_metric: 'bar',
+      },
+      {
+        ...queryObject,
+        series_columns: [],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['foo'],
+      columns: [],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+        bar: { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});

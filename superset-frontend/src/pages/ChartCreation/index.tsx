@@ -33,6 +33,7 @@ import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -65,6 +66,13 @@ const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
 const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
+
+if (
+  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+  !('filter_box' in denyList)
+) {
+  denyList.push('filter_box');
+}
 
 const StyledContainer = styled.div`
   ${({ theme }) => `

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import Any, Callable, Dict, TYPE_CHECKING
 
 import wtforms_json
@@ -458,7 +459,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
     def check_secret_key(self) -> None:
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+        def log_default_secret_key_warning() -> None:
             top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
             bottom_banner = 80 * "-" + "\n" + 80 * "-"
             logger.warning(top_banner)
@@ -470,6 +471,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "a sufficiently random sequence, ex: openssl rand -base64 42"
             )
             logger.warning(bottom_banner)
+
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            if (
+                self.superset_app.debug
+                or self.superset_app.config["TESTING"]
+                # There must be a better way
+                or "pytest" in sys.modules
+            ):
+                logger.warning("Debug mode identified with default secret key")
+                log_default_secret_key_warning()
+                return
+            log_default_secret_key_warning()
+            logger.error("Refusing to start due to insecure SECRET_KEY")
+            sys.exit(1)
 
     def init_app(self) -> None:
         """
