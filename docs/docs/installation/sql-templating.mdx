@@ -66,7 +66,7 @@ JINJA_CONTEXT_ADDONS = {
 }
 ```
 
-Default values for jinja templates can be specified via ``Parameters`` menu in the SQL Lab user interface.
+Default values for jinja templates can be specified via `Parameters` menu in the SQL Lab user interface.
 In the UI you can assign a set of parameters as JSON
 
 ```json
@@ -74,7 +74,7 @@ In the UI you can assign a set of parameters as JSON
   "my_table": "foo"
 }
 ```
-The parameters become available in your SQL (example:SELECT * FROM {{ my_table }} ) by using Jinja templating syntax.
+The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
 SQL Lab template parameters are stored with the dataset as TEMPLATE PARAMETERS.
 
 There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
