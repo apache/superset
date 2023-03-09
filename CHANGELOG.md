@@ -29,8 +29,9 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 2.1.0 (Fri Feb 17 11:08:14 2023 +0000)
+### 2.1 (Thu Mar 9 22:19:14 2023 +0000)
 **Database Migrations**
+- [#23139](https://github.com/apache/superset/pull/23139) fix: memoized decorator memory leak (@dpgaspar)
 - [#19676](https://github.com/apache/superset/pull/19676) chore(frontend): Spelling (@jsoref)
 - [#22852](https://github.com/apache/superset/pull/22852) chore: removing unnecessary double spaces, a.k.a. "shotgun holes" (@rusackas)
 - [#21912](https://github.com/apache/superset/pull/21912) feat(ssh-tunnelling):  Setup SSH Tunneling Commands for Database Connections  (@hughhhh)
@@ -255,6 +256,23 @@ under the License.
 - [#20412](https://github.com/apache/superset/pull/20412) feat: allow setting db UUID (@betodealmeida)
 
 **Fixes**
+- [#23299](https://github.com/apache/superset/pull/23299) fix(dashboard): Infinite load when filter with default first value is out of scope (@kgabryje)
+- [#23238](https://github.com/apache/superset/pull/23238) fix(dashboard): Charts crashing when cross filter on adhoc column is applied (@kgabryje)
+- [#23243](https://github.com/apache/superset/pull/23243) fix: customize tab on heatmap chart is blank (@lilykuang)
+- [#23246](https://github.com/apache/superset/pull/23246) fix(dao): use explicit id filter (@villebro)
+- [#23186](https://github.com/apache/superset/pull/23186) fix: refuse to start with default secret on non debug envs (@dpgaspar)
+- [#23237](https://github.com/apache/superset/pull/23237) fix(dashboard): Don't show cross filters checkbox to users without write permissions (@kgabryje)
+- [#23217](https://github.com/apache/superset/pull/23217) fix: add disallowed query params for engines specs (@dpgaspar)
+- [#23190](https://github.com/apache/superset/pull/23190) fix(dashboard): Focusing charts and native filters from filters badge (@kgabryje)
+- [#23192](https://github.com/apache/superset/pull/23192) fix(clickhouse): add missing default format (@villebro)
+- [#23185](https://github.com/apache/superset/pull/23185) fix(clickhouse): add clickhouse connect driver (@villebro)
+- [#23184](https://github.com/apache/superset/pull/23184) fix: bump FAB to 4.3.0 (@dpgaspar)
+- [#23118](https://github.com/apache/superset/pull/23118) fix(rbac): show objects accessible by database access perm (@villebro)
+- [#22851](https://github.com/apache/superset/pull/22851) fix: Validate jinja rendered query (@geido)
+- [#23175](https://github.com/apache/superset/pull/23175) fix(ssh-tunnel): add password to `from_private_key` function (@hughhhh)
+- [#23195](https://github.com/apache/superset/pull/23195) fix(ssh_tunnel): Display SSHTunnel Switch when editing a DB that was created with the Dynamic Form (@Antonio-RiveroMartnez)
+- [#23196](https://github.com/apache/superset/pull/23196) fix(sshtunnel): argument params to properly setting `server_port` (@hughhhh)
+- [#23096](https://github.com/apache/superset/pull/23096) fix: reorganize role permissions (@dpgaspar)
 - [#23107](https://github.com/apache/superset/pull/23107) fix: missing __init__ on module sqllab commands (@dpgaspar)
 - [#23101](https://github.com/apache/superset/pull/23101) fix: removing pyproject.toml (@zephyring)
 - [#23093](https://github.com/apache/superset/pull/23093) fix: dict bug on QueryContextFactory (@okayhooni)
@@ -694,6 +712,9 @@ under the License.
 - [#20496](https://github.com/apache/superset/pull/20496) fix: change permissions on action (@eschutho)
 
 **Others**
+- [#23298](https://github.com/apache/superset/pull/23298) docs: improve API v1 migration documentation (@dpgaspar)
+- [#23199](https://github.com/apache/superset/pull/23199) docs: update installation docs to include frontend asset build (@eschutho)
+- [#23131](https://github.com/apache/superset/pull/23131) chore: Add docs for ssh tunneling (@hughhhh)
 - [#23102](https://github.com/apache/superset/pull/23102) chore: change AlertQueryError to 400 (@eschutho)
 - [#23041](https://github.com/apache/superset/pull/23041) chore: increment statsd as warn (@eschutho)
 - [#22903](https://github.com/apache/superset/pull/22903) chore: Updating connection URI for MS SQL Server (@kuruv)
