@@ -153,6 +153,12 @@ class TagSchema(Schema):
     name = fields.String()
     type = fields.String()
 
+class EmbeddedDashboardResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    dashboard_id = fields.String()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)
 
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
@@ -176,6 +182,7 @@ class DashboardGetResponseSchema(Schema):
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    embedded = fields.List(fields.Nested(EmbeddedDashboardResponseSchema))
 
 
 class DatabaseSchema(Schema):
@@ -322,10 +329,3 @@ class ImportV1DashboardSchema(Schema):
 class EmbeddedDashboardConfigSchema(Schema):
     allowed_domains = fields.List(fields.String(), required=True)
 
-
-class EmbeddedDashboardResponseSchema(Schema):
-    uuid = fields.String()
-    allowed_domains = fields.List(fields.String())
-    dashboard_id = fields.String()
-    changed_on = fields.DateTime()
-    changed_by = fields.Nested(UserSchema)

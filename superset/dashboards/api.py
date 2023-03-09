@@ -187,6 +187,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.id",
         "roles.name",
         "is_managed_externally",
+        "embedded"
     ]
     if is_feature_enabled("TAGGING_SYSTEM"):
         list_columns += ["tags.id", "tags.name", "tags.type"]
