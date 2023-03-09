@@ -13,6 +13,6 @@
     "src/**/*",
     "types/**/*",
     "../../types/**/*"
-, "../../src/hooks/apiResources", "../../src/SqlLab/hooks/useQueryEditor", "../../src/hooks/useTabId.ts"  ],
+  ],
   "references": []
 }
