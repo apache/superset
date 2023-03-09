@@ -1,0 +1,1 @@
+/*! dom-to-image-more 12-05-2022 */
