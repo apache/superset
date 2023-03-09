@@ -523,7 +523,6 @@ export function exploreJSON(
           return json.result;
         })
         .then(queriesResponse => {
-          console.log('queriesResponseXXX (standalone)', queriesResponse);
           queriesResponse.forEach(resultItem =>
             dispatch(
               logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -611,7 +610,6 @@ export function exploreJSON(
         return t;
       })
       .then(queriesResponse => {
-        console.log('queriesResponseXXX (plugin)', queriesResponse);
         queriesResponse.forEach(resultItem =>
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
