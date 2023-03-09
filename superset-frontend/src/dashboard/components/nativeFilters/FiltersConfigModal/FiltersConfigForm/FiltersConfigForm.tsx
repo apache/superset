@@ -637,7 +637,7 @@ const FiltersConfigForm = (
     formFilter?.time_range && formFilter.time_range !== 'No filter';
 
   const hasTimeDependency = dependencies
-    .map(filterId => form.getFieldValue('filters')?.[filterId].filterType)
+    ?.map(filterId => form.getFieldValue('filters')?.[filterId]?.filterType)
     .some(filterType => filterType === 'filter_time');
 
   const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
@@ -739,6 +739,42 @@ const FiltersConfigForm = (
   if (isRemoved) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
   }
+
+  const timeColumn = (
+    <StyledRowFormItem
+      name={['filters', filterId, 'granularity_sqla']}
+      label={
+        <>
+          <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
+          <InfoTooltipWithTrigger
+            placement="top"
+            tooltip={
+              hasTimeDependency
+                ? t('Time column to apply dependent temporal filter to')
+                : t('Time column to apply time range to')
+            }
+          />
+        </>
+      }
+      initialValue={filterToEdit?.granularity_sqla}
+    >
+      <ColumnSelect
+        allowClear
+        form={form}
+        formField="granularity_sqla"
+        filterId={filterId}
+        filterValues={(column: Column) => !!column.is_dttm}
+        datasetId={datasetId}
+        onChange={column => {
+          // We need reset default value when when column changed
+          setNativeFilterFieldValues(form, filterId, {
+            granularity_sqla: column,
+          });
+          forceUpdate();
+        }}
+      />
+    </StyledRowFormItem>
+  );
 
   return (
     <StyledTabs
@@ -885,11 +921,6 @@ const FiltersConfigForm = (
                   <DependencyList
                     availableFilters={availableFilters}
                     dependencies={dependencies}
-                    hasTimeDependency={hasTimeDependency}
-                    filterId={filterId}
-                    form={form}
-                    forceUpdate={forceUpdate}
-                    datasetId={datasetId}
                     onDependenciesChange={dependencies => {
                       setNativeFilterFieldValues(form, filterId, {
                         dependencies,
@@ -901,7 +932,9 @@ const FiltersConfigForm = (
                     getDependencySuggestion={() =>
                       getDependencySuggestion(filterId)
                     }
-                  />
+                  >
+                    {hasTimeDependency ? timeColumn : undefined}
+                  </DependencyList>
                 </StyledRowFormItem>
               )}
               {hasDataset && hasAdditionalFilters && (
@@ -975,39 +1008,9 @@ const FiltersConfigForm = (
                         />
                       </StyledRowFormItem>
                     )}
-                    {hasTimeRange && (
-                      <StyledRowFormItem
-                        name={['filters', filterId, 'granularity_sqla']}
-                        label={
-                          <>
-                            <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
-                            <InfoTooltipWithTrigger
-                              placement="top"
-                              tooltip={t(
-                                'Optional time column if time range should apply to another column than the default time column',
-                              )}
-                            />
-                          </>
-                        }
-                        initialValue={filterToEdit?.granularity_sqla}
-                      >
-                        <ColumnSelect
-                          allowClear
-                          form={form}
-                          formField="granularity_sqla"
-                          filterId={filterId}
-                          filterValues={(column: Column) => !!column.is_dttm}
-                          datasetId={datasetId}
-                          onChange={column => {
-                            // We need reset default value when when column changed
-                            setNativeFilterFieldValues(form, filterId, {
-                              granularity_sqla: column,
-                            });
-                            forceUpdate();
-                          }}
-                        />
-                      </StyledRowFormItem>
-                    )}
+                    {hasTimeRange && !hasTimeDependency
+                      ? timeColumn
+                      : undefined}
                   </CollapsibleControl>
                 </CleanFormItem>
               )}
