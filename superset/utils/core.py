@@ -74,9 +74,8 @@ import markdown as md
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.backends.openssl.x509 import _Certificate
+from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app, flash, g, Markup, render_template, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
@@ -190,6 +189,12 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
+class LoggerLevel(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    EXCEPTION = "exception"
+
+
 class HeaderDataType(TypedDict):
     notification_format: str
     owners: List[int]
@@ -216,7 +221,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
-    col: str
+    col: Column
     op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
@@ -359,24 +364,9 @@ class RowLevelSecurityFilterType(str, Enum):
     BASE = "Base"
 
 
-class TemporalType(str, Enum):
-    """
-    Supported temporal types
-    """
-
-    DATE = "DATE"
-    DATETIME = "DATETIME"
-    SMALLDATETIME = "SMALLDATETIME"
-    TEXT = "TEXT"
-    TIME = "TIME"
-    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
-    TIMESTAMP = "TIMESTAMP"
-    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
-
-
 class ColumnTypeSource(Enum):
     GET_TABLE = 1
-    CURSOR_DESCRIPION = 2
+    CURSOR_DESCRIPTION = 2
 
 
 class ColumnSpec(NamedTuple):
@@ -423,7 +413,7 @@ def parse_js_uri_path_item(
 
     :param item: a uri path component
     :param unquote: Perform unquoting of string using urllib.parse.unquote_plus()
-    :param eval_undefined: When set to True and item is either 'null'  or 'undefined',
+    :param eval_undefined: When set to True and item is either 'null' or 'undefined',
     assume item is undefined and return None.
     :return: Either None, the original item or unquoted item
     """
@@ -1020,7 +1010,7 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
-    smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -1029,7 +1019,7 @@ def send_mime_email(
 
     # Default ssl context is SERVER_AUTH using the default system
     # root CA certificates
-    ssl_context = ssl.create_default_context() if smpt_ssl_server_auth else None
+    ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
         smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
         if smtp_ssl
@@ -1099,7 +1089,7 @@ def simple_filter_to_adhoc(
         "expressionType": "SIMPLE",
         "comparator": filter_clause.get("val"),
         "operator": filter_clause["op"],
-        "subject": filter_clause["col"],
+        "subject": cast(str, filter_clause["col"]),
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
@@ -1176,8 +1166,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
     # Note extra_filters only support simple filters.
-    applied_time_extras: Dict[str, str] = {}
-    form_data["applied_time_extras"] = applied_time_extras
+    form_data.setdefault("applied_time_extras", {})
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
     merge_extra_form_data(form_data)
@@ -1220,7 +1209,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
                 time_extra_value = filtr.get("val")
                 if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
-                    applied_time_extras[filter_column] = time_extra_value
+                    form_data["applied_time_extras"][filter_column] = time_extra_value
             elif filtr["val"]:
                 # Merge column filters
                 filter_key = get_filter_key(filtr)
@@ -1278,8 +1267,8 @@ def get_example_default_schema() -> Optional[str]:
     Return the default schema of the examples database, if any.
     """
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    return inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        return inspect(engine).default_schema_name
 
 
 def backend() -> str:
@@ -1545,7 +1534,7 @@ def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
         delattr(g, "user")
 
 
-def parse_ssl_cert(certificate: str) -> _Certificate:
+def parse_ssl_cert(certificate: str) -> Certificate:
     """
     Parses the contents of a certificate and returns a valid certificate object
     if valid.
@@ -1555,9 +1544,7 @@ def parse_ssl_cert(certificate: str) -> _Certificate:
     :raises CertificateException: If certificate is not valid/unparseable
     """
     try:
-        return x509.load_pem_x509_certificate(
-            certificate.encode("utf-8"), default_backend()
-        )
+        return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
     except ValueError as ex:
         raise CertificateException("Invalid certificate") from ex
 
@@ -1713,7 +1700,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
 
 def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     """
-    Extract the columns that a list of metrics are referencing. Expcludes all
+    Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
 
     :param metrics: Ad-hoc metric

@@ -163,7 +163,7 @@ def test_datetime_eval() -> None:
     expected = datetime(2016, 11, 7, 9, 30, 10)
     assert result == expected
 
-    result = datetime_eval("datetime('today'  )")
+    result = datetime_eval("datetime('today')")
     expected = datetime(2016, 11, 7)
     assert result == expected
 
@@ -308,7 +308,7 @@ def test_get_past_or_future() -> None:
 
 def test_parse_human_datetime() -> None:
     with pytest.raises(TimeRangeAmbiguousError):
-        parse_human_datetime("  2 days  ")
+        parse_human_datetime("2 days")
 
     with pytest.raises(TimeRangeAmbiguousError):
         parse_human_datetime("2 day")

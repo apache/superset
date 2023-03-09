@@ -411,7 +411,7 @@ const ExploreChartPanel = ({
   );
 
   if (standalone) {
-    // dom manipulation hack to get rid of the boostrap theme's body background
+    // dom manipulation hack to get rid of the bootstrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
     if (!bodyClasses.includes(standaloneClass)) {

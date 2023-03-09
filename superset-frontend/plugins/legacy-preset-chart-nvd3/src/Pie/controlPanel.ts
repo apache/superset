@@ -19,7 +19,9 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT,
 } from '@superset-ui/chart-controls';
 import { showLegend } from '../NVD3Controls';
 
@@ -48,12 +50,12 @@ const config: ControlPanelConfig = {
               default: 'key',
               renderTrigger: true,
               choices: [
-                ['key', 'Category Name'],
-                ['value', 'Value'],
-                ['percent', 'Percentage'],
-                ['key_value', 'Category and Value'],
-                ['key_percent', 'Category and Percentage'],
-                ['key_value_percent', 'Category, Value and Percentage'],
+                ['key', t('Category Name')],
+                ['value', t('Value')],
+                ['percent', t('Percentage')],
+                ['key_value', t('Category and Value')],
+                ['key_percent', t('Category and Percentage')],
+                ['key_value_percent', t('Category, Value and Percentage')],
               ],
               description: t('What should be shown on the label?'),
             },
@@ -67,11 +69,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t(
-                'Only applies when the "Label Type" is not set to a percentage.',
-              )}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT}`,
             },
           },
         ],
@@ -97,7 +95,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Whether to display the labels. Note that the label only displays when the the 5% ' +
+                'Whether to display the labels. Note that the label only displays when the 5% ' +
                   'threshold.',
               ),
             },

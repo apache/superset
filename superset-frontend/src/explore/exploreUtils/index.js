@@ -61,18 +61,16 @@ export function getHostName(allowDomainSharding = false) {
   return availableDomains[currentIndex];
 }
 
-export function getAnnotationJsonUrl(slice_id, form_data, isNative, force) {
+export function getAnnotationJsonUrl(slice_id, force) {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
+
   const uri = URI(window.location.search);
-  const endpoint = isNative ? 'annotation_json' : 'slice_json';
   return uri
-    .pathname(`/superset/${endpoint}/${slice_id}`)
+    .pathname('/api/v1/chart/data')
     .search({
-      form_data: safeStringify(form_data, (key, value) =>
-        value === null ? undefined : value,
-      ),
+      form_data: safeStringify({ slice_id }),
       force,
     })
     .toString();

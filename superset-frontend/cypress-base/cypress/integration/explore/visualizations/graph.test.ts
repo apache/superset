@@ -28,7 +28,6 @@ type adhocFilter = {
 
 describe('Visualization > Graph', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });
 

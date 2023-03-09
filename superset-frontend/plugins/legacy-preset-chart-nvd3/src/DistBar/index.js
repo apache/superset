@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  hasGenericChartAxes,
+} from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Bar_Chart.jpg';
@@ -35,7 +40,7 @@ const metadata = new ChartMetadata({
     { url: example2, caption: 'Grouped style' },
     { url: example3 },
   ],
-  name: t('Bar Chart'),
+  name: hasGenericChartAxes ? t('Bar Chart (legacy)') : t('Bar Chart'),
   tags: [
     t('Additive'),
     t('Bar'),

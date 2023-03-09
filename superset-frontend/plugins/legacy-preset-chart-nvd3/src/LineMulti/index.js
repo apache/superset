@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!',
   ),
+  exampleGallery: [{ url: example }],
   name: t('Multiple Line Charts'),
   tags: [
     t('Multi-Variables'),

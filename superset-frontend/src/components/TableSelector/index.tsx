@@ -93,7 +93,7 @@ interface TableSelectorProps {
   database?: DatabaseObject | null;
   emptyState?: ReactNode;
   formMode?: boolean;
-  getDbList?: (arg0: any) => {};
+  getDbList?: (arg0: any) => void;
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
@@ -185,8 +185,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: (data: { options: Table[] }) => {
-      onTablesLoad?.(data.options);
+    onSuccess: () => {
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
@@ -202,6 +201,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       });
     },
   });
+
+  useEffect(() => {
+    // Set the tableOptions in the queryEditor so autocomplete
+    // works on new tabs
+    if (data && isFetched) {
+      onTablesLoad?.(data.options);
+    }
+  }, [data, isFetched, onTablesLoad]);
 
   const tableOptions = useMemo<TableOption[]>(
     () =>
@@ -268,26 +275,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     internalTableChange(value);
   };
 
-  function renderDatabaseSelector() {
-    return (
-      <DatabaseSelector
-        db={database}
-        emptyState={emptyState}
-        formMode={formMode}
-        getDbList={getDbList}
-        handleError={handleError}
-        onDbChange={readOnly ? undefined : internalDbChange}
-        onEmptyResults={onEmptyResults}
-        onSchemaChange={readOnly ? undefined : internalSchemaChange}
-        onSchemasLoad={onSchemasLoad}
-        schema={currentSchema}
-        sqlLabMode={sqlLabMode}
-        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
-        readOnly={readOnly}
-      />
-    );
-  }
-
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
@@ -339,7 +326,21 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   return (
     <TableSelectorWrapper>
-      {renderDatabaseSelector()}
+      <DatabaseSelector
+        db={database}
+        emptyState={emptyState}
+        formMode={formMode}
+        getDbList={getDbList}
+        handleError={handleError}
+        onDbChange={readOnly ? undefined : internalDbChange}
+        onEmptyResults={onEmptyResults}
+        onSchemaChange={readOnly ? undefined : internalSchemaChange}
+        onSchemasLoad={onSchemasLoad}
+        schema={currentSchema}
+        sqlLabMode={sqlLabMode}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+        readOnly={readOnly}
+      />
       {sqlLabMode && !formMode && <div className="divider" />}
       {renderTableSelect()}
     </TableSelectorWrapper>

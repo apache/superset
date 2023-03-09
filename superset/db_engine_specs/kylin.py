@@ -17,8 +17,9 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -43,10 +44,11 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.TIMESTAMP:
-            datetime_fomatted = dttm.isoformat(sep=" ", timespec="seconds")
-            return f"""CAST('{datetime_fomatted}' AS TIMESTAMP)"""
+        if isinstance(sqla_type, types.TIMESTAMP):
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CAST('{datetime_formatted}' AS TIMESTAMP)"""
         return None

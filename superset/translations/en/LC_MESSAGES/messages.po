@@ -1141,10 +1141,6 @@ msgstr ""
 msgid "An error occurred saving dataset"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
-msgstr ""
-
 #: superset/key_value/commands/exceptions.py:33
 msgid "An error occurred while accessing the value."
 msgstr ""
@@ -3526,7 +3522,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:154
 msgid ""
 "D3 number format for numbers between -1.0 and 1.0, useful when you want "
-"to have different siginificant digits for small and large numbers"
+"to have different significant digits for small and large numbers"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:220
@@ -5521,18 +5517,6 @@ msgstr ""
 msgid "Filter box"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr ""
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr ""
@@ -5693,7 +5677,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr ""
 
@@ -6345,7 +6329,6 @@ msgstr ""
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -7896,7 +7879,7 @@ msgstr ""
 #: superset/views/core.py:2075
 msgid ""
 "One or more required fields are missing in the request. Please try again,"
-" and if the problem persists conctact your administrator."
+" and if the problem persists contact your administrator."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:46
@@ -8614,7 +8597,7 @@ msgid "Position of column level subtotal"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:163
-msgid "Position of intermidiate node label on tree"
+msgid "Position of intermediate node label on tree"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:293
@@ -8887,10 +8870,6 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:376
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:97
 msgid "Query preview"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
@@ -9249,7 +9228,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:226
-msgid "Report Schedule sellenium user not found"
+msgid "Report Schedule selenium user not found"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:230
@@ -9885,7 +9864,6 @@ msgid "Scoping"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -10434,7 +10412,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:52
 msgid ""
-"Show hierarchical relationships of data, with with the value represented "
+"Show hierarchical relationships of data, with the value represented "
 "by area, showing proportion and contribution to the whole."
 msgstr ""
 
@@ -11737,7 +11715,7 @@ msgstr ""
 
 #: superset/views/core.py:2280
 msgid ""
-"The query associated with these results could not be find. You need to "
+"The query associated with these results could not be found. You need to "
 "re-run the original query."
 msgstr ""
 
@@ -12160,7 +12138,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.jsx:127
 msgid ""
-"This color scheme is being overriden by custom label colors.\n"
+"This color scheme is being overridden by custom label colors.\n"
 "              Check the JSON metadata in the Advanced settings"
 msgstr ""
 
@@ -13134,7 +13112,7 @@ msgid ""
 msgstr ""
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
-msgid "Use the edit buttom to change this field"
+msgid "Use the edit button to change this field"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:176
@@ -13434,7 +13412,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:27
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
-"subdivisions (states, provinces, etc) on a chloropleth map. Each "
+"subdivisions (states, provinces, etc) on a choropleth map. Each "
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
 msgstr ""
@@ -14280,10 +14258,6 @@ msgstr ""
 msgid "[Alert] %(label)s"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr ""
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
@@ -14299,10 +14273,6 @@ msgstr ""
 #: superset/utils/core.py:864
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94

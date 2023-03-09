@@ -61,10 +61,10 @@ We don't recommend using the system installed Python. Instead, first install the
 [homebrew](https://brew.sh/) manager and then run the following commands:
 
 ```
-brew install readline pkg-config libffi openssl mysql postgres
+brew install readline pkg-config libffi openssl mysql postgresql
 ```
 
-You should install a recent version of Python (the official docker image uses 3.8.13). We'd recommend using a Python version manager like [pyenv](https://github.com/pyenv/pyenv) (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
+You should install a recent version of Python (the official docker image uses 3.8.16). We'd recommend using a Python version manager like [pyenv](https://github.com/pyenv/pyenv) (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
 
 Let's also make sure we have the latest version of `pip` and `setuptools`:
 
@@ -137,6 +137,12 @@ superset load_examples
 
 # Create default roles and permissions
 superset init
+
+# Build javascript assets
+cd superset-frontend
+npm ci
+npm run build
+cd ..
 
 # To start a development web server on port 8088, use -p to bind to another port
 superset run -p 8088 --with-threads --reload --debugger

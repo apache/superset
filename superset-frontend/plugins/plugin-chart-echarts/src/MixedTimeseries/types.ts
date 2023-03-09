@@ -20,19 +20,20 @@ import {
   AnnotationLayer,
   TimeGranularity,
   QueryFormData,
-  ChartProps,
-  ChartDataResponseResult,
   QueryFormColumn,
   ContributionType,
   TimeFormatter,
   AxisType,
 } from '@superset-ui/core';
 import {
-  EchartsLegendFormData,
-  EchartsTitleFormData,
-  StackType,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
   EchartsTimeseriesSeriesType,
-  EChartTransformedProps,
+  LegendFormData,
+  StackType,
+  TitleFormData,
 } from '../types';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -85,9 +86,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
-  emitFilter: boolean;
-} & EchartsLegendFormData &
-  EchartsTitleFormData;
+} & LegendFormData &
+  TitleFormData;
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
@@ -133,20 +133,21 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsMixedTimeseriesProps extends ChartProps {
+export interface EchartsMixedTimeseriesProps
+  extends BaseChartProps<EchartsMixedTimeseriesFormData> {
   formData: EchartsMixedTimeseriesFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 export type EchartsMixedTimeseriesChartTransformedProps =
-  EChartTransformedProps<EchartsMixedTimeseriesFormData> & {
-    emitFilterB: boolean;
-    groupbyB: QueryFormColumn[];
-    labelMapB: Record<string, string[]>;
-    seriesBreakdown: number;
-    xValueFormatter: TimeFormatter | StringConstructor;
-    xAxis: {
-      label: string;
-      type: AxisType;
+  BaseTransformedProps<EchartsMixedTimeseriesFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps & {
+      groupbyB: QueryFormColumn[];
+      labelMapB: Record<string, string[]>;
+      seriesBreakdown: number;
+      xValueFormatter: TimeFormatter | StringConstructor;
+      xAxis: {
+        label: string;
+        type: AxisType;
+      };
     };
-  };

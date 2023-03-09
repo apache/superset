@@ -40,7 +40,7 @@ import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
-  fetchMock.post('glob:*/r/shortner/', {});
+  fetchMock.post('glob:*/r/shortener/', {});
 
   const props = {
     id: 'TABS_ID',

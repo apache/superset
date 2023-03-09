@@ -24,7 +24,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 
 const requiredEntity = {
   ...sharedControls.entity,
@@ -161,7 +161,7 @@ const controlPanel: ControlPanelConfig = {
                 ['right', t('right')],
                 ['bottom', t('bottom')],
               ],
-              description: t('Position of intermidiate node label on tree'),
+              description: t('Position of intermediate node label on tree'),
             },
           },
         ],

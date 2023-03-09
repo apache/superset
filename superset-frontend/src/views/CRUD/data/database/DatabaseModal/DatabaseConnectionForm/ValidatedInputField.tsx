@@ -26,14 +26,14 @@ const FIELD_TEXT_MAP = {
     helpText: t(
       'Copy the account name of that database you are trying to connect to.',
     ),
-    placeholder: 'e.g. world_population',
+    placeholder: t('e.g. world_population'),
   },
   warehouse: {
-    placeholder: 'e.g. compute_wh',
+    placeholder: t('e.g. compute_wh'),
     className: 'form-group-w-50',
   },
   role: {
-    placeholder: 'e.g. AccountAdmin',
+    placeholder: t('e.g. AccountAdmin'),
     className: 'form-group-w-50',
   },
 };

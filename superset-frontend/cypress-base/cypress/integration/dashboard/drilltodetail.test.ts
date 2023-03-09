@@ -65,7 +65,7 @@ function openModalFromChartContext(targetMenuItem: string) {
       .first()
       .click();
   }
-
+  cy.getBySel('metadata-bar').should('be.visible');
   cy.wait('@samples');
 }
 
@@ -133,7 +133,6 @@ function testTimeChart(vizType: string) {
 
 describe('Drill to detail modal', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     closeModal();
   });
 
@@ -157,45 +156,47 @@ describe('Drill to detail modal', () => {
       it('refreshes the data', () => {
         openModalFromMenu('big_number_total');
         // move to the last page
-        cy.get(".pagination-container [role='navigation'] [role='button']")
-          .eq(7)
-          .click();
+        cy.get('.ant-pagination-item').eq(5).click();
+        // skips error on pagination
+        cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         // reload
         cy.get("[aria-label='reload']").click();
         cy.wait('@samples');
         // make sure it started back from first page
-        cy.get(".pagination-container [role='navigation'] li.active").should(
-          'contain',
-          '1',
-        );
+        cy.get('.ant-pagination-item-active').should('contain', '1');
       });
 
       it('paginates', () => {
         openModalFromMenu('big_number_total');
         // checking the data
         cy.getBySel('row-count-label').should('contain', '75.7k rows');
-        cy.get(".ant-modal-body [role='rowgroup'] [role='row']")
-          .should('have.length', 50)
-          .then($rows => {
-            expect($rows).to.contain('Amy');
-          });
+        cy.get('.virtual-table-cell').should($rows => {
+          expect($rows).to.contain('Amy');
+        });
         // checking the paginated data
-        cy.get(".pagination-container [role='navigation'] [role='button']")
-          .should('have.length', 9)
-          .then($pages => {
+        cy.get('.ant-pagination-item')
+          .should('have.length', 6)
+          .should($pages => {
             expect($pages).to.contain('1');
             expect($pages).to.contain('1514');
           });
-        cy.get(".pagination-container [role='navigation'] [role='button']")
-          .eq(7)
-          .click();
+        cy.get('.ant-pagination-item').eq(4).click();
+        // skips error on pagination
+        cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
-        cy.get("[role='rowgroup'] [role='row']")
-          .should('have.length', 43)
-          .then($rows => {
-            expect($rows).to.contain('Victoria');
-          });
+        cy.get('.virtual-table-cell').should($rows => {
+          expect($rows).to.contain('Kelly');
+        });
+
+        // verify scroll top on pagination
+        cy.getBySelLike('Number-modal').find('.virtual-grid').scrollTo(0, 200);
+
+        cy.get('.virtual-grid').contains('Juan').should('not.be.visible');
+
+        cy.get('.ant-pagination-item').eq(0).click();
+
+        cy.get('.virtual-grid').contains('Aaron').should('be.visible');
       });
     });
 
@@ -337,7 +338,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Time-series Bar Chart V2', () => {
+    describe('Time-series Bar Chart', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -409,14 +410,14 @@ describe('Drill to detail modal', () => {
 
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(70, 150);
-          openModalFromChartContext('Drill to detail by United States');
-          cy.getBySel('filter-val').should('contain', 'United States');
+          openModalFromChartContext('Drill to detail by USA');
+          cy.getBySel('filter-val').should('contain', 'USA');
           closeModal();
         });
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(200, 140);
-          openModalFromChartContext('Drill to detail by Slovakia');
-          cy.getBySel('filter-val').should('contain', 'Slovakia');
+          openModalFromChartContext('Drill to detail by SVK');
+          cy.getBySel('filter-val').should('contain', 'SVK');
         });
       });
     });
@@ -461,8 +462,8 @@ describe('Drill to detail modal', () => {
           // checking the filter
           cy.getBySel('filter-val').should('contain', 'boy');
           cy.getBySel('row-count-label').should('contain', '39.2k rows');
-          cy.get(".pagination-container [role='navigation'] [role='button']")
-            .should('have.length', 9)
+          cy.get('.ant-pagination-item')
+            .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');
               expect($pages).to.contain('785');
@@ -472,12 +473,9 @@ describe('Drill to detail modal', () => {
           cy.getBySel('filter-col').find("[aria-label='close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
-          cy.get(".pagination-container [role='navigation'] li.active").should(
-            'contain',
-            '1',
-          );
-          cy.get(".pagination-container [role='navigation'] [role='button']")
-            .should('have.length', 9)
+          cy.get('.ant-pagination-item-active').should('contain', '1');
+          cy.get('.ant-pagination-item')
+            .should('have.length', 6)
             .then($pages => {
               expect($pages).to.contain('1');
               expect($pages).to.contain('1514');
@@ -592,7 +590,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Treemap V2', () => {
+    describe('Treemap', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 

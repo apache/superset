@@ -18,6 +18,8 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
+import { css, styled } from '@superset-ui/core';
+
 import { usePrevious } from 'src/hooks/usePrevious';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -57,6 +59,28 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
+const StyledAceEditor = styled(AceEditor)`
+  ${({ theme }) => css`
+    && {
+      // double class is better than !important
+      border: 1px solid ${theme.colors.grayscale.light2};
+      font-feature-settings: 'liga' off, 'calt' off;
+      // Fira Code causes problem with Ace under Firefox
+      font-family: 'Menlo', 'Consolas', 'Courier New', 'Ubuntu Mono',
+        'source-code-pro', 'Lucida Console', monospace;
+
+      &.ace_autocomplete {
+        // Use !important because Ace Editor applies extra CSS at the last second
+        // when opening the autocomplete.
+        width: ${theme.gridUnit * 130}px !important;
+      }
+
+      .ace_scroller {
+        background-color: ${theme.colors.grayscale.light4};
+      }
+    }
+  `}
+`;
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
@@ -258,7 +282,7 @@ const AceEditorWrapper = ({
   };
 
   return (
-    <AceEditor
+    <StyledAceEditor
       keywords={words}
       onLoad={onEditorLoad}
       onBlur={onBlurSql}

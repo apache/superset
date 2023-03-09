@@ -179,3 +179,35 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
 
         db.session.delete(report_schedule)
         db.session.commit()
+
+
+@pytest.mark.usefixtures("owners")
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.tasks.scheduler.execute.update_state")
+@patch("superset.utils.log.logger")
+def test_execute_task_with_command_exception(
+    logger_mock, update_state_mock, command_mock, init_mock, owners
+):
+    from superset.commands.exceptions import CommandException
+
+    with app.app_context():
+        report_schedule = insert_report_schedule(
+            type=ReportScheduleType.ALERT,
+            name=f"report-{randint(0,1000)}",
+            crontab="0 4 * * *",
+            timezone="America/New_York",
+            owners=owners,
+        )
+        init_mock.return_value = None
+        command_mock.side_effect = CommandException("Unexpected error")
+        with freeze_time("2020-01-01T09:00:00Z"):
+            execute(report_schedule.id, "2020-01-01T09:00:00Z")
+            update_state_mock.assert_called_with(state="FAILURE")
+            logger_mock.exception.assert_called_with(
+                "A downstream exception occurred while generating a report: None. Unexpected error",
+                exc_info=True,
+            )
+
+        db.session.delete(report_schedule)
+        db.session.commit()

@@ -23,6 +23,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetNode.deploymentLabels }}
+    {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+{{- end }}
 {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations:
     {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
@@ -82,7 +85,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetNode.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
@@ -143,13 +146,30 @@ spec:
           {{- else }}
             {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
+{{- if .Values.supersetNode.extraContainers }}
+{{- toYaml .Values.supersetNode.extraContainers | nindent 8 }}
+{{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- if or .Values.affinity .Values.supersetNode.affinity }}
       affinity:
+        {{- with .Values.affinity }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetNode.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if or .Values.topologySpreadConstraints .Values.supersetNode.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- with .Values.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetNode.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:

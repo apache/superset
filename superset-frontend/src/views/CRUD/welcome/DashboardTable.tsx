@@ -20,37 +20,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
-import {
-  Dashboard,
-  DashboardTableProps,
-  TableTabTypes,
-} from 'src/views/CRUD/types';
+import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
-import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
   createErrorHandler,
+  getFilterValues,
   PAGE_SIZE,
+  handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
+import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-
-export interface FilterValue {
-  col: string;
-  operator: string;
-  value: string | boolean | number | null | undefined;
-}
 
 function DashboardTable({
   user,
@@ -58,16 +51,20 @@ function DashboardTable({
   addSuccessToast,
   mine,
   showThumbnails,
-  examples,
+  otherTabData,
+  otherTabFilters,
+  otherTabTitle,
 }: DashboardTableProps) {
   const history = useHistory();
-  const filterStore = getItem(
+  const defaultTab = getItem(
     LocalStorageKeys.homepage_dashboard_filter,
-    TableTabTypes.EXAMPLES,
+    TableTab.Other,
   );
-  const defaultFilter = filterStore;
 
-  const filteredExamples = filter(examples, obj => !('viz_type' in obj));
+  const filteredOtherTabData = filter(
+    otherTabData,
+    obj => !('viz_type' in obj),
+  );
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -80,7 +77,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    defaultFilter === 'Mine' ? mine : filteredExamples,
+    defaultTab === TableTab.Mine ? mine : filteredOtherTabData,
     [],
     false,
   );
@@ -92,35 +89,14 @@ function DashboardTable({
   );
 
   const [editModal, setEditModal] = useState<Dashboard>();
-  const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
+  const [dashboardToDelete, setDashboardToDelete] = useState<Dashboard | null>(
+    null,
+  );
 
-  const getFilters = (filterName: string) => {
-    const filters = [];
-    if (filterName === 'Mine') {
-      filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user?.userId}`,
-      });
-    } else if (filterName === 'Favorite') {
-      filters.push({
-        id: 'id',
-        operator: 'dashboard_is_favorite',
-        value: true,
-      });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
-    return filters;
-  };
-
-  const getData = (filter: string) =>
+  const getData = (tab: TableTab) =>
     fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
@@ -130,15 +106,20 @@ function DashboardTable({
           desc: true,
         },
       ],
-      filters: getFilters(filter),
+      filters: getFilterValues(
+        tab,
+        WelcomeTable.Dashboards,
+        user,
+        otherTabFilters,
+      ),
     });
 
   useEffect(() => {
-    if (loaded || dashboardFilter === 'Favorite') {
-      getData(dashboardFilter);
+    if (loaded || activeTab === TableTab.Favorite) {
+      getData(activeTab);
     }
     setLoaded(true);
-  }, [dashboardFilter]);
+  }, [activeTab]);
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
@@ -171,36 +152,30 @@ function DashboardTable({
 
   const menuTabs = [
     {
-      name: 'Favorite',
+      name: TableTab.Favorite,
       label: t('Favorite'),
       onClick: () => {
-        setDashboardFilter(TableTabTypes.FAVORITE);
-        setItem(
-          LocalStorageKeys.homepage_dashboard_filter,
-          TableTabTypes.FAVORITE,
-        );
+        setActiveTab(TableTab.Favorite);
+        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Favorite);
       },
     },
     {
-      name: 'Mine',
+      name: TableTab.Mine,
       label: t('Mine'),
       onClick: () => {
-        setDashboardFilter(TableTabTypes.MINE);
-        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTabTypes.MINE);
+        setActiveTab(TableTab.Mine);
+        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Mine);
       },
     },
   ];
 
-  if (examples) {
+  if (otherTabData) {
     menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
+      name: TableTab.Other,
+      label: otherTabTitle,
       onClick: () => {
-        setDashboardFilter(TableTabTypes.EXAMPLES);
-        setItem(
-          LocalStorageKeys.homepage_dashboard_filter,
-          TableTabTypes.EXAMPLES,
-        );
+        setActiveTab(TableTab.Other);
+        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTab.Other);
       },
     });
   }
@@ -209,7 +184,7 @@ function DashboardTable({
   return (
     <>
       <SubMenu
-        activeChild={dashboardFilter}
+        activeChild={activeTab}
         tabs={menuTabs}
         buttons={[
           {
@@ -229,7 +204,7 @@ function DashboardTable({
             buttonStyle: 'link',
             onClick: () => {
               const target =
-                dashboardFilter === 'Favorite'
+                activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
@@ -247,6 +222,30 @@ function DashboardTable({
           onSubmit={handleDashboardEdit}
         />
       )}
+      {dashboardToDelete && (
+        <DeleteModal
+          description={
+            <>
+              {t('Are you sure you want to delete')}{' '}
+              <b>{dashboardToDelete.dashboard_title}</b>?
+            </>
+          }
+          onConfirm={() => {
+            handleDashboardDelete(
+              dashboardToDelete,
+              refreshData,
+              addSuccessToast,
+              addDangerToast,
+              activeTab,
+              user?.userId,
+            );
+            setDashboardToDelete(null);
+          }}
+          onHide={() => setDashboardToDelete(null)}
+          open={!!dashboardToDelete}
+          title={t('Please confirm')}
+        />
+      )}
       {dashboards.length > 0 && (
         <CardContainer showThumbnails={showThumbnails}>
           {dashboards.map(e => (
@@ -256,10 +255,6 @@ function DashboardTable({
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
               showThumbnails={showThumbnails}
-              dashboardFilter={dashboardFilter}
-              refreshData={refreshData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
               userId={user?.userId}
               loading={loading}
               openDashboardEditModal={(dashboard: Dashboard) =>
@@ -268,12 +263,13 @@ function DashboardTable({
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
               handleBulkDashboardExport={handleBulkDashboardExport}
+              onDelete={dashboard => setDashboardToDelete(dashboard)}
             />
           ))}
         </CardContainer>
       )}
       {dashboards.length === 0 && (
-        <EmptyState tableName={WelcomeTable.Dashboards} tab={dashboardFilter} />
+        <EmptyState tableName={WelcomeTable.Dashboards} tab={activeTab} />
       )}
       {preparingExport && <Loading />}
     </>

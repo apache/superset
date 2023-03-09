@@ -40,7 +40,11 @@ import {
   EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesProps,
 } from './types';
-import { EchartsTimeseriesSeriesType, ForecastSeriesEnum } from '../types';
+import {
+  EchartsTimeseriesSeriesType,
+  ForecastSeriesEnum,
+  Refs,
+} from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   getOverMaxHiddenFormatter,
@@ -64,7 +68,7 @@ import {
   rebaseForecastDatum,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
   getTooltipTimeFormatter,
@@ -76,6 +80,7 @@ import {
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
@@ -90,6 +95,7 @@ export default function transformProps(
     datasource,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const { label_map: labelMap } =
@@ -139,8 +145,6 @@ export default function transformProps(
     xAxisLabelRotation,
     groupby,
     groupbyB,
-    emitFilter,
-    emitFilterB,
     xAxis: xAxisOrig,
     xAxisTitle,
     yAxisTitle,
@@ -152,6 +156,7 @@ export default function transformProps(
     percentageThreshold,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
+  const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
   let xAxisLabel = getXAxisLabel(
@@ -419,9 +424,8 @@ export default function transformProps(
       },
     ],
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const xValue: number = richTooltip
@@ -499,8 +503,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
-    emitFilterB,
+    emitCrossFilters,
     labelMap,
     labelMapB,
     groupby,
@@ -513,5 +516,6 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    refs,
   };
 }

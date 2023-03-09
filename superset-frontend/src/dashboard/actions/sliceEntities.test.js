@@ -67,7 +67,7 @@ describe('slice entity actions', () => {
   describe('fetchFilteredSlices', () => {
     it('should dispatch an fetchAllSlicesStarted action', async () => {
       const { dispatch, getState } = setup();
-      const thunk1 = fetchFilteredSlices('userId', false, 'filter_value');
+      const thunk1 = fetchFilteredSlices('userId', 'filter_value');
       await thunk1(dispatch, getState);
       expect(dispatch.getCall(0).args[0]).toEqual({
         type: FETCH_ALL_SLICES_STARTED,
@@ -82,7 +82,7 @@ describe('slice entity actions', () => {
         sliceEntities: { slices: {}, lastUpdated: 1 },
       });
 
-      const thunk1 = fetchAllSlices('userId', false, 'filter_value');
+      const thunk1 = fetchAllSlices('userId', 'filter_value');
       await thunk1(dispatch, getState);
 
       expect(spy.get.callCount).toBe(0);

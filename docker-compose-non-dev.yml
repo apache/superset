@@ -26,7 +26,7 @@ x-superset-volumes: &superset-volumes
 version: "3.7"
 services:
   redis:
-    image: redis:latest
+    image: redis:7
     container_name: superset_cache
     restart: unless-stopped
     volumes:
@@ -34,7 +34,7 @@ services:
 
   db:
     env_file: docker/.env-non-dev
-    image: postgres:10
+    image: postgres:14
     container_name: superset_db
     restart: unless-stopped
     volumes:

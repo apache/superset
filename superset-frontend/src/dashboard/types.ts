@@ -52,7 +52,7 @@ export type Chart = ChartState & {
   };
 };
 
-export enum FilterBarLocation {
+export enum FilterBarOrientation {
   VERTICAL = 'VERTICAL',
   HORIZONTAL = 'HORIZONTAL',
 }
@@ -70,6 +70,7 @@ export type DashboardState = {
   isRefreshing: boolean;
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  dashboardIsSaving: boolean;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
@@ -100,15 +101,16 @@ export type DashboardInfo = {
   json_metadata: string;
   metadata: {
     native_filter_configuration: JsonObject;
-    show_native_filters: boolean;
     chart_configuration: JsonObject;
     color_scheme: string;
     color_namespace: string;
     color_scheme_domain: string[];
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
+    cross_filters_enabled: boolean;
   };
-  filterBarLocation: FilterBarLocation;
+  crossFiltersEnabled: boolean;
+  filterBarOrientation: FilterBarOrientation;
 };
 
 export type ChartsState = { [key: string]: Chart };

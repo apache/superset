@@ -23,6 +23,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetWorker.deploymentLabels }}
+    {{- toYaml .Values.supersetWorker.deploymentLabels | nindent 4 }}
+{{- end }}
 {{- if .Values.supersetWorker.deploymentAnnotations }}
   annotations:
     {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
@@ -79,7 +82,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetWorker.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
@@ -132,13 +135,30 @@ spec:
           {{- else }}
             {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
+{{- if .Values.supersetWorker.extraContainers }}
+{{- toYaml .Values.supersetWorker.extraContainers | nindent 8 }}
+{{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- if or .Values.affinity .Values.supersetWorker.affinity }}
       affinity:
+        {{- with .Values.affinity }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetWorker.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if or .Values.topologySpreadConstraints .Values.supersetWorker.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- with .Values.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetWorker.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:

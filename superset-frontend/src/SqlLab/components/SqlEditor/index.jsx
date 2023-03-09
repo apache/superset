@@ -18,12 +18,18 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -74,9 +80,10 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
-import ConnectedSouthPane from '../SouthPane/state';
+import SouthPane from '../SouthPane';
 import SaveQuery from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
@@ -86,10 +93,7 @@ import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer.getAttribute('data-bootstrap') || '{}',
-);
+const bootstrapData = getBootstrapData();
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -134,8 +138,63 @@ const StyledSidebar = styled.div`
       hide ? 'transparent' : theme.colors.grayscale.light2};
 `;
 
+const StyledSqlEditor = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+
+    .schemaPane {
+      transition: transform ${theme.transitionTiming}s ease-in-out;
+    }
+
+    .queryPane {
+      flex: 1 1 auto;
+      padding: ${theme.gridUnit * 2}px;
+      overflow-y: auto;
+      overflow-x: scroll;
+    }
+
+    .schemaPane-enter-done,
+    .schemaPane-exit {
+      transform: translateX(0);
+      z-index: 7;
+    }
+
+    .schemaPane-exit-active {
+      transform: translateX(-120%);
+    }
+
+    .schemaPane-enter-active {
+      transform: translateX(0);
+      max-width: ${theme.gridUnit * 75}px;
+    }
+
+    .schemaPane-enter,
+    .schemaPane-exit-done {
+      max-width: 0;
+      transform: translateX(-120%);
+      overflow: hidden;
+    }
+
+    .schemaPane-exit-done + .queryPane {
+      margin-left: 0;
+    }
+
+    .gutter {
+      border-top: 1px solid ${theme.colors.grayscale.light2};
+      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+      width: 3%;
+      margin: ${SQL_EDITOR_GUTTER_MARGIN}px 47%;
+    }
+
+    .gutter.gutter-vertical {
+      cursor: row-resize;
+    }
+  `}
+`;
+
 const propTypes = {
-  actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   defaultQueryLimit: PropTypes.number.isRequired,
@@ -146,7 +205,6 @@ const propTypes = {
 };
 
 const SqlEditor = ({
-  actions,
   tables,
   queryEditor,
   defaultQueryLimit,
@@ -193,30 +251,33 @@ const SqlEditor = ({
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
 
-  const startQuery = (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
-    if (!database) {
-      return;
-    }
+  const startQuery = useCallback(
+    (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
+      if (!database) {
+        return;
+      }
 
-    dispatch(
-      runQueryFromSqlEditor(
-        database,
-        queryEditor,
-        defaultQueryLimit,
-        ctasArg ? ctas : '',
-        ctasArg,
-        ctas_method,
-      ),
-    );
-    dispatch(setActiveSouthPaneTab('Results'));
-  };
+      dispatch(
+        runQueryFromSqlEditor(
+          database,
+          queryEditor,
+          defaultQueryLimit,
+          ctasArg ? ctas : '',
+          ctasArg,
+          ctas_method,
+        ),
+      );
+      dispatch(setActiveSouthPaneTab('Results'));
+    },
+    [ctas, database, defaultQueryLimit, dispatch, queryEditor],
+  );
 
-  const stopQuery = () => {
+  const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
     return false;
-  };
+  }, [dispatch, latestQuery]);
 
   const runQuery = () => {
     if (database) {
@@ -230,7 +291,7 @@ const SqlEditor = ({
       dispatch(queryEditorSetAutorun(queryEditor, false));
       startQuery();
     }
-  }, []);
+  }, [autorun, dispatch, queryEditor, startQuery]);
 
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
@@ -238,7 +299,7 @@ const SqlEditor = ({
       ? sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
       : 0;
 
-  const getHotkeyConfig = () => {
+  const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
     const userOS = detectOS();
     const base = [
@@ -267,7 +328,7 @@ const SqlEditor = ({
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          dispatch(addNewQueryEditor(queryEditor));
+          dispatch(addNewQueryEditor());
         },
       },
       {
@@ -290,26 +351,33 @@ const SqlEditor = ({
     }
 
     return base;
-  };
+  }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
 
-  const handleWindowResize = () => {
+  const handleWindowResize = useCallback(() => {
     setHeight(getSqlEditorHeight());
-  };
+  }, []);
 
   const handleWindowResizeWithThrottle = useMemo(
     () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
-    [],
+    [handleWindowResize],
   );
 
-  const onBeforeUnload = event => {
-    if (
-      database?.extra_json?.cancel_query_on_windows_unload &&
-      latestQuery?.state === 'running'
-    ) {
-      event.preventDefault();
-      stopQuery();
-    }
-  };
+  const onBeforeUnload = useCallback(
+    event => {
+      if (
+        database?.extra_json?.cancel_query_on_windows_unload &&
+        latestQuery?.state === 'running'
+      ) {
+        event.preventDefault();
+        stopQuery();
+      }
+    },
+    [
+      database?.extra_json?.cancel_query_on_windows_unload,
+      latestQuery?.state,
+      stopQuery,
+    ],
+  );
 
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
@@ -326,7 +394,7 @@ const SqlEditor = ({
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, []);
+  }, [database, handleWindowResizeWithThrottle, onBeforeUnload]);
 
   useEffect(() => {
     // setup hotkeys
@@ -335,7 +403,7 @@ const SqlEditor = ({
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
-  }, [latestQuery]);
+  }, [getHotkeyConfig, latestQuery]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -352,13 +420,16 @@ const SqlEditor = ({
     }
   };
 
-  const setQueryEditorAndSaveSql = sql => {
-    dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
-  };
+  const setQueryEditorAndSaveSql = useCallback(
+    sql => {
+      dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
+    },
+    [dispatch, queryEditor],
+  );
 
   const setQueryEditorAndSaveSqlWithDebounce = useMemo(
     () => debounce(setQueryEditorAndSaveSql, SET_QUERY_EDITOR_SQL_DEBOUNCE_MS),
-    [],
+    [setQueryEditorAndSaveSql],
   );
 
   const canValidateQuery = () => {
@@ -370,15 +441,18 @@ const SqlEditor = ({
     return false;
   };
 
-  const requestValidation = sql => {
-    if (database) {
-      dispatch(validateQuery(queryEditor, sql));
-    }
-  };
+  const requestValidation = useCallback(
+    sql => {
+      if (database) {
+        dispatch(validateQuery(queryEditor, sql));
+      }
+    },
+    [database, dispatch, queryEditor],
+  );
 
   const requestValidationWithDebounce = useMemo(
     () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [],
+    [requestValidation],
   );
 
   const onSqlChanged = sql => {
@@ -467,7 +541,7 @@ const SqlEditor = ({
               onChange={params => {
                 dispatch(queryEditorSetTemplateParams(qe, params));
               }}
-              queryEditor={qe}
+              queryEditorId={qe.id}
             />
           </Menu.Item>
         )}
@@ -543,7 +617,7 @@ const SqlEditor = ({
               <span>
                 <EstimateQueryCostButton
                   getEstimate={getQueryCostEstimate}
-                  queryEditor={queryEditor}
+                  queryEditorId={queryEditor.id}
                   tooltip={t('Estimate the cost before running a query')}
                 />
               </span>
@@ -617,10 +691,9 @@ const SqlEditor = ({
           />
           {renderEditorBottomBar(hotkeys)}
         </div>
-        <ConnectedSouthPane
+        <SouthPane
           queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
-          actions={actions}
           height={southPaneHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
@@ -641,7 +714,7 @@ const SqlEditor = ({
     ? 'schemaPane-exit-done'
     : 'schemaPane-enter-done';
   return (
-    <div ref={sqlEditorRef} className="SqlEditor">
+    <StyledSqlEditor ref={sqlEditorRef} className="SqlEditor">
       <CSSTransition classNames="schemaPane" in={!hideLeftBar} timeout={300}>
         <ResizableSidebar
           id={`sqllab:${queryEditor.id}`}
@@ -657,9 +730,8 @@ const SqlEditor = ({
             >
               <SqlEditorLeftBar
                 database={database}
-                queryEditor={queryEditor}
+                queryEditorId={queryEditor.id}
                 tables={tables}
-                actions={actions}
                 setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
@@ -710,7 +782,7 @@ const SqlEditor = ({
         <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
-    </div>
+    </StyledSqlEditor>
   );
 };
 

@@ -33,8 +33,10 @@ export default function getOverwriteItems(prev: JsonObject, next: JsonObject) {
     keyPath,
     ...(keyPath.split('.').find(key => JSON_KEYS.has(key))
       ? {
-          oldValue: JSON.stringify(extractValue(prev, keyPath), null, 2) || '',
-          newValue: JSON.stringify(extractValue(next, keyPath), null, 2) || '',
+          oldValue:
+            JSON.stringify(extractValue(prev, keyPath), null, 2) || '{}',
+          newValue:
+            JSON.stringify(extractValue(next, keyPath), null, 2) || '{}',
         }
       : {
           oldValue: extractValue(prev, keyPath) || '',
