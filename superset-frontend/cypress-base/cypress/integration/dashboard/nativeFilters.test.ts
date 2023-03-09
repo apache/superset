@@ -379,7 +379,7 @@ describe('Horizontal FilterBar', () => {
     ]);
     setFilterBarOrientation('horizontal');
     cy.getBySel('slice-header').within(() => {
-      cy.get('.filter-counts').click();
+      cy.get('.filter-counts').trigger('mouseover');
     });
     cy.get('.filterStatusPopover').contains('test_8').click();
     cy.getBySel('dropdown-content').should('be.visible');
