@@ -68,8 +68,6 @@ export const SectionName = styled.span`
 export const FilterName = styled.span`
   ${({ theme }) => css`
     padding-right: ${theme.gridUnit}px;
-    display: flex;
-    align-items: center;
     font-style: italic;
     & > * {
       margin-right: ${theme.gridUnit}px;
@@ -120,7 +118,7 @@ export const FiltersDetailsContainer = styled.div`
   `}
 `;
 
-export const FilterValue = styled.div`
+export const FilterValue = styled.span`
   max-width: 100%;
   flex-grow: 1;
   overflow: auto;

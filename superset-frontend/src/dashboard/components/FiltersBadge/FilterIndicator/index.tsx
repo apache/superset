@@ -44,23 +44,25 @@ const FilterIndicator: FC<IndicatorProps> = ({
         onClick ? () => onClick([...path, `LABEL-${column}`]) : undefined
       }
     >
-      <FilterName>
-        {onClick && (
-          <i>
-            <Icons.SearchOutlined
-              iconSize="m"
-              css={css`
-                span {
-                  vertical-align: 0;
-                }
-              `}
-            />
-          </i>
-        )}
-        {name}
-        {resultValue ? ': ' : ''}
-      </FilterName>
-      <FilterValue>{resultValue}</FilterValue>
+      {onClick && (
+        <i>
+          <Icons.SearchOutlined
+            iconSize="m"
+            css={css`
+              span {
+                vertical-align: 0;
+              }
+            `}
+          />
+        </i>
+      )}
+      <div>
+        <FilterName>
+          {name}
+          {resultValue ? ': ' : ''}
+        </FilterName>
+        <FilterValue>{resultValue}</FilterValue>
+      </div>
     </FilterItem>
   );
 };
