@@ -176,22 +176,46 @@ class WebDriverProxy:
         sleep(selenium_headstart)
 
         try:
-            logger.debug("Wait for the presence of %s", element_name)
-            element = WebDriverWait(driver, self._screenshot_locate_wait).until(
-                EC.presence_of_element_located((By.CLASS_NAME, element_name))
-            )
-
-            logger.debug("Wait for chart containers to draw")
-            WebDriverWait(driver, self._screenshot_locate_wait).until(
-                EC.visibility_of_all_elements_located(
-                    (By.CLASS_NAME, "slice_container")
+            try:
+                # page didn't load
+                logger.debug(
+                    "Wait for the presence of %s at url: %s", element_name, url
                 )
-            )
+                element = WebDriverWait(driver, self._screenshot_locate_wait).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, element_name))
+                )
+            except TimeoutException as ex:
+                logger.exception("Selenium timed out requesting url %s", url)
+                raise ex
 
-            logger.debug("Wait for loading element of charts to be gone")
-            WebDriverWait(driver, self._screenshot_load_wait).until_not(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
-            )
+            try:
+                # chart containers didn't render
+                logger.debug("Wait for chart containers to draw at url: %s", url)
+                WebDriverWait(driver, self._screenshot_locate_wait).until(
+                    EC.visibility_of_all_elements_located(
+                        (By.CLASS_NAME, "slice_container")
+                    )
+                )
+            except TimeoutException as ex:
+                logger.exception(
+                    "Selenium timed out waiting for chart containers to draw at url %s",
+                    url,
+                )
+                raise ex
+
+            try:
+                # charts took too long to load
+                logger.debug(
+                    "Wait for loading element of charts to be gone at url: %s", url
+                )
+                WebDriverWait(driver, self._screenshot_load_wait).until_not(
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
+                )
+            except TimeoutException as ex:
+                logger.exception(
+                    "Selenium timed out waiting for charts to load at url %s", url
+                )
+                raise ex
 
             selenium_animation_wait = current_app.config[
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
@@ -215,9 +239,9 @@ class WebDriverProxy:
                     )
 
             img = element.screenshot_as_png
-
         except TimeoutException:
-            logger.exception("Selenium timed out requesting url %s", url)
+            # raise again for the finally block, but handled above
+            pass
         except StaleElementReferenceException:
             logger.exception(
                 "Selenium got a stale element while requesting url %s",
