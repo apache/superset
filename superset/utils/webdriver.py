@@ -178,7 +178,9 @@ class WebDriverProxy:
         try:
             try:
                 # page didn't load
-                logger.debug("Wait for the presence of %s", element_name)
+                logger.debug(
+                    "Wait for the presence of %s at url: %s", element_name, url
+                )
                 element = WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
@@ -188,7 +190,7 @@ class WebDriverProxy:
 
             try:
                 # chart containers didn't render
-                logger.debug("Wait for chart containers to draw")
+                logger.debug("Wait for chart containers to draw at url: %s", url)
                 WebDriverWait(driver, self._screenshot_locate_wait).until(
                     EC.visibility_of_all_elements_located(
                         (By.CLASS_NAME, "slice_container")
@@ -203,7 +205,9 @@ class WebDriverProxy:
 
             try:
                 # charts took too long to load
-                logger.debug("Wait for loading element of charts to be gone")
+                logger.debug(
+                    "Wait for loading element of charts to be gone at url: %s", url
+                )
                 WebDriverWait(driver, self._screenshot_load_wait).until_not(
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
