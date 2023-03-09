@@ -17,16 +17,17 @@
  * under the License.
  */
 import React, { FunctionComponent } from 'react';
-import { Row } from 'src/components';
+import { Col, Row } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import withToasts, {
   ToastProps,
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
+// import ReactJson from 'react-json-view';
 import { FlashAuditLogs } from '../../types';
 
-interface ErrorStackTraceProps extends ToastProps {
+interface JsonDiffProps extends ToastProps {
   log: FlashAuditLogs;
   show: boolean;
   onHide: () => void;
@@ -53,7 +54,7 @@ const Label = styled.span`
   text-transform: uppercase;
 `;
 
-const ErrorStackTrace: FunctionComponent<ErrorStackTraceProps> = ({
+const JsonDifference: FunctionComponent<JsonDiffProps> = ({
   log,
   onHide,
   show,
@@ -63,17 +64,34 @@ const ErrorStackTrace: FunctionComponent<ErrorStackTraceProps> = ({
   const renderModalBody = () => (
     <>
       <Row>
-        <Label>Error:</Label>
-      </Row>
-      <Row>
-        <SyntaxHighlighterCopy
-          language="plaintext"
-          addDangerToast={addDangerToast}
-          addSuccessToast={addSuccessToast}
-          wrapLongLines
-        >
-          {log?.description || ''}
-        </SyntaxHighlighterCopy>
+        <Col>
+          <Label>Previous:</Label>
+          {/* <ReactJson
+            name="New Value"
+            enableClipboard
+            theme="rjv-default"
+            src={JSON.parse(log?.newValue)}
+          /> */}
+          <SyntaxHighlighterCopy
+            language="json"
+            addDangerToast={addDangerToast}
+            addSuccessToast={addSuccessToast}
+            wrapLongLines
+          >
+            {log?.oldValue || ''}
+          </SyntaxHighlighterCopy>
+        </Col>
+        <Col>
+          <Label>Current:</Label>
+          <SyntaxHighlighterCopy
+            language="json"
+            addDangerToast={addDangerToast}
+            addSuccessToast={addSuccessToast}
+            wrapLongLines
+          >
+            {log?.newValue || ''}
+          </SyntaxHighlighterCopy>
+        </Col>
       </Row>
     </>
   );
@@ -84,7 +102,7 @@ const ErrorStackTrace: FunctionComponent<ErrorStackTraceProps> = ({
         onHide={onHide}
         draggable
         show={show}
-        title={t('Error Stack Trace')}
+        title={t('Value Difference')}
         footer={<></>}
       >
         {renderModalBody()}
@@ -93,4 +111,4 @@ const ErrorStackTrace: FunctionComponent<ErrorStackTraceProps> = ({
   );
 };
 
-export default withToasts(ErrorStackTrace);
+export default withToasts(JsonDifference);

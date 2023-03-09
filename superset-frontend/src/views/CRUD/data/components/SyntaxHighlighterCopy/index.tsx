@@ -38,6 +38,7 @@ SyntaxHighlighter.registerLanguage('plaintext', plainTextSyntax);
 
 const SyntaxHighlighterWrapper = styled.div`
   margin-top: -24px;
+  width: 100%;
 
   &:hover {
     svg {

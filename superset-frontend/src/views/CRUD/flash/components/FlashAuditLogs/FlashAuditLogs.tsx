@@ -29,6 +29,7 @@ import { useFlashListViewResource } from 'src/views/CRUD/hooks';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { FlashAuditLogs } from '../../types';
 import ErrorStackTrace from './ErrorStackTrace';
+import JsonDifference from './JsonDiff';
 
 const PAGE_SIZE = 10;
 
@@ -67,6 +68,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
     addDangerToast,
   );
   const [showErrorView, setShowErrorView] = useState<boolean>(false);
+  const [showJsonView, setShowJsonView] = useState<boolean>(false);
   const [currentLog, setCurrentLog] = useState<FlashAuditLogs | {}>({});
 
   const initialSort = [{ id: 'timestamp', desc: true }];
@@ -121,13 +123,12 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleValueDifference = () =>
-            console.log('FLASH DIFFERENCE', original);
+          const handleValueDifference = () => changeViewJson(original);
           const handleErrorTrace = () => changeViewErrorStack(original);
           const actions: ActionProps[] | [] = [
             {
               label: 'difference-action',
-              tooltip: t('View Flash Difference'),
+              tooltip: t('View Flash Value Difference'),
               placement: 'bottom' as TooltipPlacement,
               icon: 'Binoculars',
               onClick: handleValueDifference,
@@ -158,6 +159,11 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
     setCurrentLog(log);
     setShowErrorView(true);
   };
+
+  const changeViewJson = (log: any) => {
+    setCurrentLog(log);
+    setShowJsonView(true);
+  };
   return (
     <>
       <SubMenu
@@ -175,6 +181,13 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           log={currentLog as FlashAuditLogs}
           show={showErrorView}
           onHide={() => setShowErrorView(false)}
+        />
+      )}
+      {showJsonView && (
+        <JsonDifference
+          log={currentLog as FlashAuditLogs}
+          show={showJsonView}
+          onHide={() => setShowJsonView(false)}
         />
       )}
       <ListView<FlashAuditLogs>
