@@ -45,10 +45,6 @@ const StyledHeader = styled.div`
       font-weight: ${theme.typography.weights.normal};
       text-decoration: underline;
     }
-
-    .wrap-text {
-      word-wrap: break-word;
-    }
   `}
 `;
 
@@ -81,16 +77,8 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       {
         accessor: 'description',
         Header: t('Description'),
-        size: 'xl',
-        // Cell: ({
-        //   row: {
-        //     original: { description = '' },
-        //   },
-        // }: any) => (
-
-        //     <span className="wrap-text">{description}</span>
-
-        // ),
+        size: 'xxl',
+        classNames: 'wrap-text',
       },
       {
         accessor: 'user',
@@ -112,12 +100,12 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         size: 'l',
         Cell: ({
           row: {
-            original: { error_type = '', error_category = '' },
+            original: { error_type = '', error_name = '' },
           },
         }: any) => (
           <span>
             <strong>{error_type} : </strong>
-            {error_category}
+            {error_name}
           </span>
         ),
       },
@@ -133,7 +121,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
               icon: 'Binoculars',
               onClick: handleValueDifference,
             },
-            {
+            original?.description && {
               label: 'view-action',
               tooltip: t('View Error Stacktrace'),
               placement: 'bottom' as TooltipPlacement,
@@ -199,6 +187,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+        columnsForWrapText={['Description', 'Error']}
       />
     </>
   );

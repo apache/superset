@@ -182,7 +182,8 @@ export const Table = styled.table`
         padding-left: ${theme.gridUnit * 4}px;
       }
       &__wrap {
-        white-space: normal;
+        overflow-wrap: break-word;
+        white-space: initial;
       }
       &__nowrap {
         white-space: nowrap;
