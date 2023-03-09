@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
+import { EXPRESSION_TYPES, CLAUSES } from '../types';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {

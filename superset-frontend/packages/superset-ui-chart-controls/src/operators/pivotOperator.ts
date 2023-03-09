@@ -24,12 +24,16 @@ import {
   getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
+import { extractExtraMetrics } from './utils';
 
 export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   formData,
   queryObject,
 ) => {
-  const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
+  const metricLabels = [
+    ...ensureIsArray(queryObject.metrics),
+    ...extractExtraMetrics(formData),
+  ].map(getMetricLabel);
   const xAxisLabel = getXAxisLabel(formData);
   const columns = queryObject.series_columns || queryObject.columns;
 

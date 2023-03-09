@@ -146,3 +146,28 @@ test('should sort by axis', () => {
     },
   });
 });
+
+test('should sort by extra metric', () => {
+  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
+    value: true,
+  });
+  expect(
+    sortOperator(
+      {
+        ...formData,
+        x_axis_sort: 'my_limit_metric',
+        x_axis_sort_asc: true,
+        x_axis: 'Categorical Column',
+        groupby: [],
+        timeseries_limit_metric: 'my_limit_metric',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      by: 'my_limit_metric',
+      ascending: true,
+    },
+  });
+});

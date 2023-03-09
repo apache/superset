@@ -103,11 +103,9 @@ def find_unexpected_errors(driver: WebDriver) -> List[str]:
                     f"arguments[0].innerHTML = '{error_as_html}'", alert_div
                 )
             except WebDriverException:
-                logger.warning(
-                    "Failed to update error messages using alert_div", exc_info=True
-                )
+                logger.exception("Failed to update error messages using alert_div")
     except WebDriverException:
-        logger.warning("Failed to capture unexpected errors", exc_info=True)
+        logger.exception("Failed to capture unexpected errors")
 
     return error_messages
 
@@ -142,7 +140,7 @@ class WebDriverProxy:
             options.add_argument(arg)
 
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
-        logger.info("Init selenium driver")
+        logger.debug("Init selenium driver")
 
         return driver_class(**kwargs)
 
@@ -200,7 +198,7 @@ class WebDriverProxy:
             ]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
-            logger.info(
+            logger.debug(
                 "Taking a PNG screenshot of url %s as user %s",
                 url,
                 user.username,
@@ -219,15 +217,16 @@ class WebDriverProxy:
             img = element.screenshot_as_png
 
         except TimeoutException:
-            logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
+            logger.exception("Selenium timed out requesting url %s", url)
         except StaleElementReferenceException:
-            logger.error(
+            logger.exception(
                 "Selenium got a stale element while requesting url %s",
                 url,
-                exc_info=True,
             )
-        except WebDriverException as ex:
-            logger.error(ex, exc_info=True)
+        except WebDriverException:
+            logger.exception(
+                "Encountered an unexpected error when requeating url %s", url
+            )
         finally:
             self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img
