@@ -30,14 +30,7 @@ import {
   withRouter,
 } from 'react-router-dom';
 import moment from 'moment';
-import {
-  css,
-  QueryFormData,
-  styled,
-  SupersetTheme,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { css, QueryFormData, styled, t, useTheme } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -524,8 +517,9 @@ class SliceHeaderControls extends React.PureComponent<
           placement="bottomRight"
         >
           <span
-            css={(theme: SupersetTheme) => css`
-              padding-top: ${theme.gridUnit / 2}px;
+            css={css`
+              display: flex;
+              align-items: center;
             `}
             id={`slice_${slice.slice_id}-controls`}
             role="button"

@@ -71,9 +71,9 @@ const StyledFilterCount = styled.div`
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
     vertical-align: middle;
-    margin-left: ${theme.gridUnit * 2 + 2}px;
+    margin-left: ${theme.gridUnit * 2}px;
     &>sup {
-      padding: 0;
+      padding: 0 ${theme.gridUnit}px;
       min-width: ${theme.gridUnit * 4}px;
       height: ${theme.gridUnit * 4}px;
       line-height: 1.5;
