@@ -17,16 +17,26 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { Column, Filter, styled, t } from '@superset-ui/core';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Icons from 'src/components/Icons';
 import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
+import { ColumnSelect } from './ColumnSelect';
+import { setNativeFilterFieldValues } from './utils';
+import { StyledLabel, StyledRowFormItem } from './FiltersConfigForm';
 
 interface DependencyListProps {
   availableFilters: { label: string; value: string }[];
   dependencies: string[];
+  hasTimeDependency: boolean;
   onDependenciesChange: (dependencies: string[]) => void;
   getDependencySuggestion: () => string;
+  filterId: string;
+  filterToEdit?: Filter;
+  forceUpdate: () => void;
+  datasetId: any;
+  form: any;
 }
 
 const MainPanel = styled.div`
@@ -174,8 +184,14 @@ const List = ({
 const DependencyList = ({
   availableFilters = [],
   dependencies = [],
+  hasTimeDependency,
   onDependenciesChange,
   getDependencySuggestion,
+  filterId,
+  filterToEdit,
+  form,
+  forceUpdate,
+  datasetId,
 }: DependencyListProps) => {
   const hasAvailableFilters = availableFilters.length > 0;
   const hasDependencies = dependencies.length > 0;
@@ -187,6 +203,7 @@ const DependencyList = ({
     }
     onDependenciesChange(newDependencies);
   };
+  console.log(hasTimeDependency);
 
   return (
     <MainPanel>
@@ -204,7 +221,46 @@ const DependencyList = ({
           dependencies={dependencies}
           onDependenciesChange={onDependenciesChange}
           getDependencySuggestion={getDependencySuggestion}
+          hasTimeDependency={hasTimeDependency}
+          filterId={filterId}
+          filterToEdit={filterToEdit}
+          form={form}
+          forceUpdate={forceUpdate}
+          datasetId={datasetId}
         />
+        {hasTimeDependency && (
+          <StyledRowFormItem
+            name={['filters', filterId, 'granularity_sqla']}
+            label={
+              <>
+                <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
+                <InfoTooltipWithTrigger
+                  placement="top"
+                  tooltip={t(
+                    'Optional time column if time range should apply to another column than the default time column',
+                  )}
+                />
+              </>
+            }
+            initialValue={filterToEdit?.granularity_sqla}
+          >
+            <ColumnSelect
+              allowClear
+              form={form}
+              formField="granularity_sqla"
+              filterId={filterId}
+              filterValues={(column: Column) => !!column.is_dttm}
+              datasetId={datasetId}
+              onChange={column => {
+                // We need reset default value when when column changed
+                setNativeFilterFieldValues(form, filterId, {
+                  granularity_sqla: column,
+                });
+                forceUpdate();
+              }}
+            />
+          </StyledRowFormItem>
+        )}
       </CollapsibleControl>
     </MainPanel>
   );
