@@ -38,18 +38,20 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  MenuObjectProps,
+  UserWithPermissionsAndRoles,
+  MenuObjectChildProps,
+} from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
 import {
-  ExtentionConfigs,
+  ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { MenuObjectProps } from './Menu';
-import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -139,9 +141,8 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
-  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+  } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
-  const [showDatasetModal, setShowDatasetModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
@@ -177,6 +178,7 @@ const RightMenu = ({
         {
           label: t('Create dataset'),
           name: GlobalMenuDataOptions.DATASET_CREATION,
+          url: '/dataset/add/',
           perm: canDataset && nonExamplesDBConnected,
         },
         {
@@ -189,18 +191,21 @@ const RightMenu = ({
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
           perm: canUploadCSV && showUploads,
+          disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
           perm: canUploadColumnar && showUploads,
+          disable: isAdmin && !allowUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
           perm: canUploadExcel && showUploads,
+          disable: isAdmin && !allowUploads,
         },
       ],
     },
@@ -284,8 +289,6 @@ const RightMenu = ({
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
       setShowDatabaseModal(true);
       setEngine('Google Sheets');
-    } else if (itemChose.key === GlobalMenuDataOptions.DATASET_CREATION) {
-      setShowDatasetModal(true);
     }
   };
 
@@ -294,19 +297,12 @@ const RightMenu = ({
     setShowDatabaseModal(false);
   };
 
-  const handleOnHideDatasetModalModal = () => {
-    setShowDatasetModal(false);
-  };
-
-  const isDisabled = isAdmin && !allowUploads;
-
   const tooltipText = t(
     "Enable 'Allow file uploads to database' in any database's settings",
   );
 
-  const buildMenuItem = (item: Record<string, any>) => {
-    const disabledText = isDisabled && item.url;
-    return disabledText ? (
+  const buildMenuItem = (item: MenuObjectChildProps) =>
+    item.disable ? (
       <Menu.Item key={item.name} css={styledDisabled}>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
@@ -317,7 +313,6 @@ const RightMenu = ({
         {item.url ? <a href={item.url}> {item.label} </a> : item.label}
       </Menu.Item>
     );
-  };
 
   const onMenuOpen = (openKeys: string[]) => {
     // We should query the API only if opening Data submenus
@@ -342,7 +337,6 @@ const RightMenu = ({
   );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
-  const handleDatasetAdd = () => setQuery({ datasetAdded: true });
 
   const theme = useTheme();
 
@@ -354,13 +348,6 @@ const RightMenu = ({
           show={showDatabaseModal}
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
-        />
-      )}
-      {canDataset && (
-        <AddDatasetModal
-          onHide={handleOnHideDatasetModalModal}
-          show={showDatasetModal}
-          onDatasetAdd={handleDatasetAdd}
         />
       )}
       {environmentTag?.text && (
@@ -512,17 +499,17 @@ const RightMenu = ({
                 )}
                 {navbarRight.version_string && (
                   <div css={versionInfoStyles}>
-                    Version: {navbarRight.version_string}
+                    {t('Version')}: {navbarRight.version_string}
                   </div>
                 )}
                 {navbarRight.version_sha && (
                   <div css={versionInfoStyles}>
-                    SHA: {navbarRight.version_sha}
+                    {t('SHA')}: {navbarRight.version_sha}
                   </div>
                 )}
                 {navbarRight.build_number && (
                   <div css={versionInfoStyles}>
-                    Build: {navbarRight.build_number}
+                    {t('Build')}: {navbarRight.build_number}
                   </div>
                 )}
               </div>
@@ -537,25 +524,38 @@ const RightMenu = ({
         )}
       </Menu>
       {navbarRight.documentation_url && (
-        <StyledAnchor
-          href={navbarRight.documentation_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Documentation')}
-        >
-          <i className="fa fa-question" />
-          &nbsp;
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.documentation_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.documentation_text || t('Documentation')}
+          >
+            {navbarRight.documentation_icon ? (
+              <i className={navbarRight.documentation_icon} />
+            ) : (
+              <i className="fa fa-question" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.bug_report_url && (
-        <StyledAnchor
-          href={navbarRight.bug_report_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Report a bug')}
-        >
-          <i className="fa fa-bug" />
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.bug_report_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.bug_report_text || t('Report a bug')}
+          >
+            {navbarRight.bug_report_icon ? (
+              <i className={navbarRight.bug_report_icon} />
+            ) : (
+              <i className="fa fa-bug" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>

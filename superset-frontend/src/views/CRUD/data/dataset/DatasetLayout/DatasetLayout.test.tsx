@@ -25,6 +25,14 @@ import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
 import RightPanel from 'src/views/CRUD/data/dataset/AddDataset/RightPanel';
 import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
+
 describe('DatasetLayout', () => {
   it('renders nothing when no components are passed in', () => {
     render(<DatasetLayout />);
@@ -41,7 +49,7 @@ describe('DatasetLayout', () => {
   it('renders a Header when passed in', async () => {
     await waitForRender();
 
-    expect(screen.getByTestId('editable-title')).toBeVisible();
+    expect(screen.getByText(/new dataset/i)).toBeVisible();
   });
 
   it('renders a LeftPanel when passed in', async () => {

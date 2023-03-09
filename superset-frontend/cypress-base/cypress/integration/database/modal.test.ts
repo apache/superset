@@ -32,7 +32,6 @@ describe('Add database', () => {
   });
 
   beforeEach(() => {
-    cy.preserveLogin();
     closeModal();
     cy.getBySel('btn-create-database').click();
   });

@@ -108,7 +108,6 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
 
 
 class DashboardJSONMetadataSchema(Schema):
-    show_native_filters = fields.Boolean()
     # native_filter_configuration is for dashboard-native filters
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
@@ -130,10 +129,11 @@ class DashboardJSONMetadataSchema(Schema):
     label_colors = fields.Dict()
     shared_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
+    cross_filters_enabled = fields.Boolean(default=True)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
-    filter_bar_location = fields.Str(allow_none=True)
+    filter_bar_orientation = fields.Str(allow_none=True)
 
 
 class UserSchema(Schema):
@@ -146,6 +146,12 @@ class UserSchema(Schema):
 class RolesSchema(Schema):
     id = fields.Int()
     name = fields.String()
+
+
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
 
 
 class DashboardGetResponseSchema(Schema):
@@ -167,6 +173,7 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
+    tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
 

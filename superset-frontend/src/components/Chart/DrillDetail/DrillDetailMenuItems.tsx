@@ -27,35 +27,15 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
   styled,
-  SupersetTheme,
   t,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
 import DrillDetailModal from './DrillDetailModal';
 import { getMenuAdjustedY, MENU_ITEM_HEIGHT } from '../utils';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 
 const MENU_PADDING = 4;
-
-const DisabledMenuItemTooltip = ({ title }: { title: ReactNode }) => (
-  <Tooltip title={title} placement="top">
-    <Icons.InfoCircleOutlined
-      data-test="tooltip-trigger"
-      css={(theme: SupersetTheme) => css`
-        color: ${theme.colors.text.label};
-        margin-left: ${theme.gridUnit * 2}px;
-        &.anticon {
-          font-size: unset;
-          .anticon {
-            line-height: unset;
-            vertical-align: unset;
-          }
-        }
-      `}
-    />
-  </Tooltip>
-);
+const DRILL_TO_DETAIL_TEXT = t('Drill to detail by');
 
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
   <Menu.Item disabled {...props}>
@@ -140,7 +120,7 @@ const DrillDetailMenuItems = ({
     drillToDetailMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-no-aggregations">
         {t('Drill to detail')}
-        <DisabledMenuItemTooltip
+        <MenuItemTooltip
           title={t(
             'Drill to detail is disabled because this chart does not group data by dimension value.',
           )}
@@ -163,8 +143,8 @@ const DrillDetailMenuItems = ({
   if (!handlesDimensionContextMenu) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
-        {t('Drill to detail by')}
-        <DisabledMenuItemTooltip
+        {DRILL_TO_DETAIL_TEXT}
+        <MenuItemTooltip
           title={t(
             'Drill to detail by value is not yet supported for this chart type.',
           )}
@@ -176,7 +156,7 @@ const DrillDetailMenuItems = ({
   if (handlesDimensionContextMenu && noAggregations) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
-        {t('Drill to detail by')}
+        {DRILL_TO_DETAIL_TEXT}
       </DisabledMenuItem>
     );
   }
@@ -195,7 +175,7 @@ const DrillDetailMenuItems = ({
       <Menu.SubMenu
         {...props}
         popupOffset={[0, submenuYOffset]}
-        title={t('Drill to detail by')}
+        title={DRILL_TO_DETAIL_TEXT}
       >
         <div data-test="drill-to-detail-by-submenu">
           {filters.map((filter, i) => (
@@ -204,7 +184,7 @@ const DrillDetailMenuItems = ({
               key={`drill-detail-filter-${i}`}
               onClick={openModal.bind(null, [filter])}
             >
-              {`${t('Drill to detail by')} `}
+              {`${DRILL_TO_DETAIL_TEXT} `}
               <Filter>{filter.formattedVal}</Filter>
             </Menu.Item>
           ))}
@@ -214,7 +194,7 @@ const DrillDetailMenuItems = ({
               key="drill-detail-filter-all"
               onClick={openModal.bind(null, filters)}
             >
-              {`${t('Drill to detail by')} `}
+              {`${DRILL_TO_DETAIL_TEXT} `}
               <Filter>{t('all')}</Filter>
             </Menu.Item>
           )}
@@ -226,8 +206,8 @@ const DrillDetailMenuItems = ({
   if (handlesDimensionContextMenu && !noAggregations && !filters?.length) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
-        {t('Drill to detail by')}
-        <DisabledMenuItemTooltip
+        {DRILL_TO_DETAIL_TEXT}
+        <MenuItemTooltip
           title={t(
             'Right-click on a dimension value to drill to detail by that value.',
           )}

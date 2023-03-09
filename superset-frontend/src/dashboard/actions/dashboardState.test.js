@@ -22,6 +22,7 @@ import { waitFor } from '@testing-library/react';
 
 import {
   removeSliceFromDashboard,
+  SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
@@ -104,10 +105,11 @@ describe('dashboardState actions', () => {
       });
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
-      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.callCount).toBe(2);
       expect(dispatch.getCall(0).args[0].type).toBe(
         UPDATE_COMPONENTS_PARENTS_LIST,
       );
+      expect(dispatch.getCall(1).args[0].type).toBe(SAVE_DASHBOARD_STARTED);
     });
 
     it('should post dashboard data with updated redux state', () => {
@@ -162,10 +164,10 @@ describe('dashboardState actions', () => {
         expect(getStub.callCount).toBe(1);
         expect(postStub.callCount).toBe(0);
         await waitFor(() =>
-          expect(dispatch.getCall(1).args[0].type).toBe(SET_OVERRIDE_CONFIRM),
+          expect(dispatch.getCall(2).args[0].type).toBe(SET_OVERRIDE_CONFIRM),
         );
         expect(
-          dispatch.getCall(1).args[0].overwriteConfirmMetadata.dashboardId,
+          dispatch.getCall(2).args[0].overwriteConfirmMetadata.dashboardId,
         ).toBe(id);
       });
 

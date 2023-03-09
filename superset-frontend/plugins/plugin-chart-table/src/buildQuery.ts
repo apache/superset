@@ -71,12 +71,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (queryMode === QueryMode.aggregate) {
       metrics = metrics || [];
-      // orverride orderby with timeseries metric when in aggregation mode
+      // override orderby with timeseries metric when in aggregation mode
       if (sortByMetric) {
         orderby = [[sortByMetric, !orderDesc]];
       } else if (metrics?.length > 0) {
         // default to ordering by first metric in descending order
-        // when no "sort by" metric is set (regargless if "SORT DESC" is set to true)
+        // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
@@ -104,7 +104,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           isPhysicalColumn(col) &&
           formData.time_grain_sqla &&
           hasGenericChartAxes &&
-          formData?.datetime_columns_lookup?.[col]
+          formData?.temporal_columns_lookup?.[col]
         ) {
           return {
             timeGrain: formData.time_grain_sqla,

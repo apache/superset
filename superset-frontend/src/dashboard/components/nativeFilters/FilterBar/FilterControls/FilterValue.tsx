@@ -42,13 +42,18 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { RootState } from 'src/dashboard/types';
-import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
-import { dispatchFocusAction } from './utils';
-import { FilterProps } from './types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import {
+  onFiltersRefreshSuccess,
+  setDirectPathToChild,
+} from 'src/dashboard/actions/dashboardState';
+import { FAST_DEBOUNCE } from 'src/constants';
+import { dispatchHoverAction, dispatchFocusAction } from './utils';
+import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
+import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
 
@@ -75,15 +80,16 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: React.FC<FilterProps> = ({
+const FilterValue: React.FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
-  directPathToChild,
   onFilterSelectionChange,
   inView = true,
   showOverflow,
   parentRef,
   setFilterActive,
+  orientation = FilterBarOrientation.VERTICAL,
+  overflow = false,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -107,6 +113,8 @@ const FilterValue: React.FC<FilterProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
+
+  const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
   const handleFilterLoadFinish = useCallback(() => {
     setIsRefreshing(false);
@@ -209,33 +217,61 @@ const FilterValue: React.FC<FilterProps> = ({
   ]);
 
   useEffect(() => {
-    if (directPathToChild?.[0] === filter.id) {
-      inputRef?.current?.focus();
+    if (outlinedFilterId && outlinedFilterId === filter.id) {
+      setTimeout(
+        () => {
+          inputRef?.current?.focus();
+        },
+        overflow ? FAST_DEBOUNCE : 0,
+      );
     }
-  }, [inputRef, directPathToChild, filter.id]);
+  }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
 
   const setDataMask = useCallback(
     (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
     [filter, onFilterSelectionChange],
   );
 
-  const setFocusedFilter = useCallback(
-    () => dispatchFocusAction(dispatch, id),
+  const setFocusedFilter = useCallback(() => {
+    // don't highlight charts in scope if filter was focused programmatically
+    if (outlinedFilterId !== id) {
+      dispatchFocusAction(dispatch, id);
+    }
+  }, [dispatch, id, outlinedFilterId]);
+
+  const unsetFocusedFilter = useCallback(() => {
+    dispatchFocusAction(dispatch);
+    if (outlinedFilterId === id) {
+      dispatch(setDirectPathToChild([]));
+    }
+  }, [dispatch, id, outlinedFilterId]);
+
+  const setHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch, id),
     [dispatch, id],
   );
-  const unsetFocusedFilter = useCallback(
-    () => dispatchFocusAction(dispatch),
+  const unsetHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch),
     [dispatch],
   );
 
   const hooks = useMemo(
     () => ({
       setDataMask,
+      setHoveredFilter,
+      unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
     }),
-    [setDataMask, setFilterActive, setFocusedFilter, unsetFocusedFilter],
+    [
+      setDataMask,
+      setFilterActive,
+      setHoveredFilter,
+      unsetHoveredFilter,
+      setFocusedFilter,
+      unsetFocusedFilter,
+    ],
   );
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -249,6 +285,14 @@ const FilterValue: React.FC<FilterProps> = ({
       validateStatus: isMissingRequiredValue && 'error',
     }),
     [filter.dataMask?.filterState, isMissingRequiredValue],
+  );
+
+  const displaySettings = useMemo(
+    () => ({
+      filterBarOrientation: orientation,
+      isOverflowingFilterBar: overflow,
+    }),
+    [orientation, overflow],
   );
 
   if (error) {
@@ -271,6 +315,7 @@ const FilterValue: React.FC<FilterProps> = ({
           width="100%"
           showOverflow={showOverflow}
           formData={formData}
+          displaySettings={displaySettings}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder
@@ -287,4 +332,4 @@ const FilterValue: React.FC<FilterProps> = ({
     </StyledDiv>
   );
 };
-export default FilterValue;
+export default React.memo(FilterValue);

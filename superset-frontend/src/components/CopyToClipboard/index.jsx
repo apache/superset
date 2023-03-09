@@ -37,7 +37,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  copyNode: <span>Copy</span>,
+  copyNode: <span>{t('Copy')}</span>,
   onCopyEnd: () => {},
   shouldShowText: true,
   wrapped: true,

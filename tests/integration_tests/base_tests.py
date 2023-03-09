@@ -90,6 +90,8 @@ def post_assert_metric(
         rv = client.post(uri, json=data)
     if 200 <= rv.status_code < 400:
         mock_method.assert_called_once_with("success", func_name)
+    elif 400 <= rv.status_code < 500:
+        mock_method.assert_called_once_with("warning", func_name)
     else:
         mock_method.assert_called_once_with("error", func_name)
     return rv
@@ -347,7 +349,7 @@ class SupersetTestCase(TestCase):
             json_payload["schema"] = schema
 
         resp = self.get_json_resp(
-            "/superset/sql_json/", raise_on_error=False, json_=json_payload
+            "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
@@ -455,6 +457,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.get(uri)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
@@ -474,6 +478,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.delete(uri)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
@@ -501,6 +507,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.put(uri, json=data)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv

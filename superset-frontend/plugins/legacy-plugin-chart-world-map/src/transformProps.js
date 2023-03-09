@@ -19,10 +19,19 @@
 import { rgb } from 'd3-color';
 
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData, hooks, inContextMenu } =
-    chartProps;
-  const { onContextMenu } = hooks;
   const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    inContextMenu,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const { onContextMenu, setDataMask } = hooks;
+  const {
+    countryFieldtype,
     entity,
     maxBubbleSize,
     showBubbles,
@@ -35,6 +44,7 @@ export default function transformProps(chartProps) {
   const { r, g, b } = colorPicker;
 
   return {
+    countryFieldtype,
     entity,
     data: queriesData[0].data,
     width,
@@ -47,6 +57,9 @@ export default function transformProps(chartProps) {
     colorScheme,
     sliceId,
     onContextMenu,
+    setDataMask,
     inContextMenu,
+    filterState,
+    emitCrossFilters,
   };
 }

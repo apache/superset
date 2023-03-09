@@ -69,9 +69,9 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>SQL Lab</h4>
+            <h4>{t('SQL Lab')}</h4>
             <p className="helper">
-              Adjust how this database will interact with SQL Lab.
+              {t('Adjust how this database will interact with SQL Lab.')}
             </p>
           </div>
         }
@@ -131,9 +131,9 @@ const ExtraOptions = ({
                   <input
                     type="text"
                     name="force_ctas_schema"
-                    value={db?.force_ctas_schema || ''}
                     placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
+                    value={db?.force_ctas_schema || ''}
                   />
                 </div>
                 <div className="helper">
@@ -170,7 +170,7 @@ const ExtraOptions = ({
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'For Presto and Postgres, shows a button to compute cost before running a query.',
+                    'For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.',
                   )}
                 />
               </div>
@@ -215,9 +215,9 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Performance</h4>
+            <h4>{t('Performance')}</h4>
             <p className="helper">
-              Adjust performance settings of this database.
+              {t('Adjust performance settings of this database.')}
             </p>
           </div>
         }
@@ -325,8 +325,8 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Security</h4>
-            <p className="helper">Add extra connection information.</p>
+            <h4>{t('Security')}</h4>
+            <p className="helper">{t('Add extra connection information.')}</p>
           </div>
         }
         key="3"
@@ -439,8 +439,8 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Other</h4>
-            <p className="helper">Additional settings.</p>
+            <h4>{t('Other')}</h4>
+            <p className="helper">{t('Additional settings.')}</p>
           </div>
         }
         key="4"
@@ -450,17 +450,17 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="metadata_params"
-              value={
-                !Object.keys(extraJson?.metadata_params || {}).length
-                  ? ''
-                  : extraJson?.metadata_params
-              }
               placeholder={t('Metadata Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'metadata_params' })
               }
               width="100%"
               height="160px"
+              defaultValue={
+                !Object.keys(extraJson?.metadata_params || {}).length
+                  ? ''
+                  : extraJson?.metadata_params
+              }
             />
           </div>
           <div className="helper">
@@ -476,17 +476,17 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="engine_params"
-              value={
-                !Object.keys(extraJson?.engine_params || {}).length
-                  ? ''
-                  : extraJson?.engine_params
-              }
               placeholder={t('Engine Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'engine_params' })
               }
               width="100%"
               height="160px"
+              defaultValue={
+                !Object.keys(extraJson?.engine_params || {}).length
+                  ? ''
+                  : extraJson?.engine_params
+              }
             />
           </div>
           <div className="helper">
@@ -505,9 +505,9 @@ const ExtraOptions = ({
             <input
               type="number"
               name="version"
-              value={extraJson?.version || ''}
               placeholder={t('Version number')}
               onChange={onExtraInputChange}
+              value={extraJson?.version || ''}
             />
           </div>
           <div className="helper">

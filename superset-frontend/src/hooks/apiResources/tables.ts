@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useQuery, UseQueryOptions } from 'react-query';
+import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
+
+import { useSchemas } from './schemas';
 
 export type FetchTablesQueryParams = {
   dbId?: string | number;
@@ -39,11 +42,15 @@ export interface Table {
 }
 
 type QueryData = {
-  json: { options: Table[]; tableLength: number };
+  json: {
+    count: number;
+    result: Table[];
+  };
   response: Response;
 };
 
-export type Data = QueryData['json'] & {
+export type Data = {
+  options: Table[];
   hasMore: boolean;
 };
 
@@ -53,17 +60,29 @@ export function fetchTables({
   forceRefresh,
 }: FetchTablesQueryParams) {
   const encodedSchema = schema ? encodeURIComponent(schema) : '';
+  const params = rison.encode({
+    force: forceRefresh,
+    schema_name: encodedSchema,
+  });
+
   // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-  const endpoint = `/superset/tables/${
+  const endpoint = `/api/v1/database/${
     dbId ?? 'undefined'
-  }/${encodedSchema}/${forceRefresh}/`;
+  }/tables/?q=${params}`;
   return SupersetClient.get({ endpoint }) as Promise<QueryData>;
 }
 
 type Params = FetchTablesQueryParams &
-  Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
+  Pick<UseQueryOptions<Data>, 'onSuccess' | 'onError'>;
 
 export function useTables(options: Params) {
+  const { data: schemaOptions, isFetching } = useSchemas({
+    dbId: options.dbId,
+  });
+  const schemaOptionsMap = useMemo(
+    () => new Set(schemaOptions?.map(({ value }) => value)),
+    [schemaOptions],
+  );
   const { dbId, schema, onSuccess, onError } = options || {};
   const forceRefreshRef = useRef(false);
   const params = { dbId, schema };
@@ -72,10 +91,12 @@ export function useTables(options: Params) {
     () => fetchTables({ ...params, forceRefresh: forceRefreshRef.current }),
     {
       select: ({ json }) => ({
-        ...json,
-        hasMore: json.tableLength > json.options.length,
+        options: json.result,
+        hasMore: json.count > json.result.length,
       }),
-      enabled: Boolean(dbId && schema),
+      enabled: Boolean(
+        dbId && schema && !isFetching && schemaOptionsMap.has(schema),
+      ),
       onSuccess,
       onError,
       onSettled: () => {

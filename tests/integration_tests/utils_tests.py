@@ -539,6 +539,18 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
+    def test_merge_extra_filters_when_applied_time_extras_predefined(self):
+        form_data = {"applied_time_extras": {"__time_range": "Last week"}}
+        merge_extra_filters(form_data)
+
+        self.assertEqual(
+            form_data,
+            {
+                "applied_time_extras": {"__time_range": "Last week"},
+                "adhoc_filters": [],
+            },
+        )
+
     def test_merge_request_params_when_url_params_undefined(self):
         form_data = {"since": "2000", "until": "now"}
         url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
@@ -898,7 +910,6 @@ class TestUtils(SupersetTestCase):
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
-        self.assertRaises(CertificateException, parse_ssl_cert, "abc" + ssl_certificate)
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
@@ -980,6 +991,7 @@ class TestUtils(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         dashboard_id = 1
 
+        assert slc.viz is not None
         resp = self.get_json_resp(
             f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
             + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',

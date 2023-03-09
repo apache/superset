@@ -38,7 +38,6 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 
@@ -70,11 +69,6 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   maxRows: PropTypes.number.isRequired,
-  filterboxMigrationState: PropTypes.oneOf(
-    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
-      key => FILTER_BOX_MIGRATION_STATES[key],
-    ),
-  ),
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -97,6 +91,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -114,16 +109,20 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
 
+const ChartWrapper = styled.div`
+  overflow: hidden;
+  position: relative;
+
+  &.dashboard-chart--overflowable {
+    overflow: visible;
+  }
+`;
+
 const ChartOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 0;
   z-index: 5;
-
-  &.is-deactivated {
-    opacity: 0.5;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
 `;
 
 const SliceContainer = styled.div`
@@ -190,7 +189,9 @@ class Chart extends React.Component {
 
       if (
         nextProps.width !== this.props.width ||
-        nextProps.height !== this.props.height
+        nextProps.height !== this.props.height ||
+        nextProps.width !== this.state.width ||
+        nextProps.height !== this.state.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
@@ -199,7 +200,7 @@ class Chart extends React.Component {
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
         const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
         // use deep objects equality comparison to prevent
-        // unneccessary updates when objects references change
+        // unnecessary updates when objects references change
         if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
           return true;
         }
@@ -393,10 +394,11 @@ class Chart extends React.Component {
       handleToggleFullSize,
       isFullSize,
       setControlValue,
-      filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
       isInView,
+      emitCrossFilters,
+      logEvent,
     } = this.props;
 
     const { width } = this.state;
@@ -408,12 +410,6 @@ class Chart extends React.Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const isLoading = chartStatus === 'loading';
-    const isDeactivatedViz =
-      slice.viz_type === 'filter_box' &&
-      [
-        FILTER_BOX_MIGRATION_STATES.REVIEWING,
-        FILTER_BOX_MIGRATION_STATES.CONVERTED,
-      ].includes(filterboxMigrationState);
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -426,6 +422,7 @@ class Chart extends React.Component {
           filterId: id,
         })
       : {};
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -446,6 +443,7 @@ class Chart extends React.Component {
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           logExploreChart={this.logExploreChart}
+          logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
           exportFullCSV={this.exportFullCSV}
@@ -484,21 +482,21 @@ class Chart extends React.Component {
           />
         )}
 
-        <div
+        <ChartWrapper
           className={cx(
             'dashboard-chart',
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
-          {(isLoading || isDeactivatedViz) && (
+          {isLoading && (
             <ChartOverlay
-              className={cx(isDeactivatedViz && 'is-deactivated')}
               style={{
                 width,
                 height: this.getChartHeight(),
               }}
             />
           )}
+
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -522,13 +520,12 @@ class Chart extends React.Component {
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
-            isDeactivatedViz={isDeactivatedViz}
-            filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
             isInView={isInView}
+            emitCrossFilters={emitCrossFilters}
           />
-        </div>
+        </ChartWrapper>
       </SliceContainer>
     );
   }

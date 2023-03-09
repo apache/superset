@@ -22,12 +22,12 @@ import { Typography, AntdTooltip } from 'src/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
-import { WarningOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { ActionButtons } from './Footer';
 import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
-import { getFilterBarTestId } from '../index';
+import { getFilterBarTestId } from '../utils';
 
 const Wrapper = styled.div`
   display: grid;
@@ -160,7 +160,7 @@ const EditSection: FC<EditSectionProps> = ({
       </ActionButtons>
       {isDuplicateFilterSet && (
         <Warning mark>
-          <WarningOutlined />
+          <Icons.WarningOutlined iconSize="m" />
           {t('This filter set is identical to: "%s"', foundFilterSet?.name)}
         </Warning>
       )}

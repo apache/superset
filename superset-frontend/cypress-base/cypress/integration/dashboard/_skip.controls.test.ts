@@ -27,7 +27,6 @@ import { isLegacyResponse } from '../../utils/vizPlugins';
 
 describe.skip('Dashboard top-level controls', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 

@@ -571,7 +571,7 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_related_report_schedule(self):
         """
-        ReportSchedule Api: Test get releated report schedule
+        ReportSchedule Api: Test get related report schedule
         """
         self.login(username="admin")
         related_columns = ["created_by", "chart", "dashboard", "database"]

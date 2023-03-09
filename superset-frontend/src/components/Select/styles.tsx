@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin } from 'antd';
+import { Spin, Tag } from 'antd';
 import AntdSelect from 'antd/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
@@ -40,9 +40,9 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 `;
 
 export const StyledSelect = styled(AntdSelect, {
-  shouldForwardProp: prop => prop !== 'headerPosition',
-})<{ headerPosition: string }>`
-  ${({ theme, headerPosition }) => `
+  shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
+})<{ headerPosition: string; oneLine?: boolean }>`
+  ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
@@ -52,7 +52,40 @@ export const StyledSelect = styled(AntdSelect, {
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
     }
+    .select-all {
+      border-bottom: 1px solid ${theme.colors.grayscale.light3};
+    }
+    ${
+      oneLine &&
+      `
+        .ant-select-selection-overflow {
+          flex-wrap: nowrap;
+        }
+
+        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+          flex-shrink: 1;
+          min-width: ${theme.gridUnit * 13}px;
+        }
+
+        .ant-select-selection-overflow-item-suffix {
+          flex: unset;
+          min-width: 0px;
+        }
+      `
+    };
  `}
+`;
+
+export const NoElement = styled.span`
+  display: none;
+`;
+
+export const StyledTag = styled(Tag)`
+  ${({ theme }) => `
+    background: ${theme.colors.grayscale.light3};
+    font-size: ${theme.typography.sizes.m}px;
+    border: none;
+  `}
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`

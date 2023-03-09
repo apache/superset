@@ -26,6 +26,7 @@ import sqlalchemy as sqla
 from flask import current_app, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_babel import gettext as __
 from humanize import naturaltime
 from sqlalchemy import (
     Boolean,
@@ -41,7 +42,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -224,10 +225,10 @@ class Query(
         for col in self.columns:
             column_name = str(col.get("column_name") or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + " [asc]")
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + " [desc]")
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         return {
@@ -244,6 +245,7 @@ class Query(
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
+            "schema": self.schema,
         }
 
     def raise_for_access(self) -> None:
@@ -364,6 +366,14 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        tags = relationship(
+            "Tag",
+            secondary="tagged_object",
+            primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
+            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+            "TaggedObject.object_type == 'saved_query')",
+        )
 
     export_parent = "database"
     export_fields = [

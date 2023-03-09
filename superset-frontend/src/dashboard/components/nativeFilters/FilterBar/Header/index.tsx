@@ -17,14 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import {
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import React, { FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -32,32 +25,48 @@ import { useSelector } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
-import { getFilterBarTestId } from '..';
-import { FilterBarLocationSelect } from '../FilterBarLocationSelect';
+import { getFilterBarTestId } from '../utils';
+import FilterBarSettings from '../FilterBarSettings';
 
-const TitleArea = styled.h4`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin: 0;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+const TitleArea = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
 
-  & > span {
-    flex-grow: 1;
-  }
+    & > span {
+      font-size: ${theme.typography.sizes.l}px;
+      flex-grow: 1;
+      font-weight: ${theme.typography.weights.bold};
+    }
+
+    & > div:first-of-type {
+      line-height: 0;
+    }
+
+    & > button > span.anticon {
+      line-height: 0;
+    }
+  `}
 `;
 
 const HeaderButton = styled(Button)`
   padding: 0;
-
-  .anticon {
-    padding-top: ${({ theme }) => `${theme.gridUnit + 2}px`};
-  }
 `;
 
 const Wrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit}px
-    ${({ theme }) => theme.gridUnit * 2}px;
+  ${({ theme }) => `
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+    theme.gridUnit
+  }px;
+
+    .ant-dropdown-trigger span {
+      padding-right: ${theme.gridUnit * 2}px;
+    }
+  `}
 `;
 
 type HeaderProps = {
@@ -93,14 +102,12 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
 
   return (
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        {canSetHorizontalFilterBar && <FilterBarLocationSelect />}
+        <FilterBarSettings />
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"

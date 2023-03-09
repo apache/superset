@@ -72,6 +72,7 @@ const unsavedQueryEditor = {
   schema: 'query_schema_updated',
   sql: 'SELECT * FROM Updated Limit 100',
   autorun: true,
+  templateParams: '{ "my_value": "foo" }',
 };
 
 const standardProviderWithUnsaved: React.FC = ({ children }) => (

@@ -28,6 +28,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -52,6 +53,12 @@ const defaultProps = {
   saveQueryWarning: null,
   scheduleQueryWarning: null,
 };
+
+const StyledEditableTabs = styled(EditableTabs)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
 
 const StyledTab = styled.span`
   line-height: 24px;
@@ -106,13 +113,10 @@ class TabbedSqlEditors extends React.PureComponent {
     }
 
     // merge post form data with GET search params
-    // Hack: this data should be comming from getInitialState
+    // Hack: this data should be coming from getInitialState
     // but for some reason this data isn't being passed properly through
     // the reducer.
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
+    const bootstrapData = getBootstrapData();
     const query = {
       ...bootstrapData.requested_query,
       ...URI(window.location).search(true),
@@ -197,27 +201,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    const activeQueryEditor = this.activeQueryEditor();
-    const firstDbId = Math.min(
-      ...Object.values(this.props.databases).map(database => database.id),
-    );
-    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? ''
-      : t(
-          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
-        );
-
-    const qe = {
-      dbId:
-        activeQueryEditor && activeQueryEditor.dbId
-          ? activeQueryEditor.dbId
-          : this.props.defaultDbId || firstDbId,
-      schema: activeQueryEditor ? activeQueryEditor.schema : null,
-      autorun: false,
-      sql: `${warning}SELECT ...`,
-      queryLimit: this.props.defaultQueryLimit,
-    };
-    this.props.actions.addNewQueryEditor(qe);
+    this.props.actions.addNewQueryEditor();
   }
 
   handleSelect(key) {
@@ -264,7 +248,6 @@ class TabbedSqlEditors extends React.PureComponent {
         <SqlEditor
           tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
           queryEditor={qe}
-          actions={this.props.actions}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}
           displayLimit={this.props.displayLimit}
@@ -306,7 +289,7 @@ class TabbedSqlEditors extends React.PureComponent {
     );
 
     return (
-      <EditableTabs
+      <StyledEditableTabs
         destroyInactiveTabPane
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         id="a11y-query-editor-tabs"
@@ -334,7 +317,7 @@ class TabbedSqlEditors extends React.PureComponent {
       >
         {editors}
         {noQueryEditors && emptyTabState}
-      </EditableTabs>
+      </StyledEditableTabs>
     );
   }
 }
