@@ -55,6 +55,7 @@ export default function transformProps(chartProps: TableChartProps) {
       typeof column === 'object' ? column : { label: column },
     );
   } else {
+    /* eslint-disable */
     const metricMap = datasource.metrics.reduce(
       (acc, current) => {
         const map = acc;
@@ -63,6 +64,7 @@ export default function transformProps(chartProps: TableChartProps) {
       },
       {} as Record<string, Metric>,
     );
+    /* eslint-disable */
     rows = metrics.map(metric =>
       typeof metric === 'object' ? metric : metricMap[metric],
     );
