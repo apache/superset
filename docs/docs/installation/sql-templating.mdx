@@ -75,7 +75,7 @@ In the UI you can assign a set of parameters as JSON
 }
 ```
 The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
-SQL Lab template parameters are stored with the dataset as TEMPLATE PARAMETERS.
+SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
 
 There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
 
@@ -211,7 +211,7 @@ Here's a concrete example:
 
 - You write the following query in SQL Lab:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = '{{ url_param('countrycode') }}'
@@ -222,7 +222,7 @@ Here's a concrete example:
   and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
 - For your coworker in Spain, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'ES'
@@ -230,7 +230,7 @@ Here's a concrete example:
 
 - For your coworker in the USA, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'US'
@@ -259,7 +259,7 @@ This is useful if:
 
 Here's a concrete example:
 
-```
+```sql
 SELECT action, count(*) as times
 FROM logs
 WHERE
