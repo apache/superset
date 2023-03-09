@@ -22,7 +22,7 @@ import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import {  TooltipPlacement } from 'src/components/Tooltip';
+import { TooltipPlacement } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
