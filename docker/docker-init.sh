@@ -22,6 +22,8 @@ set -e
 #
 #/app/docker/docker-bootstrap.sh
 
+pip3 install paramiko sshtunnel
+
 STEP_CNT=4
 
 echo_step() {
