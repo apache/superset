@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD:superset-frontend/liq_viz_plugins/superset-plugin-chart-hello-world/test/plugin/buildQuery.test.ts
 import buildQuery from '../../src/plugin/buildQuery';
 
 describe('SupersetPluginChartHelloWorld buildQuery', () => {
@@ -32,3 +33,25 @@ describe('SupersetPluginChartHelloWorld buildQuery', () => {
     expect(query.columns).toEqual(['foo']);
   });
 });
+=======
+import {
+  getMetricLabel,
+  QueryFormData,
+  QueryFormMetric,
+} from '@superset-ui/core';
+
+export function extractExtraMetrics(
+  formData: QueryFormData,
+): QueryFormMetric[] {
+  const { groupby, timeseries_limit_metric, x_axis_sort } = formData;
+  const extra_metrics: QueryFormMetric[] = [];
+  if (
+    !(groupby || []).length &&
+    timeseries_limit_metric &&
+    getMetricLabel(timeseries_limit_metric) === x_axis_sort
+  ) {
+    extra_metrics.push(timeseries_limit_metric);
+  }
+  return extra_metrics;
+}
+>>>>>>> 56380027f4ab4e697e740569723aa21eb937cbb2:superset-frontend/packages/superset-ui-chart-controls/src/operators/utils/extractExtraMetrics.ts
