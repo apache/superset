@@ -20,13 +20,13 @@ import {
   emptyQueryResults,
   clearQueryEditors,
 } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
-import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
+import {
+  KB_STORAGE,
+  BYTES_PER_CHAR,
+  LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  LOCALSTORAGE_MAX_QUERY_RESULTS_KB,
+} from 'src/SqlLab/constants';
 import { queries, defaultQueryEditor } from '../fixtures';
-
-jest.mock('src/SqlLab/constants', () => ({
-  ...jest.requireActual('src/SqlLab/constants'),
-  LOCALSTORAGE_MAX_QUERY_RESULTS_KB: 1,
-}));
 
 describe('reduxStateToLocalStorageHelper', () => {
   const queriesObj = {};
@@ -62,11 +62,11 @@ describe('reduxStateToLocalStorageHelper', () => {
       results: {
         data: [
           {
-            test: 1123123123123,
-            stringValue:
-              'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum',
-            jsonValue:
-              '{"a":1234234234234234,"b":21234123412341234,"c":31234123412341234,"str":"something long text goes here"}',
+            jsonValue: `{"str":"${new Array(
+              (LOCALSTORAGE_MAX_QUERY_RESULTS_KB / BYTES_PER_CHAR) * KB_STORAGE,
+            )
+              .fill(0)
+              .join('')}"}`,
           },
         ],
       },
