@@ -1,4 +1,2 @@
 databricks-sql-connector
 sqlalchemy-databricks
-paramiko
-sshtunnel
