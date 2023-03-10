@@ -106,9 +106,9 @@ describe('FiltersBadge', () => {
       store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
       const wrapper = setup(store);
       expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '1',
-      );
+      expect(
+        wrapper.find('[data-test="applied-filter-count"] .current'),
+      ).toHaveText('1');
       expect(wrapper.find('WarningFilled')).not.toExist();
     });
 
@@ -132,9 +132,11 @@ describe('FiltersBadge', () => {
       store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
       const wrapper = setup(store);
       expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '0',
-      );
+      expect(
+        wrapper
+          .find('[data-test="applied-filter-count"] .ant-badge-count')
+          .first(),
+      ).toHaveText('0');
       expect(
         wrapper.find('[data-test="incompatible-filter-count"]'),
       ).toHaveText('1');
@@ -184,9 +186,9 @@ describe('FiltersBadge', () => {
       store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
       const wrapper = setup(store);
       expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '1',
-      );
+      expect(
+        wrapper.find('[data-test="applied-filter-count"] .current'),
+      ).toHaveText('1');
       expect(wrapper.find('WarningFilled')).not.toExist();
     });
 
@@ -213,11 +215,13 @@ describe('FiltersBadge', () => {
       store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
       const wrapper = setup(store);
       expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '0',
-      );
       expect(
-        wrapper.find('[data-test="incompatible-filter-count"]'),
+        wrapper
+          .find('[data-test="applied-filter-count"] .ant-badge-count')
+          .first(),
+      ).toHaveText('0');
+      expect(
+        wrapper.find('[data-test="incompatible-filter-count"]').first(),
       ).toHaveText('1');
       expect(wrapper.find(Icons.AlertSolid)).toExist();
     });

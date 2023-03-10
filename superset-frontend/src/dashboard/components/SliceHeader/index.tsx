@@ -88,6 +88,8 @@ const ChartHeaderStyles = styled.div`
 
     & > .header-controls {
       display: flex;
+      align-items: center;
+      height: 24px;
 
       & > * {
         margin-left: ${theme.gridUnit * 2}px;

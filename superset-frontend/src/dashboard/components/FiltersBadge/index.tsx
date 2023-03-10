@@ -20,7 +20,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
+import {
+  css,
+  DataMaskStateWithId,
+  Filters,
+  styled,
+  SupersetTheme,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
@@ -54,6 +60,7 @@ const StyledFilterCount = styled.div`
     padding-right: ${theme.gridUnit * 2}px;
     background: ${theme.colors.grayscale.light4};
     border-radius: 4px;
+    height: 100%;
     .anticon {
       vertical-align: middle;
       color: ${theme.colors.grayscale.base};
@@ -309,7 +316,13 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           />
         )}
         {incompatibleIndicators.length ? (
-          <>
+          <span
+            css={(theme: SupersetTheme) => css`
+              display: flex;
+              align-items: center;
+              margin-left: ${theme.gridUnit * 2}px;
+            `}
+          >
             {' '}
             <Icons.AlertSolid iconSize="m" />
             <span
@@ -318,7 +331,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             >
               {incompatibleIndicators.length}
             </span>
-          </>
+          </span>
         ) : null}
       </StyledFilterCount>
     </DetailsPanelPopover>
