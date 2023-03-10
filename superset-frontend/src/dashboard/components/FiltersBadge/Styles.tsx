@@ -60,9 +60,6 @@ export const Pill = styled.div`
 export const SectionName = styled.span`
   ${({ theme }) => css`
     font-weight: ${theme.typography.weights.bold};
-    // & > * {
-    //   margin-right: ${theme.gridUnit}px;
-    // }
   `}
 `;
 export const FilterName = styled.span`
@@ -127,7 +124,7 @@ export const FilterValue = styled.span`
 export const Separator = styled.div`
   ${({ theme }) => css`
     width: 100%;
-    height: 2px;
+    height: 1px;
     background-color: ${theme.colors.grayscale.light1};
     margin: ${theme.gridUnit * 4}px 0;
   `}
