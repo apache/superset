@@ -27,6 +27,7 @@ import {
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { noOp } from 'src/utils/common';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
@@ -41,6 +42,8 @@ interface VizTypeControlProps {
   isModalOpenInit?: boolean;
 }
 
+const bootstrapData = getBootstrapData();
+const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 const metadataRegistry = getChartMetadataRegistry();
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
@@ -141,6 +144,7 @@ const VizTypeControl = ({
           selectedViz={selectedViz}
           onChange={setSelectedViz}
           onDoubleClick={onSubmit}
+          denyList={denyList}
         />
       </UnpaddedModal>
     </>

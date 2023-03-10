@@ -68,6 +68,7 @@ const createProps = () => ({
   lastModifiedTime: 0,
   isDropdownVisible: true,
   dataMask: {},
+  logEvent: jest.fn(),
 });
 const editModeOnProps = {
   ...createProps(),

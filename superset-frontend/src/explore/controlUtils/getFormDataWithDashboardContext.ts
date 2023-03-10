@@ -18,31 +18,55 @@
  */
 import isEqual from 'lodash/isEqual';
 import {
-  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-  isDefined,
-  JsonObject,
-  ensureIsArray,
-  QueryObjectFilterClause,
-  SimpleAdhocFilter,
-  QueryFormData,
   AdhocFilter,
+  ensureIsArray,
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+  isAdhocColumn,
+  isDefined,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
+  JsonObject,
   NO_TIME_RANGE,
+  QueryFormData,
+  QueryObjectFilterClause,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
+import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from '../constants';
+import { translateToSql } from '../components/controls/FilterControl/utils/translateToSQL';
+import {
+  CLAUSES,
+  EXPRESSION_TYPES,
+} from '../components/controls/FilterControl/types';
 
 const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause,
-  clause = 'where',
+  clause: CLAUSES = CLAUSES.WHERE,
 ) => {
-  const result = {
-    clause: clause.toUpperCase(),
-    expressionType: 'SIMPLE',
-    operator: filterClause.op,
-    subject: filterClause.col,
-    comparator: 'val' in filterClause ? filterClause.val : undefined,
-  } as SimpleAdhocFilter;
+  let result: AdhocFilter;
+  if (isAdhocColumn(filterClause.col)) {
+    result = {
+      expressionType: 'SQL',
+      clause,
+      sqlExpression: translateToSql({
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        subject: `(${filterClause.col.sqlExpression})`,
+        operator: filterClause.op,
+        comparator: 'val' in filterClause ? filterClause.val : undefined,
+      } as SimpleAdhocFilter),
+    };
+  } else {
+    result = {
+      expressionType: 'SIMPLE',
+      clause,
+      operator: filterClause.op,
+      operatorId: Object.entries(OPERATOR_ENUM_TO_OPERATOR_TYPE).find(
+        operatorEntry => operatorEntry[1].operation === filterClause.op,
+      )?.[0],
+      subject: filterClause.col,
+      comparator: 'val' in filterClause ? filterClause.val : undefined,
+    } as SimpleAdhocFilter;
+  }
   if (filterClause.isExtra) {
     Object.assign(result, {
       isExtra: true,
@@ -173,6 +197,26 @@ const mergeNativeFiltersToFormData = (
   return nativeFiltersData;
 };
 
+const applyTimeRangeFilters = (
+  dashboardFormData: JsonObject,
+  adhocFilters: AdhocFilter[],
+) => {
+  const extraFormData = dashboardFormData.extra_form_data || {};
+  if ('time_range' in extraFormData) {
+    return adhocFilters.map((filter: SimpleAdhocFilter) => {
+      if (filter.operator === 'TEMPORAL_RANGE') {
+        return {
+          ...filter,
+          comparator: extraFormData.time_range,
+          isExtra: true,
+        };
+      }
+      return filter;
+    });
+  }
+  return adhocFilters;
+};
+
 export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
@@ -194,14 +238,18 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: removeAdhocFilterDuplicates([
-          ...ensureIsArray(exploreFormData[key]),
-          ...ensureIsArray(filterBoxData[key]),
-          ...ensureIsArray(nativeFiltersData[key]),
-        ]),
+        [key]: applyTimeRangeFilters(
+          dashboardContextFormData,
+          removeAdhocFilterDuplicates([
+            ...ensureIsArray(exploreFormData[key]),
+            ...ensureIsArray(filterBoxData[key]),
+            ...ensureIsArray(nativeFiltersData[key]),
+          ]),
+        ),
       }),
       {},
     );
+
   return {
     ...exploreFormData,
     ...dashboardContextFormData,

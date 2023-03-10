@@ -23,14 +23,14 @@ import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/views/components/SubMenu';
-import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
+import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
   CardStyles,
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
 
@@ -38,7 +38,7 @@ import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
 /**
- * Return result from /superset/recent_activity/{user_id}
+ * Return result from /api/v1/log/recent_activity/{user_id}/
  */
 interface RecentActivity {
   action: string;
@@ -57,14 +57,8 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
-export enum SetTabType {
-  EDITED = 'Edited',
-  CREATED = 'Created',
-  VIEWED = 'Viewed',
-  EXAMPLE = 'Examples',
-}
 /**
- * Recent activity objects fetched by `getRecentAcitivtyObjs`.
+ * Recent activity objects fetched by `getRecentActivityObjs`.
  */
 type ActivityObject =
   | RecentSlice
@@ -80,7 +74,7 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
-  loadedCount: number;
+  isFetchingActivityData: boolean;
 }
 
 const Styles = styled.div`
@@ -134,87 +128,85 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
-  loadedCount,
+  isFetchingActivityData,
 }: ActivityProps) {
-  const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
-  const [loadingState, setLoadingState] = useState(false);
+  const [editedCards, setEditedCards] = useState<ActivityData[]>();
+  const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
 
   const getEditedCards = () => {
-    setLoadingState(true);
+    setIsFetchingEditedCards(true);
     getEditedObjects(user.userId).then(r => {
-      setEditedObjs([...r.editedChart, ...r.editedDash]);
-      setLoadingState(false);
+      setEditedCards([...r.editedChart, ...r.editedDash]);
+      setIsFetchingEditedCards(false);
     });
   };
 
   useEffect(() => {
-    if (activeChild === 'Edited') {
-      setLoadingState(true);
+    if (activeChild === TableTab.Edited) {
       getEditedCards();
     }
   }, [activeChild]);
 
   const tabs = [
     {
-      name: 'Edited',
+      name: TableTab.Edited,
       label: t('Edited'),
       onClick: () => {
-        setActiveChild('Edited');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.EDITED);
+        setActiveChild(TableTab.Edited);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Edited);
       },
     },
     {
-      name: 'Created',
+      name: TableTab.Created,
       label: t('Created'),
       onClick: () => {
-        setActiveChild('Created');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.CREATED);
+        setActiveChild(TableTab.Created);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Created);
       },
     },
   ];
 
-  if (activityData?.Viewed) {
+  if (activityData?.[TableTab.Viewed]) {
     tabs.unshift({
-      name: 'Viewed',
+      name: TableTab.Viewed,
       label: t('Viewed'),
       onClick: () => {
-        setActiveChild('Viewed');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.VIEWED);
+        setActiveChild(TableTab.Viewed);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Viewed);
       },
     });
   }
   const renderActivity = () =>
-    (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
-      (entity: ActivityObject) => {
-        const url = getEntityUrl(entity);
-        const lastActionOn = getEntityLastActionOn(entity);
-        return (
-          <CardStyles key={url}>
-            <Link to={url}>
-              <ListViewCard
-                cover={<></>}
-                url={url}
-                title={getEntityTitle(entity)}
-                description={lastActionOn}
-                avatar={getEntityIcon(entity)}
-                actions={null}
-              />
-            </Link>
-          </CardStyles>
-        );
-      },
-    );
+    (activeChild === TableTab.Edited
+      ? editedCards
+      : activityData[activeChild]
+    ).map((entity: ActivityObject) => {
+      const url = getEntityUrl(entity);
+      const lastActionOn = getEntityLastActionOn(entity);
+      return (
+        <CardStyles key={url}>
+          <Link to={url}>
+            <ListViewCard
+              cover={<></>}
+              url={url}
+              title={getEntityTitle(entity)}
+              description={lastActionOn}
+              avatar={getEntityIcon(entity)}
+              actions={null}
+            />
+          </Link>
+        </CardStyles>
+      );
+    });
 
-  const doneFetching = loadedCount < 3;
-
-  if ((loadingState && !editedObjs) || doneFetching) {
+  if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
   }
   return (
     <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
-      (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
+      (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">
           {renderActivity()}
         </CardContainer>

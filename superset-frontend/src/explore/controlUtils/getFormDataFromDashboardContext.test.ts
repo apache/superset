@@ -48,6 +48,14 @@ const getExploreFormData = (overrides: JsonObject = {}) => ({
       sqlExpression: "city = 'Warsaw'",
       filterOptionName: '567',
     },
+    {
+      clause: 'WHERE' as const,
+      expressionType: 'SIMPLE' as const,
+      operator: 'TEMPORAL_RANGE' as const,
+      subject: 'ds',
+      comparator: 'No filter',
+      filterOptionName: '678',
+    },
   ],
   adhoc_filters_b: [
     {
@@ -121,6 +129,15 @@ const getDashboardFormData = (overrides: JsonObject = {}) => ({
         op: '<=',
         val: 10000,
       },
+      {
+        col: {
+          sqlExpression: 'totally viable sql expression',
+          expressionType: 'SQL',
+          label: 'My column',
+        },
+        op: 'IN',
+        val: ['Value1', 'Value2'],
+      },
     ],
     granularity_sqla: 'ds',
     time_range: 'Last month',
@@ -161,7 +178,17 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
     {
       clause: 'WHERE',
       expressionType: 'SIMPLE',
+      operator: 'TEMPORAL_RANGE',
+      subject: 'ds',
+      comparator: 'Last month',
+      filterOptionName: expect.any(String),
+      isExtra: true,
+    },
+    {
+      clause: 'WHERE',
+      expressionType: 'SIMPLE',
       operator: 'IN',
+      operatorId: 'IN',
       subject: 'name',
       comparator: ['Aaron'],
       isExtra: true,
@@ -171,10 +198,18 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       clause: 'WHERE',
       expressionType: 'SIMPLE',
       operator: '<=',
+      operatorId: 'LESS_THAN_OR_EQUAL',
       subject: 'num_boys',
       comparator: 10000,
       isExtra: true,
       filterOptionName: expect.any(String),
+    },
+    {
+      clause: 'WHERE',
+      expressionType: 'SQL',
+      sqlExpression: `(totally viable sql expression) IN ('Value1', 'Value2')`,
+      filterOptionName: expect.any(String),
+      isExtra: true,
     },
   ],
   adhoc_filters_b: [
@@ -191,6 +226,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       clause: 'WHERE',
       expressionType: 'SIMPLE',
       operator: 'IN',
+      operatorId: 'IN',
       subject: 'name',
       comparator: ['Aaron'],
       isExtra: true,
@@ -200,10 +236,18 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       clause: 'WHERE',
       expressionType: 'SIMPLE',
       operator: '<=',
+      operatorId: 'LESS_THAN_OR_EQUAL',
       subject: 'num_boys',
       comparator: 10000,
       isExtra: true,
       filterOptionName: expect.any(String),
+    },
+    {
+      clause: 'WHERE',
+      expressionType: 'SQL',
+      sqlExpression: `(totally viable sql expression) IN ('Value1', 'Value2')`,
+      filterOptionName: expect.any(String),
+      isExtra: true,
     },
   ],
   applied_time_extras: {
@@ -265,6 +309,15 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
         op: '<=',
         val: 10000,
       },
+      {
+        col: {
+          expressionType: 'SQL',
+          label: 'My column',
+          sqlExpression: 'totally viable sql expression',
+        },
+        op: 'IN',
+        val: ['Value1', 'Value2'],
+      },
     ],
     granularity_sqla: 'ds',
     time_range: 'Last month',
@@ -279,7 +332,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
   ...overrides,
 });
 
-it('merges dashboard context form data with explore form data', () => {
+test('merges dashboard context form data with explore form data', () => {
   const fullFormData = getFormDataWithDashboardContext(
     getExploreFormData(),
     getDashboardFormData(),

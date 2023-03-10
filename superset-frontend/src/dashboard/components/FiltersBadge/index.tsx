@@ -23,6 +23,7 @@ import cx from 'classnames';
 import { DataMaskStateWithId, Filters } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import {
@@ -30,8 +31,7 @@ import {
   IndicatorStatus,
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
-} from './selectors';
-import { setDirectPathToChild } from '../../actions/dashboardState';
+} from '../nativeFilters/selectors';
 import {
   ChartsState,
   DashboardInfo,

@@ -16,4 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD:superset-frontend/liq_viz_plugins/superset-plugin-chart-hello-world/test/__mocks__/mockExportString.js
 module.exports = 'test-file-stub';
+=======
+export const getSelectedText = () => window.getSelection()?.toString();
+>>>>>>> 56380027f4ab4e697e740569723aa21eb937cbb2:superset-frontend/packages/superset-ui-core/src/utils/getSelectedText.ts

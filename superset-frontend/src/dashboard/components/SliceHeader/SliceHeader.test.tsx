@@ -156,6 +156,7 @@ const createProps = (overrides: any = {}) => ({
   toggleExpandSlice: jest.fn(),
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
+  logEvent: jest.fn(),
   exportCSV: jest.fn(),
   formData: { slice_id: 1, datasource: '58__table' },
   width: 100,

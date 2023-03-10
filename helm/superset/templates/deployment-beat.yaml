@@ -77,7 +77,7 @@ spec:
       {{- end }}
       containers:
         - name: "{{ .Chart.Name }}-celerybeat"
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
@@ -104,6 +104,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+            {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+            {{- end }}
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
@@ -117,9 +122,23 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- if or .Values.affinity .Values.supersetCeleryBeat.affinity }}
       affinity:
-      {{- toYaml . | nindent 8 }}
+        {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetCeleryBeat.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryBeat.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- with .Values.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetCeleryBeat.topologySpreadConstraints }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
@@ -133,6 +152,11 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
       {{- with .Values.extraVolumes }}
       {{- tpl (toYaml .) $ | nindent 8 -}}
       {{- end }}

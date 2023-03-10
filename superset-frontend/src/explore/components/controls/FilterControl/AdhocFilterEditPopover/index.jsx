@@ -24,9 +24,7 @@ import { styled, t } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
@@ -34,6 +32,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { EXPRESSION_TYPES } from '../types';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -52,6 +51,7 @@ const propTypes = {
   theme: PropTypes.object,
   sections: PropTypes.arrayOf(PropTypes.string),
   operators: PropTypes.arrayOf(PropTypes.string),
+  requireSave: PropTypes.bool,
 };
 
 const ResizeIcon = styled.i`
@@ -181,12 +181,14 @@ export default class AdhocFilterEditPopover extends React.Component {
       partitionColumn,
       theme,
       operators,
+      requireSave,
       ...popoverProps
     } = this.props;
 
     const { adhocFilter } = this.state;
     const stateIsValid = adhocFilter.isValid();
-    const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
+    const hasUnsavedChanges =
+      requireSave || !adhocFilter.equals(propsAdhocFilter);
 
     return (
       <FilterPopoverContentContainer
@@ -245,10 +247,12 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Button>
           <Button
             data-test="adhoc-filter-edit-popover-save-button"
-            disabled={!stateIsValid || !this.state.isSimpleTabValid}
-            buttonStyle={
-              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
+            disabled={
+              !stateIsValid ||
+              !this.state.isSimpleTabValid ||
+              !hasUnsavedChanges
             }
+            buttonStyle="primary"
             buttonSize="small"
             className="m-r-5"
             onClick={this.onSave}

@@ -19,10 +19,10 @@ from __future__ import annotations
 import os
 from typing import Optional, TYPE_CHECKING
 
+from flask_babel import lazy_gettext as _
+
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-
-MSG_FORMAT = "Failed to execute {}"
 
 if TYPE_CHECKING:
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
@@ -61,7 +61,10 @@ class SqlLabException(SupersetException):
         super().__init__(self._generate_message(), exception, error_type)
 
     def _generate_message(self) -> str:
-        msg = MSG_FORMAT.format(self.sql_json_execution_context.get_query_details())
+        msg = _(
+            "Failed to execute %(query)s",
+            query=self.sql_json_execution_context.get_query_details(),
+        )
         if self.failed_reason_msg:
             msg = msg + self.failed_reason_msg
         if self.suggestion_help_msg is not None:

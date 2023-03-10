@@ -82,6 +82,7 @@ export default function TableControls({
         display: flex;
         justify-content: space-between;
         padding: ${theme.gridUnit / 2}px 0;
+        margin-bottom: ${theme.gridUnit * 2}px;
       `}
     >
       <div

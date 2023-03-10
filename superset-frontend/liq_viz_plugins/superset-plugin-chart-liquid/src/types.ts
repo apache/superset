@@ -17,6 +17,7 @@
  * under the License.
  */
 
+<<<<<<< HEAD:superset-frontend/liq_viz_plugins/superset-plugin-chart-liquid/src/types.ts
 export interface LiquidStylesProps {
   height: number,
   width: number
@@ -27,3 +28,14 @@ export type LiquidProps = LiquidStylesProps & {
   metricName: string;
   percentage: number
 }
+=======
+import { css } from '@superset-ui/core';
+
+export const ellipsisCss = css`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+`;
+>>>>>>> 56380027f4ab4e697e740569723aa21eb937cbb2:superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/styles.ts

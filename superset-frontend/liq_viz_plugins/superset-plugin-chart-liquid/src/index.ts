@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD:superset-frontend/liq_viz_plugins/superset-plugin-chart-liquid/src/index.ts
 // eslint-disable-next-line import/prefer-default-export
 export { default as SupersetPluginChartLiquid } from './plugin';
 /**
@@ -25,3 +26,21 @@ export { default as SupersetPluginChartLiquid } from './plugin';
  * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
  * which in turn load exports from SupersetPluginChartLiquid.tsx
  */
+=======
+import { getSelectedText } from '@superset-ui/core';
+
+test('Returns null if Selection object is null', () => {
+  jest.spyOn(window, 'getSelection').mockImplementationOnce(() => null);
+  expect(getSelectedText()).toEqual(undefined);
+  jest.restoreAllMocks();
+});
+
+test('Returns selection text if Selection object is not null', () => {
+  jest
+    .spyOn(window, 'getSelection')
+    // @ts-ignore
+    .mockImplementationOnce(() => ({ toString: () => 'test string' }));
+  expect(getSelectedText()).toEqual('test string');
+  jest.restoreAllMocks();
+});
+>>>>>>> 56380027f4ab4e697e740569723aa21eb937cbb2:superset-frontend/packages/superset-ui-core/test/utils/getSelectedText.test.ts

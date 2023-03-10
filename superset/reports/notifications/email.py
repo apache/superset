@@ -26,12 +26,12 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
+from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
-from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +127,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __("Explore in Superset")
-        url = (
-            modify_url_query(self._content.url, standalone="0")
-            if self._content.url is not None
-            else ""
-        )
+        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
@@ -161,7 +156,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               <body>
                 <div>{description}</div>
                 <br>
-                <b><a href="{url}">{call_to_action}</a></b><p></p>
+                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
               </body>
@@ -210,5 +205,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             logger.info(
                 "Report sent to email, notification content is %s", content.header_data
             )
+        except SupersetErrorsException as ex:
+            raise NotificationError(
+                ";".join([error.message for error in ex.errors])
+            ) from ex
         except Exception as ex:
-            raise NotificationError(ex) from ex
+            raise NotificationError(str(ex)) from ex

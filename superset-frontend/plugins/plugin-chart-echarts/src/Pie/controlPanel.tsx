@@ -22,10 +22,10 @@ import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
-  emitFilterControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -52,7 +52,6 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['row_limit'],
         [
           {
@@ -101,12 +100,12 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['key', 'Category Name'],
-                ['value', 'Value'],
-                ['percent', 'Percentage'],
-                ['key_value', 'Category and Value'],
-                ['key_percent', 'Category and Percentage'],
-                ['key_value_percent', 'Category, Value and Percentage'],
+                ['key', t('Category Name')],
+                ['value', t('Value')],
+                ['percent', t('Percentage')],
+                ['key_value', t('Category and Value')],
+                ['key_percent', t('Category and Percentage')],
+                ['key_value_percent', t('Category, Value and Percentage')],
               ],
               description: t('What should be shown on the label?'),
             },
@@ -122,9 +121,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
               tokenSeparators: ['\n', '\t', ';'],
             },
           },
