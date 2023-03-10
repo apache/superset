@@ -28,6 +28,7 @@ from typing import Optional
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
 
+SECRET_KEY = '61d3e1cfc9916440241a3258777e35c8bb01ec61241906ea7cd6901051b9a5ac89c1f110905b4f6f818ebf5f2ecd38fb08dfc7df8c9db91716a7a2a4da994c8e'
 MAPBOX_API_KEY = 'pk.eyJ1IjoiZGtpciIsImEiOiJjazIxNW54azgxZzd6M25xb2RqNHk0Z2Z5In0.1SbfSydEBGdjIxU-Wy0EXA'
 APP_NAME = "LIQ Superset"
 
