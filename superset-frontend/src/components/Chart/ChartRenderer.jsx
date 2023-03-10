@@ -62,6 +62,7 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -86,7 +87,8 @@ class ChartRenderer extends React.Component {
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
-        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
+        (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) ||
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)),
       inContextMenu: false,
     };
     this.hasQueryResponseChange = false;
@@ -142,7 +144,8 @@ class ChartRenderer extends React.Component {
         nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
-        nextProps.cacheBusterProp !== this.props.cacheBusterProp
+        nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters
       );
     }
     return false;
@@ -223,7 +226,7 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, chartId } = this.props;
+    const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -341,6 +344,7 @@ class ChartRenderer extends React.Component {
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
             postTransformProps={postTransformProps}
+            emitCrossFilters={emitCrossFilters}
             {...drillToDetailProps}
           />
         </div>

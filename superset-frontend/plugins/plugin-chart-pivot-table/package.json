@@ -29,7 +29,7 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@ant-design/icons": "^4.2.2",
+    "@ant-design/icons": "^5.0.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "prop-types": "*",

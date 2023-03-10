@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, QueryResponse } from '@superset-ui/core';
+import {
+  QueryResponse,
+  QueryState,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -43,9 +49,9 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import {
-  CtasEnum,
-  clearQueryResults,
   addQueryEditor,
+  clearQueryResults,
+  CtasEnum,
   fetchQueryResults,
   reFetchQueryResults,
   reRunQuery,
@@ -133,6 +139,7 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
@@ -212,6 +219,9 @@ const ResultSet = ({
     }
   };
 
+  const getExportCsvUrl = (clientId: string) =>
+    `/api/v1/sqllab/export/${clientId}/`;
+
   const renderControls = () => {
     if (search || visualize || csv) {
       let { data } = query.results;
@@ -250,7 +260,7 @@ const ResultSet = ({
               />
             )}
             {csv && (
-              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
+              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -353,8 +363,8 @@ const ResultSet = ({
               message={t('%(rows)d rows returned', { rows })}
               onClose={() => setAlertIsOpen(false)}
               description={t(
-                'The number of rows displayed is limited to %s by the dropdown.',
-                rows,
+                'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                { rows },
               )}
             />
           </div>
@@ -387,8 +397,8 @@ const ResultSet = ({
   let trackingUrl;
   if (
     query.trackingUrl &&
-    query.state !== 'success' &&
-    query.state !== 'fetching'
+    query.state !== QueryState.SUCCESS &&
+    query.state !== QueryState.FETCHING
   ) {
     trackingUrl = (
       <Button
@@ -397,7 +407,9 @@ const ResultSet = ({
         href={query.trackingUrl}
         target="_blank"
       >
-        {query.state === 'running' ? t('Track job') : t('See query details')}
+        {query.state === QueryState.RUNNING
+          ? t('Track job')
+          : t('See query details')}
       </Button>
     );
   }
@@ -406,11 +418,11 @@ const ResultSet = ({
     sql = <HighlightedSql sql={query.sql} />;
   }
 
-  if (query.state === 'stopped') {
+  if (query.state === QueryState.STOPPED) {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
 
-  if (query.state === 'failed') {
+  if (query.state === QueryState.FAILED) {
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
@@ -426,7 +438,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === 'success' && query.ctas) {
+  if (query.state === QueryState.SUCCESS && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
     if (query.ctas_method === CtasEnum.VIEW) {
@@ -447,7 +459,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  className="m-r-5"
+                  css={{ marginRight: theme.gridUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}
@@ -465,7 +477,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === 'success' && query.results) {
+  if (query.state === QueryState.SUCCESS && query.results) {
     const { results } = query;
     // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
     const rowMessageHeight = !limitReached ? 32 : 0;
@@ -508,7 +520,7 @@ const ResultSet = ({
     }
   }
 
-  if (query.cached || (query.state === 'success' && !query.results)) {
+  if (query.cached || (query.state === QueryState.SUCCESS && !query.results)) {
     if (query.isDataPreview) {
       return (
         <Button

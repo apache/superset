@@ -68,7 +68,7 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           AnnotationType.Timeseries,
         ],
         name: hasGenericChartAxes
-          ? t('Area Chart v2')
+          ? t('Area Chart')
           : t('Time-series Area Chart'),
         tags: [
           t('ECharts'),

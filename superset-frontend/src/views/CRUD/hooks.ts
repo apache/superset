@@ -25,6 +25,9 @@ import {
   getAlreadyExists,
   getPasswordsNeeded,
   hasTerminalValidation,
+  getSSHPasswordsNeeded,
+  getSSHPrivateKeysNeeded,
+  getSSHPrivateKeyPasswordsNeeded,
 } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
@@ -386,6 +389,9 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
   alreadyExists: string[];
+  sshPasswordNeeded: string[];
+  sshPrivateKeyNeeded: string[];
+  sshPrivateKeyPasswordNeeded: string[];
   failed: boolean;
 }
 
@@ -398,6 +404,9 @@ export function useImportResource(
     loading: false,
     passwordsNeeded: [],
     alreadyExists: [],
+    sshPasswordNeeded: [],
+    sshPrivateKeyNeeded: [],
+    sshPrivateKeyPasswordNeeded: [],
     failed: false,
   });
 
@@ -409,6 +418,9 @@ export function useImportResource(
     (
       bundle: File,
       databasePasswords: Record<string, string> = {},
+      sshTunnelPasswords: Record<string, string> = {},
+      sshTunnelPrivateKey: Record<string, string> = {},
+      sshTunnelPrivateKeyPasswords: Record<string, string> = {},
       overwrite = false,
     ) => {
       // Set loading state
@@ -419,6 +431,10 @@ export function useImportResource(
 
       const formData = new FormData();
       formData.append('formData', bundle);
+
+      const RE_EXPORT_TEXT = t(
+        'Please re-export your file and try importing again',
+      );
 
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
@@ -432,6 +448,33 @@ export function useImportResource(
       if (overwrite) {
         formData.append('overwrite', 'true');
       }
+      /* The import bundle may contain ssh tunnel passwords; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPasswords) {
+        formData.append(
+          'ssh_tunnel_passwords',
+          JSON.stringify(sshTunnelPasswords),
+        );
+      }
+      /* The import bundle may contain ssh tunnel private_key; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPrivateKey) {
+        formData.append(
+          'ssh_tunnel_private_keys',
+          JSON.stringify(sshTunnelPrivateKey),
+        );
+      }
+      /* The import bundle may contain ssh tunnel private_key_password; if required
+       * they should be provided by the user during import.
+       */
+      if (sshTunnelPrivateKeyPasswords) {
+        formData.append(
+          'ssh_tunnel_private_key_passwords',
+          JSON.stringify(sshTunnelPrivateKeyPasswords),
+        );
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -442,6 +485,9 @@ export function useImportResource(
           updateState({
             passwordsNeeded: [],
             alreadyExists: [],
+            sshPasswordNeeded: [],
+            sshPrivateKeyNeeded: [],
+            sshPrivateKeyPasswordNeeded: [],
             failed: false,
           });
           return true;
@@ -468,13 +514,18 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again.'),
+                    RE_EXPORT_TEXT,
                   ].join('.\n'),
                 ),
               );
             } else {
               updateState({
                 passwordsNeeded: getPasswordsNeeded(error.errors),
+                sshPasswordNeeded: getSSHPasswordsNeeded(error.errors),
+                sshPrivateKeyNeeded: getSSHPrivateKeysNeeded(error.errors),
+                sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(
+                  error.errors,
+                ),
                 alreadyExists: getAlreadyExists(error.errors),
               });
             }

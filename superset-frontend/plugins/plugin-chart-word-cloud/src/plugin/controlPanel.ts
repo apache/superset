@@ -83,9 +83,9 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Word Rotation'),
               choices: [
-                ['random', 'random'],
-                ['flat', 'flat'],
-                ['square', 'square'],
+                ['random', t('random')],
+                ['flat', t('flat')],
+                ['square', t('square')],
               ],
               renderTrigger: true,
               default: 'square',

@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { SearchOutlined } from '@ant-design/icons';
 import React, { FC } from 'react';
+import { css } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
   FilterIndicatorText,
@@ -27,7 +28,7 @@ import {
   ItemIcon,
   Title,
 } from 'src/dashboard/components/FiltersBadge/Styles';
-import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -46,7 +47,14 @@ const FilterIndicator: FC<IndicatorProps> = ({
       <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
         <Title bold>
           <ItemIcon>
-            <SearchOutlined />
+            <Icons.SearchOutlined
+              iconSize="m"
+              css={css`
+                span {
+                  vertical-align: 0;
+                }
+              `}
+            />
           </ItemIcon>
           {name}
           {resultValue ? ': ' : ''}

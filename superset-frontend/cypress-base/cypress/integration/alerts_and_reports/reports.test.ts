@@ -23,10 +23,6 @@ describe('Report list view', () => {
     cy.visit(REPORT_LIST);
   });
 
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should load report lists', () => {
     cy.getBySel('listview-table').should('be.visible');
     cy.getBySel('sort-header').eq(1).contains('Last run');

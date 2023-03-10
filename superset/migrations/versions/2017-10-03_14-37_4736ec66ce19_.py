@@ -97,7 +97,7 @@ def upgrade():
 
             # Drop the datasource_name column and associated constraints. Note
             # due to prior revisions (1226819ee0e3, 3b626e2a6783) there may
-            # incorectly be multiple duplicate constraints.
+            # incorrectly be multiple duplicate constraints.
             names = generic_find_fk_constraint_names(
                 foreign, {"datasource_name"}, "datasources", insp
             )
@@ -124,7 +124,7 @@ def upgrade():
         logging.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
-            "issue around undeterministic contraint names on Postgres "
+            "issue around nondeterministic constraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
         logging.exception(ex)

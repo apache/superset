@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apache/superset:${TAG:-5b67e0712d5d3c738abf3281e67755af741c5c01-dev}
+x-superset-image: &superset-image apache/superset:${TAG:-33b758d716b9554d848fb35e0b2cebb5360bf2d7-dev}
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
@@ -30,7 +30,7 @@ x-superset-volumes: &superset-volumes
 version: "3.7"
 services:
   redis:
-    image: redis:latest
+    image: redis:7
     container_name: superset_cache
     restart: unless-stopped
     ports:

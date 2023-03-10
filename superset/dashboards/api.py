@@ -20,7 +20,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import make_response, redirect, request, Response, send_file, url_for
@@ -61,6 +61,7 @@ from superset.dashboards.filters import (
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
+    DashboardTagFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -83,6 +84,7 @@ from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.tasks.utils import get_current_user
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -94,7 +96,11 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedRoles,
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +188,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "is_managed_externally",
     ]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
@@ -207,20 +215,37 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
 
     search_columns = (
-        "created_by",
-        "changed_by",
-        "dashboard_title",
-        "id",
-        "owners",
-        "published",
-        "roles",
-        "slug",
+        (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+            "tags",
+        )
+        if is_feature_enabled("TAGGING_SYSTEM")
+        else (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+        )
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        search_filters["tags"] = [DashboardTagFilter]
+
     base_order = ("changed_on", "desc")
 
     add_model_schema = DashboardPostSchema()
@@ -240,10 +265,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners": ("first_name", "asc"),
         "roles": ("name", "asc"),
     }
-    filter_rel_fields = {
+    base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
     }
+
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "roles": RelatedFieldFilter("name", FilterRelatedRoles),
@@ -879,7 +906,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = self.datamodel.get(pk, self._base_filters)
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
 
@@ -887,8 +914,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
+        current_user = get_current_user()
         if kwargs["rison"].get("force", False):
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                current_user=current_user,
+                dashboard_id=dashboard.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
         screenshot = DashboardScreenshot(
@@ -897,7 +929,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                current_user=current_user,
+                dashboard_id=dashboard.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:
@@ -999,6 +1035,30 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing dashboards?
                       type: boolean
+                    ssh_tunnel_passwords:
+                      description: >-
+                        JSON map of passwords for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the password should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+                    ssh_tunnel_private_keys:
+                      description: >-
+                        JSON map of private_keys for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key"}`.
+                      type: string
+                    ssh_tunnel_private_key_passwords:
+                      description: >-
+                        JSON map of private_key_passwords for each ssh_tunnel associated
+                        to a featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
+                      type: string
           responses:
             200:
               description: Dashboard import result
@@ -1038,8 +1098,29 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
         overwrite = request.form.get("overwrite") == "true"
 
+        ssh_tunnel_passwords = (
+            json.loads(request.form["ssh_tunnel_passwords"])
+            if "ssh_tunnel_passwords" in request.form
+            else None
+        )
+        ssh_tunnel_private_keys = (
+            json.loads(request.form["ssh_tunnel_private_keys"])
+            if "ssh_tunnel_private_keys" in request.form
+            else None
+        )
+        ssh_tunnel_priv_key_passwords = (
+            json.loads(request.form["ssh_tunnel_private_key_passwords"])
+            if "ssh_tunnel_private_key_passwords" in request.form
+            else None
+        )
+
         command = ImportDashboardsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            ssh_tunnel_passwords=ssh_tunnel_passwords,
+            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
+            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
         return self.response(200, message="OK")

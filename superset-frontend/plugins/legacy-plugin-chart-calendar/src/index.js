@@ -18,6 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import example from './images/example.jpg';
 import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
 
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.",
   ),
+  exampleGallery: [{ url: example }],
   name: t('Calendar Heatmap'),
   tags: [
     t('Business'),

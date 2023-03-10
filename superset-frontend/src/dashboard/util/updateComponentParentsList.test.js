@@ -4,7 +4,7 @@
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
- * 'License'); you may not use this file except in compliance
+ * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
@@ -93,5 +93,70 @@ describe('updateComponentParentsList', () => {
       'TAB_ID2',
       'ROW_ID2',
     ]);
+  });
+});
+
+describe('updateComponentParentsList with bad inputs', () => {
+  it('should handle invalid parameters and not throw error', () => {
+    updateComponentParentsList({
+      currentComponent: undefined,
+      layout: undefined,
+    });
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: undefined,
+        layout: undefined,
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: {},
+        layout: undefined,
+      }),
+    ).not.toThrow();
+
+    /**
+     * the assignment of layout = {} only works for undefined, not null
+     * This was a missed case in the function previously.
+     * This test ensure the null check is not removed
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: {},
+        layout: null,
+      }),
+    ).not.toThrow();
+
+    /**
+     * This test catches an edge case that caused runtime error in production system where
+     * a simple logic flaw performed a dot notation lookup on an undefined object
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3', children: ['id1', 'id2'] },
+        layout: { id3: {} },
+      }),
+    ).not.toThrow();
+
+    /**
+     * This test catches an edge case that causes runtime error where
+     * a simple logic flaw performed currentComponent.children.forEach without
+     * verifying currentComponent.children is an Array with a .forEach function defined
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3' },
+        layout: { id3: {} },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3' },
+        layout: {},
+      }),
+    ).not.toThrow();
   });
 });

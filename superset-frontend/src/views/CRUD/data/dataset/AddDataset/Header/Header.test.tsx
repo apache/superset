@@ -31,25 +31,15 @@ describe('Header', () => {
   test('renders a blank state Header', async () => {
     await waitForRender();
 
-    const datasetName = screen.getByTestId('editable-title');
-    const saveButton = screen.getByRole('button', {
-      name: /save save/i,
-    });
-    const menuButton = screen.getByRole('button', {
-      name: /menu actions trigger/i,
-    });
+    const datasetName = screen.getByText(/new dataset/i);
 
     expect(datasetName).toBeVisible();
-    expect(saveButton).toBeVisible();
-    expect(saveButton).toBeDisabled();
-    expect(menuButton).toBeVisible();
-    expect(menuButton).toBeDisabled();
   });
 
   test('displays "New dataset" when a table is not selected', async () => {
     await waitForRender();
 
-    const datasetName = screen.getByTestId('editable-title');
+    const datasetName = screen.getByText(/new dataset/i);
     expect(datasetName.innerHTML).toBe(DEFAULT_TITLE);
   });
 
@@ -57,7 +47,7 @@ describe('Header', () => {
     // The schema and table name are passed in through props once selected
     await waitForRender({ schema: 'testSchema', title: 'testTable' });
 
-    const datasetName = screen.getByTestId('editable-title');
+    const datasetName = screen.getByText(/testtable/i);
 
     expect(datasetName.innerHTML).toBe('testTable');
   });

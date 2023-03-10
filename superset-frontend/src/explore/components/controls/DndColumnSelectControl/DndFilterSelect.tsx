@@ -34,6 +34,7 @@ import {
   isTemporalColumn,
   withDndFallback,
 } from '@superset-ui/chart-controls';
+import Modal from 'src/components/Modal';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -42,10 +43,7 @@ import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
@@ -57,6 +55,9 @@ import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+import { CLAUSES, EXPRESSION_TYPES } from '../FilterControl/types';
+
+const { warning } = Modal;
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -75,10 +76,19 @@ export interface DndFilterSelectProps
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
+  canDelete?: (
+    valueToBeDeleted: OptionValueType,
+    values: OptionValueType[],
+  ) => true | string;
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
-  const { datasource, onChange = () => {}, name: controlName } = props;
+  const {
+    datasource,
+    onChange = () => {},
+    name: controlName,
+    canDelete,
+  } = props;
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -189,7 +199,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     );
   }, [props.value]);
 
-  const onClickClose = useCallback(
+  const removeValue = useCallback(
     (index: number) => {
       const valuesCopy = [...values];
       valuesCopy.splice(index, 1);
@@ -197,6 +207,18 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       onChange(valuesCopy);
     },
     [onChange, values],
+  );
+
+  const onClickClose = useCallback(
+    (index: number) => {
+      const result = canDelete?.(values[index], values);
+      if (typeof result === 'string') {
+        warning({ title: t('Warning'), content: result });
+        return;
+      }
+      removeValue(index);
+    },
+    [canDelete, removeValue, values],
   );
 
   const onShiftOptions = useCallback(
@@ -404,6 +426,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
+        requireSave={!!droppedItem}
       />
     </>
   );

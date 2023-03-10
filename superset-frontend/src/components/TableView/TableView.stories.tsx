@@ -77,6 +77,7 @@ InteractiveTableView.args = {
   showRowCount: true,
   withPagination: true,
   columnsForWrapText: ['Summary'],
+  scrollTopOnPagination: false,
 };
 
 InteractiveTableView.argTypes = {

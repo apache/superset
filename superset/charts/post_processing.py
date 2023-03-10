@@ -30,6 +30,7 @@ from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
@@ -68,7 +69,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
 ) -> pd.DataFrame:
-    metric_name = f"Total ({aggfunc})"
+    metric_name = __("Total (%(aggfunc)s)", aggfunc=aggfunc)
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -156,7 +157,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 slice_ = df.columns.get_loc(subgroup)
                 subtotal = pivot_v2_aggfunc_map[aggfunc](df.iloc[:, slice_], axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else "Subtotal"
+                total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
@@ -173,7 +174,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     df.iloc[slice_, :].apply(pd.to_numeric), axis=0
                 )
                 depth = df.index.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else "Subtotal"
+                total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])
                 # insert row after subgroup
                 df = pd.concat(

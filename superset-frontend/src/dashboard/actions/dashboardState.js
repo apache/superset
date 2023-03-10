@@ -37,6 +37,10 @@ import {
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
 import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
+import {
   addSuccessToast,
   addWarningToast,
   addDangerToast,
@@ -203,9 +207,20 @@ export function setOverrideConfirm(overwriteConfirmMetadata) {
   };
 }
 
+export const SAVE_DASHBOARD_STARTED = 'SAVE_DASHBOARD_STARTED';
+export function saveDashboardStarted() {
+  return { type: SAVE_DASHBOARD_STARTED };
+}
+
+export const SAVE_DASHBOARD_FINISHED = 'SAVE_DASHBOARD_FINISHED';
+export function saveDashboardFinished() {
+  return { type: SAVE_DASHBOARD_FINISHED };
+}
+
 export function saveDashboardRequest(data, id, saveType) {
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+    dispatch(saveDashboardStarted());
 
     const { dashboardFilters, dashboardLayout } = getState();
     const layout = dashboardLayout.present;
@@ -231,7 +246,7 @@ export function saveDashboardRequest(data, id, saveType) {
     } = data;
 
     const hasId = item => item.id !== undefined;
-
+    const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     // making sure the data is what the backend expects
     const cleanedData = {
       ...data,
@@ -256,30 +271,26 @@ export function saveDashboardRequest(data, id, saveType) {
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
+        // cross-filters should be enabled by default
+        cross_filters_enabled: isCrossFiltersEnabled(
+          metadataCrossFiltersEnabled,
+        ),
       },
     };
 
     const handleChartConfiguration = () => {
       const {
+        dashboardLayout,
+        charts,
         dashboardInfo: {
           metadata: { chart_configuration = {} },
         },
       } = getState();
-      const chartConfiguration = Object.values(chart_configuration).reduce(
-        (prev, next) => {
-          // If chart removed from dashboard - remove it from metadata
-          if (
-            Object.values(layout).find(
-              layoutItem => layoutItem?.meta?.chartId === next.id,
-            )
-          ) {
-            return { ...prev, [next.id]: next };
-          }
-          return prev;
-        },
-        {},
+      return getCrossFiltersConfiguration(
+        dashboardLayout.present,
+        chart_configuration,
+        charts,
       );
-      return chartConfiguration;
     };
 
     const onCopySuccess = response => {
@@ -291,6 +302,7 @@ export function saveDashboardRequest(data, id, saveType) {
         const chartConfiguration = handleChartConfiguration();
         dispatch(setChartConfiguration(chartConfiguration));
       }
+      dispatch(saveDashboardFinished());
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
     };
@@ -322,6 +334,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
+      dispatch(saveDashboardFinished());
       // redirect to the new slug or id
       window.history.pushState(
         { event: 'dashboard_properties_changed' },
@@ -347,6 +360,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (typeof message === 'string' && message === 'Forbidden') {
         errorText = t('You do not have permission to edit this dashboard');
       }
+      dispatch(saveDashboardFinished());
       dispatch(addDangerToast(errorText));
     };
 
@@ -633,7 +647,10 @@ export function maxUndoHistoryToast() {
 
     return dispatch(
       addWarningToast(
-        `You have used all ${historyLength} undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.`,
+        t(
+          'You have used all %(historyLength)s undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.',
+          { historyLength },
+        ),
       ),
     );
   };

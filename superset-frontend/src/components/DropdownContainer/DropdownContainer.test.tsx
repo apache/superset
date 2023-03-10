@@ -141,3 +141,16 @@ test('renders a dropdown with custom content', async () => {
     expect(screen.getByText('Custom content')).toBeInTheDocument();
   });
 });
+
+test('Shows tooltip on dropdown trigger hover', async () => {
+  await mockOverflowingIndex(3, async () => {
+    render(
+      <DropdownContainer
+        items={generateItems(5)}
+        dropdownTriggerTooltip="Test tooltip"
+      />,
+    );
+    userEvent.hover(screen.getByText('More'));
+    expect(await screen.findByText('Test tooltip')).toBeInTheDocument();
+  });
+});

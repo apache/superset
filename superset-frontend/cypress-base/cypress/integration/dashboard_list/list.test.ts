@@ -46,10 +46,6 @@ function confirmDelete() {
 }
 
 describe('Dashboards list', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('list mode', () => {
     before(() => {
       cy.visit(DASHBOARD_LIST);

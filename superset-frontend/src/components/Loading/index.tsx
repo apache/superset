@@ -70,6 +70,7 @@ export default function Loading({
       role="status"
       aria-live="polite"
       aria-label="Loading"
+      data-test="loading-indicator"
     />
   );
 }

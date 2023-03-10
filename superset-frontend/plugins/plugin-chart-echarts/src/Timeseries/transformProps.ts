@@ -19,21 +19,25 @@
 /* eslint-disable camelcase */
 import {
   AnnotationLayer,
+  AxisType,
   CategoricalColorNamespace,
   GenericDataType,
+  getMetricLabel,
   getNumberFormatter,
+  getXAxisLabel,
+  isDefined,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
-  isTimeseriesAnnotationLayer,
-  TimeseriesChartDataResponseResult,
-  t,
-  AxisType,
-  getXAxisLabel,
   isPhysicalColumn,
-  isDefined,
+  isTimeseriesAnnotationLayer,
+  t,
+  TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
-import { isDerivedSeries } from '@superset-ui/chart-controls';
+import {
+  extractExtraMetrics,
+  isDerivedSeries,
+} from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
@@ -44,7 +48,7 @@ import {
   OrientationType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import { ForecastSeriesEnum, ForecastValue } from '../types';
+import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -68,7 +72,7 @@ import {
   rebaseForecastDatum,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
   getTooltipTimeFormatter,
@@ -84,6 +88,7 @@ import {
   TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -98,6 +103,7 @@ export default function transformProps(
     datasource,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -112,41 +118,41 @@ export default function transformProps(
     colorScheme,
     contributionMode,
     forecastEnabled,
+    groupby,
     legendOrientation,
     legendType,
     legendMargin,
     logAxis,
     markerEnabled,
     markerSize,
-    opacity,
     minorSplitLine,
+    onlyTotal,
+    opacity,
+    orientation,
+    percentageThreshold,
+    richTooltip,
     seriesType,
     showLegend,
-    stack,
-    truncateYAxis,
-    yAxisFormat,
-    xAxisTimeFormat,
-    yAxisBounds,
-    tooltipTimeFormat,
-    tooltipSortByMetric,
-    zoomable,
-    richTooltip,
-    xAxis: xAxisOrig,
-    xAxisLabelRotation,
-    emitFilter,
-    groupby,
     showValue,
-    onlyTotal,
-    percentageThreshold,
-    xAxisTitle,
-    yAxisTitle,
-    xAxisTitleMargin,
-    yAxisTitleMargin,
-    yAxisTitlePosition,
     sliceId,
     timeGrainSqla,
-    orientation,
+    stack,
+    tooltipTimeFormat,
+    tooltipSortByMetric,
+    truncateYAxis,
+    xAxis: xAxisOrig,
+    xAxisLabelRotation,
+    xAxisTimeFormat,
+    xAxisTitle,
+    xAxisTitleMargin,
+    yAxisBounds,
+    yAxisFormat,
+    yAxisTitle,
+    yAxisTitleMargin,
+    yAxisTitlePosition,
+    zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const refs: Refs = {};
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
@@ -166,9 +172,14 @@ export default function transformProps(
       xAxisCol: xAxisLabel,
     },
   );
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
+    getMetricLabel,
+  );
+
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisLabel,
+    extraMetricLabels,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
     stack,
     totalStackedValues,
@@ -368,6 +379,7 @@ export default function transformProps(
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
+    yAxis.inverse = true;
   }
 
   const echartOptions: EChartsCoreOption = {
@@ -379,9 +391,8 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      ...defaultTooltip,
-      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
@@ -447,7 +458,7 @@ export default function transformProps(
 
   return {
     echartOptions,
-    emitFilter,
+    emitCrossFilters,
     formData,
     groupby,
     height,
@@ -463,5 +474,6 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    refs,
   };
 }

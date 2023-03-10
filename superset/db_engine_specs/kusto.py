@@ -14,8 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
+
+from sqlalchemy import types
+from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.db_engine_specs.exceptions import (
@@ -24,7 +28,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.sql_parse import ParsedQuery
-from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 
 class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -59,6 +63,14 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
+    column_type_mappings = (
+        (
+            re.compile(r"^smalldatetime.*", re.IGNORECASE),
+            SMALLDATETIME(),
+            GenericDataType.TEMPORAL,
+        ),
+    )
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         # pylint: disable=import-outside-toplevel,import-error
@@ -74,18 +86,19 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
-        if tt == utils.TemporalType.DATETIME:
-            datetime_formatted = dttm.isoformat(timespec="milliseconds")
-            return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
-        if tt == utils.TemporalType.SMALLDATETIME:
-            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
-            return f"""CONVERT(SMALLDATETIME, '{datetime_formatted}', 20)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
             return f"""CONVERT(TIMESTAMP, '{datetime_formatted}', 20)"""
+        if isinstance(sqla_type, SMALLDATETIME):
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CONVERT(SMALLDATETIME, '{datetime_formatted}', 20)"""
+        if isinstance(sqla_type, types.DateTime):
+            datetime_formatted = dttm.isoformat(timespec="milliseconds")
+            return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
         return None
 
     @classmethod
@@ -132,13 +145,12 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() in [
-            utils.TemporalType.DATETIME,
-            utils.TemporalType.TIMESTAMP,
-        ]:
-            return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
-        if target_type.upper() == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"""datetime({dttm.date().isoformat()})"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
 
