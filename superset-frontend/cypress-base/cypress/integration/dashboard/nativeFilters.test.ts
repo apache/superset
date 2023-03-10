@@ -378,10 +378,13 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_12', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
+    openMoreFilters();
+    applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
+    cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.getBySel('slice-header').within(() => {
-      cy.get('.filter-counts').click();
+      cy.get('.filter-counts').trigger('mouseover');
     });
-    cy.get('.filterStatusPopover').contains('test_8').click();
+    cy.get('.filterStatusPopover').contains('test_9').click();
     cy.getBySel('dropdown-content').should('be.visible');
     cy.get('.ant-select-focused').should('be.visible');
   });

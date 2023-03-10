@@ -36,7 +36,6 @@ import {
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import Icons from 'src/components/Icons';
 import { FeatureFlag } from 'src/featureFlags';
 
 const defaultStore = getMockStoreWithFilters();
@@ -111,36 +110,6 @@ describe('FiltersBadge', () => {
       );
       expect(wrapper.find('WarningFilled')).not.toExist();
     });
-
-    it("shows a warning when there's a rejected filter", () => {
-      const store = getMockStoreWithFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [],
-            rejected_filters: [
-              { column: 'region', reason: 'not_in_datasource' },
-            ],
-          },
-        ],
-        dashboardFilters,
-      });
-      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
-      const wrapper = setup(store);
-      expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '0',
-      );
-      expect(
-        wrapper.find('[data-test="incompatible-filter-count"]'),
-      ).toHaveText('1');
-      // to look at the shape of the wrapper use:
-      expect(wrapper.find(Icons.AlertSolid)).toExist();
-    });
   });
 
   describe('for native filters', () => {
@@ -188,38 +157,6 @@ describe('FiltersBadge', () => {
         '1',
       );
       expect(wrapper.find('WarningFilled')).not.toExist();
-    });
-
-    it("shows a warning when there's a rejected filter", () => {
-      // @ts-ignore
-      global.featureFlags = {
-        [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-      };
-      const store = getMockStoreWithNativeFilters();
-      // start with basic dashboard state, dispatch an event to simulate query completion
-      store.dispatch({
-        type: CHART_UPDATE_SUCCEEDED,
-        key: sliceId,
-        queriesResponse: [
-          {
-            status: 'success',
-            applied_filters: [],
-            rejected_filters: [
-              { column: 'region', reason: 'not_in_datasource' },
-            ],
-          },
-        ],
-      });
-      store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
-      const wrapper = setup(store);
-      expect(wrapper.find('DetailsPanelPopover')).toExist();
-      expect(wrapper.find('[data-test="applied-filter-count"]')).toHaveText(
-        '0',
-      );
-      expect(
-        wrapper.find('[data-test="incompatible-filter-count"]'),
-      ).toHaveText('1');
-      expect(wrapper.find(Icons.AlertSolid)).toExist();
     });
   });
 });
