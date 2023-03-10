@@ -291,11 +291,12 @@ function FiltersConfigModal({
   const getAvailableFilters = useCallback(
     (filterId: string) =>
       filterIds
-        .filter(key => key !== filterId)
-        .filter(filterId => canBeUsedAsDependency(filterId))
-        .map(key => ({
-          label: getFilterTitle(key),
-          value: key,
+        .filter(id => id !== filterId)
+        .filter(id => canBeUsedAsDependency(id))
+        .map(id => ({
+          label: getFilterTitle(id),
+          value: id,
+          type: filterConfigMap[id]?.filterType,
         })),
     [canBeUsedAsDependency, filterIds, getFilterTitle],
   );

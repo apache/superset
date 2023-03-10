@@ -299,7 +299,9 @@ export interface FiltersConfigFormProps {
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
-  getAvailableFilters: (filterId: string) => { label: string; value: string }[];
+  getAvailableFilters: (
+    filterId: string,
+  ) => { label: string; value: string; type: string }[];
   handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
   activeFilterPanelKeys: string | string[];
   isActive: boolean;
@@ -636,10 +638,6 @@ const FiltersConfigForm = (
   const hasTimeRange =
     formFilter?.time_range && formFilter.time_range !== 'No filter';
 
-  const hasTimeDependency = dependencies
-    ?.map(filterId => form.getFieldValue('filters')?.[filterId]?.filterType)
-    .some(filterType => filterType === 'filter_time');
-
   const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
 
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
@@ -658,6 +656,9 @@ const FiltersConfigForm = (
 
   const availableFilters = getAvailableFilters(filterId);
   const hasAvailableFilters = availableFilters.length > 0;
+  const hasTimeDependency = availableFilters
+    .filter(filter => filter.type === 'filter_time')
+    .some(filter => dependencies.includes(filter.value));
 
   useEffect(() => {
     if (datasetId) {
