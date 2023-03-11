@@ -301,7 +301,7 @@ export interface FiltersConfigFormProps {
   form: FormInstance<NativeFiltersForm>;
   getAvailableFilters: (
     filterId: string,
-  ) => { label: string; value: string; type: string }[];
+  ) => { label: string; value: string; type: string | undefined }[];
   handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
   activeFilterPanelKeys: string | string[];
   isActive: boolean;

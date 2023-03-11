@@ -23,7 +23,11 @@ import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
 
 interface DependencyListProps {
-  availableFilters: { label: string; value: string; type: string }[];
+  availableFilters: {
+    label: string;
+    value: string;
+    type: string | undefined;
+  }[];
   dependencies: string[];
   onDependenciesChange: (dependencies: string[]) => void;
   getDependencySuggestion: () => string;
