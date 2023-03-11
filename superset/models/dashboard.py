@@ -455,7 +455,7 @@ def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
         return Dashboard.id == id_or_slug
     if id_or_slug.isdigit():
         return Dashboard.id == int(id_or_slug)
-    return Dashboard.slug == id_or_slug
+    return Dashboard.slug == id_or_slug or Dashboard.uuid == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]

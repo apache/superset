@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Union
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardAccessFilter
@@ -41,21 +42,28 @@ class DashboardDAO(BaseDAO):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: Union[int, str]) -> Dashboard:
-        query = (
-            db.session.query(Dashboard)
-            .filter(id_or_slug_filter(id_or_slug))
-            .outerjoin(Slice, Dashboard.slices)
-            .outerjoin(Slice.table)
-            .outerjoin(Dashboard.owners)
-            .outerjoin(Dashboard.roles)
-        )
-        # Apply dashboard base filters
-        query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
-        )
-        dashboard = query.one_or_none()
+        if isinstance(id_or_slug, int) or id_or_slug.isdigit():
+            # we only want to apply DashboardAccessFilter if getting by id
+            # since id is an int that can be easily guessable
+            query = (
+                db.session.query(Dashboard)
+                .filter(id_or_slug_filter(id_or_slug))
+                .outerjoin(Slice, Dashboard.slices)
+                .outerjoin(Slice.table)
+                .outerjoin(Dashboard.owners)
+                .outerjoin(Dashboard.roles)
+            )
+            # Apply dashboard base filters
+            query = cls.base_filter(
+                "id", SQLAInterface(Dashboard, db.session)
+            ).apply(query, None)
+            dashboard = query.one_or_none()
+        else:
+            # if it's slug or uuid, just get it
+            dashboard = Dashboard.get(id_or_slug)
         if not dashboard:
             raise DashboardNotFoundError()
+        security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
     @staticmethod
