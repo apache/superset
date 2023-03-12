@@ -24,6 +24,7 @@ metadata:
     "helm.sh/hook-delete-policy": "before-hook-creation"
   namespace: {{ .Release.Namespace }}
 spec:
+  ttlSecondsAfterFinished: 0
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
