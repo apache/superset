@@ -14,13 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List
 
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 
 from superset import app, db
 from superset.commands.base import BaseCommand
@@ -85,15 +84,16 @@ class QueryEstimationCommand(BaseCommand):
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
-                        "The query estimation was killed after %(sqllab_timeout)s seconds. It might "
-                        "be too complex, or the database might be under heavy load.",
+                        "The query estimation was killed after %(sqllab_timeout)s "
+                        "seconds. It might be too complex, or the database might be "
+                        "under heavy load.",
                         sqllab_timeout=SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT,
                     ),
                     error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,
-            )
+            ) from ex
 
         spec = self._database.db_engine_spec
         query_cost_formatters: Dict[str, Any] = app.config[
