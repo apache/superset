@@ -470,10 +470,9 @@ def is_int(value: Union[str, int]) -> bool:
 def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
     if is_int(id_or_slug):
         return Dashboard.id == int(id_or_slug)
-    elif is_uuid(id_or_slug):
+    if is_uuid(id_or_slug):
         return Dashboard.uuid == uuid.UUID(str(id_or_slug))
-    else:
-        return Dashboard.slug == id_or_slug
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
