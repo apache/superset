@@ -16,9 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getOverrideHtmlSchema } from '../../src/components/SafeMarkdown';
 
-import { NativeFilterScope } from '@superset-ui/core';
-
-export type CrossFilterScopingFormType = {
-  scope: NativeFilterScope;
-};
+describe('getOverrideHtmlSchema', () => {
+  it('should append the override items', () => {
+    const original = {
+      attributes: {
+        '*': ['size'],
+      },
+      clobberPrefix: 'original-prefix',
+      tagNames: ['h1', 'h2', 'h3'],
+    };
+    const result = getOverrideHtmlSchema(original, {
+      attributes: { '*': ['src'], h1: ['style'] },
+      clobberPrefix: 'custom-prefix',
+      tagNames: ['iframe'],
+    });
+    expect(result.clobberPrefix).toEqual('custom-prefix');
+    expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
+    expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+});

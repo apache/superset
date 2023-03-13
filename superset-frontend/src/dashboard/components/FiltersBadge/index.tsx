@@ -20,12 +20,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import { DataMaskStateWithId, Filters } from '@superset-ui/core';
+import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
-import { Pill } from './Styles';
 import {
   Indicator,
   IndicatorStatus,
@@ -42,6 +42,48 @@ import {
 export interface FiltersBadgeProps {
   chartId: number;
 }
+
+const StyledFilterCount = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: ${theme.gridUnit}px;
+    padding-left: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.light4};
+    border-radius: 4px;
+    height: 100%;
+    .anticon {
+      vertical-align: middle;
+      color: ${theme.colors.grayscale.base};
+      &:hover {
+        color: ${theme.colors.grayscale.light1}
+      }
+    }
+
+    .incompatible-count {
+      font-size: ${theme.typography.sizes.s}px;
+    }
+  `}
+`;
+
+const StyledBadge = styled(Badge)`
+  ${({ theme }) => `
+    vertical-align: middle;
+    margin-left: ${theme.gridUnit * 2}px;
+    &>sup {
+      padding: 0 ${theme.gridUnit}px;
+      min-width: ${theme.gridUnit * 4}px;
+      height: ${theme.gridUnit * 4}px;
+      line-height: 1.5;
+      font-weight: ${theme.typography.weights.medium};
+      font-size: ${theme.typography.sizes.s - 1}px;
+      box-shadow: none;
+    }
+  `}
+`;
 
 const sortByStatus = (indicators: Indicator[]): Indicator[] => {
   const statuses = [
@@ -222,17 +264,20 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       appliedIndicators={appliedIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
     >
-      <Pill
+      <StyledFilterCount
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
       >
         <Icons.Filter iconSize="m" />
-        <span data-test="applied-filter-count">
-          {appliedIndicators.length + appliedCrossFilterIndicators.length}
-        </span>
-      </Pill>
+        <StyledBadge
+          data-test="applied-filter-count"
+          className="applied-count"
+          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          showZero
+        />
+      </StyledFilterCount>
     </DetailsPanelPopover>
   );
 };

@@ -73,27 +73,30 @@ export const FilterName = styled.span`
 `;
 
 export const FilterItem = styled.button`
-  cursor: pointer;
-  display: flex;
-  text-align: left;
-  padding: 0;
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
+  ${({ theme }) => css`
+    cursor: pointer;
+    display: flex;
+    text-align: left;
+    padding: 0;
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
 
-  &::-moz-focus-inner {
-    border: 0;
-  }
+    &::-moz-focus-inner {
+      border: 0;
+    }
 
-  & i svg {
-    color: transparent;
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
+    & i svg {
+      opacity: ${theme.opacity.mediumLight};
+      margin-right: ${theme.gridUnit}px;
+      transition: opacity ease-in-out ${theme.transitionTiming};
+    }
 
-  &:hover i svg {
-    color: inherit;
-  }
+    &:hover i svg {
+      opacity: 1;
+    }
+  `}
 `;
 
 export const FiltersContainer = styled.div`
