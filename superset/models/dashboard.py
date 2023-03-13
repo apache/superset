@@ -466,8 +466,7 @@ def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
     except ValueError:
         if not is_uuid(id_or_slug):
             return Dashboard.slug == id_or_slug
-        else:
-            return sqla.or_(Dashboard.slug == id_or_slug, Dashboard.uuid == id_or_slug)
+        return sqla.or_(Dashboard.slug == id_or_slug, Dashboard.uuid == id_or_slug)
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
