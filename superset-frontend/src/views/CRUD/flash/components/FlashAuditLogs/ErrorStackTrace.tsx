@@ -72,7 +72,7 @@ const ErrorStackTrace: FunctionComponent<ErrorStackTraceProps> = ({
           addSuccessToast={addSuccessToast}
           wrapLongLines
         >
-          {log?.description || ''}
+          {log?.errorStacktrace || ''}
         </SyntaxHighlighterCopy>
       </Row>
     </>

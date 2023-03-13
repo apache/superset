@@ -95,19 +95,21 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         accessor: 'timestamp',
       },
       {
-        accessor: 'error',
+        accessor: 'errorName',
         Header: t('Error'),
         size: 'l',
         Cell: ({
           row: {
-            original: { error_type = '', error_name = '' },
+            original: { errorType = '', errorName = '' },
           },
-        }: any) => (
-          <span>
-            <strong>{error_type} : </strong>
-            {error_name}
-          </span>
-        ),
+        }: any) =>
+          errorType &&
+          errorName && (
+            <span>
+              <strong>{errorType} </strong>
+              {errorName}
+            </span>
+          ),
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -121,7 +123,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
               icon: 'Binoculars',
               onClick: handleValueDifference,
             },
-            original?.description && {
+            original?.errorStacktrace && {
               label: 'view-action',
               tooltip: t('View Error Stacktrace'),
               placement: 'bottom' as TooltipPlacement,
