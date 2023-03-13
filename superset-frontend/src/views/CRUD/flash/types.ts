@@ -42,6 +42,13 @@ export interface FlashUpdateOwnership {
   teamSlackHandle: string;
 }
 
+export interface FlashUpdateType {
+  flashType: string;
+  teamSlackChannel: string;
+  teamSlackHandle: string;
+  ttl: string;
+}
+
 export interface FlashExtendTtl {
   ttl: string;
 }

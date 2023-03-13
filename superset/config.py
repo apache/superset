@@ -545,6 +545,73 @@ FLASH_TTL = {
     "VALIDATION": [],
 }
 
+FLASH_TYPE = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "type": "object",
+        "properties": {
+            "flashType": {
+                "title": "Flash Type",
+                "type": "string",
+                "enum": ["", "One Time", "Short Term", "Long Term"],
+                "enumNames": [
+                    "Please Select",
+                    "One Time (Valid upto 7 days)",
+                    "Short Term (Valid upto 7 days)",
+                    "Long Term (Valid upto 90 days)",
+                ],
+                "default": "Please Select",
+            },  
+        },
+        "required": [
+            "flashType"
+        ],
+        "dependencies": {
+            "flashType": {
+                "oneOf": [
+                    {
+                        "properties": {
+                            "flashType": {"enum": ["Long Term"]},
+                            "teamSlackChannel": {
+                                "type": "string",
+                                "title": "Slack Channel",
+                                "pattern": "^(#)[A-Za-z0-9_-]+$",
+                            },
+                            "teamSlackHandle": {
+                                "type": "string",
+                                "title": "Slack Handle",
+                                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
+                            },
+                        },
+                        "required": [
+                            "teamSlackChannel",
+                            "teamSlackHandle",
+                        ],
+                    }
+                ]
+            }
+        },
+    },
+    "UISCHEMA": {
+        "ui:order": [
+            "flashType",
+            "*"
+        ],
+        "teamSlackChannel": {
+            "ui:placeholder": "#slack_channel_name",
+            "ui:help": "Slack channel for notification",
+        },
+        "teamSlackHandle": {
+            "ui:placeholder": "@slack_handle_name",
+            "ui:help": "Slack handle for notification",
+        },  
+    },
+    "VALIDATION": [],
+   
+}
+
 FLASH_SCHEDULE = {
     # This information is collected when the user clicks "Schedule query",
     # and saved into the `extra` field of saved queries.

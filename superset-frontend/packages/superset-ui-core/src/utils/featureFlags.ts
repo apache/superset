@@ -27,6 +27,7 @@ export enum FeatureFlag {
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   FLASH_CREATION = 'FLASH_CREATION',
   FLASH_OWNERSHIP = 'FLASH_OWNERSHIP',
+  FLASH_TYPE = 'FLASH_TYPE',
   FLASH_TTL = 'FLASH_TTL',
   FLASH_SCHEDULE = 'FLASH_SCHEDULE',
   FLASH_URL = 'FLASH_URL',
@@ -81,6 +82,7 @@ export type FeatureFlagMap = {
     FeatureFlag.SCHEDULED_QUERIES &
       FeatureFlag.FLASH_CREATION &
       FeatureFlag.FLASH_OWNERSHIP &
+      FeatureFlag.FLASH_TYPE &
       FeatureFlag.FLASH_TTL &
       FeatureFlag.FLASH_SCHEDULE
   >]?: boolean;
@@ -88,6 +90,7 @@ export type FeatureFlagMap = {
   SCHEDULED_QUERIES?: ScheduleQueriesProps;
   FLASH_CREATION?: ScheduleQueriesProps;
   FLASH_OWNERSHIP?: ScheduleQueriesProps;
+  FLASH_TYPE?: ScheduleQueriesProps;
   FLASH_TTL?: ScheduleQueriesProps;
   FLASH_SCHEDULE?: ScheduleQueriesProps;
 };
