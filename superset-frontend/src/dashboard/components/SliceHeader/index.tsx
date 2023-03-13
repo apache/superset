@@ -24,10 +24,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
@@ -37,8 +37,6 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { clearDataMask } from 'src/dataMask/actions';
-import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -56,11 +54,12 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 
 const annotationsLoading = t('Annotation layers are still loading.');
 const annotationsError = t('One ore more annotation layers failed loading.');
-const CrossFilterIcon = styled(Icons.CursorTarget)`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.base};
-  height: 22px;
-  width: 22px;
+const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
+  ${({ theme }) => `
+    cursor: default;
+    color: ${theme.colors.primary.base};
+    line-height: 1.8;
+  `}
 `;
 
 const ChartHeaderStyles = styled.div`
@@ -89,6 +88,8 @@ const ChartHeaderStyles = styled.div`
 
     & > .header-controls {
       display: flex;
+      align-items: center;
+      height: 24px;
 
       & > * {
         margin-left: ${theme.gridUnit * 2}px;
@@ -159,7 +160,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
-  const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
@@ -241,25 +241,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {crossFilterValue && (
               <Tooltip
                 placement="top"
-                title={
-                  <div>
-                    <span>{t('Emitted values: ')}</span>
-                    <span>{getFilterValueForDisplay(crossFilterValue)}</span>
-                    <div
-                      css={(theme: SupersetTheme) =>
-                        css`
-                          margin-top: ${theme.gridUnit * 2}px;
-                        `
-                      }
-                    >
-                      {t('Click to clear emitted filters')}
-                    </div>
-                  </div>
-                }
+                title={t(
+                  'This chart emits/applies cross-filters to other charts that use the same dataset',
+                )}
               >
-                <CrossFilterIcon
-                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
-                />
+                <CrossFilterIcon iconSize="m" />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (
