@@ -23,6 +23,7 @@ repos:
     rev: v1.0.1
     hooks:
       - id: mypy
+        args: [--check-untyped-defs]
         additional_dependencies: [types-all]
   - repo: https://github.com/peterdemin/pip-compile-multi
     rev: v2.6.2
