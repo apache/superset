@@ -1267,10 +1267,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     def _extract_error_message(cls, ex: Exception) -> str:
         if (
             hasattr(ex, "orig")
-            and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
-            and isinstance(ex.orig[0], dict)  # type: ignore
+            and type(ex.orig).__name__ == "DatabaseError"
+            and isinstance(ex.orig[0], dict)
         ):
-            error_dict = ex.orig[0]  # type: ignore
+            error_dict = ex.orig[0]
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),

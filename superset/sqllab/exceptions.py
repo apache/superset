@@ -48,13 +48,13 @@ class SqlLabException(SupersetException):
             if exception is not None:
                 if (
                     hasattr(exception, "error_type")
-                    and exception.error_type is not None  # type: ignore
+                    and exception.error_type is not None
                 ):
-                    error_type = exception.error_type  # type: ignore
+                    error_type = exception.error_type
                 elif hasattr(exception, "error") and isinstance(
-                    exception.error, SupersetError  # type: ignore
+                    exception.error, SupersetError
                 ):
-                    error_type = exception.error.error_type  # type: ignore
+                    error_type = exception.error.error_type
             else:
                 error_type = SupersetErrorType.GENERIC_BACKEND_ERROR
 
@@ -79,9 +79,9 @@ class SqlLabException(SupersetException):
             return ": {}".format(reason_message)
         if exception is not None:
             if hasattr(exception, "get_message"):
-                return ": {}".format(exception.get_message())  # type: ignore
+                return ": {}".format(exception.get_message())
             if hasattr(exception, "message"):
-                return ": {}".format(exception.message)  # type: ignore
+                return ": {}".format(exception.message)
             return ": {}".format(str(exception))
         return ""
 

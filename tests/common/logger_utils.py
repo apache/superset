@@ -61,7 +61,6 @@ def log(
     suffix_exit_msg: str = _DEFAULT_EXIT_MSG_SUFFIX,
     return_value_msg_part=_DEFAULT_RETURN_VALUE_MSG_PART,
 ) -> Decorated:
-
     decorator: Decorated = _make_decorator(
         prefix_enter_msg,
         suffix_enter_msg,

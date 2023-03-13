@@ -222,7 +222,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             Dict[str, Any]
         ] = None,
     ) -> str:
-
         return str(
             URL(
                 "snowflake",

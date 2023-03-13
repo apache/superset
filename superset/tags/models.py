@@ -126,7 +126,6 @@ def get_object_type(class_name: str) -> ObjectTypes:
 
 
 class ObjectUpdater:
-
     object_type: Optional[str] = None
 
     @classmethod
@@ -218,7 +217,6 @@ class ObjectUpdater:
 
 
 class ChartUpdater(ObjectUpdater):
-
     object_type = "chart"
 
     @classmethod
@@ -227,7 +225,6 @@ class ChartUpdater(ObjectUpdater):
 
 
 class DashboardUpdater(ObjectUpdater):
-
     object_type = "dashboard"
 
     @classmethod
@@ -236,7 +233,6 @@ class DashboardUpdater(ObjectUpdater):
 
 
 class QueryUpdater(ObjectUpdater):
-
     object_type = "query"
 
     @classmethod
@@ -245,7 +241,6 @@ class QueryUpdater(ObjectUpdater):
 
 
 class DatasetUpdater(ObjectUpdater):
-
     object_type = "dataset"
 
     @classmethod
