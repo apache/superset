@@ -1497,22 +1497,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
 
-        try:
-            schemas_allowed = database.get_schema_access_for_file_upload()
-            if security_manager.can_access_database(database):
-                return self.response(200, schemas=schemas_allowed)
-            # the list schemas_allowed should not be empty here
-            # and the list schemas_allowed_processed returned from security_manager
-            # should not be empty either,
-            # otherwise the database should have been filtered out
-            # in CsvToDatabaseForm
-            schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
-                database, schemas_allowed, False
-            )
-            return self.response(200, schemas=schemas_allowed_processed)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            return self.response_500(
-                "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact your Superset Admin!"
-            )
+        schemas_allowed = database.get_schema_access_for_file_upload()
+        # the list schemas_allowed should not be empty here
+        # and the list schemas_allowed_processed returned from security_manager
+        # should not be empty either,
+        # otherwise the database should have been filtered out
+        # in CsvToDatabaseForm
+        schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
+            database, schemas_allowed, True
+        )
+        return self.response(200, schemas=schemas_allowed_processed)

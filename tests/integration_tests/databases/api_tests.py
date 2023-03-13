@@ -3631,7 +3631,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_can_access_database,
         mock_schemas_accessible,
     ):
-        self.login(username="admin")
+        self.login(username="gamma")
         self.create_fake_db()
         mock_can_access_all_datasources.return_value = False
         mock_can_access_database.return_value = False
