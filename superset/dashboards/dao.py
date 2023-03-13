@@ -55,9 +55,9 @@ class DashboardDAO(BaseDAO):
                 .outerjoin(Dashboard.roles)
             )
             # Apply dashboard base filters
-            query = cls.base_filter(
-                "id", SQLAInterface(Dashboard, db.session)
-            ).apply(query, None)
+            query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
+                query, None
+            )
             dashboard = query.one_or_none()
         except ValueError:
             # if it's slug or uuid, which is more specific, just get it
