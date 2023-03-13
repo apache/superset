@@ -35,6 +35,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   isNativeFilterWithDataMask,
+  JsonObject,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -47,7 +48,6 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import {
-  DashboardInfo,
   DashboardLayout,
   FilterBarOrientation,
   RootState,
@@ -87,8 +87,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -101,11 +101,11 @@ const FilterControls: FC<FilterControlsProps> = ({
       isCrossFiltersEnabled
         ? crossFiltersSelector({
             dataMask,
-            dashboardInfo,
+            chartConfiguration,
             dashboardLayout,
           })
         : [],
-    [dashboardInfo, dashboardLayout, dataMask, isCrossFiltersEnabled],
+    [chartConfiguration, dashboardLayout, dataMask, isCrossFiltersEnabled],
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
@@ -123,6 +123,11 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
+  const hasRequiredFirst = useMemo(
+    () => filtersWithValues.some(filter => filter.requiredFirst),
+    [filtersWithValues],
+  );
 
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
@@ -149,6 +154,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {showCollapsePanel && (
         <FiltersOutOfScopeCollapsible
           filtersOutOfScope={filtersOutOfScope}
+          forceRender={hasRequiredFirst}
           hasTopMargin={filtersInScope.length > 0}
           renderer={renderer}
         />
@@ -264,6 +270,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                   renderer={renderer}
                   rendererCrossFilter={rendererCrossFilter}
                   showCollapsePanel={showCollapsePanel}
+                  forceRenderOutOfScope={hasRequiredFirst}
                 />
               )
             : undefined

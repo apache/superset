@@ -148,7 +148,7 @@ a certain resource type or policy area. You can check possible directives
 
 It's extremely important to correclty configure a Content Security Policy when deploying Superset to
 prevent many types of attacks. For that matter, Superset provides the ` TALISMAN_CONFIG` key in `config.py`
-where admnistrators can define the policy. When running in production mode, Superset will check for the presence
+where administrators can define the policy. When running in production mode, Superset will check for the presence
 of a policy and if it's not able to find one, it will issue a warning with the security risks. For environments
 where CSP policies are defined outside of Superset using other software, administrators can disable
 the warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.

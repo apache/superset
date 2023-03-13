@@ -259,80 +259,30 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       ),
     [indicators],
   );
-  const unsetIndicators = useMemo(
-    () =>
-      indicators.filter(
-        indicator => indicator.status === IndicatorStatus.Unset,
-      ),
-    [indicators],
-  );
-  const incompatibleIndicators = useMemo(
-    () =>
-      indicators.filter(
-        indicator => indicator.status === IndicatorStatus.Incompatible,
-      ),
-    [indicators],
-  );
 
-  if (
-    !appliedCrossFilterIndicators.length &&
-    !appliedIndicators.length &&
-    !incompatibleIndicators.length &&
-    !unsetIndicators.length
-  ) {
+  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
     return null;
   }
-
-  const isInactive =
-    !appliedCrossFilterIndicators.length &&
-    !appliedIndicators.length &&
-    !incompatibleIndicators.length;
 
   return (
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
-      unsetIndicators={unsetIndicators}
-      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
     >
       <StyledFilterCount
         className={cx(
           'filter-counts',
-          !!incompatibleIndicators.length && 'has-incompatible-filters',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
-          isInactive && 'filters-inactive',
         )}
       >
         <Icons.Filter iconSize="m" />
-        {!isInactive && (
-          <StyledBadge
-            data-test="applied-filter-count"
-            className="applied-count"
-            count={
-              appliedIndicators.length + appliedCrossFilterIndicators.length
-            }
-            showZero
-          />
-        )}
-        {incompatibleIndicators.length ? (
-          <span
-            css={(theme: SupersetTheme) => css`
-              display: flex;
-              align-items: center;
-              margin-left: ${theme.gridUnit * 2}px;
-            `}
-          >
-            {' '}
-            <Icons.AlertSolid iconSize="m" />
-            <span
-              data-test="incompatible-filter-count"
-              className="incompatible-count"
-            >
-              {incompatibleIndicators.length}
-            </span>
-          </span>
-        ) : null}
+        <StyledBadge
+          data-test="applied-filter-count"
+          className="applied-count"
+          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          showZero
+        />
       </StyledFilterCount>
     </DetailsPanelPopover>
   );
