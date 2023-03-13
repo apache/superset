@@ -2024,53 +2024,62 @@ def get_alert_link(conf, report_schedule) -> str:
     return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
 
-def get_vo_payload(conf, report_schedule):
+def get_vo_payload(conf, report_schedule,exception = ""):
+    ex = (" Error occured for" + str(exception)) if str(exception) else ""
     payload = {
         "message_type": "CRITICAL",
         "entity_id": str(report_schedule.id)
         + "_"
         + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name)
         or "",
-        "entity_display_name": report_schedule.description or "",  # display text
-        "state_message": get_alert_link(
-            conf, report_schedule
-        ),  # detailed message, stack trace, exceptions
+        "entity_display_name": report_schedule.description or "" + ex ,  # display text
+        # "state_message": get_alert_link(
+        #     conf, report_schedule
+        # ),
+        "state_message": report_schedule.msg_content or "",
+        "vo_annotate.u.AlertLink": get_alert_link(conf, report_schedule)
+    }
+    return payload
+
+def get_vo_resolution_payload(incident_number):
+    payload = {
+        "userName": get_username(),
+        "incidentNames": list(incident_number),
+        "message": "Incident resolved by System"
     }
     return payload
 
 
-# def validate_routing_key(conf, routing_key):
-#     if routing_key:
-#         REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
-#         headers = conf["VO_HEADERS"]
-#         try:
-#             response = requests.get(REQUEST_URL, headers=headers)
-#             data = response.json()
-#             isRoutingKey = (
-#                 len(
-#                     list(
-#                         filter(
-#                             lambda x: x["routingKey"] == routing_key,
-#                             data["routingKeys"],
-#                         )
-#                     )
-#                 )
-#                 > 0
-#             )
-#         except requests.exceptions.HTTPError as e:
-#             raise Exception(str(e))
-#         if response.status_code != 200:
-#             raise ValueError(
-#                 "Request to victor_ops returned an error %s, the response is:\n%s"
-#                 % (response.status_code, response.text)
-#             )
-#         if isRoutingKey:
-#             return isRoutingKey
-#         else:
-#             raise ValueError("Routing key might not be valid")
+def get_all_incidents(conf, entity_id):
+    if entity_id:
+        REQUEST_URL = conf["VO_ALL_INCIDENTS"]
+        headers = conf["VO_HEADERS"]
+        try:
+            response = requests.get(REQUEST_URL, headers=headers)
+            data = response.json()
+            isIncident = (
+                    list(
+                        filter(
+                            lambda x: x["entityId"] == entity_id,
+                            data["incidents"],
+                        )
+                    )
+                )
 
+            incident_number = isIncident[0].incidentNumber if len(isIncident) > 0 else 0
+        except requests.exceptions.HTTPError as e:
+            raise Exception(str(e))
+        if response.status_code != 200:
+            raise ValueError(
+                "Request to victor_ops returned an error %s, the response is:\n%s"
+                % (response.status_code, response.text)
+            )
+        if incident_number:
+            return incident_number
+        else:
+            raise ValueError("There are no incidents present against the alert: %s", entity_id)
 
-def raise_incident(conf, report_schedule) -> None:
+def raise_incident(conf, report_schedule,exception = "") -> None:
     routing_key = None
     for recipient in report_schedule.recipients:
         if recipient.type == "VictorOps":
@@ -2078,13 +2087,36 @@ def raise_incident(conf, report_schedule) -> None:
             routing_key = recipient_config["target"]
     if routing_key:
         WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
-        victor_ops_data = get_vo_payload(conf, report_schedule)
+        victor_ops_data = get_vo_payload(conf, report_schedule, exception)
         try:
             logger.info("VO PAYLOAD", str(victor_ops_data))
             response = requests.post(
                 WEBHOOK_URL,
                 data=json.dumps(victor_ops_data),
                 headers={"Content-Type": "application/json"},
+                verify=False
+            )
+        except requests.exceptions.HTTPError as e:
+            raise Exception(str(e))
+        if response.status_code != 200:
+            raise ValueError(
+                "Request to victor_ops returned an error %s, the response is:\n%s"
+                % (response.status_code, response.text)
+            )
+
+def resolve_incident(conf, report_schedule) -> None:
+    routing_key = None
+    entity_id = str(report_schedule.id) + "_" + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name) or "",
+    incident_number = get_all_incidents(conf,entity_id)
+    if incident_number:
+        URL = conf["VO_RESOLVE_INCIDENTS"]
+        victor_ops_data = get_vo_resolution_payload(incident_number)
+        try:
+            logger.info("VO RESOLUTION PAYLOAD", str(victor_ops_data))
+            response = requests.patch(
+                URL,
+                data=json.dumps(victor_ops_data),
+                headers=conf["VO_HEADERS"],
             )
         except requests.exceptions.HTTPError as e:
             raise Exception(str(e))

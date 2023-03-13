@@ -397,6 +397,11 @@ type NotificationSetting = {
   options: NotificationMethodOption[];
 };
 
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
+
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -406,10 +411,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
-  const conf = useCommonConf();
-  const allowedNotificationMethods: NotificationMethodOption[] =
-    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
+  const frontendConfig = bootstrapData?.common?.conf;
 
+  const conf = useCommonConf();
+  console.log("DROPDOWN BEFORE",conf?.ALERT_REPORTS_NOTIFICATION_METHODS)
+  let currentNotification = JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
+  const reportNotificationsAllowed = currentNotification.splice(currentNotification,currentNotification.indexOf("VictorOps"), 1)
+  console.log("REPORT NOTIFICATIONS",reportNotificationsAllowed)
+  const allowedNotificationMethods: NotificationMethodOption[] = (isReport ? reportNotificationsAllowed : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) || DEFAULT_NOTIFICATION_METHODS;
+
+  console.log("DROPDOWN AFTER",allowedNotificationMethods)
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,
@@ -448,6 +459,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
 
+  // useEffect(()=>{
+  //   if(notificationSettings && isReport){
+  //     for(let i=0;i<notificationSettings.length;i++){
+  //       const filteredOptions = notificationSettings[i].options.filter((item : string) => item != RecipientIconName.VO)
+  //       notificationSettings[i].options = filteredOptions
+  //     }
+  //   }
+  // }, [isReport,notificationSettings])
+
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
 
@@ -485,6 +505,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationSettings(settings);
     setNotificationAddState('active');
   };
+
 
   // Alert fetch logic
   const {
@@ -571,9 +592,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     // VO routing key validation
-    const isInValid = await validateRoutingKey(recipients);
-    if (isInValid) {
-      return;
+    if(routingKeys && routingKeys.length > 0){
+      const isInValid = await validateRoutingKey(recipients);
+      if (isInValid) {
+        return;
+      }
     }
 
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
@@ -658,10 +681,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         if (recipients[i].recipient_config_json.target) {
           voRoutingKey = recipients[i].recipient_config_json.target;
           const options = {
-            headers: conf.VO_HEADERS,
+            headers: frontendConfig["VO_HEADERS"],
           };
           response = await (
-            await fetch(conf.VO_VALIDATE_ROUTING_KEY, options)
+            await fetch(frontendConfig["VO_VALIDATE_ROUTING_KEY"], options)
           ).json();
         }
       }
