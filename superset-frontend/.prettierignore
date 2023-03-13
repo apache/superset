@@ -25,3 +25,4 @@ CHANGELOG.md
 *.geojson
 *-topo.json
 storybook-static/
+src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx
