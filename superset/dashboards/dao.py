@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filters import DashboardAccessFilter
+from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
@@ -42,13 +42,13 @@ class DashboardDAO(BaseDAO):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: Union[int, str]) -> Dashboard:
-        try:
-            dashboard_id = int(id_or_slug)
-            # we only want to apply DashboardAccessFilter if getting by id
-            # since id is an int that can be easily iterate through
+        if is_uuid(id_or_slug):
+            # just get dashboard if it's uuid
+            dashboard = Dashboard.get(id_or_slug)
+        else:
             query = (
                 db.session.query(Dashboard)
-                .filter(id_or_slug_filter(dashboard_id))
+                .filter(id_or_slug_filter(id_or_slug))
                 .outerjoin(Slice, Dashboard.slices)
                 .outerjoin(Slice.table)
                 .outerjoin(Dashboard.owners)
@@ -59,9 +59,6 @@ class DashboardDAO(BaseDAO):
                 query, None
             )
             dashboard = query.one_or_none()
-        except ValueError:
-            # if it's slug or uuid, which is more specific, just get it
-            dashboard = Dashboard.get(id_or_slug)
         if not dashboard:
             raise DashboardNotFoundError()
 

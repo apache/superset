@@ -451,22 +451,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return qry.one_or_none()
 
 
-def is_uuid(value: Union[str, int]) -> bool:
-    try:
-        uuid.UUID(str(value))
-        return True
-    except ValueError:
-        return False
-
-
 def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
-    # create a dashboard filter that checks if id or slug or uuid matches
-    try:
+    if isinstance(id_or_slug, int):
+        return Dashboard.id == id_or_slug
+    if id_or_slug.isdigit():
         return Dashboard.id == int(id_or_slug)
-    except ValueError:
-        if not is_uuid(id_or_slug):
-            return Dashboard.slug == id_or_slug
-        return sqla.or_(Dashboard.slug == id_or_slug, Dashboard.uuid == id_or_slug)
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
