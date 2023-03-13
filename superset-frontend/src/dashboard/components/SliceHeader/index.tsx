@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
@@ -37,8 +37,6 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { clearDataMask } from 'src/dataMask/actions';
-import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
