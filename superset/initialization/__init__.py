@@ -53,7 +53,7 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
-from superset.utils.core import pessimistic_connection_handling
+from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 if TYPE_CHECKING:
@@ -476,8 +476,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
-                # There must be a better way
-                or "pytest" in sys.modules
+                or is_test()
             ):
                 logger.warning("Debug mode identified with default secret key")
                 log_default_secret_key_warning()

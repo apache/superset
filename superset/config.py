@@ -1246,12 +1246,12 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ScheduledTaskExecutor.CREATOR_OWNER,
-#     ScheduledTaskExecutor.CREATOR,
-#     ScheduledTaskExecutor.MODIFIER_OWNER,
-#     ScheduledTaskExecutor.MODIFIER,
-#     ScheduledTaskExecutor.OWNER,
-#     ScheduledTaskExecutor.SELENIUM,
+#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR,
+#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER,
+#     ExecutorType.OWNER,
+#     ExecutorType.SELENIUM,
 # ]
 ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
