@@ -123,8 +123,6 @@ class SqlLabRestApi(BaseSupersetApi):
               $ref: '#/components/responses/401'
             403:
               $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
