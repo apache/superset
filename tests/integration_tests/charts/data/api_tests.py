@@ -210,7 +210,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
     )
     def test_with_row_limit_as_samples__rowcount_as_row_limit(self):
-
         expected_row_count = 10
         self.query_context_payload["result_type"] = ChartDataResultType.SAMPLES
         self.query_context_payload["queries"][0]["row_limit"] = expected_row_count
@@ -234,7 +233,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_payload__400(self):
-
         invalid_query_context = {"form_data": "NOT VALID JSON"}
 
         rv = self.client.post(
@@ -585,7 +583,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     def test_when_where_parameter_is_template_and_query_result_type__query_is_templated(
         self,
     ):
-
         self.query_context_payload["result_type"] = ChartDataResultType.QUERY
         self.query_context_payload["queries"][0]["filters"] = [
             {"col": "gender", "op": "==", "val": "boy"}

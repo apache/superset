@@ -43,7 +43,6 @@ def test_scheduler_celery_timeout_ny(execute_mock, owners):
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
     with app.app_context():
-
         report_schedule = insert_report_schedule(
             type=ReportScheduleType.ALERT,
             name="report",
@@ -91,7 +90,6 @@ def test_scheduler_celery_timeout_utc(execute_mock, owners):
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
     with app.app_context():
-
         report_schedule = insert_report_schedule(
             type=ReportScheduleType.ALERT,
             name="report",

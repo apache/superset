@@ -27,6 +27,7 @@ from superset import app, db
 
 logger = logging.getLogger(__name__)
 
+
 # Null pool is used for the celery workers due process forking side effects.
 # For more info see: https://github.com/apache/superset/issues/10530
 @contextmanager

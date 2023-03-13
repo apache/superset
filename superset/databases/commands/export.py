@@ -51,7 +51,6 @@ def parse_extra(extra_payload: str) -> Dict[str, Any]:
 
 
 class ExportDatabasesCommand(ExportModelsCommand):
-
     dao = DatabaseDAO
     not_found = DatabaseNotFoundError
 

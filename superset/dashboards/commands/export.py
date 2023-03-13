@@ -102,7 +102,6 @@ def append_charts(position: Dict[str, Any], charts: Set[Slice]) -> Dict[str, Any
 
 
 class ExportDashboardsCommand(ExportModelsCommand):
-
     dao = DashboardDAO
     not_found = DashboardNotFoundError
 
