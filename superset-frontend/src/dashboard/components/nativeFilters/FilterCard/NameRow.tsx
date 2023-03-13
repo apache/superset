@@ -44,20 +44,16 @@ export const NameRow = ({
 
   return (
     <Row
-      css={(theme: SupersetTheme) =>
-        css`
-          margin-bottom: ${theme.gridUnit * 3}px;
-          justify-content: space-between;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        margin-bottom: ${theme.gridUnit * 3}px;
+        justify-content: space-between;
+      `}
     >
       <InternalRow>
         <Icons.FilterSmall
-          css={(theme: SupersetTheme) =>
-            css`
-              margin-right: ${theme.gridUnit}px;
-            `
-          }
+          css={(theme: SupersetTheme) => css`
+            margin-right: ${theme.gridUnit}px;
+          `}
         />
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
           <FilterName ref={filterNameRef}>{filter.name}</FilterName>

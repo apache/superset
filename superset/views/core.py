@@ -2397,7 +2397,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self,
         command_result: CommandResult,
     ) -> FlaskResponse:
-
         status_code = 200
         if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
             status_code = 202

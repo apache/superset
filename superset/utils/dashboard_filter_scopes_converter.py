@@ -77,7 +77,7 @@ def copy_filter_scopes(
     old_filter_scopes: Dict[int, Dict[str, Dict[str, Any]]],
 ) -> Dict[str, Dict[Any, Any]]:
     new_filter_scopes: Dict[str, Dict[Any, Any]] = {}
-    for (filter_id, scopes) in old_filter_scopes.items():
+    for filter_id, scopes in old_filter_scopes.items():
         new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
         if new_filter_key:
             new_filter_scopes[str(new_filter_key)] = scopes

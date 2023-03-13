@@ -47,7 +47,7 @@ def statsd_gauge(metric_prefix: Optional[str] = None) -> Callable[..., Any]:
             except Exception as ex:
                 if (
                     hasattr(ex, "status")
-                    and ex.status < 500  # type: ignore # pylint: disable=no-member
+                    and ex.status < 500  # pylint: disable=no-member
                 ):
                     current_app.config["STATS_LOGGER"].gauge(
                         f"{metric_prefix_}.warning", 1

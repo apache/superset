@@ -323,8 +323,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         return result
 
-    @property  # type: ignore
-    def params(self) -> str:  # type: ignore
+    @property
+    def params(self) -> str:
         return self.json_metadata
 
     @params.setter

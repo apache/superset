@@ -64,7 +64,6 @@ def test_execute_query_as_report_executor(
     app_context: None,
     get_user,
 ) -> None:
-
     from superset.reports.commands.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
@@ -104,7 +103,6 @@ def test_execute_query_as_report_executor(
 def test_execute_query_succeeded_no_retry(
     mocker: MockFixture, app_context: None
 ) -> None:
-
     from superset.reports.commands.alert import AlertCommand
 
     execute_query_mock = mocker.patch(

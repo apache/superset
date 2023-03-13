@@ -38,7 +38,6 @@ REMOVE_KEYS = ["datasource_type", "datasource_name", "url_params"]
 
 
 class ExportChartsCommand(ExportModelsCommand):
-
     dao = ChartDAO
     not_found = ChartNotFoundError
 
