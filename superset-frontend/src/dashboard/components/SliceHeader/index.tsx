@@ -246,11 +246,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                     <span>{t('Emitted values: ')}</span>
                     <span>{getFilterValueForDisplay(crossFilterValue)}</span>
                     <div
-                      css={(theme: SupersetTheme) =>
-                        css`
-                          margin-top: ${theme.gridUnit * 2}px;
-                        `
-                      }
+                      css={(theme: SupersetTheme) => css`
+                        margin-top: ${theme.gridUnit * 2}px;
+                      `}
                     >
                       {t('Click to clear emitted filters')}
                     </div>
