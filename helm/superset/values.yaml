@@ -689,6 +689,8 @@ init:
       echo "Importing database connections.... "
       superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
     fi
+  # Cleanup job after completed
+  # ttlSecondsAfterFinished: 0
   ## Annotations to be added to init job pods
   podAnnotations: {}
   podSecurityContext: {}
