@@ -256,7 +256,8 @@ class OcientEngineSpec(BaseEngineSpec):
                 ]
             raise exception
 
-        if len(rows) > 0 and type(rows[0]).__name__ == rows:
+        # TODO: Unsure if we need to verify that we are receiving rows:
+        if len(rows) > 0 and type(rows[0]).__name__ == 'Row':
             # Peek at the schema to determine which column values, if any,
             # require sanitization.
             columns_to_sanitize: List[PlacedSanitizeFunc] = _find_columns_to_sanitize(
