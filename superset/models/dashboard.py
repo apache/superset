@@ -451,11 +451,10 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
 
 def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
-    if isinstance(id_or_slug, int):
-        return Dashboard.id == id_or_slug
-    if id_or_slug.isdigit():
+    try:
         return Dashboard.id == int(id_or_slug)
-    return Dashboard.slug == id_or_slug or Dashboard.uuid == id_or_slug
+    except ValueError:
+        return Dashboard.slug == id_or_slug or Dashboard.uuid == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]

@@ -42,12 +42,13 @@ class DashboardDAO(BaseDAO):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: Union[int, str]) -> Dashboard:
-        if isinstance(id_or_slug, int) or id_or_slug.isdigit():
+        try:
+            dashboard_id = int(id_or_slug)
             # we only want to apply DashboardAccessFilter if getting by id
-            # since id is an int that can be easily guessable
+            # since id is an int that can be easily iterate through
             query = (
                 db.session.query(Dashboard)
-                .filter(id_or_slug_filter(id_or_slug))
+                .filter(id_or_slug_filter(dashboard_id))
                 .outerjoin(Slice, Dashboard.slices)
                 .outerjoin(Slice.table)
                 .outerjoin(Dashboard.owners)
@@ -58,11 +59,13 @@ class DashboardDAO(BaseDAO):
                 "id", SQLAInterface(Dashboard, db.session)
             ).apply(query, None)
             dashboard = query.one_or_none()
-        else:
-            # if it's slug or uuid, just get it
+        except ValueError:
+            # if it's slug or uuid, which is more specific, just get it
             dashboard = Dashboard.get(id_or_slug)
         if not dashboard:
             raise DashboardNotFoundError()
+
+        # make sure we still have basic access check from security manager
         security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
