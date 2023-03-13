@@ -188,10 +188,11 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key. Make sure you override it on superset_config.py.
+# Your App secret key. Make sure you override it on superset_config.py
+# or use `SUPERSET_SECRET_KEY` environment variable.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = CHANGE_ME_SECRET_KEY
+SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -1245,12 +1246,12 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ScheduledTaskExecutor.CREATOR_OWNER,
-#     ScheduledTaskExecutor.CREATOR,
-#     ScheduledTaskExecutor.MODIFIER_OWNER,
-#     ScheduledTaskExecutor.MODIFIER,
-#     ScheduledTaskExecutor.OWNER,
-#     ScheduledTaskExecutor.SELENIUM,
+#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR,
+#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER,
+#     ExecutorType.OWNER,
+#     ExecutorType.SELENIUM,
 # ]
 ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout

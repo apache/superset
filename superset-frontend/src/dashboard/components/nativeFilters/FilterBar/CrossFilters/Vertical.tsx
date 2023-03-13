@@ -18,9 +18,9 @@
  */
 
 import React from 'react';
-import { DataMaskStateWithId } from '@superset-ui/core';
+import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { DashboardInfo, DashboardLayout, RootState } from 'src/dashboard/types';
+import { DashboardLayout, RootState } from 'src/dashboard/types';
 import crossFiltersSelector from './selectors';
 import VerticalCollapse from './VerticalCollapse';
 
@@ -28,15 +28,15 @@ const CrossFiltersVertical = () => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
   const selectedCrossFilters = crossFiltersSelector({
     dataMask,
-    dashboardInfo,
+    chartConfiguration,
     dashboardLayout,
   });
 
