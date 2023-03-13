@@ -137,6 +137,7 @@ export default function transformProps(
     showValue,
     sliceId,
     timeGrainSqla,
+    timeCompare,
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
@@ -158,8 +159,8 @@ export default function transformProps(
   const labelMap = Object.entries(label_map).reduce((acc, entry) => {
     if (
       entry[1].length > groupby.length &&
-      Array.isArray(formData.timeCompare) &&
-      formData.timeCompare.includes(entry[1][0])
+      Array.isArray(timeCompare) &&
+      timeCompare.includes(entry[1][0])
     ) {
       entry[1].shift();
     }

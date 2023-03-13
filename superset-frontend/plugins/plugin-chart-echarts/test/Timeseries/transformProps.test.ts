@@ -497,4 +497,35 @@ describe('Does transformProps transform series correctly', () => {
       });
     });
   });
+
+  it('should remove time shift labels from label_map', () => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        timeCompare: ['1 year ago'],
+      },
+      queriesData: [
+        {
+          ...queriesData[0],
+          label_map: {
+            '1 year ago, foo1, bar1': ['1 year ago', 'foo1', 'bar1'],
+            '1 year ago, foo2, bar2': ['1 year ago', 'foo2', 'bar2'],
+            'foo1, bar1': ['foo1', 'bar1'],
+            'foo2, bar2': ['foo2', 'bar2'],
+          },
+        },
+      ],
+    };
+    const chartProps = new ChartProps(updatedChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    expect(transformedProps.labelMap).toEqual({
+      '1 year ago, foo1, bar1': ['foo1', 'bar1'],
+      '1 year ago, foo2, bar2': ['foo2', 'bar2'],
+      'foo1, bar1': ['foo1', 'bar1'],
+      'foo2, bar2': ['foo2', 'bar2'],
+    });
+  });
 });
