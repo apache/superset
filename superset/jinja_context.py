@@ -654,6 +654,6 @@ def dataset_macro(
         "metrics": metrics if include_metrics else None,
         "columns": columns,
     }
-    sqla_query = dataset.get_query_str_extended(query_obj)
+    sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"({sql}) AS dataset_{dataset_id}"
+    return f"(\n{sql}\n) AS dataset_{dataset_id}"
