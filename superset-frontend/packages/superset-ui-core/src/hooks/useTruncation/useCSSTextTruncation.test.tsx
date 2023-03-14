@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react-hooks';
+import React from 'react';
 import useCSSTextTruncation from './useCSSTextTruncation';
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 test('should be false by default', () => {
   const { result } = renderHook(() =>
@@ -29,53 +34,29 @@ test('should be false by default', () => {
 });
 
 test('should not truncate', () => {
-  jest.useFakeTimers();
-
-  const { result, rerender } = renderHook(() =>
-    useCSSTextTruncation<HTMLParagraphElement>(),
-  );
-  const [paragraphRef, isTruncated] = result.current;
-
   const ref = { current: document.createElement('p') };
   Object.defineProperty(ref.current, 'offsetWidth', { get: () => 100 });
   Object.defineProperty(ref.current, 'scrollWidth', { get: () => 50 });
+  jest.spyOn(React, 'useRef').mockReturnValue({ current: ref.current });
 
-  // @ts-ignore
-  paragraphRef.current = ref.current;
+  const { result } = renderHook(() =>
+    useCSSTextTruncation<HTMLParagraphElement>(),
+  );
+  const [, isTruncated] = result.current;
 
-  rerender();
-
-  act(() => {
-    jest.runAllTimers();
-  });
-
-  setTimeout(() => {
-    expect(isTruncated).toBe(false);
-  }, 0);
+  expect(isTruncated).toBe(false);
 });
 
 test('should truncate', () => {
-  jest.useFakeTimers();
-
-  const { result, rerender } = renderHook(() =>
-    useCSSTextTruncation<HTMLParagraphElement>(),
-  );
-  const [paragraphRef, isTruncated] = result.current;
-
   const ref = { current: document.createElement('p') };
   Object.defineProperty(ref.current, 'offsetWidth', { get: () => 50 });
   Object.defineProperty(ref.current, 'scrollWidth', { get: () => 100 });
+  jest.spyOn(React, 'useRef').mockReturnValue({ current: ref.current });
 
-  // @ts-ignore
-  paragraphRef.current = ref.current;
+  const { result } = renderHook(() =>
+    useCSSTextTruncation<HTMLParagraphElement>(),
+  );
+  const [, isTruncated] = result.current;
 
-  rerender();
-
-  act(() => {
-    jest.runAllTimers();
-  });
-
-  setTimeout(() => {
-    expect(isTruncated).toBe(true);
-  }, 0);
+  expect(isTruncated).toBe(true);
 });

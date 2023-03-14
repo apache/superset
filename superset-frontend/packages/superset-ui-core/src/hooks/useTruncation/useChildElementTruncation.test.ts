@@ -23,7 +23,7 @@ import useChildElementTruncation from './useChildElementTruncation';
 const genElements = (
   scrollWidth: number,
   clientWidth: number,
-  offsetWidth: number,
+  offsetWidth: number | undefined,
   childNodes: any = [],
 ) => {
   const elementRef: RefObject<Partial<HTMLElement>> = {
@@ -39,6 +39,27 @@ const useTruncation = (elementRef: any, plusRef: any) =>
     elementRef as RefObject<HTMLElement>,
     plusRef as RefObject<HTMLElement>,
   );
+
+test('should return [0, false] when elementRef.current is not defined', () => {
+  const { result } = renderHook(() =>
+    useTruncation({ current: undefined }, { current: undefined }),
+  );
+
+  expect(result.current).toEqual([0, false]);
+});
+
+test('should not recompute when previousEffectInfo is the same as previous', () => {
+  const elementRef = { current: document.createElement('div') };
+  const plusRef = { current: document.createElement('div') };
+  const { result, rerender } = renderHook(() =>
+    useTruncation(elementRef, plusRef),
+  );
+  const previousEffectInfo = result.current;
+
+  rerender();
+
+  expect(result.current).toEqual(previousEffectInfo);
+});
 
 test('should return [0, false] when there are no truncated/hidden elements', () => {
   const [elementRef, plusRef] = genElements(100, 100, 10);
@@ -69,4 +90,13 @@ test('should return [2, true] with 2 truncated and hidden elements', () => {
   ]);
   const { result } = renderHook(() => useTruncation(elementRef, plusRef));
   expect(result.current).toEqual([2, true]);
+});
+
+test('should return [1, true] with plusSize offsetWidth undefined', () => {
+  const [elementRef, plusRef] = genElements(150, 100, undefined, [
+    { offsetWidth: 150 } as HTMLElement,
+    { offsetWidth: 150 } as HTMLElement,
+  ]);
+  const { result } = renderHook(() => useTruncation(elementRef, plusRef));
+  expect(result.current).toEqual([1, true]);
 });
