@@ -198,13 +198,13 @@ const Select = forwardRef(
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue &&
-        !value,
+        !selectValue,
       [
         isSingleMode,
         selectOptions.length,
         enabledOptions.length,
         inputValue,
-        value,
+        selectValue,
       ],
     );
 
