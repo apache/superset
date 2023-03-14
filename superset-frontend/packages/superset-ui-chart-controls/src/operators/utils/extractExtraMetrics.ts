@@ -25,12 +25,13 @@ import {
 export function extractExtraMetrics(
   formData: QueryFormData,
 ): QueryFormMetric[] {
-  const { groupby, timeseries_limit_metric, x_axis_sort } = formData;
+  const { groupby, timeseries_limit_metric, x_axis_sort, metrics } = formData;
   const extra_metrics: QueryFormMetric[] = [];
   if (
     !(groupby || []).length &&
     timeseries_limit_metric &&
-    getMetricLabel(timeseries_limit_metric) === x_axis_sort
+    getMetricLabel(timeseries_limit_metric) === x_axis_sort &&
+    !metrics?.some(metric => getMetricLabel(metric) === x_axis_sort)
   ) {
     extra_metrics.push(timeseries_limit_metric);
   }
