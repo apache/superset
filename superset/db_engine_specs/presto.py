@@ -70,7 +70,7 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -172,85 +172,101 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             re.compile(r"^boolean.*", re.IGNORECASE),
             types.BOOLEAN(),
             GenericDataType.BOOLEAN,
+            None,
         ),
         (
             re.compile(r"^tinyint.*", re.IGNORECASE),
             TinyInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
             types.INTEGER(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
             types.BigInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
             types.FLOAT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
             types.FLOAT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
             types.DECIMAL(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.CHAR(int(match[2])) if match[2] else types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^varbinary.*", re.IGNORECASE),
             types.VARBINARY(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^json.*", re.IGNORECASE),
             types.JSON(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.Date(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^timestamp.*", re.IGNORECASE),
             types.TIMESTAMP(),
             GenericDataType.TEMPORAL,
+            lambda time_expr, time_zone: f"{time_expr} AT TIME ZONE '{time_zone}'",
         ),
         (
             re.compile(r"^interval.*", re.IGNORECASE),
             Interval(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^time.*", re.IGNORECASE),
             types.Time(),
             GenericDataType.TEMPORAL,
+            None,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING, None),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING, None),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING, None),
     )
 
     # pylint: disable=line-too-long
@@ -275,13 +291,19 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     }
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
         Convert a Python `datetime` object to a SQL expression.
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param time_zone: Optional time zone
         :param db_extra: The database extra object
         :return: The SQL expression
         Superset only defines time zone naive `datetime` objects, though this method
@@ -289,12 +311,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         sqla_type = cls.get_sqla_column_type(target_type)
 
+        expr: Optional[str] = None
         if isinstance(sqla_type, types.Date):
-            return f"DATE '{dttm.date().isoformat()}'"
+            expr = f"DATE '{dttm.date().isoformat()}'"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+            expr = f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+        if expr and time_zone and tz_func:
+            expr = tz_func(expr, time_zone)
 
-        return None
+        return expr
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

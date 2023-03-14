@@ -1231,7 +1231,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """Convert datetime object to a SQL expression string"""
 
         sql = (
-            self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
+            self.db_engine_spec.convert_dttm(
+                col_type,
+                dttm,
+                db_extra=None,
+                time_zone=None,
+                tz_func=None,
+            )
             if col_type
             else None
         )

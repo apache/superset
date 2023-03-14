@@ -25,7 +25,7 @@ from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import SupersetErrorType
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +114,13 @@ class MssqlEngineSpec(BaseEngineSpec):
         return "dateadd(S, {col}, '1970-01-01')"
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

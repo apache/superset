@@ -33,6 +33,7 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils.core import TimeZoneFunction
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -133,8 +134,13 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 

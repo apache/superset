@@ -38,7 +38,7 @@ from sqlalchemy.engine.url import URL
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -178,8 +178,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     disallow_uri_query_params = {"local_infile"}
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

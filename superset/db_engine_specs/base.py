@@ -67,7 +67,12 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, get_username
+from superset.utils.core import (
+    ColumnSpec,
+    GenericDataType,
+    get_username,
+    TimeZoneFunction,
+)
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -80,6 +85,7 @@ ColumnTypeMapping = Tuple[
     Pattern[str],
     Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
     GenericDataType,
+    Optional[TimeZoneFunction],
 ]
 
 logger = logging.getLogger()
@@ -198,116 +204,139 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^n((var)?char|text)", re.IGNORECASE),
             types.UnicodeText(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^(var)?char", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^(tiny|medium|long)?text", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^smallint", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^int(eger)?", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^bigint", re.IGNORECASE),
             types.BigInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^long", re.IGNORECASE),
             types.Float(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^decimal", re.IGNORECASE),
             types.Numeric(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^numeric", re.IGNORECASE),
             types.Numeric(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^float", re.IGNORECASE),
             types.Float(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^double", re.IGNORECASE),
             types.Float(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^real", re.IGNORECASE),
             types.REAL,
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^smallserial", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^serial", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^bigserial", re.IGNORECASE),
             types.BigInteger(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^money", re.IGNORECASE),
             types.Numeric(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^datetime", re.IGNORECASE),
             types.DateTime(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^date", re.IGNORECASE),
             types.Date(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^time", re.IGNORECASE),
             types.Time(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^interval", re.IGNORECASE),
             types.Interval(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r"^bool(ean)?", re.IGNORECASE),
             types.Boolean(),
             GenericDataType.BOOLEAN,
+            None,
         ),
     )
     # engine-specific type mappings to check prior to the defaults
@@ -576,6 +605,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         col: ColumnClause,
         pdf: Optional[str],
         time_grain: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        time_zone: Optional[str],
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -583,6 +614,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
+        :param tz_func: callback that returns a timezone aware expression
+        :param time_zone: optional time zone to convert to
         :return: TimestampExpression object
         """
         if time_grain:
@@ -608,6 +641,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+
+        if time_zone and tz_func:
+            time_expr = tz_func(time_expr, time_zone)
 
         return TimestampExpression(time_expr, col, type_=col.type)
 
@@ -1004,13 +1040,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
         Convert a Python `datetime` object to a SQL expression.
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param time_zone: Optional time zone
+        :param tz_func: time zone formatter
         :param db_extra: The database extra object
         :return: The SQL expression
         """
@@ -1485,7 +1528,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_column_types(
         cls,
         column_type: Optional[str],
-    ) -> Optional[Tuple[TypeEngine, GenericDataType]]:
+    ) -> Optional[Tuple[TypeEngine, GenericDataType, Optional[TimeZoneFunction]]]:
         """
         Return a sqlalchemy native column type and generic data type that corresponds
         to the column type defined in the data source (return None to use default type
@@ -1498,15 +1541,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not column_type:
             return None
 
-        for regex, sqla_type, generic_type in (
+        for regex, sqla_type, generic_type, tz_func in (
             cls.column_type_mappings + cls._default_column_type_mappings
         ):
             match = regex.match(column_type)
             if not match:
                 continue
             if callable(sqla_type):
-                return sqla_type(match), generic_type
-            return sqla_type, generic_type
+                return sqla_type(match), generic_type, tz_func
+            return sqla_type, generic_type, tz_func
         return None
 
     @staticmethod
@@ -1674,10 +1717,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         col_types = cls.get_column_types(native_type)
         if col_types:
-            column_type, generic_type = col_types
+            column_type, generic_type, tz_func = col_types
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
-                sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
+                sqla_type=column_type,
+                generic_type=generic_type,
+                is_dttm=is_dttm,
+                tz_func=tz_func,
             )
         return None
 

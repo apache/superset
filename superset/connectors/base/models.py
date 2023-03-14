@@ -419,6 +419,7 @@ class BaseDatasource(
                     target_type=target_native_type,
                     dttm=datetime.utcfromtimestamp(value / 1000),
                     db_extra=db_extra,
+                    time_zone=None,
                 )
                 value = literal_column(value)
             if isinstance(value, str):

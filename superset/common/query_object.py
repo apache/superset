@@ -107,6 +107,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_offsets: List[str]
     time_shift: Optional[str]
     time_range: Optional[str]
+    time_zone: Optional[str]
     to_dttm: Optional[datetime]
 
     def __init__(  # pylint: disable=too-many-locals
@@ -133,6 +134,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit_metric: Optional[Metric] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
+        time_zone: Optional[str] = None,
         **kwargs: Any,
     ):
         self._set_annotation_layers(annotation_layers)
@@ -156,6 +158,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit_metric = series_limit_metric
         self.time_range = time_range
         self.time_shift = time_shift
+        self.time_zone = time_zone
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
@@ -336,6 +339,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit_metric": self.series_limit_metric,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "time_zone": self.time_zone,
         }
         return query_object_dict
 

@@ -27,6 +27,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.utils.core import TimeZoneFunction
 
 logger = logging.getLogger()
 
@@ -64,8 +65,13 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         }
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         db_extra = db_extra or {}
 
@@ -118,8 +124,13 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine_name = "ElasticSearch (OpenDistro SQL)"
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 from sqlalchemy import types
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.core import TimeZoneFunction
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -41,8 +42,13 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

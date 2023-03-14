@@ -32,7 +32,7 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -323,8 +323,13 @@ WHERE datistemplate = false;
         )
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

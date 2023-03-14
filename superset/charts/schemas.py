@@ -1075,6 +1075,10 @@ class ChartDataQueryObjectSchema(Schema):
         "documentation for details on valid values.",
         allow_none=True,
     )
+    time_zone = fields.String(
+        description="A time zone to convert to, e.g. PST or PDT.",
+        allow_none=True,
+    )
     is_timeseries = fields.Boolean(
         description="Is the `query_object` a timeseries.",
         allow_none=True,

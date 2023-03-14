@@ -317,6 +317,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     def get_sqla_col(
         self,
+        time_zone: Optional[str],
         label: Optional[str] = None,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
@@ -324,12 +325,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
+        tz_func = column_spec.tz_func if column_spec else None
         if expression := self.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+            if time_zone and tz_func:
+                expression = tz_func(expression, time_zone)
             col = literal_column(expression, type_=type_)
         else:
-            col = column(self.column_name, type_=type_)
+            column_name = self.column_name
+            if time_zone and tz_func:
+                column_name = tz_func(column_name, time_zone)
+                col = literal_column(column_name, type_=type_)
+            else:
+                col = column(column_name, type_=type_)
+
         col = self.table.make_sqla_column_compatible(col, label)
         return col
 
@@ -339,22 +349,44 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     def get_time_filter(
         self,
+        time_zone: Optional[str],
         start_dttm: Optional[DateTime] = None,
         end_dttm: Optional[DateTime] = None,
         label: Optional[str] = "__time",
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
-        col = self.get_sqla_col(label=label, template_processor=template_processor)
+        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        tz_func = column_spec.tz_func if column_spec else None
+        col = self.get_sqla_col(
+            label=label,
+            time_zone=time_zone,
+            template_processor=template_processor,
+        )
         l = []
         if start_dttm:
-            l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
+            l.append(
+                col
+                >= self.table.text(
+                    self.dttm_sql_literal(
+                        start_dttm, time_zone=time_zone, tz_func=tz_func
+                    )
+                )
+            )
         if end_dttm:
-            l.append(col < self.table.text(self.dttm_sql_literal(end_dttm)))
+            l.append(
+                col
+                < self.table.text(
+                    self.dttm_sql_literal(
+                        end_dttm, time_zone=time_zone, tz_func=tz_func
+                    )
+                )
+            )
         return and_(*l)
 
     def get_timestamp_expression(
         self,
         time_grain: Optional[str],
+        time_zone: Optional[str] = None,
         label: Optional[str] = None,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Union[TimestampExpression, Label]:
@@ -362,6 +394,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         Return a SQLAlchemy Core element representation of self to be used in a query.
 
         :param time_grain: Optional time grain, e.g. P1Y
+        :param time_zone: Optional time zone
         :param label: alias/label that column is expected to have
         :param template_processor: template processor
         :return: A TimeExpression object wrapped in a Label if supported by db
@@ -373,7 +406,13 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         column_spec = self.db_engine_spec.get_column_spec(
             self.type, db_extra=self.db_extra
         )
-        type_ = column_spec.sqla_type if column_spec else DateTime
+        if column_spec:
+            type_ = column_spec.sqla_type
+            tz_func = column_spec.tz_func
+        else:
+            type_ = DateTime
+            tz_func = None
+
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
@@ -383,13 +422,30 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        time_expr = self.db_engine_spec.get_timestamp_expr(
+            col,
+            pdf,
+            time_grain,
+            tz_func=tz_func,
+            time_zone=time_zone,
+        )
         return self.table.make_sqla_column_compatible(time_expr, label)
 
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
+    def dttm_sql_literal(
+        self,
+        dttm: DateTime,
+        time_zone: Optional[str],
+        tz_func: utils.TimeZoneFunction,
+    ) -> str:
         """Convert datetime object to a SQL expression string"""
         sql = (
-            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
+            self.db_engine_spec.convert_dttm(
+                self.type,
+                dttm,
+                db_extra=self.db_extra,
+                time_zone=time_zone,
+                tz_func=tz_func,
+            )
             if self.type
             else None
         )
@@ -1174,6 +1230,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        time_zone: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -1333,11 +1390,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             time_grain=time_grain,
                             label=selected,
                             template_processor=template_processor,
+                            time_zone=time_zone,
                         )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
                         outer = columns_by_name[selected].get_sqla_col(
-                            template_processor=template_processor
+                            time_zone=time_zone, template_processor=template_processor
                         )
                     else:
                         selected = validate_adhoc_subquery(
@@ -1373,7 +1431,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col(
-                        template_processor=template_processor
+                        time_zone=time_zone, template_processor=template_processor
                     )
                     if isinstance(selected, str) and selected in columns_by_name
                     else self.make_sqla_column_compatible(
@@ -1394,7 +1452,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
+                    time_grain=time_grain,
+                    time_zone=time_zone,
+                    template_processor=template_processor,
                 )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
@@ -1477,11 +1537,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     pass
                 elif col_obj and filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
+                        time_grain=filter_grain,
+                        time_zone=time_zone,
+                        template_processor=template_processor,
                     )
                 elif col_obj:
                     sqla_col = col_obj.get_sqla_col(
-                        template_processor=template_processor
+                        time_zone=time_zone, template_processor=template_processor
                     )
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
@@ -1604,6 +1666,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         )
                         where_clause_and.append(
                             col_obj.get_time_filter(
+                                time_zone=time_zone,
                                 start_dttm=_since,
                                 end_dttm=_until,
                                 label=sqla_col.key,

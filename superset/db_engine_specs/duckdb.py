@@ -26,6 +26,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.utils.core import TimeZoneFunction
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -64,8 +65,13 @@ class DuckDBEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

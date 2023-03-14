@@ -23,6 +23,7 @@ from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+from superset.utils.core import TimeZoneFunction
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -58,8 +59,13 @@ class DrillEngineSpec(BaseEngineSpec):
         return "TO_DATE({col})"
 
     @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls,
+        target_type: str,
+        dttm: datetime,
+        time_zone: Optional[str],
+        tz_func: Optional[TimeZoneFunction],
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

@@ -373,8 +373,11 @@ class ColumnSpec(NamedTuple):
     sqla_type: Union[TypeEngine, str]
     generic_type: GenericDataType
     is_dttm: bool
+    tz_func: Optional[TimeZoneFunction]
     python_date_format: Optional[str] = None
 
+
+TimeZoneFunction = Callable[[str, str], str]
 
 try:
     # Having might not have been imported.
