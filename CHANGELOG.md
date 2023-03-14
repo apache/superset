@@ -268,7 +268,6 @@ under the License.
 - [#23185](https://github.com/apache/superset/pull/23185) fix(clickhouse): add clickhouse connect driver (@villebro)
 - [#23184](https://github.com/apache/superset/pull/23184) fix: bump FAB to 4.3.0 (@dpgaspar)
 - [#23118](https://github.com/apache/superset/pull/23118) fix(rbac): show objects accessible by database access perm (@villebro)
-- [#22851](https://github.com/apache/superset/pull/22851) fix: Validate jinja rendered query (@geido)
 - [#23175](https://github.com/apache/superset/pull/23175) fix(ssh-tunnel): add password to `from_private_key` function (@hughhhh)
 - [#23195](https://github.com/apache/superset/pull/23195) fix(ssh_tunnel): Display SSHTunnel Switch when editing a DB that was created with the Dynamic Form (@Antonio-RiveroMartnez)
 - [#23196](https://github.com/apache/superset/pull/23196) fix(sshtunnel): argument params to properly setting `server_port` (@hughhhh)
