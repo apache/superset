@@ -20,6 +20,7 @@ from urllib import parse
 
 import simplejson as json
 from flask import request, Response
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -89,6 +90,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @protect()
     @statsd_metrics
     @requires_json
+    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".estimate_query_cost",
