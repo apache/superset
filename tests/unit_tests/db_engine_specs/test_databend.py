@@ -70,22 +70,6 @@ def test_execute_connection_error() -> None:
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_result",
-    [
-        ("Date", "to_date('2019-01-02')"),
-        ("DateTime", "to_dateTime('2019-01-02 03:04:05')"),
-        ("UnknownType", None),
-    ],
-)
-def test_connect_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
-) -> None:
-    from superset.db_engine_specs.databend import DatabendEngineSpec as spec
-
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
-
-
-@pytest.mark.parametrize(
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
         ("Varchar", String, None, GenericDataType.STRING, False),
@@ -119,7 +103,7 @@ def test_connect_convert_dttm(
         ("Nullable(Datetime)", DateTime, None, GenericDataType.TEMPORAL, True),
     ],
 )
-def test_connect_get_column_spec(
+def test_get_column_spec(
     native_type: str,
     sqla_type: Type[TypeEngine],
     attrs: Optional[Dict[str, Any]],
@@ -138,7 +122,7 @@ def test_connect_get_column_spec(
         ("count", "count_e2942a"),
     ],
 )
-def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
+def test_make_label_compatible(column_name: str, expected_result: str) -> None:
     from superset.db_engine_specs.databend import DatabendConnectEngineSpec as spec
 
     label = spec.make_label_compatible(column_name)
