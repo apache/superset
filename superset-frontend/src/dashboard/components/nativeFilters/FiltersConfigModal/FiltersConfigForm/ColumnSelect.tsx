@@ -24,7 +24,6 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from '../types';
-import { doesColumnMatchFilterType } from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -84,10 +83,7 @@ export function ColumnSelect({
   );
 
   useEffect(() => {
-    if (
-      currentColumn &&
-      !doesColumnMatchFilterType(currentFilterType, currentColumn)
-    ) {
+    if (currentColumn && !filterValues(currentColumn)) {
       resetColumnField();
     }
   }, [currentColumn, currentFilterType, resetColumnField]);
