@@ -876,12 +876,17 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
+    def get_query_str_extended(
+        self,
+        query_obj: QueryObjectDict,
+        mutate: bool = True,
+    ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
-        sql = self.mutate_query_from_config(sql)
+        if mutate:
+            sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
