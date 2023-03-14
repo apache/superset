@@ -122,6 +122,7 @@ from superset.superset_typing import (
 from superset.utils.database import get_example_database
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.urls import modify_url_query
 
 try:
     from pydruid.utils.having import Having
@@ -2021,7 +2022,7 @@ def gen_query_hash(sql: str):
 
 def get_alert_link(conf, report_schedule) -> str:
     baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-    return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
+    return f"{baseurl}{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
 
 def get_vo_payload(conf, report_schedule,exception = ""):
@@ -2037,14 +2038,15 @@ def get_vo_payload(conf, report_schedule,exception = ""):
         #     conf, report_schedule
         # ),
         "state_message": report_schedule.msg_content or "",
-        "vo_annotate.u.AlertLink": get_alert_link(conf, report_schedule)
+        "vo_annotate.u.AlertLink":  modify_url_query(get_alert_link(conf, report_schedule), standalone="0")
     }
     return payload
 
-def get_vo_resolution_payload(incident_number):
+def get_vo_resolution_payload(incident_number,entity_id):
     payload = {
-        "userName": get_username(),
-        "incidentNames": list(incident_number),
+        "entityId": entity_id,
+        "incidentNumber": incident_number,
+        "cmdAccepted": True,
         "message": "Incident resolved by System"
     }
     return payload
@@ -2055,8 +2057,9 @@ def get_all_incidents(conf, entity_id):
         REQUEST_URL = conf["VO_ALL_INCIDENTS"]
         headers = conf["VO_HEADERS"]
         try:
-            response = requests.get(REQUEST_URL, headers=headers)
+            response = requests.get(REQUEST_URL, headers=headers,verify=False)
             data = response.json()
+            # logger.info("GET ALL INCIDENTS FOR ENTITY ID %s", data["incidents"].__dict__())
             isIncident = (
                     list(
                         filter(
@@ -2065,8 +2068,9 @@ def get_all_incidents(conf, entity_id):
                         )
                     )
                 )
-
+            logger.info("CURRENT INCIDENT %s", str(isIncident))
             incident_number = isIncident[0].incidentNumber if len(isIncident) > 0 else 0
+            logger.info("CURRENT INCIDENT NUMBER %s", incident_number)
         except requests.exceptions.HTTPError as e:
             raise Exception(str(e))
         if response.status_code != 200:
@@ -2075,6 +2079,7 @@ def get_all_incidents(conf, entity_id):
                 % (response.status_code, response.text)
             )
         if incident_number:
+            logger.info("CURRENT INCIDENT NUMBER INSIDE %s", incident_number)
             return incident_number
         else:
             raise ValueError("There are no incidents present against the alert: %s", entity_id)
@@ -2105,18 +2110,18 @@ def raise_incident(conf, report_schedule,exception = "") -> None:
             )
 
 def resolve_incident(conf, report_schedule) -> None:
-    routing_key = None
     entity_id = str(report_schedule.id) + "_" + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name) or "",
     incident_number = get_all_incidents(conf,entity_id)
     if incident_number:
         URL = conf["VO_RESOLVE_INCIDENTS"]
-        victor_ops_data = get_vo_resolution_payload(incident_number)
+        victor_ops_data = get_vo_resolution_payload(incident_number,entity_id)
         try:
             logger.info("VO RESOLUTION PAYLOAD", str(victor_ops_data))
             response = requests.patch(
                 URL,
                 data=json.dumps(victor_ops_data),
                 headers=conf["VO_HEADERS"],
+                verify=False
             )
         except requests.exceptions.HTTPError as e:
             raise Exception(str(e))
