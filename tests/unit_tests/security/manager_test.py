@@ -51,9 +51,9 @@ def test_raise_for_access_query_default_schema(
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
     SqlaTable.query_datasources_by_name.return_value = []
 
-    inspect = mocker.patch("superset.security.manager.inspect")
-    inspect().default_schema_name = "public"
     database = mocker.MagicMock()
+    database.db_engine_spec.dynamic_schema = False
+    database.get_inspector_with_context().__enter__().default_schema_name = "public"
     query = mocker.MagicMock()
     query.database = database
     query.sql = "SELECT * FROM ab_user"
