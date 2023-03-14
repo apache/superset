@@ -102,3 +102,25 @@ test('returns empty array if timeseries_limit_metric and x_axis_sort are include
     }),
   ).toEqual([]);
 });
+
+test('returns empty array if timeseries_limit_metric and x_axis_sort are included in main metrics array with adhoc metrics', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      metrics: [
+        'a',
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'num' },
+        },
+      ],
+      timeseries_limit_metric: {
+        expressionType: 'SIMPLE',
+        aggregate: 'SUM',
+        column: { column_name: 'num' },
+      },
+      x_axis_sort: 'SUM(num)',
+    }),
+  ).toEqual([]);
+});
