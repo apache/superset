@@ -162,10 +162,10 @@ test('should render schema selector, database selector container, and selects', 
   expect(await screen.findByText(/select database & schema/i)).toBeVisible();
 
   const databaseSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(databaseSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
@@ -188,7 +188,7 @@ test('renders list of options when user clicks on schema', async () => {
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   userEvent.click(databaseSelect);
   expect(await screen.findByText('test-postgres')).toBeInTheDocument();
@@ -196,7 +196,7 @@ test('renders list of options when user clicks on schema', async () => {
 
   // Schema select will be automatically populated if there is only one schema
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type schema name/i,
+    name: /select schema or type to search schemas/i,
   });
   await waitFor(() => {
     expect(schemaSelect).toBeEnabled();
@@ -210,13 +210,13 @@ test('searches for a table name', async () => {
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
-    name: /select database or type database name/i,
+    name: /select database or type to search databases/i,
   });
   userEvent.click(databaseSelect);
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type schema name/i,
+    name: /select schema or type to search schemas/i,
   });
 
   await waitFor(() => expect(schemaSelect).toBeEnabled());
@@ -254,13 +254,13 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
-    name: /select database or type database name/i,
+    name: /select database or type to search databases/i,
   });
   userEvent.click(databaseSelect);
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type schema name/i,
+    name: /select schema or type to search schemas/i,
   });
 
   await waitFor(() => expect(schemaSelect).toBeEnabled());
