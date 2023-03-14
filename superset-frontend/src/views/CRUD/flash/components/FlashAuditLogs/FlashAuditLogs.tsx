@@ -22,7 +22,7 @@ import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import { TooltipPlacement } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
@@ -78,7 +78,15 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         accessor: 'description',
         Header: t('Description'),
         size: 'xxl',
-        classNames: 'wrap-text',
+        Cell: ({
+          row: {
+            original: { description = '' },
+          },
+        }: any) => (
+          <Tooltip title={description} placement="topLeft">
+            <span>{description}</span>
+          </Tooltip>
+        ),
       },
       {
         accessor: 'user',
@@ -95,7 +103,6 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         accessor: 'timestamp',
       },
       {
-        accessor: 'errorName',
         Header: t('Error'),
         size: 'l',
         Cell: ({
@@ -105,10 +112,12 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         }: any) =>
           errorType &&
           errorName && (
-            <span>
-              <strong>{errorType} </strong>
-              {errorName}
-            </span>
+            <Tooltip title={`${errorType}:${errorName}`} placement="topLeft">
+              <span>
+                <strong>{errorType} :</strong>
+                {errorName}
+              </span>
+            </Tooltip>
           ),
       },
       {
@@ -189,7 +198,6 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
-        columnsForWrapText={['Description', 'Error']}
       />
     </>
   );

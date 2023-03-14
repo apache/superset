@@ -24,7 +24,6 @@ import withToasts, {
   ToastProps,
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
-// import ReactJson from 'react-json-view';
 import { FlashAuditLogs } from '../../types';
 
 interface JsonDiffProps extends ToastProps {
@@ -66,12 +65,6 @@ const JsonDifference: FunctionComponent<JsonDiffProps> = ({
       <Row>
         <Col>
           <Label>Previous:</Label>
-          {/* <ReactJson
-            name="New Value"
-            enableClipboard
-            theme="rjv-default"
-            src={JSON.parse(log?.newValue)}
-          /> */}
           <SyntaxHighlighterCopy
             language="json"
             addDangerToast={addDangerToast}
