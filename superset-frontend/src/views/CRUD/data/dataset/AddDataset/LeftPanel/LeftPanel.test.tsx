@@ -162,10 +162,10 @@ test('should render schema selector, database selector container, and selects', 
   expect(await screen.findByText(/select database & schema/i)).toBeVisible();
 
   const databaseSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(databaseSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
@@ -188,7 +188,7 @@ test('renders list of options when user clicks on schema', async () => {
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   userEvent.click(databaseSelect);
   expect(await screen.findByText('test-postgres')).toBeInTheDocument();

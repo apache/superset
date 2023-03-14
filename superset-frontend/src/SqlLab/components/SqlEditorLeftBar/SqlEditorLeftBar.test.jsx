@@ -91,10 +91,10 @@ test('table should be visible when expanded is true', async () => {
   const { container } = await renderAndWait(mockedProps, store);
 
   const dbSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   const dropdown = screen.getByText(/Table/i);
   const abUser = screen.queryAllByText(/ab_user/i);
