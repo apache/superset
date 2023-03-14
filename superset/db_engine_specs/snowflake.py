@@ -83,6 +83,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
+    dynamic_schema = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('SECOND', {col})",
