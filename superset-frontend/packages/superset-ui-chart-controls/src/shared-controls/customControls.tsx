@@ -79,6 +79,7 @@ export const xAxisSortControl = {
         ...ensureIsArray(controls?.metrics?.value as QueryFormMetric),
         controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
+      const metricLabels = [...new Set(metrics.map(getMetricLabel))];
       const options = [
         ...columns.map(column => {
           const value = getColumnLabel(column);
@@ -87,8 +88,7 @@ export const xAxisSortControl = {
             label: dataset?.verbose_map?.[value] || value,
           };
         }),
-        ...metrics.map(metric => {
-          const value = getMetricLabel(metric);
+        ...metricLabels.map(value => {
           return {
             value,
             label: dataset?.verbose_map?.[value] || value,
