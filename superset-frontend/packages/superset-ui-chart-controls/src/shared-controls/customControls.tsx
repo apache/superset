@@ -88,12 +88,10 @@ export const xAxisSortControl = {
             label: dataset?.verbose_map?.[value] || value,
           };
         }),
-        ...metricLabels.map(value => {
-          return {
-            value,
-            label: dataset?.verbose_map?.[value] || value,
-          };
-        }),
+        ...metricLabels.map(value => ({
+          value,
+          label: dataset?.verbose_map?.[value] || value,
+        })),
       ];
 
       const shouldReset = !(
