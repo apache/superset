@@ -32,6 +32,8 @@ class DrillEngineSpec(BaseEngineSpec):
     engine_name = "Apache Drill"
     default_driver = "sadrill"
 
+    dynamic_schema = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "NEARESTDATE({col}, 'SECOND')",

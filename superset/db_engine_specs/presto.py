@@ -165,6 +165,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    dynamic_schema = True
+
     column_type_mappings = (
         (
             re.compile(r"^boolean.*", re.IGNORECASE),

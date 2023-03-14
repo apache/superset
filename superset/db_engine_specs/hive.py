@@ -98,6 +98,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_orderby_agg = False
 
+    dynamic_schema = True
+
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
     _show_functions_column = "tab_name"
