@@ -23,7 +23,7 @@ import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { NativeFiltersForm } from '../types';
-import { cachedSupersetGet, doesColumnMatchFilterType } from './utils';
+import { cachedSupersetGet } from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -75,10 +75,7 @@ export function ColumnSelect({
   );
 
   useEffect(() => {
-    if (
-      currentColumn &&
-      !doesColumnMatchFilterType(currentFilterType, currentColumn)
-    ) {
+    if (currentColumn && !filterValues(currentColumn)) {
       resetColumnField();
     }
   }, [currentColumn, currentFilterType, resetColumnField]);

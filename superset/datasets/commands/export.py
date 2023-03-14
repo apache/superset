@@ -37,7 +37,6 @@ JSON_KEYS = {"params", "template_params", "extra"}
 
 
 class ExportDatasetsCommand(ExportModelsCommand):
-
     dao = DatasetDAO
     not_found = DatasetNotFoundError
 

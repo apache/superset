@@ -403,11 +403,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             and hasattr(self.datasource, "database")
             and self.datasource.database.impersonate_user
         ):
-
             if key := self.datasource.database.db_engine_spec.get_impersonation_key(
                 getattr(g, "user", None)
             ):
-
                 logger.debug(
                     "Adding impersonation key to QueryObject cache dict: %s", key
                 )

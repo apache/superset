@@ -226,13 +226,11 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const renderHorizontalContent = () => (
     <div
-      css={(theme: SupersetTheme) =>
-        css`
-          padding: 0 ${theme.gridUnit * 4}px;
-          min-width: 0;
-          flex: 1;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        padding: 0 ${theme.gridUnit * 4}px;
+        min-width: 0;
+        flex: 1;
+      `}
     >
       <DropdownContainer
         items={items}

@@ -30,7 +30,6 @@ down_revision = "e866bd2d4976"
 
 
 def upgrade():
-
     op.add_column(
         "dbs",
         sa.Column(

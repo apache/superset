@@ -200,7 +200,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     # only needed for the hive tests
     import docker
 
-    client = docker.from_env()
+    client = docker.from_env()  # type: ignore
     container = client.containers.get("namenode")
     # docker mounted volume that contains csv uploads
     src = os.path.join("/tmp/superset_uploads", os.path.basename(filename))

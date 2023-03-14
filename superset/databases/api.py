@@ -1308,12 +1308,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
                 and getattr(engine_spec, "default_driver") in drivers
             ):
-                payload[
-                    "parameters"
-                ] = engine_spec.parameters_json_schema()  # type: ignore
+                payload["parameters"] = engine_spec.parameters_json_schema()
                 payload[
                     "sqlalchemy_uri_placeholder"
-                ] = engine_spec.sqlalchemy_uri_placeholder  # type: ignore
+                ] = engine_spec.sqlalchemy_uri_placeholder
 
             available_databases.append(payload)
 
