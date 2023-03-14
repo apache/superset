@@ -25,7 +25,6 @@ import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   defaultQueryEditor,
   query,
