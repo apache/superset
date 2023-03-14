@@ -1787,7 +1787,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -1823,8 +1823,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
+                # Some databases can change the default schema in which the query wil run,
+                # respecting the selection in SQL Lab. If that's the case, the query
+                # schema becomes the default one.
+                if database.db_engine_spec.dynamic_schema:
+                    default_schema = query.schema
+                # For other databases, the selected schema in SQL Lab is used only for
+                # table discovery and autocomplete. In this case we need to use the
+                # database default schema for tables that don't have an explicit schema.
+                else:
+                    with database.get_inspector_with_context() as inspector:
+                        default_schema = inspector.default_schema_name
+
                 tables = {
-                    Table(table_.table, table_.schema or query.schema)
+                    Table(table_.table, table_.schema or default_schema)
                     for table_ in sql_parse.ParsedQuery(query.sql).tables
                 }
             elif table:
