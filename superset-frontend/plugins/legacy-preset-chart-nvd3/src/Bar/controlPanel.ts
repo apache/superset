@@ -22,6 +22,7 @@ import {
   getStandardizedControls,
   sections,
   sharedControls,
+  onClickHandlerChartInput
 } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
@@ -85,6 +86,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [onClickHandlerChartInput],
         ['color_scheme'],
         [showBrush],
         [showLegend],

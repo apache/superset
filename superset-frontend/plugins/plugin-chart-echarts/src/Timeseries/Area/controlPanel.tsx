@@ -23,6 +23,7 @@ import {
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
   getStandardizedControls,
+  onClickHandlerChartInput,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -62,6 +63,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [onClickHandlerChartInput],
         ['color_scheme'],
         [
           {

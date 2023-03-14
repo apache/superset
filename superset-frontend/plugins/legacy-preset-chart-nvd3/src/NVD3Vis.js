@@ -30,8 +30,9 @@ import {
   isDefined,
   NumberFormats,
   smartDateVerboseFormatter,
-  t,
+  t
 } from '@superset-ui/core';
+import { onChartClickRedirectionHandler } from '@superset-ui/chart-controls';
 
 import 'nvd3-fork/build/nv.d3.css';
 
@@ -73,6 +74,7 @@ import {
   numberOrAutoType,
   stringOrObjectWithLabelType,
 } from './PropTypes';
+import { onClickHandlerChartInput } from './NVD3Controls';
 
 const NO_DATA_RENDER_DATA = [
   { text: 'No data', dy: '-.75em', class: 'header' },
@@ -420,7 +422,6 @@ function nvd3Vis(element, props) {
         chart.width(width);
         chart.xAxis.showMaxMin(false);
         chart.stacked(isBarStacked);
-        break;
 
       case 'dist_bar':
         chart = nv.models
@@ -555,6 +556,34 @@ function nvd3Vis(element, props) {
     }
     // Assuming the container has padding already other than for top margin
     chart.margin({ left: 0, bottom: 0 });
+
+    function attach_onclick_handlers() {
+      if (!props.onClickRedirection) return;
+      eventDispatcher = null;
+
+      switch (vizType) {
+        case 'time_pivot':
+          eventDispatcher = chart.line;
+          break
+        case 'bar':
+        case 'dist_bar':
+          eventDispatcher = chart.multibar;
+          break;
+        case 'pie':
+          eventDispatcher = chart.pie;
+          break;
+      }
+
+      if (eventDispatcher && eventDispatcher.on) {
+        eventDispatcher.on('elementClick', function (e) {
+          if (e.data.key) {
+            onChartClickRedirectionHandler(props.onClickRedirection,e.data.key)
+          }
+        });
+      }
+    }
+
+    attach_onclick_handlers();
 
     if (showBarValue) {
       drawBarValues(svg, data, isBarStacked, yAxisFormat);

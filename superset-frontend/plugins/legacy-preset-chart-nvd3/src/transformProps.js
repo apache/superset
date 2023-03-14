@@ -107,6 +107,7 @@ export default function transformProps(chartProps) {
     ranges,
     yAxisFormat,
     yAxis2Format,
+    onClickRedirection
   } = formData;
 
   const rawData = queriesData[0].data || [];
@@ -197,5 +198,6 @@ export default function transformProps(chartProps) {
     yField: y,
     yIsLogScale: yLogScale,
     sliceId,
+    onClickRedirection,
   };
 }

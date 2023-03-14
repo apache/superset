@@ -22,6 +22,7 @@ import {
   DataMask,
   QueryFormColumn,
 } from '@superset-ui/core';
+import { onChartClickRedirectionHandler } from '@superset-ui/chart-controls';
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
@@ -86,8 +87,12 @@ export const clickEventHandler =
     ) => ContextMenuFilters['crossFilter'],
     setDataMask: (dataMask: DataMask) => void,
     emitCrossFilters?: boolean,
+    formData?: any,
   ) =>
   ({ name }: { name: string }) => {
+    if (formData && formData.onClickRedirection) {
+      onChartClickRedirectionHandler(formData.onClickRedirection, name);
+    }
     if (!emitCrossFilters) {
       return;
     }
@@ -140,12 +145,14 @@ export const allEventHandlers = (
     labelMap,
     emitCrossFilters,
     selectedValues,
+    formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(
       getCrossFilterDataMask(selectedValues, groupby, labelMap),
       setDataMask,
       emitCrossFilters,
+      formData,
     ),
     contextmenu: contextMenuEventHandler(
       groupby,
@@ -156,3 +163,4 @@ export const allEventHandlers = (
   };
   return eventHandlers;
 };
+

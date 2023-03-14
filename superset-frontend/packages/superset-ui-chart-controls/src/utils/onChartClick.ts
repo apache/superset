@@ -16,13 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './onChartClick';
+
+import { t } from '@superset-ui/core';
+import { CustomControlItem } from '../types';
+
+export const onClickHandlerChartInput: CustomControlItem = {
+  name: 'on_click_redirection',
+  config: {
+    type: 'TextControl',
+    label: t('On Click Redirection'),
+    renderTrigger: false,
+    clearable: true,
+    default: '',
+    description: t('// todo'),
+  },
+};
+
+export function onChartClickRedirectionHandler(
+  onClickRedirection: string,
+  values: string | string[],
+) {
+  if (!Array.isArray(values)) {
+    values = [values];
+  }
+  if (onClickRedirection) {
+    const url = onClickRedirection.replaceAll(
+      '{{key}}',
+      encodeURIComponent(values.join(',')),
+    );
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}

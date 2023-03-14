@@ -27,6 +27,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   getStandardizedControls,
+  onClickHandlerChartInput
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -72,6 +73,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [onClickHandlerChartInput],
         ['color_scheme'],
         [
           {
