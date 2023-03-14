@@ -292,6 +292,29 @@ describe('async actions', () => {
     });
   });
 
+  describe('runQuery with comments', () => {
+    const makeRequest = () => {
+      const request = actions.runQuery({
+        ...query,
+        sql: 'SELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/FROM table',
+      });
+      return request(dispatch, () => initialState);
+    };
+
+    it('makes the fetch request without comments', async () => {
+      const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
+      fetchMock.post(runQueryEndpoint, '{}', {
+        overwriteRoutes: true,
+      });
+      await makeRequest().then(() => {
+        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+        expect(
+          JSON.parse(fetchMock.calls(runQueryEndpoint)[0][1].body).sql,
+        ).toEqual('SELECT 213\nFROM table');
+      });
+    });
+  });
+
   describe('reRunQuery', () => {
     let stub;
     beforeEach(() => {
