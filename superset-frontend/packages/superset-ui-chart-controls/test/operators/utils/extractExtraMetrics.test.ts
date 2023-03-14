@@ -92,3 +92,13 @@ test('returns empty array if groupby populated', () => {
     }),
   ).toEqual([]);
 });
+
+test('returns empty array if timeseries_limit_metric and x_axis_sort are included in main metrics array', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      timeseries_limit_metric: 'a',
+      x_axis_sort: 'a',
+    }),
+  ).toEqual([]);
+});
