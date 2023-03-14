@@ -312,15 +312,15 @@ class TestSqlLab(SupersetTestCase):
         )
         self.assertEqual(1, len(data["data"]))
 
-        # postgres needs a schema as a part of the table name.
-        if db_backend == "mysql":
-            data = self.run_sql(
-                "SELECT * FROM test_table",
-                "5",
-                username="SchemaUser",
-                schema=CTAS_SCHEMA_NAME,
-            )
-            self.assertEqual(1, len(data["data"]))
+        # without a schema the query will fail, since it uses the default schema instead
+        # of CTAS_SCHEMA_NAME
+        data = self.run_sql(
+            "SELECT * FROM test_table",
+            "5",
+            username="SchemaUser",
+            schema=CTAS_SCHEMA_NAME,
+        )
+        self.assertTrue("errors" in data)
 
         db.session.query(Query).delete()
         with get_example_database().get_sqla_engine_with_context() as engine:
