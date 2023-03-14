@@ -77,13 +77,13 @@ test('renders with default props', async () => {
   const props = createProps();
   render(<TableSelector {...props} />, { useRedux: true });
   const databaseSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type table name',
+    name: 'Select table or type to search tables',
   });
   await waitFor(() => {
     expect(databaseSelect).toBeInTheDocument();
@@ -99,7 +99,7 @@ test('renders table options', async () => {
   const props = createProps();
   render(<TableSelector {...props} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type table name',
+    name: 'Select table or type to search tables',
   });
   userEvent.click(tableSelect);
   expect(
@@ -117,7 +117,7 @@ test('renders disabled without schema', async () => {
   const props = createProps();
   render(<TableSelector {...props} schema={undefined} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type table name',
+    name: 'Select table or type to search tables',
   });
   await waitFor(() => {
     expect(tableSelect).toBeDisabled();
@@ -135,7 +135,7 @@ test('table options are notified after schema selection', async () => {
   render(<TableSelector {...props} />, { useRedux: true });
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(schemaSelect).toBeInTheDocument();
   expect(callback).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
   render(<TableSelector {...props} />, { useRedux: true });
 
   const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type table name',
+    name: 'Select table or type to search tables',
   });
 
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
@@ -218,7 +218,7 @@ test('table multi select retain all the values selected', async () => {
   render(<TableSelectorMultiple {...props} />, { useRedux: true });
 
   const tableSelect = screen.getByRole('combobox', {
-    name: 'Select table or type table name',
+    name: 'Select table or type to search tables',
   });
 
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
