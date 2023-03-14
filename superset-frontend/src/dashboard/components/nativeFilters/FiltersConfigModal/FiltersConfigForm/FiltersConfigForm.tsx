@@ -34,7 +34,6 @@ import {
   NativeFilterType,
   styled,
   SupersetApiError,
-  SupersetClient,
   t,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
@@ -70,7 +69,6 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
@@ -91,6 +89,7 @@ import getControlItemsMap from './getControlItemsMap';
 import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
+  cachedSupersetGet,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   mostUsedDataset,
@@ -321,14 +320,6 @@ const FILTER_TYPE_NAME_MAPPING = {
   [t('Time grain')]: t('Time grain'),
   [t('Group By')]: t('Group by'),
 };
-
-const localCache = new Map<string, any>();
-
-const cachedSupersetGet = cacheWrapper(
-  SupersetClient.get,
-  localCache,
-  ({ endpoint }) => endpoint || '',
-);
 
 /**
  * The configuration form for a specific filter.

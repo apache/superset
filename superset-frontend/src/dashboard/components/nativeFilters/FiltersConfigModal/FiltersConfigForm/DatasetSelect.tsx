@@ -18,22 +18,13 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { AsyncSelect } from 'src/components';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
 import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
-import { datasetToSelectOption } from './utils';
-
-const localCache = new Map<string, any>();
-
-const cachedSupersetGet = cacheWrapper(
-  SupersetClient.get,
-  localCache,
-  ({ endpoint }) => endpoint || '',
-);
+import { cachedSupersetGet, datasetToSelectOption } from './utils';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string; value: number }) => void;
