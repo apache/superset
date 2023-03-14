@@ -197,8 +197,15 @@ const Select = forwardRef(
         !isSingleMode &&
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
-        !inputValue,
-      [isSingleMode, selectOptions.length, enabledOptions.length, inputValue],
+        !inputValue &&
+        !value,
+      [
+        isSingleMode,
+        selectOptions.length,
+        enabledOptions.length,
+        inputValue,
+        value,
+      ],
     );
 
     const selectAllMode = useMemo(
