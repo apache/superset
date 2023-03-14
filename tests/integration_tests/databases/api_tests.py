@@ -3633,7 +3633,6 @@ class TestDatabaseApi(SupersetTestCase):
     ):
         self.login(username="gamma")
         self.create_fake_db()
-        mock_can_access_all_datasources.return_value = False
         mock_can_access_database.return_value = False
         mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
         rv = self.client.get(f"/api/v1/database/120ff/schemas_access_for_file_upload")
@@ -3660,4 +3659,26 @@ class TestDatabaseApi(SupersetTestCase):
             url=f"/api/v1/database/{dbobj.id}/schemas_access_for_file_upload"
         )
         assert data == {"schemas": ["this_schema_is_allowed_too"]}
+        self.delete_fake_db()
+
+    @mock.patch(
+        "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
+    )
+    @mock.patch("superset.security.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.security.SupersetSecurityManager.can_access_all_datasources")
+    def test_schemas_access_dne_for_csv_upload_endpoint_404(
+        self,
+        mock_can_access_all_datasources,
+        mock_can_access_database,
+        mock_schemas_accessible,
+    ):
+        self.login(username="admin")
+        dbobj = self.create_fake_db()
+        mock_can_access_all_datasources.return_value = False
+        mock_can_access_database.return_value = False
+        mock_schemas_accessible.return_value = ["foo"]
+        data = self.get_json_resp(
+            url=f"/api/v1/database/{dbobj.id}/schemas_access_for_file_upload"
+        )
+        breakpoint()
         self.delete_fake_db()
