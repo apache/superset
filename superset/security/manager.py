@@ -1823,8 +1823,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
+                # if no schema is specified, use the database default; in the future we
+                # should pass the query schema to the SQLAlchemy URI so that it's set as
+                # the default one.
+                with database.get_sqla_engine_with_context() as engine:
+                    default_schema = inspect(engine).default_schema_name
+
                 tables = {
-                    Table(table_.table, table_.schema or query.schema)
+                    Table(table_.table, table_.schema or default_schema)
                     for table_ in sql_parse.ParsedQuery(query.sql).tables
                 }
             elif table:
