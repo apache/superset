@@ -98,6 +98,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_orderby_agg = False
 
+    dynamic_schema = True
+
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
     _show_functions_column = "tab_name"
@@ -191,7 +193,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             raise SupersetException("Append operation not currently supported")
 
         if to_sql_kwargs["if_exists"] == "fail":
-
             # Ensure table doesn't already exist.
             if table.schema:
                 table_exists = not database.get_df(
@@ -425,7 +426,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec._get_fields(cols)  # pylint: disable=protected-access
 
     @classmethod
-    def latest_sub_partition(
+    def latest_sub_partition(  # type: ignore
         cls, table_name: str, schema: Optional[str], database: "Database", **kwargs: Any
     ) -> str:
         # TODO(bogdan): implement`

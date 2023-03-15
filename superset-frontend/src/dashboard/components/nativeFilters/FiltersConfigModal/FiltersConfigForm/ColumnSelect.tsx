@@ -17,14 +17,13 @@
  * under the License.
  */
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
-import { Column, ensureIsArray, SupersetClient, t } from '@superset-ui/core';
+import { Column, ensureIsArray, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from '../types';
-import { doesColumnMatchFilterType } from './utils';
+import { cachedSupersetGet } from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -37,14 +36,6 @@ interface ColumnSelectProps {
   onChange?: (value: string) => void;
   mode?: 'multiple';
 }
-
-const localCache = new Map<string, any>();
-
-const cachedSupersetGet = cacheWrapper(
-  SupersetClient.get,
-  localCache,
-  ({ endpoint }) => endpoint || '',
-);
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
 // eslint-disable-next-line import/prefer-default-export
@@ -84,10 +75,7 @@ export function ColumnSelect({
   );
 
   useEffect(() => {
-    if (
-      currentColumn &&
-      !doesColumnMatchFilterType(currentFilterType, currentColumn)
-    ) {
+    if (currentColumn && !filterValues(currentColumn)) {
       resetColumnField();
     }
   }, [currentColumn, currentFilterType, resetColumnField]);

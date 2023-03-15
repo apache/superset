@@ -23,10 +23,15 @@ import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
 
 interface DependencyListProps {
-  availableFilters: { label: string; value: string }[];
+  availableFilters: {
+    label: string;
+    value: string;
+    type: string | undefined;
+  }[];
   dependencies: string[];
   onDependenciesChange: (dependencies: string[]) => void;
   getDependencySuggestion: () => string;
+  children?: JSX.Element;
 }
 
 const MainPanel = styled.div`
@@ -176,6 +181,7 @@ const DependencyList = ({
   dependencies = [],
   onDependenciesChange,
   getDependencySuggestion,
+  children,
 }: DependencyListProps) => {
   const hasAvailableFilters = availableFilters.length > 0;
   const hasDependencies = dependencies.length > 0;
@@ -205,6 +211,7 @@ const DependencyList = ({
           onDependenciesChange={onDependenciesChange}
           getDependencySuggestion={getDependencySuggestion}
         />
+        {children}
       </CollapsibleControl>
     </MainPanel>
   );

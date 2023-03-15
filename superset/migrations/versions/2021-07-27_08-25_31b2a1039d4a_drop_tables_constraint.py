@@ -48,7 +48,6 @@ def upgrade():
 
 
 def downgrade():
-
     # One cannot simply re-add the uniqueness constraint as it may not have previously
     # existed.
     pass

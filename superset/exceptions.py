@@ -54,7 +54,7 @@ class SupersetException(Exception):
         if self.error_type:
             rv["error_type"] = self.error_type
         if self.exception is not None and hasattr(self.exception, "to_dict"):
-            rv = {**rv, **self.exception.to_dict()}  # type: ignore
+            rv = {**rv, **self.exception.to_dict()}
         return rv
 
 
