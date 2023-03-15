@@ -111,7 +111,7 @@ class Query(
     start_running_time = Column(Numeric(precision=20, scale=6))
     end_time = Column(Numeric(precision=20, scale=6))
     end_result_backend_time = Column(Numeric(precision=20, scale=6))
-    tracking_url_raw = Column(Text, name="tracking_url")
+    _tracking_url = Column("tracking_url", Text)
 
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
@@ -314,12 +314,16 @@ class Query(
 
     @property
     def tracking_url(self) -> Optional[str]:
+        return self._tracking_url
+
+    @tracking_url.setter
+    def tracking_url(self, url: str) -> None:
         """
         Transfrom tracking url at run time because the exact URL may depends
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
-        url = self.tracking_url_raw
+        
         if url and transform:
             sig = inspect.signature(transform)
             # for backward compatibility, users may define a transformer function
@@ -327,11 +331,8 @@ class Query(
             args = [url, self][: len(sig.parameters)]
             url = transform(*args)
             logger.debug("Transformed tracking url: %s", url)
-        return url
-
-    @tracking_url.setter
-    def tracking_url(self, value: str) -> None:
-        self.tracking_url_raw = value
+        
+        self._tracking_url = url
 
     def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
         if not column_name:
