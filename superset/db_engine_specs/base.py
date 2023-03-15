@@ -370,6 +370,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
+    # Is the DB engine spec able to change the default schema? This requires implementing
+    # a custom `adjust_database_uri` method.
+    dynamic_schema = False
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """

@@ -69,6 +69,8 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     )
     encryption_parameters = {"ssl": "1"}
 
+    dynamic_schema = True
+
     column_type_mappings = (
         (
             re.compile(r"^int.*", re.IGNORECASE),

@@ -841,7 +841,6 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
-
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',

@@ -1834,10 +1834,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -1925,16 +1925,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -1972,11 +1967,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -2627,10 +2627,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -2718,16 +2718,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -2765,11 +2760,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -3420,7 +3420,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -3446,7 +3446,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "position_json": {
             "nullable": true,
@@ -3520,6 +3520,27 @@
       },
       "DashboardRestApi.get_list.User1": {
         "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User2": {
+        "properties": {
           "email": {
             "maxLength": 64,
             "type": "string"
@@ -3546,27 +3567,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -4293,6 +4293,18 @@
         },
         "type": "object"
       },
+      "DatabaseSchemaAccessForFileUploadResponse": {
+        "properties": {
+          "schemas": {
+            "description": "The list of schemas allowed for the database to upload information",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseTablesResponse": {
         "properties": {
           "extra": {
@@ -4917,7 +4929,7 @@
             "$ref": "#/components/schemas/DatasetRestApi.get.TableColumn"
           },
           "created_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User2"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -4981,7 +4993,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User2"
           },
           "schema": {
             "maxLength": 255,
@@ -5195,6 +5207,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5212,23 +5241,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -6971,7 +6983,7 @@
             "type": "integer"
           },
           "created_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -7021,7 +7033,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -7082,10 +7094,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -7102,6 +7110,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -15296,6 +15308,50 @@
             "jwt": []
           }
         ],
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/schemas_access_for_file_upload/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatabaseSchemaAccessForFileUploadResponse"
+                }
+              }
+            },
+            "description": "The list of the database schemas where to upload information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "The list of the database schemas where to upload information",
         "tags": [
           "Database"
         ]

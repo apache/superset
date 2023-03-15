@@ -430,7 +430,6 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
 
 class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
-
     __tablename__ = "tab_state"
 
     # basic info
@@ -493,7 +492,6 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
 
 
 class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
-
     __tablename__ = "table_schema"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

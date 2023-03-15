@@ -303,7 +303,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 )
 
             # validate parameters
-            parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
+            parameters = engine_spec.parameters_schema.load(parameters)
 
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
@@ -311,7 +311,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             except json.decoder.JSONDecodeError:
                 encrypted_extra = {}
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
                 parameters,
                 encrypted_extra,
             )
@@ -488,7 +488,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
-
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -809,3 +808,10 @@ def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type
         if self.openapi_version.major > 2:
             ret["x-encrypted-extra"] = True
     return ret
+
+
+class DatabaseSchemaAccessForFileUploadResponse(Schema):
+    schemas = fields.List(
+        fields.String(),
+        description="The list of schemas allowed for the database to upload information",
+    )

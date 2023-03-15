@@ -16,24 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getMetricLabel,
-  QueryFormData,
-  QueryFormMetric,
-} from '@superset-ui/core';
+import { getOverrideHtmlSchema } from '../../src/components/SafeMarkdown';
 
-export function extractExtraMetrics(
-  formData: QueryFormData,
-): QueryFormMetric[] {
-  const { groupby, timeseries_limit_metric, x_axis_sort, metrics } = formData;
-  const extra_metrics: QueryFormMetric[] = [];
-  if (
-    !(groupby || []).length &&
-    timeseries_limit_metric &&
-    getMetricLabel(timeseries_limit_metric) === x_axis_sort &&
-    !metrics?.some(metric => getMetricLabel(metric) === x_axis_sort)
-  ) {
-    extra_metrics.push(timeseries_limit_metric);
-  }
-  return extra_metrics;
-}
+describe('getOverrideHtmlSchema', () => {
+  it('should append the override items', () => {
+    const original = {
+      attributes: {
+        '*': ['size'],
+      },
+      clobberPrefix: 'original-prefix',
+      tagNames: ['h1', 'h2', 'h3'],
+    };
+    const result = getOverrideHtmlSchema(original, {
+      attributes: { '*': ['src'], h1: ['style'] },
+      clobberPrefix: 'custom-prefix',
+      tagNames: ['iframe'],
+    });
+    expect(result.clobberPrefix).toEqual('custom-prefix');
+    expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
+    expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+});

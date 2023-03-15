@@ -23,7 +23,6 @@ from tests.integration_tests.test_app import app
 
 @pytest.fixture()
 def create_gamma_sqllab_no_data():
-
     with app.app_context():
         gamma_role = db.session.query(Role).filter(Role.name == "Gamma").one_or_none()
         sqllab_role = (

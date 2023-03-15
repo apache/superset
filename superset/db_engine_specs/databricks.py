@@ -192,7 +192,6 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     def build_sqlalchemy_uri(  # type: ignore
         cls, parameters: DatabricksParametersType, *_
     ) -> str:
-
         query = {}
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
