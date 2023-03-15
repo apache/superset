@@ -18,16 +18,23 @@
 
 import copy
 
+import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset.commands.exceptions import ImportFailedError
 
-def test_import_database(session: Session) -> None:
+
+def test_import_database(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a database.
     """
+    from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -58,13 +65,19 @@ def test_import_database(session: Session) -> None:
     assert database.allow_dml is False
 
 
-def test_import_database_managed_externally(session: Session) -> None:
+def test_import_database_managed_externally(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
     """
     Test importing a database that is managed externally.
     """
+    from superset import security_manager
     from superset.databases.commands.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -76,3 +89,30 @@ def test_import_database_managed_externally(session: Session) -> None:
     database = import_database(session, config)
     assert database.is_managed_externally is True
     assert database.external_url == "https://example.org/my_database"
+
+
+def test_import_database_without_permission(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a database when a user doesn't have permissions to create.
+    """
+    from superset import security_manager
+    from superset.databases.commands.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_database(session, config)
+    assert (
+        str(excinfo.value)
+        == "Database doesn't exist and user doesn't have permission to create databases"
+    )

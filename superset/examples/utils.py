@@ -92,7 +92,9 @@ def load_configs_from_directory(
     contents[METADATA_FILE_NAME] = yaml.dump(metadata)
 
     command = ImportExamplesCommand(
-        contents, overwrite=overwrite, force_data=force_data
+        contents,
+        overwrite=overwrite,
+        force_data=force_data,
     )
     try:
         command.run()
