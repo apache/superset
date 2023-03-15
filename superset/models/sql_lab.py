@@ -323,7 +323,7 @@ class Query(
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
-        
+
         if url and transform:
             sig = inspect.signature(transform)
             # for backward compatibility, users may define a transformer function
@@ -331,7 +331,7 @@ class Query(
             args = [url, self][: len(sig.parameters)]
             url = transform(*args)
             logger.debug("Transformed tracking url: %s", url)
-        
+
         self._tracking_url = url
 
     def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
