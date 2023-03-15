@@ -22,6 +22,8 @@ from typing import Any, Dict, Set
 from flask import g
 from sqlalchemy.orm import Session
 
+from superset import security_manager
+from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)
@@ -146,11 +148,17 @@ def update_id_refs(  # pylint: disable=too-many-locals
 def import_dashboard(
     session: Session, config: Dict[str, Any], overwrite: bool = False
 ) -> Dashboard:
+    can_write = security_manager.can_access("can_write", "Dashboard")
     existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if not overwrite:
+        if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+    elif not can_write:
+        raise ImportFailedError(
+            "Dashboard doesn't exist and user doesn't "
+            "have permission to create dashboards"
+        )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

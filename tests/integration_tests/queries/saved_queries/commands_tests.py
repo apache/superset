@@ -142,8 +142,11 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
 
 class TestImportSavedQueriesCommand(SupersetTestCase):
-    def test_import_v1_saved_queries(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_saved_queries(self, mock_g):
         """Test that we can import a saved query"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -169,8 +172,11 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_saved_queries_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_saved_queries_multiple(self, mock_g):
         """Test that a saved query can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
