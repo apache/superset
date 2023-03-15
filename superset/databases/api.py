@@ -65,6 +65,7 @@ from superset.databases.schemas import (
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
+    DatabaseSchemaAccessForFileUploadResponse,
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
@@ -120,6 +121,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_parameters",
         "validate_sql",
         "delete_ssh_tunnel",
+        "schemas_access_for_file_upload",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -222,6 +224,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseFunctionNamesResponse,
+        DatabaseSchemaAccessForFileUploadResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
@@ -814,7 +817,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
-            return self.response(404, message="Table not found in the database")
+            return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 
@@ -1453,3 +1456,52 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_400(message=str(ex))
+
+    @expose("/<int:pk>/schemas_access_for_file_upload/")
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".schemas_access_for_file_upload",
+        log_to_statsd=False,
+    )
+    def schemas_access_for_file_upload(self, pk: int) -> Response:
+        """The list of the database schemas where to upload information
+        ---
+        get:
+          summary:
+            The list of the database schemas where to upload information
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+              description: The list of the database schemas where to upload information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseSchemaAccessForFileUploadResponse"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+
+        schemas_allowed = database.get_schema_access_for_file_upload()
+        # the list schemas_allowed should not be empty here
+        # and the list schemas_allowed_processed returned from security_manager
+        # should not be empty either,
+        # otherwise the database should have been filtered out
+        # in CsvToDatabaseForm
+        schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
+            database, schemas_allowed, True
+        )
+        return self.response(200, schemas=schemas_allowed_processed)

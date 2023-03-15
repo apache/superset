@@ -2747,6 +2747,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/schemas_access_for_file_upload")
+    @deprecated()
     def schemas_access_for_file_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to
