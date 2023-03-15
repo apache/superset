@@ -808,3 +808,10 @@ def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type
         if self.openapi_version.major > 2:
             ret["x-encrypted-extra"] = True
     return ret
+
+
+class DatabaseSchemaAccessForFileUploadResponse(Schema):
+    schemas = fields.List(
+        fields.String(),
+        description="The list of schemas allowed for the database to upload information",
+    )
