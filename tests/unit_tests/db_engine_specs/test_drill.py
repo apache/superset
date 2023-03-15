@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy.engine.url import make_url
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
@@ -106,3 +107,18 @@ def test_convert_dttm(
     from superset.db_engine_specs.drill import DrillEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test ``get_schema_from_engine_params``.
+    """
+    from superset.db_engine_specs.drill import DrillEngineSpec
+
+    assert (
+        DrillEngineSpec.get_schema_from_engine_params(
+            make_url("drill+sadrill://localhost:8047/dfs/test?use_ssl=False"),
+            {},
+        )
+        == "dfs.test"
+    )

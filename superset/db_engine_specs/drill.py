@@ -32,7 +32,7 @@ class DrillEngineSpec(BaseEngineSpec):
     engine_name = "Apache Drill"
     default_driver = "sadrill"
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -73,9 +73,22 @@ class DrillEngineSpec(BaseEngineSpec):
     @classmethod
     def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> URL:
         if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+            uri = uri.set(
+                database=parse.quote(selected_schema.replace(".", "/"), safe="")
+            )
 
         return uri
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database).replace("/", ".")
 
     @classmethod
     def get_url_for_impersonation(

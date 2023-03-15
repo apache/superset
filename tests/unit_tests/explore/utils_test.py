@@ -274,10 +274,8 @@ def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
-    inspect = mocker.patch("superset.security.manager.inspect")
-    inspect().default_schema_name = "public"
-
     database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
     mocker.patch(
         query_find_by_id,
         return_value=Query(database=database, sql="select * from foo"),

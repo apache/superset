@@ -78,6 +78,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.sql_lab import Query
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
@@ -482,6 +483,22 @@ class Database(
         ) as engine:
             with closing(engine.raw_connection()) as conn:
                 yield conn
+
+    def get_default_schema_for_query(self, query: "Query") -> Optional[str]:
+        """
+        Return the default schema for a given query.
+
+        This is used to determine if the user has access to a query that reads from table
+        names without a specific schema, eg:
+
+            SELECT * FROM `foo`
+
+        The schema of the `foo` table depends on the DB engine spec. Some DB engine specs
+        can change the default schema on a per-query basis; in other DB engine specs the
+        default schema is defined in the SQLAlchemy URI; and in others the default schema
+        might be determined by the database itself (like `public` for Postgres).
+        """
+        return self.db_engine_spec.get_default_schema_for_query(self, query)
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

@@ -83,7 +83,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -146,6 +146,22 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             uri = uri.set(database=f"{database}/{selected_schema}")
 
         return uri
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+        """
+        database = sqlalchemy_uri.database.strip("/")
+
+        if "/" not in database:
+            return None
+
+        return parse.unquote(database.split("/")[1])
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
