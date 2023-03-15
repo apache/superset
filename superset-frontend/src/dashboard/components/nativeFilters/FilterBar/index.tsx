@@ -27,9 +27,9 @@ import {
   DataMask,
   SLOW_DEBOUNCE,
   isNativeFilter,
+  usePrevious,
 } from '@superset-ui/core';
 import { useHistory } from 'react-router-dom';
-import { usePrevious } from 'src/hooks/usePrevious';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';

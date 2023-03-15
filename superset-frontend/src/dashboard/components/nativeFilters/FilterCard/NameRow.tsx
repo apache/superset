@@ -18,9 +18,8 @@
  */
 import React, { useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { useTruncation } from 'src/hooks/useTruncation';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
