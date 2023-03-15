@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
-from superset import db
+from superset import db, security_manager
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
@@ -42,7 +42,7 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
 
 
@@ -69,7 +69,13 @@ class ImportExamplesCommand(ImportModelsCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite, self.force_data)
+            with override_user(security_manager.find_user(username="admin")):
+                self._import(
+                    db.session,
+                    self._configs,
+                    self.overwrite,
+                    self.force_data,
+                )
             db.session.commit()
         except Exception as ex:
             db.session.rollback()
@@ -119,13 +125,12 @@ class ImportExamplesCommand(ImportModelsCommand):
                 if config["schema"] is None:
                     config["schema"] = get_example_default_schema()
 
-                dataset = import_dataset(
-                    session, config, overwrite=overwrite, force_data=force_data
-                )
-
                 try:
                     dataset = import_dataset(
-                        session, config, overwrite=overwrite, force_data=force_data
+                        session,
+                        config,
+                        overwrite=overwrite,
+                        force_data=force_data,
                     )
                 except MultipleResultsFound:
                     # Multiple result can be found for datasets. There was a bug in
