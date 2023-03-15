@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
-import { Column, ensureIsArray, t } from '@superset-ui/core';
-import { useChangeEffect } from 'src/hooks/useChangeEffect';
+import { Column, ensureIsArray, t, useChangeEffect } from '@superset-ui/core';
 import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';

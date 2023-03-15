@@ -18,9 +18,8 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, styled } from '@superset-ui/core';
+import { css, styled, usePrevious } from '@superset-ui/core';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
