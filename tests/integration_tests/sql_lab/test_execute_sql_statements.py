@@ -53,4 +53,4 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         assert example_query.tracking_url.endswith("&foo=bar")
 
     if non_async_example_db.db_engine_spec.engine_name == "hive":
-        assert example_query.tracking_url_raw
+        assert example_query.tracking_url
