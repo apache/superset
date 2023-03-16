@@ -25,6 +25,7 @@ import {
 } from './types';
 import {
   DEFAULT_LEGEND_FORM_DATA,
+  DEFAULT_SORT_SERIES_DATA,
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
 
@@ -32,6 +33,7 @@ import {
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
+  ...DEFAULT_SORT_SERIES_DATA,
   annotationLayers: sections.annotationLayers,
   area: false,
   forecastEnabled: sections.FORECAST_DEFAULT_DATA.forecastEnabled,
@@ -63,6 +65,8 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   onlyTotal: false,
   percentageThreshold: 0,
   orientation: OrientationType.vertical,
+  sort_series_type: 'sum',
+  sort_series_ascending: false,
 };
 
 export const TIME_SERIES_DESCRIPTION_TEXT: string = t(
