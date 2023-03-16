@@ -120,7 +120,7 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
     # sort topologically so we can create entities in order and
     # maintain relationships (eg, create a database before creating
     # a slice)
-    sorter = TopologicalSorter()  # type: ignore
+    sorter = TopologicalSorter()
     for model in models:
         inspector = inspect(model)
         dependent_tables: List[str] = []
