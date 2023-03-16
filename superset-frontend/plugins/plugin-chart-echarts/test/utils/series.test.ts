@@ -117,21 +117,21 @@ describe('extractSeries', () => {
     ];
     expect(extractSeries(data)).toEqual([
       {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          ['2000-01-01', 2],
-          ['2000-02-01', 10],
-          ['2000-03-01', 5],
-        ],
-      },
-      {
         id: 'Hulk',
         name: 'Hulk',
         data: [
           ['2000-01-01', null],
           ['2000-02-01', 2],
           ['2000-03-01', 1],
+        ],
+      },
+      {
+        id: 'abc',
+        name: 'abc',
+        data: [
+          ['2000-01-01', 2],
+          ['2000-02-01', 10],
+          ['2000-03-01', 5],
         ],
       },
     ]);
@@ -157,17 +157,17 @@ describe('extractSeries', () => {
     ];
     expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
       {
+        id: 'Hulk',
+        name: 'Hulk',
+        data: [[2, 1]],
+      },
+      {
         id: 'abc',
         name: 'abc',
         data: [
           [1, 2],
           [2, 5],
         ],
-      },
-      {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [[2, 1]],
       },
     ]);
   });
