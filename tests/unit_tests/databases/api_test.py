@@ -50,6 +50,10 @@ def test_post_with_uuid(
     )
     assert response.status_code == 201
 
+    # check that response includes UUID
+    payload = response.json
+    assert payload["result"]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
+
     database = session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 

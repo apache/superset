@@ -19,21 +19,25 @@
 /* eslint-disable camelcase */
 import {
   AnnotationLayer,
+  AxisType,
   CategoricalColorNamespace,
   GenericDataType,
+  getMetricLabel,
   getNumberFormatter,
+  getXAxisLabel,
+  isDefined,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
-  isTimeseriesAnnotationLayer,
-  TimeseriesChartDataResponseResult,
-  t,
-  AxisType,
-  getXAxisLabel,
   isPhysicalColumn,
-  isDefined,
+  isTimeseriesAnnotationLayer,
+  t,
+  TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
-import { isDerivedSeries } from '@superset-ui/chart-controls';
+import {
+  extractExtraMetrics,
+  isDerivedSeries,
+} from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
@@ -103,8 +107,9 @@ export default function transformProps(
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { data = [], label_map: labelMap } =
+  const { data = [], label_map = {} } =
     queryData as TimeseriesChartDataResponseResult;
+
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
 
@@ -114,41 +119,55 @@ export default function transformProps(
     colorScheme,
     contributionMode,
     forecastEnabled,
+    groupby,
     legendOrientation,
     legendType,
     legendMargin,
     logAxis,
     markerEnabled,
     markerSize,
-    opacity,
     minorSplitLine,
+    onlyTotal,
+    opacity,
+    orientation,
+    percentageThreshold,
+    richTooltip,
     seriesType,
     showLegend,
+    showValue,
+    sliceId,
+    sortSeriesType,
+    sortSeriesAscending,
+    timeGrainSqla,
+    timeCompare,
     stack,
-    truncateYAxis,
-    yAxisFormat,
-    xAxisTimeFormat,
-    yAxisBounds,
     tooltipTimeFormat,
     tooltipSortByMetric,
-    zoomable,
-    richTooltip,
+    truncateYAxis,
     xAxis: xAxisOrig,
     xAxisLabelRotation,
-    groupby,
-    showValue,
-    onlyTotal,
-    percentageThreshold,
+    xAxisTimeFormat,
     xAxisTitle,
-    yAxisTitle,
     xAxisTitleMargin,
+    yAxisBounds,
+    yAxisFormat,
+    yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
-    sliceId,
-    timeGrainSqla,
-    orientation,
+    zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
+
+  const labelMap = Object.entries(label_map).reduce((acc, entry) => {
+    if (
+      entry[1].length > groupby.length &&
+      Array.isArray(timeCompare) &&
+      timeCompare.includes(entry[1][0])
+    ) {
+      entry[1].shift();
+    }
+    return { ...acc, [entry[0]]: entry[1] };
+  }, {});
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
@@ -168,13 +187,20 @@ export default function transformProps(
       xAxisCol: xAxisLabel,
     },
   );
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
+    getMetricLabel,
+  );
+
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisLabel,
+    extraMetricLabels,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
     stack,
     totalStackedValues,
     isHorizontal,
+    sortSeriesType,
+    sortSeriesAscending,
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
@@ -370,6 +396,7 @@ export default function transformProps(
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
+    yAxis.inverse = true;
   }
 
   const echartOptions: EChartsCoreOption = {
@@ -395,7 +422,7 @@ export default function transformProps(
           forecastValue.sort((a, b) => b.data[yIndex] - a.data[yIndex]);
         }
 
-        const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
+        const rows: string[] = [];
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
@@ -412,6 +439,10 @@ export default function transformProps(
             rows.push(`<span style="opacity: 0.7">${content}</span>`);
           }
         });
+        if (stack) {
+          rows.reverse();
+        }
+        rows.unshift(`${tooltipFormatter(xValue)}`);
         return rows.join('<br />');
       },
     },

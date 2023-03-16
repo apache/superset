@@ -46,7 +46,6 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils
-from superset.utils.memoized import memoized
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
@@ -97,6 +96,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
     owners = relationship(security_manager.user_model, secondary=slice_user)
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        tags = relationship(
+            "Tag",
+            secondary="tagged_object",
+            primaryjoin="and_(Slice.id == TaggedObject.object_id)",
+            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+            "TaggedObject.object_type == 'chart')",
+        )
     table = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
@@ -110,6 +117,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     export_fields = [
         "slice_name",
+        "description",
+        "certified_by",
+        "certification_details",
         "datasource_type",
         "datasource_name",
         "viz_type",
@@ -148,9 +158,12 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    @memoized
     def get_datasource(self) -> Optional["BaseDatasource"]:
-        return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
+        return (
+            db.session.query(self.cls_model)
+            .filter_by(id=self.datasource_id)
+            .one_or_none()
+        )
 
     @renders("datasource_name")
     def datasource_link(self) -> Optional[Markup]:
@@ -186,8 +199,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: enable=using-constant-test
 
-    @property  # type: ignore
-    @memoized
+    @property
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)

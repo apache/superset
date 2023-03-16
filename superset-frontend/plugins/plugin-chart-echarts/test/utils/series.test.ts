@@ -16,21 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
+import {
+  DataRecord,
+  getNumberFormatter,
+  getTimeFormatter,
+} from '@superset-ui/core';
 import {
   dedupSeries,
   extractGroupbyLabel,
   extractSeries,
+  extractShowValueIndexes,
   formatSeriesName,
   getChartPadding,
   getLegendProps,
-  sanitizeHtml,
-  extractShowValueIndexes,
   getOverMaxHiddenFormatter,
+  sanitizeHtml,
+  sortAndFilterSeries,
 } from '../../src/utils/series';
-import { LegendOrientation, LegendType } from '../../src/types';
+import { LegendOrientation, LegendType, SortSeriesType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
+
+test('sortAndFilterSeries', () => {
+  const data: DataRecord[] = [
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+  ];
+
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, true),
+  ).toEqual(['y', 'x', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, false),
+  ).toEqual(['z', 'x', 'y']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, true),
+  ).toEqual(['x', 'z', 'y']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, false),
+  ).toEqual(['y', 'z', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, false),
+  ).toEqual(['z', 'y', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, false),
+  ).toEqual(['z', 'y', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, false),
+  ).toEqual(['z', 'y', 'x']);
+});
 
 describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {

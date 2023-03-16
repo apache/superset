@@ -108,40 +108,56 @@ export default function EchartsTimeseries({
     return model;
   };
 
+  const getCrossFilterDataMask = useCallback(
+    (value: string) => {
+      const selected: string[] = Object.values(selectedValues);
+      let values: string[];
+      if (selected.includes(value)) {
+        values = selected.filter(v => v !== value);
+      } else {
+        values = [value];
+      }
+      const groupbyValues = values.map(value => labelMap[value]);
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : groupby.map((col, idx) => {
+                    const val = groupbyValues.map(v => v[idx]);
+                    if (val === null || val === undefined)
+                      return {
+                        col,
+                        op: 'IS NULL' as const,
+                      };
+                    return {
+                      col,
+                      op: 'IN' as const,
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
+          },
+          filterState: {
+            label: groupbyValues.length ? groupbyValues : undefined,
+            value: groupbyValues.length ? groupbyValues : null,
+            selectedValues: values.length ? values : null,
+          },
+        },
+        isCurrentValueSelected: selected.includes(value),
+      };
+    },
+    [groupby, labelMap, selectedValues],
+  );
+
   const handleChange = useCallback(
-    (values: string[]) => {
+    (value: string) => {
       if (!emitCrossFilters) {
         return;
       }
-      const groupbyValues = values.map(value => labelMap[value]);
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val as (string | number | boolean)[],
-                  };
-                }),
-        },
-        filterState: {
-          label: groupbyValues.length ? groupbyValues : undefined,
-          value: groupbyValues.length ? groupbyValues : null,
-          selectedValues: values.length ? values : null,
-        },
-      });
+      setDataMask(getCrossFilterDataMask(value).dataMask);
     },
-    [groupby, labelMap, setDataMask, emitCrossFilters],
+    [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
   const eventHandlers: EventHandlers = {
@@ -152,12 +168,7 @@ export default function EchartsTimeseries({
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
         const { seriesName: name } = props;
-        const values = Object.values(selectedValues);
-        if (values.includes(name)) {
-          handleChange(values.filter(v => v !== name));
-        } else {
-          handleChange([name]);
-        }
+        handleChange(name);
       }, TIMER_DURATION);
     },
     mouseout: () => {
@@ -188,16 +199,16 @@ export default function EchartsTimeseries({
     contextmenu: eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
-        const { data } = eventParams;
+        const { data, seriesName } = eventParams;
+        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const pointerEvent = eventParams.event.event;
+        const values = [
+          ...(eventParams.name ? [eventParams.name] : []),
+          ...labelMap[eventParams.seriesName],
+        ];
         if (data) {
-          const pointerEvent = eventParams.event.event;
-          const values = [
-            ...(eventParams.name ? [eventParams.name] : []),
-            ...labelMap[eventParams.seriesName],
-          ];
-          const filters: BinaryQueryObjectFilterClause[] = [];
           if (xAxis.type === AxisType.time) {
-            filters.push({
+            drillToDetailFilters.push({
               col:
                 // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
                 xAxis.label === DTTM_ALIAS
@@ -213,15 +224,18 @@ export default function EchartsTimeseries({
             ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
             ...formData.groupby,
           ].forEach((dimension, i) =>
-            filters.push({
+            drillToDetailFilters.push({
               col: dimension,
               op: '==',
               val: values[i],
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
+        onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+          drillToDetail: drillToDetailFilters,
+          crossFilter: getCrossFilterDataMask(seriesName),
+        });
       }
     },
   };

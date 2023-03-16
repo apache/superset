@@ -18,9 +18,10 @@
  */
 import React, { RefObject } from 'react';
 import {
-  BinaryQueryObjectFilterClause,
   ChartDataResponseResult,
   ChartProps,
+  ContextMenuFilters,
+  FilterState,
   HandlerFunction,
   PlainObject,
   QueryFormColumn,
@@ -123,10 +124,13 @@ export interface BaseTransformedProps<F> {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
+  setDataMask?: SetDataMaskHook;
+  filterState?: FilterState;
   refs: Refs;
   width: number;
+  emitCrossFilters?: boolean;
 }
 
 export type CrossFilterTransformedProps = {
@@ -142,8 +146,9 @@ export type ContextMenuTransformedProps = {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: BinaryQueryObjectFilterClause[],
+    filters?: ContextMenuFilters,
   ) => void;
+  setDataMask?: SetDataMaskHook;
 };
 
 export interface TitleFormData {
@@ -161,5 +166,18 @@ export interface TreePathInfo {
   dataIndex: number;
   value: number | number[];
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};
 
 export * from './Timeseries/types';

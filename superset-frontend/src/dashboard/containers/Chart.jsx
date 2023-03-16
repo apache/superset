@@ -100,7 +100,6 @@ function mapStateToProps(
     filterState: dataMask[id]?.filterState,
     maxRows: common.conf.SQL_MAX_ROW,
     setControlValue,
-    filterboxMigrationState: dashboardState.filterboxMigrationState,
     datasetsStatus,
     emitCrossFilters: !!dashboardInfo.crossFiltersEnabled,
   };

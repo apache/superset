@@ -188,17 +188,18 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key. Make sure you override it on superset_config.py.
+# Your App secret key. Make sure you override it on superset_config.py
+# or use `SUPERSET_SECRET_KEY` environment variable.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = CHANGE_ME_SECRET_KEY
+SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# In order to hook up a custom password store for all SQLACHEMY connections
+# In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
 #
@@ -411,7 +412,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
-    # geospatial ones) by inputing javascript in controls. This exposes
+    # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
     "ENABLE_JAVASCRIPT_CONTROLS": False,
     "KV_STORE": False,
@@ -444,7 +445,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
-    "ENABLE_FILTER_BOX_MIGRATION": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
@@ -1204,6 +1204,7 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
 # functionality for both the SQL_Lab and Charts.
 MUTATE_AFTER_SPLIT = False
 
+
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
@@ -1246,12 +1247,12 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ScheduledTaskExecutor.CREATOR_OWNER,
-#     ScheduledTaskExecutor.CREATOR,
-#     ScheduledTaskExecutor.MODIFIER_OWNER,
-#     ScheduledTaskExecutor.MODIFIER,
-#     ScheduledTaskExecutor.OWNER,
-#     ScheduledTaskExecutor.SELENIUM,
+#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR,
+#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER,
+#     ExecutorType.OWNER,
+#     ExecutorType.SELENIUM,
 # ]
 ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
@@ -1405,6 +1406,13 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 
 # Prevents unsafe default endpoints to be registered on datasets.
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
+# Define a list of allowed URLs for dataset data imports (v1).
+# Simple example to only allow URLs that belong to certain domains:
+# ALLOWED_IMPORT_URL_DOMAINS = [
+#     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
+# ]
+DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.

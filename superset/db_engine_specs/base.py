@@ -72,7 +72,6 @@ from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
     from superset.models.sql_lab import Query
@@ -84,9 +83,6 @@ ColumnTypeMapping = Tuple[
 ]
 
 logger = logging.getLogger()
-
-
-CTE_ALIAS = "__cte"
 
 
 class TimeGrain(NamedTuple):
@@ -124,7 +120,7 @@ class TimestampExpression(
 ):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
-        respeting engine-specific quoting rules as part of a string-based expression.
+        respecting engine-specific quoting rules as part of a string-based expression.
 
         :param expr: Sql expression with '{col}' denoting the locations where the col
         object will be rendered.
@@ -334,9 +330,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
-    allows_hidden_ordeby_agg = True
+    allows_hidden_orderby_agg = True
 
-    # Whether ORDER BY clause can use sql caculated expression
+    # Whether ORDER BY clause can use sql calculated expression
     # if True, use alias of select column for `order by`
     # the True is safely for most database
     # But for backward compatibility, False by default
@@ -346,6 +342,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then it will allow  in subquery ,
     # if False it will allow as regular CTE
     allows_cte_in_subquery = True
+    # Define alias for CTE
+    cte_alias = "__cte"
     # Whether allow LIMIT clause in the SQL
     # If True, then the database engine is allowed for LIMIT clause
     # If False, then the database engine is allowed for TOP clause
@@ -356,6 +354,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # A set of disallowed connection query parameters
+    disallow_uri_query_params: Set[str] = set()
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -369,6 +369,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
+
+    # Is the DB engine spec able to change the default schema? This requires implementing
+    # a custom `adjust_database_uri` method.
+    dynamic_schema = False
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -889,7 +893,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
             # extract rest of the SQLs after CTE
             remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
 
         return None
 
@@ -1725,6 +1729,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
         }
+
+    @classmethod
+    def validate_database_uri(cls, sqlalchemy_uri: URL) -> None:
+        """
+        Validates a database SQLAlchemy URI per engine spec.
+        Use this to implement a final validation for unwanted connection configuration
+
+        :param sqlalchemy_uri:
+        """
+        if existing_disallowed := cls.disallow_uri_query_params.intersection(
+            sqlalchemy_uri.query
+        ):
+            raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 
 # schema for adding a database by providing parameters instead of the

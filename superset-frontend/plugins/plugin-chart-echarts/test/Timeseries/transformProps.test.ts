@@ -87,6 +87,44 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
+  it('should transform chart props for horizontal viz', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        orientation: 'horizontal',
+      },
+    });
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+      expect.objectContaining({
+        width: 800,
+        height: 600,
+        echartOptions: expect.objectContaining({
+          legend: expect.objectContaining({
+            data: ['San Francisco', 'New York'],
+          }),
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: [
+                [1, 599616000000],
+                [3, 599916000000],
+              ],
+              name: 'San Francisco',
+            }),
+            expect.objectContaining({
+              data: [
+                [2, 599616000000],
+                [4, 599916000000],
+              ],
+              name: 'New York',
+            }),
+          ]),
+          yAxis: expect.objectContaining({ inverse: true }),
+        }),
+      }),
+    );
+  });
+
   it('should add a formula annotation to viz', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
@@ -457,6 +495,37 @@ describe('Does transformProps transform series correctly', () => {
         const expectedLabel = String(value[1]);
         expect(series.label.formatter(params)).toBe(expectedLabel);
       });
+    });
+  });
+
+  it('should remove time shift labels from label_map', () => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        timeCompare: ['1 year ago'],
+      },
+      queriesData: [
+        {
+          ...queriesData[0],
+          label_map: {
+            '1 year ago, foo1, bar1': ['1 year ago', 'foo1', 'bar1'],
+            '1 year ago, foo2, bar2': ['1 year ago', 'foo2', 'bar2'],
+            'foo1, bar1': ['foo1', 'bar1'],
+            'foo2, bar2': ['foo2', 'bar2'],
+          },
+        },
+      ],
+    };
+    const chartProps = new ChartProps(updatedChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    expect(transformedProps.labelMap).toEqual({
+      '1 year ago, foo1, bar1': ['foo1', 'bar1'],
+      '1 year ago, foo2, bar2': ['foo2', 'bar2'],
+      'foo1, bar1': ['foo1', 'bar1'],
+      'foo2, bar2': ['foo2', 'bar2'],
     });
   });
 });

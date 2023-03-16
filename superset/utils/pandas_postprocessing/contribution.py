@@ -35,7 +35,7 @@ def contribution(
     rename_columns: Optional[List[str]] = None,
 ) -> DataFrame:
     """
-    Calculate cell contibution to row/column total for numeric columns.
+    Calculate cell contribution to row/column total for numeric columns.
     Non-numeric columns will be kept untouched.
 
     If `columns` are specified, only calculate contributions on selected columns.

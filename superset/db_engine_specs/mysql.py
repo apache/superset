@@ -69,6 +69,8 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     )
     encryption_parameters = {"ssl": "1"}
 
+    dynamic_schema = True
+
     column_type_mappings = (
         (
             re.compile(r"^int.*", re.IGNORECASE),
@@ -173,6 +175,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_uri_query_params = {"local_infile"}
 
     @classmethod
     def convert_dttm(

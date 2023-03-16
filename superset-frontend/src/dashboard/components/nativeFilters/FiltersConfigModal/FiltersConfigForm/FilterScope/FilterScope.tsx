@@ -18,10 +18,14 @@
  */
 
 import React, { FC, useCallback, useState } from 'react';
-import { NativeFilterScope, styled, t } from '@superset-ui/core';
+import {
+  NativeFilterScope,
+  styled,
+  t,
+  useComponentDidUpdate,
+} from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';

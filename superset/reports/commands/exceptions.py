@@ -77,7 +77,7 @@ class ReportScheduleRequiredTypeValidationError(ValidationError):
 
 class ReportScheduleOnlyChartOrDashboardError(ValidationError):
     """
-    Marshmallow validation error for report schedule accept exlusive chart or dashboard
+    Marshmallow validation error for report schedule accept exclusive chart or dashboard
     """
 
     def __init__(self) -> None:
@@ -215,6 +215,11 @@ class AlertQueryInvalidTypeError(CommandException):
 
 
 class AlertQueryError(CommandException):
+    """
+    SQL query is not valid
+    """
+
+    status = 400
     message = _("Alert found an error while executing a query.")
 
 

@@ -247,7 +247,7 @@ const VirtualTable = <RecordType extends object>(
         components={{
           body: renderVirtualList,
         }}
-        pagination={modifiedPagination}
+        pagination={pagination ? modifiedPagination : false}
       />
     </div>
   );

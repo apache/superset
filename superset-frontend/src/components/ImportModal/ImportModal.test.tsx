@@ -146,4 +146,51 @@ describe('ImportModelsModal', () => {
     );
     expect(wrapperWithPasswords.find('input[type="password"]')).toExist();
   });
+
+  it('should render ssh_tunnel password fields when needed for import', () => {
+    const wrapperWithPasswords = mount(
+      <ImportModelsModal
+        {...requiredProps}
+        sshTunnelPasswordFields={['databases/examples.yaml']}
+      />,
+      {
+        context: { store },
+      },
+    );
+    expect(
+      wrapperWithPasswords.find('[data-test="ssh_tunnel_password"]'),
+    ).toExist();
+  });
+
+  it('should render ssh_tunnel private_key fields when needed for import', () => {
+    const wrapperWithPasswords = mount(
+      <ImportModelsModal
+        {...requiredProps}
+        sshTunnelPrivateKeyFields={['databases/examples.yaml']}
+      />,
+      {
+        context: { store },
+      },
+    );
+    expect(
+      wrapperWithPasswords.find('[data-test="ssh_tunnel_private_key"]'),
+    ).toExist();
+  });
+
+  it('should render ssh_tunnel private_key_password fields when needed for import', () => {
+    const wrapperWithPasswords = mount(
+      <ImportModelsModal
+        {...requiredProps}
+        sshTunnelPrivateKeyPasswordFields={['databases/examples.yaml']}
+      />,
+      {
+        context: { store },
+      },
+    );
+    expect(
+      wrapperWithPasswords.find(
+        '[data-test="ssh_tunnel_private_key_password"]',
+      ),
+    ).toExist();
+  });
 });

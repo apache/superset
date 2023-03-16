@@ -29,6 +29,7 @@ from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
 from superset.stats_logger import BaseStatsLogger
+from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
 
@@ -54,6 +55,8 @@ class QueryCacheManager:
         query: str = "",
         annotation_data: Optional[Dict[str, Any]] = None,
         applied_template_filters: Optional[List[str]] = None,
+        applied_filter_columns: Optional[List[Column]] = None,
+        rejected_filter_columns: Optional[List[Column]] = None,
         status: Optional[str] = None,
         error_message: Optional[str] = None,
         is_loaded: bool = False,
@@ -66,6 +69,8 @@ class QueryCacheManager:
         self.query = query
         self.annotation_data = {} if annotation_data is None else annotation_data
         self.applied_template_filters = applied_template_filters or []
+        self.applied_filter_columns = applied_filter_columns or []
+        self.rejected_filter_columns = rejected_filter_columns or []
         self.status = status
         self.error_message = error_message
 
@@ -93,6 +98,8 @@ class QueryCacheManager:
             self.status = query_result.status
             self.query = query_result.query
             self.applied_template_filters = query_result.applied_template_filters
+            self.applied_filter_columns = query_result.applied_filter_columns
+            self.rejected_filter_columns = query_result.rejected_filter_columns
             self.error_message = query_result.error_message
             self.df = query_result.df
             self.annotation_data = {} if annotation_data is None else annotation_data
@@ -107,6 +114,8 @@ class QueryCacheManager:
                 "df": self.df,
                 "query": self.query,
                 "applied_template_filters": self.applied_template_filters,
+                "applied_filter_columns": self.applied_filter_columns,
+                "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
@@ -141,7 +150,7 @@ class QueryCacheManager:
 
         cache_value = _cache[region].get(key)
         if cache_value:
-            logger.info("Cache key: %s", key)
+            logger.debug("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
@@ -149,6 +158,12 @@ class QueryCacheManager:
                 query_cache.annotation_data = cache_value.get("annotation_data", {})
                 query_cache.applied_template_filters = cache_value.get(
                     "applied_template_filters", []
+                )
+                query_cache.applied_filter_columns = cache_value.get(
+                    "applied_filter_columns", []
+                )
+                query_cache.rejected_filter_columns = cache_value.get(
+                    "rejected_filter_columns", []
                 )
                 query_cache.status = QueryStatus.SUCCESS
                 query_cache.is_loaded = True
@@ -165,7 +180,7 @@ class QueryCacheManager:
                     error_msg_from_exception(ex),
                     exc_info=True,
                 )
-            logger.info("Serving from cache")
+            logger.debug("Serving from cache")
 
         if force_cached and not query_cache.is_loaded:
             logger.warning(

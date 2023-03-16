@@ -217,7 +217,7 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        # make sure we strip comments; prevents a bug with coments in the CTE
+        # make sure we strip comments; prevents a bug with comments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
         if parsed[0].get_type() == "SELECT":
             return True
@@ -509,7 +509,6 @@ def has_table_query(token_list: TokenList) -> bool:
     """
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
-
         # Recurse into child token list
         if isinstance(token, TokenList) and has_table_query(token):
             return True
@@ -607,7 +606,6 @@ def insert_rls(
     rls: Optional[TokenList] = None
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
-
         # Recurse into child token list
         if isinstance(token, TokenList):
             i = token_list.tokens.index(token)

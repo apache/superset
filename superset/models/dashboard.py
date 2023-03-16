@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
@@ -148,6 +149,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        tags = relationship(
+            "Tag",
+            secondary="tagged_object",
+            primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
+            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+            "TaggedObject.object_type == 'dashboard')",
+        )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
@@ -315,8 +324,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         return result
 
-    @property  # type: ignore
-    def params(self) -> str:  # type: ignore
+    @property
+    def params(self) -> str:
         return self.json_metadata
 
     @params.setter
@@ -442,11 +451,27 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return qry.one_or_none()
 
 
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
+def is_int(value: Union[str, int]) -> bool:
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+
+
 def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
-    if isinstance(id_or_slug, int):
-        return Dashboard.id == id_or_slug
-    if id_or_slug.isdigit():
+    if is_int(id_or_slug):
         return Dashboard.id == int(id_or_slug)
+    if is_uuid(id_or_slug):
+        return Dashboard.uuid == uuid.UUID(str(id_or_slug))
     return Dashboard.slug == id_or_slug
 
 

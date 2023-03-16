@@ -361,6 +361,113 @@ database_config: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
+database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "sqlite:///test.db",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "private_key": "XXXXXXXXXX",
+        "private_key_password": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_password: Dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "sqlite:///test.db",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "password": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_no_credentials: Dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "sqlite:///test.db",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_mix_credentials: Dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "sqlite:///test.db",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "password": "XXXXXXXXXX",
+        "private_key": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_private_pass_only: Dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "sqlite:///test.db",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "private_key_password": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+
 dataset_config: Dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,

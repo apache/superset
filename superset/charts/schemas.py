@@ -149,6 +149,12 @@ openapi_spec_methods_override = {
 }
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
+
+
 class ChartEntityResponseSchema(Schema):
     """
     Schema for a chart object
@@ -835,7 +841,6 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
-
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
@@ -1368,6 +1373,9 @@ class GetFavStarIdsSchema(Schema):
 
 class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
     query_context = fields.String(allow_none=True, validate=utils.validate_json)
