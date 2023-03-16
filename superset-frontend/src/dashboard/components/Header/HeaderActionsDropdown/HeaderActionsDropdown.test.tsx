@@ -80,7 +80,7 @@ const editModeOnProps = {
   editMode: true,
 };
 
-const editModeOnPropsWithFilterScopes = {
+const editModeOnWithFilterScopesProps = {
   ...editModeOnProps,
   dashboardInfo: {
     ...editModeOnProps.dashboardInfo,
@@ -154,7 +154,7 @@ describe('with native filters feature flag disabled', () => {
   });
 
   it('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
-    setup(editModeOnPropsWithFilterScopes);
+    setup(editModeOnWithFilterScopesProps);
     expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
   });
 });
@@ -180,7 +180,7 @@ describe('with native filters feature flag enabled', () => {
   });
 
   it('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
-    setup(editModeOnPropsWithFilterScopes);
+    setup(editModeOnWithFilterScopesProps);
     expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
   });
 });
