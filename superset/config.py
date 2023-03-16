@@ -1302,9 +1302,8 @@ WEBDRIVER_AUTH_FUNC = None
 WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 
 # Additional args to be passed as arguments to the config object
-# Note: these options are Chrome-specific. For FF, these should
-# only include the "--headless" arg
-WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
+# Note: If using Chrome, you'll want to add the "--marionette" arg.
+WEBDRIVER_OPTION_ARGS = ["--headless"]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
