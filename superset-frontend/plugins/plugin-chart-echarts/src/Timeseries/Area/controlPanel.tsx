@@ -34,6 +34,7 @@ import {
   onlyTotalControl,
   showValueControl,
   richTooltipSection,
+  seriesOrderSection,
 } from '../../controls';
 import { AreaChartExtraControlsOptions } from '../../constants';
 
@@ -62,6 +63,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         [
           {

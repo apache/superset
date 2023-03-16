@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { usePrevious } from 'src/hooks/usePrevious';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   t,
@@ -28,6 +27,7 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
+  usePrevious,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';

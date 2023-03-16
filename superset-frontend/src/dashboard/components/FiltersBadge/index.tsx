@@ -20,9 +20,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import { DataMaskStateWithId, Filters, styled } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  Filters,
+  styled,
+  usePrevious,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { usePrevious } from 'src/hooks/usePrevious';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
