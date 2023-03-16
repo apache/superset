@@ -81,6 +81,7 @@ export enum LegendType {
 }
 
 export type ForecastValue = {
+  name: string;
   marker: TooltipMarker;
   observation?: number;
   forecastTrend?: number;

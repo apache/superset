@@ -419,17 +419,16 @@ export default function transformProps(
         }
 
         const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
-        const forecastValues: Record<string, ForecastValue> =
+        const forecastValues: Array<ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
-        Object.keys(forecastValues).forEach(key => {
-          const value = forecastValues[key];
+        forecastValues.forEach(item => {
           const content = formatForecastTooltipSeries({
-            ...value,
-            seriesName: key,
+            ...item,
+            seriesName: item.name,
             formatter,
           });
-          if (currentSeries.name === key) {
+          if (currentSeries.name === item.name) {
             rows.push(`<span style="font-weight: 700">${content}</span>`);
           } else {
             rows.push(`<span style="opacity: 0.7">${content}</span>`);

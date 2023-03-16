@@ -55,18 +55,29 @@ export const extractForecastSeriesContexts = (
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
   isHorizontal = false,
-): Record<string, ForecastValue> => {
-  const values: Record<string, ForecastValue> = {};
+): Array<ForecastValue> => {
+  const values: Array<ForecastValue> = [];
   params.forEach(param => {
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
     if (isNumber(numericValue)) {
-      if (!(context.name in values))
-        values[context.name] = {
+      let forecastValues: ForecastValue = {
+        name: '',
+        marker: marker || '',
+      };
+      values.forEach(item => {
+        if (item.name === context.name) {
+          forecastValues = item;
+        }
+      });
+      if (forecastValues.name === '') {
+        forecastValues = {
+          name: context.name,
           marker: marker || '',
         };
-      const forecastValues = values[context.name];
+        values.push(forecastValues);
+      }
       if (context.type === ForecastSeriesEnum.Observation)
         forecastValues.observation = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastTrend)

@@ -229,6 +229,7 @@ const formatter = getNumberFormatter(NumberFormats.INTEGER);
 test('formatForecastTooltipSeries should apply format to value', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'abc',
       seriesName: 'abc',
       marker: '<img>',
       observation: 10.1,
@@ -240,6 +241,7 @@ test('formatForecastTooltipSeries should apply format to value', () => {
 test('formatForecastTooltipSeries should show falsy value', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'abc',
       seriesName: 'abc',
       marker: '<img>',
       observation: 0,
@@ -251,6 +253,7 @@ test('formatForecastTooltipSeries should show falsy value', () => {
 test('formatForecastTooltipSeries should format full forecast', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'qwerty',
       seriesName: 'qwerty',
       marker: '<img>',
       observation: 10.1,
@@ -265,6 +268,7 @@ test('formatForecastTooltipSeries should format full forecast', () => {
 test('formatForecastTooltipSeries should format forecast without observation', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'qwerty',
       seriesName: 'qwerty',
       marker: '<img>',
       forecastTrend: 20,
@@ -278,6 +282,7 @@ test('formatForecastTooltipSeries should format forecast without observation', (
 test('formatForecastTooltipSeries should format forecast without point estimate', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'qwerty',
       seriesName: 'qwerty',
       marker: '<img>',
       observation: 10.1,
@@ -291,6 +296,7 @@ test('formatForecastTooltipSeries should format forecast without point estimate'
 test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
   expect(
     formatForecastTooltipSeries({
+      name: 'qwerty',
       seriesName: 'qwerty',
       marker: '<img>',
       forecastLower: 7,
