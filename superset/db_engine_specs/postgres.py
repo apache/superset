@@ -78,6 +78,8 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
+    supports_dynamic_schema = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('second', {col})",
@@ -148,6 +150,30 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
+        if not schema:
+            return uri, connect_args
+
+        options = dict(
+            [
+                tuple(token.strip() for token in option.strip().split("=", 1))
+                for option in re.split(r"-c\s?", connect_args.get("options", ""))
+                if "=" in option
+            ]
+        )
+        options["search_path"] = schema
+        connect_args["options"] = " ".join(
+            f"-c{key}={value}" for key, value in options.items()
+        )
+
+        return uri, connect_args
+
+    @classmethod
     def get_schema_from_engine_params(
         cls,
         sqlalchemy_uri: URL,
@@ -166,19 +192,23 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         to determine the schema for a non-qualified table in a query. In cases like
         that we raise an exception.
         """
-        options = re.split(r"-c\s?", connect_args.get("options", ""))
-        for option in options:
-            if "=" not in option:
-                continue
-            key, value = option.strip().split("=", 1)
-            if key.strip() == "search_path":
-                if "," in value:
-                    raise Exception(
-                        "Multiple schemas are configured in the search path, which means "
-                        "Superset is unable to determine the schema of unqualified table "
-                        "names and enforce permissions."
-                    )
-                return value.strip()
+        options = dict(
+            [
+                tuple(token.strip() for token in option.strip().split("=", 1))
+                for option in re.split(r"-c\s?", connect_args.get("options", ""))
+                if "=" in option
+            ]
+        )
+
+        if search_path := options.get("search_path"):
+            schemas = search_path.split(",")
+            if len(schemas) > 1:
+                raise Exception(
+                    "Multiple schemas are configured in the search path, which means "
+                    "Superset is unable to determine the schema of unqualified table "
+                    "names and enforce permissions."
+                )
+            return schemas[0]
 
         return None
 

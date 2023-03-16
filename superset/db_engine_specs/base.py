@@ -371,7 +371,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     supports_file_upload = True
 
     # Is the DB engine spec able to change the default schema? This requires implementing
-    # a custom `adjust_database_uri` method.
+    # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
 
     @classmethod
@@ -1057,11 +1057,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(  # pylint: disable=unused-argument
+    def adjust_engine_params(  # pylint: disable=unused-argument
         cls,
         uri: URL,
-        selected_schema: Optional[str],
-    ) -> URL:
+        connect_args: Dict[str, Any],
+        schema: Optional[str],
+    ) -> Tuple[URL, Dict[str, Any]]:
         """
         Return a modified URL with a new database component.
 
@@ -1080,7 +1081,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like Presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        return uri
+        return uri, connect_args
 
     @classmethod
     def patch(cls) -> None:
