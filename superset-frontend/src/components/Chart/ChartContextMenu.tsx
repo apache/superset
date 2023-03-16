@@ -143,6 +143,7 @@ const ChartContextMenu = (
     menuItems.push(
       <>
         <Menu.Item
+          data-test="cross-filter-menu-item"
           key="cross-filtering-menu-item"
           disabled={isCrossFilterDisabled}
           onClick={() => {

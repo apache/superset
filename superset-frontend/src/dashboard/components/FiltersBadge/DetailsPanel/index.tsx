@@ -123,7 +123,7 @@ const DetailsPanelPopover = ({
       <div>
         {appliedCrossFilterIndicators.length ? (
           <div>
-            <SectionName>
+            <SectionName data-test="applied-cross-filters">
               {t(
                 'Applied cross-filters (%d)',
                 appliedCrossFilterIndicators.length,

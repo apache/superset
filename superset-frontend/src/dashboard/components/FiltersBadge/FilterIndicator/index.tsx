@@ -47,6 +47,7 @@ const FilterIndicator: FC<IndicatorProps> = ({
       {onClick && (
         <i>
           <Icons.SearchOutlined
+            data-test="cross-filter-lens"
             iconSize="m"
             css={css`
               span {
@@ -57,11 +58,11 @@ const FilterIndicator: FC<IndicatorProps> = ({
         </i>
       )}
       <div>
-        <FilterName>
+        <FilterName data-test="cross-filter-name">
           {name}
           {resultValue ? ': ' : ''}
         </FilterName>
-        <FilterValue>{resultValue}</FilterValue>
+        <FilterValue data-test="cross-filter-value">{resultValue}</FilterValue>
       </div>
     </FilterItem>
   );

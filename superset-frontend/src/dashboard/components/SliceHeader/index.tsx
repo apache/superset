@@ -245,7 +245,10 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                   'This chart emits/applies cross-filters to other charts that use the same dataset',
                 )}
               >
-                <CrossFilterIcon iconSize="m" />
+                <CrossFilterIcon
+                  iconSize="m"
+                  data-test="cross-filters-emitted"
+                />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (

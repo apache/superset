@@ -41,6 +41,25 @@ export const SUPPORTED_TIER1_CHARTS = [
 
 export const SUPPORTED_TIER2_CHARTS = [
   { name: 'Box Plot Chart', viz: 'box_plot' },
+  { name: 'Bubble Chart', viz: 'bubble' },
+  { name: 'Chord Chart', viz: 'chord' },
+  { name: 'Time-Series Percent Change Chart', viz: 'compare' },
+  { name: 'Time-Series Generic Chart', viz: 'echarts_timeseries' },
+  { name: 'Time-Series Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
+  { name: 'Time-Series Step Line Chart', viz: 'echarts_timeseries_step' },
+  { name: 'Funnel Chart', viz: 'funnel' },
+  { name: 'Gauge Chart', viz: 'gauge_chart' },
+  { name: 'Heatmap Chart', viz: 'heatmap' },
+  { name: 'Line Chart', viz: 'line' },
+  { name: 'Mixed Chart', viz: 'mixed_timeseries' },
+  { name: 'Partition Chart', viz: 'partition' },
+  { name: 'Radar Chart', viz: 'radar' },
+  { name: 'Nightingale Chart', viz: 'rose' },
+  { name: 'Sankey Chart', viz: 'sankey' },
+  { name: 'Sunburst Chart', viz: 'sunburst' },
+  { name: 'Treemap Chart', viz: 'treemap' },
+  { name: 'Treemap V2 Chart', viz: 'treemap_v2' },
+  { name: 'Word Cloud Chart', viz: 'word_cloud' },
 ] as ChartSpec[];
 
 export const testItems = {
