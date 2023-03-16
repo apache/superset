@@ -25,6 +25,7 @@ import {
   LabelPositionEnum,
   LegendOrientation,
   LegendType,
+  SortSeriesData,
 } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -114,3 +115,8 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // If no satisfactory position can be found, how far away
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
+
+export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
+  sort_series_type: 'sum',
+  sort_series_ascending: false,
+};

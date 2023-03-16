@@ -16,21 +16,85 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
+import {
+  DataRecord,
+  getNumberFormatter,
+  getTimeFormatter,
+} from '@superset-ui/core';
 import {
   dedupSeries,
   extractGroupbyLabel,
   extractSeries,
+  extractShowValueIndexes,
   formatSeriesName,
   getChartPadding,
   getLegendProps,
-  sanitizeHtml,
-  extractShowValueIndexes,
   getOverMaxHiddenFormatter,
+  sanitizeHtml,
+  sortAndFilterSeries,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
+
+test('sortAndFilterSeries', () => {
+  const data: DataRecord[] = [
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+  ];
+
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'min', true)).toEqual([
+    'y',
+    'x',
+    'z',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'min', false)).toEqual([
+    'z',
+    'x',
+    'y',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'max', true)).toEqual([
+    'x',
+    'z',
+    'y',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'max', false)).toEqual([
+    'y',
+    'z',
+    'x',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'avg', true)).toEqual([
+    'x',
+    'y',
+    'z',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'avg', false)).toEqual([
+    'z',
+    'y',
+    'x',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'sum', true)).toEqual([
+    'x',
+    'y',
+    'z',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'sum', false)).toEqual([
+    'z',
+    'y',
+    'x',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'name', true)).toEqual([
+    'x',
+    'y',
+    'z',
+  ]);
+  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'name', false)).toEqual([
+    'z',
+    'y',
+    'x',
+  ]);
+});
 
 describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -53,21 +117,21 @@ describe('extractSeries', () => {
     ];
     expect(extractSeries(data)).toEqual([
       {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [
-          ['2000-01-01', null],
-          ['2000-02-01', 2],
-          ['2000-03-01', 1],
-        ],
-      },
-      {
         id: 'abc',
         name: 'abc',
         data: [
           ['2000-01-01', 2],
           ['2000-02-01', 10],
           ['2000-03-01', 5],
+        ],
+      },
+      {
+        id: 'Hulk',
+        name: 'Hulk',
+        data: [
+          ['2000-01-01', null],
+          ['2000-02-01', 2],
+          ['2000-03-01', 1],
         ],
       },
     ]);
@@ -93,17 +157,17 @@ describe('extractSeries', () => {
     ];
     expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
       {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [[2, 1]],
-      },
-      {
         id: 'abc',
         name: 'abc',
         data: [
           [1, 2],
           [2, 5],
         ],
+      },
+      {
+        id: 'Hulk',
+        name: 'Hulk',
+        data: [[2, 1]],
       },
     ]);
   });

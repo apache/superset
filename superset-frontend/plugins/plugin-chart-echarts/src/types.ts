@@ -167,4 +167,11 @@ export interface TreePathInfo {
   value: number | number[];
 }
 
+export type SortSeriesType = 'name' | 'max' | 'min' | 'sum' | 'avg';
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};
+
 export * from './Timeseries/types';
