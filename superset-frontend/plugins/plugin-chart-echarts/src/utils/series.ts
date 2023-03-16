@@ -30,12 +30,18 @@ import {
   AxisType,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { sumBy, meanBy, minBy, maxBy, orderBy } from 'lodash';
 import {
   AreaChartExtraControlsValue,
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { LegendOrientation, LegendType, StackType } from '../types';
+import {
+  LegendOrientation,
+  LegendType,
+  SortSeriesType,
+  StackType,
+} from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -108,6 +114,46 @@ export function extractShowValueIndexes(
   return showValueIndexes;
 }
 
+export function sortAndFilterSeries(
+  rows: DataRecord[],
+  xAxis: string,
+  extraMetricLabels: any[],
+  sortSeriesType?: SortSeriesType,
+  sortSeriesAscending?: boolean,
+): string[] {
+  const seriesNames = Object.keys(rows[0])
+    .filter(key => key !== xAxis)
+    .filter(key => !extraMetricLabels.includes(key));
+
+  let aggregator: (name: string) => { name: string; value: any };
+
+  switch (sortSeriesType) {
+    case SortSeriesType.Sum:
+      aggregator = name => ({ name, value: sumBy(rows, name) });
+      break;
+    case SortSeriesType.Min:
+      aggregator = name => ({ name, value: minBy(rows, name)?.[name] });
+      break;
+    case SortSeriesType.Max:
+      aggregator = name => ({ name, value: maxBy(rows, name)?.[name] });
+      break;
+    case SortSeriesType.Avg:
+      aggregator = name => ({ name, value: meanBy(rows, name) });
+      break;
+    default:
+      aggregator = name => ({ name, value: name.toLowerCase() });
+      break;
+  }
+
+  const sortedValues = seriesNames.map(aggregator);
+
+  return orderBy(
+    sortedValues,
+    ['value'],
+    [sortSeriesAscending ? 'asc' : 'desc'],
+  ).map(({ name }) => name);
+}
+
 export function extractSeries(
   data: DataRecord[],
   opts: {
@@ -118,6 +164,8 @@ export function extractSeries(
     stack?: StackType;
     totalStackedValues?: number[];
     isHorizontal?: boolean;
+    sortSeriesType?: SortSeriesType;
+    sortSeriesAscending?: boolean;
   } = {},
 ): SeriesOption[] {
   const {
@@ -128,41 +176,47 @@ export function extractSeries(
     stack = false,
     totalStackedValues = [],
     isHorizontal = false,
+    sortSeriesType,
+    sortSeriesAscending,
   } = opts;
   if (data.length === 0) return [];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
   }));
+  const series = sortAndFilterSeries(
+    rows,
+    xAxis,
+    extraMetricLabels,
+    sortSeriesType,
+    sortSeriesAscending,
+  );
 
-  return Object.keys(rows[0])
-    .filter(key => key !== xAxis && key !== DTTM_ALIAS)
-    .filter(key => !extraMetricLabels.includes(key))
-    .map(key => ({
-      id: key,
-      name: key,
-      data: rows
-        .map((row, idx) => {
-          const isNextToDefinedValue =
-            isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
-          const isFillNeighborValue =
-            !isDefined(row[key]) &&
-            isNextToDefinedValue &&
-            fillNeighborValue !== undefined;
-          let value: DataRecordValue | undefined = row[key];
-          if (isFillNeighborValue) {
-            value = fillNeighborValue;
-          } else if (
-            stack === AreaChartExtraControlsValue.Expand &&
-            totalStackedValues.length > 0
-          ) {
-            value = ((value || 0) as number) / totalStackedValues[idx];
-          }
-          return [row[xAxis], value];
-        })
-        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
-        .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
-    }));
+  return series.map(name => ({
+    id: name,
+    name,
+    data: rows
+      .map((row, idx) => {
+        const isNextToDefinedValue =
+          isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
+        const isFillNeighborValue =
+          !isDefined(row[name]) &&
+          isNextToDefinedValue &&
+          fillNeighborValue !== undefined;
+        let value: DataRecordValue | undefined = row[name];
+        if (isFillNeighborValue) {
+          value = fillNeighborValue;
+        } else if (
+          stack === AreaChartExtraControlsValue.Expand &&
+          totalStackedValues.length > 0
+        ) {
+          value = ((value || 0) as number) / totalStackedValues[idx];
+        }
+        return [row[xAxis], value];
+      })
+      .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
+      .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
+  }));
 }
 
 export function formatSeriesName(

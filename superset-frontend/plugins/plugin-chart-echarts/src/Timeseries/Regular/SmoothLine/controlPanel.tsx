@@ -34,6 +34,7 @@ import {
 import {
   legendSection,
   richTooltipSection,
+  seriesOrderSection,
   showValueSectionWithoutStack,
 } from '../../../controls';
 
@@ -60,6 +61,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         ...showValueSectionWithoutStack,
         [
