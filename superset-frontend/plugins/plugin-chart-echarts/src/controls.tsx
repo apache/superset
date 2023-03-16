@@ -29,6 +29,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { SortSeriesType } from './types';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -223,11 +224,11 @@ const sortSeriesType: ControlSetItem = {
     freeForm: false,
     label: t('Sort Series By'),
     choices: [
-      ['name', t('Category name')],
-      ['sum', t('Total value')],
-      ['min', t('Minimum value')],
-      ['max', t('Maximum value')],
-      ['avg', t('Average value')],
+      [SortSeriesType.Name, t('Category name')],
+      [SortSeriesType.Sum, t('Total value')],
+      [SortSeriesType.Min, t('Minimum value')],
+      [SortSeriesType.Max, t('Maximum value')],
+      [SortSeriesType.Avg, t('Average value')],
     ],
     default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
     renderTrigger: true,

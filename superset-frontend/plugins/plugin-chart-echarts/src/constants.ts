@@ -20,12 +20,13 @@
 import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LegendFormData,
-  TitleFormData,
   LabelPositionEnum,
+  LegendFormData,
   LegendOrientation,
   LegendType,
   SortSeriesData,
+  SortSeriesType,
+  TitleFormData,
 } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -117,6 +118,6 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
 
 export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
-  sort_series_type: 'sum',
+  sort_series_type: SortSeriesType.Sum,
   sort_series_ascending: false,
 };

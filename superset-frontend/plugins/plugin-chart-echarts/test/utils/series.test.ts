@@ -33,7 +33,7 @@ import {
   sanitizeHtml,
   sortAndFilterSeries,
 } from '../../src/utils/series';
-import { LegendOrientation, LegendType } from '../../src/types';
+import { LegendOrientation, LegendType, SortSeriesType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
@@ -44,56 +44,36 @@ test('sortAndFilterSeries', () => {
     { my_x_axis: null, x: 4, y: 3, z: 7 },
   ];
 
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'min', true)).toEqual([
-    'y',
-    'x',
-    'z',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'min', false)).toEqual([
-    'z',
-    'x',
-    'y',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'max', true)).toEqual([
-    'x',
-    'z',
-    'y',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'max', false)).toEqual([
-    'y',
-    'z',
-    'x',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'avg', true)).toEqual([
-    'x',
-    'y',
-    'z',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'avg', false)).toEqual([
-    'z',
-    'y',
-    'x',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'sum', true)).toEqual([
-    'x',
-    'y',
-    'z',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'sum', false)).toEqual([
-    'z',
-    'y',
-    'x',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'name', true)).toEqual([
-    'x',
-    'y',
-    'z',
-  ]);
-  expect(sortAndFilterSeries(data, 'my_x_axis', [], 'name', false)).toEqual([
-    'z',
-    'y',
-    'x',
-  ]);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, true),
+  ).toEqual(['y', 'x', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, false),
+  ).toEqual(['z', 'x', 'y']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, true),
+  ).toEqual(['x', 'z', 'y']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, false),
+  ).toEqual(['y', 'z', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, false),
+  ).toEqual(['z', 'y', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, false),
+  ).toEqual(['z', 'y', 'x']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, true),
+  ).toEqual(['x', 'y', 'z']);
+  expect(
+    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, false),
+  ).toEqual(['z', 'y', 'x']);
 });
 
 describe('extractSeries', () => {

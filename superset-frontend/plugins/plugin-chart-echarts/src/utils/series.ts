@@ -128,16 +128,16 @@ export function sortAndFilterSeries(
   let aggregator: (name: string) => { name: string; value: any };
 
   switch (sortSeriesType) {
-    case 'sum':
+    case SortSeriesType.Sum:
       aggregator = name => ({ name, value: sumBy(rows, name) });
       break;
-    case 'min':
+    case SortSeriesType.Min:
       aggregator = name => ({ name, value: minBy(rows, name)?.[name] });
       break;
-    case 'max':
+    case SortSeriesType.Max:
       aggregator = name => ({ name, value: maxBy(rows, name)?.[name] });
       break;
-    case 'avg':
+    case SortSeriesType.Avg:
       aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
     default:

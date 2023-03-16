@@ -167,7 +167,13 @@ export interface TreePathInfo {
   value: number | number[];
 }
 
-export type SortSeriesType = 'name' | 'max' | 'min' | 'sum' | 'avg';
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
 
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;
