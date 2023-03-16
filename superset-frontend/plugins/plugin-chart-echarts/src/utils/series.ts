@@ -32,7 +32,7 @@ import {
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import { sumBy, meanBy, minBy, maxBy, orderBy } from 'lodash';
 import {
-  AreaChartExtraControlsValue,
+  StackControlsValue,
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
@@ -207,7 +207,7 @@ export function extractSeries(
         if (isFillNeighborValue) {
           value = fillNeighborValue;
         } else if (
-          stack === AreaChartExtraControlsValue.Expand &&
+          stack === StackControlsValue.Expand &&
           totalStackedValues.length > 0
         ) {
           value = ((value || 0) as number) / totalStackedValues[idx];

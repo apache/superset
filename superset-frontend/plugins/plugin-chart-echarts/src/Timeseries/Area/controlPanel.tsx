@@ -35,6 +35,7 @@ import {
   showValueControl,
   richTooltipSection,
   seriesOrderSection,
+  percentageThresholdControl,
 } from '../../controls';
 import { AreaChartExtraControlsOptions } from '../../constants';
 
@@ -116,6 +117,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [onlyTotalControl],
+        [percentageThresholdControl],
         [
           {
             name: 'show_extra_controls',

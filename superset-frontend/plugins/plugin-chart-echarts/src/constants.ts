@@ -71,18 +71,29 @@ export enum OpacityEnum {
   NonTransparent = 1,
 }
 
-export enum AreaChartExtraControlsValue {
+export enum StackControlsValue {
   Stack = 'Stack',
+  Stream = 'Stream',
   Expand = 'Expand',
 }
+
+export const BarChartExtraControlsOptions: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+  [StackControlsValue.Stream, t('Stream')],
+];
 
 export const AreaChartExtraControlsOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
   [null, t('None')],
-  [AreaChartExtraControlsValue.Stack, t('Stack')],
-  [AreaChartExtraControlsValue.Expand, t('Expand')],
+  [StackControlsValue.Stack, t('Stack')],
+  [StackControlsValue.Stream, t('Stream')],
+  [StackControlsValue.Expand, t('Expand')],
 ];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {

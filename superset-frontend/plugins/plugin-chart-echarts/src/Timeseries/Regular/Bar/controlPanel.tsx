@@ -37,10 +37,13 @@ import {
 } from '../../constants';
 import {
   legendSection,
+  onlyTotalControl,
+  percentageThresholdControl,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueControl,
 } from '../../../controls';
+import { BarChartExtraControlsOptions } from '../../../constants';
 
 const {
   logAxis,
@@ -304,7 +307,22 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
-        ...showValueSection,
+        [showValueControl],
+        [
+          {
+            name: 'stack',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: BarChartExtraControlsOptions,
+              default: null,
+              description: t('Stack series on top of each other'),
+            },
+          },
+        ],
+        [onlyTotalControl],
+        [percentageThresholdControl],
         [
           {
             name: 'zoomable',

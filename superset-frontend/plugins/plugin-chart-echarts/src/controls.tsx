@@ -27,6 +27,7 @@ import {
 import {
   DEFAULT_LEGEND_FORM_DATA,
   DEFAULT_SORT_SERIES_DATA,
+  BarChartExtraControlsOptions,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { SortSeriesType } from './types';
@@ -142,7 +143,7 @@ export const onlyTotalControl: ControlSetItem = {
   },
 };
 
-const percentageThresholdControl: ControlSetItem = {
+export const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
     type: 'TextControl',
