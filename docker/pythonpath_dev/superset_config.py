@@ -127,3 +127,11 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+def test(x):
+    print(f'JINJA DEBUG: {x}')
+    return x
+
+JINJA_CONTEXT_ADDONS = {
+    'test': test
+}
