@@ -107,7 +107,8 @@ def test_get(test_client, login_as_admin, dashboard_id: int, permalink_salt: str
     resp = test_client.get(f"api/v1/dashboard/permalink/{key}")
     assert resp.status_code == 200
     result = resp.json
-    assert result["dashboardId"] == str(dashboard_id)
+    dashboard_uuid = result["dashboardId"]
+    assert Dashboard.get(dashboard_uuid).id == dashboard_id
     assert result["state"] == STATE
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()

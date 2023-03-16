@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import uuid
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role
@@ -26,7 +25,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database, FavStar
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
@@ -87,14 +86,6 @@ class DashboardTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-metho
     arg_name = "dashboard_tags"
     class_name = "Dashboard"
     model = Dashboard
-
-
-def is_uuid(value: Union[str, int]) -> bool:
-    try:
-        uuid.UUID(str(value))
-        return True
-    except ValueError:
-        return False
 
 
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
