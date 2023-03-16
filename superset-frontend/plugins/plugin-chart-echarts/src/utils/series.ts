@@ -118,8 +118,8 @@ export function sortAndFilterSeries(
   rows: DataRecord[],
   xAxis: string,
   extraMetricLabels: any[],
-  sortSeriesType: SortSeriesType,
-  sortSeriesAscending: boolean,
+  sortSeriesType?: SortSeriesType,
+  sortSeriesAscending?: boolean,
 ): string[] {
   const seriesNames = Object.keys(rows[0])
     .filter(key => key !== xAxis)
@@ -176,15 +176,15 @@ export function extractSeries(
     stack = false,
     totalStackedValues = [],
     isHorizontal = false,
-    sortSeriesType = 'name',
-    sortSeriesAscending = true,
+    sortSeriesType,
+    sortSeriesAscending,
   } = opts;
   if (data.length === 0) return [];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
   }));
-  const sortedValues = sortAndFilterSeries(
+  const series = sortAndFilterSeries(
     rows,
     xAxis,
     extraMetricLabels,
@@ -192,7 +192,7 @@ export function extractSeries(
     sortSeriesAscending,
   );
 
-  return sortedValues.map(name => ({
+  return series.map(name => ({
     id: name,
     name,
     data: rows
