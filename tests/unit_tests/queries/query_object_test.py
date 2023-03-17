@@ -30,8 +30,7 @@ def cache_impersonation_flag_side_effect(feature=None):
 
 
 def cache_query_by_user_flag_side_effect(feature=None):
-    if feature == "CACHE_QUERY_BY_USER":
-        return True
+    return feature == "CACHE_QUERY_BY_USER"
 
 
 def test_default_query_object_to_dict():
