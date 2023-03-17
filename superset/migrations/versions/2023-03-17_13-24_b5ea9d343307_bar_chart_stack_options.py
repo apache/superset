@@ -80,7 +80,7 @@ def downgrade():
     for slc in slices:
         try:
             params = json.loads(slc.params)
-            stack = params.get("stack")
+            stack = params.get("stack", None)
             if stack == "Stack" or stack == "Stream":
                 params["stack"] = True
             else:
