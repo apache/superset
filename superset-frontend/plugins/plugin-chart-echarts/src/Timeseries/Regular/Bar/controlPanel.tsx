@@ -34,7 +34,7 @@ import {
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
-} from '@superset-ui/plugin-chart-echarts';
+} from '../../../controls';
 
 import { OrientationType } from '../../types';
 import {
