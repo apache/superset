@@ -368,8 +368,10 @@ describe('EchartsTimeseries transformProps', () => {
 
     const chartProps = new ChartProps(props);
     expect(
-      transformProps(chartProps as EchartsTimeseriesChartProps).echartOptions
-        .series[0],
+      (
+        transformProps(chartProps as EchartsTimeseriesChartProps).echartOptions
+          .series as any[]
+      )[0],
     ).toEqual({
       areaStyle: {
         opacity: 0,
