@@ -1772,7 +1772,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1787,7 +1787,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1904,16 +1904,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -1964,6 +1959,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2566,7 +2565,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2581,7 +2580,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2698,16 +2697,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -2758,6 +2752,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -3407,7 +3405,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3448,11 +3446,7 @@
             "type": "string"
           },
           "owners": {
-<<<<<<< HEAD
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
-=======
             "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
->>>>>>> 870bf6d0b9a9d4feaceac1544bd9eda71b803db5
           },
           "position_json": {
             "nullable": true,
@@ -3500,10 +3494,6 @@
       },
       "DashboardRestApi.get_list.User": {
         "properties": {
-          "email": {
-            "maxLength": 64,
-            "type": "string"
-          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -3522,7 +3512,6 @@
           }
         },
         "required": [
-          "email",
           "first_name",
           "last_name",
           "username"
@@ -4926,7 +4915,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -5004,11 +4993,7 @@
             "type": "integer"
           },
           "owners": {
-<<<<<<< HEAD
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
-=======
             "$ref": "#/components/schemas/DatasetRestApi.get.User2"
->>>>>>> 870bf6d0b9a9d4feaceac1544bd9eda71b803db5
           },
           "schema": {
             "maxLength": 255,
@@ -5205,23 +5190,14 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
             "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -5662,29 +5638,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "EstimateQueryCostSchema": {
-        "properties": {
-          "database_id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "schema": {
-            "nullable": true,
-            "type": "string"
-          },
-          "sql": {
-            "type": "string"
-          },
-          "template_params": {
-            "type": "object"
-          }
-        },
-        "required": [
-          "database_id",
-          "sql"
-        ],
         "type": "object"
       },
       "ExecutePayloadSchema": {
@@ -7014,7 +6967,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -7080,11 +7033,7 @@
             "type": "string"
           },
           "owners": {
-<<<<<<< HEAD
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
-=======
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
->>>>>>> 870bf6d0b9a9d4feaceac1544bd9eda71b803db5
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -7127,10 +7076,6 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -20121,62 +20066,6 @@
         ],
         "tags": [
           "Security"
-        ]
-      }
-    },
-    "/api/v1/sqllab/estimate/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EstimateQueryCostSchema"
-              }
-            }
-          },
-          "description": "SQL query and params",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "type": "object"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Query estimation result"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Estimates the SQL query execution cost",
-        "tags": [
-          "SQL Lab"
         ]
       }
     },
