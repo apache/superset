@@ -285,7 +285,7 @@ If you want to rotate the SECRET_KEY(change the existing secret key), follow the
 Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
 
 ```python
-PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is mentioned in superset/constants.py as CHANGE_ME_SECRET_KEY variable
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Recommended way to generate own secret key is using openssl run command -> openssl rand -base64 42
 ```
 Then run `superset re-encrypt-secrets`
