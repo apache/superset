@@ -2628,17 +2628,10 @@
             "type": "string"
           },
           "last_saved_by": {
-<<<<<<< HEAD
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
-          },
-          "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
-=======
             "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
->>>>>>> 870bf6d0b9a9d4feaceac1544bd9eda71b803db5
           },
           "params": {
             "nullable": true,
