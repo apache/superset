@@ -72,6 +72,22 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
+def parse_options(connect_args: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Parse ``options`` from  ``connect_args`` into a dictionary.
+    """
+    if not isinstance(connect_args.get("options"), str):
+        return {}
+
+    tokens = (
+        tuple(token.strip() for token in option.strip().split("=", 1))
+        for option in re.split(r"-c\s?", connect_args["options"])
+        if "=" in option
+    )
+
+    return {token[0]: token[1] for token in tokens}
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
@@ -160,13 +176,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         if not schema:
             return uri, connect_args
 
-        options = dict(
-            [
-                tuple(token.strip() for token in option.strip().split("=", 1))
-                for option in re.split(r"-c\s?", connect_args.get("options", ""))
-                if "=" in option
-            ]
-        )
+        options = parse_options(connect_args)
         options["search_path"] = schema
         connect_args["options"] = " ".join(
             f"-c{key}={value}" for key, value in options.items()
@@ -193,14 +203,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         to determine the schema for a non-qualified table in a query. In cases like
         that we raise an exception.
         """
-        options = dict(
-            [
-                tuple(token.strip() for token in option.strip().split("=", 1))
-                for option in re.split(r"-c\s?", connect_args.get("options", ""))
-                if "=" in option
-            ]
-        )
-
+        options = parse_options(connect_args)
         if search_path := options.get("search_path"):
             schemas = search_path.split(",")
             if len(schemas) > 1:
