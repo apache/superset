@@ -131,7 +131,7 @@ For example, the filters `client_id=4` and `client_id=5`, applied to a role,
 will result in users of that role having `client_id=4` AND `client_id=5`
 added to their query, which can never be true.
 
-### Content Security Policiy (CSP)
+### Content Security Policy (CSP)
 
 [Content Security Policy (CSP)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) is an added
 layer of security that helps to detect and mitigate certain types of attacks, including
@@ -146,7 +146,7 @@ A policy is described using a series of policy directives, each of which describ
 a certain resource type or policy area. You can check possible directives
 [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy).
 
-It's extremely important to correclty configure a Content Security Policy when deploying Superset to
+It's extremely important to correctly configure a Content Security Policy when deploying Superset to
 prevent many types of attacks. For that matter, Superset provides the ` TALISMAN_CONFIG` key in `config.py`
 where administrators can define the policy. When running in production mode, Superset will check for the presence
 of a policy and if it's not able to find one, it will issue a warning with the security risks. For environments
@@ -161,7 +161,7 @@ the warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
   default-src 'self' 'unsafe-eval' 'unsafe-inline'
   ```
 
-* Some dashbaords load images using data URIs and require `data:` in their `img-src`
+* Some dashboards load images using data URIs and require `data:` in their `img-src`
 
   ```
   img-src 'self' data:
