@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import cast, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
@@ -45,9 +45,10 @@ class DeleteChartCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        self._model = cast(Slice, self._model)
         try:
             Dashboard.clear_cache_for_slice(slice_id=self._model_id)
-            # Even thought SQLAlchemy should in theory delete rows from the association
+            # Even though SQLAlchemy should in theory delete rows from the association
             # table, sporadically Superset will error because the rows are not deleted.
             # Let's do it manually here to prevent the error.
             self._model.owners = []
