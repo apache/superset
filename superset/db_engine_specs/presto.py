@@ -165,7 +165,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     column_type_mappings = (
         (
@@ -314,6 +314,27 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             uri = uri.set(database=database)
 
         return uri
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        For Presto the SQLAlchemy URI looks like this:
+
+            presto://localhost:8080/hive[/default]
+
+        """
+        database = sqlalchemy_uri.database.strip("/")
+
+        if "/" not in database:
+            return None
+
+        return parse.unquote(database.split("/")[1])
 
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
