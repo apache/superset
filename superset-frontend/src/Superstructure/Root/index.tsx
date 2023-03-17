@@ -47,6 +47,13 @@ const CONFIG = getFullConfig(
 setupClient();
 
 export const RootComponent = (incomingParams: MicrofrontendParams) => {
+  // In dodois the div.all has css property min-height, that forces the footer to be overlapped
+  const dodoElementAll = document.getElementsByClassName('all')[0];
+
+  if (dodoElementAll && dodoElementAll.classList.contains('overwrite-height')) {
+    dodoElementAll.classList.remove('overwrite-height');
+  }
+
   const params = useMemo(() => {
     const parameters = { ...incomingParams, ...CONFIG };
     const basename = addSlash(parameters.basename);
@@ -95,7 +102,10 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   return (
     <div>
       <Version appVersion={APP_VERSION} />
-      <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div
+        // eslint-disable-next-line theme-colors/no-literal-colors
+        style={{ minHeight: '100vh', position: 'relative', background: '#fff' }}
+      >
         {isError ? (
           <GlobalError
             title="Error happened =("

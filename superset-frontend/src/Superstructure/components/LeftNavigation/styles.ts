@@ -4,9 +4,10 @@ import { NavLink } from 'react-router-dom';
 
 const LeftNavigationWrapper = styled.section`
   width: 15%;
-  margin-top: -5px;
-  min-height: 75vh;
-  padding: 0px 20px 0 0;
+  margin-top: 0;
+  min-height: 100vh;
+  padding: 12px 15px 0 0;
+  border-right: 1px solid #e0e0e0;
 `;
 
 const UlContainer = styled.ul`
@@ -17,7 +18,6 @@ const UlContainer = styled.ul`
 `;
 
 const ListItem = styled.li`
-  margin-top: 6px;
   font-size: 14px;
   line-height: 1.5;
   margin-bottom: 1px;
@@ -29,11 +29,10 @@ const StyledLink = styled(NavLink)`
   cursor: default;
   display: block;
   padding-left: 7px;
-  padding-top: 0.3em;
-  padding-bottom: 0.3em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
   color: #69696a;
-  background: #f8f8f8;
-  border-radius: 4px;
+  border-radius: 2px;
 
   &:hover {
     background: #f1f1f1;

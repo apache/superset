@@ -23,7 +23,7 @@ const Alert = styled.div`
   color: #004085;
   background-color: #cce5ff;
   border: 1px solid #b8daff;
-  border-radius: 4px;
+  border-radius: 2px;
   padding: 30px;
   width: 100%;
 `;
@@ -31,7 +31,7 @@ const Alert = styled.div`
 const StyledCode = styled.code`
   padding: 2px 4px;
   font-size: 90%;
-  border-radius: 4px;
+  border-radius: 2px;
   color: #004085;
   background-color: #f7f7f7;
 `;

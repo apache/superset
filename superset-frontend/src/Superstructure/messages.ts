@@ -23,7 +23,7 @@ const IF_QUESTIONS_RU =
 
 const RULES_RU = {
   title: 'Добро пожаловать в Superset dashboard plugin',
-  subTitle: 'Ожидаются проблемы со стабильной работой Superset.',
+  subTitle: 'Новый инструмент от команды DE',
   extra: IF_QUESTIONS_RU,
   messages: [
     'Слева можно выбрать интересующий дашборд.',
@@ -55,15 +55,18 @@ const CSV_TEMP_PROBLEM_RU = {
 };
 
 const UPGRADE_2_0_RU = {
-  title: 'Переход на версию Superset 2.0',
-  date: 'Команда Data Engineering работает над стабилизацией (07.03.2023)',
-  subTitle: 'Ожидаются проблемы со стабильной работой Superset.',
+  title: 'Успешный переход на версию Superset 2.0',
+  date: '17.03.2023',
+  subTitle: 'Релиз стабилизирован',
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы в версии 2.0',
   messages: [
     'Исправлены проблемы с отображением кириллицы при экспорте графиков в CSV формате',
-    'Исправлены проблемы со стилистикой дашбордов',
-    'Улучшена работа с нативными фильтрами (урезан URL)',
+    'Улучшена общая стилистика (plugin | standalone)',
+    'Улучшена работа с нативными фильтрами (plugin | standalone)',
+    'Изменены названия CSV файлов при экспорте (plugin | standalone)',
+    'Убрано ограничение DODOIS_FRIENDLY (plugin | standalone)',
+    'Увеличено поле ввода SQL в модалке редакатирования датасета',
   ],
   listTitleExtra: 'Возможные проблемы в версии 2.0',
   messagesExtra: [

@@ -100,7 +100,9 @@ const Bar = styled.div<{ width: number }>`
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  min-height: 100%;
+  ${process.env.business === undefined
+    ? 'min-height: 100%;'
+    : 'max-height: 100vh;'}
   display: none;
   &.open {
     display: flex;
@@ -492,13 +494,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               )}
             </div>
           )}
-          <ActionButtons
-            onApply={handleApply}
-            onClearAll={handleClearAll}
-            dataMaskSelected={dataMaskSelected}
-            dataMaskApplied={dataMaskApplied}
-            isApplyDisabled={isApplyDisabled}
-          />
+          {isInitialized && (
+            <ActionButtons
+              onApply={handleApply}
+              onClearAll={handleClearAll}
+              dataMaskSelected={dataMaskSelected}
+              dataMaskApplied={dataMaskApplied}
+              isApplyDisabled={isApplyDisabled}
+            />
+          )}
         </Bar>
       </BarWrapper>
     </FilterBarScrollContext.Provider>

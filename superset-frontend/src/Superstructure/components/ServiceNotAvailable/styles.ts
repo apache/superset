@@ -23,7 +23,7 @@ const ServiceNotAvailableWrapper = styled.div`
 const Alert = styled.div`
   line-height: 22px;
   color: #1b1e21;
-  border-radius: 4px;
+  border-radius: 2px;
   padding: 30px;
   width: 100%;
 `;
