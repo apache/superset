@@ -47,6 +47,10 @@ class DeleteChartCommand(BaseCommand):
         self.validate()
         try:
             Dashboard.clear_cache_for_slice(slice_id=self._model_id)
+            # Even thought SQLAlchemy should in theory delete rows from the association
+            # table, sporadically Superset will error because the rows are not deleted.
+            # Let's do it manually here to prevent the error.
+            self._model.owners = []
             chart = ChartDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)

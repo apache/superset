@@ -59,7 +59,7 @@ slice_user = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
 )
 logger = logging.getLogger(__name__)
 

@@ -44,6 +44,10 @@ class DeleteDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            # Even thought SQLAlchemy should in theory delete rows from the association
+            # table, sporadically Superset will error because the rows are not deleted.
+            # Let's do it manually here to prevent the error.
+            self._model.owners = []
             dataset = DatasetDAO.delete(self._model, commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
