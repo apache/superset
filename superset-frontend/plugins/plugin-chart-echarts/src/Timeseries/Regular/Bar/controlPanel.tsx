@@ -29,21 +29,21 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-
-import { OrientationType } from '../../types';
 import {
-  DEFAULT_FORM_DATA,
-  TIME_SERIES_DESCRIPTION_TEXT,
-} from '../../constants';
-import {
+  BarChartExtraControlsOptions,
   legendSection,
   onlyTotalControl,
   percentageThresholdControl,
   richTooltipSection,
   seriesOrderSection,
   showValueControl,
-} from '../../../controls';
-import { BarChartExtraControlsOptions } from '../../../constants';
+} from '@superset-ui/plugin-chart-echarts';
+
+import { OrientationType } from '../../types';
+import {
+  DEFAULT_FORM_DATA,
+  TIME_SERIES_DESCRIPTION_TEXT,
+} from '../../constants';
 
 const {
   logAxis,

@@ -74,6 +74,7 @@ import {
 } from '../constants';
 
 // based on weighted wiggle algorithm
+// source: https://ieeexplore.ieee.org/document/4658136
 export const getBaselineSeriesForStream = (
   series: [string | number, number][][],
   seriesType: EchartsTimeseriesSeriesType,

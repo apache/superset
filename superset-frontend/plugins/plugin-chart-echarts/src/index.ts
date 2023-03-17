@@ -50,6 +50,8 @@ export { default as SunburstTransformProps } from './Sunburst/transformProps';
 export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
 
 export * from './types';
+export * from './controls';
+export * from './constants';
 
 /**
  * Note: this file exports the default export from EchartsTimeseries.tsx.
