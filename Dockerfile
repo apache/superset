@@ -19,7 +19,10 @@
 # Node stage to deal with static asset construction
 ######################################################################
 ARG PY_VER=3.8.16-slim
-FROM node:16-slim AS superset-node
+
+# if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
+ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
