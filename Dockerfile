@@ -20,8 +20,8 @@
 ######################################################################
 ARG PY_VER=3.8.16-slim
 
-# if BUILDPLATFORM is null, set it to current arch (or leave as is otherwise).
-ARG BUILDPLATFORM=${BUILDPLATFORM:-$(echo "$arch" | sed s/aarch64/arm64/ | sed s/x86_64/amd64/)}
+# if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
+ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
