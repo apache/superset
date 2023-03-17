@@ -255,26 +255,34 @@ export const exportChartPlugin = ({
   force = false,
   ownState = {},
 }) => {
-  // let url;
-  // let payload;
+  let url;
+  let payload;
 
   // TODO: DODO check how this workds in plugin
-  // Looks like shouldUseLegacyApi is not needed anymore
   console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
-  // if (shouldUseLegacyApi(formData)) {
-  //   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-  //   url = getExploreUrl({
-  //     formData,
-  //     endpointType,
-  //     allowDomainSharding: false,
-  //   });
-  //   payload = formData;
+  if (shouldUseLegacyApi(formData)) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      allowDomainSharding: false,
+    });
+    payload = formData;
 
-  //   return getCSV(url, payload, true);
-  // }
+    const fixedUrl =
+      url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
 
-  const url = '/api/v1/chart/data';
-  const payload = buildV1ChartDataPayload({
+    console.groupCollapsed('EXPORT CSV legacy');
+    console.log('url', url);
+    console.log('fixedUrl', fixedUrl);
+    console.log('payload', payload);
+    console.groupEnd();
+
+    return getCSV(fixedUrl, payload, true);
+  }
+
+  url = '/api/v1/chart/data';
+  payload = buildV1ChartDataPayload({
     formData,
     force,
     resultFormat,
@@ -297,6 +305,7 @@ export const exportChart = ({
   resultType = 'full',
   force = false,
   ownState = {},
+  slice = {},
 }) => {
   const exportResultPromise = exportChartPlugin({
     formData,
@@ -305,6 +314,13 @@ export const exportChart = ({
     force,
     ownState,
   });
+
+  const sliceName = slice?.slice_name || 'viz_type';
+  const vizType = slice?.viz_type || 'viz_type';
+  const timeGrain =
+    slice?.form_data?.time_grain_sqla ||
+    slice?.form_data?.time_range ||
+    'time_grain_sqla';
 
   return exportResultPromise
     .then(csvExportResult => {
@@ -318,7 +334,7 @@ export const exportChart = ({
         FileSaver.saveAs(
           csvFile,
           generateFileName(
-            `${formData.datasource}_${formData.viz_type}`,
+            `${sliceName}__${timeGrain}__${vizType}-chart`,
             'csv',
           ),
         );

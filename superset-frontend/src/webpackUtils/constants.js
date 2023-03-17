@@ -24,7 +24,6 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
     <style>
       .all {
         width: 100%;
-        min-height: calc(100% - 105px);
         height: auto;
         position: relative;
       }
