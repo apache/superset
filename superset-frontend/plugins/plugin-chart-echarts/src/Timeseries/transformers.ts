@@ -263,7 +263,7 @@ export function transformSeries(
     }
   }
   const lineStyle =
-    isConfidenceBand || stack === StackControlsValue.Stream
+    isConfidenceBand || (stack === StackControlsValue.Stream && area)
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
   return {
