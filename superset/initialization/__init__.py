@@ -191,6 +191,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
+        
+        # Custom APIs
+        from superset.liq.api import LiqRestApi
 
         #
         # Setup API views
@@ -225,6 +228,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
+
+        # Custom views
+        appbuilder.add_api(LiqRestApi)
+
         #
         # Setup regular views
         #

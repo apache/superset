@@ -6,6 +6,9 @@ const liqSecrets = require('../../../liq_secrets.js').liqSecrets;
 const geoFunctions = require('../utils/geoFunctions.js');
 const getRadius = geoFunctions.createGeoJSONRadius;
 
+const otherUtils = require('../utils/others.js');
+const uuid = otherUtils.uuidv4;
+
 export default function Radius(props) {
 
   const {
@@ -18,12 +21,17 @@ export default function Radius(props) {
 
   const [distance, setDistance] = useState(5);
   const [message, setMessage] = useState('');
+  const [id, setId] = useState(uuid());
 
   const removeRadius = () => {
     if ('radius' in map.current.getStyle().sources) {
       map.current.removeLayer('radius');
       map.current.removeLayer('radius_sa1s');
       map.current.removeSource('radius');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('radius_key');
+      window.history.pushState(null, null, url);
+      console.log(window.location.href);
     }
   }
 
@@ -54,12 +62,32 @@ export default function Radius(props) {
     map.current.off('click', drawRadius);
     setMessage('');
     addSA1s(radius);
+    const url = new URL(window.location.href);
+    url.searchParams.set('radius_key', id);
+    window.history.pushState(null, null, url);
+    console.log(window.location.href);
   }
 
   const onSettingsSave = () => {
     removeRadius();
     map.current.on('click', drawRadius);
     setMessage('Click anywhere on the map');    
+  }
+
+  const postRkeySA1s = (sa1s) => {
+    var myHeaders = new Headers();
+    myHeaders.append('Content-Type', 'application/json');
+    var raw = JSON.stringify({
+      'radius_key': id,
+      'sa1s': sa1s
+    });
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      redirect: 'follow'
+    };
+    fetch('http://localhost:8088/api/v1/liq/set_radius/', requestOptions);
   }
 
   const addSA1s = (radius) => {
@@ -89,6 +117,7 @@ export default function Radius(props) {
           'transparent'
         ]
         map.current.setPaintProperty('radius_sa1s', 'line-color', paint);
+        postRkeySA1s(result.sa1s);
       })
   }
 
