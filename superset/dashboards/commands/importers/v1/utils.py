@@ -162,6 +162,11 @@ def import_dashboard(
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
+
+    # removed in https://github.com/apache/superset/pull/23228
+    if "metadata" in config and "show_native_filters" in config["metadata"]:
+        del config["metadata"]["show_native_filters"]
+
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:
             value = config.pop(key)

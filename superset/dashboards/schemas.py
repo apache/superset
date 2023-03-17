@@ -18,7 +18,7 @@ import json
 import re
 from typing import Any, Dict, Union
 
-from marshmallow import fields, post_load, Schema
+from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
@@ -134,6 +134,23 @@ class DashboardJSONMetadataSchema(Schema):
     import_time = fields.Integer()
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
+
+    @pre_load
+    def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
+        self,
+        data: Dict[str, Any],
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Remove ``show_native_filters`` from the JSON metadata.
+
+        This field was removed in https://github.com/apache/superset/pull/23228, but might
+        be present in old exports.
+        """
+        if "show_native_filters" in data:
+            del data["show_native_filters"]
+
+        return data
 
 
 class UserSchema(Schema):
