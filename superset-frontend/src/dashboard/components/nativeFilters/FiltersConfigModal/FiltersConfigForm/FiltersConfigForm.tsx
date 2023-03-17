@@ -664,7 +664,7 @@ const FiltersConfigForm = (
             'columns.type',
             'columns.verbose_name',
             'database.id',
-            'database_name',
+            'database.database_name',
             'datasource_type',
             'filter_select_enabled',
             'id',
