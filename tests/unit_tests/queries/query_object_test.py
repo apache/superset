@@ -26,8 +26,7 @@ from superset.utils.core import override_user
 
 
 def cache_impersonation_flag_side_effect(feature=None):
-    if feature == "CACHE_IMPERSONATION":
-        return True
+    return feature == "CACHE_IMPERSONATION"
 
 
 def cache_query_by_user_flag_side_effect(feature=None):
