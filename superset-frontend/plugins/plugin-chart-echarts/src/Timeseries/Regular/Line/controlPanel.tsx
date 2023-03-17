@@ -26,18 +26,18 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-
-import { EchartsTimeseriesSeriesType } from '../../types';
-import {
-  DEFAULT_FORM_DATA,
-  TIME_SERIES_DESCRIPTION_TEXT,
-} from '../../constants';
 import {
   legendSection,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
-} from '../../../controls';
+  EchartsTimeseriesSeriesType,
+} from '@superset-ui/plugin-chart-echarts';
+
+import {
+  DEFAULT_FORM_DATA,
+  TIME_SERIES_DESCRIPTION_TEXT,
+} from '../../constants';
 
 const {
   area,

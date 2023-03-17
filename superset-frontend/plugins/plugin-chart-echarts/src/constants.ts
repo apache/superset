@@ -77,7 +77,7 @@ export enum StackControlsValue {
   Expand = 'Expand',
 }
 
-export const BarChartExtraControlsOptions: [
+export const ExtraControlsOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [

@@ -30,13 +30,10 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
-  BarChartExtraControlsOptions,
   legendSection,
-  onlyTotalControl,
-  percentageThresholdControl,
   richTooltipSection,
   seriesOrderSection,
-  showValueControl,
+  showValueSection,
 } from '@superset-ui/plugin-chart-echarts';
 
 import { OrientationType } from '../../types';
@@ -307,22 +304,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
-        [showValueControl],
-        [
-          {
-            name: 'stack',
-            config: {
-              type: 'SelectControl',
-              label: t('Stacked Style'),
-              renderTrigger: true,
-              choices: BarChartExtraControlsOptions,
-              default: null,
-              description: t('Stack series on top of each other'),
-            },
-          },
-        ],
-        [onlyTotalControl],
-        [percentageThresholdControl],
+        ...showValueSection,
         [
           {
             name: 'zoomable',
