@@ -32,7 +32,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
-import { LOG_ACTIONS_SQLLAB_FETCH_QUERY } from 'src/logger/LogUtils';
+import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
 
@@ -275,25 +275,18 @@ export function queryFailed(query, msg, link, errors) {
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, extra }) => {
-      if (extra?.issue_codes) {
-        extra?.issue_codes.forEach(({ message }) => {
-          dispatch(
-            logEvent(LOG_ACTIONS_SQLLAB_FETCH_QUERY, {
-              ...eventData,
-              error_type: errorType,
-              error_details: message,
-            }),
-          );
-        });
-      } else {
+      const messages = extra?.issue_codes.map(({ message }) => message) || [
+        errorType,
+      ];
+      messages.forEach(message => {
         dispatch(
-          logEvent(LOG_ACTIONS_SQLLAB_FETCH_QUERY, {
+          logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
             ...eventData,
             error_type: errorType,
-            error_details: errorType,
+            error_details: message,
           }),
         );
-      }
+      });
     });
 
     return (
