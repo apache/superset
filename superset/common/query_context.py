@@ -88,8 +88,9 @@ class QueryContext:
     def get_data(
         self,
         df: pd.DataFrame,
+        coltypes:[] = None
     ) -> Union[str, List[Dict[str, Any]]]:
-        return self._processor.get_data(df)
+        return self._processor.get_data(df, coltypes)
 
     def get_payload(
         self,

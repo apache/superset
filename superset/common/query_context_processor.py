@@ -60,6 +60,7 @@ from superset.utils.core import (
     get_xaxis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
+    GenericDataType,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.utils.pandas_postprocessing.utils import unescape_separator
@@ -447,7 +448,7 @@ class QueryContextProcessor:
         rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
-    def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(self, df: pd.DataFrame, coltypes:[]) -> Union[str, List[Dict[str, Any]]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -457,11 +458,17 @@ class QueryContextProcessor:
 
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
-                result = csv.df_to_escaped_csv(
-                    df, index=include_index, **config["CSV_EXPORT"]
-                )
-            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
+                ndf = df.copy()
+                columns = list(df)
+                i = 0
+                for c in columns:
+                    coltype = None
+                    if i<len(coltypes):
+                        coltype = coltypes[i]
+                        if coltype == GenericDataType.NUMERIC:
+                            ndf[c] = pd.to_numeric(df[c], errors='ignore')
+                    i+=1
+                result = excel.df_to_excel(ndf, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
