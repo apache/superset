@@ -1061,8 +1061,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         uri: URL,
         connect_args: Dict[str, Any],
-        catalog: Optional[str],
-        schema: Optional[str],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
         """
         Return a new URL and ``connect_args`` for a specific catalog/schema.
