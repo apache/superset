@@ -37,7 +37,7 @@ from superset import db
 
 Base = declarative_base()
 
-CHART_TYPE = "echarts_timeseries_bar"
+CHART_TYPE = "%echarts_timeseries%"
 
 
 class Slice(Base):
@@ -53,11 +53,11 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    slices = session.query(Slice).filter(Slice.viz_type == CHART_TYPE).all()
+    slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:
         try:
             params = json.loads(slc.params)
-            stack = params.get("stack")
+            stack = params.get("stack", None)
             if stack:
                 params["stack"] = "Stack"
             else:
@@ -76,7 +76,7 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    slices = session.query(Slice).filter(Slice.viz_type == CHART_TYPE).all()
+    slices = session.query(Slice).filter(Slice.viz_type.like(CHART_TYPE)).all()
     for slc in slices:
         try:
             params = json.loads(slc.params)
