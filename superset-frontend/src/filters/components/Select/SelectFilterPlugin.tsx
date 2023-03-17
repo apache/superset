@@ -38,6 +38,7 @@ import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { uniqWith, isEqual } from 'lodash';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -120,6 +121,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [],
   );
+  const [initialData, setInitialData] = useState<typeof data>([]);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -164,10 +166,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       labelFormatter,
     ],
   );
-
-  useEffect(() => {
-    updateDataMask(filterState.value);
-  }, [JSON.stringify(filterState.value)]);
 
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
@@ -224,6 +222,47 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [updateDataMask],
   );
 
+  const placeholderText =
+    data.length === 0
+      ? t('No data')
+      : tn('%s option', '%s options', data.length, data.length);
+
+  const formItemExtra = useMemo(() => {
+    if (filterState.validateMessage) {
+      return (
+        <StatusMessage status={filterState.validateStatus}>
+          {filterState.validateMessage}
+        </StatusMessage>
+      );
+    }
+    return undefined;
+  }, [filterState.validateMessage, filterState.validateStatus]);
+
+  const options = useMemo(() => {
+    const allOptions = [...data, ...initialData];
+    const uniqueOptions = uniqWith(allOptions, isEqual);
+    const selectOptions: { label: string; value: DataRecordValue }[] = [];
+    uniqueOptions.forEach(row => {
+      const [value] = groupby.map(col => row[col]);
+      selectOptions.push({
+        label: labelFormatter(value, datatype),
+        value,
+      });
+    });
+    return selectOptions;
+  }, [data, initialData, datatype, groupby, labelFormatter]);
+
+  const sortComparator = useCallback(
+    (a: AntdLabeledValue, b: AntdLabeledValue) => {
+      const labelComparator = propertyComparator('label');
+      if (formData.sortAscending) {
+        return labelComparator(a, b);
+      }
+      return labelComparator(b, a);
+    },
+    [formData.sortAscending],
+  );
+
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
       // initialize to first value if set to default to first item
@@ -255,47 +294,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   useEffect(() => {
+    updateDataMask(filterState.value);
+  }, [JSON.stringify(filterState.value)]);
+
+  useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
-  const placeholderText =
-    data.length === 0
-      ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
-
-  const formItemExtra = useMemo(() => {
-    if (filterState.validateMessage) {
-      return (
-        <StatusMessage status={filterState.validateStatus}>
-          {filterState.validateMessage}
-        </StatusMessage>
-      );
+  useEffect(() => {
+    if (data.length && !initialData.length) {
+      setInitialData(data);
     }
-    return undefined;
-  }, [filterState.validateMessage, filterState.validateStatus]);
-
-  const options = useMemo(() => {
-    const options: { label: string; value: DataRecordValue }[] = [];
-    data.forEach(row => {
-      const [value] = groupby.map(col => row[col]);
-      options.push({
-        label: labelFormatter(value, datatype),
-        value,
-      });
-    });
-    return options;
-  }, [data, datatype, groupby, labelFormatter]);
-
-  const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
-      const labelComparator = propertyComparator('label');
-      if (formData.sortAscending) {
-        return labelComparator(a, b);
-      }
-      return labelComparator(b, a);
-    },
-    [formData.sortAscending],
-  );
+  }, [data, initialData.length]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
