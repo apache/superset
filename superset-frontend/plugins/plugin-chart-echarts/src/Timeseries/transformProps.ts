@@ -43,7 +43,6 @@ import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-  EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
 } from './types';
