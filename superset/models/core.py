@@ -432,11 +432,29 @@ class Database(
             params["poolclass"] = NullPool
         connect_args = params.get("connect_args", {})
 
+        # The ``adjust_database_uri`` method was renamed to ``adjust_engine_params`` and
+        # had its signature changed in order to support more DB engine specs. Since DB
+        # engine specs can be released as 3rd party modules we want to make sure the old
+        # method is still supported so we don't introduce a breaking change.
+        if hasattr(self.db_engine_spec, "adjust_database_uri"):
+            sqlalchemy_url = self.db_engine_spec.adjust_database_uri(
+                sqlalchemy_url,
+                schema,
+            )
+            logger.warning(
+                "DB engine spec %s implements the method `adjust_database_uri`, which is "
+                "deprecated and will be removed in version 3.0. Please update it to "
+                "implement `adjust_engine_params` instead.",
+                self.db_engine_spec,
+            )
+
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
-            sqlalchemy_url,
-            connect_args,
-            schema,
+            uri=sqlalchemy_url,
+            connect_args=connect_args,
+            catalog=None,
+            schema=schema,
         )
+
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a

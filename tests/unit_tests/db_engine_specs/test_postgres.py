@@ -141,7 +141,7 @@ def test_adjust_engine_params() -> None:
 
     uri = make_url("postgres://user:password@host/catalog")
 
-    assert PostgresEngineSpec.adjust_engine_params(uri, {}, "secret") == (
+    assert PostgresEngineSpec.adjust_engine_params(uri, {}, None, "secret") == (
         uri,
         {"options": "-csearch_path=secret"},
     )
@@ -149,6 +149,7 @@ def test_adjust_engine_params() -> None:
     assert PostgresEngineSpec.adjust_engine_params(
         uri,
         {"foo": "bar", "options": "-csearch_path=default -c debug=1"},
+        None,
         "secret",
     ) == (
         uri,

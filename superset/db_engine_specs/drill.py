@@ -75,6 +75,7 @@ class DrillEngineSpec(BaseEngineSpec):
         cls,
         uri: URL,
         connect_args: Dict[str, Any],
+        catalog: Optional[str],
         schema: Optional[str],
     ) -> Tuple[URL, Dict[str, Any]]:
         if schema:

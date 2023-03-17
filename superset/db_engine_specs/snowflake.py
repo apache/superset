@@ -139,6 +139,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         cls,
         uri: URL,
         connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
         database = uri.database
