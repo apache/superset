@@ -196,7 +196,6 @@ export default function transformProps(
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisLabel,
     extraMetricLabels,
-    removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
     stack,
     totalStackedValues,
     isHorizontal,
