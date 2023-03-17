@@ -69,7 +69,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     )
     encryption_parameters = {"ssl": "1"}
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     column_type_mappings = (
         (
@@ -192,12 +192,27 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
+        cls,
+        uri: URL,
+        selected_schema: Optional[str] = None,
     ) -> URL:
         if selected_schema:
             uri = uri.set(database=parse.quote(selected_schema, safe=""))
 
         return uri
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        A MySQL database is a SQLAlchemy schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:

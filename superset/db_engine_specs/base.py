@@ -372,7 +372,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Is the DB engine spec able to change the default schema? This requires implementing
     # a custom `adjust_database_uri` method.
-    dynamic_schema = False
+    supports_dynamic_schema = False
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -425,6 +425,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return True
 
         return driver in cls.drivers
+
+    @classmethod
+    def get_default_schema(cls, database: Database) -> Optional[str]:
+        """
+        Return the default schema in a given database.
+        """
+        with database.get_inspector_with_context() as inspector:
+            return inspector.default_schema_name
+
+    @classmethod
+    def get_schema_from_engine_params(  # pylint: disable=unused-argument
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the schema configured in a SQLALchemy URI and connection argments, if any.
+        """
+        return None
+
+    @classmethod
+    def get_default_schema_for_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> Optional[str]:
+        """
+        Return the default schema for a given query.
+
+        This is used to determine the schema of tables that aren't fully qualified, eg:
+
+            SELECT * FROM foo;
+
+        In the example above, the schema where the `foo` table lives depends on a few
+        factors:
+
+            1. For DB engine specs that allow dynamically changing the schema based on the
+               query we should use the query schema.
+            2. For DB engine specs that don't support dynamically changing the schema and
+               have the schema hardcoded in the SQLAlchemy URI we should use the schema
+               from the URI.
+            3. For DB engine specs that don't connect to a specific schema and can't
+               change it dynamically we need to probe the database for the default schema.
+
+        Determining the correct schema is crucial for managing access to data, so please
+        make sure you understand this logic when working on a new DB engine spec.
+        """
+        # default schema varies on a per-query basis
+        if cls.supports_dynamic_schema:
+            return query.schema
+
+        # check if the schema is stored in the SQLAlchemy URI or connection arguments
+        try:
+            connect_args = database.get_extra()["engine_params"]["connect_args"]
+        except KeyError:
+            connect_args = {}
+        sqlalchemy_uri = make_url_safe(database.sqlalchemy_uri)
+        if schema := cls.get_schema_from_engine_params(sqlalchemy_uri, connect_args):
+            return schema
+
+        # return the default schema of the database
+        return cls.get_default_schema(database)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:

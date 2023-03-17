@@ -148,3 +148,17 @@ def test_cancel_query_failed(engine_mock: Mock) -> None:
     query = Query()
     cursor_mock = engine_mock.raiseError.side_effect = Exception()
     assert MySQLEngineSpec.cancel_query(cursor_mock, query, "123") is False
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert (
+        MySQLEngineSpec.get_schema_from_engine_params(
+            make_url("mysql://user:password@host/db1"), {}
+        )
+        == "db1"
+    )

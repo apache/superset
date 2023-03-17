@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional, Type
 import pytest
 import pytz
 from sqlalchemy import types
+from sqlalchemy.engine.url import make_url
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -82,3 +83,26 @@ def test_get_column_spec(
     from superset.db_engine_specs.presto import PrestoEngineSpec as spec
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert (
+        PrestoEngineSpec.get_schema_from_engine_params(
+            make_url("presto://localhost:8080/hive/default"),
+            {},
+        )
+        == "default"
+    )
+
+    assert (
+        PrestoEngineSpec.get_schema_from_engine_params(
+            make_url("presto://localhost:8080/hive"),
+            {},
+        )
+        is None
+    )

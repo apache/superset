@@ -98,7 +98,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_orderby_agg = False
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -267,6 +267,17 @@ class HiveEngineSpec(PrestoEngineSpec):
             uri = uri.set(database=parse.quote(selected_schema, safe=""))
 
         return uri
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:

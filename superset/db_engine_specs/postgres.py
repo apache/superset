@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
@@ -145,6 +146,41 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        While Postgres doesn't support connecting directly to a given schema, it allows
+        users to specify a "search path" that is used to resolve non-qualified table
+        names; this can be specified in the database ``connect_args``.
+
+        One important detail is that the search path can be a comma separated list of
+        schemas. While this is supported by the SQLAlchemy dialect, it shouldn't be used
+        in Superset because it breaks schema-level permissions, since it's impossible
+        to determine the schema for a non-qualified table in a query. In cases like
+        that we raise an exception.
+        """
+        options = re.split(r"-c\s?", connect_args.get("options", ""))
+        for option in options:
+            if "=" not in option:
+                continue
+            key, value = option.strip().split("=", 1)
+            if key.strip() == "search_path":
+                if "," in value:
+                    raise Exception(
+                        "Multiple schemas are configured in the search path, which means "
+                        "Superset is unable to determine the schema of unqualified table "
+                        "names and enforce permissions."
+                    )
+                return value.strip()
+
+        return None
 
     @classmethod
     def fetch_data(
