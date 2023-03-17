@@ -52,8 +52,7 @@ def test_raise_for_access_query_default_schema(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
-    database.db_engine_spec.dynamic_schema = False
-    database.get_inspector_with_context().__enter__().default_schema_name = "public"
+    database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
     query.database = database
     query.sql = "SELECT * FROM ab_user"
