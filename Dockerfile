@@ -114,7 +114,14 @@ COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 USER root
 
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1 wget
+    && apt-get install -y --no-install-recommends \
+          libnss3 \
+          libdbus-glib-1-2 \
+          libgtk-3-0 \
+          libx11-xcb1 \
+          libasound2 \
+          libxtst6 \
+          wget
 
 # Install GeckoDriver WebDriver
 RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
