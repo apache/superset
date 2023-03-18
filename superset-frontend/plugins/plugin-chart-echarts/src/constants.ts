@@ -77,7 +77,7 @@ export enum StackControlsValue {
   Expand = 'Expand',
 }
 
-export const ExtraControlsOptions: [
+export const StackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
@@ -86,15 +86,10 @@ export const ExtraControlsOptions: [
   [StackControlsValue.Stream, t('Stream')],
 ];
 
-export const AreaChartExtraControlsOptions: [
+export const AreaChartStackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
-][] = [
-  [null, t('None')],
-  [StackControlsValue.Stack, t('Stack')],
-  [StackControlsValue.Stream, t('Stream')],
-  [StackControlsValue.Expand, t('Expand')],
-];
+][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,

@@ -27,7 +27,7 @@ import {
 import {
   DEFAULT_LEGEND_FORM_DATA,
   DEFAULT_SORT_SERIES_DATA,
-  ExtraControlsOptions,
+  StackControlOptions,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { SortSeriesType } from './types';
@@ -123,7 +123,7 @@ export const stackControl: ControlSetItem = {
     type: 'SelectControl',
     label: t('Stacked Style'),
     renderTrigger: true,
-    choices: ExtraControlsOptions,
+    choices: StackControlOptions,
     default: null,
     description: t('Stack series on top of each other'),
   },
