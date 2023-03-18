@@ -19,7 +19,7 @@ from typing import Any, cast, Dict, Optional
 from urllib import parse
 
 import simplejson as json
-from flask import request
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -32,6 +32,7 @@ from superset.models.sql_lab import Query
 from superset.queries.dao import QueryDAO
 from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.commands.estimate import QueryEstimationCommand
 from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
 from superset.sqllab.commands.export import SqlResultExportCommand
 from superset.sqllab.commands.results import SqlExecutionResultsCommand
@@ -42,6 +43,7 @@ from superset.sqllab.exceptions import (
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
+    EstimateQueryCostSchema,
     ExecutePayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
@@ -70,6 +72,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     class_permission_name = "SQLLab"
 
+    estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
 
     apispec_parameter_schemas = {
@@ -77,9 +80,60 @@ class SqlLabRestApi(BaseSupersetApi):
     }
     openapi_spec_tag = "SQL Lab"
     openapi_spec_component_schemas = (
+        EstimateQueryCostSchema,
         ExecutePayloadSchema,
         QueryExecutionResponseSchema,
     )
+
+    @expose("/estimate/", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".estimate_query_cost",
+        log_to_statsd=False,
+    )
+    def estimate_query_cost(self) -> Response:
+        """Estimates the SQL query execution cost
+        ---
+        post:
+          summary: >-
+            Estimates the SQL query execution cost
+          requestBody:
+            description: SQL query and params
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/EstimateQueryCostSchema'
+          responses:
+            200:
+              description: Query estimation result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.estimate_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        command = QueryEstimationCommand(model)
+        result = command.run()
+        return self.response(200, result=result)
 
     @expose("/export/<string:client_id>/")
     @protect()
