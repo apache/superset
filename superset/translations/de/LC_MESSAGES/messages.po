@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-03-16 22:12+0100\n"
+"POT-Creation-Date: 2023-03-18 07:04+0100\n"
 "PO-Revision-Date: 2023-03-16 22:07+0100\n"
 "Last-Translator: Holger Bruch <holger.bruch@mfdz.de>\n"
 "Language: de\n"
@@ -20461,4 +20461,3 @@ msgstr "Gelb"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts:462
 msgid "zoom area"
 msgstr "Zoombereich"
-

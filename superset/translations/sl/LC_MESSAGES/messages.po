@@ -20424,4 +20424,3 @@ msgstr "rumena"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts:462
 msgid "zoom area"
 msgstr "približaj območje"
-
