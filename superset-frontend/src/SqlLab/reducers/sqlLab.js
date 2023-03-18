@@ -335,7 +335,7 @@ export default function sqlLabReducer(state = {}, action) {
           ...state.queryCostEstimates,
           [action.query.id]: {
             completed: true,
-            cost: action.json,
+            cost: action.json.result,
             error: null,
           },
         },
