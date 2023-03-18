@@ -131,3 +131,27 @@ def test_get_schema_from_engine_params() -> None:
         "Superset is unable to determine the schema of unqualified table "
         "names and enforce permissions."
     )
+
+
+def test_adjust_engine_params() -> None:
+    """
+    Test the ``adjust_engine_params`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    uri = make_url("postgres://user:password@host/catalog")
+
+    assert PostgresEngineSpec.adjust_engine_params(uri, {}, None, "secret") == (
+        uri,
+        {"options": "-csearch_path=secret"},
+    )
+
+    assert PostgresEngineSpec.adjust_engine_params(
+        uri,
+        {"foo": "bar", "options": "-csearch_path=default -c debug=1"},
+        None,
+        "secret",
+    ) == (
+        uri,
+        {"foo": "bar", "options": "-csearch_path=secret -cdebug=1"},
+    )

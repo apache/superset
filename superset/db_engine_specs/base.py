@@ -371,7 +371,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     supports_file_upload = True
 
     # Is the DB engine spec able to change the default schema? This requires implementing
-    # a custom `adjust_database_uri` method.
+    # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
 
     @classmethod
@@ -472,7 +472,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Determining the correct schema is crucial for managing access to data, so please
         make sure you understand this logic when working on a new DB engine spec.
         """
-        # default schema varies on a per-query basis
+        # dynamic schema varies on a per-query basis
         if cls.supports_dynamic_schema:
             return query.schema
 
@@ -1057,30 +1057,33 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(  # pylint: disable=unused-argument
+    def adjust_engine_params(  # pylint: disable=unused-argument
         cls,
         uri: URL,
-        selected_schema: Optional[str],
-    ) -> URL:
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         """
-        Return a modified URL with a new database component.
+        Return a new URL and ``connect_args`` for a specific catalog/schema.
 
-        The URI here represents the URI as entered when saving the database,
-        ``selected_schema`` is the schema currently active presumably in
-        the SQL Lab dropdown. Based on that, for some database engine,
-        we can return a new altered URI that connects straight to the
-        active schema, meaning the users won't have to prefix the object
-        names by the schema name.
+        This is used in SQL Lab, allowing users to select a schema from the list of
+        schemas available in a given database, and have the query run with that schema as
+        the default one.
 
-        Some databases engines have 2 level of namespacing: database and
-        schema (postgres, oracle, mssql, ...)
-        For those it's probably better to not alter the database
-        component of the URI with the schema name, it won't work.
+        For some databases (like MySQL, Presto, Snowflake) this requires modifying the
+        SQLAlchemy URI before creating the connection. For others (like Postgres), it
+        requires additional parameters in ``connect_args``.
 
-        Some database drivers like Presto accept '{catalog}/{schema}' in
-        the database component of the URL, that can be handled here.
+        When a DB engine spec implements this method it should also have the attribute
+        ``supports_dynamic_schema`` set to true, so that Superset knows in which schema a
+        given query is running in order to enforce permissions (see #23385 and #23401).
+
+        Currently, changing the catalog is not supported. The method acceps a catalog so
+        that when catalog support is added to Superse the interface remains the same. This
+        is important because DB engine specs can be installed from 3rd party packages.
         """
-        return uri
+        return uri, connect_args
 
     @classmethod
     def patch(cls) -> None:
