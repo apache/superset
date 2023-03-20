@@ -102,7 +102,7 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { MetadataBar, status: metadataBarStatus } =
+  const { metadataBar, status: metadataBarStatus } =
     useDatasetMetadataBar(datasourceId);
   // Get page of results
   const resultsPage = useMemo(() => {
@@ -306,7 +306,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && <MetadataBar />}
+      {!bootstrapping && metadataBar}
       {!bootstrapping && (
         <TableControls
           filters={filters}

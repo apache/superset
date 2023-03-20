@@ -30,7 +30,7 @@ export const useDatasetMetadataBar = (datasourceId: number | string) => {
 
   const { status, result } = response;
 
-  const items = useMemo(() => {
+  const metadataBar = useMemo(() => {
     const items: ContentType[] = [];
     if (result) {
       const {
@@ -76,11 +76,7 @@ export const useDatasetMetadataBar = (datasourceId: number | string) => {
         });
       }
     }
-    return items;
-  }, [result]);
-
-  return {
-    MetadataBar: () => (
+    return (
       <div
         css={css`
           display: flex;
@@ -97,7 +93,11 @@ export const useDatasetMetadataBar = (datasourceId: number | string) => {
           />
         )}
       </div>
-    ),
+    );
+  }, [result]);
+
+  return {
+    metadataBar,
     status,
   };
 };
