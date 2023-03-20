@@ -24,6 +24,7 @@ import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
 import * as actions from 'src/SqlLab/actions/sqlLab';
+import { LOG_EVENT } from 'src/logger/actions';
 import {
   defaultQueryEditor,
   query,
@@ -240,22 +241,38 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error', () => {
-      expect.assertions(1);
+    it('calls queryFailed on fetch error and logs the error details', () => {
+      expect.assertions(3);
 
       fetchMock.post(
         runQueryEndpoint,
-        { throws: { message: 'error text' } },
+        {
+          throws: {
+            message: 'error text',
+            timeout: true,
+            statusText: 'timeout',
+          },
+        },
         { overwriteRoutes: true },
       );
 
       const store = mockStore({});
-      const expectedActionTypes = [actions.START_QUERY, actions.QUERY_FAILED];
+      const expectedActionTypes = [
+        actions.START_QUERY,
+        LOG_EVENT,
+        LOG_EVENT,
+        actions.QUERY_FAILED,
+      ];
       const { dispatch } = store;
       const request = actions.runQuery(query);
       return request(dispatch, () => initialState).then(() => {
-        expect(store.getActions().map(a => a.type)).toEqual(
-          expectedActionTypes,
+        const actions = store.getActions();
+        expect(actions.map(a => a.type)).toEqual(expectedActionTypes);
+        expect(actions[1].payload.eventData.error_details).toContain(
+          'Issue 1000',
+        );
+        expect(actions[2].payload.eventData.error_details).toContain(
+          'Issue 1001',
         );
       });
     });
