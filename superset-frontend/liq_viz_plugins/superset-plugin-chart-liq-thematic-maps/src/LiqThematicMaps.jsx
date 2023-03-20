@@ -75,7 +75,7 @@ export default function LiqThematicMaps(props) {
     metricCol, // thematic col i.e. Population, a calculated column, GLA, etc.
     height, 
     width, 
-    mapType,
+    mapType, // type of map, can be one or more of thematic, trade_area and intranet
     mapStyle, // Mapbox "base map" style, i.e. Streets, Light, etc.
     boundary, // boundary layer for the map, i.e. SA1, POA, etc.
     intranetLayers, // list of intranet layers, i.e. shopping centres, supermarkets, etc.
@@ -234,7 +234,7 @@ export default function LiqThematicMaps(props) {
 
     // Disable rotating
     map.current.dragRotate.disable();
-    map.current.touchZoomRotate.disable();
+    //map.current.touchZoomRotate.disable();
 
     // Add geocoder with custom local geocoding and dropdown render
     map.current.addControl(
@@ -295,50 +295,54 @@ export default function LiqThematicMaps(props) {
         'data': taSectorCentroids
       });
 
-      map.current.addLayer({
-        'id': 'boundary_tileset',
-        'type': 'fill',
-        'source': 'boundary_tileset',
-        'source-layer': boundary,
-        'layout': {},
-        'paint': layerStyles.boundaryStyle
-      });
-
-      tradeAreas.map(ta => {
+      if (mapType.includes('thematic')) {
         map.current.addLayer({
-          'id': ta,
+          'id': 'boundary_tileset',
           'type': 'fill',
           'source': 'boundary_tileset',
           'source-layer': boundary,
           'layout': {},
-          'paint': {
-            'fill-color': [
-              'case',
-              ['==', ['feature-state', ta], null],
-              'transparent',
-              ['feature-state', ta]
-            ],
-            'fill-outline-color': [
-              'case',
-              ['==', ['feature-state', ta], null],
-              'transparent',
-              '#FFFFFF'
-            ],
-          }
-        });
-      })
+          'paint': layerStyles.boundaryStyle
+        });        
+      }
 
-      map.current.addLayer({
-        'id': 'trade_area_sector_centroids',
-        'type': 'symbol',
-        'source': 'trade_area_sector_centroids',
-        'layout': {
-          'text-field': ['get', 'label'],
-          'text-anchor': 'left',
-          'text-allow-overlap': true,
-          'text-size': 12
-        }
-      })
+      if (mapType.includes('trade_area')) {
+        tradeAreas.map(ta => {
+          map.current.addLayer({
+            'id': ta,
+            'type': 'fill',
+            'source': 'boundary_tileset',
+            'source-layer': boundary,
+            'layout': {},
+            'paint': {
+              'fill-color': [
+                'case',
+                ['==', ['feature-state', ta], null],
+                'transparent',
+                ['feature-state', ta]
+              ],
+              'fill-outline-color': [
+                'case',
+                ['==', ['feature-state', ta], null],
+                'transparent',
+                '#FFFFFF'
+              ],
+            }
+          });
+        })
+  
+        map.current.addLayer({
+          'id': 'trade_area_sector_centroids',
+          'type': 'symbol',
+          'source': 'trade_area_sector_centroids',
+          'layout': {
+            'text-field': ['get', 'label'],
+            'text-anchor': 'left',
+            'text-allow-overlap': true,
+            'text-size': 12
+          }
+        })
+      }
 
       loadIntranetLayers(intranetLayers ? intranetLayers : []);
       setRenderedIntranetLayers(intranetLayers ? [...intranetLayers] : []);
@@ -396,6 +400,7 @@ export default function LiqThematicMaps(props) {
 
     // When the map reveices new tile data, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
+      if (!(mapType.includes('thematic') || mapType.includes('trade_area'))) return;
       const bdryIds = getCurrBdryIds();
       setCurrBdryIDs([...bdryIds]);
     });
@@ -411,7 +416,7 @@ export default function LiqThematicMaps(props) {
   // When color map settings change, update state and map
   useEffect(() => {
 
-    if (!mapStyle.includes('thematic')) return;
+    if (!mapType.includes('thematic')) return;
 
     setColorMap({});
 
@@ -483,7 +488,7 @@ export default function LiqThematicMaps(props) {
 
   // Hook for styling rendered tiles via feature state, triggered whenever new tiles are rendered
   useEffect(() => {
-    if (currBdryIDs.length === 0 || Object.keys(colorMap).length === 0 || !map.current.isStyleLoaded()) return;
+    if (!map.current.isStyleLoaded()) return;
     for (const i in currBdryIDs) {
       let state = {
         color: colorMap[currBdryIDs[i].val],
@@ -505,7 +510,7 @@ export default function LiqThematicMaps(props) {
         {...state}
       );
     }
-    map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
+    if (map.current.getLayer('boundary_tileset')) map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [currBdryIDs, colorMap]);
 
   // Hook for changing opacity in real time
