@@ -94,9 +94,12 @@ from superset.connectors.sqla.utils import (
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
+    AdvancedDataTypeResponseError,
+    ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
 from superset.jinja_context import (
@@ -135,6 +138,8 @@ ADDITIVE_METRIC_TYPES_LOWER = {op.lower() for op in ADDITIVE_METRIC_TYPES}
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
+    applied_filter_columns: List[ColumnTyping]
+    rejected_filter_columns: List[ColumnTyping]
     cte: Optional[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
@@ -883,14 +888,21 @@ class SqlaTable(
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
+    def get_query_str_extended(
+        self,
+        query_obj: QueryObjectDict,
+        mutate: bool = True,
+    ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
-        sql = self.mutate_query_from_config(sql)
+        if mutate:
+            sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
+            applied_filter_columns=sqlaq.applied_filter_columns,
+            rejected_filter_columns=sqlaq.rejected_filter_columns,
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
@@ -1033,13 +1045,16 @@ class SqlaTable(
             )
             is_dttm = col_in_metadata.is_temporal
         else:
-            sqla_column = literal_column(expression)
-            # probe adhoc column type
-            tbl, _ = self.get_from_clause(template_processor)
-            qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-            sql = self.database.compile_sqla_query(qry)
-            col_desc = get_columns_description(self.database, sql)
-            is_dttm = col_desc[0]["is_dttm"]
+            try:
+                sqla_column = literal_column(expression)
+                # probe adhoc column type
+                tbl, _ = self.get_from_clause(template_processor)
+                qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                sql = self.database.compile_sqla_query(qry)
+                col_desc = get_columns_description(self.database, sql)
+                is_dttm = col_desc[0]["is_dttm"]
+            except SupersetGenericDBErrorException as ex:
+                raise ColumnNotFoundException(message=str(ex)) from ex
 
         if (
             is_dttm
@@ -1275,6 +1290,8 @@ class SqlaTable(
 
         return QueryResult(
             applied_template_filters=query_str_ext.applied_template_filters,
+            applied_filter_columns=query_str_ext.applied_filter_columns,
+            rejected_filter_columns=query_str_ext.rejected_filter_columns,
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,

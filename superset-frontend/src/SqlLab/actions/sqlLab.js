@@ -32,6 +32,8 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
+import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
+import { logEvent } from 'src/logger/actions';
 import { newQueryTabName } from '../utils/newQueryTabName';
 
 export const RESET_STATE = 'RESET_STATE';
@@ -184,18 +186,20 @@ export function estimateQueryCost(queryEditor) {
     const { dbId, schema, sql, selectedText, templateParams } =
       getUpToDateQuery(getState(), queryEditor);
     const requestSql = selectedText || sql;
-    const endpoint =
-      schema === null
-        ? `/superset/estimate_query_cost/${dbId}/`
-        : `/superset/estimate_query_cost/${dbId}/${schema}/`;
+
+    const postPayload = {
+      database_id: dbId,
+      schema,
+      sql: requestSql,
+      template_params: JSON.parse(templateParams || '{}'),
+    };
+
     return Promise.all([
       dispatch({ type: COST_ESTIMATE_STARTED, query: queryEditor }),
       SupersetClient.post({
-        endpoint,
-        postPayload: {
-          sql: requestSql,
-          templateParams: JSON.parse(templateParams || '{}'),
-        },
+        endpoint: '/api/v1/sqllab/estimate/',
+        body: JSON.stringify(postPayload),
+        headers: { 'Content-Type': 'application/json' },
       })
         .then(({ json }) =>
           dispatch({ type: COST_ESTIMATE_RETURNED, query: queryEditor, json }),
@@ -266,6 +270,26 @@ export function queryFailed(query, msg, link, errors) {
             postPayload: { latest_query_id: query.id },
           })
         : Promise.resolve();
+
+    const eventData = {
+      has_err: true,
+      start_offset: query.startDttm,
+      ts: new Date().getTime(),
+    };
+    errors?.forEach(({ error_type: errorType, extra }) => {
+      const messages = extra?.issue_codes.map(({ message }) => message) || [
+        errorType,
+      ];
+      messages.forEach(message => {
+        dispatch(
+          logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
+            ...eventData,
+            error_type: errorType,
+            error_details: message,
+          }),
+        );
+      });
+    });
 
     return (
       sync

@@ -188,7 +188,9 @@ const useDatasetChartRecords = (datasetId: string) => {
   );
 
   // Called by table with updated table state to fetch new data
+  // @ts-ignore
   const onChange: OnChangeFunction = useCallback(
+    // @ts-ignore
     (tablePagination, tableFilters, tableSorter) => {
       const pageIndex = (tablePagination.current ?? 1) - 1;
       const pageSize = tablePagination.pageSize ?? 0;

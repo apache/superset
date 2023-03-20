@@ -193,15 +193,15 @@ creator if either is contained within the list of owners, otherwise the first ow
 will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 
 ```python
-from superset.reports.types import ReportScheduleExecutor
+from superset.tasks.types import ExecutorType
 
 ALERT_REPORTS_EXECUTE_AS = [
-    ReportScheduleExecutor.CREATOR_OWNER,
-    ReportScheduleExecutor.CREATOR,
-    ReportScheduleExecutor.MODIFIER_OWNER,
-    ReportScheduleExecutor.MODIFIER,
-    ReportScheduleExecutor.OWNER,
-    ReportScheduleExecutor.SELENIUM,
+    ExecutorType.CREATOR_OWNER,
+    ExecutorType.CREATOR,
+    ExecutorType.MODIFIER_OWNER,
+    ExecutorType.MODIFIER,
+    ExecutorType.OWNER,
+    ExecutorType.SELENIUM,
 ]
 ```
 

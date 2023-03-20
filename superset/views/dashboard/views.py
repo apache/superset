@@ -114,17 +114,9 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Creates a new, blank dashboard and redirects to it in edit mode"""
-        metadata = {}
-        if is_feature_enabled("ENABLE_FILTER_BOX_MIGRATION"):
-            metadata = {
-                "native_filter_configuration": [],
-                "show_native_filters": True,
-            }
-
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
             owners=[g.user],
-            json_metadata=json.dumps(metadata, sort_keys=True),
         )
         db.session.add(new_dashboard)
         db.session.commit()

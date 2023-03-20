@@ -295,7 +295,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const select = (
       <Select
-        ariaLabel={t('Select table or type table name')}
+        ariaLabel={t('Select table or type to search tables')}
         disabled={disabled}
         filterOption={handleFilterOption}
         header={header}
@@ -306,7 +306,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           internalTableChange(options)
         }
         options={tableOptions}
-        placeholder={t('Select table or type table name')}
+        placeholder={t('Select table or type to search tables')}
         showSearch
         mode={tableSelectMode}
         value={tableSelectValue}

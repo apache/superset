@@ -17,7 +17,7 @@
 """Defines the templating context for SQL Lab"""
 import json
 import re
-from functools import partial
+from functools import lru_cache, partial
 from typing import (
     Any,
     Callable,
@@ -38,6 +38,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
@@ -46,7 +47,6 @@ from superset.utils.core import (
     get_user_id,
     merge_extra_filters,
 )
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -70,7 +70,7 @@ ALLOWED_TYPES = (
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> Dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
@@ -602,7 +602,7 @@ DEFAULT_PROCESSORS = {
 }
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():
@@ -654,6 +654,6 @@ def dataset_macro(
         "metrics": metrics if include_metrics else None,
         "columns": columns,
     }
-    sqla_query = dataset.get_query_str_extended(query_obj)
+    sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"({sql}) AS dataset_{dataset_id}"
+    return f"(\n{sql}\n) AS dataset_{dataset_id}"

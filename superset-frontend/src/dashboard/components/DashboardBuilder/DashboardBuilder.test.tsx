@@ -281,7 +281,6 @@ describe('DashboardBuilder', () => {
         dashboardInfo: {
           ...mockState.dashboardInfo,
           dash_edit_perm: true,
-          metadata: { show_native_filters: true },
         },
       });
       const filterbar = getByTestId('dashboard-filters-panel');

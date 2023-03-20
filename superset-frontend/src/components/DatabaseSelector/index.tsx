@@ -273,7 +273,7 @@ export default function DatabaseSelector({
   function renderDatabaseSelect() {
     return renderSelectRow(
       <AsyncSelect
-        ariaLabel={t('Select database or type database name')}
+        ariaLabel={t('Select database or type to search databases')}
         optionFilterProps={['database_name', 'value']}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
@@ -281,7 +281,7 @@ export default function DatabaseSelector({
         notFoundContent={emptyState}
         onChange={changeDataBase}
         value={currentDb}
-        placeholder={t('Select database or type database name')}
+        placeholder={t('Select database or type to search databases')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
       />,
@@ -298,14 +298,14 @@ export default function DatabaseSelector({
     );
     return renderSelectRow(
       <Select
-        ariaLabel={t('Select schema or type schema name')}
+        ariaLabel={t('Select schema or type to search schemas')}
         disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         loading={loadingSchemas}
         name="select-schema"
         notFoundContent={t('No compatible schema found')}
-        placeholder={t('Select schema or type schema name')}
+        placeholder={t('Select schema or type to search schemas')}
         onChange={item => changeSchema(item as SchemaOption)}
         options={schemaOptions}
         showSearch

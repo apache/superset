@@ -22,11 +22,10 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme } from '@superset-ui/core';
+import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { truncationCSS } from 'src/hooks/useTruncation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -222,7 +221,6 @@ const FilterControl = ({
   filter,
   icon,
   onFilterSelectionChange,
-  focusedFilterId,
   inView,
   showOverflow,
   parentRef,
@@ -288,7 +286,6 @@ const FilterControl = ({
           dataMaskSelected={dataMaskSelected}
           filter={filter}
           showOverflow={showOverflow}
-          focusedFilterId={focusedFilterId}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={inView}
           parentRef={parentRef}

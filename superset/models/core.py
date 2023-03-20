@@ -24,6 +24,7 @@ from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
@@ -54,7 +55,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK
+from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -67,7 +68,6 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
-from superset.utils.memoized import memoized
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -78,6 +78,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.sql_lab import Query
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
@@ -420,30 +421,58 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         sqlalchemy_uri: Optional[str] = None,
     ) -> Engine:
-        extra = self.get_extra()
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
         )
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        self.db_engine_spec.validate_database_uri(sqlalchemy_url)
+
+        extra = self.get_extra()
+        params = extra.get("engine_params", {})
+        if nullpool:
+            params["poolclass"] = NullPool
+        connect_args = params.get("connect_args", {})
+
+        # The ``adjust_database_uri`` method was renamed to ``adjust_engine_params`` and
+        # had its signature changed in order to support more DB engine specs. Since DB
+        # engine specs can be released as 3rd party modules we want to make sure the old
+        # method is still supported so we don't introduce a breaking change.
+        if hasattr(self.db_engine_spec, "adjust_database_uri"):
+            sqlalchemy_url = self.db_engine_spec.adjust_database_uri(
+                sqlalchemy_url,
+                schema,
+            )
+            logger.warning(
+                "DB engine spec %s implements the method `adjust_database_uri`, which is "
+                "deprecated and will be removed in version 3.0. Please update it to "
+                "implement `adjust_engine_params` instead.",
+                self.db_engine_spec,
+            )
+
+        sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
+            uri=sqlalchemy_url,
+            connect_args=connect_args,
+            catalog=None,
+            schema=schema,
+        )
+
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
         sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
-            sqlalchemy_url, self.impersonate_user, effective_username
+            sqlalchemy_url,
+            self.impersonate_user,
+            effective_username,
         )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        params = extra.get("engine_params", {})
-        if nullpool:
-            params["poolclass"] = NullPool
-
-        connect_args = params.get("connect_args", {})
         if self.impersonate_user:
             self.db_engine_spec.update_impersonation_config(
-                connect_args, str(sqlalchemy_url), effective_username
+                connect_args,
+                str(sqlalchemy_url),
+                effective_username,
             )
 
         if connect_args:
@@ -461,7 +490,11 @@ class Database(
                     source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
-                sqlalchemy_url, params, effective_username, security_manager, source
+                sqlalchemy_url,
+                params,
+                effective_username,
+                security_manager,
+                source,
             )
         try:
             return create_engine(sqlalchemy_url, **params)
@@ -480,6 +513,22 @@ class Database(
         ) as engine:
             with closing(engine.raw_connection()) as conn:
                 yield conn
+
+    def get_default_schema_for_query(self, query: "Query") -> Optional[str]:
+        """
+        Return the default schema for a given query.
+
+        This is used to determine if the user has access to a query that reads from table
+        names without a specific schema, eg:
+
+            SELECT * FROM `foo`
+
+        The schema of the `foo` table depends on the DB engine spec. Some DB engine specs
+        can change the default schema on a per-query basis; in other DB engine specs the
+        default schema is defined in the SQLAlchemy URI; and in others the default schema
+        might be determined by the database itself (like `public` for Postgres).
+        """
+        return self.db_engine_spec.get_default_schema_for_query(self, query)
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:
@@ -723,7 +772,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
+    @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
@@ -897,7 +946,6 @@ class Database(
     def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
         return self.has_view(view_name=view_name, schema=schema)
 
-    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

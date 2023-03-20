@@ -82,6 +82,7 @@ from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, sanitize_clause
 from superset.superset_typing import (
     AdhocMetric,
+    Column as ColumnTyping,
     FilterValue,
     FilterValues,
     Metric,
@@ -553,6 +554,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         query: str,
         duration: timedelta,
         applied_template_filters: Optional[List[str]] = None,
+        applied_filter_columns: Optional[List[ColumnTyping]] = None,
+        rejected_filter_columns: Optional[List[ColumnTyping]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
@@ -563,6 +566,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.query = query
         self.duration = duration
         self.applied_template_filters = applied_template_filters or []
+        self.applied_filter_columns = applied_filter_columns or []
+        self.rejected_filter_columns = rejected_filter_columns or []
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
@@ -1730,7 +1735,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col=flt_col, template_processor=template_processor
                 )
             else:
-                col_obj = columns_by_name.get(flt_col)
+                col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):

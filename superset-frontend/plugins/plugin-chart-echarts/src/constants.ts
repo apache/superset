@@ -20,11 +20,13 @@
 import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LegendFormData,
-  TitleFormData,
   LabelPositionEnum,
+  LegendFormData,
   LegendOrientation,
   LegendType,
+  SortSeriesData,
+  SortSeriesType,
+  TitleFormData,
 } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -69,19 +71,25 @@ export enum OpacityEnum {
   NonTransparent = 1,
 }
 
-export enum AreaChartExtraControlsValue {
+export enum StackControlsValue {
   Stack = 'Stack',
+  Stream = 'Stream',
   Expand = 'Expand',
 }
 
-export const AreaChartExtraControlsOptions: [
+export const StackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
   [null, t('None')],
-  [AreaChartExtraControlsValue.Stack, t('Stack')],
-  [AreaChartExtraControlsValue.Expand, t('Expand')],
+  [StackControlsValue.Stack, t('Stack')],
+  [StackControlsValue.Stream, t('Stream')],
 ];
+
+export const AreaChartStackControlOptions: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
@@ -114,3 +122,8 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // If no satisfactory position can be found, how far away
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
+
+export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
+  sort_series_type: SortSeriesType.Sum,
+  sort_series_ascending: false,
+};
