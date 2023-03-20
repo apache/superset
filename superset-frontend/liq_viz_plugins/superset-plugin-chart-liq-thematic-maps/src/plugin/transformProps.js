@@ -52,6 +52,7 @@ export default function transformProps(chartProps) {
    */
   const { width, height, formData, queriesData } = chartProps;
   const { 
+    mapType,
     mapStyle,
     boundary,
     intranetLayers, 
@@ -60,7 +61,6 @@ export default function transformProps(chartProps) {
     customMode,
     numClasses,
     opacity,
-    isTradeArea,
     latitude,
     longitude,
     zoom
@@ -69,6 +69,8 @@ export default function transformProps(chartProps) {
   
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
   const metricCol = formData.metric.constructor === Array ? formData.metric[0].label : formData.metric.label;
+
+  const isTradeArea = mapType.includes('trade_area');
 
   const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
   let tradeAreaSA1s = {};
@@ -117,6 +119,7 @@ export default function transformProps(chartProps) {
     groupCol,
     metricCol,
     // and now your control data, manipulated as needed, and passed through as props!
+    mapType,
     mapStyle,
     boundary,
     intranetLayers,

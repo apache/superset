@@ -18,7 +18,7 @@
  */
 import React, { useEffect, createRef, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import mapboxgl, { Popup } from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
@@ -28,9 +28,7 @@ import entity from '../../liq_data/entity.json';
 
 // UI imports
 import {
-  BarsOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  BarsOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
 
@@ -77,6 +75,7 @@ export default function LiqThematicMaps(props) {
     metricCol, // thematic col i.e. Population, a calculated column, GLA, etc.
     height, 
     width, 
+    mapType,
     mapStyle, // Mapbox "base map" style, i.e. Streets, Light, etc.
     boundary, // boundary layer for the map, i.e. SA1, POA, etc.
     intranetLayers, // list of intranet layers, i.e. shopping centres, supermarkets, etc.
@@ -91,8 +90,8 @@ export default function LiqThematicMaps(props) {
     taSectorColorMap, // for each centre trade area, map from sector to colour
     taSectorCentroids, // geojson file for sector centroid points, used to label them in a symbol layer
     latitude, // starting lat
-    longitude, // starting lng,
-    zoom, //starting zoom
+    longitude, // starting lng
+    zoom, // starting zoom
   } = props;
 
   const rootElem = createRef();
@@ -112,19 +111,13 @@ export default function LiqThematicMaps(props) {
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
 
-  const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContent, setDrawerContent] = useState(<></>);
   const [drawerTitle, setDrawerTitle] = useState('');
+
   const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
-    {
-      icon: collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
-      label: <span>{collapsed ? 'Uncollapse' : 'Collapse'}</span>,
-      key: '0',
-      onClick: () => setCollapsed(!collapsed)
-    },
     {
       icon: <BarsOutlined />,
       label: <span>Legend</span>,
@@ -387,7 +380,7 @@ export default function LiqThematicMaps(props) {
           { hover: false }
         );
       }
-    })
+    });
 
     // When the map is moved around, store current position in state
     map.current.on('move', () => {
@@ -418,6 +411,8 @@ export default function LiqThematicMaps(props) {
   // When color map settings change, update state and map
   useEffect(() => {
 
+    if (!mapStyle.includes('thematic')) return;
+
     setColorMap({});
 
     var myHeaders = new Headers();
@@ -445,10 +440,7 @@ export default function LiqThematicMaps(props) {
       redirect: 'follow'
     }
 
-    fetch(
-      liqSecrets.lambdaFunctions.cMap.url,
-      requestOptions
-    )
+    fetch(liqSecrets.lambdaFunctions.cMap.url, requestOptions)
       .then(response => response.json())
       .then(result => {
         var cMap = {};
@@ -457,8 +449,7 @@ export default function LiqThematicMaps(props) {
         });
         setColorMap({...cMap});
         setThematicLegend({...result.breaks});
-      })
-      .then(error => console.log('error', error));
+      });
   }, [linearColorScheme, breaksMode, customMode, numClasses, data])
 
   // Make sure map is always resized relative to parent container
@@ -528,12 +519,11 @@ export default function LiqThematicMaps(props) {
       <Sider 
         trigger={null} 
         collapsible 
-        collapsed={collapsed} 
-        onCollapse={() => setCollapsed(!collapsed)}
+        collapsed
       >
         <Menu mode="inline" theme='dark'>
           {items.map(i => (
-            <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0}>
+            <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}>
               {i.icon}
               {i.label}
             </Menu.Item>
@@ -544,7 +534,7 @@ export default function LiqThematicMaps(props) {
         <Content>
           <div
             ref={mapContainer}
-            style={{ padding: 24, height: height, width: '100%' }}
+            style={{ height: height, width: '100%' }}
           />
           <SideDrawer 
             drawerTitle={drawerTitle}
