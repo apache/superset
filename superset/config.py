@@ -473,6 +473,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
+    # Enable caching per user key for Superset cache (not datatabase cache impersonation)
+    "CACHE_QUERY_BY_USER": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": False,
