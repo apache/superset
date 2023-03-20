@@ -210,7 +210,16 @@ const iconSizeExprs = {
     1.0,
     1.0
   ],
-  'department_stores': 2,
+  'department_stores': [
+    'case',
+    [
+      'any',
+      ['==', ['get', 'tenant_id'], 4537],
+      ['==', ['get', 'tenant_id'], 11884]
+    ],
+    0.30,
+    0.60
+  ],
   'discount_department_stores': 0.5
 }
 
