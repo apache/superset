@@ -17,6 +17,7 @@
 import logging
 from logging.config import fileConfig
 from typing import List
+import urllib.parse
 
 from alembic import context
 from alembic.operations.ops import MigrationScript
@@ -42,7 +43,8 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-config.set_main_option("sqlalchemy.url", DATABASE_URI)
+decoded_uri = urllib.parse.unquote(DATABASE_URI)
+config.set_main_option("sqlalchemy.url", decoded_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
 
