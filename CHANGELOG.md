@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-- [2.1.0](#210-fri-feb-17-110814-2023-0000)
+- [2.1.0](#210-thu-mar-16-211305-2023--0700)
 - [2.0.1](#201-fri-nov-4-103402-2022--0400)
 - [2.0.0](#200-tue-jun-28-085302-2022--0400)
 - [1.5.3 (LTS)](#153-thu-jan-5-150544-2023--0500)
@@ -29,7 +29,7 @@ under the License.
 - [1.4.2](#142-sat-mar-19-000806-2022-0200)
 - [1.4.1](#141)
 
-### 2.1 (Thu Mar 9 22:19:14 2023 +0000)
+### 2.1 (Thu Mar 16 21:13:05 2023 -0700)
 **Database Migrations**
 - [#23139](https://github.com/apache/superset/pull/23139) fix: memoized decorator memory leak (@dpgaspar)
 - [#19676](https://github.com/apache/superset/pull/19676) chore(frontend): Spelling (@jsoref)
@@ -256,6 +256,7 @@ under the License.
 - [#20412](https://github.com/apache/superset/pull/20412) feat: allow setting db UUID (@betodealmeida)
 
 **Fixes**
+- [#23388](https://github.com/apache/superset/pull/23388) fix: update default WEBDRIVER_OPTION_ARGS and add Firefox libs to Dockerfile (@nytai)
 - [#23299](https://github.com/apache/superset/pull/23299) fix(dashboard): Infinite load when filter with default first value is out of scope (@kgabryje)
 - [#23238](https://github.com/apache/superset/pull/23238) fix(dashboard): Charts crashing when cross filter on adhoc column is applied (@kgabryje)
 - [#23243](https://github.com/apache/superset/pull/23243) fix: customize tab on heatmap chart is blank (@lilykuang)
@@ -399,7 +400,7 @@ under the License.
 - [#22323](https://github.com/apache/superset/pull/22323) fix(dashboard): dashboard actions fail when bad component id exists in children array (@eric-briscoe)
 - [#22318](https://github.com/apache/superset/pull/22318) fix: DropdownContainer resize algorithm (@michael-s-molina)
 - [#22280](https://github.com/apache/superset/pull/22280) fix(sqla): use same template processor in all methods (@villebro)
-- [#22321](https://github.com/apache/superset/pull/22321) fix: convert <NA> values to None instead of stringifying (@eschutho)
+- [#22321](https://github.com/apache/superset/pull/22321) fix: convert `<NA>` values to None instead of stringifying (@eschutho)
 - [#22274](https://github.com/apache/superset/pull/22274) fix(alerts): cron picker alignment issues (@diegomedina248)
 - [#22303](https://github.com/apache/superset/pull/22303) fix(docker): Fixing ws docker push (@craig-rueda)
 - [#22009](https://github.com/apache/superset/pull/22009) fix(dashboard): chart doesn't resize when tab switch (@stephenLYZ)
@@ -711,6 +712,7 @@ under the License.
 - [#20496](https://github.com/apache/superset/pull/20496) fix: change permissions on action (@eschutho)
 
 **Others**
+- [#23325](https://github.com/apache/superset/pull/23325) chore: use util test env for init check (@eschutho)
 - [#23298](https://github.com/apache/superset/pull/23298) docs: improve API v1 migration documentation (@dpgaspar)
 - [#23199](https://github.com/apache/superset/pull/23199) docs: update installation docs to include frontend asset build (@eschutho)
 - [#23131](https://github.com/apache/superset/pull/23131) chore: Add docs for ssh tunneling (@hughhhh)
@@ -727,7 +729,7 @@ under the License.
 - [#23081](https://github.com/apache/superset/pull/23081) chore(style): make brand icon max width customizable (@villebro)
 - [#23079](https://github.com/apache/superset/pull/23079) build(deps-dev): bump eslint from 8.33.0 to 8.34.0 in /superset-websocket (@dependabot[bot])
 - [#23080](https://github.com/apache/superset/pull/23080) build(deps): bump ws from 8.12.0 to 8.12.1 in /superset-websocket (@dependabot[bot])
-- [#22913](https://github.com/apache/superset/pull/22913) chore: Migrate /superset/csv/<client_id> to API v1 (@diegomedina248)
+- [#22913](https://github.com/apache/superset/pull/22913) chore: Migrate /superset/csv/`<client_id>` to API v1 (@diegomedina248)
 - [#22931](https://github.com/apache/superset/pull/22931) chore: Migrate get_or_create_table endpoint to api v1 (@jfrag1)
 - [#22486](https://github.com/apache/superset/pull/22486) docs: remove duplicate navbar item (@tisonkun)
 - [#23029](https://github.com/apache/superset/pull/23029) build(deps-dev): bump @types/node from 18.11.19 to 18.13.0 in /superset-websocket (@dependabot[bot])
@@ -776,9 +778,9 @@ under the License.
 - [#22892](https://github.com/apache/superset/pull/22892) build(deps): bump underscore from 1.12.0 to 1.12.1 in /superset-frontend (@dependabot[bot])
 - [#22891](https://github.com/apache/superset/pull/22891) build(deps): bump moment from 2.29.2 to 2.29.4 in /docs (@dependabot[bot])
 - [#22888](https://github.com/apache/superset/pull/22888) docs: add Skyscanner to users list (@cleslie)
-- [#22611](https://github.com/apache/superset/pull/22611) chore: Migrate /superset/queries/<last_updated_ms> to API v1 (@diegomedina248)
+- [#22611](https://github.com/apache/superset/pull/22611) chore: Migrate /superset/queries/`<last_updated_ms>` to API v1 (@diegomedina248)
 - [#22887](https://github.com/apache/superset/pull/22887) chore: add statsd support to base API and refactor (@dpgaspar)
-- [#22496](https://github.com/apache/superset/pull/22496) chore: deprecate /superset/slice_json/<int:slice_id> and /superset/annotation_json/<int:layer_id> (@diegomedina248)
+- [#22496](https://github.com/apache/superset/pull/22496) chore: deprecate /superset/slice_json/`<int:slice_id>` and /superset/annotation_json/`<int:layer_id>` (@diegomedina248)
 - [#22779](https://github.com/apache/superset/pull/22779) chore: upgrade react-reverse-portal for react upgrade (@lilykuang)
 - [#22780](https://github.com/apache/superset/pull/22780) chore: upgrade react-table for react 18 upgrade (@lilykuang)
 - [#22834](https://github.com/apache/superset/pull/22834) chore: migrate react-diff-viewer to react-diff-viewer-continued for react 18 upgrade (@lilykuang)
@@ -788,7 +790,7 @@ under the License.
 - [#22838](https://github.com/apache/superset/pull/22838) build(deps-dev): bump @typescript-eslint/eslint-plugin from 5.48.2 to 5.49.0 in /superset-websocket (@dependabot[bot])
 - [#22846](https://github.com/apache/superset/pull/22846) test: Fix act errors in DatabaseModal test (@lyndsiWilliams)
 - [#22845](https://github.com/apache/superset/pull/22845) test: Fix act errors in DatasourceControl test (@lyndsiWilliams)
-- [#22789](https://github.com/apache/superset/pull/22789) chore: Migrate /superset/recent_activity/<user_id>/ to /api/v1/ (@jfrag1)
+- [#22789](https://github.com/apache/superset/pull/22789) chore: Migrate /superset/recent_activity/`<user_id>`/ to /api/v1/ (@jfrag1)
 - [#22844](https://github.com/apache/superset/pull/22844) chore(tests): Streamline Cypress login to fix fails/flakes (@codyml)
 - [#20872](https://github.com/apache/superset/pull/20872) docs(alerts & reports): add, prune, reorganize (@sfirke)
 - [#22617](https://github.com/apache/superset/pull/22617) chore(issue templates): discouraging Issues for feature requests (@rusackas)
@@ -1296,7 +1298,7 @@ under the License.
 - [#20392](https://github.com/apache/superset/pull/20392) feat: setting limit value when Pie chart switches (@zhaoyongjie)
 - [#20373](https://github.com/apache/superset/pull/20373) feat: adding truncate metric control on timeseries charts (@zhaoyongjie)
 - [#20248](https://github.com/apache/superset/pull/20248) feat(explore): Implement viz switcher redesign (@kgabryje)
-- [#20113](https://github.com/apache/superset/pull/20113) feat(api): Added "kind" to dataset/<pk> endpoint (@reesercollins)
+- [#20113](https://github.com/apache/superset/pull/20113) feat(api): Added "kind" to dataset/`<pk>` endpoint (@reesercollins)
 - [#20299](https://github.com/apache/superset/pull/20299) feat(explore): Dataset Panel Options when Source = Query II (@lyndsiWilliams)
 - [#20320](https://github.com/apache/superset/pull/20320) feat: Databricks native driver (@betodealmeida)
 - [#20313](https://github.com/apache/superset/pull/20313) feat(explore): Denormalize form data in echarts, world map and nvd3 bar and line charts (@kgabryje)
@@ -2044,7 +2046,7 @@ under the License.
 - [#19242](https://github.com/apache/superset/pull/19242) fix: allow subquery in ad-hoc SQL (@lilykuang)
 - [#18926](https://github.com/apache/superset/pull/18926) fix(explore comma): make that the comma can be added by removing it from token separators… (@prosdev0107)
 - [#19234](https://github.com/apache/superset/pull/19234) fix: adhoc column in legacy chart (@zhaoyongjie)
-- [#19076](https://github.com/apache/superset/pull/19076) fix: allow to select <NULL> in a native filter single mode (@diegomedina248)
+- [#19076](https://github.com/apache/superset/pull/19076) fix: allow to select `<NULL>` in a native filter single mode (@diegomedina248)
 - [#19159](https://github.com/apache/superset/pull/19159) fix(select): make to consider the case sensitive in case of d3 format selector (@prosdev0107)
 - [#19139](https://github.com/apache/superset/pull/19139) fix: Popovers in Explore not attached to the fields they are triggered by (@diegomedina248)
 - [#19152](https://github.com/apache/superset/pull/19152) fix: auto-complete of tables and names are not working in SQL lab (@diegomedina248)
