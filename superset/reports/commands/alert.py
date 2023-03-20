@@ -84,10 +84,6 @@ class AlertCommand(BaseCommand):
             ]
             if OPERATOR_FUNCTIONS[operator](self._result, threshold) == False:
                 raise_incident(app.config, self._report_schedule,VoIncidentType.RECOVERY)
-            logger.info(
-                "CONDITION LOGGER",
-                OPERATOR_FUNCTIONS[operator](self._result, threshold),
-            )
             return OPERATOR_FUNCTIONS[operator](self._result, threshold)
             # type: ignore
         except (KeyError, json.JSONDecodeError) as ex:

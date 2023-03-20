@@ -414,9 +414,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const frontendConfig = bootstrapData?.common?.conf;
 
   const conf = useCommonConf();
-  const currentNotification = JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
-  const reportNotificationsAllowed = currentNotification.splice(currentNotification,currentNotification.indexOf("VictorOps"), 1)
-  const allowedNotificationMethods: NotificationMethodOption[] = (isReport ? reportNotificationsAllowed : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) || DEFAULT_NOTIFICATION_METHODS;
+  const currentNotification = JSON.parse(
+    JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
+  );
+  const reportNotificationsAllowed = currentNotification.splice(
+    currentNotification,
+    currentNotification.indexOf('VictorOps'),
+    1,
+  );
+  const allowedNotificationMethods: NotificationMethodOption[] =
+    (isReport
+      ? reportNotificationsAllowed
+      : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) ||
+    DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [invalidInput, setInvalidInputs] = useState<any>({
@@ -503,7 +513,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-
   // Alert fetch logic
   const {
     state: { loading, resource, error: fetchError },
@@ -589,7 +598,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     // VO routing key validation
-    if(routingKeys && routingKeys.length > 0){
+    if (routingKeys && routingKeys.length > 0) {
       const isInValid = await validateRoutingKey(recipients);
       if (isInValid) {
         return;
@@ -673,22 +682,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let response: any = null;
     let invalid = true;
     let voRoutingKey = '';
+    // eslint-disable-next-line no-plusplus
     for (let i = 0; i < recipients.length; i++) {
       if (recipients[i].type === RecipientIconName.VO) {
         if (recipients[i].recipient_config_json.target) {
           voRoutingKey = recipients[i].recipient_config_json.target;
           const options = {
-            headers: frontendConfig["VO_HEADERS"],
+            headers: frontendConfig.VO_HEADERS,
           };
-          response = await (
-            await fetch(frontendConfig["VO_VALIDATE_ROUTING_KEY"], options)
-          ).json();
+          // eslint-disable-next-line no-await-in-loop
+          response = await // eslint-disable-next-line no-await-in-loop
+          (await fetch(frontendConfig.VO_VALIDATE_ROUTING_KEY, options)).json();
         }
       }
     }
 
     if (response) {
-      response?.routingKeys.map((key: any) => {
+      response?.routingKeys.forEach((key: any) => {
         if (key.routingKey === voRoutingKey) {
           invalid = false;
         }

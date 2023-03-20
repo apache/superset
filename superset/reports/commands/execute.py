@@ -440,7 +440,6 @@ class BaseReportState:
         notification_errors = []
         for recipient in recipients:
             if recipient.type == ReportRecipientType.VO and self._report_schedule.type == ReportScheduleType.ALERT:
-                logger.info("ALERT TRIGGERED", str(self._report_schedule))
                 raise_incident(app.config, self._report_schedule,VoIncidentType.CRITICAL)
             else:
                 notification = create_notification(recipient, notification_content)
