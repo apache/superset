@@ -53,7 +53,7 @@ export default {
 export const DatasetSpecific = () => {
   SupersetClient.reset();
   SupersetClient.configure({ csrfToken: '1234' }).init();
-  const { MetadataBar } = useDatasetMetadataBar(1);
+  const { metadataBar } = useDatasetMetadataBar(1);
   const { width, height, ref } = useResizeDetector();
   // eslint-disable-next-line no-param-reassign
   return (
@@ -68,7 +68,7 @@ export const DatasetSpecific = () => {
         resize: horizontal;
       `}
     >
-      <MetadataBar />
+      {metadataBar}
       <span
         css={css`
           position: absolute;
