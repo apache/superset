@@ -45,6 +45,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -654,7 +655,28 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
+        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
+          columns: [
+            'columns.column_name',
+            'columns.expression',
+            'columns.filterable',
+            'columns.is_dttm',
+            'columns.type',
+            'columns.verbose_name',
+            'database.id',
+            'database.database_name',
+            'datasource_type',
+            'filter_select_enabled',
+            'id',
+            'is_sqllab_view',
+            'main_dttm_col',
+            'metrics.metric_name',
+            'metrics.verbose_name',
+            'schema',
+            'sql',
+            'table_name',
+          ],
+        })}`,
       })
         .then((response: JsonResponse) => {
           setMetrics(response.json?.result?.metrics);
