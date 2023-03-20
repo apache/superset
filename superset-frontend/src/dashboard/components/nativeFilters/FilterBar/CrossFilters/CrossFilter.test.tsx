@@ -52,9 +52,7 @@ test('Title should render', () => {
 
 test('Search icon should be visible', () => {
   setup(mockedProps);
-  expect(
-    screen.getByTestId('cross-filters-highlight-emitter'),
-  ).toBeInTheDocument();
+  expect(screen.getByTestId('cross-filter-bar-highlight')).toBeInTheDocument();
 });
 
 test('Column and value should be visible', () => {

@@ -59,7 +59,7 @@ const CrossFilterChartTitle = (props: {
   const [titleRef, titleIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   const theme = useTheme();
   return (
-    <StyledCrossFilterTitle>
+    <StyledCrossFilterTitle data-test="cross-filter-bar-title">
       <Tooltip title={titleIsTruncated ? title : null}>
         <span
           css={css`
@@ -77,7 +77,7 @@ const CrossFilterChartTitle = (props: {
       <Tooltip title={t('Locate the chart')}>
         <StyledIconSearch
           iconSize="s"
-          data-test="cross-filters-highlight-emitter"
+          data-test="cross-filter-bar-highlight"
           role="button"
           tabIndex={0}
           onClick={onHighlightFilterSource}

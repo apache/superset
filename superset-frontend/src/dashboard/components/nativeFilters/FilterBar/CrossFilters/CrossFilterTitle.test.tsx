@@ -45,7 +45,7 @@ test('Title should be visible', () => {
 
 test('Search icon should highlight emitter', () => {
   setup(mockedProps);
-  const search = screen.getByTestId('cross-filters-highlight-emitter');
+  const search = screen.getByTestId('cross-filter-bar-highlight');
   expect(search).toBeInTheDocument();
   userEvent.click(search);
   expect(mockedProps.onHighlightFilterSource).toHaveBeenCalled();

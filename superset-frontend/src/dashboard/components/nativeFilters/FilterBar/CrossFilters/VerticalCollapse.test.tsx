@@ -65,7 +65,7 @@ test('Collapse should not render when empty', () => {
   expect(screen.queryByText('test')).not.toBeInTheDocument();
   expect(screen.queryByText('test-b')).not.toBeInTheDocument();
   expect(
-    screen.queryByTestId('cross-filters-highlight-emitter'),
+    screen.queryByTestId('cross-filter-bar-highlight'),
   ).not.toBeInTheDocument();
   expect(screen.queryByRole('img', { name: 'close' })).not.toBeInTheDocument();
   expect(screen.queryByText('country_name')).not.toBeInTheDocument();
@@ -83,9 +83,7 @@ test('Titles should be visible', () => {
 
 test('Search icons should be visible', () => {
   setup(mockedProps);
-  expect(screen.getAllByTestId('cross-filters-highlight-emitter')).toHaveLength(
-    2,
-  );
+  expect(screen.getAllByTestId('cross-filter-bar-highlight')).toHaveLength(2);
 });
 
 test('Tags should be visible', () => {

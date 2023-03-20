@@ -78,12 +78,18 @@ const CrossFilterTag = (props: {
       onClose={() => removeCrossFilter(filter.emitterId)}
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
-        <StyledCrossFilterColumn ref={columnRef}>
+        <StyledCrossFilterColumn
+          ref={columnRef}
+          data-test="cross-filter-bar-label"
+        >
           {columnLabel}
         </StyledCrossFilterColumn>
       </Tooltip>
       <Tooltip title={valueIsTruncated ? filter.value : null}>
-        <StyledCrossFilterValue ref={valueRef}>
+        <StyledCrossFilterValue
+          ref={valueRef}
+          data-test="cross-filter-bar-value"
+        >
           {filter.value}
         </StyledCrossFilterValue>
       </Tooltip>

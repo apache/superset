@@ -78,7 +78,7 @@ const CrossFiltersVerticalCollapse = (props: {
       <Collapse.Panel
         key="crossFilters"
         header={
-          <StyledCrossFiltersTitle>
+          <StyledCrossFiltersTitle data-test="cross-filter-bar-collapse-title">
             {t('Cross-filters')}
           </StyledCrossFiltersTitle>
         }
