@@ -2024,67 +2024,21 @@ def get_alert_link(conf, report_schedule) -> str:
     baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
     return f"{baseurl}{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
-
-def get_vo_payload(conf, report_schedule,exception = ""):
+def get_vo_payload(conf, report_schedule,message_type,exception = ""):
     ex = (" Error occured for" + str(exception)) if str(exception) else ""
     payload = {
-        "message_type": "CRITICAL",
+        "message_type": message_type,
         "entity_id": str(report_schedule.id)
         + "_"
         + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name)
         or "",
         "entity_display_name": report_schedule.description or "" + ex ,  # display text
-        # "state_message": get_alert_link(
-        #     conf, report_schedule
-        # ),
         "state_message": report_schedule.msg_content or "",
         "vo_annotate.u.AlertLink":  modify_url_query(get_alert_link(conf, report_schedule), standalone="0")
     }
     return payload
 
-def get_vo_resolution_payload(incident_number,entity_id):
-    payload = {
-        "entityId": entity_id,
-        "incidentNumber": incident_number,
-        "cmdAccepted": True,
-        "message": "Incident resolved by System"
-    }
-    return payload
-
-
-def get_all_incidents(conf, entity_id):
-    if entity_id:
-        REQUEST_URL = conf["VO_ALL_INCIDENTS"]
-        headers = conf["VO_HEADERS"]
-        try:
-            response = requests.get(REQUEST_URL, headers=headers,verify=False)
-            data = response.json()
-            # logger.info("GET ALL INCIDENTS FOR ENTITY ID %s", data["incidents"].__dict__())
-            isIncident = (
-                    list(
-                        filter(
-                            lambda x: x["entityId"] == entity_id,
-                            data["incidents"],
-                        )
-                    )
-                )
-            logger.info("CURRENT INCIDENT %s", str(isIncident))
-            incident_number = isIncident[0].incidentNumber if len(isIncident) > 0 else 0
-            logger.info("CURRENT INCIDENT NUMBER %s", incident_number)
-        except requests.exceptions.HTTPError as e:
-            raise Exception(str(e))
-        if response.status_code != 200:
-            raise ValueError(
-                "Request to victor_ops returned an error %s, the response is:\n%s"
-                % (response.status_code, response.text)
-            )
-        if incident_number:
-            logger.info("CURRENT INCIDENT NUMBER INSIDE %s", incident_number)
-            return incident_number
-        else:
-            raise ValueError("There are no incidents present against the alert: %s", entity_id)
-
-def raise_incident(conf, report_schedule,exception = "") -> None:
+def raise_incident(conf, report_schedule, message_type, exception = "") -> None:
     routing_key = None
     for recipient in report_schedule.recipients:
         if recipient.type == "VictorOps":
@@ -2092,7 +2046,7 @@ def raise_incident(conf, report_schedule,exception = "") -> None:
             routing_key = recipient_config["target"]
     if routing_key:
         WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
-        victor_ops_data = get_vo_payload(conf, report_schedule, exception)
+        victor_ops_data = get_vo_payload(conf, report_schedule, message_type,exception)
         try:
             logger.info("VO PAYLOAD", str(victor_ops_data))
             response = requests.post(
@@ -2109,24 +2063,3 @@ def raise_incident(conf, report_schedule,exception = "") -> None:
                 % (response.status_code, response.text)
             )
 
-def resolve_incident(conf, report_schedule) -> None:
-    entity_id = str(report_schedule.id) + "_" + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name) or "",
-    incident_number = get_all_incidents(conf,entity_id)
-    if incident_number:
-        URL = conf["VO_RESOLVE_INCIDENTS"]
-        victor_ops_data = get_vo_resolution_payload(incident_number,entity_id)
-        try:
-            logger.info("VO RESOLUTION PAYLOAD", str(victor_ops_data))
-            response = requests.patch(
-                URL,
-                data=json.dumps(victor_ops_data),
-                headers=conf["VO_HEADERS"],
-                verify=False
-            )
-        except requests.exceptions.HTTPError as e:
-            raise Exception(str(e))
-        if response.status_code != 200:
-            raise ValueError(
-                "Request to victor_ops returned an error %s, the response is:\n%s"
-                % (response.status_code, response.text)
-            )

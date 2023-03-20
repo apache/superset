@@ -62,6 +62,10 @@ class ReportRecipientType(str, enum.Enum):
     SLACK = "Slack"
     VO = "VictorOps"
 
+class VoIncidentType(str, enum.Enum):
+    CRITICAL = "CRITICAL"
+    RECOVERY = "RECOVERY"
+
 
 class ReportState(str, enum.Enum):
     SUCCESS = "Success"

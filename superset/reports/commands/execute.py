@@ -64,6 +64,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportSourceFormat,
     ReportState,
+    VoIncidentType,
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
@@ -440,7 +441,7 @@ class BaseReportState:
         for recipient in recipients:
             if recipient.type == ReportRecipientType.VO and self._report_schedule.type == ReportScheduleType.ALERT:
                 logger.info("ALERT TRIGGERED", str(self._report_schedule))
-                raise_incident(app.config, self._report_schedule)
+                raise_incident(app.config, self._report_schedule,VoIncidentType.CRITICAL)
             else:
                 notification = create_notification(recipient, notification_content)
                 try:
@@ -581,7 +582,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
-                    raise_incident(app.config, self._report_schedule,first_ex)
+                    raise_incident(app.config, self._report_schedule,VoIncidentType.CRITICAL,first_ex)
                 except CommandException as second_ex:
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)

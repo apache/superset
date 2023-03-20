@@ -414,13 +414,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const frontendConfig = bootstrapData?.common?.conf;
 
   const conf = useCommonConf();
-  console.log("DROPDOWN BEFORE",conf?.ALERT_REPORTS_NOTIFICATION_METHODS)
-  let currentNotification = JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
+  const currentNotification = JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
   const reportNotificationsAllowed = currentNotification.splice(currentNotification,currentNotification.indexOf("VictorOps"), 1)
-  console.log("REPORT NOTIFICATIONS",reportNotificationsAllowed)
   const allowedNotificationMethods: NotificationMethodOption[] = (isReport ? reportNotificationsAllowed : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) || DEFAULT_NOTIFICATION_METHODS;
 
-  console.log("DROPDOWN AFTER",allowedNotificationMethods)
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,

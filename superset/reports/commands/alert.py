@@ -36,8 +36,8 @@ from superset.reports.commands.exceptions import (
     AlertQueryTimeout,
     AlertValidatorConfigError,
 )
-from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
-from superset.utils.core import override_user, raise_incident, resolve_incident
+from superset.reports.models import ReportSchedule, ReportScheduleValidatorType, VoIncidentType
+from superset.utils.core import override_user, raise_incident
 from superset.utils.retries import retry_call
 from superset import app
 
@@ -83,8 +83,7 @@ class AlertCommand(BaseCommand):
                 "threshold"
             ]
             if OPERATOR_FUNCTIONS[operator](self._result, threshold) == False:
-                # raise_incident(app.config, self._report_schedule)
-                resolve_incident(app.config, self._report_schedule)
+                raise_incident(app.config, self._report_schedule,VoIncidentType.RECOVERY)
             logger.info(
                 "CONDITION LOGGER",
                 OPERATOR_FUNCTIONS[operator](self._result, threshold),
