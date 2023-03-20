@@ -43,7 +43,6 @@ import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-  EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
 } from './types';
@@ -74,6 +73,7 @@ import {
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import {
+  getBaselineSeriesForStream,
   getPadding,
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -84,7 +84,7 @@ import {
   transformTimeseriesAnnotation,
 } from './transformers';
 import {
-  AreaChartExtraControlsValue,
+  StackControlsValue,
   TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
@@ -195,7 +195,6 @@ export default function transformProps(
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisLabel,
     extraMetricLabels,
-    removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
     stack,
     totalStackedValues,
     isHorizontal,
@@ -210,7 +209,7 @@ export default function transformProps(
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
   );
-  const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
+  const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
   const xAxisType = getAxisType(xAxisDataType);
@@ -243,9 +242,29 @@ export default function transformProps(
       isHorizontal,
       lineStyle,
     });
-    if (transformedSeries) series.push(transformedSeries);
+    if (transformedSeries) {
+      if (stack === StackControlsValue.Stream) {
+        // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0
+        series.push({
+          ...transformedSeries,
+          data: (transformedSeries.data as any).map(
+            (row: [string | number, number]) => [row[0], row[1] ?? 0],
+          ),
+        });
+      } else {
+        series.push(transformedSeries);
+      }
+    }
   });
 
+  if (stack === StackControlsValue.Stream) {
+    const baselineSeries = getBaselineSeriesForStream(
+      series.map(entry => entry.data) as [string | number, number][][],
+      seriesType,
+    );
+
+    series.unshift(baselineSeries);
+  }
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = series.findIndex(({ name }) => name === selectedValue);
@@ -428,6 +447,9 @@ export default function transformProps(
 
         Object.keys(forecastValues).forEach(key => {
           const value = forecastValues[key];
+          if (value.observation === 0 && stack) {
+            return;
+          }
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,

@@ -27,6 +27,7 @@ import {
 import {
   DEFAULT_LEGEND_FORM_DATA,
   DEFAULT_SORT_SERIES_DATA,
+  StackControlOptions,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { SortSeriesType } from './types';
@@ -119,10 +120,11 @@ export const showValueControl: ControlSetItem = {
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
-    type: 'CheckboxControl',
-    label: t('Stack series'),
+    type: 'SelectControl',
+    label: t('Stacked Style'),
     renderTrigger: true,
-    default: false,
+    choices: StackControlOptions,
+    default: null,
     description: t('Stack series on top of each other'),
   },
 };
@@ -142,7 +144,7 @@ export const onlyTotalControl: ControlSetItem = {
   },
 };
 
-const percentageThresholdControl: ControlSetItem = {
+export const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
     type: 'TextControl',

@@ -29,18 +29,18 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-
-import { OrientationType } from '../../types';
-import {
-  DEFAULT_FORM_DATA,
-  TIME_SERIES_DESCRIPTION_TEXT,
-} from '../../constants';
 import {
   legendSection,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
 } from '../../../controls';
+
+import { OrientationType } from '../../types';
+import {
+  DEFAULT_FORM_DATA,
+  TIME_SERIES_DESCRIPTION_TEXT,
+} from '../../constants';
 
 const {
   logAxis,
