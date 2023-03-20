@@ -201,14 +201,14 @@ const iconSizeExprs = {
       ['==', ['get', 'description'], 'Neighbourhood'],
       ['==', ['get', 'description'], 'City Centre']
     ],
-    0.46,
+    1.0,
     [
       'any',
       ['==', ['get', 'description'], 'Regional'],
       ['==', ['get', 'description'], 'Super Regional']
     ],
-    1.38,
-    0.92
+    1.0,
+    1.0
   ],
   'department_stores': 2,
   'discount_department_stores': 0.5
