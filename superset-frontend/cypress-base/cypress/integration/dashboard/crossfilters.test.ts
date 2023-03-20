@@ -92,6 +92,7 @@ function verifyDisabledCrossFilters(targetViz: string) {
 function verifyAppliedCrossFilters(affectedChart: Record<string, string>) {
   cy.get(`[data-test-viz-type='${affectedChart.affectedViz}']`)
     .within(() => {
+      cy.wait(500);
       cy.getBySel('applied-filter-count').should('exist').contains('1');
       cy.getBySel('applied-filter-count').trigger('mouseover');
     })
