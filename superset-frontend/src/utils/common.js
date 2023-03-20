@@ -80,6 +80,12 @@ export function optionFromValue(opt) {
 
 export function prepareCopyToClipboardTabularData(data, columns) {
   let result = '';
+  const headerRow = {};
+  //adding coloumn name
+  for (let k = 0; k < columns.length; k += 1) {
+    headerRow[k] = columns[k];
+  }
+  result += `${Object.values(headerRow).join('\t')}\n`;
   for (let i = 0; i < data.length; i += 1) {
     const row = {};
     for (let j = 0; j < columns.length; j += 1) {
