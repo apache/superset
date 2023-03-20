@@ -694,8 +694,6 @@ init:
   podAnnotations: {}
   podSecurityContext: {}
   containerSecurityContext: {}
-  ## Node selector to be added to init job pods
-  nodeSelector: {}
   ## Tolerations to be added to init job pods
   tolerations: []
   ## Affinity to be added to init job pods
