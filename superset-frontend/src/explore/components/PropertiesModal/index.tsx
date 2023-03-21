@@ -399,7 +399,7 @@ function PropertiesModal({
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
+                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </StyledHelpBlock>
             </FormItem>

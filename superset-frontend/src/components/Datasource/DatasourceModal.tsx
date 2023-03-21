@@ -101,6 +101,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       postPayload: {
         data: {
           ...currentDatasource,
+          cache_timeout:
+            currentDatasource.cache_timeout === ''
+              ? null
+              : currentDatasource.cache_timeout,
           schema,
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
