@@ -129,6 +129,24 @@ const config: ControlPanelConfig = {
             config: sharedControls.row_limit,
           },
         ],
+        [
+          {
+            name: 'map_type',
+            config: {
+              type: 'SelectControl',
+              default: 'thematic',
+              multi: true,
+              renderTrigger: false,
+              choices: [
+                ['thematic', 'Thematic'],
+                ['trade_area', 'Trade Area'],
+                ['intranet', 'Intranet']
+              ],
+              label: t('Map Type'),
+              description: t('What the dataset is for, i.e. the socios dataset would fall under Thematic or a dataset with entity_ids will fill under intranet.')
+            }
+          },
+        ]
       ],
     },
     {
@@ -210,7 +228,8 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               // ^ this makes it apply instantaneously, without triggering a "run query" button
               label: t('Boundary'),
-              description: t('ABS boundaries')
+              description: t('ABS boundaries'),
+              visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
             },
           },
         ],
@@ -228,7 +247,8 @@ const config: ControlPanelConfig = {
               ],
               renderTrigger: false,
               label: t('Mode'),
-              description: t('Method used for color styling in thematic.')
+              description: t('Method used for color styling in thematic.'),
+              visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
             }
           }
         ],
@@ -241,7 +261,7 @@ const config: ControlPanelConfig = {
               default: '',
               label: t('Custom Mode'),
               description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
-              visibility: ({ controls }) => Boolean(controls.breaks_mode.value === 'custom')
+              visibility: ({ controls }) => Boolean(controls.breaks_mode.value === 'custom') && Boolean(controls.map_type.value.includes('thematic'))
             }
           }
         ],
@@ -256,7 +276,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Number of classes'),
               description: t('The number of breaks for the thematic'),
-              visibility: ({ controls }) => Boolean(!(controls.breaks_mode.value === 'categorized'))
+              visibility: ({ controls }) => Boolean(!(controls.breaks_mode.value === 'categorized')) && Boolean(controls.map_type.value.includes('thematic'))
             },
           },
         ],
@@ -276,24 +296,6 @@ const config: ControlPanelConfig = {
           }
         ]
       ],
-    },
-    {
-      label: t('Trade Area Settings'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'is_trade_area',
-            config: {
-              type: 'CheckboxControl',
-              renderTrigger: false,
-              default: false,
-              label: t('Trade Area?'),
-              description: t('Whether the data is for one or more trade areas')
-            }
-          }
-        ]
-      ]
     },
     {
       label: t('Initial Map Position'),
@@ -371,11 +373,27 @@ const config: ControlPanelConfig = {
           }
         ]
       ]
+    },
+    {
+      label: t('Custom Layers'),
+      expanded: true,
+      controlSetRows: [
+        {
+          name: 'custom_tileset',
+          config: {
+            type: 'TextControl',
+            renderTrigger: false,
+            default: '',
+            label: t('Mapbox Tileset URL')
+          }
+        }
+      ]
     }
   ],
   controlOverrides: {
     linear_color_scheme: {
-      renderTrigger: false
+      renderTrigger: false,
+      visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
     }
   }
 };
