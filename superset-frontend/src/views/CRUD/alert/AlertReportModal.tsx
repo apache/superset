@@ -419,7 +419,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   );
   const reportNotificationsAllowed = currentNotification.splice(
     currentNotification,
-    currentNotification.indexOf('VictorOps'),
+    currentNotification.indexOf(RecipientIconName.VO),
     1,
   );
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -466,15 +466,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
 
-  // useEffect(()=>{
-  //   if(notificationSettings && isReport){
-  //     for(let i=0;i<notificationSettings.length;i++){
-  //       const filteredOptions = notificationSettings[i].options.filter((item : string) => item != RecipientIconName.VO)
-  //       notificationSettings[i].options = filteredOptions
-  //     }
-  //   }
-  // }, [isReport,notificationSettings])
-
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
 
@@ -496,7 +487,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setting: NotificationSetting,
   ) => {
     const settings = notificationSettings.slice();
-
     settings[index] = setting;
     setNotificationSettings(settings);
 

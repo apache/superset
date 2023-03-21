@@ -26,4 +26,6 @@ export const ERROR_MESSAGES = {
     'INVALID INPUT LOGGED, Please refer to the respective help text for more information',
   VO_ROUTING_KEY_ERROR:
     'INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists',
+  SAME_METHOD:
+    'The selected method is already chosen as a notification method. Please select another or append the recipients in the selected one',
 };
