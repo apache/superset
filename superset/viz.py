@@ -1973,8 +1973,9 @@ class SankeyViz(BaseViz):
             def visit(vertex: str) -> Optional[Tuple[str, str]]:
                 path.add(vertex)
                 for neighbour in graph.get(vertex, ()):
-                    if neighbour in path or visit(neighbour):
-                        return (vertex, neighbour)
+                    cycle = (vertex, neighbour) if neighbour in path else visit(neighbour)
+                    if cycle:
+                        return cycle
                 path.remove(vertex)
                 return None
 
