@@ -109,19 +109,7 @@ Usage (MacOS/ZSH):
 
 ```bash
 cd RELEASING
-source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-```
-
-Usage (BASH):
-
-```bash
-. set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-```
-
-Example:
-
-```bash
-source set_release_env.sh 1.5.1rc1 myid@apache.org
+make setup
 ```
 
 The script will output the exported variables. Here's example for 1.5.1rc1:
@@ -155,10 +143,7 @@ The MAJOR.MINOR branch is normally a "cut" from a specific point in time from th
 When creating the initial minor release (e.g. 1.5.0), create a new branch:
 
 ```bash
-git checkout master
-git pull
-git checkout -b ${SUPERSET_GITHUB_BRANCH}
-git push origin $SUPERSET_GITHUB_BRANCH
+make cut-branch
 ```
 
 Note that this initializes a new "release cut", and is NOT needed when creating a patch release
@@ -169,9 +154,7 @@ Note that this initializes a new "release cut", and is NOT needed when creating 
 When getting ready to bake a patch release, simply checkout the relevant branch:
 
 ```bash
-git checkout master
-git pull
-git checkout ${SUPERSET_GITHUB_BRANCH}
+make get-branch
 ```
 
 ### Cherry picking
@@ -183,28 +166,26 @@ label `v1.5` should be added.
 To see how well the labelled PRs would apply to the current branch, run the following command:
 
 ```bash
-cherrytree bake -r apache/superset -m master -l v${SUPERSET_GITHUB_BRANCH} ${SUPERSET_GITHUB_BRANCH}
+make cherry-tree
 ```
 
-This requires the presence of an environment variable `GITHUB_TOKEN`. Alternatively,
-you can pass the token directly via the `--access-token` parameter (`-at` for short).
+If an environment variable `GITHUB_TOKEN` is not defined, you will be prompted for one.
 
 #### Happy path: no conflicts
 
-This will show how many cherries will apply cleanly. If there are no conflicts, you can simply apply all cherries
-by adding the `--no-dry-run` flag (`-nd` for short):
+This will show how many cherries will apply cleanly. If there are no conflicts, you can simply pass `dry-run` to the make command
 
 ```bash
-cherrytree bake -r apache/superset -m master -l v${SUPERSET_GITHUB_BRANCH} -nd ${SUPERSET_GITHUB_BRANCH}
+make cherry-tree dry-run
 ```
 
 #### Resolving conflicts
 
-If there are conflicts, you can issue the following command to apply all cherries up until the conflict automatically, and then
-break by adding the `-error-mode break` flag (`-e break` for short):
+If there are conflicts, apply all cherries up until the conflict automatically, and then
+break by running:
 
 ```bash
-cherrytree bake -r apache/superset -m master -l v${SUPERSET_GITHUB_BRANCH} -nd -e break ${SUPERSET_GITHUB_BRANCH}
+make cherry-tree e-break
 ```
 
 After applying the cleanly merged cherries, `cherrytree` will specify the SHA of the conflicted cherry. To resolve the conflict,

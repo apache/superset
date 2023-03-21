@@ -107,6 +107,9 @@ release.json
 # Translation binaries
 messages.mo
 
+# Releasing
+RELEASING/releasing_env
+
 docker/requirements-local.txt
 
 cache/

@@ -47,7 +47,7 @@ else
   fi
   export SUPERSET_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
   export SUPERSET_RC="${VERSION_RC}"
-  export SUPERSET_GITHUB_BRANCH="${VERSION_MAJOR}.${VERSION_MINOR}"
+  export SUPERSET_GITHUB_BRANCH="bar"
   export SUPERSET_PGP_FULLNAME="${2}"
   export SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${VERSION_RC}"
   export SUPERSET_RELEASE=apache-superset-"${SUPERSET_VERSION}"
@@ -59,5 +59,6 @@ else
   echo -------------------------------
   echo Set Release env variables
   env | grep ^SUPERSET_
+  env | grep ^SUPERSET_ > releasing_env
   echo -------------------------------
 fi
