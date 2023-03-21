@@ -545,7 +545,7 @@ const SqlEditor = ({
             />
           </Menu.Item>
         )}
-        {Object.keys(scheduledQueriesConf || {}).length > 0 && (
+        {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.name}
