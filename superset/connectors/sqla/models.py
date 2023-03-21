@@ -520,7 +520,7 @@ sqlatable_user = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
+    Column("table_id", Integer, ForeignKey("tables.id")),
 )
 
 
