@@ -63,7 +63,8 @@ export default function transformProps(chartProps) {
     opacity,
     latitude,
     longitude,
-    zoom
+    zoom,
+    customTileset
   } = formData;
   const data = queriesData[0].data;
   
@@ -110,8 +111,6 @@ export default function transformProps(chartProps) {
       }
     });
 
-    console.log(intranetData);
-
   let taSectorCentroids = {
     type: 'FeatureCollection',
     features: []
@@ -149,6 +148,7 @@ export default function transformProps(chartProps) {
     opacity,
     latitude,
     longitude,
-    zoom
+    zoom,
+    customTileset
   };
 }

@@ -94,6 +94,7 @@ export default function LiqThematicMaps(props) {
     latitude, // starting lat
     longitude, // starting lng
     zoom, // starting zoom
+    customTileset // mapbox tileset URL for custom layer
   } = props;
 
   const rootElem = createRef();
@@ -136,7 +137,7 @@ export default function LiqThematicMaps(props) {
         });
         setDrawerTitle('Map Legend');
         setDrawerContent(
-          <Legend 
+          <Legend
             intranetLayers={intranetLayers}
             tradeAreas={tradeAreas} 
             thematicData={thematicLegend}
@@ -272,6 +273,12 @@ export default function LiqThematicMaps(props) {
       })
     );
 
+    // load marker image
+    map.current.loadImage('/static/custom_map_marker.png', (error, img) => {
+      if (error) throw error;
+      map.current.addImage('marker', img);
+    })
+
     // Load all icons required for the intranet layers into the map
     Object.keys(intranetImgs).forEach(k => {
       map.current.loadImage(intranetImgs[k], (error, img) => {
@@ -297,6 +304,25 @@ export default function LiqThematicMaps(props) {
         'type': 'geojson',
         'data': taSectorCentroids
       });
+
+      if (customTileset && !(customTileset === '')) {
+        map.current.addSource('custom_tileset', {
+          'type': 'vector',
+          'url': customTileset
+        });
+  
+        map.current.addLayer({
+          'id': 'custom_tileset',
+          'type': 'symbol',
+          'source': 'custom_tileset',
+          'source-layer': 'gdf1',
+          'layout': {
+            'icon-image': 'unknown_ds',
+            'icon-allow-overlap': true,
+            'icon-size': 1
+          }
+        });
+      }
 
       if (mapType.includes('thematic')) {
         map.current.addLayer({
@@ -422,16 +448,30 @@ export default function LiqThematicMaps(props) {
         map.current.getCanvas().style.cursor = '';
       });
       map.current.on('click', l, (e) => {
-        const layer = e.features[0].layer.id;
-        const id = 'entity_id' in e.features[0].properties ? e.features[0].properties.entity_id : e.features[0].properties.tenancy_id
-        if (layer in intranetData && id in intranetData[layer]) {
-          const data = intranetData[layer][id];
-          setDrawerTitle(data.Name);
-          setDrawerContent(<DataDisplay data={data}/>);
-          setDrawerOpen(true);
-        }
+        const data = [];
+        e.features.map(d => {
+          const id = 'entity_id' in d.properties ? d.properties.entity_id : d.properties.tenancy_id;
+          if (d.layer.id in intranetData && id in intranetData[d.layer.id]) data.push(intranetData[d.layer.id][id]);
+        })
+        setDrawerTitle('Data');
+        setDrawerContent(<DataDisplay data={data} />);
+        setDrawerOpen(true);
       });
-    })
+    });
+
+    // When custom tileset is clicked
+    map.current.on('mouseenter', 'custom_tileset', () => {
+      map.current.getCanvas().style.cursor = 'pointer';
+    });
+    map.current.on('mouseleave', 'custom_tileset', () => {
+      map.current.getCanvas().style.cursor = '';
+    });
+    map.current.on('click', 'custom_tileset', (e) => {
+      const data = e.features.map(d => d.properties);
+      setDrawerTitle('Data');
+      setDrawerContent(<DataDisplay data={data} />);
+      setDrawerOpen(true);
+    });
   }
 
   // Force main map initialization hook to trigger, essentially instigating a reload

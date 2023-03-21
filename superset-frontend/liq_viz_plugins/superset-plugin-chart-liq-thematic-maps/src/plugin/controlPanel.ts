@@ -336,6 +336,23 @@ const config: ControlPanelConfig = {
           }
         ]
       ]
+    },
+    {
+      label: t('Custom Layers'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'custom_tileset',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              default: '',
+              label: t('Mapbox Tileset URL')
+            }
+          }
+        ]
+      ]
     }
   ],
   controlOverrides: {
