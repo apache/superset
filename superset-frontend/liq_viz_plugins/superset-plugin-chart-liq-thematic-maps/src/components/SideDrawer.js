@@ -11,10 +11,10 @@ export default function SideDrawer(props) {
     width
   } = props;
 
-  const [dWidth, setDWidth] = useState(Math.round(width / 3));
+  const [dWidth, setDWidth] = useState(Math.round(width / 4));
 
   useEffect(() => {
-    setDWidth(Math.round(width / 3));
+    setDWidth(Math.round(width / 4));
   }, [width])
 
   return (
