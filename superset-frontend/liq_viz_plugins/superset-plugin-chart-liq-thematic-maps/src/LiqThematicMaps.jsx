@@ -346,16 +346,14 @@ export default function LiqThematicMaps(props) {
         });
       }
 
-      if (mapType.includes('thematic')) {
-        map.current.addLayer({
-          'id': 'boundary_tileset',
-          'type': 'fill',
-          'source': 'boundary_tileset',
-          'source-layer': boundary,
-          'layout': {},
-          'paint': layerStyles.boundaryStyle
-        });        
-      }
+      map.current.addLayer({
+        'id': 'boundary_tileset',
+        'type': 'fill',
+        'source': 'boundary_tileset',
+        'source-layer': boundary,
+        'layout': {},
+        'paint': layerStyles.boundaryStyle
+      });        
 
       if (mapType.includes('trade_area')) {
         tradeAreas.map(ta => {

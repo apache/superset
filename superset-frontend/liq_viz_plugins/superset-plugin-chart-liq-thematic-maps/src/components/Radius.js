@@ -23,6 +23,7 @@ export default function Radius(props) {
   const [message, setMessage] = useState('');
   const [id, setId] = useState(uuid());
 
+  // Remove radius geojson source and layer and delete radius key url param
   const removeRadius = () => {
     if ('radius' in map.current.getStyle().sources) {
       map.current.removeLayer('radius');
@@ -35,6 +36,7 @@ export default function Radius(props) {
     }
   }
 
+  // Add radius geojson source and layer and update radius key url param
   const drawRadius = (e) => {
     const radius = getRadius([e.lngLat.lng, e.lngLat.lat], distance, 256);
     map.current.addSource('radius', {
@@ -65,7 +67,6 @@ export default function Radius(props) {
     const url = new URL(window.location.href);
     url.searchParams.set('radius_key', id);
     window.history.pushState(null, null, url);
-    console.log(window.location.href);
   }
 
   const onSettingsSave = () => {
@@ -74,6 +75,7 @@ export default function Radius(props) {
     setMessage('Click anywhere on the map');    
   }
 
+  // Post constituent SA1s and radius key to internal api
   const postRkeySA1s = (sa1s) => {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
@@ -90,6 +92,7 @@ export default function Radius(props) {
     fetch('http://localhost:8088/api/v1/liq/set_radius/', requestOptions);
   }
 
+  // Query lambda function to get constituent SA1s of radius and update map style to reflect
   const addSA1s = (radius) => {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
@@ -110,9 +113,10 @@ export default function Radius(props) {
     fetch(liqSecrets.lambdaFunctions.intersection.url, requestOptions)
       .then(response => response.json())
       .then(result => {
+        const boundaries = ['SA1_CODE21', 'SA2_CODE21', 'SA3_CODE21', 'SA4_CODE21', 'DZN_CODE21']
         const paint = [
           'case',
-          ['in', ['get', groupCol], ['literal', result.sa1s]],
+          ['in', ['get', boundaries.includes(groupCol) ? groupCol : 'SA1_CODE21'], ['literal', result.sa1s]],
           '#FFFFFF',
           'transparent'
         ]
@@ -121,6 +125,7 @@ export default function Radius(props) {
       })
   }
 
+  // Hook for styling radius color in real time
   useEffect(() => {
     if ('radius' in map.current.getStyle().sources) {
       map.current.setPaintProperty('radius', 'fill-color', radiusColor);
