@@ -21,12 +21,16 @@ import { css, t, useTheme } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import { Dataset } from 'src/components/Chart/DrillDetail/types';
-import MetadataBar from '..';
-import { ContentType, MetadataType } from '../ContentType';
+import MetadataBar from 'src/components/MetadataBar';
+import {
+  ContentType,
+  MetadataType,
+} from 'src/components/MetadataBar/ContentType';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 
-export const useDatasetMetadataBar = (datasourceId: number | string) => {
+export const useDatasetMetadataBar = (datasetId: number | string) => {
   const theme = useTheme();
-  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasourceId}`);
+  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasetId}`);
 
   const { status, result } = response;
 
@@ -83,10 +87,10 @@ export const useDatasetMetadataBar = (datasourceId: number | string) => {
           margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
-        {status === 'complete' && (
+        {status === ResourceStatus.COMPLETE && (
           <MetadataBar items={items} tooltipPlacement="bottom" />
         )}
-        {status === 'error' && (
+        {status === ResourceStatus.ERROR && (
           <Alert
             type="error"
             message={t('There was an error loading the dataset metadata')}
@@ -94,7 +98,7 @@ export const useDatasetMetadataBar = (datasourceId: number | string) => {
         )}
       </div>
     );
-  }, [result]);
+  }, [result, status, theme.gridUnit]);
 
   return {
     metadataBar,

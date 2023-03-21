@@ -44,11 +44,11 @@ import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
-import { useDatasetMetadataBar } from '../../MetadataBar/dataset/useDatasetMetadataBar';
-import { ResourceStatus } from '../../../hooks/apiResources/apiResources';
 
 const PAGE_SIZE = 50;
 
