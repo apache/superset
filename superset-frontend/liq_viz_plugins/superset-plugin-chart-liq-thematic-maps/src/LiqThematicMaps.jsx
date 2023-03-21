@@ -35,6 +35,7 @@ import { Menu, Layout } from 'antd';
 // Component imports
 import SideDrawer from './components/SideDrawer.js';
 import Legend from './components/Legend.js';
+import DataDisplay from './components/DataDisplay.js';
 
 const { Content, Sider } = Layout;
 
@@ -89,6 +90,7 @@ export default function LiqThematicMaps(props) {
     taSectorSA1Map, // for each centre trade area sector, list of constituent SA1s
     taSectorColorMap, // for each centre trade area, map from sector to colour
     taSectorCentroids, // geojson file for sector centroid points, used to label them in a symbol layer
+    intranetData, // data relating to intranet layers
     latitude, // starting lat
     longitude, // starting lng
     zoom, // starting zoom
@@ -108,6 +110,7 @@ export default function LiqThematicMaps(props) {
   let hovered = useRef({});
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
+  const [currTileIDs, setCurrTileIDs] = useState([]); // currently rendered intranet tiles
   const [colorMap, setColorMap] = useState({}); // color map based on data via cmap lambda
   const [mapPos, setMapPos] = useState({lng: longitude, lat: latitude, zoom: zoom});
 
@@ -158,8 +161,8 @@ export default function LiqThematicMaps(props) {
   const [renderedIntranetLayers, setRenderedIntranetLayers] = useState([]);
 
   // Get the tile IDs and data values for all currently rendered boundary tiles
-  const getCurrBdryIds = () => {
-    const bdry_features = map.current.querySourceFeatures('boundary_tileset', {
+  const getCurrTileIds = (source) => {
+    const bdry_features = map.current.querySourceFeatures(source, {
       sourceLayer: boundary
      });
     let bdryIds = [];
@@ -400,11 +403,35 @@ export default function LiqThematicMaps(props) {
 
     // When the map reveices new tile data, get rendered tile features and store them in state for styling
     map.current.on('data', () => {
-      if (!(mapType.includes('thematic') || mapType.includes('trade_area'))) return;
-      const bdryIds = getCurrBdryIds();
-      setCurrBdryIDs([...bdryIds]);
+      if (mapType.includes('thematic') || mapType.includes('trade_area')) {
+        const bdryIds = getCurrTileIds('boundary_tileset');
+        setCurrBdryIDs([...bdryIds]);
+      }
+      if (mapType.includes('intranet')) {
+        const tileIds = getCurrTileIds('intranet_tileset');
+        setCurrTileIDs([...tileIds]);
+      }
     });
 
+    // When intranet layers are clicked
+    intranetLayers.map(l => {
+      map.current.on('mouseenter', l, () => {
+        map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', l, () => {
+        map.current.getCanvas().style.cursor = '';
+      });
+      map.current.on('click', l, (e) => {
+        const layer = e.features[0].layer.id;
+        const id = 'entity_id' in e.features[0].properties ? e.features[0].properties.entity_id : e.features[0].properties.tenancy_id
+        if (layer in intranetData && id in intranetData[layer]) {
+          const data = intranetData[layer][id];
+          setDrawerTitle(data.Name);
+          setDrawerContent(<DataDisplay data={data}/>);
+          setDrawerOpen(true);
+        }
+      });
+    })
   }
 
   // Force main map initialization hook to trigger, essentially instigating a reload
@@ -512,6 +539,22 @@ export default function LiqThematicMaps(props) {
     }
     if (map.current.getLayer('boundary_tileset')) map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [currBdryIDs, colorMap]);
+
+  useEffect(() => {
+    if (!map.current.isStyleLoaded()) return;
+    for (const x of currTileIDs) {
+      intranetLayers.map(l => { 
+        if (l in intranetData && x.val in intranetData[l]) map.current.setFeatureState(
+          {
+            source: 'intranet_tileset',
+            sourceLayer: l,
+            id: x.id
+          },
+          {...intranetData[l][x.val]}
+        )
+      })
+    }
+  }, [currTileIDs])
 
   // Hook for changing opacity in real time
   useEffect(() => {

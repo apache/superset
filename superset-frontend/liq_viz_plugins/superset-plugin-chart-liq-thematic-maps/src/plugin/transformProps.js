@@ -71,6 +71,7 @@ export default function transformProps(chartProps) {
   const metricCol = formData.metric.constructor === Array ? formData.metric[0].label : formData.metric.label;
 
   const isTradeArea = mapType.includes('trade_area');
+  const isIntranet = mapType.includes('intranet');
 
   const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
   let tradeAreaSA1s = {};
@@ -78,26 +79,38 @@ export default function transformProps(chartProps) {
   let taSectorColorMap = {};
   let sectorCentroids = {};
 
-  if (isTradeArea) {
+  let intranetData = {};
+
     data.map(d => {
-      if (!(d[groupCol] in tradeAreaSA1s)) tradeAreaSA1s[d[groupCol]] = {};
-      if (!(d.Centre in tradeAreaSA1s[d[groupCol]])) tradeAreaSA1s[d[groupCol]][d.Centre] = {
-        sector: d.Sector, colour: tradeAreaColors[d.Colour]
-      };
+      if (isTradeArea) {
+        if (!(d[groupCol] in tradeAreaSA1s)) tradeAreaSA1s[d[groupCol]] = {};
+        if (!(d.Centre in tradeAreaSA1s[d[groupCol]])) tradeAreaSA1s[d[groupCol]][d.Centre] = {
+          sector: d.Sector, colour: tradeAreaColors[d.Colour]
+        };
 
-      if (!(d.Centre in taSectorSA1Map)) taSectorSA1Map[d.Centre] = {};
-      if (!(d.Sector in taSectorSA1Map[d.Centre])) taSectorSA1Map[d.Centre][d.Sector] = []
-      taSectorSA1Map[d.Centre][d.Sector].push(d[groupCol].toString());
-      
-      if (!(d.Centre in taSectorColorMap)) taSectorColorMap[d.Centre] = {};
-      if (!(d.Sector in taSectorColorMap[d.Centre])) taSectorColorMap[d.Centre][d.Sector] = tradeAreaColors[d.Colour];
+        if (!(d.Centre in taSectorSA1Map)) taSectorSA1Map[d.Centre] = {};
+        if (!(d.Sector in taSectorSA1Map[d.Centre])) taSectorSA1Map[d.Centre][d.Sector] = []
+        taSectorSA1Map[d.Centre][d.Sector].push(d[groupCol].toString());
+        
+        if (!(d.Centre in taSectorColorMap)) taSectorColorMap[d.Centre] = {};
+        if (!(d.Sector in taSectorColorMap[d.Centre])) taSectorColorMap[d.Centre][d.Sector] = tradeAreaColors[d.Colour];
 
-      if (!(d.Sector in sectorCentroids) && ('lng' in d) && ('lat' in d)) sectorCentroids[d.Sector] = {
-        coordinates: [d.lng, d.lat],
-        centre: d.Centre
+        if (!(d.Sector in sectorCentroids) && ('lng' in d) && ('lat' in d)) sectorCentroids[d.Sector] = {
+          coordinates: [d.lng, d.lat],
+          centre: d.Centre
+        }
+      }
+      if (isIntranet) {
+        if (!(d['Layer'] in intranetData)) intranetData[d['Layer']] = {};
+        let data = {}
+        Object.keys(d).map(k => {
+          if (!(k === 'Layer' || k === groupCol || k == metricCol)) data[k] = d[k]
+        })
+        intranetData[d['Layer']][d[groupCol]] = data;
       }
     });
-  };
+
+    console.log(intranetData);
 
   let taSectorCentroids = {
     type: 'FeatureCollection',
@@ -132,6 +145,7 @@ export default function transformProps(chartProps) {
     taSectorSA1Map,
     taSectorColorMap,
     taSectorCentroids,
+    intranetData,
     opacity,
     latitude,
     longitude,
