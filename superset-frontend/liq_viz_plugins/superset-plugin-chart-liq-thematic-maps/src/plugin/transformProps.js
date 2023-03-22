@@ -64,8 +64,11 @@ export default function transformProps(chartProps) {
     latitude,
     longitude,
     zoom,
+    radiusColor,
+    radiusThreshold,
     customTileset
   } = formData;
+
   const data = queriesData[0].data;
   
   const groupCol = typeof formData.cols[0] === 'object' ? formData.cols[0].label : formData.cols[0];
@@ -124,6 +127,8 @@ export default function transformProps(chartProps) {
     });
   };
 
+  const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
+
   return {
     width,
     height,
@@ -149,6 +154,8 @@ export default function transformProps(chartProps) {
     latitude,
     longitude,
     zoom,
+    newRadiusColor,
+    radiusThreshold,
     customTileset
   };
 }

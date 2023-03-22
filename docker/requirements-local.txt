@@ -1,2 +1,3 @@
 databricks-sql-connector
 sqlalchemy-databricks
+geopandas

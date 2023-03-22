@@ -1,17 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Collapse, Divider, List, Avatar, Button, Typography } from 'antd';
-import {
-  EyeOutlined,
-  EyeInvisibleOutlined
-} from '@ant-design/icons';
+import {Avatar } from 'antd';
 import LegendSub from './LegendSub.js';
+
+import { useAppStore } from '../store/appStore';
 
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
 const intranetLegendExprs = defaults.intranetLegendExprs;
-
-const { Panel } = Collapse;
-const { Text } = Typography;
 
 // Map tile layer names to a more human readable format
 const nameMap = {
@@ -132,12 +127,17 @@ export default function Legend(props) {
     map
   } = props;
 
+  const [configs, setConfigs] = useState([]); // Keep track of which legends to display
+  const currHidden = useAppStore(state => state.legendHidden);
+
+  const updateLegendHiddenAll = useAppStore(state => state.updateLegendHiddenAll);
+
   // Function to instantiate thematic legend config
   const thematicLegendData = (thematicData, thematicCol, colorMap, groupCol) => {
     return {
       header: 'Thematic',
       panelHeaders: [thematicCol],
-      init: { 'boundary_tileset': []},
+      init: { 'boundary_tileset': [] },
       layers: { 'boundary_tileset': Object.keys(colorMap) },
       listData: {
         'boundary_tileset': Object.keys(thematicData).map(k => {
@@ -213,28 +213,44 @@ export default function Legend(props) {
     }
   }
 
-  // Keep track of which legends to display
-  const [configs, setConfigs] = useState([]);
-
   // Hook to update configs
   useEffect(() => {
     let newConfigs = [];
-    if (thematicData) newConfigs.push(
-      thematicLegendData(thematicData, thematicCol, colorMap, groupCol)
-    );
-    if (intranetLayers && intranetLayers.length > 0) newConfigs.push(
-      intranetLegendData(intranetLayers)
-    );
-    if (tradeAreas && tradeAreas.length > 0) newConfigs.push(
-      treadeAreaLegendData(tradeAreas, taSectorSA1Map, taSectorColorMap, groupCol)
-    );
+    let newHidden = [];
+    if (thematicData) {
+      const cfg = thematicLegendData(thematicData, thematicCol, colorMap, groupCol)
+      newConfigs.push(cfg);
+      newHidden.push(cfg.init);
+    }
+    if (intranetLayers && intranetLayers.length > 0) {
+      const cfg = intranetLegendData(intranetLayers);
+      newConfigs.push(cfg);
+      newHidden.push(cfg.init);
+    } 
+    if (tradeAreas && tradeAreas.length > 0) {
+      const cfg = treadeAreaLegendData(tradeAreas, taSectorSA1Map, taSectorColorMap, groupCol);
+      newConfigs.push(cfg);
+      newHidden.push(cfg.init);
+    }
     setConfigs([...newConfigs]);
+
+    let nHidden = 0;
+    currHidden.map(x => {
+      Object.keys(x).map(k => nHidden += x[k].length);
+    });
+    if (nHidden === 0) updateLegendHiddenAll([...newHidden]);
   }, [thematicData, intranetLayers, tradeAreas])
 
   return (
     <>
       {configs.map((c, i) => (
-        <LegendSub config={c} map={map} key={i} /> 
+        currHidden.length > 0 && 
+        <LegendSub 
+          config={c} 
+          map={map} 
+          key={i} 
+          index={i} 
+        /> 
       ))}
     </>
   )

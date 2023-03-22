@@ -291,7 +291,7 @@ const config: ControlPanelConfig = {
               default: 0.5,
               renderTrigger: true,
               label: t('Opacity'),
-              description: t('Opacity of thematic')
+              description: t('Opacity of thematic'),
             }
           }
         ]
@@ -332,6 +332,43 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               default: 9,
               label: t('Zoom')
+            }
+          }
+        ]
+      ]
+    },
+    {
+      label: t('Radius Style Settings'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'radius_color',
+            config: {
+              label: t('Radius Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              }
+            }
+          }
+        ],
+        [
+          {
+            name: 'radius_threshold',
+            config: {
+              type: 'SliderControl',
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: 0.5,
+              renderTrigger: false,
+              label: t('Radius Intersection Threshold'),
+              description: t('Threshold for ratio of SA1 intersection with trade area, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the trade area.')
             }
           }
         ]

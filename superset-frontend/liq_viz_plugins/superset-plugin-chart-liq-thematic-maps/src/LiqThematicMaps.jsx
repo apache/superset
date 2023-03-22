@@ -28,13 +28,15 @@ import entity from '../../liq_data/entity.json';
 
 // UI imports
 import {
-  BarsOutlined
+  BarsOutlined,
+  RadiusSettingOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
 
 // Component imports
 import SideDrawer from './components/SideDrawer.js';
 import Legend from './components/Legend.js';
+import Radius from './components/Radius.js';
 import DataDisplay from './components/DataDisplay.js';
 
 const { Content, Sider } = Layout;
@@ -94,6 +96,8 @@ export default function LiqThematicMaps(props) {
     latitude, // starting lat
     longitude, // starting lng
     zoom, // starting zoom
+    newRadiusColor, // color of radius in rgba
+    radiusThreshold, // intersection area threshold
     customTileset // mapbox tileset URL for custom layer
   } = props;
 
@@ -147,6 +151,24 @@ export default function LiqThematicMaps(props) {
             thematicCol={metricCol}
             groupCol={groupCol}
             map={map}
+          />
+        );
+        setDrawerOpen(true);
+      }
+    },
+    {
+      icon: <RadiusSettingOutlined />,
+      label: <span>Radius</span>,
+      key: '2',
+      onClick: () => {
+        setDrawerTitle('Radius Settings');
+        setDrawerContent(
+          <Radius 
+            map={map} 
+            groupCol={groupCol} 
+            boundary={boundary}
+            radiusColor={newRadiusColor}
+            radiusThreshold={radiusThreshold} 
           />
         );
         setDrawerOpen(true);
@@ -324,16 +346,14 @@ export default function LiqThematicMaps(props) {
         });
       }
 
-      if (mapType.includes('thematic')) {
-        map.current.addLayer({
-          'id': 'boundary_tileset',
-          'type': 'fill',
-          'source': 'boundary_tileset',
-          'source-layer': boundary,
-          'layout': {},
-          'paint': layerStyles.boundaryStyle
-        });        
-      }
+      map.current.addLayer({
+        'id': 'boundary_tileset',
+        'type': 'fill',
+        'source': 'boundary_tileset',
+        'source-layer': boundary,
+        'layout': {},
+        'paint': layerStyles.boundaryStyle
+      });        
 
       if (mapType.includes('trade_area')) {
         tradeAreas.map(ta => {
@@ -452,7 +472,8 @@ export default function LiqThematicMaps(props) {
         e.features.map(d => {
           const id = 'entity_id' in d.properties ? d.properties.entity_id : d.properties.tenancy_id;
           if (d.layer.id in intranetData && id in intranetData[d.layer.id]) data.push(intranetData[d.layer.id][id]);
-        })
+        });
+        if (data.length === 0) e.features.map(d => data.push(d.properties));
         setDrawerTitle('Data');
         setDrawerContent(<DataDisplay data={data} />);
         setDrawerOpen(true);
@@ -601,6 +622,13 @@ export default function LiqThematicMaps(props) {
     if (!map.current || !map.current.isStyleLoaded()) return;
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [opacity])
+
+  // Hooks for applying radius style settings in real time
+  useEffect(() => {
+    if (map.current.isStyleLoaded() && 'radius' in map.current.getStyle().sources) {
+      map.current.setPaintProperty('radius', 'fill-color', newRadiusColor);
+    }
+  }, [newRadiusColor])
 
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>
