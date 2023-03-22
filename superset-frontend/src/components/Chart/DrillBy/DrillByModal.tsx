@@ -18,12 +18,7 @@
  */
 
 import React from 'react';
-import {
-  BinaryQueryObjectFilterClause,
-  QueryFormData,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause, t, useTheme } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
@@ -52,8 +47,8 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 
 interface DrillByModalProps {
   chartId: number;
-  formData: QueryFormData;
-  initialFilters: BinaryQueryObjectFilterClause[];
+  formData: { [key: string]: any; viz_type: string };
+  filters?: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
 }
@@ -61,12 +56,12 @@ interface DrillByModalProps {
 export default function DrillByModal({
   chartId,
   formData,
-  initialFilters,
+  filters,
   showModal,
   onHideModal,
 }: DrillByModalProps) {
   console.log(formData);
-  console.log(initialFilters);
+  console.log(filters);
   const theme = useTheme();
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
