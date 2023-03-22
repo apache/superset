@@ -461,19 +461,19 @@ const ExtraOptions = ({
       {dbConfigExtensions?.map?.(extension => {
         const Extension =
           extension.component as FunctionComponent<IExtensionProps>;
+        let header;
+        if (extension.logo) {
+          const ExtensionLogo = extension.logo as FunctionComponent;
+          header = <ExtensionLogo />;
+        } else {
+          header = <h4>{extension?.title}</h4>;
+        }
+
         return (
           <Collapse.Panel
             header={
               <div>
-                {extension.logo ? (
-                  <img
-                    alt="dbt Cloud"
-                    src={extension.logo}
-                    style={{ height: '16px' }}
-                  />
-                ) : (
-                  <h4>{extension?.title}</h4>
-                )}
+                {header}
                 <p className="helper">{extension?.description}</p>
               </div>
             }

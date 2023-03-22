@@ -80,7 +80,7 @@ interface DatabaseConnectionExtension {
   /**
    * url or dataURI (recommended) of a logo to use in place of a title.  title is fallback display if no logo is provided
    */
-  logo?: string;
+  logo?: React.ComponentType<any>;
   /**
    * Descriptive text displayed under the logo or title to provide user with more context about the configuration section
    */
