@@ -53,7 +53,7 @@ const Styles = styled.div<PivotTableStylesProps>`
 
 const PivotTableWrapper = styled.div`
   height: 100%;
-  max-width: fit-content;
+  max-width: inherit;
   overflow: auto;
 `;
 
