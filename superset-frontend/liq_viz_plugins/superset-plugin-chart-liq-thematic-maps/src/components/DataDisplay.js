@@ -6,6 +6,7 @@ export default function DataDisplay(props) {
     data
   } = props;
 
+  // Dynamically allocate columns as keys of data objects
   const columns = data.length === 0 ? [] : Object.keys(data[0]).map(c => {
     return {
       title: c,
@@ -14,9 +15,10 @@ export default function DataDisplay(props) {
     }
   });
 
-  const [isEmpty, setIsEmpty] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false); // Flag to check if data props is empty
   const [newData, setNewData] = useState([]);
 
+  // Need to add a key value for each data object which will just be its index
   useEffect(() => {
     let nD = [];
     data.map((d, i) => {

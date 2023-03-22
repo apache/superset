@@ -11,6 +11,7 @@ export default function SideDrawer(props) {
     width
   } = props;
 
+  // Width of side panel to be a quarter of the width of plugin
   const [dWidth, setDWidth] = useState(Math.round(width / 4));
 
   useEffect(() => {

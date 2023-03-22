@@ -472,7 +472,8 @@ export default function LiqThematicMaps(props) {
         e.features.map(d => {
           const id = 'entity_id' in d.properties ? d.properties.entity_id : d.properties.tenancy_id;
           if (d.layer.id in intranetData && id in intranetData[d.layer.id]) data.push(intranetData[d.layer.id][id]);
-        })
+        });
+        if (data.length === 0) e.features.map(d => data.push(d.properties));
         setDrawerTitle('Data');
         setDrawerContent(<DataDisplay data={data} />);
         setDrawerOpen(true);

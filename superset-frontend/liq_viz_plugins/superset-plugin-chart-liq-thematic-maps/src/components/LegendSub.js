@@ -5,6 +5,8 @@ import {
   EyeInvisibleOutlined
 } from '@ant-design/icons';
 
+import { useAppStore } from '../store/appStore';
+
 const { Panel } = Collapse;
 
 function hideButton(check, hide, unhide, arg) {
@@ -25,10 +27,12 @@ export default function LegendSub(props) {
 
   const {
     config,
-    map
+    map,
+    index,
   } = props;
 
-  const [currHidden, setCurrHidden] = useState(config.init);
+  const currHidden = useAppStore(state => state.legendHidden[index]);
+  const updateLegendHiddenIndex = useAppStore(state => state.updateLegendHiddenIndex);
 
   const updateMapFilter = (layer, hidden) => {
     if (!map.current) return;
@@ -52,14 +56,14 @@ export default function LegendSub(props) {
     let hidden = {...currHidden};
     currHidden[i.layer].push(i.item);
     updateMapFilter(i.layer, hidden[i.layer]);
-    setCurrHidden({...hidden});
+    updateLegendHiddenIndex(index, {...hidden});
   };
 
   const unHide = (e, i) => {
     let hidden = {...currHidden};
     hidden[i.layer] = hidden[i.layer].filter(x => !(x === i.item));
     updateMapFilter(i.layer, hidden[i.layer]);
-    setCurrHidden({...hidden});
+    updateLegendHiddenIndex(index, {...hidden});
   };
 
   const hideAll = (e, layer) => {
@@ -67,7 +71,7 @@ export default function LegendSub(props) {
     let hidden = {...currHidden};
     hidden[layer] = [...config.layers[layer]];
     updateMapFilter(layer, hidden[layer]);
-    setCurrHidden({...hidden});
+    updateLegendHiddenIndex(index, {...hidden});
   };
 
   const unhideAll = (e, layer) => {
@@ -75,7 +79,7 @@ export default function LegendSub(props) {
     let hidden = {...currHidden};
     hidden[layer] = [];
     updateMapFilter(layer, []);
-    setCurrHidden({...hidden});
+    updateLegendHiddenIndex(index, {...hidden});
   }
 
   return (
