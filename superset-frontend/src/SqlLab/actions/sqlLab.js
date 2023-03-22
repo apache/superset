@@ -333,8 +333,12 @@ export function fetchQueryResults(query, displayLimit) {
 
 export function cleanSqlComments(sql) {
   if (!sql) return '';
-
-  return sql.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '').trim();
+  // it sanitizes the following comment block groups
+  // group 1 -> /* */
+  // group 2 -> --
+  return sql
+    .replace(/--.*?$|\/\/.*?$|\/\*[\s\S]*?\*\/|(\n\s*)+/gm, '$1')
+    .trim();
 }
 
 export function runQuery(query) {

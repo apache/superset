@@ -296,7 +296,7 @@ describe('async actions', () => {
     const makeRequest = () => {
       const request = actions.runQuery({
         ...query,
-        sql: 'SELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/FROM table',
+        sql: '/*\nSELECT * FROM\n */\nSELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/FROM table',
       });
       return request(dispatch, () => initialState);
     };
