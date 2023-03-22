@@ -45,7 +45,6 @@ describe('async actions', () => {
     latestQueryId: null,
     sql: 'SELECT *\nFROM\nWHERE',
     name: 'Untitled Query 1',
-    schemaOptions: [{ value: 'main', label: 'main', title: 'main' }],
   };
 
   let dispatch;
