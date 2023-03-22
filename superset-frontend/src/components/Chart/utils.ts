@@ -18,6 +18,7 @@
  */
 
 export const MENU_ITEM_HEIGHT = 32;
+const MENU_PADDING = 4;
 const MENU_VERTICAL_SPACING = 32;
 
 /**
@@ -27,7 +28,7 @@ const MENU_VERTICAL_SPACING = 32;
  * @param clientY The original Y-offset
  * @param itemsCount The number of menu items
  */
-export function getMenuAdjustedY(clientY: number, itemsCount: number) {
+export const getMenuAdjustedY = (clientY: number, itemsCount: number) => {
   // Viewport height
   const vh = Math.max(
     document.documentElement.clientHeight || 0,
@@ -37,4 +38,11 @@ export function getMenuAdjustedY(clientY: number, itemsCount: number) {
   const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
   // Always show the context menu inside the viewport
   return vh - clientY < menuHeight ? vh - menuHeight : clientY;
-}
+};
+
+export const getSubmenuYOffset = (contextMenuY: number, itemsCount: number) => {
+  const submenuY =
+    contextMenuY + MENU_PADDING + MENU_ITEM_HEIGHT + MENU_PADDING;
+
+  return getMenuAdjustedY(submenuY, itemsCount) - submenuY;
+};

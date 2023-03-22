@@ -31,10 +31,9 @@ import {
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import DrillDetailModal from './DrillDetailModal';
-import { getMenuAdjustedY, MENU_ITEM_HEIGHT } from '../utils';
+import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 
-const MENU_PADDING = 4;
 const DRILL_TO_DETAIL_TEXT = t('Drill to detail by');
 
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
@@ -162,13 +161,14 @@ const DrillDetailMenuItems = ({
   }
 
   // Ensure submenu doesn't appear offscreen
-  const submenuYOffset = useMemo(() => {
-    const itemsCount = filters.length > 1 ? filters.length + 1 : filters.length;
-    const submenuY =
-      contextMenuY + MENU_PADDING + MENU_ITEM_HEIGHT + MENU_PADDING;
-
-    return getMenuAdjustedY(submenuY, itemsCount) - submenuY;
-  }, [contextMenuY, filters.length]);
+  const submenuYOffset = useMemo(
+    () =>
+      getSubmenuYOffset(
+        contextMenuY,
+        filters.length > 1 ? filters.length + 1 : filters.length,
+      ),
+    [contextMenuY, filters.length],
+  );
 
   if (handlesDimensionContextMenu && !noAggregations && filters?.length) {
     drillToDetailByMenuItem = (

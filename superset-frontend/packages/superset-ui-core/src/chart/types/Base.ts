@@ -31,6 +31,7 @@ export enum Behavior {
    * when dimensions are right-clicked on.
    */
   DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
+  DRILL_BY = 'DRILL_BY',
 }
 
 export interface ContextMenuFilters {
@@ -39,6 +40,7 @@ export interface ContextMenuFilters {
     isCurrentValueSelected?: boolean;
   };
   drillToDetail?: BinaryQueryObjectFilterClause[];
+  drillBy?: BinaryQueryObjectFilterClause[];
 }
 
 export enum AppSection {

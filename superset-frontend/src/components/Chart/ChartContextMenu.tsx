@@ -36,7 +36,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { RootState } from 'src/dashboard/types';
+import { Datasource, RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
@@ -44,6 +44,7 @@ import { DrillDetailMenuItems } from './DrillDetail';
 import { getMenuAdjustedY } from './utils';
 import { updateDataMask } from '../../dataMask/actions';
 import { MenuItemTooltip } from './DisabledMenuItemTooltip';
+import { DrillByMenuItems } from './DrillBy/DrillByMenuItems';
 
 export interface ChartContextMenuProps {
   id: number;
@@ -73,6 +74,13 @@ const ChartContextMenu = (
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
+  const datasourceDimensions = useSelector<RootState, Datasource['columns']>(
+    state =>
+      state.datasources[formData.datasource].columns.filter(
+        column => column.groupby,
+      ),
+  );
+
   const [{ filters, clientX, clientY }, setState] = useState<{
     clientX: number;
     clientY: number;
@@ -84,6 +92,8 @@ const ChartContextMenu = (
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
 
+  const showDrillBy = isFeatureEnabled(FeatureFlag.DRILL_BY) && canExplore;
+
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
     ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
@@ -94,6 +104,9 @@ const ChartContextMenu = (
   }
   if (showDrillToDetail) {
     itemsCount += 2; // Drill to detail always has 2 top-level menu items
+  }
+  if (showDrillBy) {
+    itemsCount += 1;
   }
   if (itemsCount === 0) {
     itemsCount = 1; // "No actions" appears if no actions in menu
@@ -180,6 +193,16 @@ const ChartContextMenu = (
         isContextMenu
         contextMenuY={clientY}
         onSelection={onSelection}
+      />,
+    );
+  }
+  if (showDrillBy) {
+    menuItems.push(
+      <DrillByMenuItems
+        filters={filters?.drillBy}
+        columns={datasourceDimensions}
+        formData={formData}
+        contextMenuY={clientY}
       />,
     );
   }

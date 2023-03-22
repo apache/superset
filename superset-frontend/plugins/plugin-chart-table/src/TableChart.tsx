@@ -391,6 +391,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             crossFilter: cellPoint.isMetric
               ? undefined
               : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+            drillBy: cellPoint.isMetric
+              ? undefined
+              : [
+                  {
+                    col: cellPoint.key,
+                    op: '==',
+                    val: cellPoint.value as string | number | boolean,
+                  },
+                ],
           });
         }
       : undefined;
