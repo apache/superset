@@ -304,7 +304,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         In Postgres, a catalog is called a "database".
         """
         return sorted(
-            inspector.bind.execute(
+            catalog
+            for (catalog,) in inspector.bind.execute(
                 """
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
