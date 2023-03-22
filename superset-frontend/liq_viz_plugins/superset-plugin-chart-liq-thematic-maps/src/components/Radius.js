@@ -31,7 +31,7 @@ export default function Radius(props) {
       map.current.removeSource('radius');
       const url = new URL(window.location.href);
       url.searchParams.delete('radius_key');
-      window.history.pushState(null, null, url);
+      window.history.replaceState(null, null, url);
       console.log(window.location.href);
     }
   }

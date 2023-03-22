@@ -141,7 +141,10 @@ def radius_lookup(key):
     headers = {'Content-Type': 'application/json'}
     response = requests.request('GET', url, headers=headers, data=payload)
     print(f'JINJA DEBUG: {response.text}')
-    return response.json()['result']['sa1s']
+    try:
+        return response.json()['result']['sa1s']
+    except:
+        return []
 
 JINJA_CONTEXT_ADDONS = {
     'test': test,
