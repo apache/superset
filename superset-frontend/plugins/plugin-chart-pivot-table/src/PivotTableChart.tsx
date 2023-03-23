@@ -478,6 +478,13 @@ export default function PivotTableChart(props: PivotTableProps) {
         onContextMenu(e.clientX, e.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(dataPoint),
+          drillBy: [
+            {
+              col: Object.keys(dataPoint)[0],
+              op: '==',
+              val: Object.values(dataPoint)[0],
+            },
+          ],
         });
       }
     },
