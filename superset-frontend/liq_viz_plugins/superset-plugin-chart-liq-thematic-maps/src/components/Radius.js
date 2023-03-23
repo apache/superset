@@ -47,7 +47,6 @@ export default function Radius(props) {
       const url = new URL(window.location.href);
       url.searchParams.delete('radius_key');
       window.history.replaceState(null, null, url);
-      console.log(window.location.href);
       refreshLinkedCharts();
     }
   }
