@@ -105,7 +105,7 @@ export default function Radius(props) {
       body: raw,
       redirect: 'follow'
     };
-    fetch('http://localhost:8088/api/v1/liq/set_radius/', requestOptions)
+    fetch('http://3.106.109.198:8088/api/v1/liq/set_radius/', requestOptions)
       .then(() => {
         refreshLinkedCharts();
       });
