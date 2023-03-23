@@ -30,13 +30,13 @@ import { nativeFilters, dataMaskWith2Filters } from './mockNativeFilters';
 
 export const storeWithState = state =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: state,
   });
 
 export const getMockStore = overrideState =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: { ...mockState, ...overrideState },
   });
 
@@ -44,7 +44,7 @@ export const mockStore = getMockStore();
 
 export const getMockStoreWithTabs = () =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: {
       ...mockState,
       dashboardLayout: dashboardLayoutWithTabs,
@@ -54,7 +54,7 @@ export const getMockStoreWithTabs = () =>
 
 export const getMockStoreWithChartsInTabsAndRoot = () =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: {
       ...mockState,
       dashboardLayout: dashboardLayoutWithChartsInTabsAndRoot,
@@ -99,7 +99,7 @@ export const stateWithFilters = {
 // and one chart with no filters set.
 export const getMockStoreWithFilters = () =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: stateWithFilters,
   });
 
@@ -133,7 +133,7 @@ export const stateWithNativeFilters = {
 
 export const getMockStoreWithNativeFilters = () =>
   setupStore({
-    disableDegugger: true,
+    disableDebugger: true,
     initialState: stateWithNativeFilters,
   });
 

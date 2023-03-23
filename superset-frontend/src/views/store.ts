@@ -121,12 +121,12 @@ const reducers = {
  * to redux debugger so the application can connect to redux debugger
  */
 export function setupStore({
-  disableDegugger = false,
+  disableDebugger = false,
   initialState = {},
   rootReducers = reducers,
   ...overrides
 }: {
-  disableDegugger?: boolean;
+  disableDebugger?: boolean;
   initialState?: ConfigureStoreOptions['preloadedState'];
   rootReducers?: ConfigureStoreOptions['reducer'];
 } & Partial<ConfigureStoreOptions> = {}): Store {
@@ -136,7 +136,7 @@ export function setupStore({
       ...rootReducers,
     },
     middleware: getDefaultMiddleware => getDefaultMiddleware().concat(logger),
-    devTools: process.env.WEBPACK_MODE === 'development' && !disableDegugger,
+    devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
     ...overrides,
   });
 }
