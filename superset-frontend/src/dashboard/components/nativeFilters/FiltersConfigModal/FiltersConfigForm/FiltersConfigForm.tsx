@@ -1214,39 +1214,41 @@ const FiltersConfigForm = (
                       },
                     ]}
                   >
-                    {error ? (
-                      <BasicErrorAlert
-                        title={t('Cannot load filter')}
-                        body={error}
-                        level="error"
-                      />
-                    ) : showDefaultValue ? (
+                    {error || showDefaultValue ? (
                       <DefaultValueContainer>
-                        <DefaultValue
-                          setDataMask={dataMask => {
-                            if (
-                              !isEqual(
-                                initialDefaultValue?.filterState?.value,
-                                dataMask?.filterState?.value,
-                              )
-                            ) {
-                              formChanged();
-                            }
-                            setNativeFilterFieldValues(form, filterId, {
-                              defaultDataMask: dataMask,
-                            });
-                            form.validateFields([
-                              ['filters', filterId, 'defaultDataMask'],
-                            ]);
-                            forceUpdate();
-                          }}
-                          hasDefaultValue={hasDefaultValue}
-                          filterId={filterId}
-                          hasDataset={hasDataset}
-                          form={form}
-                          formData={newFormData}
-                          enableNoResults={enableNoResults}
-                        />
+                        {error ? (
+                          <BasicErrorAlert
+                            title={t('Cannot load filter')}
+                            body={error}
+                            level="error"
+                          />
+                        ) : (
+                          <DefaultValue
+                            setDataMask={dataMask => {
+                              if (
+                                !isEqual(
+                                  initialDefaultValue?.filterState?.value,
+                                  dataMask?.filterState?.value,
+                                )
+                              ) {
+                                formChanged();
+                              }
+                              setNativeFilterFieldValues(form, filterId, {
+                                defaultDataMask: dataMask,
+                              });
+                              form.validateFields([
+                                ['filters', filterId, 'defaultDataMask'],
+                              ]);
+                              forceUpdate();
+                            }}
+                            hasDefaultValue={hasDefaultValue}
+                            filterId={filterId}
+                            hasDataset={hasDataset}
+                            form={form}
+                            formData={newFormData}
+                            enableNoResults={enableNoResults}
+                          />
+                        )}
                         {hasDataset && datasetId && (
                           <Tooltip title={t('Refresh the default values')}>
                             <RefreshIcon onClick={() => refreshHandler(true)} />
