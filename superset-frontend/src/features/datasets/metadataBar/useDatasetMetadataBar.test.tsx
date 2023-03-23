@@ -59,7 +59,7 @@ test('renders dataset metadata bar', async () => {
   fetchMock.restore();
 });
 
-it('renders dataset metadata bar without description and owners', async () => {
+test('renders dataset metadata bar without description and owners', async () => {
   fetchMock.get('glob:*/api/v1/dataset/1', {
     result: {
       changed_on: '2023-01-26T12:06:58.733316',
