@@ -9,3 +9,12 @@ sudo cp /home/ec2-user/.env /home/ec2-user/liq_superset/docker/
 sudo cp /home/ec2-user/liq_secrets.js /home/ec2-user/liq_superset/superset-frontend/liq_viz_plugins/
 sudo cp -R /home/ec2-user/liq_data /home/ec2-user/liq_superset/superset-frontend/liq_viz_plugins/
 sleep 5
+
+cd /home/ec2-user/liq_superset
+
+docker-compose pull superset
+
+# Start containers in detached mode
+echo "Starting containers..."
+docker-compose up -d
+echo "Done"
