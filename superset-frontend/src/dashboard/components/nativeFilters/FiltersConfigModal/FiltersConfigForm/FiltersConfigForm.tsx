@@ -93,6 +93,7 @@ import {
   cachedSupersetGet,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
+  INPUT_WIDTH,
   mostUsedDataset,
   setNativeFilterFieldValues,
   useForceUpdate,
@@ -965,6 +966,7 @@ const FiltersConfigForm = (
                   >
                     <StyledRowSubFormItem
                       name={['filters', filterId, 'adhoc_filters']}
+                      css={{ width: INPUT_WIDTH }}
                       initialValue={filterToEdit?.adhoc_filters}
                       required
                       rules={[

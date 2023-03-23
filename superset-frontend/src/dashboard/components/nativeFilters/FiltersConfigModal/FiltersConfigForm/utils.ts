@@ -31,6 +31,8 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 
 const FILTERS_FIELD_NAME = 'filters';
 
+export const INPUT_WIDTH = 270;
+
 export const FILTER_SUPPORTED_TYPES = {
   filter_time: [GenericDataType.TEMPORAL],
   filter_timegrain: [GenericDataType.TEMPORAL],

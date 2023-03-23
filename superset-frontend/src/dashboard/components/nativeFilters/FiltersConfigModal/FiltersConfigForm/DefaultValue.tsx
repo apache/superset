@@ -28,6 +28,7 @@ import { FormInstance } from 'src/components';
 import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
+import { INPUT_WIDTH } from './utils';
 
 type DefaultValueProps = {
   hasDefaultValue: boolean;
@@ -59,7 +60,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   ) : (
     <SuperChart
       height={32}
-      width={formFilter?.filterType === 'filter_time' ? 350 : 250}
+      width={formFilter?.filterType === 'filter_time' ? 350 : INPUT_WIDTH}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
       formData={formData}
