@@ -22,7 +22,7 @@ import { renderHook } from '@testing-library/react-hooks';
 import { createWrapper, render } from 'spec/helpers/testing-library';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
-it('renders dataset metadata bar', async () => {
+test('renders dataset metadata bar', async () => {
   fetchMock.get('glob:*/api/v1/dataset/1', {
     result: {
       changed_on: '2023-01-26T12:06:58.733316',
