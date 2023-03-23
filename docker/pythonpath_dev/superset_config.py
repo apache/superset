@@ -132,7 +132,7 @@ except ImportError:
     logger.info("Using default Docker config...")
 
 def radius_lookup(key):
-    url = 'http://3.106.109.198:8088/api/v1/liq/get_sa1s/'
+    url = 'http://127.0.0.1:8088/api/v1/liq/get_sa1s/'
     payload = json.dumps({'radius_key': key})
     headers = {'Content-Type': 'application/json'}
     response = requests.request('GET', url, headers=headers, data=payload)
