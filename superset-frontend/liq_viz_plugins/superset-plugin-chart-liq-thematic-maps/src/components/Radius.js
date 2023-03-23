@@ -32,8 +32,6 @@ export default function Radius(props) {
     const split = window.location.href.split('/');
     if (split[4] === 'dashboard') {
       const dashboardId = parseInt(split[5]);
-      console.log(dashboardId);
-      console.log(radiusLinkedCharts);
       radiusLinkedCharts.forEach(chartKey =>
         dispatch(refreshChart(chartKey, true, dashboardId)),
       );
