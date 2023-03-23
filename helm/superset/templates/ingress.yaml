@@ -45,9 +45,6 @@ spec:
   {{- end }}
 {{- end }}
   rules:
-  {{- if .Values.ingress.extraHostsRaw }}
-  {{- toYaml .Values.extraEnvRaw | nindent 12 }}
-  {{- end }}
   {{- range .Values.ingress.hosts }}
     - host: {{ . }}
       http:
