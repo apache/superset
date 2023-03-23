@@ -20,6 +20,7 @@
 import React from 'react';
 import {
   BinaryQueryObjectFilterClause,
+  Column,
   css,
   t,
   useTheme,
@@ -52,19 +53,22 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 
 interface DrillByModalProps {
   chartId: number;
-  formData: { [key: string]: any; viz_type: string };
+  column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
-  showModal: boolean;
+  formData: { [key: string]: any; viz_type: string };
   onHideModal: () => void;
+  showModal: boolean;
 }
 
 export default function DrillByModal({
   chartId,
+  column,
   formData,
   filters,
-  showModal,
   onHideModal,
+  showModal,
 }: DrillByModalProps) {
+  console.log(column);
   console.log(formData);
   console.log(filters);
   const theme = useTheme();

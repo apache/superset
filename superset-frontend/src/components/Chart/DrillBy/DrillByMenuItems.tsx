@@ -71,8 +71,10 @@ export const DrillByMenuItems = ({
   const [searchInput, setSearchInput] = useState('');
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [currentColumn, setCurrentColumn] = useState();
 
-  const openModal = useCallback(() => {
+  const openModal = useCallback(column => {
+    setCurrentColumn(column);
     setShowModal(true);
   }, []);
   const closeModal = useCallback(() => {
@@ -216,6 +218,7 @@ export const DrillByMenuItems = ({
                   key={`drill-by-item-${column.column_name}`}
                   tooltipText={column.verbose_name || column.column_name}
                   {...rest}
+                  onClick={() => openModal(column)}
                 >
                   {column.verbose_name || column.column_name}
                 </MenuItemWithTruncation>
@@ -230,10 +233,11 @@ export const DrillByMenuItems = ({
       </Menu.SubMenu>
       <DrillByModal
         chartId={chartId}
-        formData={formData}
+        column={currentColumn}
         filters={filters}
-        showModal={showModal}
+        formData={formData}
         onHideModal={closeModal}
+        showModal={showModal}
       />
     </>
   );
