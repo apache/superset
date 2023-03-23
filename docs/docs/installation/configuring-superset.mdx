@@ -285,7 +285,11 @@ If you want to rotate the SECRET_KEY(change the existing secret key), follow the
 Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
 
 ```python
-PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY'
+# To find out 'CURRENT_SECRET_KEY' follow these steps
+# 1. Got to superset shell : $ superset shell
+# 2. Run the command       : >>> from flask import current_app; print(current_app.config["SECRET_KEY"])
+
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY usng "openssl rand -base64 42"
 ```
 Then run `superset re-encrypt-secrets`
