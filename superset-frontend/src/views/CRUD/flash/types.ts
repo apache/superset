@@ -100,6 +100,9 @@ export type FlashAuditLogs = {
   flashType: string;
   timestamp: string;
   user: string;
+  errorStacktrace: string;
+  errorType: string;
+  errorName: string;
 };
 
 export interface FormErrors {

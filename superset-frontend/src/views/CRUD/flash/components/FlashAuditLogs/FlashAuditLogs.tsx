@@ -19,15 +19,17 @@
 
 import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
-import ReactJson from 'react-json-view';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { FlashAuditLogs } from '../../types';
+import ErrorStackTrace from './ErrorStackTrace';
+import JsonDifference from './JsonDiff';
 
 const PAGE_SIZE = 10;
 
@@ -61,6 +63,9 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
     t('auditlogs'),
     addDangerToast,
   );
+  const [showErrorView, setShowErrorView] = useState<boolean>(false);
+  const [showJsonView, setShowJsonView] = useState<boolean>(false);
+  const [currentLog, setCurrentLog] = useState<FlashAuditLogs | {}>({});
 
   const initialSort = [{ id: 'timestamp', desc: true }];
   const columns = useMemo(
@@ -72,6 +77,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       {
         accessor: 'description',
         Header: t('Description'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { description = '' },
@@ -92,44 +98,54 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           row: {
             original: { timestamp: timeStamp },
           },
-        }: any) => moment(new Date(timeStamp)).format('YYYY-MM-DD hh:mm:ss a'),
+        }: any) => moment(new Date(timeStamp)).format('LLLL'),
         Header: t('Time Stamp'),
         accessor: 'timestamp',
       },
-
       {
-        accessor: 'newValue',
-        Header: t('New Value'),
-        size: 'xl',
+        Header: t('Error'),
+        size: 'l',
         Cell: ({
           row: {
-            original: { newValue = '' },
+            original: { errorType = '', errorName = '' },
           },
-        }: any) => (
-          <ReactJson
-            name="New Value"
-            enableClipboard
-            theme="rjv-default"
-            src={JSON.parse(newValue)}
-          />
-        ),
+        }: any) =>
+          errorType &&
+          errorName && (
+            <Tooltip title={`${errorType}:${errorName}`} placement="topLeft">
+              <span>
+                <strong>{errorType} :</strong>
+                {errorName}
+              </span>
+            </Tooltip>
+          ),
       },
       {
-        accessor: 'oldValue',
-        Header: t('Old Value'),
-        size: 'xl',
-        Cell: ({
-          row: {
-            original: { oldValue = '' },
-          },
-        }: any) => (
-          <ReactJson
-            name="Old Value"
-            enableClipboard
-            theme="rjv-default"
-            src={JSON.parse(oldValue)}
-          />
-        ),
+        Cell: ({ row: { original } }: any) => {
+          const handleValueDifference = () => changeViewJson(original);
+          const handleErrorTrace = () => changeViewErrorStack(original);
+          const actions: ActionProps[] | [] = [
+            {
+              label: 'difference-action',
+              tooltip: t('View Flash Value Difference'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Binoculars',
+              onClick: handleValueDifference,
+            },
+            original?.errorStacktrace && {
+              label: 'view-action',
+              tooltip: t('View Error Stacktrace'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Eye',
+              onClick: handleErrorTrace,
+            },
+          ].filter(item => !!item);
+
+          return <ActionsBar actions={actions as ActionProps[]} />;
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
       },
     ],
     [],
@@ -137,6 +153,16 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
   const path = `/flash/list/`;
   const title =
     logs && logs.length > 0 ? JSON.parse(logs[0].newValue).tableName : '';
+
+  const changeViewErrorStack = (log: any) => {
+    setCurrentLog(log);
+    setShowErrorView(true);
+  };
+
+  const changeViewJson = (log: any) => {
+    setCurrentLog(log);
+    setShowJsonView(true);
+  };
   return (
     <>
       <SubMenu
@@ -149,6 +175,20 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           </StyledHeader>
         }
       />
+      {showErrorView && (
+        <ErrorStackTrace
+          log={currentLog as FlashAuditLogs}
+          show={showErrorView}
+          onHide={() => setShowErrorView(false)}
+        />
+      )}
+      {showJsonView && (
+        <JsonDifference
+          log={currentLog as FlashAuditLogs}
+          show={showJsonView}
+          onHide={() => setShowJsonView(false)}
+        />
+      )}
       <ListView<FlashAuditLogs>
         className="audit-log-list-view"
         columns={columns}
