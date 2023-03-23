@@ -18,7 +18,12 @@
  */
 
 import React from 'react';
-import { BinaryQueryObjectFilterClause, t, useTheme } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  css,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
@@ -72,6 +77,11 @@ export default function DrillByModal({
 
   return (
     <Modal
+      css={css`
+        .ant-modal-footer {
+          border-top: none;
+        }
+      `}
       show={showModal}
       onHide={onHideModal ?? (() => null)}
       title={t('Drill by: %s', chartName)}
