@@ -338,7 +338,7 @@ const config: ControlPanelConfig = {
       ]
     },
     {
-      label: t('Radius Style Settings'),
+      label: t('Radius Settings'),
       expanded: true,
       controlSetRows: [
         [
@@ -369,6 +369,17 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Radius Intersection Threshold'),
               description: t('Threshold for ratio of SA1 intersection with trade area, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the trade area.')
+            }
+          }
+        ],
+        [
+          {
+            name: 'radius_linked_charts',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              label: t('Chart IDs'),
+              description: t('Comma separated list of chart IDs whose charts we want to update when radius updates.')
             }
           }
         ]

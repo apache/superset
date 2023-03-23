@@ -66,6 +66,7 @@ export default function transformProps(chartProps) {
     zoom,
     radiusColor,
     radiusThreshold,
+    radiusLinkedCharts,
     customTileset
   } = formData;
 
@@ -129,6 +130,8 @@ export default function transformProps(chartProps) {
 
   const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
 
+  const newRadiusLinkedCharts = radiusLinkedCharts ? radiusLinkedCharts.split(',').map(Number) : [];
+
   return {
     width,
     height,
@@ -156,6 +159,7 @@ export default function transformProps(chartProps) {
     zoom,
     newRadiusColor,
     radiusThreshold,
+    newRadiusLinkedCharts,
     customTileset
   };
 }

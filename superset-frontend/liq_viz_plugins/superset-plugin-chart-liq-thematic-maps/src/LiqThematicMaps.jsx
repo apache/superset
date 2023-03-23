@@ -98,6 +98,7 @@ export default function LiqThematicMaps(props) {
     zoom, // starting zoom
     newRadiusColor, // color of radius in rgba
     radiusThreshold, // intersection area threshold
+    newRadiusLinkedCharts, // chart ids to update in dashboard when radius is updated
     customTileset // mapbox tileset URL for custom layer
   } = props;
 
@@ -169,6 +170,7 @@ export default function LiqThematicMaps(props) {
             boundary={boundary}
             radiusColor={newRadiusColor}
             radiusThreshold={radiusThreshold} 
+            radiusLinkedCharts={newRadiusLinkedCharts}
           />
         );
         setDrawerOpen(true);

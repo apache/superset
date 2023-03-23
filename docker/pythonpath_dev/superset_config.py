@@ -131,19 +131,16 @@ try:
 except ImportError:
     logger.info("Using default Docker config...")
 
-def test(x):
-    print(f'JINJA DEBUG: {x}')
-    return x
-
 def radius_lookup(key):
     url = 'http://localhost:8088/api/v1/liq/get_sa1s/'
     payload = json.dumps({'radius_key': key})
     headers = {'Content-Type': 'application/json'}
     response = requests.request('GET', url, headers=headers, data=payload)
-    print(f'JINJA DEBUG: {response.text}')
-    return response.json()['result']['sa1s']
+    try:
+        return response.json()['result']['sa1s']
+    except:
+        return ['']
 
 JINJA_CONTEXT_ADDONS = {
-    'test': test,
     'radius_lookup': radius_lookup
 }
