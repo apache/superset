@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
@@ -290,6 +291,27 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         cls, raw_cost: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
         return [{k: str(v) for k, v in row.items()} for row in raw_cost]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Return all catalogs.
+
+        In Postgres, a catalog is called a "database".
+        """
+        return sorted(
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                """
+SELECT datname FROM pg_database
+WHERE datistemplate = false;
+            """
+            ).fetchall()
+        )
 
     @classmethod
     def get_table_names(

@@ -74,6 +74,7 @@ helm install my-superset superset/superset
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
 | ingress.enabled | bool | `false` |  |
+| ingress.extraHostsRaw | list | `[]` |  |
 | ingress.hosts[0] | string | `"chart-example.local"` |  |
 | ingress.path | string | `"/"` |  |
 | ingress.pathType | string | `"ImplementationSpecific"` |  |
