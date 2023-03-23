@@ -336,9 +336,7 @@ export function cleanSqlComments(sql) {
   // it sanitizes the following comment block groups
   // group 1 -> /* */
   // group 2 -> --
-  return sql
-    .replace(/--.*?$|\/\/.*?$|\/\*[\s\S]*?\*\/|(\n\s*)+/gm, '$1')
-    .trim();
+  return sql.replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n').trim();
 }
 
 export function runQuery(query) {

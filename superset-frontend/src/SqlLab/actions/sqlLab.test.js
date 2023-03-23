@@ -296,7 +296,7 @@ describe('async actions', () => {
     const makeRequest = () => {
       const request = actions.runQuery({
         ...query,
-        sql: '/*\nSELECT * FROM\n */\nSELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/FROM table',
+        sql: '/*\nSELECT * FROM\n */\nSELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/\n\nFROM table',
       });
       return request(dispatch, () => initialState);
     };
@@ -310,7 +310,7 @@ describe('async actions', () => {
         expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
         expect(
           JSON.parse(fetchMock.calls(runQueryEndpoint)[0][1].body).sql,
-        ).toEqual('SELECT 213\nFROM table');
+        ).toEqual('SELECT 213\n\n\nFROM table');
       });
     });
   });
