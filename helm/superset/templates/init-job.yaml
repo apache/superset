@@ -83,6 +83,10 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
           {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
