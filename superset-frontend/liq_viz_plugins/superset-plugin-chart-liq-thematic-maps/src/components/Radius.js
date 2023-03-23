@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Form, InputNumber, Button, Typography } from 'antd';
+import { refreshChart } from '../utils/overrides/chartActionOverride';
+import { useDispatch } from 'react-redux';
 
 const liqSecrets = require('../../../liq_secrets.js').liqSecrets;
 
@@ -16,12 +18,27 @@ export default function Radius(props) {
     groupCol,
     radiusColor,
     radiusThreshold,
+    radiusLinkedCharts,
     map
   } = props;
 
   const [distance, setDistance] = useState(5);
   const [message, setMessage] = useState('');
   const [id, setId] = useState(uuid());
+
+  const dispatch = useDispatch();
+
+  const refreshLinkedCharts = () => {
+    const split = window.location.href.split('/');
+    if (split[4] === 'dashboard') {
+      const dashboardId = parseInt(split[5]);
+      console.log(dashboardId);
+      console.log(radiusLinkedCharts);
+      radiusLinkedCharts.forEach(chartKey =>
+        dispatch(refreshChart(chartKey, true, dashboardId)),
+      );
+    }
+  }
 
   // Remove radius geojson source and layer and delete radius key url param
   const removeRadius = () => {
@@ -33,6 +50,7 @@ export default function Radius(props) {
       url.searchParams.delete('radius_key');
       window.history.replaceState(null, null, url);
       console.log(window.location.href);
+      refreshLinkedCharts();
     }
   }
 
@@ -89,7 +107,10 @@ export default function Radius(props) {
       body: raw,
       redirect: 'follow'
     };
-    fetch('http://localhost:8088/api/v1/liq/set_radius/', requestOptions);
+    fetch('http://localhost:8088/api/v1/liq/set_radius/', requestOptions)
+      .then(() => {
+        refreshLinkedCharts();
+      });
   }
 
   // Query lambda function to get constituent SA1s of radius and update map style to reflect
