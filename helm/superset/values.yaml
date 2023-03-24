@@ -694,6 +694,12 @@ init:
   podAnnotations: {}
   podSecurityContext: {}
   containerSecurityContext: {}
+  ## Tolerations to be added to init job pods
+  tolerations: []
+  ## Affinity to be added to init job pods
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to init job
+  topologySpreadConstraints: []
 
 # -- Configuration values for the postgresql dependency.
 # ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
