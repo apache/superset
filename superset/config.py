@@ -1475,9 +1475,10 @@ SLACK_API_TOKEN: Optional[
 SLACK_PROXY = None
 
 # victorops integration
-VO_URL = "sample"
-VO_VALIDATE_ROUTING_KEY = 'sample'
-VO_HEADERS = {}
+VO_URL = ""
+VO_VALIDATE_ROUTING_KEY = ""
+X_VO_API_ID = ""
+X_VO_API_KEY = ""
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
