@@ -124,3 +124,13 @@ test('returns empty array if timeseries_limit_metric and x_axis_sort are include
     }),
   ).toEqual([]);
 });
+
+test('returns emoty array if timeseries_limit_metric is an empty array', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      // @ts-ignore
+      timeseries_limit_metric: [],
+    }),
+  ).toEqual([]);
+});
