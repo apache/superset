@@ -332,6 +332,7 @@
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook-addon-jsx": "^7.3.14",
+    "storybook-addon-mock": "^3.2.0",
     "storybook-addon-paddings": "^4.3.0",
     "style-loader": "^3.2.1",
     "thread-loader": "^3.0.4",
