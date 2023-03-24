@@ -1471,7 +1471,7 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Alert/Reports] "
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[
     Union[Callable[[], str], str]
-] = "demo"
+] = ""
 SLACK_PROXY = None
 
 # victorops integration
