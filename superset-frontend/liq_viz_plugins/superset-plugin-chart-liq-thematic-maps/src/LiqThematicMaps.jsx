@@ -80,6 +80,7 @@ export default function LiqThematicMaps(props) {
     width, 
     mapType, // type of map, can be one or more of thematic, trade_area and intranet
     mapStyle, // Mapbox "base map" style, i.e. Streets, Light, etc.
+    hideLegend, // whether or not to show the legend 
     boundary, // boundary layer for the map, i.e. SA1, POA, etc.
     intranetLayers, // list of intranet layers, i.e. shopping centres, supermarkets, etc.
     linearColorScheme, // color palette for thematic
@@ -127,7 +128,7 @@ export default function LiqThematicMaps(props) {
   const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
-    {
+    !hideLegend && {
       icon: <BarsOutlined />,
       label: <span>Legend</span>,
       key: '1',
@@ -641,7 +642,7 @@ export default function LiqThematicMaps(props) {
       >
         <Menu mode="inline" theme='dark'>
           {items.map(i => (
-            <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}>
+            i && <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}>
               {i.icon}
               {i.label}
             </Menu.Item>

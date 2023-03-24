@@ -172,6 +172,18 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Base Map Style')
             }
+          },
+        ],
+        [
+          {
+            name: 'hide_legend',
+            config: {
+              type: 'CheckboxControl',
+              default: false,
+              renderTrigger: true,
+              label: t('Hide Legend?'),
+              description: t('Check this if you don\'t want the legend option to appear on the map.')
+            }
           }
         ]
       ]
