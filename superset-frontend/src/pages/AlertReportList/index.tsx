@@ -35,16 +35,15 @@ import ListView, {
   Filters,
   ListViewProps,
 } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
-import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
+import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
+import RecipientIcon from 'src/features/alerts/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import LastUpdated from 'src/components/LastUpdated';
-
 import {
   useListViewResource,
   useSingleViewResource,
@@ -52,8 +51,8 @@ import {
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
-import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
-import { AlertObject, AlertState } from 'src/views/CRUD/alert/types';
+import AlertReportModal from 'src/features/alerts/AlertReportModal';
+import { AlertObject, AlertState } from 'src/features/alerts/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 

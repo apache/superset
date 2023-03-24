@@ -31,10 +31,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
-import SubMenu, {
-  SubMenuProps,
-  ButtonProps,
-} from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import ListView, {
   ListViewProps,
   Filters,
@@ -45,7 +42,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
-import { commonMenuData } from 'src/views/CRUD/data/common';
+import { commonMenuData } from 'src/features/home/commonMenuData';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
@@ -53,7 +50,7 @@ import { isFeatureEnabled } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
 import { BootstrapUser } from 'src/types/bootstrapTypes';
-import SavedQueryPreviewModal from 'src/views/CRUD/data/savedquery/SavedQueryPreviewModal';
+import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(

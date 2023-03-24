@@ -43,7 +43,7 @@ import {
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { TagsList } from 'src/components/Tags';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
 import ListView, {
@@ -71,7 +71,7 @@ import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
-import ChartCard from 'src/views/CRUD/chart/ChartCard';
+import ChartCard from 'src/features/charts/ChartCard';
 
 const FlexRowContainer = styled.div`
   align-items: center;
