@@ -94,12 +94,15 @@ const ChartContextMenu = (
 
   const showDrillBy = isFeatureEnabled(FeatureFlag.DRILL_BY) && canExplore;
 
+  const showCrossFilters = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+  );
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
     ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
 
   let itemsCount = 0;
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (showCrossFilters) {
     itemsCount += 1;
   }
   if (showDrillToDetail) {
@@ -193,16 +196,25 @@ const ChartContextMenu = (
         isContextMenu
         contextMenuY={clientY}
         onSelection={onSelection}
+        submenuIndex={showCrossFilters ? 2 : 1}
       />,
     );
   }
   if (showDrillBy) {
+    let submenuIndex = 0;
+    if (showCrossFilters) {
+      submenuIndex += 1;
+    }
+    if (showDrillToDetail) {
+      submenuIndex += 2;
+    }
     menuItems.push(
       <DrillByMenuItems
         filters={filters?.drillBy}
         columns={datasourceDimensions}
         formData={formData}
         contextMenuY={clientY}
+        submenuIndex={submenuIndex}
       />,
     );
   }

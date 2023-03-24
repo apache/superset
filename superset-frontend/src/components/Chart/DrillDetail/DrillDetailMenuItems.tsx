@@ -64,6 +64,7 @@ export type DrillDetailMenuItemsProps = {
   contextMenuY?: number;
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
+  submenuIndex?: number;
 };
 
 const DrillDetailMenuItems = ({
@@ -74,6 +75,7 @@ const DrillDetailMenuItems = ({
   contextMenuY = 0,
   onSelection = () => null,
   onClick = () => null,
+  submenuIndex = 0,
   ...props
 }: DrillDetailMenuItemsProps) => {
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
@@ -166,6 +168,7 @@ const DrillDetailMenuItems = ({
       getSubmenuYOffset(
         contextMenuY,
         filters.length > 1 ? filters.length + 1 : filters.length,
+        submenuIndex,
       ),
     [contextMenuY, filters.length],
   );
