@@ -956,6 +956,11 @@ const FiltersConfigForm = (
                   <CollapsibleControl
                     initialValue={hasPreFilter}
                     title={t('Pre-filter available values')}
+                    tooltip={t(`Limits the number of selectable values in a filter.
+                    This is useful when you want to display a subset of the column's values
+                    either for performance reasons or business rules. Some examples include
+                    limiting the number of people displayed to a particular business unit
+                    or showing only people registered in the last 90 days.`)}
                     onChange={checked => {
                       formChanged();
                       if (checked) {
