@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
@@ -71,11 +73,29 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
+def parse_options(connect_args: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Parse ``options`` from  ``connect_args`` into a dictionary.
+    """
+    if not isinstance(connect_args.get("options"), str):
+        return {}
+
+    tokens = (
+        tuple(token.strip() for token in option.strip().split("=", 1))
+        for option in re.split(r"-c\s?", connect_args["options"])
+        if "=" in option
+    )
+
+    return {token[0]: token[1] for token in tokens}
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
     engine = ""
     engine_name = "PostgreSQL"
+
+    supports_dynamic_schema = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -145,6 +165,57 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
+        if not schema:
+            return uri, connect_args
+
+        options = parse_options(connect_args)
+        options["search_path"] = schema
+        connect_args["options"] = " ".join(
+            f"-c{key}={value}" for key, value in options.items()
+        )
+
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        While Postgres doesn't support connecting directly to a given schema, it allows
+        users to specify a "search path" that is used to resolve non-qualified table
+        names; this can be specified in the database ``connect_args``.
+
+        One important detail is that the search path can be a comma separated list of
+        schemas. While this is supported by the SQLAlchemy dialect, it shouldn't be used
+        in Superset because it breaks schema-level permissions, since it's impossible
+        to determine the schema for a non-qualified table in a query. In cases like
+        that we raise an exception.
+        """
+        options = parse_options(connect_args)
+        if search_path := options.get("search_path"):
+            schemas = search_path.split(",")
+            if len(schemas) > 1:
+                raise Exception(
+                    "Multiple schemas are configured in the search path, which means "
+                    "Superset is unable to determine the schema of unqualified table "
+                    "names and enforce permissions."
+                )
+            return schemas[0]
+
+        return None
 
     @classmethod
     def fetch_data(
@@ -220,6 +291,27 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         cls, raw_cost: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
         return [{k: str(v) for k, v in row.items()} for row in raw_cost]
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Return all catalogs.
+
+        In Postgres, a catalog is called a "database".
+        """
+        return sorted(
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                """
+SELECT datname FROM pg_database
+WHERE datistemplate = false;
+            """
+            ).fetchall()
+        )
 
     @classmethod
     def get_table_names(

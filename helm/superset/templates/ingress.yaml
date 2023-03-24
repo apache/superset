@@ -66,4 +66,7 @@ spec:
                   name: ws
           {{- end }}
   {{- end }}
+  {{- if .Values.ingress.extraHostsRaw }}
+  {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}
+  {{- end }}
 {{- end }}

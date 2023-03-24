@@ -246,7 +246,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
     """Engine spec for clickhouse-connect connector"""
 
     engine = "clickhousedb"
-    engine_name = "ClickHouse Connect"
+    engine_name = "ClickHouse Connect (Superset)"
 
     default_driver = "connect"
     _function_names: List[str] = []

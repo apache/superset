@@ -219,6 +219,7 @@ ingress:
   hosts:
     - chart-example.local
   tls: []
+  extraHostsRaw: []
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local

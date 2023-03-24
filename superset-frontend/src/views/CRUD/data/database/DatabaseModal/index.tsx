@@ -928,8 +928,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
-          .map((database: DatabaseForm) => (
-            <AntdSelect.Option value={database.name} key={database.name}>
+          .map((database: DatabaseForm, index: number) => (
+            <AntdSelect.Option value={database.name} key={`database-${index}`}>
               {database.name}
             </AntdSelect.Option>
           ))}

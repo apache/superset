@@ -2062,6 +2062,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/estimate_query_cost/<int:database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
+    @deprecated()
     def estimate_query_cost(  # pylint: disable=no-self-use
         self, database_id: int, schema: Optional[str] = None
     ) -> FlaskResponse:

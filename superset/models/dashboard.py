@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
@@ -450,11 +451,27 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return qry.one_or_none()
 
 
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
+def is_int(value: Union[str, int]) -> bool:
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+
+
 def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
-    if isinstance(id_or_slug, int):
-        return Dashboard.id == id_or_slug
-    if id_or_slug.isdigit():
+    if is_int(id_or_slug):
         return Dashboard.id == int(id_or_slug)
+    if is_uuid(id_or_slug):
+        return Dashboard.uuid == uuid.UUID(str(id_or_slug))
     return Dashboard.slug == id_or_slug
 
 

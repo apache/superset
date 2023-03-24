@@ -24,6 +24,7 @@ from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -169,3 +170,34 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
             "connect_args": {"application": "Custom user agent", "foo": "bar"}
         }
     }
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/database_name/default"),
+            {},
+        )
+        == "default"
+    )
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/database_name"),
+            {},
+        )
+        is None
+    )
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/"),
+            {},
+        )
+        is None
+    )
