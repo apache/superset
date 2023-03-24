@@ -678,7 +678,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         if (recipients[i].recipient_config_json.target) {
           voRoutingKey = recipients[i].recipient_config_json.target;
           const options = {
-            headers: {'X-VO-Api-Id': frontendConfig.X_VO_API_ID, 'X-VO-Api-Key' : frontendConfig.X_VO_API_KEY}
+            headers: {
+              'X-VO-Api-Id': frontendConfig.X_VO_API_ID,
+              'X-VO-Api-Key': frontendConfig.X_VO_API_KEY,
+            },
           };
           // eslint-disable-next-line no-await-in-loop
           response = await // eslint-disable-next-line no-await-in-loop
