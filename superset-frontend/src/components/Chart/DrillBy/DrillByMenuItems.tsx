@@ -31,6 +31,7 @@ import {
   Column,
   ContextMenuFilters,
   css,
+  ensureIsArray,
   getChartMetadataRegistry,
   t,
   useTheme,
@@ -108,15 +109,16 @@ export const DrillByMenuItems = ({
 
   let tooltip: ReactNode;
 
+  const hasFilters = ensureIsArray(filters).length;
   if (!handlesDimensionContextMenu) {
     tooltip = t('Drill by is not yet supported for this chart type');
-  } else if (!filters) {
+  } else if (!hasFilters) {
     tooltip = t('Drill by is not available for this data point');
   } else if (columns.length === 0) {
     tooltip = t('No dimensions available for drill by');
   }
 
-  if (!handlesDimensionContextMenu || !filters || columns.length === 0) {
+  if (!handlesDimensionContextMenu || !hasFilters || columns.length === 0) {
     return (
       <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>

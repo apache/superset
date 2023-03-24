@@ -110,7 +110,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const treePath = extractTreePathInfo(eventParams.treePathInfo);
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-        let drillByFilters: BinaryQueryObjectFilterClause[] | undefined;
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
@@ -120,13 +120,11 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
               formattedVal: path,
             }),
           );
-          drillByFilters = [
-            {
-              col: columns[treePath.length - 1],
-              op: '==',
-              val: treePath[treePath.length - 1],
-            },
-          ];
+          drillByFilters.push({
+            col: columns[treePath.length - 1],
+            op: '==',
+            val: treePath[treePath.length - 1],
+          });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
