@@ -448,7 +448,7 @@ class QueryContextProcessor:
         rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
-    def get_data(self, df: pd.DataFrame, coltypes:[]) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(self, df: pd.DataFrame, coltypes:Optional[List[str]]) -> Union[str, List[Dict[str, Any]]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -458,6 +458,10 @@ class QueryContextProcessor:
 
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
+                result = csv.df_to_escaped_csv(
+                    df, index=include_index, **config["CSV_EXPORT"]
+                )
+            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 ndf = df.copy()
                 columns = list(df)
                 i = 0
