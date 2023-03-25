@@ -129,7 +129,6 @@ test('table options are notified after schema selection', async () => {
 
   const callback = jest.fn();
   const props = createProps({
-    onTablesLoad: callback,
     schema: undefined,
   });
   render(<TableSelector {...props} />, { useRedux: true });

@@ -218,15 +218,6 @@ const SqlEditorLeftBar = ({
     [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetTableOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
       dispatch(setDatabases(result));
@@ -256,7 +247,6 @@ const SqlEditorLeftBar = ({
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
