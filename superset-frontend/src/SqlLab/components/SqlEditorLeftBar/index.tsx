@@ -35,7 +35,6 @@ import {
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
   setDatabases,
   addDangerToast,
   resetState,
