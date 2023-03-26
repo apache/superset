@@ -104,7 +104,7 @@ export const DrillByMenuItems = ({
           ? SEARCH_INPUT_HEIGHT
           : 0,
       ),
-    [contextMenuY, filteredColumns.length, columns.length],
+    [contextMenuY, filteredColumns.length, submenuIndex, columns.length],
   );
 
   let tooltip: ReactNode;
@@ -137,49 +137,50 @@ export const DrillByMenuItems = ({
       popupClassName="drill-by-submenu"
       {...rest}
     >
-      {columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD && (
-        <Input
-          prefix={
-            <Icons.Search
-              iconSize="l"
-              iconColor={theme.colors.grayscale.light1}
-            />
-          }
-          onChange={handleInput}
-          placeholder={t('Search columns')}
-          value={searchInput}
-          onClick={e => {
-            // prevent closing menu when clicking on input
-            // @ts-ignore
-            e.stopImmediatePropagation();
-          }}
-          allowClear
-          css={css`
-            width: auto;
-            max-width: 100%;
-            margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-            box-shadow: none;
-          `}
-        />
-      )}
-      {filteredColumns.length ? (
-        <div
-          css={css`
-            max-height: ${MAX_SUBMENU_HEIGHT}px;
-            overflow: auto;
-          `}
-        >
-          {filteredColumns.map(column => (
-            <Menu.Item key={`drill-by-item-${column.column_name}`} {...rest}>
-              {column.verbose_name || column.column_name}
-            </Menu.Item>
-          ))}
-        </div>
-      ) : (
-        <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
-          {t('No columns found')}
-        </Menu.Item>
-      )}
+      <div data-test="drill-by-submenu">
+        {columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD && (
+          <Input
+            prefix={
+              <Icons.Search
+                iconSize="l"
+                iconColor={theme.colors.grayscale.light1}
+              />
+            }
+            onChange={handleInput}
+            placeholder={t('Search columns')}
+            value={searchInput}
+            onClick={e => {
+              // prevent closing menu when clicking on input
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            allowClear
+            css={css`
+              width: auto;
+              max-width: 100%;
+              margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+              box-shadow: none;
+            `}
+          />
+        )}
+        {filteredColumns.length ? (
+          <div
+            css={css`
+              max-height: ${MAX_SUBMENU_HEIGHT}px;
+              overflow: auto;
+            `}
+          >
+            {filteredColumns.map(column => (
+              <Menu.Item key={`drill-by-item-${column.column_name}`} {...rest}>
+                {column.verbose_name || column.column_name}
+              </Menu.Item>
+            ))}
+          </div>
+        ) : (
+          <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
+            {t('No columns found')}
+          </Menu.Item>
+        )}
+      </div>
     </Menu.SubMenu>
   );
 };
