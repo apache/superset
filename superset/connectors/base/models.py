@@ -369,7 +369,7 @@ class BaseDatasource(
             generic_type = column.get("type_generic")
             if generic_type is not None:
                 column_types.add(generic_type)
-            if column["column_name"] in column_names or is_feature_enabled("DRILL_BY"):
+            if column["column_name"] in column_names:
                 filtered_columns.append(column)
 
         data["column_types"] = list(column_types)
