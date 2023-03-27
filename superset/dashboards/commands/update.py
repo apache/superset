@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
+from sqlalchemy import not_
 from marshmallow import ValidationError
 
 from superset import security_manager
@@ -30,6 +31,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardSlugExistsValidationError,
+    DashboardTitleValidationError,
     DashboardUpdateFailedError,
 )
 from superset.dashboards.dao import DashboardDAO
@@ -50,13 +52,13 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
+            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=False)
             if self._properties.get("json_metadata"):
                 dashboard = DashboardDAO.set_dash_metadata(
                     dashboard,
                     data=json.loads(self._properties.get("json_metadata", "{}")),
                     commit=False,
                 )
-            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=False)
             db.session.commit()
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
@@ -78,7 +80,17 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
+        
+        # Validate for dashboard unique name
+        owner_filter = Dashboard.owners.any(security_manager.user_model.id.in_(owners_ids))
+        dashboard_title=self._properties.get("dashboard_title")
+        dahboard_name_filter = Dashboard.dashboard_title==dashboard_title
+        not_current_dashboard_filter = not_(Dashboard.id == self._model.id)
+        query = db.session.query(Dashboard).filter(owner_filter, dahboard_name_filter, not_current_dashboard_filter)
+        result = query.all()
 
+        if result:
+            exceptions.append(DashboardTitleValidationError())
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
             exceptions.append(DashboardSlugExistsValidationError())

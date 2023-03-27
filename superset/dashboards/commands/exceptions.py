@@ -38,6 +38,14 @@ class DashboardSlugExistsValidationError(ValidationError):
     def __init__(self) -> None:
         super().__init__([_("Must be unique")], field_name="slug")
 
+class DashboardTitleValidationError(ValidationError):
+    """
+    Marshmallow validation error for dashboard name already exists
+    """
+
+    def __init__(self) -> None:
+        super().__init__([_("Must be unique")], field_name="dashboard_title")
+
 
 class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
