@@ -21,7 +21,7 @@ import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
-import { INPUT_WIDTH } from './utils';
+import { INPUT_WIDTH } from './constants';
 
 interface DependencyListProps {
   availableFilters: {

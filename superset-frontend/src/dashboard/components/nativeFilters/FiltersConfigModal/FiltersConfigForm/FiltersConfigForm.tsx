@@ -91,13 +91,12 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   cachedSupersetGet,
-  FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
-  INPUT_WIDTH,
   mostUsedDataset,
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
+import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
 import DependencyList from './DependencyList';
 
 const TabPane = styled(Tabs.TabPane)`

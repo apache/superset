@@ -28,7 +28,7 @@ import { FormInstance } from 'src/components';
 import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
-import { INPUT_WIDTH } from './utils';
+import { INPUT_WIDTH } from './constants';
 
 type DefaultValueProps = {
   hasDefaultValue: boolean;
