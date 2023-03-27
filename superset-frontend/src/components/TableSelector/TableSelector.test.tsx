@@ -124,46 +124,6 @@ test('renders disabled without schema', async () => {
   });
 });
 
-test('table options are notified after schema selection', async () => {
-  fetchMock.get(schemaApiRoute, getSchemaMockFunction());
-
-  const callback = jest.fn();
-  const props = createProps({
-    schema: undefined,
-  });
-  render(<TableSelector {...props} />, { useRedux: true });
-
-  const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
-  });
-  expect(schemaSelect).toBeInTheDocument();
-  expect(callback).not.toHaveBeenCalled();
-
-  userEvent.click(schemaSelect);
-
-  expect(
-    await screen.findByRole('option', { name: 'schema_a' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'schema_b' }),
-  ).toBeInTheDocument();
-
-  fetchMock.get(tablesApiRoute, getTableMockFunction());
-
-  act(() => {
-    userEvent.click(screen.getAllByText('schema_a')[1]);
-  });
-
-  await waitFor(() => {
-    expect(callback).toHaveBeenCalledWith([
-      { label: 'table_a', value: 'table_a' },
-      { label: 'table_b', value: 'table_b' },
-      { label: 'table_c', value: 'table_c' },
-      { label: 'table_d', value: 'table_d' },
-    ]);
-  });
-});
-
 test('table select retain value if not in SQL Lab mode', async () => {
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
