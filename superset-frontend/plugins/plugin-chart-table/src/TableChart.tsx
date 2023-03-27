@@ -351,11 +351,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
-    const { isNumeric, config = {} } = column;
+    const { config = {} } = column;
     const textAlign = config.horizontalAlign
       ? config.horizontalAlign
-      : isNumeric
-      ? 'right'
       : 'left';
     return {
       textAlign,
