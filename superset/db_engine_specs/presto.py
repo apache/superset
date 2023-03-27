@@ -165,7 +165,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
-    dynamic_schema = True
+    supports_dynamic_schema = True
 
     column_type_mappings = (
         (
@@ -301,19 +301,44 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         database = uri.database
-        if selected_schema and database:
-            selected_schema = parse.quote(selected_schema, safe="")
+        if schema and database:
+            schema = parse.quote(schema, safe="")
             if "/" in database:
-                database = database.split("/")[0] + "/" + selected_schema
+                database = database.split("/")[0] + "/" + schema
             else:
-                database += "/" + selected_schema
+                database += "/" + schema
             uri = uri.set(database=database)
 
-        return uri
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        For Presto the SQLAlchemy URI looks like this:
+
+            presto://localhost:8080/hive[/default]
+
+        """
+        database = sqlalchemy_uri.database.strip("/")
+
+        if "/" not in database:
+            return None
+
+        return parse.unquote(database.split("/")[1])
 
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:

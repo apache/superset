@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import getInitialState from './getInitialState';
+import getInitialState, { dedupeTabHistory } from './getInitialState';
 
 const apiData = {
   defaultDbId: 1,
@@ -50,5 +50,22 @@ describe('getInitialState', () => {
       getInitialState(apiDataWithTabState).sqlLab.queryEditors[0]
         .templateParams,
     ).toBeUndefined();
+  });
+
+  describe('dedupeTabHistory', () => {
+    it('should dedupe the tab history', () => {
+      [
+        { value: [], expected: [] },
+        { value: [12, 3, 4, 5, 6], expected: [12, 3, 4, 5, 6] },
+        { value: [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], expected: [1, 2] },
+        {
+          value: [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3],
+          expected: [1, 2, 3],
+        },
+        { value: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3], expected: [2, 3] },
+      ].forEach(({ value, expected }) => {
+        expect(dedupeTabHistory(value)).toEqual(expected);
+      });
+    });
   });
 });

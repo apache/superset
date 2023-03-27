@@ -17,12 +17,16 @@
  * under the License.
  */
 
-import { css, useTheme } from '@superset-ui/core';
+import {
+  css,
+  useTheme,
+  useCSSTextTruncation,
+  truncationCSS,
+} from '@superset-ui/core';
 import React from 'react';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { useCSSTextTruncation, truncationCSS } from 'src/hooks/useTruncation';
 import { FilterDividerProps } from './types';
 
 const VerticalDivider = ({ title, description }: FilterDividerProps) => (

@@ -335,7 +335,7 @@ export default function sqlLabReducer(state = {}, action) {
           ...state.queryCostEstimates,
           [action.query.id]: {
             completed: true,
-            cost: action.json,
+            cost: action.json.result,
             error: null,
           },
         },
@@ -582,18 +582,6 @@ export default function sqlLabReducer(state = {}, action) {
           state,
           {
             schema: action.schema,
-          },
-          action.queryEditor.id,
-        ),
-      };
-    },
-    [actions.QUERY_EDITOR_SET_SCHEMA_OPTIONS]() {
-      return {
-        ...state,
-        ...alterUnsavedQueryEditorState(
-          state,
-          {
-            schemaOptions: action.options,
           },
           action.queryEditor.id,
         ),

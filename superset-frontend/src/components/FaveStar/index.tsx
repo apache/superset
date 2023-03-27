@@ -18,9 +18,8 @@
  */
 
 import React, { useCallback } from 'react';
-import { css, t, styled } from '@superset-ui/core';
+import { css, t, styled, useComponentDidMount } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 
 export interface FaveStarProps {

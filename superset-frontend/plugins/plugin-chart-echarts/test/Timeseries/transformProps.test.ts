@@ -295,6 +295,112 @@ describe('EchartsTimeseries transformProps', () => {
       }),
     );
   });
+
+  it('Should add a baseline series for stream graph', () => {
+    const streamQueriesData = [
+      {
+        data: [
+          {
+            'San Francisco': 120,
+            'New York': 220,
+            Boston: 150,
+            Miami: 270,
+            Denver: 800,
+            __timestamp: 599616000000,
+          },
+          {
+            'San Francisco': 150,
+            'New York': 190,
+            Boston: 240,
+            Miami: 350,
+            Denver: 700,
+            __timestamp: 599616000001,
+          },
+          {
+            'San Francisco': 130,
+            'New York': 300,
+            Boston: 250,
+            Miami: 410,
+            Denver: 650,
+            __timestamp: 599616000002,
+          },
+          {
+            'San Francisco': 90,
+            'New York': 340,
+            Boston: 300,
+            Miami: 480,
+            Denver: 590,
+            __timestamp: 599616000003,
+          },
+          {
+            'San Francisco': 260,
+            'New York': 200,
+            Boston: 420,
+            Miami: 490,
+            Denver: 760,
+            __timestamp: 599616000004,
+          },
+          {
+            'San Francisco': 250,
+            'New York': 250,
+            Boston: 380,
+            Miami: 360,
+            Denver: 400,
+            __timestamp: 599616000005,
+          },
+          {
+            'San Francisco': 160,
+            'New York': 210,
+            Boston: 330,
+            Miami: 440,
+            Denver: 580,
+            __timestamp: 599616000006,
+          },
+        ],
+      },
+    ];
+    const streamFormData = { ...formData, stack: 'Stream' };
+    const props = {
+      ...chartPropsConfig,
+      formData: streamFormData,
+      queriesData: streamQueriesData,
+    };
+
+    const chartProps = new ChartProps(props);
+    expect(
+      (
+        transformProps(chartProps as EchartsTimeseriesChartProps).echartOptions
+          .series as any[]
+      )[0],
+    ).toEqual({
+      areaStyle: {
+        opacity: 0,
+      },
+      lineStyle: {
+        opacity: 0,
+      },
+      name: 'baseline',
+      showSymbol: false,
+      silent: true,
+      smooth: false,
+      stack: 'obs',
+      stackStrategy: 'all',
+      step: undefined,
+      tooltip: {
+        show: false,
+      },
+      type: 'line',
+      data: [
+        [599616000000, -415.7692307692308],
+        [599616000001, -403.6219915054271],
+        [599616000002, -476.32314093071443],
+        [599616000003, -514.2120298196033],
+        [599616000004, -485.7378514158475],
+        [599616000005, -419.6402904402378],
+        [599616000006, -442.9833136960517],
+      ],
+    });
+  });
 });
 
 describe('Does transformProps transform series correctly', () => {

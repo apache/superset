@@ -179,15 +179,19 @@ class BaseReportState:
         dashboard_state = self._report_schedule.extra.get("dashboard")
         if dashboard_state:
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard_id),
+                dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
 
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
-            dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            dashboard_id_or_slug=dashboard_id_or_slug,
             force=force,
             **kwargs,
         )
