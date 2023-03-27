@@ -380,7 +380,7 @@ const config: ControlPanelConfig = {
               default: 0.5,
               renderTrigger: false,
               label: t('Radius Intersection Threshold'),
-              description: t('Threshold for ratio of SA1 intersection with trade area, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the trade area.')
+              description: t('Threshold for ratio of SA1 intersection with radius, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the radius.')
             }
           }
         ],
@@ -392,6 +392,54 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Chart IDs'),
               description: t('Comma separated list of chart IDs whose charts we want to update when radius updates.')
+            }
+          }
+        ]
+      ]
+    },
+    {
+      label: t('Drivetime Settings'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'drivetime_color',
+            config: {
+              label: t('Drivetime Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              }
+            }
+          }
+        ],
+        [
+          {
+            name: 'drivetime_threshold',
+            config: {
+              type: 'SliderControl',
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: 0.5,
+              renderTrigger: false,
+              label: t('Drivetime Intersection Threshold'),
+              description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.')
+            }
+          }
+        ],
+        [
+          {
+            name: 'drivetime_linked_charts',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              label: t('Chart IDs'),
+              description: t('Comma separated list of chart IDs whose charts we want to update when drivetime updates.')
             }
           }
         ]

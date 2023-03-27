@@ -29,7 +29,8 @@ import entity from '../../liq_data/entity.json';
 // UI imports
 import {
   BarsOutlined,
-  RadiusSettingOutlined
+  RadiusSettingOutlined,
+  CarOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
 
@@ -176,6 +177,12 @@ export default function LiqThematicMaps(props) {
         );
         setDrawerOpen(true);
       }
+    },
+    {
+      icon: <CarOutlined />,
+      label: <span>Drivetime</span>,
+      key: '3',
+      onClick: () => {}
     }
   ];
 

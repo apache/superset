@@ -68,6 +68,9 @@ export default function transformProps(chartProps) {
     radiusColor,
     radiusThreshold,
     radiusLinkedCharts,
+    drivetimeColor,
+    drivetimeThreshold,
+    drivetimeLinkedCharts,
     customTileset
   } = formData;
 
@@ -130,8 +133,10 @@ export default function transformProps(chartProps) {
   };
 
   const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
+  const newDrivetimeColor = `rgba(${drivetimeColor.r},${drivetimeColor.g},${drivetimeColor.b},${drivetimeColor.a})`;
 
   const newRadiusLinkedCharts = radiusLinkedCharts ? radiusLinkedCharts.split(',').map(Number) : [];
+  const newDrivetimeLinkedCharts = drivetimeLinkedCharts ? drivetimeLinkedCharts.split(',').map(Number) : [];
 
   return {
     width,
@@ -162,6 +167,9 @@ export default function transformProps(chartProps) {
     newRadiusColor,
     radiusThreshold,
     newRadiusLinkedCharts,
+    newDrivetimeColor,
+    drivetimeThreshold,
+    newDrivetimeLinkedCharts,
     customTileset
   };
 }
