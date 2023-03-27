@@ -33,6 +33,7 @@ import { Menu } from 'src/components/Menu';
 import DrillDetailModal from './DrillDetailModal';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 
 const DRILL_TO_DETAIL_TEXT = t('Drill to detail by');
 
@@ -170,7 +171,7 @@ const DrillDetailMenuItems = ({
         filters.length > 1 ? filters.length + 1 : filters.length,
         submenuIndex,
       ),
-    [contextMenuY, filters.length],
+    [contextMenuY, filters.length, submenuIndex],
   );
 
   if (handlesDimensionContextMenu && !noAggregations && filters?.length) {
@@ -178,18 +179,20 @@ const DrillDetailMenuItems = ({
       <Menu.SubMenu
         {...props}
         popupOffset={[0, submenuYOffset]}
+        popupClassName="chart-context-submenu"
         title={DRILL_TO_DETAIL_TEXT}
       >
         <div data-test="drill-to-detail-by-submenu">
           {filters.map((filter, i) => (
-            <Menu.Item
+            <MenuItemWithTruncation
               {...props}
+              tooltipText={`${DRILL_TO_DETAIL_TEXT} ${filter.formattedVal}`}
               key={`drill-detail-filter-${i}`}
               onClick={openModal.bind(null, [filter])}
             >
               {`${DRILL_TO_DETAIL_TEXT} `}
               <Filter>{filter.formattedVal}</Filter>
-            </Menu.Item>
+            </MenuItemWithTruncation>
           ))}
           {filters.length > 1 && (
             <Menu.Item
@@ -197,8 +200,10 @@ const DrillDetailMenuItems = ({
               key="drill-detail-filter-all"
               onClick={openModal.bind(null, filters)}
             >
-              {`${DRILL_TO_DETAIL_TEXT} `}
-              <Filter>{t('all')}</Filter>
+              <div>
+                {`${DRILL_TO_DETAIL_TEXT} `}
+                <Filter>{t('all')}</Filter>
+              </div>
             </Menu.Item>
           )}
         </div>

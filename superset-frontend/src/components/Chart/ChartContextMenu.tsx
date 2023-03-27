@@ -36,7 +36,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Datasource, RootState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
@@ -72,13 +72,6 @@ const ChartContextMenu = (
   );
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
-
-  const datasourceDimensions = useSelector<RootState, Datasource['columns']>(
-    state =>
-      state.datasources[formData.datasource].columns.filter(
-        column => column.groupby,
-      ),
   );
 
   const [{ filters, clientX, clientY }, setState] = useState<{
@@ -211,7 +204,6 @@ const ChartContextMenu = (
     menuItems.push(
       <DrillByMenuItems
         filters={filters?.drillBy}
-        columns={datasourceDimensions}
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}

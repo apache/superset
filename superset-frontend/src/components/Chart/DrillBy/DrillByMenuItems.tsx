@@ -27,6 +27,7 @@ import React, {
 } from 'react';
 import { Menu } from 'src/components/Menu';
 import {
+  BaseFormData,
   Behavior,
   Column,
   ContextMenuFilters,
@@ -38,8 +39,10 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
+import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 
 const MAX_SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
@@ -47,14 +50,12 @@ const SEARCH_INPUT_HEIGHT = 48;
 
 export interface DrillByMenuItemsProps {
   filters?: ContextMenuFilters['drillBy'];
-  formData: { [key: string]: any; viz_type: string };
-  columns: Column[];
+  formData: BaseFormData & { [key: string]: any };
   contextMenuY?: number;
   submenuIndex?: number;
 }
 export const DrillByMenuItems = ({
   filters,
-  columns,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
@@ -62,18 +63,16 @@ export const DrillByMenuItems = ({
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
   const [searchInput, setSearchInput] = useState('');
-
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [isColumnsLoading, setIsColumnsLoading] = useState(true);
+  // const datasource = useSelector<RootState, Datasource>(() => {});
   useEffect(() => {
     // Input is displayed only when columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD
     // Reset search input in case Input gets removed
     setSearchInput('');
   }, [columns.length]);
 
-  const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    const input = e?.target?.value;
-    setSearchInput(input);
-  }, []);
+  const hasFilters = ensureIsArray(filters).length;
 
   const handlesDimensionContextMenu = useMemo(
     () =>
@@ -82,6 +81,30 @@ export const DrillByMenuItems = ({
         ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
     [formData.viz_type],
   );
+
+  useEffect(() => {
+    if (handlesDimensionContextMenu && hasFilters) {
+      setIsColumnsLoading(true);
+      const datasetId = formData.datasource.split('__')[0];
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then(({ json: { result } }) => {
+          setColumns(
+            ensureIsArray(result.columns).filter(column => column.groupby),
+          );
+        })
+        .finally(() => {
+          setIsColumnsLoading(false);
+        });
+    }
+  }, [formData.datasource, handlesDimensionContextMenu, hasFilters]);
+
+  const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const input = e?.target?.value;
+    setSearchInput(input);
+  }, []);
 
   const filteredColumns = useMemo(
     () =>
@@ -109,7 +132,6 @@ export const DrillByMenuItems = ({
 
   let tooltip: ReactNode;
 
-  const hasFilters = ensureIsArray(filters).length;
   if (!handlesDimensionContextMenu) {
     tooltip = t('Drill by is not yet supported for this chart type');
   } else if (!hasFilters) {
@@ -133,8 +155,8 @@ export const DrillByMenuItems = ({
     <Menu.SubMenu
       title={t('Drill by')}
       key="drill-by-submenu"
+      popupClassName="chart-context-submenu"
       popupOffset={[0, submenuYOffset]}
-      popupClassName="drill-by-submenu"
       {...rest}
     >
       <div data-test="drill-by-submenu">
@@ -170,9 +192,13 @@ export const DrillByMenuItems = ({
             `}
           >
             {filteredColumns.map(column => (
-              <Menu.Item key={`drill-by-item-${column.column_name}`} {...rest}>
+              <MenuItemWithTruncation
+                key={`drill-by-item-${column.column_name}`}
+                tooltipText={column.verbose_name || column.column_name}
+                {...rest}
+              >
                 {column.verbose_name || column.column_name}
-              </Menu.Item>
+              </MenuItemWithTruncation>
             ))}
           </div>
         ) : (
