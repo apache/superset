@@ -1,3 +1,4 @@
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -38,6 +39,7 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
+from superset.models.dashboard import Dashboard
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -66,6 +68,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                if overwrite:
+                    dashboard_id=session.query(Dashboard).filter_by(uuid=config['uuid']).first().id
                 chart_uuids.update(find_chart_uuids(config["position"]))
                 dataset_uuids.update(
                     find_native_filter_datasets(config.get("metadata", {}))
@@ -83,10 +87,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
+
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(session, config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -97,7 +102,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(session, config, overwrite=overwrite)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -113,13 +118,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=False)
+                chart = import_chart(session, config, overwrite=overwrite)
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
+        existing_relationships =  session.execute(select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])).fetchall()
+
+        # delete charts that are not in imported data.
+        if overwrite:
+            non = session.query(dashboard_slices).filter(dashboard_slices.c.dashboard_id==dashboard_id, dashboard_slices.c.slice_id.not_in(list(chart_ids.values()))).delete()
 
         # import dashboards
         dashboard_chart_ids: List[Tuple[int, int]] = []
