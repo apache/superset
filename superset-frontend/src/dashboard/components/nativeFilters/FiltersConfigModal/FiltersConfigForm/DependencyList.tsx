@@ -21,6 +21,7 @@ import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Select } from 'src/components';
 import { CollapsibleControl } from './CollapsibleControl';
+import { INPUT_WIDTH } from './constants';
 
 interface DependencyListProps {
   availableFilters: {
@@ -66,10 +67,13 @@ const DeleteFilter = styled(Icons.Trash)`
 const RowPanel = styled.div`
   ${({ theme }) => `
     display: flex;
-    width: 220px;
     flex-direction: row;
     align-items: center;
     margin-bottom: ${theme.gridUnit}px;
+
+    & > div {
+      width: ${INPUT_WIDTH}px;
+    }
   `}
 `;
 
