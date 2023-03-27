@@ -18,7 +18,11 @@
  */
 import { GenericDataType } from '@superset-ui/core';
 
+export const INPUT_HEIGHT = 32;
+
 export const INPUT_WIDTH = 270;
+
+export const TIME_FILTER_INPUT_WIDTH = 350;
 
 export const FILTER_SUPPORTED_TYPES = {
   filter_time: [GenericDataType.TEMPORAL],
