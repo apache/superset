@@ -23,27 +23,29 @@ import {
   ChartMetadata,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
+import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { Menu } from 'src/components/Menu';
 import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
+const datasetEndpointMatcher = 'glob:*/api/v1/dataset/7';
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
 const defaultColumns = [
-  { column_name: 'col1' },
-  { column_name: 'col2' },
-  { column_name: 'col3' },
-  { column_name: 'col4' },
-  { column_name: 'col5' },
-  { column_name: 'col6' },
-  { column_name: 'col7' },
-  { column_name: 'col8' },
-  { column_name: 'col9' },
-  { column_name: 'col10' },
-  { column_name: 'col11' },
+  { column_name: 'col1', groupby: true },
+  { column_name: 'col2', groupby: true },
+  { column_name: 'col3', groupby: true },
+  { column_name: 'col4', groupby: true },
+  { column_name: 'col5', groupby: true },
+  { column_name: 'col6', groupby: true },
+  { column_name: 'col7', groupby: true },
+  { column_name: 'col8', groupby: true },
+  { column_name: 'col9', groupby: true },
+  { column_name: 'col10', groupby: true },
+  { column_name: 'col11', groupby: true },
 ];
 
 const defaultFilters = [
@@ -57,14 +59,12 @@ const defaultFilters = [
 const renderMenu = ({
   formData = defaultFormData,
   filters = defaultFilters,
-  columns = defaultColumns,
 }: Partial<DrillByMenuItemsProps>) =>
   render(
     <Menu>
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         filters={filters}
-        columns={columns}
       />
     </Menu>,
     { useRouter: true, useRedux: true },
@@ -88,7 +88,6 @@ const expectDrillByEnabled = async () => {
   const drillByMenuItem = screen.getByRole('menuitem', {
     name: 'Drill by',
   });
-  expect(drillByMenuItem).not.toHaveAttribute('aria-disabled', 'true');
   expect(drillByMenuItem).toBeInTheDocument();
   expect(drillByMenuItem).not.toHaveAttribute('aria-disabled');
   const tooltipTrigger =
@@ -124,22 +123,29 @@ test('render disabled menu item for supported chart, no filters', async () => {
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {
-  renderMenu({ columns: [] });
+  renderMenu({});
   await expectDrillByDisabled('No dimensions available for drill by');
 });
 
 test('render menu item with submenu without searchbox', async () => {
   const slicedColumns = defaultColumns.slice(0, 9);
-  renderMenu({ columns: slicedColumns });
+  fetchMock.get(datasetEndpointMatcher, { result: { columns: slicedColumns } });
+  renderMenu({});
+  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
   await expectDrillByEnabled();
   slicedColumns.forEach(column => {
     expect(screen.getByText(column.column_name)).toBeInTheDocument();
   });
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  fetchMock.restore();
 });
 
 test('render menu item with submenu and searchbox', async () => {
+  fetchMock.get(datasetEndpointMatcher, {
+    result: { columns: defaultColumns },
+  });
   renderMenu({});
+  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
   await expectDrillByEnabled();
   defaultColumns.forEach(column => {
     expect(screen.getByText(column.column_name)).toBeInTheDocument();
@@ -163,4 +169,5 @@ test('render menu item with submenu and searchbox', async () => {
   expectedFilteredColumnNames.forEach(colName => {
     expect(screen.getByText(colName)).toBeInTheDocument();
   });
+  fetchMock.restore();
 });
