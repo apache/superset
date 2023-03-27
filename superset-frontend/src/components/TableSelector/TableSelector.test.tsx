@@ -21,7 +21,6 @@ import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { queryClient } from 'src/views/QueryProvider';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
 import TableSelector, { TableSelectorMultiple } from '.';
 
@@ -35,11 +34,6 @@ const createProps = (props = {}) => ({
   handleError: jest.fn(),
   ...props,
 });
-
-const getSchemaMockFunction = () =>
-  ({
-    result: ['schema_a', 'schema_b'],
-  } as any);
 
 const getTableMockFunction = () =>
   ({
