@@ -21,12 +21,20 @@ import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
 import { SUPPORTED_TIER1_CHARTS } from './utils';
 
 function setTopLevelTab(tabName: string) {
-  cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
+  cy.get("div#TABS-TOP div[role='tab']")
+    .should('exist')
+    .contains(tabName)
+    .click();
 }
 
 function clickCrossFilterMenu() {
-  cy.wait(500);
   cy.getBySel('cross-filter-menu-item').should('exist').click({ force: true });
+}
+
+function waitForCharts(tier: ChartSpec[]) {
+  tier.forEach(waitForChartLoad);
+  // wait for charts to resize
+  cy.wait(1000);
 }
 
 function toggleCrossFilters({
@@ -41,49 +49,54 @@ function toggleCrossFilters({
   if (config?.type === 'default' || !config?.type) {
     if (rightclick) {
       cy.get(`[data-test-viz-type='${config.emitterName}']`)
+        .should('exist')
         .contains(config.emitterValue)
         .rightclick();
       clickCrossFilterMenu();
-      tier.forEach(waitForChartLoad);
+      waitForCharts(tier);
     }
     if (!rightclick) {
       cy.get(`[data-test-viz-type='${config.emitterName}']`)
+        .should('exist')
         .contains(config.emitterValue)
         .click();
-      tier.forEach(waitForChartLoad);
+      waitForCharts(tier);
     }
   }
 
   if (config.type === 'canvas') {
     const { coordinates } = config;
     if (rightclick) {
-      cy.get(`[data-test-viz-type='${config.emitterName}'] canvas`).then(
-        $canvas => {
+      cy.get(`[data-test-viz-type='${config.emitterName}'] canvas`)
+        .should('exist')
+        .then($canvas => {
           cy.wrap($canvas)
             .scrollIntoView()
             .trigger('mousemove', coordinates[0], coordinates[1])
             .rightclick(coordinates[0], coordinates[1]);
           clickCrossFilterMenu();
-          tier.forEach(waitForChartLoad);
-        },
-      );
+          waitForCharts(tier);
+        });
     }
     if (!rightclick) {
-      cy.get(`[data-test-viz-type='${config.emitterName}'] canvas`).then(
-        $canvas => {
+      cy.get(`[data-test-viz-type='${config.emitterName}'] canvas`)
+        .should('exist')
+        .then($canvas => {
           cy.wrap($canvas)
             .scrollIntoView()
             .trigger('mousemove', coordinates[0], coordinates[1])
             .click(coordinates[0], coordinates[1]);
-          tier.forEach(waitForChartLoad);
-        },
-      );
+          waitForCharts(tier);
+        });
     }
   }
 }
 
 function verifyDisabledCrossFilters(targetViz: string) {
-  cy.get(`[data-test-viz-type='${targetViz}']`).scrollIntoView().rightclick();
+  cy.get(`[data-test-viz-type='${targetViz}']`)
+    .should('exist')
+    .scrollIntoView()
+    .rightclick();
   cy.getBySel('cross-filter-menu-item')
     .should('exist')
     .should('have.class', 'ant-dropdown-menu-item-disabled');
@@ -91,8 +104,8 @@ function verifyDisabledCrossFilters(targetViz: string) {
 
 function verifyAppliedCrossFilters(affectedChart: Record<string, string>) {
   cy.get(`[data-test-viz-type='${affectedChart.affectedViz}']`)
+    .should('exist')
     .within(() => {
-      cy.wait(500);
       cy.getBySel('applied-filter-count').should('exist').contains('1');
       cy.getBySel('applied-filter-count').trigger('mouseover');
     })
@@ -101,13 +114,14 @@ function verifyAppliedCrossFilters(affectedChart: Record<string, string>) {
         .should('exist')
         .contains('Applied cross-filters (1)');
       cy.getBySel('cross-filter-lens').should('exist');
-      cy.getBySel('cross-filter-name').contains(
-        affectedChart?.emitterTitle || affectedChart.emitterName,
-        {
+      cy.getBySel('cross-filter-name')
+        .should('exist')
+        .contains(affectedChart?.emitterTitle || affectedChart.emitterName, {
           matchCase: false,
-        },
-      );
-      cy.getBySel('cross-filter-value').contains(affectedChart.emitterValue);
+        });
+      cy.getBySel('cross-filter-value')
+        .should('exist')
+        .contains(affectedChart.emitterValue);
     });
 }
 
@@ -118,11 +132,14 @@ function verifyNotAppliedCrossFilters() {
 function verifyAppliedCrossFilterBar(config: Record<string, string>) {
   const { emitterName, emitterTitle, emitterLabel, emitterValue } = config;
   cy.getBySel('dashboard-filters-panel').should('exist');
-  cy.getBySel('filter-bar__expand-button').click();
+  cy.getBySel('filter-bar__expand-button')
+    .should('exist')
+    .click({ force: true });
   cy.getBySel('cross-filter-bar-collapse-title')
     .should('exist')
     .contains('Cross-filters');
   cy.getBySel('cross-filter-bar-title')
+    .should('exist')
     .find('span')
     .first()
     .should('exist')
@@ -130,8 +147,9 @@ function verifyAppliedCrossFilterBar(config: Record<string, string>) {
   cy.getBySel('cross-filter-bar-highlight').should('exist');
   cy.getBySel('cross-filter-bar-label').should('exist').contains(emitterLabel);
   cy.getBySel('cross-filter-bar-value').should('exist').contains(emitterValue);
-  cy.getBySel('filter-bar__collapse-button').click();
+  cy.getBySel('filter-bar__collapse-button').should('exist').click();
   cy.getBySel('dashboard-filters-panel').should('exist');
+  // wait for charts to resize
   cy.wait(1000);
 }
 
@@ -441,12 +459,14 @@ describe('Cross-filters Tier 1', () => {
     it('adds and removes cross-filter with click and rightclick', () => {
       // rightclick
       cy.get(`[data-test-viz-type='${emitterValues.emitterName}']`)
+        .should('exist')
         .scrollIntoView()
         .rightclick();
       clickCrossFilterMenu();
       verifyAppliedCrossFilterBar(emitterValues);
 
       cy.get(`[data-test-viz-type='${emitterValues.emitterName}']`)
+        .should('exist')
         .scrollIntoView()
         .rightclick();
       clickCrossFilterMenu();
@@ -454,11 +474,13 @@ describe('Cross-filters Tier 1', () => {
 
       // click
       cy.get(`[data-test-viz-type='${emitterValues.emitterName}']`)
+        .should('exist')
         .scrollIntoView()
         .click();
       verifyAppliedCrossFilterBar(emitterValues);
 
       cy.get(`[data-test-viz-type='${emitterValues.emitterName}']`)
+        .should('exist')
         .scrollIntoView()
         .click();
       verifyNotAppliedCrossFilterBar();
