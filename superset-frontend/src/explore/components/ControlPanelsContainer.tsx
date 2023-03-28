@@ -494,7 +494,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ) => {
         const isTemporalRange = (filter: Record<string, any>) =>
           filter.operator === Operators.TEMPORAL_RANGE;
-        if (isTemporalRange(valueToBeDeleted)) {
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
             return t(
