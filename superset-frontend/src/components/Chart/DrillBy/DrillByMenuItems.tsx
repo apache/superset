@@ -232,7 +232,6 @@ export const DrillByMenuItems = ({
         </div>
       </Menu.SubMenu>
       <DrillByModal
-        chartId={chartId}
         column={currentColumn}
         filters={filters}
         formData={formData}

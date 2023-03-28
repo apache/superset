@@ -28,7 +28,7 @@ import {
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { Slice } from 'src/types/Chart';
+import { DashboardLayout, RootState } from 'src/dashboard/types';
 
 interface ModalFooterProps {
   exploreChart: () => void;
@@ -52,7 +52,6 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 );
 
 interface DrillByModalProps {
-  chartId: number;
   column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
   formData: { [key: string]: any; viz_type: string };
@@ -61,7 +60,6 @@ interface DrillByModalProps {
 }
 
 export default function DrillByModal({
-  chartId,
   column,
   formData,
   filters,
@@ -72,11 +70,14 @@ export default function DrillByModal({
   console.log(formData);
   console.log(filters);
   const theme = useTheme();
-  const { slice_name: chartName } = useSelector(
-    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
+  const dashboardLayout = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout.present,
   );
-
+  const chartLayoutItem = Object.values(dashboardLayout).find(
+    layoutItem => layoutItem.meta?.chartId === formData.slice_id,
+  );
+  const chartName =
+    chartLayoutItem?.meta.sliceName || chartLayoutItem?.meta.sliceNameOverride;
   const exploreChart = () => {};
 
   return (
