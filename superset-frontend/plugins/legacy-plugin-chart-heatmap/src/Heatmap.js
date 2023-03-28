@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import 'd3-svg-legend';
 import d3tip from 'd3-tip';
 import {
+  getColumnLabel,
   getNumberFormatter,
   NumberFormats,
   getSequentialSchemeRegistry,
@@ -44,8 +45,8 @@ const propTypes = {
   height: PropTypes.number,
   bottomMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   colorScheme: PropTypes.string,
-  columnX: PropTypes.string,
-  columnY: PropTypes.string,
+  columnX: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
+  columnY: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   leftMargin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   metric: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   normalized: PropTypes.bool,
@@ -341,8 +342,8 @@ function Heatmap(element, props) {
       const metricLabel = typeof metric === 'object' ? metric.label : metric;
       if (m in matrix && n in matrix[m]) {
         const obj = matrix[m][n];
-        s += `<div><b>${columnX}: </b>${obj.x}<div>`;
-        s += `<div><b>${columnY}: </b>${obj.y}<div>`;
+        s += `<div><b>${getColumnLabel(columnX)}: </b>${obj.x}<div>`;
+        s += `<div><b>${getColumnLabel(columnY)}: </b>${obj.y}<div>`;
         s += `<div><b>${metricLabel}: </b>${valueFormatter(obj.v)}<div>`;
         if (showPercentage) {
           s += `<div><b>%: </b>${fp(normalized ? obj.rank : obj.perc)}<div>`;
