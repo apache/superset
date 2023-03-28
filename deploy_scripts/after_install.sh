@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Remove assets
 sudo rm -rf /home/ec2-user/liq_superset/superset/static/assets/*
 

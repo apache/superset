@@ -171,9 +171,9 @@ export default function Drivetime(props) {
           buttonStyle='solid'
           size='medium'
       >
-          <Radio.Button value='driving'>Drive</Radio.Button>
-          <Radio.Button value='walking'>Cycle</Radio.Button>
-          <Radio.Button value='cycling'>Walk</Radio.Button>
+          <Radio.Button value='driving'>Driving</Radio.Button>
+          <Radio.Button value='walking'>Cycling</Radio.Button>
+          <Radio.Button value='cycling'>Walking</Radio.Button>
         </Radio.Group>
       </Form.Item>
       <Form.Item label='Travel metric'>
