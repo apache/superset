@@ -94,7 +94,13 @@ export default function Drivetime(props) {
       + `polygons=true&access_token=${liqSecrets.mapbox.accessToken}`;
     fetch(url, requestOptions)
       .then(response => response.json())
-      .then(result => drawDrivetime(result));
+      .then(result => {
+        const geoj = {type: 'FeatureCollection', features: []};
+        const feat = {...result.features[0]};
+        feat.properties = {...feat.properties, id: 0};
+        geoj.features.push(feat);
+        drawDrivetime(geoj);
+      });
   }
 
   // Query lambda function to get constituent SA1s of drivetime and update map style to reflect

@@ -112,6 +112,7 @@ export default function Radius(props) {
 
   // Query lambda function to get constituent SA1s of radius and update map style to reflect
   const addSA1s = (radius) => {
+
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 

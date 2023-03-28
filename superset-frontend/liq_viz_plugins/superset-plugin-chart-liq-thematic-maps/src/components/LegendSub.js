@@ -115,6 +115,7 @@ export default function LegendSub(props) {
                       { layer: l, item: item.hide }
                     )
                   }
+                  style={{ fontSize: 12 }}
                 >
                   <List.Item.Meta 
                     avatar={item.avatar}

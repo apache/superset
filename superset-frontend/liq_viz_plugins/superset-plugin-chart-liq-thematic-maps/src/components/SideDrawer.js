@@ -23,9 +23,9 @@ export default function SideDrawer(props) {
       title={drawerTitle}
       placement='right'
       onClose={() => setDrawerOpen(false)}
-      visible={open}
+      open={open}
       getContainer={false}
-      style={{ position: 'absolute' }}
+      rootStyle={{ position: 'absolute' }}
       mask={false}
       width={dWidth}
     >

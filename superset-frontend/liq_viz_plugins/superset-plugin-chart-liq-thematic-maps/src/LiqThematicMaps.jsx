@@ -657,6 +657,13 @@ export default function LiqThematicMaps(props) {
     }
   }, [newRadiusColor])
 
+  // Hooks for appling drivetime style settings in real time
+  useEffect(() => {
+    if (map.current.isStyleLoaded() && 'drivetime' in map.current.getStyle().sources) {
+      map.current.setPaintProperty('drivetime', 'fill-color', newDrivetimeColor);
+    }
+  }, [newDrivetimeColor]);
+
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>
       <Sider 
