@@ -29,8 +29,8 @@ import { Menu } from 'src/components/Menu';
 import {
   BaseFormData,
   Behavior,
+  BinaryQueryObjectFilterClause,
   Column,
-  ContextMenuFilters,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
@@ -39,7 +39,10 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
@@ -49,13 +52,15 @@ const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
 const SEARCH_INPUT_HEIGHT = 48;
 
 export interface DrillByMenuItemsProps {
-  filters?: ContextMenuFilters['drillBy'];
+  filters?: BinaryQueryObjectFilterClause[];
   formData: BaseFormData & { [key: string]: any };
   contextMenuY?: number;
   submenuIndex?: number;
+  groupbyFieldName?: string;
 }
 export const DrillByMenuItems = ({
   filters,
+  groupbyFieldName,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
@@ -64,15 +69,13 @@ export const DrillByMenuItems = ({
   const theme = useTheme();
   const [searchInput, setSearchInput] = useState('');
   const [columns, setColumns] = useState<Column[]>([]);
-  const [isColumnsLoading, setIsColumnsLoading] = useState(true);
-  // const datasource = useSelector<RootState, Datasource>(() => {});
   useEffect(() => {
     // Input is displayed only when columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD
     // Reset search input in case Input gets removed
     setSearchInput('');
   }, [columns.length]);
 
-  const hasFilters = ensureIsArray(filters).length;
+  const hasDrillBy = ensureIsArray(filters).length && groupbyFieldName;
 
   const handlesDimensionContextMenu = useMemo(
     () =>
@@ -83,22 +86,28 @@ export const DrillByMenuItems = ({
   );
 
   useEffect(() => {
-    if (handlesDimensionContextMenu && hasFilters) {
-      setIsColumnsLoading(true);
+    if (handlesDimensionContextMenu && hasDrillBy) {
       const datasetId = formData.datasource.split('__')[0];
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then(({ json: { result } }) => {
           setColumns(
-            ensureIsArray(result.columns).filter(column => column.groupby),
+            ensureIsArray(result.columns)
+              .filter(column => column.groupby)
+              .filter(
+                column =>
+                  !ensureIsArray(formData[groupbyFieldName]).includes(
+                    column.column_name,
+                  ),
+              ),
           );
         })
-        .finally(() => {
-          setIsColumnsLoading(false);
+        .catch(() => {
+          supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
         });
     }
-  }, [formData.datasource, handlesDimensionContextMenu, hasFilters]);
+  }, [formData, groupbyFieldName, handlesDimensionContextMenu, hasDrillBy]);
 
   const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -134,13 +143,13 @@ export const DrillByMenuItems = ({
 
   if (!handlesDimensionContextMenu) {
     tooltip = t('Drill by is not yet supported for this chart type');
-  } else if (!hasFilters) {
+  } else if (!hasDrillBy) {
     tooltip = t('Drill by is not available for this data point');
   } else if (columns.length === 0) {
     tooltip = t('No dimensions available for drill by');
   }
 
-  if (!handlesDimensionContextMenu || !hasFilters || columns.length === 0) {
+  if (!handlesDimensionContextMenu || !hasDrillBy || columns.length === 0) {
     return (
       <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>

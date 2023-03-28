@@ -40,7 +40,11 @@ export interface ContextMenuFilters {
     isCurrentValueSelected?: boolean;
   };
   drillToDetail?: BinaryQueryObjectFilterClause[];
-  drillBy?: BinaryQueryObjectFilterClause[];
+  drillBy?: {
+    filters: BinaryQueryObjectFilterClause[];
+    groupbyFieldName: string;
+    adhocFilterFieldName?: string;
+  };
 }
 
 export enum AppSection {

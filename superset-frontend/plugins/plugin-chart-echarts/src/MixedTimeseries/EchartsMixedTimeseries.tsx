@@ -132,11 +132,10 @@ export default function EchartsMixedTimeseries({
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+        const isFirst = isFirstQuery(seriesIndex);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
-            eventParams.seriesName
-          ],
+          ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
         ];
         if (data && xAxis.type === AxisType.time) {
           drillToDetailFilters.push({
@@ -152,7 +151,7 @@ export default function EchartsMixedTimeseries({
         }
         [
           ...(data && xAxis.type === AxisType.category ? [xAxis.label] : []),
-          ...(isFirstQuery(seriesIndex) ? formData.groupby : formData.groupbyB),
+          ...(isFirst ? formData.groupby : formData.groupbyB),
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({
             col: dimension,
@@ -162,19 +161,22 @@ export default function EchartsMixedTimeseries({
           }),
         );
 
-        [
-          ...(isFirstQuery(seriesIndex) ? formData.groupby : formData.groupbyB),
-        ].forEach((dimension, i) =>
-          drillByFilters.push({
-            col: dimension,
-            op: '==',
-            val: values[i],
-          }),
+        [...(isFirst ? formData.groupby : formData.groupbyB)].forEach(
+          (dimension, i) =>
+            drillByFilters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+            }),
         );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(seriesName, seriesIndex),
-          drillBy: drillByFilters,
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
+            adhocFilterFieldName: isFirst ? 'adhoc_filters' : 'adhoc_filters_b',
+          },
         });
       }
     },

@@ -393,13 +393,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
             drillBy: cellPoint.isMetric
               ? undefined
-              : [
-                  {
-                    col: cellPoint.key,
-                    op: '==',
-                    val: cellPoint.value as string | number | boolean,
-                  },
-                ],
+              : {
+                  filters: [
+                    {
+                      col: cellPoint.key,
+                      op: '==',
+                      val: cellPoint.value as string | number | boolean,
+                    },
+                  ],
+                  groupbyFieldName: 'groupby',
+                },
           });
         }
       : undefined;

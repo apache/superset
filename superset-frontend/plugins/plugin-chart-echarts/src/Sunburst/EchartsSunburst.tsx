@@ -129,7 +129,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(treePathInfo),
-          drillBy: drillByFilters,
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'columns' },
         });
       }
     },

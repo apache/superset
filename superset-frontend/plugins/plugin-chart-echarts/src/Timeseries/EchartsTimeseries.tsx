@@ -242,7 +242,7 @@ export default function EchartsTimeseries({
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(seriesName),
-          drillBy: drillByFilters,
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
         });
       }
     },

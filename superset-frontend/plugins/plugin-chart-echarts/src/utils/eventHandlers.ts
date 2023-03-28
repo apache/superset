@@ -126,7 +126,7 @@ export const contextMenuEventHandler =
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
         crossFilter: getCrossFilterDataMask(e.name),
-        drillBy: drillFilters,
+        drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }
   };

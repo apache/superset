@@ -20,10 +20,10 @@
 import { SupersetClient } from '@superset-ui/core';
 import { cacheWrapper } from './cacheWrapper';
 
-const localCache = new Map<string, any>();
+export const supersetGetCache = new Map<string, any>();
 
 export const cachedSupersetGet = cacheWrapper(
   SupersetClient.get,
-  localCache,
+  supersetGetCache,
   ({ endpoint }) => endpoint || '',
 );

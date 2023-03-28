@@ -134,7 +134,7 @@ export default function EchartsTreemap({
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
             crossFilter: getCrossFilterDataMask(data, treePathInfo),
-            drillBy: drillByFilters,
+            drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }
       }
