@@ -16,38 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-  ReactElement,
-} from 'react';
-import { ContextMenuFilters } from '@superset-ui/core';
+import React from 'react';
+import { ContextMenuFilters, Column } from '@superset-ui/core';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
 
 export default function DrillByPane({
-  chartId,
-  dashboardId,
   filters,
   formData,
-}: // initialFilters,
-{
-  dashboardId: number;
-  chartId: number;
+  column,
+}: {
   filters: ContextMenuFilters['drillBy'];
-  formData: { [key: string]: any; viz_type: string };;
-  // initialFilters: BinaryQueryObjectFilterClause[];
+  formData: { [key: string]: any; viz_type: string };
+  column: Column | null;
 }) {
-  console.log("formData: ", formData) 
+  let updatedFormData = formData;
+  const chart = useSelector<RootState, any>(state => state.charts[0]);
+  if (filters) {
+    updatedFormData = {
+      ...formData,
+      adhoc_filters: [
+        ...formData.adhoc_filters,
+        {
+          clause: 'WHERE',
+          comparator: filters[0].val,
+          expressionType: 'SIMPLE',
+          operator: filters[0].op,
+          subject: filters[0].col,
+        },
+      ],
+      groupby: column ? [column.column_name] : [],
+    };
+  }
   return (
     <ChartContainer
-      // datasource={formData.datasource}
-      chartId={chartId}
-      dashboardId={dashboardId}
+      chartId={0}
+      width={500}
+      height={250}
+      formData={updatedFormData}
       vizType={formData.viz_type}
-      formData={formData}
+      chartStatus={chart?.chartStatus}
+      queriesResponse={chart?.queriesResponse}
+      triggerQuery={chart ? chart.triggerQuery : true}
+      force
     />
   );
 }
