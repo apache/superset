@@ -70,6 +70,10 @@ describe('getInitialState', () => {
   });
 
   describe('dedupe tables schema', () => {
+    afterEach(() => {
+      localStorage.clear();
+    });
+
     it('should dedupe the table schema', () => {
       localStorage.setItem(
         'redux',
