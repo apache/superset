@@ -100,8 +100,11 @@ export default function LiqThematicMaps(props) {
     longitude, // starting lng
     zoom, // starting zoom
     newRadiusColor, // color of radius in rgba
-    radiusThreshold, // intersection area threshold
+    radiusThreshold, // intersection area threshold for radius
     newRadiusLinkedCharts, // chart ids to update in dashboard when radius is updated
+    newDrivetimeColor, // color of drivetime in rgba
+    drivetimeThreshold, // intersection area threshold for drivetime
+    newDrivetimeLinkedCharts, // chart ids to update in dashboard when drivetime is updated
     customTileset // mapbox tileset URL for custom layer
   } = props;
 
@@ -185,7 +188,16 @@ export default function LiqThematicMaps(props) {
       key: '3',
       onClick: () => {
         setDrawerTitle('Drivetime Settings');
-        setDrawerContent(<Drivetime />);
+        setDrawerContent(
+          <Drivetime 
+            map={map}
+            groupCol={groupCol}
+            boundary={boundary}
+            drivetimeColor={newDrivetimeColor}
+            drivetimeThreshold={drivetimeThreshold}
+            drivetimeLinkedCharts={newDrivetimeLinkedCharts}
+          />
+        );
         setDrawerOpen(true);
       }
     }
