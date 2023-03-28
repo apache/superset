@@ -339,7 +339,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         name: (
           <WelcomeNav>
             <div className="switch">
-              <AntdSwitch checked={checked} />
+              <AntdSwitch checked={checked} onClick={handleToggle} />
               <span>{t('Thumbnails')}</span>
             </div>
           </WelcomeNav>
