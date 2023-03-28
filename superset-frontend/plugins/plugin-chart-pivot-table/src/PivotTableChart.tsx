@@ -478,7 +478,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         onContextMenu(e.clientX, e.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(dataPoint),
-          drillBy: {
+          drillBy: dataPoint && {
             filters: [
               {
                 col: Object.keys(dataPoint)[0],
