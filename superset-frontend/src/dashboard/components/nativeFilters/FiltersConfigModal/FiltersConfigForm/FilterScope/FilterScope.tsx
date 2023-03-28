@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useState } from 'react';
+import React, { FC, useCallback, useRef, useState } from 'react';
 import {
   NativeFilterScope,
   styled,
@@ -67,8 +67,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   const [initialFilterScope] = useState(
     filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
   );
-  const [lastSpecificScope, setLastSpecificScope] =
-    useState(initialFilterScope);
+  const lastSpecificScope = useRef(initialFilterScope);
   const [initialScopingType] = useState(
     isScopingAll(initialFilterScope, chartId)
       ? ScopingType.all
@@ -81,7 +80,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
       if (formScopingType === ScopingType.specific) {
-        setLastSpecificScope(formValues.scope);
+        lastSpecificScope.current = formValues.scope;
       }
       updateFormValues(formValues);
       setHasScopeBeenModified(true);
@@ -121,7 +120,7 @@ const FilterScope: FC<FilterScopeProps> = ({
             const scope =
               value === ScopingType.all
                 ? getDefaultScopeValue(chartId)
-                : lastSpecificScope;
+                : lastSpecificScope.current;
             updateFormValues({ scope });
             setHasScopeBeenModified(true);
             forceUpdate();
