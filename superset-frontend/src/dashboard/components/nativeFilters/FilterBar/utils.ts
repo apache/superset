@@ -68,8 +68,10 @@ export const getVerboseMapsForCharts = (
   datasources: DatasourcesState,
 ) =>
   Object.keys(charts).reduce((obj, chartId) => {
-    const chartDatasource = datasources[charts[chartId].form_data.datasource];
-    return Object.assign(obj, { [chartId]: chartDatasource.verbose_map });
+    const chartDatasource = datasources[charts[chartId]?.form_data?.datasource];
+    return Object.assign(obj, {
+      [chartId]: chartDatasource ? chartDatasource.verbose_map : {},
+    });
   }, {});
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
