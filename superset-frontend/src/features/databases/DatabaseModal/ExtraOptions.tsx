@@ -468,16 +468,20 @@ const ExtraOptions = ({
         } else {
           header = <h4>{extension?.title}</h4>;
         }
+        const ExtensionDescription = extension.description as FunctionComponent;
 
         return (
           <Collapse.Panel
             header={
               <div>
                 {header}
-                <p className="helper">{extension?.description}</p>
+                <p className="helper">
+                  <ExtensionDescription />
+                </p>
               </div>
             }
             key={extension?.title}
+            collapsible={extension.enabled() ? 'header' : 'disabled'}
           >
             <StyledInputContainer css={no_margin_bottom}>
               <Extension {...extensionProps} />

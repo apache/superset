@@ -84,11 +84,15 @@ interface DatabaseConnectionExtension {
   /**
    * Descriptive text displayed under the logo or title to provide user with more context about the configuration section
    */
-  description: string;
+  description: React.ComponentType<any>;
   /**
    * React component to render for display in the database connection configuration
    */
   component: React.ComponentType<any>;
+  /**
+   * Is the database extension enabled?
+   */
+  enabled: () => boolean;
 }
 
 export type Extensions = Partial<{
