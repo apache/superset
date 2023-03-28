@@ -57,6 +57,7 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
+  getTemporalColumns,
 } from '../utils';
 import { TIME_FILTER_LABELS } from '../constants';
 import {
