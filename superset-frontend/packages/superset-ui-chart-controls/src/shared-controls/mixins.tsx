@@ -73,9 +73,11 @@ export const datePickerInAdhocFilterMixin: Pick<
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     // skip initialValue if
     // 1) GENERIC_CHART_AXES is disabled
-    // 2) there was a time filter in adhoc filters
+    // 2) the time_range control is present (this is the case for legacy charts)
+    // 3) there was a time filter in adhoc filters
     if (
       !hasGenericChartAxes ||
+      state?.controls?.time_range?.value ||
       ensureIsArray(control.value).findIndex(
         (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
       ) > -1
