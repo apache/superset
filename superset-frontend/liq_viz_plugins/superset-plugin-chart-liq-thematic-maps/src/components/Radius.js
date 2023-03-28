@@ -160,7 +160,7 @@ export default function Radius(props) {
             OK
           </Button>
           {'     '}
-          <Button type='danger' onClick={removeRadius}>
+          <Button type='dashed' onClick={removeRadius}>
             Clear
           </Button>
       </Form.Item>

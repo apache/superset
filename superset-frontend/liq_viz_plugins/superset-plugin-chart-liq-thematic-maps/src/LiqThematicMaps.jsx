@@ -39,6 +39,7 @@ import SideDrawer from './components/SideDrawer.js';
 import Legend from './components/Legend.js';
 import Radius from './components/Radius.js';
 import DataDisplay from './components/DataDisplay.js';
+import Drivetime from './components/Drivetime.js';
 
 const { Content, Sider } = Layout;
 
@@ -182,7 +183,11 @@ export default function LiqThematicMaps(props) {
       icon: <CarOutlined />,
       label: <span>Drivetime</span>,
       key: '3',
-      onClick: () => {}
+      onClick: () => {
+        setDrawerTitle('Drivetime Settings');
+        setDrawerContent(<Drivetime />);
+        setDrawerOpen(true);
+      }
     }
   ];
 
