@@ -28,10 +28,15 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { DashboardLayout, RootState } from 'src/dashboard/types';
+import {
+  ChartsState,
+  DashboardLayout,
+  DatasourcesState,
+  RootState,
+} from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import FilterControls from './FilterControls/FilterControls';
-import { getFilterBarTestId } from './utils';
+import { getVerboseMapsForCharts, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import FilterConfigurationLink from './FilterConfigurationLink';
@@ -117,11 +122,18 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
+  const datasources = useSelector<RootState, DatasourcesState>(
+    state => state.datasources,
+  );
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const verboseMaps = getVerboseMapsForCharts(charts, datasources);
+
   const selectedCrossFilters = isCrossFiltersEnabled
     ? crossFiltersSelector({
         dataMask,
         chartConfiguration,
         dashboardLayout,
+        verboseMaps,
       })
     : [];
   const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
