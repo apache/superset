@@ -28,7 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
   createErrorHandler,

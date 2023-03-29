@@ -200,7 +200,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
-
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex

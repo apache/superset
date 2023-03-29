@@ -40,7 +40,6 @@ const createProps = (): DatabaseSelectorProps => ({
   handleError: jest.fn(),
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
-  onSchemasLoad: jest.fn(),
 });
 
 const fakeDatabaseApiResult = {
@@ -186,7 +185,7 @@ test('Refresh should work', async () => {
   expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
 
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
 
   userEvent.click(select);
@@ -215,7 +214,7 @@ test('Should database select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -237,7 +236,7 @@ test('should show empty state if there are no options', async () => {
     { useRedux: true },
   );
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   userEvent.click(select);
   const emptystate = await screen.findByText('empty');
@@ -249,7 +248,7 @@ test('Should schema select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -265,7 +264,7 @@ test('Sends the correct db when changing the database', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -285,7 +284,7 @@ test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);

@@ -28,8 +28,8 @@ import {
   styled,
   t,
   useTheme,
+  usePrevious,
 } from '@superset-ui/core';
-import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,

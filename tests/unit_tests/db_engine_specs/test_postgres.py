@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional, Type
 import pytest
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.engine.url import make_url
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -89,3 +90,68 @@ def test_get_column_spec(
     from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"), {}
+        )
+        is None
+    )
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-csearch_path=secret"},
+        )
+        == "secret"
+    )
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-c search_path = secret -cfoo=bar -c debug"},
+        )
+        == "secret"
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-csearch_path=secret,public"},
+        )
+    assert str(excinfo.value) == (
+        "Multiple schemas are configured in the search path, which means "
+        "Superset is unable to determine the schema of unqualified table "
+        "names and enforce permissions."
+    )
+
+
+def test_adjust_engine_params() -> None:
+    """
+    Test the ``adjust_engine_params`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    uri = make_url("postgres://user:password@host/catalog")
+
+    assert PostgresEngineSpec.adjust_engine_params(uri, {}, None, "secret") == (
+        uri,
+        {"options": "-csearch_path=secret"},
+    )
+
+    assert PostgresEngineSpec.adjust_engine_params(
+        uri,
+        {"foo": "bar", "options": "-csearch_path=default -c debug=1"},
+        None,
+        "secret",
+    ) == (
+        uri,
+        {"foo": "bar", "options": "-csearch_path=secret -cdebug=1"},
+    )

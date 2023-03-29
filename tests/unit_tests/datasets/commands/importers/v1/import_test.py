@@ -25,19 +25,26 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import current_app
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
+from superset.datasets.commands.exceptions import (
+    DatasetForbiddenDataURI,
+    ImportFailedError,
+)
 from superset.datasets.commands.importers.v1.utils import validate_data_uri
 
 
-def test_import_dataset(session: Session) -> None:
+def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
+    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -143,14 +150,17 @@ def test_import_dataset(session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(session: Session) -> None:
+def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
+    from superset import security_manager
     from superset.columns.models import Column as NewColumn
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -266,14 +276,17 @@ def test_import_dataset_duplicate_column(session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_column_extra_is_string(session: Session) -> None:
+def test_import_column_extra_is_string(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset when the column extra is a string.
     """
+    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -347,18 +360,25 @@ def test_import_column_extra_is_string(session: Session) -> None:
 
 
 @patch("superset.datasets.commands.importers.v1.utils.request")
-def test_import_column_allowed_data_url(request: Mock, session: Session) -> None:
+def test_import_column_allowed_data_url(
+    request: Mock,
+    mocker: MockFixture,
+    session: Session,
+) -> None:
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
     import io
 
+    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     request.urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -419,14 +439,20 @@ def test_import_column_allowed_data_url(request: Mock, session: Session) -> None
     ).fetchall()
 
 
-def test_import_dataset_managed_externally(session: Session) -> None:
+def test_import_dataset_managed_externally(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
     """
     Test importing a dataset that is managed externally.
     """
+    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import dataset_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member

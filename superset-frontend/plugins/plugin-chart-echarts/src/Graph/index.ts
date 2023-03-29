@@ -48,7 +48,11 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
           t('Transformable'),
         ],
         thumbnail,
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
       }),
       transformProps,
     });

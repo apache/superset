@@ -505,6 +505,43 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_draft_dashboard_without_roles_by_uuid(self):
+        """
+        Dashboard API: Test get draft dashboard without roles by uuid
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        assert not dashboard.published
+        assert dashboard.roles == []
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_cannot_get_draft_dashboard_with_roles_by_uuid(self):
+        """
+        Dashboard API: Test get dashboard by uuid
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], roles=[admin_role.id]
+        )
+        assert not dashboard.published
+        assert dashboard.roles == [admin_role]
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 403
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     def test_get_dashboards_changed_on(self):
         """
         Dashboard API: Test get dashboards changed on

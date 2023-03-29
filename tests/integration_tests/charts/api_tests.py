@@ -609,17 +609,21 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test update set new owner implicitly adds logged in owner
         """
-        gamma = self.get_user("gamma")
+        gamma = self.get_user("gamma_no_csv")
         alpha = self.get_user("alpha")
-        chart_id = self.insert_chart("title", [alpha.id], 1).id
-        chart_data = {"slice_name": "title1_changed", "owners": [gamma.id]}
-        self.login(username="alpha")
+        chart_id = self.insert_chart("title", [gamma.id], 1).id
+        chart_data = {
+            "slice_name": (new_name := "title1_changed"),
+            "owners": [alpha.id],
+        }
+        self.login(username=gamma.username)
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
-        self.assertIn(alpha, model.owners)
-        self.assertIn(gamma, model.owners)
+        assert model.slice_name == new_name
+        assert alpha in model.owners
+        assert gamma in model.owners
         db.session.delete(model)
         db.session.commit()
 

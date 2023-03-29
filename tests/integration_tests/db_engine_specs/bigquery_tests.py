@@ -93,6 +93,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (bigquery): Test fetch data
         """
+
         # Mock a google.cloud.bigquery.table.Row
         class Row(object):
             def __init__(self, value):
