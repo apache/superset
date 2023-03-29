@@ -38,9 +38,9 @@ cd ./liq_viz_plugins/superset-plugin-chart-liq-thematic-maps
 npm install --force
 npm run build-only # Prod
 
-rm -rf tmp_cache
+rm -rf /home/tmp_cache
 
 cd ../../
 
 echo "Running frontend"
-npm run dev
+npm run build
