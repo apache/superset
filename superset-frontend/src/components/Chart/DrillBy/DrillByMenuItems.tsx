@@ -44,6 +44,7 @@ import {
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 
@@ -69,6 +70,17 @@ export const DrillByMenuItems = ({
   const theme = useTheme();
   const [searchInput, setSearchInput] = useState('');
   const [columns, setColumns] = useState<Column[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [currentColumn, setCurrentColumn] = useState();
+
+  const openModal = useCallback(column => {
+    setCurrentColumn(column);
+    setShowModal(true);
+  }, []);
+  const closeModal = useCallback(() => {
+    setShowModal(false);
+  }, []);
+
   useEffect(() => {
     // Input is displayed only when columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD
     // Reset search input in case Input gets removed
@@ -161,61 +173,71 @@ export const DrillByMenuItems = ({
   }
 
   return (
-    <Menu.SubMenu
-      title={t('Drill by')}
-      key="drill-by-submenu"
-      popupClassName="chart-context-submenu"
-      popupOffset={[0, submenuYOffset]}
-      {...rest}
-    >
-      <div data-test="drill-by-submenu">
-        {columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD && (
-          <Input
-            prefix={
-              <Icons.Search
-                iconSize="l"
-                iconColor={theme.colors.grayscale.light1}
-              />
-            }
-            onChange={handleInput}
-            placeholder={t('Search columns')}
-            value={searchInput}
-            onClick={e => {
-              // prevent closing menu when clicking on input
-              e.nativeEvent.stopImmediatePropagation();
-            }}
-            allowClear
-            css={css`
-              width: auto;
-              max-width: 100%;
-              margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-              box-shadow: none;
-            `}
-          />
-        )}
-        {filteredColumns.length ? (
-          <div
-            css={css`
-              max-height: ${MAX_SUBMENU_HEIGHT}px;
-              overflow: auto;
-            `}
-          >
-            {filteredColumns.map(column => (
-              <MenuItemWithTruncation
-                key={`drill-by-item-${column.column_name}`}
-                tooltipText={column.verbose_name || column.column_name}
-                {...rest}
-              >
-                {column.verbose_name || column.column_name}
-              </MenuItemWithTruncation>
-            ))}
-          </div>
-        ) : (
-          <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
-            {t('No columns found')}
-          </Menu.Item>
-        )}
-      </div>
-    </Menu.SubMenu>
+    <>
+      <Menu.SubMenu
+        title={t('Drill by')}
+        key="drill-by-submenu"
+        popupClassName="chart-context-submenu"
+        popupOffset={[0, submenuYOffset]}
+        {...rest}
+      >
+        <div data-test="drill-by-submenu">
+          {columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD && (
+            <Input
+              prefix={
+                <Icons.Search
+                  iconSize="l"
+                  iconColor={theme.colors.grayscale.light1}
+                />
+              }
+              onChange={handleInput}
+              placeholder={t('Search columns')}
+              value={searchInput}
+              onClick={e => {
+                // prevent closing menu when clicking on input
+                e.nativeEvent.stopImmediatePropagation();
+              }}
+              allowClear
+              css={css`
+                width: auto;
+                max-width: 100%;
+                margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+                box-shadow: none;
+              `}
+            />
+          )}
+          {filteredColumns.length ? (
+            <div
+              css={css`
+                max-height: ${MAX_SUBMENU_HEIGHT}px;
+                overflow: auto;
+              `}
+            >
+              {filteredColumns.map(column => (
+                <MenuItemWithTruncation
+                  key={`drill-by-item-${column.column_name}`}
+                  tooltipText={column.verbose_name || column.column_name}
+                  {...rest}
+                  onClick={() => openModal(column)}
+                >
+                  {column.verbose_name || column.column_name}
+                </MenuItemWithTruncation>
+              ))}
+            </div>
+          ) : (
+            <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
+              {t('No columns found')}
+            </Menu.Item>
+          )}
+        </div>
+      </Menu.SubMenu>
+      <DrillByModal
+        column={currentColumn}
+        filters={filters}
+        formData={formData}
+        onHideModal={closeModal}
+        showModal={showModal}
+      />
+    </>
   );
 };
