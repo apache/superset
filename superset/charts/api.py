@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -111,6 +112,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
         "viz_types",
         "favorite_status",
+        "add_favorite",
+        "remove_favorite",
         "thumbnail",
         "screenshot",
         "cache_screenshot",
@@ -847,6 +850,94 @@ class ChartRestApi(BaseSupersetModelRestApi):
             for request_id in requested_ids
         ]
         return self.response(200, result=res)
+
+    @expose("/<pk>/favorites/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".add_favorite",
+        log_to_statsd=False,
+    )
+    def add_favorite(self, pk: int) -> Response:
+        """Marks the chart as favorite
+        ---
+        post:
+          description: >-
+            Marks the chart as favorite for the current user
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Chart added to favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart:
+            return self.response_404()
+
+        ChartDAO.add_favorite(chart)
+        return self.response(200, result="OK")
+
+    @expose("/<pk>/favorites/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".remove_favorite",
+        log_to_statsd=False,
+    )
+    def remove_favorite(self, pk: int) -> Response:
+        """Remove the chart from the user favorite list
+        ---
+        delete:
+          description: >-
+            Remove the chart from the user favorite list
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Chart removed from favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = ChartDAO.find_by_id(pk)
+        if not chart:
+            return self.response_404()
+
+        ChartDAO.remove_favorite(chart)
+        return self.response(200, result="OK")
 
     @expose("/import/", methods=["POST"])
     @protect()

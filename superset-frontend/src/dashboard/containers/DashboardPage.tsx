@@ -279,7 +279,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender) return <Loading />;
+  if (!readyToRender || !isDashboardHydrated.current) return <Loading />;
 
   return (
     <>

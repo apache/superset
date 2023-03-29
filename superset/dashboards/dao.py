@@ -307,3 +307,32 @@ class DashboardDAO(BaseDAO):
             )
             .all()
         ]
+
+    @staticmethod
+    def add_favorite(dashboard: Dashboard) -> None:
+        ids = DashboardDAO.favorited_ids([dashboard])
+        if dashboard.id not in ids:
+            db.session.add(
+                FavStar(
+                    class_name=FavStarClassName.DASHBOARD,
+                    obj_id=dashboard.id,
+                    user_id=get_user_id(),
+                    dttm=datetime.now(),
+                )
+            )
+            db.session.commit()
+
+    @staticmethod
+    def remove_favorite(dashboard: Dashboard) -> None:
+        fav = (
+            db.session.query(FavStar)
+            .filter(
+                FavStar.class_name == FavStarClassName.DASHBOARD,
+                FavStar.obj_id == dashboard.id,
+                FavStar.user_id == get_user_id(),
+            )
+            .one_or_none()
+        )
+        if fav:
+            db.session.delete(fav)
+            db.session.commit()
