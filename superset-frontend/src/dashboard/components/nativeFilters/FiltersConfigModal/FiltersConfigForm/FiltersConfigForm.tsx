@@ -60,6 +60,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from 'src/components/Radio';
 import Tabs from 'src/components/Tabs';
 import { Tooltip } from 'src/components/Tooltip';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Chart,
   ChartsState,
@@ -90,7 +91,6 @@ import getControlItemsMap from './getControlItemsMap';
 import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
-  cachedSupersetGet,
   hasTemporalColumns,
   mostUsedDataset,
   setNativeFilterFieldValues,
