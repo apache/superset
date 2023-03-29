@@ -20,6 +20,8 @@ import enum
 import json
 import logging
 import textwrap
+import backoff
+import sshtunnel
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
@@ -377,6 +379,7 @@ class Database(
             else None
         )
 
+    @backoff.on_exception(backoff.expo, sshtunnel.BaseSSHTunnelForwarderError, factor=10, base=2, max_tries=5)
     @contextmanager
     def get_sqla_engine_with_context(
         self,
