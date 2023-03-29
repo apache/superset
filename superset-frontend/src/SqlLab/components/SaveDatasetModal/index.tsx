@@ -99,10 +99,10 @@ const Styles = styled.div`
   }
   .sdm-input {
     margin-left: 45px;
-    width: 351px;
+    width: 401px;
   }
   .sdm-autocomplete {
-    width: 351px;
+    width: 401px;
     align-self: center;
   }
   .sdm-radio {
