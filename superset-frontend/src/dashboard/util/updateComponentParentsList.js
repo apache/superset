@@ -17,6 +17,7 @@
  * under the License.
  */
 import { logging } from '@superset-ui/core';
+import { cloneDeep } from 'lodash';
 
 export default function updateComponentParentsList({
   currentComponent,
@@ -33,10 +34,13 @@ export default function updateComponentParentsList({
       if (Array.isArray(currentComponent.children)) {
         currentComponent.children.forEach(childId => {
           if (layout[childId]) {
+            // We need to clone to avoid mutating Redux state
+            const child = cloneDeep(layout[childId]);
+            child.parents = parentsList;
             // eslint-disable-next-line no-param-reassign
-            layout[childId] = { ...layout[childId], parents: parentsList };
+            layout[childId] = child;
             updateComponentParentsList({
-              currentComponent: layout[childId],
+              currentComponent: child,
               layout,
             });
           } else {
