@@ -44,6 +44,7 @@ import { DrillDetailMenuItems } from './DrillDetail';
 import { getMenuAdjustedY } from './utils';
 import { updateDataMask } from '../../dataMask/actions';
 import { MenuItemTooltip } from './DisabledMenuItemTooltip';
+import { DrillByMenuItems } from './DrillBy/DrillByMenuItems';
 
 export interface ChartContextMenuProps {
   id: number;
@@ -84,16 +85,24 @@ const ChartContextMenu = (
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
 
+  const showDrillBy = isFeatureEnabled(FeatureFlag.DRILL_BY) && canExplore;
+
+  const showCrossFilters = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+  );
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
     ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
 
   let itemsCount = 0;
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (showCrossFilters) {
     itemsCount += 1;
   }
   if (showDrillToDetail) {
     itemsCount += 2; // Drill to detail always has 2 top-level menu items
+  }
+  if (showDrillBy) {
+    itemsCount += 1;
   }
   if (itemsCount === 0) {
     itemsCount = 1; // "No actions" appears if no actions in menu
@@ -180,6 +189,25 @@ const ChartContextMenu = (
         isContextMenu
         contextMenuY={clientY}
         onSelection={onSelection}
+        submenuIndex={showCrossFilters ? 2 : 1}
+      />,
+    );
+  }
+  if (showDrillBy) {
+    let submenuIndex = 0;
+    if (showCrossFilters) {
+      submenuIndex += 1;
+    }
+    if (showDrillToDetail) {
+      submenuIndex += 2;
+    }
+    menuItems.push(
+      <DrillByMenuItems
+        filters={filters?.drillBy?.filters}
+        groupbyFieldName={filters?.drillBy?.groupbyFieldName}
+        formData={formData}
+        contextMenuY={clientY}
+        submenuIndex={submenuIndex}
       />,
     );
   }

@@ -131,42 +131,52 @@ export default function EchartsMixedTimeseries({
         const { data, seriesName, seriesIndex } = eventParams;
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-        if (data) {
-          const values = [
-            ...(eventParams.name ? [eventParams.name] : []),
-            ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
-              eventParams.seriesName
-            ],
-          ];
-          if (xAxis.type === AxisType.time) {
-            drillToDetailFilters.push({
-              col:
-                xAxis.label === DTTM_ALIAS
-                  ? formData.granularitySqla
-                  : xAxis.label,
-              grain: formData.timeGrainSqla,
-              op: '==',
-              val: data[0],
-              formattedVal: xValueFormatter(data[0]),
-            });
-          }
-          [
-            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
-            ...(isFirstQuery(seriesIndex)
-              ? formData.groupby
-              : formData.groupbyB),
-          ].forEach((dimension, i) =>
-            drillToDetailFilters.push({
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+        const isFirst = isFirstQuery(seriesIndex);
+        const values = [
+          ...(eventParams.name ? [eventParams.name] : []),
+          ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
+        ];
+        if (data && xAxis.type === AxisType.time) {
+          drillToDetailFilters.push({
+            col:
+              xAxis.label === DTTM_ALIAS
+                ? formData.granularitySqla
+                : xAxis.label,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
+        }
+        [
+          ...(data && xAxis.type === AxisType.category ? [xAxis.label] : []),
+          ...(isFirst ? formData.groupby : formData.groupbyB),
+        ].forEach((dimension, i) =>
+          drillToDetailFilters.push({
+            col: dimension,
+            op: '==',
+            val: values[i],
+            formattedVal: String(values[i]),
+          }),
+        );
+
+        [...(isFirst ? formData.groupby : formData.groupbyB)].forEach(
+          (dimension, i) =>
+            drillByFilters.push({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: String(values[i]),
             }),
-          );
-        }
+        );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(seriesName, seriesIndex),
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
+            adhocFilterFieldName: isFirst ? 'adhoc_filters' : 'adhoc_filters_b',
+          },
         });
       }
     },

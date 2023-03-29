@@ -172,6 +172,7 @@ function WorldMap(element, props) {
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
     let drillToDetailFilters;
+    let drillByFilters;
     if (val) {
       drillToDetailFilters = [
         {
@@ -181,10 +182,18 @@ function WorldMap(element, props) {
           formattedVal: val,
         },
       ];
+      drillByFilters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+        },
+      ];
     }
     onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
       drillToDetail: drillToDetailFilters,
       crossFilter: getCrossFilterDataMask(source),
+      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
     });
   };
 

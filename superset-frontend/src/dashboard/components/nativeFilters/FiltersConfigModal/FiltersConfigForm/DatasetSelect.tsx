@@ -24,7 +24,8 @@ import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
-import { cachedSupersetGet, datasetToSelectOption } from './utils';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { datasetToSelectOption } from './utils';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string; value: number }) => void;
