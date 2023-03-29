@@ -109,8 +109,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
-  console.log("DASHBOARD INFO FROM REDUX",dashboardOwners)
-  console.log("SLICE IN SLICE HEADER",slice )
+  console.log('DASHBOARD INFO FROM REDUX', dashboardOwners);
+  console.log('SLICE IN SLICE HEADER', slice);
   const indicator = useMemo(
     () => ({
       value: crossFilterValue,
@@ -141,7 +141,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={chartStatus != 'failed' ? headerTooltip : 'You cannot explore the chart because it failed to load'}>
+        <Tooltip
+          title={
+            chartStatus !== 'failed'
+              ? headerTooltip
+              : 'You cannot explore the chart because it failed to load'
+          }
+        >
           <EditableTitle
             title={
               sliceName ||
@@ -153,7 +159,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            url={canExplore && chartStatus != 'failed' ? exploreUrl : undefined}
+            url={
+              canExplore && chartStatus !== 'failed' ? exploreUrl : undefined
+            }
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -204,7 +212,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            {!uiConfig.hideChartControls && chartStatus != "failed" && (
+            {!uiConfig.hideChartControls && chartStatus !== 'failed' && (
               <SliceHeaderControls
                 slice={slice}
                 isCached={isCached}

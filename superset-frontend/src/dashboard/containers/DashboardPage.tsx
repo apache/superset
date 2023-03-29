@@ -184,7 +184,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     migrationStateParam || FILTER_BOX_MIGRATION_STATES.NOOP,
   );
 
-  console.log("CHARTS ON DASHBOARD PAGE", charts)
+  console.log('CHARTS ON DASHBOARD PAGE', charts);
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -213,7 +213,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // should convert filter_box to filter component?
     const hasFilterBox =
       charts &&
-      charts.some((chart:any) => chart.form_data?.viz_type === 'filter_box');
+      charts.some((chart: any) => chart.form_data?.viz_type === 'filter_box');
     const canEdit = dashboard && canUserEditDashboard(dashboard, user);
 
     if (canEdit) {
@@ -301,7 +301,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             dispatch(getFilterSets(id));
           }
         }
-        console.log("CHART IN HYDRATE JS",charts)
+        console.log('CHART IN HYDRATE JS', charts);
         dispatch(
           hydrateDashboard({
             dashboard,

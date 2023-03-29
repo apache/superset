@@ -98,99 +98,99 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.is_admin():
-            return query
+        # if security_manager.is_admin():
+        #     return query
 
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        database_perms = security_manager.user_view_menu_names("database_access")
+        # datasource_perms = security_manager.user_view_menu_names("datasource_access")
+        # schema_perms = security_manager.user_view_menu_names("schema_access")
+        # database_perms = security_manager.user_view_menu_names("database_access")
 
-        is_rbac_disabled_filter = []
-        dashboard_has_roles = Dashboard.roles.any()
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            is_rbac_disabled_filter.append(~dashboard_has_roles)
-        database_ids = self.get_database_ids(database_perms)
-        datasource_perm_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.slices, isouter=True)
-            .filter(
-                and_(
-                    Dashboard.published.is_(True),
-                    *is_rbac_disabled_filter,
-                    or_(
-                        Slice.perm.in_(datasource_perms),
-                        Slice.schema_perm.in_(schema_perms),
-                        security_manager.can_access_all_datasources(),
-                    ),
-                )
-            )
-        )
+        # is_rbac_disabled_filter = []
+        # dashboard_has_roles = Dashboard.roles.any()
+        # if is_feature_enabled("DASHBOARD_RBAC"):
+        #     is_rbac_disabled_filter.append(~dashboard_has_roles)
+        # database_ids = self.get_database_ids(database_perms)
+        # datasource_perm_query = (
+        #     db.session.query(Dashboard.id)
+        #     .join(Dashboard.slices, isouter=True)
+        #     .filter(
+        #         and_(
+        #             Dashboard.published.is_(True),
+        #             *is_rbac_disabled_filter,
+        #             or_(
+        #                 Slice.perm.in_(datasource_perms),
+        #                 Slice.schema_perm.in_(schema_perms),
+        #                 security_manager.can_access_all_datasources(),
+        #             ),
+        #         )
+        #     )
+        # )
 
-        users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
-            and_(
-                FavStar.user_id == get_user_id(),
-                FavStar.class_name == "Dashboard",
-            )
-        )
-        owner_ids_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.owners)
-            .filter(security_manager.user_model.id == get_user_id())
-        )
+        # users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
+        #     and_(
+        #         FavStar.user_id == get_user_id(),
+        #         FavStar.class_name == "Dashboard",
+        #     )
+        # )
+        # owner_ids_query = (
+        #     db.session.query(Dashboard.id)
+        #     .join(Dashboard.owners)
+        #     .filter(security_manager.user_model.id == get_user_id())
+        # )
 
-        feature_flagged_filters = []
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            roles_based_query = (
-                db.session.query(Dashboard.id)
-                .join(Dashboard.roles)
-                .filter(
-                    and_(
-                        Dashboard.published.is_(True),
-                        dashboard_has_roles,
-                        Role.id.in_([x.id for x in security_manager.get_user_roles()]),
-                    ),
-                )
-            )
+        # feature_flagged_filters = []
+        # if is_feature_enabled("DASHBOARD_RBAC"):
+        #     roles_based_query = (
+        #         db.session.query(Dashboard.id)
+        #         .join(Dashboard.roles)
+        #         .filter(
+        #             and_(
+        #                 Dashboard.published.is_(True),
+        #                 dashboard_has_roles,
+        #                 Role.id.in_([x.id for x in security_manager.get_user_roles()]),
+        #             ),
+        #         )
+        #     )
 
-            feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
+        #     feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
 
-        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
-            g.user
-        ):
-            guest_user: GuestUser = g.user
-            embedded_dashboard_ids = [
-                r["id"]
-                for r in guest_user.resources
-                if r["type"] == GuestTokenResourceType.DASHBOARD.value
-            ]
+        # if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
+        #     g.user
+        # ):
+        #     guest_user: GuestUser = g.user
+        #     embedded_dashboard_ids = [
+        #         r["id"]
+        #         for r in guest_user.resources
+        #         if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        #     ]
 
-            # TODO (embedded): only use uuid filter once uuids are rolled out
-            condition = (
-                Dashboard.embedded.any(
-                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
-                )
-                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
-                else Dashboard.id.in_(embedded_dashboard_ids)
-            )
+        #     # TODO (embedded): only use uuid filter once uuids are rolled out
+        #     condition = (
+        #         Dashboard.embedded.any(
+        #             EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
+        #         )
+        #         if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
+        #         else Dashboard.id.in_(embedded_dashboard_ids)
+        #     )
 
-            feature_flagged_filters.append(condition)
+        #     feature_flagged_filters.append(condition)
 
-        query = query.filter(
-            or_(
-                Dashboard.id.in_(owner_ids_query),
-                Dashboard.id.in_(datasource_perm_query),
-                Dashboard.id.in_(users_favorite_dash_query),
-                *feature_flagged_filters,
-                # Dashboard.xyzfunc.in_(database_ids),
-                # (lambda x: x.in_(database_ids),Dashboard.xyzfunc)
-                # (Dashboard.xyzfunc.any(id) for id in database_ids)
-                # for id in Dashboard.xyzfunx
-                #     id.in_(database_ids)
-                (logger.info("value==",value) for value in ["9","12"] if value in database_ids)
-            )
-        )
+        # query = query.filter(
+        #     or_(
+        #         Dashboard.id.in_(owner_ids_query),
+        #         Dashboard.id.in_(datasource_perm_query),
+        #         Dashboard.id.in_(users_favorite_dash_query),
+        #         *feature_flagged_filters,
+        #         # Dashboard.xyzfunc.in_(database_ids),
+        #         # (lambda x: x.in_(database_ids),Dashboard.xyzfunc)
+        #         # (Dashboard.xyzfunc.any(id) for id in database_ids)
+        #         # for id in Dashboard.xyzfunx
+        #         #     id.in_(database_ids)
+        #         (logger.info("value==",value) for value in ["9","12"] if value in database_ids)
+        #     )
+        # )
 
-        logger.info("QUERYY==", query)
+        # logger.info("QUERYY==", query)
 
         return query
 

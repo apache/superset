@@ -18,7 +18,13 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
+import {
+  styled,
+  logging,
+  t,
+  ensureIsArray,
+  ErrorTypeEnum,
+} from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
@@ -66,6 +72,7 @@ const propTypes = {
   triggerQuery: PropTypes.bool,
   chartIsStale: PropTypes.bool,
   errorMessage: PropTypes.node,
+  slice: PropTypes.arrayOf(PropTypes.object),
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
@@ -128,6 +135,7 @@ class Chart extends React.PureComponent {
 
   componentDidMount() {
     // during migration, hold chart queries before user choose review or cancel
+    console.log('INSIDE ERROR MESSAGE', this.props);
     if (
       this.props.triggerQuery &&
       this.props.filterboxMigrationState !== 'UNDECIDED'
@@ -204,8 +212,13 @@ class Chart extends React.PureComponent {
       datasetsStatus,
     } = this.props;
     const error = queryResponse?.errors?.[0];
-    const message = chartAlert || queryResponse?.message;
-
+    const messageModified = `\n\nPlease reach out to the following CHART OWNERS for further assistance: \n\n${this.props.slice.owners.toString()}`;
+    const message =
+      (chartAlert || queryResponse?.message || '') +
+      (queryResponse?.errors?.[0].error_type ===
+      ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR
+        ? messageModified
+        : '');
     // if datasource is still loading, don't render JS errors
     if (
       chartAlert !== undefined &&

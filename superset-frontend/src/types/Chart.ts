@@ -38,7 +38,7 @@ export interface Chart {
   description: string | null;
   cache_timeout: number | null;
   thumbnail_url?: string;
-  owners: Owner[];
+  owners?: Owner[];
   datasource_name_text?: string;
   form_data: {
     viz_type: string;
@@ -57,7 +57,7 @@ export type Slice = {
   form_data?: QueryFormData;
   query_context?: object;
   is_managed_externally: boolean;
-  owners?: Owner[];
+  owners?: number;
 };
 
 export default Chart;

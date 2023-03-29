@@ -393,9 +393,9 @@ class Chart extends React.Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
 
-    console.log("PROPSS", this.props)
-    console.log("STATE", this.state)
-    console.log("CHART", chart)
+    console.log('PROPSS', this.props);
+    console.log('STATE', this.state);
+    console.log('CHART', chart);
 
     const isLoading = chartStatus === 'loading';
     const isDeactivatedViz =
@@ -412,9 +412,9 @@ class Chart extends React.Component {
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
     const initialValues = isFilterBox(id)
       ? getFilterValuesByFilterId({
-        activeFilters: filters,
-        filterId: id,
-      })
+          activeFilters: filters,
+          filterId: id,
+        })
       : {};
     return (
       <SliceContainer
@@ -516,6 +516,7 @@ class Chart extends React.Component {
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
+            slice={slice}
           />
         </div>
       </SliceContainer>
