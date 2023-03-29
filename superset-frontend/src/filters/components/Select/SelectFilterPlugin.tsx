@@ -129,7 +129,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         enableEmptyFilter && !inverseSelection && !values?.length;
 
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
-
       dispatchDataMask({
         type: 'filterState',
         __cache: filterState,
@@ -290,12 +289,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMask,
     data,
     groupby,
-    JSON.stringify(filterState),
+    JSON.stringify(filterState.value),
   ]);
-
-  useEffect(() => {
-    updateDataMask(filterState.value);
-  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     setDataMask(dataMask);
