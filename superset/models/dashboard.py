@@ -361,6 +361,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         for (dashboard_id,) in db.engine.execute(filter_query):
             cls(id=dashboard_id).clear_cache()
 
+    @property
+    def xyzfunc(self) -> Any:
+        results = []
+        for slc in self.slices:
+            logger.info("RESULTS==",str(slc))
+            # results.append(slc.datasource.database.id)
+        # return []
+
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
         cls, dashboard_ids: List[int]

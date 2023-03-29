@@ -28,6 +28,7 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.security.api import UserSchema
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -165,6 +166,7 @@ class ChartEntityResponseSchema(Schema):
     slice_url = fields.String(description=slice_url_description)
     certified_by = fields.String(description=certified_by_description)
     certification_details = fields.String(description=certification_details_description)
+    owners = fields.List(fields.String())
 
 
 class ChartPostSchema(Schema):

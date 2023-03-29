@@ -62,6 +62,7 @@ function mapStateToProps(
   const { colorScheme, colorNamespace, datasetsStatus } = dashboardState;
   const labelColors = dashboardInfo?.metadata?.label_colors || {};
   const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
+  console.log("SLICE ENTITIES", sliceEntities)
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     chart,

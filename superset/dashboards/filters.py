@@ -32,8 +32,8 @@ from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-
-
+import logging
+logger = logging.getLogger(__name__)
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Title or Slug")
     arg_name = "title_or_slug"
@@ -103,12 +103,13 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
+        database_perms = security_manager.user_view_menu_names("database_access")
 
         is_rbac_disabled_filter = []
         dashboard_has_roles = Dashboard.roles.any()
         if is_feature_enabled("DASHBOARD_RBAC"):
             is_rbac_disabled_filter.append(~dashboard_has_roles)
-
+        database_ids = self.get_database_ids(database_perms)
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
@@ -180,11 +181,29 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
                 *feature_flagged_filters,
+                # Dashboard.xyzfunc.in_(database_ids),
+                # (lambda x: x.in_(database_ids),Dashboard.xyzfunc)
+                # (Dashboard.xyzfunc.any(id) for id in database_ids)
+                # for id in Dashboard.xyzfunx
+                #     id.in_(database_ids)
+                (logger.info("value==",value) for value in Dashboard.xyzfunc if value in database_ids)
             )
         )
 
+        logger.info("QUERYY==", query)
+
         return query
 
+    def get_database_ids(self, database_permissions: Any) -> Any:
+        db_ids = []
+        if database_permissions is not None and len(database_permissions) > 0:
+            database_list = list(database_permissions)
+            for i in range(len(database_list)):
+                database_roles = database_list[i]
+                startIndex = database_roles.index("(id:") + 4
+                endIndex = database_roles.index(")", startIndex)
+                db_ids.append(database_roles[startIndex:endIndex])
+        return db_ids
 
 class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     """

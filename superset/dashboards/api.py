@@ -455,7 +455,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
+            logger.info("CHARTS===",str(charts))
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            # for chart in result:
+            #     chart['owners'] = "samra"
 
             if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
                 # dashboard metadata has dashboard-level label_colors,

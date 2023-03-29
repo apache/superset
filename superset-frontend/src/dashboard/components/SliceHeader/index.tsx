@@ -99,13 +99,18 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
+  const dashboardOwners = useSelector<RootState, string>(
+    ({ dashboardInfo }) => `${dashboardInfo}`,
+  );
+
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
-
+  console.log("DASHBOARD INFO FROM REDUX",dashboardOwners)
+  console.log("SLICE IN SLICE HEADER",slice )
   const indicator = useMemo(
     () => ({
       value: crossFilterValue,
@@ -136,7 +141,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={headerTooltip}>
+        <Tooltip title={chartStatus != 'failed' ? headerTooltip : 'You cannot explore the chart because it failed to load'}>
           <EditableTitle
             title={
               sliceName ||
@@ -148,7 +153,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            url={canExplore ? exploreUrl : undefined}
+            url={canExplore && chartStatus != 'failed' ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -199,7 +204,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            {!uiConfig.hideChartControls && (
+            {!uiConfig.hideChartControls && chartStatus != "failed" && (
               <SliceHeaderControls
                 slice={slice}
                 isCached={isCached}

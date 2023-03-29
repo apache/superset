@@ -90,6 +90,7 @@ export function fetchSlices(
         result = result.filter(slice => slice.viz_type !== 'filter_box');
       }
       result.forEach(slice => {
+        console.log("IN SLICE ENTITY CLONE",slice)
         let form_data = JSON.parse(slice.params);
         form_data = {
           ...form_data,
@@ -114,6 +115,7 @@ export function fetchSlices(
           description_markdown: slice.description_markeddown,
           viz_type: slice.viz_type,
           modified: slice.changed_on_delta_humanized,
+          owners: slice.owners,
           changed_on_humanized: slice.changed_on_delta_humanized,
           thumbnail_url: slice.thumbnail_url,
         };
