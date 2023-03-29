@@ -371,10 +371,9 @@ const timezoneHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
 `;
 
-const inputSpacer = (theme: SupersetTheme) =>
-  css`
-    margin-right: ${theme.gridUnit * 3}px;
-  `;
+const inputSpacer = (theme: SupersetTheme) => css`
+  margin-right: ${theme.gridUnit * 3}px;
+`;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
 

@@ -54,6 +54,7 @@ from superset.charts.filters import (
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
+    ChartTagFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -140,6 +141,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "query_context",
         "is_managed_externally",
     ]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        show_columns += ["tags.id", "tags.name", "tags.type"]
+
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
         "is_managed_externally",
@@ -182,6 +186,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "url",
         "viz_type",
     ]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [
         "changed_by.first_name",
@@ -210,6 +216,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
     ]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        search_columns += ["tags"]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
@@ -217,6 +225,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        search_filters["tags"] = [ChartTagFilter]
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
@@ -560,7 +570,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
@@ -683,7 +693,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         current_user = get_current_user()
-        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        url = get_url_path("Superset.slice", slice_id=chart.id)
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
@@ -872,6 +882,30 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing charts?
                       type: boolean
+                    ssh_tunnel_passwords:
+                      description: >-
+                        JSON map of passwords for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the password should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+                    ssh_tunnel_private_keys:
+                      description: >-
+                        JSON map of private_keys for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key"}`.
+                      type: string
+                    ssh_tunnel_private_key_passwords:
+                      description: >-
+                        JSON map of private_key_passwords for each ssh_tunnel associated
+                        to a featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
+                      type: string
           responses:
             200:
               description: Chart import result
@@ -908,9 +942,29 @@ class ChartRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        ssh_tunnel_passwords = (
+            json.loads(request.form["ssh_tunnel_passwords"])
+            if "ssh_tunnel_passwords" in request.form
+            else None
+        )
+        ssh_tunnel_private_keys = (
+            json.loads(request.form["ssh_tunnel_private_keys"])
+            if "ssh_tunnel_private_keys" in request.form
+            else None
+        )
+        ssh_tunnel_priv_key_passwords = (
+            json.loads(request.form["ssh_tunnel_private_key_passwords"])
+            if "ssh_tunnel_private_key_passwords" in request.form
+            else None
+        )
 
         command = ImportChartsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            ssh_tunnel_passwords=ssh_tunnel_passwords,
+            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
+            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
         return self.response(200, message="OK")

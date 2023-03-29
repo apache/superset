@@ -29,17 +29,18 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import {
+  legendSection,
+  richTooltipSection,
+  seriesOrderSection,
+  showValueSection,
+} from '../../../controls';
 
 import { OrientationType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import {
-  legendSection,
-  richTooltipSection,
-  showValueSection,
-} from '../../../controls';
 
 const {
   logAxis,
@@ -301,6 +302,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         ...showValueSection,
         [

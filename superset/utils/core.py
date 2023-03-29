@@ -221,7 +221,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
-    col: str
+    col: Column
     op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
@@ -655,10 +655,10 @@ def error_msg_from_exception(ex: Exception) -> str:
     """
     msg = ""
     if hasattr(ex, "message"):
-        if isinstance(ex.message, dict):  # type: ignore
+        if isinstance(ex.message, dict):
             msg = ex.message.get("message")  # type: ignore
-        elif ex.message:  # type: ignore
-            msg = ex.message  # type: ignore
+        elif ex.message:
+            msg = ex.message
     return msg or str(ex)
 
 
@@ -1089,7 +1089,7 @@ def simple_filter_to_adhoc(
         "expressionType": "SIMPLE",
         "comparator": filter_clause.get("val"),
         "operator": filter_clause["op"],
-        "subject": filter_clause["col"],
+        "subject": cast(str, filter_clause["col"]),
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
@@ -1700,7 +1700,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
 
 def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     """
-    Extract the columns that a list of metrics are referencing. Expcludes all
+    Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
 
     :param metrics: Ad-hoc metric
@@ -1778,14 +1778,13 @@ def indexed(
 
 
 def is_test() -> bool:
-    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
+    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))  # type: ignore
 
 
 def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-
     temporal_columns: Set[Any]
     if datasource.type == "query":
         temporal_columns = {

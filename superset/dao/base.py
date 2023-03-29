@@ -44,7 +44,7 @@ class BaseDAO:
     """
     base_filter: Optional[BaseFilter] = None
     """
-    Child classes can register base filtering to be aplied to all filter methods
+    Child classes can register base filtering to be applied to all filter methods
     """
     id_column_name = "id"
 
@@ -65,9 +65,9 @@ class BaseDAO:
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
-        id_filter = {cls.id_column_name: model_id}
+        id_column = getattr(cls.model_cls, cls.id_column_name)
         try:
-            return query.filter_by(**id_filter).one_or_none()
+            return query.filter(id_column == model_id).one_or_none()
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None

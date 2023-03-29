@@ -40,7 +40,6 @@ export interface QueryEditor {
   sql: string;
   remoteId: number | null;
   tableOptions: any[];
-  schemaOptions?: SchemaOption[];
   functionNames: string[];
   validationResult?: {
     completed: boolean;

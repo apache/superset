@@ -75,7 +75,6 @@ from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
-from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +171,6 @@ class BaseReportState:
                 "ExploreView.root",
                 user_friendly=user_friendly,
                 form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
-                standalone="true",
                 force=force,
                 **kwargs,
             )
@@ -181,16 +179,19 @@ class BaseReportState:
         dashboard_state = self._report_schedule.extra.get("dashboard")
         if dashboard_state:
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard_id),
+                dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
 
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
-            dashboard_id_or_slug=self._report_schedule.dashboard_id,
-            standalone=DashboardStandaloneMode.REPORT.value,
+            dashboard_id_or_slug=dashboard_id_or_slug,
             force=force,
             **kwargs,
         )

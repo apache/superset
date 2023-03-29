@@ -18,6 +18,7 @@ import calendar
 import logging
 import re
 from datetime import datetime, timedelta
+from functools import lru_cache
 from time import struct_time
 from typing import Dict, List, Optional, Tuple
 
@@ -45,8 +46,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.constants import NO_TIME_RANGE
-from superset.utils.memoized import memoized
+from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
 ParserElement.enablePackrat()
 
@@ -153,7 +153,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
-    This functiom supports both reading the keys separately (from `since` and
+    This function supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
 
         - ISO 8601
@@ -394,7 +394,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         )
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,

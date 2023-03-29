@@ -35,7 +35,6 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
-    create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
@@ -511,7 +510,6 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     ) -> None:
         if fetch_metadata:
             item.fetch_metadata()
-        create_table_permissions(item)
         if flash_message:
             flash(
                 _(

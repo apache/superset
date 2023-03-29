@@ -332,11 +332,12 @@ def test_is_readonly():
 
 def test_time_grain_denylist():
     config = app.config.copy()
-    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
+    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M", "SQLITE_NONEXISTENT_GRAIN"]
 
     with app.app_context():
         time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
         assert not "PT1M" in time_grain_functions
+        assert not "SQLITE_NONEXISTENT_GRAIN" in time_grain_functions
 
     app.config = config
 

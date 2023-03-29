@@ -149,6 +149,12 @@ openapi_spec_methods_override = {
 }
 
 
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
+
+
 class ChartEntityResponseSchema(Schema):
     """
     Schema for a chart object
@@ -835,7 +841,6 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
-
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',

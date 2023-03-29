@@ -18,4 +18,5 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           pr-message: |-
             Congrats on making your first PR and thank you for contributing to Superset! :tada: :heart:
-            We hope to see you in our [Slack](https://apache-superset.slack.com/) community too!
+
+            We hope to see you in our [Slack](https://apache-superset.slack.com/) community too! Not signed up? Use our [Slack App](http://bit.ly/join-superset-slack) to self-register.

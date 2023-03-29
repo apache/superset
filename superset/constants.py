@@ -37,6 +37,8 @@ NO_TIME_RANGE = "No filter"
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 
+LRU_CACHE_MAX_SIZE = 256
+
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
@@ -143,6 +145,11 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_ssh_tunnel": "write",
     "get_updated_since": "read",
     "stop_query": "read",
+    "schemas_access_for_file_upload": "read",
+    "get_objects": "read",
+    "get_all_objects": "read",
+    "add_objects": "write",
+    "delete_object": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
