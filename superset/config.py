@@ -1476,7 +1476,7 @@ SLACK_PROXY = None
 
 # victorops integration
 VO_URL = ""
-VO_VALIDATE_ROUTING_KEY = ""
+VO_VALIDATE_ROUTING_KEY = "https://api.victorops.com/api-public/v1/org/routing-keys"
 X_VO_API_ID = ""
 X_VO_API_KEY = ""
 
