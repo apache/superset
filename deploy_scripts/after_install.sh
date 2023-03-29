@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Remove assets
-sudo rm -rf /home/ec2-user/liq_superset/superset/static/assets/*
-
 # Remove default config and replace with existing config
 echo "Overriding settings"
 sudo rm -f /home/ec2-user/liq_superset/docker/pythonpath_dev/superset_config.py

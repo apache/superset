@@ -22,6 +22,7 @@ apt update
 apt install -y chromium
 
 export NODE_OPTIONS=--max_old_space_size=4096
+rm -rf /home/tmp_cache/
 mkdir -p /home/tmp_cache/
 export npm_config_cache=/home/tmp_cache
 
@@ -38,9 +39,9 @@ cd ./liq_viz_plugins/superset-plugin-chart-liq-thematic-maps
 npm install --force
 npm run build-only # Prod
 
-rm -rf /home/tmp_cache
-
 cd ../../
 
+npm cache clean -f
+
 echo "Running frontend"
-npm run build
+npm run dev
