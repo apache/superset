@@ -74,10 +74,9 @@ export default function DrillByModal({
     layoutItem => layoutItem.meta?.chartId === formData.slice_id,
   );
   const chartName =
-    chartLayoutItem?.meta.sliceName || chartLayoutItem?.meta.sliceNameOverride;
+    chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName;
   const exploreChart = () => {};
 
-  console.log(column, filters);
   return (
     <Modal
       css={css`
