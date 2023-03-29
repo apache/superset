@@ -20,15 +20,25 @@
 import React, { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
+import mockState from 'spec/fixtures/mockState';
 import DrillByModal from './DrillByModal';
 
-const { id: chartId, form_data: formData } = chartQueries[sliceId];
+const { form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
-
-const renderModal = async () => {
-  const store = getMockStoreWithNativeFilters();
+const drillByModalState = {
+  ...mockState,
+  dashboardLayout: {
+    CHART_ID: {
+      id: 'CHART_ID',
+      meta: {
+        chartId: formData.slice_id,
+        sliceName: chartName,
+      },
+    },
+  },
+};
+const renderModal = async (state?: object) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
     return (
@@ -37,9 +47,8 @@ const renderModal = async () => {
           Show modal
         </button>
         <DrillByModal
-          chartId={chartId}
           formData={formData}
-          initialFilters={[]}
+          filters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
         />
@@ -48,9 +57,10 @@ const renderModal = async () => {
   };
 
   render(<DrillByModalWrapper />, {
-    useRouter: true,
+    useDnd: true,
     useRedux: true,
-    store,
+    useRouter: true,
+    initialState: state,
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
@@ -58,7 +68,7 @@ const renderModal = async () => {
 };
 
 test('should render the title', async () => {
-  await renderModal();
+  await renderModal(drillByModalState);
   expect(screen.getByText(`Drill by: ${chartName}`)).toBeInTheDocument();
 });
 

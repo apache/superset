@@ -66,9 +66,6 @@ export default function DrillByModal({
   onHideModal,
   showModal,
 }: DrillByModalProps) {
-  console.log(column);
-  console.log(formData);
-  console.log(filters);
   const theme = useTheme();
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -80,6 +77,7 @@ export default function DrillByModal({
     chartLayoutItem?.meta.sliceName || chartLayoutItem?.meta.sliceNameOverride;
   const exploreChart = () => {};
 
+  console.log(column, filters);
   return (
     <Modal
       css={css`
