@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, EventHandler, FunctionComponent } from 'react';
+import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  DatabaseConnectionExtension,
+} from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -31,13 +35,6 @@ import {
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
 
-const extensionsRegistry = getExtensionsRegistry();
-export interface IExtensionProps {
-  db?: DatabaseObject | null;
-  registerPostProcess: Function;
-  unregisterPostProcess: Function;
-}
-
 const ExtraOptions = ({
   db,
   onInputChange,
@@ -45,8 +42,7 @@ const ExtraOptions = ({
   onEditorChange,
   onExtraInputChange,
   onExtraEditorChange,
-  registerPostProcess,
-  unregisterPostProcess,
+  extraExtension,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
@@ -54,8 +50,7 @@ const ExtraOptions = ({
   onEditorChange: Function;
   onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   onExtraEditorChange: Function;
-  registerPostProcess: Function;
-  unregisterPostProcess: Function;
+  extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
@@ -72,15 +67,9 @@ const ExtraOptions = ({
     return value;
   });
 
-  const extensionProps: IExtensionProps = {
-    db,
-    registerPostProcess,
-    unregisterPostProcess,
-  };
-
-  const dbConfigExtensions = extensionsRegistry.get(
-    'databaseconnection.extensions',
-  );
+  const ExtraExtensionComponent = extraExtension?.component;
+  const ExtraExtensionLogo = extraExtension?.logo;
+  const ExtensionDescription = extraExtension?.description;
 
   return (
     <Collapse
@@ -458,37 +447,32 @@ const ExtraOptions = ({
           </StyledInputContainer>
         )}
       </Collapse.Panel>
-      {dbConfigExtensions?.map?.(extension => {
-        const Extension =
-          extension.component as FunctionComponent<IExtensionProps>;
-        let header;
-        if (extension.logo) {
-          const ExtensionLogo = extension.logo as FunctionComponent;
-          header = <ExtensionLogo />;
-        } else {
-          header = <h4>{extension?.title}</h4>;
-        }
-        const ExtensionDescription = extension.description as FunctionComponent;
-
-        return (
-          <Collapse.Panel
-            header={
-              <div>
-                {header}
-                <p className="helper">
-                  <ExtensionDescription />
-                </p>
-              </div>
-            }
-            key={extension?.title}
-            collapsible={extension.enabled() ? 'header' : 'disabled'}
-          >
-            <StyledInputContainer css={no_margin_bottom}>
-              <Extension {...extensionProps} />
-            </StyledInputContainer>
-          </Collapse.Panel>
-        );
-      })}
+      {extraExtension && ExtraExtensionComponent && ExtensionDescription && (
+        <Collapse.Panel
+          header={
+            <div>
+              {ExtraExtensionLogo && <ExtraExtensionLogo />}
+              <span
+                css={(theme: SupersetTheme) => ({
+                  fontSize: theme.typography.sizes.l,
+                  fontWeight: theme.typography.weights.bold,
+                })}
+              >
+                {extraExtension?.title}
+              </span>
+              <p className="helper">
+                <ExtensionDescription />
+              </p>
+            </div>
+          }
+          key={extraExtension?.title}
+          collapsible={extraExtension.enabled?.() ? 'header' : 'disabled'}
+        >
+          <StyledInputContainer css={no_margin_bottom}>
+            <ExtraExtensionComponent db={db} onEdit={extraExtension.onEdit} />
+          </StyledInputContainer>
+        </Collapse.Panel>
+      )}
       <Collapse.Panel
         header={
           <div>

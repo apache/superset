@@ -72,7 +72,7 @@ type DatabaseDeleteRelatedExtensionProps = {
 /**
  * Interface for extensions to database connections
  */
-interface DatabaseConnectionExtension {
+export interface DatabaseConnectionExtension {
   /**
    * Display title text for the extension show when creating a database connection
    */
@@ -93,6 +93,17 @@ interface DatabaseConnectionExtension {
    * Is the database extension enabled?
    */
   enabled: () => boolean;
+
+  /**
+   * Callback for onsave
+   */
+  // TODO: we need to move the db types to superset-ui/core in order to import them correctly
+  onSave: (componentState: any, db: any) => void;
+
+  /**
+   * Used for parent to store data
+   */
+  onEdit?: (componentState: any) => void;
 }
 
 export type Extensions = Partial<{
@@ -109,7 +120,7 @@ export type Extensions = Partial<{
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
   'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
-  'databaseconnection.extensions': DatabaseConnectionExtension[];
+  'databaseconnection.extraOption': DatabaseConnectionExtension;
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
 }>;
 
