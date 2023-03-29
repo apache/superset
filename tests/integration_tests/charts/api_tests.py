@@ -1252,6 +1252,75 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
+    def test_add_favorite(self):
+        """
+        Dataset API: Test add chart to favorites
+        """
+        chart = Slice(
+            id=100,
+            datasource_id=1,
+            datasource_type="table",
+            datasource_name="tmp_perm_table",
+            slice_name="slice_name",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        uri = f"api/v1/chart/{chart.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        db.session.delete(chart)
+        db.session.commit()
+
+    def test_remove_favorite(self):
+        """
+        Dataset API: Test remove chart from favorites
+        """
+        chart = Slice(
+            id=100,
+            datasource_id=1,
+            datasource_type="table",
+            datasource_name="tmp_perm_table",
+            slice_name="slice_name",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        uri = f"api/v1/chart/{chart.id}/favorites/"
+        self.client.delete(uri)
+
+        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        db.session.delete(chart)
+        db.session.commit()
+
     def test_get_time_range(self):
         """
         Chart API: Test get actually time range from human readable string

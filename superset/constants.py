@@ -128,6 +128,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "test_connection": "read",
     "validate_parameters": "read",
     "favorite_status": "read",
+    "add_favorite": "read",
+    "remove_favorite": "read",
     "thumbnail": "read",
     "import_": "write",
     "refresh": "write",

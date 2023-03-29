@@ -141,6 +141,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
+        "add_favorite",
+        "remove_favorite",
         "get_charts",
         "get_datasets",
         "get_embedded",
@@ -1000,6 +1002,94 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             for request_id in requested_ids
         ]
         return self.response(200, result=res)
+
+    @expose("/<pk>/favorites/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".add_favorite",
+        log_to_statsd=False,
+    )
+    def add_favorite(self, pk: int) -> Response:
+        """Marks the dashboard as favorite
+        ---
+        post:
+          description: >-
+            Marks the dashboard as favorite for the current user
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard added to favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard = DashboardDAO.find_by_id(pk)
+        if not dashboard:
+            return self.response_404()
+
+        DashboardDAO.add_favorite(dashboard)
+        return self.response(200, result="OK")
+
+    @expose("/<pk>/favorites/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".remove_favorite",
+        log_to_statsd=False,
+    )
+    def remove_favorite(self, pk: int) -> Response:
+        """Remove the dashboard from the user favorite list
+        ---
+        delete:
+          description: >-
+            Remove the dashboard from the user favorite list
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard removed from favorites
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard = DashboardDAO.find_by_id(pk)
+        if not dashboard:
+            return self.response_404()
+
+        DashboardDAO.remove_favorite(dashboard)
+        return self.response(200, result="OK")
 
     @expose("/import/", methods=["POST"])
     @protect()
