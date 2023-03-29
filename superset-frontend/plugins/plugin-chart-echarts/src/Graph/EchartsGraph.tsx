@@ -137,11 +137,16 @@ export default function EchartsGraph({
         const data = (echartOptions as any).series[0].data as Data;
         const drillToDetailFilters =
           e.dataType === 'node' ? handleNodeClick(data) : handleEdgeClick(data);
+        const node = data.find(item => item.id === e.data.id);
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(
-            data.find(item => item.id === e.data.id),
-          ),
+          crossFilter: getCrossFilterDataMask(node),
+          drillBy: node && {
+            filters: [{ col: node.col, op: '==', val: node.name }],
+            groupbyFieldName:
+              node.col === formData.source ? 'source' : 'target',
+          },
         });
       }
     },
