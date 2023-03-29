@@ -183,8 +183,8 @@ export default function Drivetime(props) {
           buttonStyle='solid'
           size='medium'
         >
-          <Radio.Button value='distance'>Distance</Radio.Button>
-          <Radio.Button value='time'>Time</Radio.Button>
+          <Radio.Button value='distance'>Distance (m)</Radio.Button>
+          <Radio.Button value='time'>Time (min)</Radio.Button>
         </Radio.Group>
       </Form.Item>
       <Form.Item>

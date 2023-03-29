@@ -18,6 +18,6 @@ hooks:
       runas: ec2-user
   ApplicationStart:
     - location: deploy_scripts/app_start.sh
-      timeout: 500
+      timeout: 1200
       runas: ec2-user
 file_exists_behavior: OVERWRITE
