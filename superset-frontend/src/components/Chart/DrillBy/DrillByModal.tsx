@@ -29,7 +29,7 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
-import DrillByPane from './DrillByPane';
+import DrillByChart from './DrillByChart';
 
 interface ModalFooterProps {
   exploreChart: () => void;
@@ -105,7 +105,7 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      <DrillByPane
+      <DrillByChart
         column={column}
         filters={filters}
         formData={formData}

@@ -16,25 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { BinaryQueryObjectFilterClause, Column } from '@superset-ui/core';
+import React, { useMemo } from 'react';
+import {
+  BinaryQueryObjectFilterClause,
+  Column,
+  css,
+  useTheme,
+} from '@superset-ui/core';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 
-export default function DrillByPane({
-  column,
-  filters,
-  formData,
-  groupbyFieldName,
-}: {
+interface DrillByChartProps {
   column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
   formData: { [key: string]: any; viz_type: string };
   groupbyFieldName?: string;
-}) {
+}
+
+export default function DrillByChart({
+  column,
+  filters,
+  formData,
+  groupbyFieldName,
+}: DrillByChartProps) {
   let updatedFormData = formData;
-  const chart = useSelector<RootState, any>(state => state.charts[0]);
+  const theme = useTheme();
+  // chartId needs to be randomized because data doesn't change
+  // if id stay the same
+  const chartId = useMemo(() => Math.floor(Math.random() * 1000), []);
+  const chart = useSelector<RootState, any>(state => state.charts[chartId]);
   if (filters) {
     updatedFormData = {
       ...formData,
@@ -51,17 +62,27 @@ export default function DrillByPane({
       [groupbyFieldName || 'groupby']: column ? [column.column_name] : [],
     };
   }
+
   return (
-    <ChartContainer
-      chartId={0}
-      width={500}
-      height={250}
-      formData={updatedFormData}
-      vizType={formData.viz_type}
-      chartStatus={chart?.chartStatus}
-      queriesResponse={chart?.queriesResponse}
-      triggerQuery={chart ? chart.triggerQuery : true}
-      force
-    />
+    <div
+      css={css`
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `}
+    >
+      <ChartContainer
+        chartId={chartId}
+        chartStatus={chart ? chart.chartStatus : 'loading'}
+        force
+        formData={updatedFormData}
+        queriesResponse={chart?.queriesResponse}
+        triggerQuery={chart ? chart.triggerQuery : true}
+        vizType={formData.viz_type}
+        width={theme.gridUnit * 80}
+        height={theme.gridUnit * 80}
+      />
+    </div>
   );
 }
