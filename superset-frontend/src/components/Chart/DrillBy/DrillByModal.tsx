@@ -28,7 +28,7 @@ import {
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { DashboardLayout, RootState } from 'src/dashboard/types';;
+import { DashboardLayout, RootState } from 'src/dashboard/types';
 import DrillByPane from './DrillByPane';
 
 interface ModalFooterProps {
@@ -56,14 +56,16 @@ interface DrillByModalProps {
   column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
   formData: { [key: string]: any; viz_type: string };
+  groupbyFieldName?: string;
   onHideModal: () => void;
   showModal: boolean;
 }
 
 export default function DrillByModal({
   column,
-  formData,
   filters,
+  formData,
+  groupbyFieldName,
   onHideModal,
   showModal,
 }: DrillByModalProps) {
@@ -104,10 +106,10 @@ export default function DrillByModal({
       maskClosable={false}
     >
       <DrillByPane
-        formData={formData}
-        chartId={chartId}
-        dashboardId={5}
+        column={column}
         filters={filters}
+        formData={formData}
+        groupbyFieldName={groupbyFieldName}
       />
     </Modal>
   );

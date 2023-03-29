@@ -17,19 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import { ContextMenuFilters, Column } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause, Column } from '@superset-ui/core';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 
 export default function DrillByPane({
+  column,
   filters,
   formData,
-  column,
+  groupbyFieldName,
 }: {
-  filters: ContextMenuFilters['drillBy'];
+  column?: Column;
+  filters?: BinaryQueryObjectFilterClause[];
   formData: { [key: string]: any; viz_type: string };
-  column: Column | null;
+  groupbyFieldName?: string;
 }) {
   let updatedFormData = formData;
   const chart = useSelector<RootState, any>(state => state.charts[0]);
@@ -46,7 +48,7 @@ export default function DrillByPane({
           subject: filters[0].col,
         },
       ],
-      groupby: column ? [column.column_name] : [],
+      [groupbyFieldName || 'groupby']: column ? [column.column_name] : [],
     };
   }
   return (

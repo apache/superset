@@ -235,6 +235,7 @@ export const DrillByMenuItems = ({
         column={currentColumn}
         filters={filters}
         formData={formData}
+        groupbyFieldName={groupbyFieldName}
         onHideModal={closeModal}
         showModal={showModal}
       />
