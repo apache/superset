@@ -1787,6 +1787,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
+    @deprecated()
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
