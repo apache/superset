@@ -186,15 +186,16 @@ export default function getInitialState({
           },
         };
       });
-      sqlLab.tables.forEach(table => {
-        tables = {
-          ...tables,
+      tables = sqlLab.tables.reduce(
+        (merged, table) => ({
+          ...merged,
           [table.id]: {
             ...tables[table.id],
             ...table,
           },
-        };
-      });
+        }),
+        tables,
+      );
       Object.values(sqlLab.queries).forEach(query => {
         queries[query.id] = { ...query, inLocalStorage: true };
       });
