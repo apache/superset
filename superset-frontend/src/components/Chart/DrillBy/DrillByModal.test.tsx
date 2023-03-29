@@ -48,7 +48,6 @@ const renderModal = async (state?: object) => {
         </button>
         <DrillByModal
           formData={formData}
-          filters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
         />
