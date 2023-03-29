@@ -186,7 +186,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 # (Dashboard.xyzfunc.any(id) for id in database_ids)
                 # for id in Dashboard.xyzfunx
                 #     id.in_(database_ids)
-                (logger.info("value==",value) for value in Dashboard.xyzfunc if value in database_ids)
+                (logger.info("value==",value) for value in ["9","12"] if value in database_ids)
             )
         )
 
