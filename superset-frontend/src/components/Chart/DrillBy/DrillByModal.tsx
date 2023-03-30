@@ -45,7 +45,7 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
       buttonStyle="primary"
       buttonSize="small"
       onClick={closeModal}
-      data-test="close-drillby-modal"
+      data-test="close-drill-by-modal"
     >
       {t('Close')}
     </Button>

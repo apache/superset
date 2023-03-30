@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Behavior,
   BinaryQueryObjectFilterClause,
   Column,
   css,
-  useTheme,
+  SuperChart,
 } from '@superset-ui/core';
-import ChartContainer from 'src/components/Chart/ChartContainer';
-import { useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import Loading from 'src/components/Loading';
 
 interface DrillByChartProps {
   column?: Column;
@@ -41,48 +42,52 @@ export default function DrillByChart({
   groupbyFieldName,
 }: DrillByChartProps) {
   let updatedFormData = formData;
-  const theme = useTheme();
-  // chartId needs to be randomized because data doesn't change
-  // if id stay the same
-  const chartId = useMemo(() => Math.floor(Math.random() * 1000), []);
-  const chart = useSelector<RootState, any>(state => state.charts[chartId]);
+  let groupbyField: any = [];
+  const [chartDataResult, setChartDataResult] = useState();
+
+  if (groupbyFieldName && column) {
+    groupbyField = Array.isArray(formData[groupbyFieldName])
+      ? [column.column_name]
+      : column.column_name;
+  }
+
   if (filters) {
+    const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
     updatedFormData = {
       ...formData,
-      adhoc_filters: [
-        ...formData.adhoc_filters,
-        {
-          clause: 'WHERE',
-          comparator: filters[0].val,
-          expressionType: 'SIMPLE',
-          operator: filters[0].op,
-          subject: filters[0].col,
-        },
-      ],
-      [groupbyFieldName || 'groupby']: column ? [column.column_name] : [],
+      adhoc_filters: [...formData.adhoc_filters, ...adhocFilters],
+      [groupbyFieldName || 'groupby']: groupbyField,
     };
   }
+
+  useEffect(() => {
+    getChartDataRequest({
+      formData: updatedFormData,
+    }).then(({ json }) => {
+      setChartDataResult(json.result);
+    });
+  }, []);
 
   return (
     <div
       css={css`
+        width: 100%;
         height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       `}
     >
-      <ChartContainer
-        chartId={chartId}
-        chartStatus={chart ? chart.chartStatus : 'loading'}
-        force
-        formData={updatedFormData}
-        queriesResponse={chart?.queriesResponse}
-        triggerQuery={chart ? chart.triggerQuery : true}
-        vizType={formData.viz_type}
-        width={theme.gridUnit * 80}
-        height={theme.gridUnit * 80}
-      />
+      {chartDataResult ? (
+        <SuperChart
+          behaviors={[Behavior.INTERACTIVE_CHART]}
+          chartType={formData.viz_type}
+          enableNoResults
+          formData={updatedFormData}
+          height="100%"
+          queriesData={chartDataResult}
+          width="100%"
+        />
+      ) : (
+        <Loading />
+      )}
     </div>
   );
 }
