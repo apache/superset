@@ -205,7 +205,7 @@ These generally improve security, but administrators should be aware of their ex
 
 In particular, the default option of `force_https = True` may break Superset's Alerts & Reports
 if workers are configured to access charts via a `WEBDRIVER_BASEURL` beginning
-with 'http://`.  As long as a Superset deployment enforces https upstream, e.g., 
+with `http://`.  As long as a Superset deployment enforces https upstream, e.g., 
 through a loader balancer or application gateway, it should be acceptable to set this 
 option to `False`, like this:
 
