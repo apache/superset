@@ -184,8 +184,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     migrationStateParam || FILTER_BOX_MIGRATION_STATES.NOOP,
   );
 
-  console.log('CHARTS ON DASHBOARD PAGE', charts);
-
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
     // generated next time user opens a dashboard and the old one won't be reused
@@ -301,7 +299,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             dispatch(getFilterSets(id));
           }
         }
-        console.log('CHART IN HYDRATE JS', charts);
         dispatch(
           hydrateDashboard({
             dashboard,

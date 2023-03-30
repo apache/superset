@@ -99,9 +99,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
-  const dashboardOwners = useSelector<RootState, string>(
-    ({ dashboardInfo }) => `${dashboardInfo}`,
-  );
 
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -109,8 +106,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
-  console.log('DASHBOARD INFO FROM REDUX', dashboardOwners);
-  console.log('SLICE IN SLICE HEADER', slice);
   const indicator = useMemo(
     () => ({
       value: crossFilterValue,

@@ -392,11 +392,6 @@ class Chart extends React.Component {
     }
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
-
-    console.log('PROPSS', this.props);
-    console.log('STATE', this.state);
-    console.log('CHART', chart);
-
     const isLoading = chartStatus === 'loading';
     const isDeactivatedViz =
       slice.viz_type === 'filter_box' &&

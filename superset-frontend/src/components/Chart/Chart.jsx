@@ -135,7 +135,6 @@ class Chart extends React.PureComponent {
 
   componentDidMount() {
     // during migration, hold chart queries before user choose review or cancel
-    console.log('INSIDE ERROR MESSAGE', this.props);
     if (
       this.props.triggerQuery &&
       this.props.filterboxMigrationState !== 'UNDECIDED'

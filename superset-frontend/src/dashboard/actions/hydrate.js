@@ -76,9 +76,6 @@ export const hydrateDashboard =
     const editMode = reservedUrlParams.edit === 'true';
 
     let preselectFilters = {};
-    console.log('CHART IN HYDRATE JS 2', charts);
-    console.log('DASHBOARD IN HYDRATE JS 2', dashboardState);
-
     charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
@@ -132,7 +129,6 @@ export const hydrateDashboard =
 
     charts.forEach(slice => {
       const key = slice.slice_id;
-      console.log('SLICEEE IN FOR EACH', slice);
       const form_data = {
         ...slice.form_data,
         url_params: {
