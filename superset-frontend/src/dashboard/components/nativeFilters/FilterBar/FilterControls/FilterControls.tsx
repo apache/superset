@@ -48,10 +48,8 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import {
-  ChartsState,
   DashboardLayout,
   FilterBarOrientation,
-  DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
 import DropdownContainer, {
@@ -64,7 +62,7 @@ import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
-import { getVerboseMapsForCharts } from '../utils';
+import { GetChartsVerboseMaps } from '../utils';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -96,12 +94,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const datasources = useSelector<RootState, DatasourcesState>(
-    state => state.datasources,
-  );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
-
-  const verboseMaps = getVerboseMapsForCharts(charts, datasources);
+  const verboseMaps = GetChartsVerboseMaps();
 
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,

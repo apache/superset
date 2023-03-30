@@ -20,7 +20,8 @@
 import { areObjectsEqual } from 'src/reduxUtils';
 import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { ChartsState, DatasourcesState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
+import { useSelector } from 'react-redux';
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(
@@ -63,17 +64,21 @@ export const checkIsApplyDisabled = (
   );
 };
 
-export const getVerboseMapsForCharts = (
-  charts: ChartsState,
-  datasources: DatasourcesState,
-) =>
-  Object.keys(charts).reduce((chartsVerboseMaps, chartId) => {
-    const chartDatasource = datasources[charts[chartId]?.form_data?.datasource];
-    return {
-      ...chartsVerboseMaps,
-      [chartId]: chartDatasource ? chartDatasource.verbose_map : {},
-    };
-  }, {});
+export const GetChartsVerboseMaps = () =>
+  useSelector<RootState, { [chartId: string]: Record<string, string> }>(
+    state => {
+      const { charts, datasources } = state;
+
+      return Object.keys(state.charts).reduce((chartsVerboseMaps, chartId) => {
+        const chartDatasource =
+          datasources[charts[chartId]?.form_data?.datasource];
+        return {
+          ...chartsVerboseMaps,
+          [chartId]: chartDatasource ? chartDatasource.verbose_map : {},
+        };
+      }, {});
+    },
+  );
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
