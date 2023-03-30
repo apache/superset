@@ -142,6 +142,7 @@ const props: FiltersConfigModalProps = {
   createNewOnOpen: true,
   onSave: jest.fn(),
   onCancel: jest.fn(),
+  updateCascadeParentIds: jest.fn(),
 };
 
 beforeAll(() => {
