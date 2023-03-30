@@ -16,6 +16,7 @@
 # under the License.
 
 import importlib
+import logging
 from io import StringIO
 from typing import TYPE_CHECKING
 
@@ -55,7 +56,7 @@ class SSHManager:
             "ssh_username": ssh_tunnel.username,
             "remote_bind_address": (url.host, url.port),
             "local_bind_address": (self.local_bind_address,),
-            "debug_level": "ERROR",
+            "debug_level": logging.getLogger("flask_appbuilder").level,
         }
 
         if ssh_tunnel.password:
