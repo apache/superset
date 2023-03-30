@@ -83,16 +83,20 @@ const ConditionalFormattingControl = ({
     }
   }, [conditionalFormattingConfigs, onChange]);
 
-  // remove formatter when corresponding column is removed from controls
-  const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
-    columnOptions.some((option: any) => option?.value === config?.column),
-  );
-  if (
-    newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
-    removeIrrelevantConditions
-  ) {
-    setConditionalFormattingConfigs(newFormattingConfigs);
-  }
+  useEffect(() => {
+    if (removeIrrelevantConditions) {
+      // remove formatter when corresponding column is removed from controls
+      const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
+        columnOptions.some((option: any) => option?.value === config?.column),
+      );
+      if (
+        newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
+        removeIrrelevantConditions
+      ) {
+        setConditionalFormattingConfigs(newFormattingConfigs);
+      }
+    }
+  }, [conditionalFormattingConfigs, columnOptions, removeIrrelevantConditions]);
 
   const onDelete = (index: number) => {
     setConditionalFormattingConfigs(prevConfigs =>
