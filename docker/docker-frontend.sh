@@ -44,4 +44,4 @@ cd ../../
 npm cache clean -f
 
 echo "Running frontend"
-npm run dev
+npm run build-dev
