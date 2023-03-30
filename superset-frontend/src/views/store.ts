@@ -135,7 +135,14 @@ export function setupStore({
     reducer: {
       ...rootReducers,
     },
-    middleware: getDefaultMiddleware => getDefaultMiddleware().concat(logger),
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware({
+        serializableCheck: {
+          // Ignores AbortController instances
+          ignoredActionPaths: [/queryController/g],
+          ignoredPaths: [/queryController/g],
+        },
+      }).concat(logger),
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
     ...overrides,
   });
