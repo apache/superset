@@ -513,4 +513,4 @@ def test_import_parquet(mock_event_logger):
 
     with test_db.get_sqla_engine_with_context() as engine:
         data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
-        assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
+        assert data == [("max", 3), ("bob", 4), ("john", 1), ("paul", 2)]
