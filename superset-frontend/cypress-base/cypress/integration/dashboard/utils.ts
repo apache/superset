@@ -85,7 +85,7 @@ export const nativeFilterTooltips = {
   multipleSelect: 'Allow selecting multiple values',
   defaultValue:
     'Default value must be set when "Filter value is required" is checked',
-  preFilter: `Limits the number of selectable values in a filter. This is useful when you want to display a subset of the column's values either for performance reasons or business rules. Some examples include limiting the number of people displayed to a particular business unit or showing only people registered in the last 90 days.`,
+  preFilter: `Add filter clauses to control the filter's source query, though only in the context of the autocomplete i.e., these conditions do not impact how the filter is applied to the dashboard. This is useful when you want to improve the query's performance by only scanning a subset of the underlying data or limit the available values displayed in the filter.`,
 };
 
 export const nativeFilterOptions = [
