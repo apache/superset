@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, getColumnLabel } from '@superset-ui/core';
 import { WordCloudProps, WordCloudEncoding } from '../chart/WordCloud';
 import { LegacyWordCloudFormData } from './types';
 
@@ -34,16 +34,6 @@ function getMetricLabel(
   return metric.label;
 }
 
-function getSeriesLabel(
-  series: LegacyWordCloudFormData['series'],
-): string | undefined {
-  if (typeof series === 'string' || typeof series === 'undefined') {
-    return series;
-  }
-  
-  return series.label;
-}
-
 export default function transformProps(chartProps: ChartProps): WordCloudProps {
   const { width, height, formData, queriesData } = chartProps;
   const {
@@ -57,7 +47,7 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
   } = formData as LegacyWordCloudFormData;
 
   const metricLabel = getMetricLabel(metric);
-  const seriesLabel = getSeriesLabel(series) || '';
+  const seriesLabel = getColumnLabel(series);
 
   const encoding: Partial<WordCloudEncoding> = {
     color: {
