@@ -39,6 +39,7 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
+from superset.exceptions import SupersetException
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -344,12 +345,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
         if not can_upload:
-            raise Exception(
+            raise SupersetException(
                 "Could not import libraries needed to upload data to BigQuery."
             )
 
         if not table.schema:
-            raise Exception("The table schema must be defined")
+            raise SupersetException("The table schema must be defined")
 
         to_gbq_kwargs = {}
         with cls.get_engine(database) as engine:
@@ -381,7 +382,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         Return the BigQuery client associated with an engine.
         """
         if not dependencies_installed:
-            raise Exception("Could not import libraries needed to connect to BigQuery.")
+            raise SupersetException(
+                "Could not import libraries needed to connect to BigQuery."
+            )
 
         credentials = service_account.Credentials.from_service_account_info(
             engine.dialect.credentials_info
@@ -406,7 +409,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         extra = database.get_extra() or {}
         if not cls.get_allow_cost_estimate(extra):
-            raise Exception("Database does not support cost estimation")
+            raise SupersetException("Database does not support cost estimation")
 
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
