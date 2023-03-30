@@ -23,7 +23,7 @@ import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import crossFiltersSelector from './selectors';
 import VerticalCollapse from './VerticalCollapse';
-import { GetChartsVerboseMaps } from '../utils';
+import { useChartsVerboseMaps } from '../utils';
 
 const CrossFiltersVertical = () => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -35,7 +35,7 @@ const CrossFiltersVertical = () => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const verboseMaps = GetChartsVerboseMaps();
+  const verboseMaps = useChartsVerboseMaps();
   const selectedCrossFilters = crossFiltersSelector({
     dataMask,
     chartConfiguration,

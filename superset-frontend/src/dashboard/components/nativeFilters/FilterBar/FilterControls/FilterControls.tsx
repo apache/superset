@@ -62,7 +62,7 @@ import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
-import { GetChartsVerboseMaps } from '../utils';
+import { useChartsVerboseMaps } from '../utils';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -94,7 +94,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const verboseMaps = GetChartsVerboseMaps();
+  const verboseMaps = useChartsVerboseMaps();
 
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,

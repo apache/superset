@@ -64,7 +64,7 @@ export const checkIsApplyDisabled = (
   );
 };
 
-export const GetChartsVerboseMaps = () =>
+export const useChartsVerboseMaps = () =>
   useSelector<RootState, { [chartId: string]: Record<string, string> }>(
     state => {
       const { charts, datasources } = state;
