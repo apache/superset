@@ -143,9 +143,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-title" ref={headerRef}>
         <Tooltip
           title={
-            chartStatus !== 'failed'
-              ? headerTooltip
-              : 'You cannot explore the chart because it failed to load'
+            chartStatus !== 'failed' ? headerTooltip : 'Chart Failed to load'
           }
         >
           <EditableTitle
