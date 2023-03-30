@@ -31,6 +31,7 @@ import {
   QueryMode,
   smartDateFormatter,
   t,
+  validateNonEmpty,
 } from '@superset-ui/core';
 import {
   ColumnOption,
@@ -341,6 +342,27 @@ const config: ControlPanelConfig = {
               resetOnHide: false,
             },
           },
+        ],
+        [
+          {
+            name: 'granularity_sqla',
+            override: {
+              visibility: ({ controls }) =>
+                !!(hasGenericChartAxes && controls.include_time.value),
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
+        [
+          {
+            name: 'time_grain_sqla',
+            override: {
+              visibility: ({ controls }) =>
+                !!(hasGenericChartAxes && controls.include_time.value),
+            },
+          },
+        ],
+        [
           {
             name: 'order_desc',
             config: {
