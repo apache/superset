@@ -53,8 +53,9 @@ class SSHManager:
         params = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
-            "remote_bind_address": (url.host, url.port),  # bind_port, bind_host
+            "remote_bind_address": (url.host, url.port),
             "local_bind_address": (self.local_bind_address,),
+            "debug_level": "ERROR",
         }
 
         if ssh_tunnel.password:
