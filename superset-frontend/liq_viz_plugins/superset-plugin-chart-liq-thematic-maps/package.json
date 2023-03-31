@@ -34,7 +34,7 @@
     "zustand": "^4.3.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "^1.5.0",
+    "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^16.13.1"
   },

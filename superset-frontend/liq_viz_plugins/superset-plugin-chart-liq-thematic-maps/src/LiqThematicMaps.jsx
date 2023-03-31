@@ -45,6 +45,8 @@ const { Content, Sider } = Layout;
 
 const defaults = require('./defaultLayerStyles.js');
 
+const iconsCSS = require('./iconStyles.js');
+
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
 const iconExprs = defaults.iconExprs;
@@ -270,6 +272,7 @@ export default function LiqThematicMaps(props) {
     7. Defining the map on move event to update the current map postition in state
   */
   const initMap = () => {
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
