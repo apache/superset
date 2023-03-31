@@ -21,14 +21,10 @@ import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from '@superset-ui/core';
+import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
 import QueryProvider from 'src/views/QueryProvider';
-import {
-  initFeatureFlags,
-  isFeatureEnabled,
-  FeatureFlag,
-} from 'src/featureFlags';
+import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import logger from 'src/middleware/loggerMiddleware';

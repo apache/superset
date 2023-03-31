@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { Store } from 'redux';
 import * as SupersetUI from '@superset-ui/core';
@@ -36,7 +35,6 @@ import {
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import { FeatureFlag } from 'src/featureFlags';
 
 const defaultStore = getMockStoreWithFilters();
 function setup(store: Store = defaultStore) {
@@ -60,7 +58,9 @@ describe('FiltersBadge', () => {
     // shallow rendering in enzyme doesn't propagate contexts correctly,
     // so we have to mock the hook.
     // See https://medium.com/7shifts-engineering-blog/testing-usecontext-react-hook-with-enzyme-shallow-da062140fc83
-    jest.spyOn(SupersetUI, 'useTheme').mockImplementation(() => supersetTheme);
+    jest
+      .spyOn(SupersetUI, 'useTheme')
+      .mockImplementation(() => SupersetUI.supersetTheme);
   });
 
   describe('for dashboard filters', () => {
@@ -135,7 +135,7 @@ describe('FiltersBadge', () => {
     it('shows the indicator when filters have been applied', () => {
       // @ts-ignore
       global.featureFlags = {
-        [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+        [SupersetUI.FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
       };
       const store = getMockStoreWithNativeFilters();
       // start with basic dashboard state, dispatch an event to simulate query completion

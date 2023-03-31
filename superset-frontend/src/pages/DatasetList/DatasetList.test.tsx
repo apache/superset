@@ -23,6 +23,7 @@ import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import * as featureFlags from 'src/featureFlags';
@@ -255,10 +256,7 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock: jest.SpyInstance<
-    boolean,
-    [feature: featureFlags.FeatureFlag]
-  >;
+  let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
