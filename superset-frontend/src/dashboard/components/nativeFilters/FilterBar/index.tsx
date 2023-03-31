@@ -52,7 +52,7 @@ import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
 
-const HiddenFilerBar = styled.div`
+const HiddenFilterBar = styled.div`
   display: none;
 `;
 
@@ -282,7 +282,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     ) : null;
 
   return hidden ? (
-    <HiddenFilerBar>{filterBarComponent}</HiddenFilerBar>
+    <HiddenFilterBar>{filterBarComponent}</HiddenFilterBar>
   ) : (
     filterBarComponent
   );
