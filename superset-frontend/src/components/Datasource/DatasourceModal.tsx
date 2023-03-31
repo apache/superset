@@ -19,11 +19,11 @@
 import React, { FunctionComponent, useState, useRef } from 'react';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';

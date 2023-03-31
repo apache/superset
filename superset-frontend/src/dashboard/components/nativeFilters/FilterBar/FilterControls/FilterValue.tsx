@@ -24,22 +24,23 @@ import React, {
   useState,
 } from 'react';
 import {
-  QueryFormData,
-  SuperChart,
-  DataMask,
-  t,
-  styled,
-  Behavior,
   ChartDataResponseResult,
-  JsonObject,
+  Behavior,
+  DataMask,
+  FeatureFlag,
   getChartMetadataRegistry,
+  JsonObject,
+  QueryFormData,
+  styled,
+  SuperChart,
+  t,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';

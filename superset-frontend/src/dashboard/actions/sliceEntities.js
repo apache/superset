@@ -17,12 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t, SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 const FETCH_SLICES_PAGE_SIZE = 200;

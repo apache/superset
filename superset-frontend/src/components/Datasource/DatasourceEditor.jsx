@@ -24,7 +24,13 @@ import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
@@ -42,7 +48,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';

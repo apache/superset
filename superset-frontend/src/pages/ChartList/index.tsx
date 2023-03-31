@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
@@ -28,7 +29,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
