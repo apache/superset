@@ -1006,17 +1006,17 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def adhoc_column_to_sqla(
+    def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
-        force_check_expression: bool = False,
+        force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
         Turn an adhoc column into a sqlalchemy column.
 
         :param col: Adhoc column definition
-        :param force_check_expression: Should the expression be checked in the db.
+        :param force_type_check: Should the column type be checked in the db.
                This is needed to validate if a filter with an adhoc column
                is applicable.
         :param template_processor: template_processor instance
@@ -1041,7 +1041,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             is_dttm = col_in_metadata.is_temporal
         else:
             sqla_column = literal_column(expression)
-            if has_timegrain or force_check_expression:
+            if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
                     tbl, _ = self.get_from_clause(template_processor)
@@ -1464,7 +1464,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 try:
                     sqla_col = self.adhoc_column_to_sqla(
                         col=flt_col,
-                        force_check_expression=True,
+                        force_type_check=True,
                         template_processor=template_processor,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
