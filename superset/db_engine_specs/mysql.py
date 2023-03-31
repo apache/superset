@@ -76,51 +76,61 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             re.compile(r"^int.*", re.IGNORECASE),
             INTEGER(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^tinyint", re.IGNORECASE),
             TINYINT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^mediumint", re.IGNORECASE),
             MEDIUMINT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^decimal", re.IGNORECASE),
             DECIMAL(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^float", re.IGNORECASE),
             FLOAT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^double", re.IGNORECASE),
             DOUBLE(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^bit", re.IGNORECASE),
             BIT(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r"^tinytext", re.IGNORECASE),
             TINYTEXT(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^mediumtext", re.IGNORECASE),
             MEDIUMTEXT(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r"^longtext", re.IGNORECASE),
             LONGTEXT(),
             GenericDataType.STRING,
+            None,
         ),
     )
 

@@ -68,6 +68,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             re.compile(r"^smalldatetime.*", re.IGNORECASE),
             SMALLDATETIME(),
             GenericDataType.TEMPORAL,
+            None,
         ),
     )
 

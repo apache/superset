@@ -27,7 +27,7 @@ from sqlalchemy import types
 
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -261,24 +261,51 @@ def test_get_column_spec(
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_result",
+    "target_type,time_zone,expected_result",
     [
-        ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TimeStamp(3)", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TimeStamp With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TimeStamp(3) With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("Date", "DATE '2019-01-02'"),
-        ("Other", None),
+        ("TimeStamp", None, "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        (
+            "TimeStamp",
+            "Europe/Helsinki",
+            "TIMESTAMP '2019-01-02 03:04:05.678900' AT TIME ZONE 'Europe/Helsinki'",
+        ),
+        ("TimeStamp(3)", None, "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        (
+            "TimeStamp(3)",
+            "PST",
+            "TIMESTAMP '2019-01-02 03:04:05.678900' AT TIME ZONE 'PST'",
+        ),
+        ("TimeStamp With Time Zone", None, "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        (
+            "TimeStamp With Time Zone",
+            "EST",
+            "TIMESTAMP '2019-01-02 03:04:05.678900' AT TIME ZONE 'EST'",
+        ),
+        ("TimeStamp(3) With Time Zone", None, "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        (
+            "TimeStamp(3) With Time Zone",
+            "PST",
+            "TIMESTAMP '2019-01-02 03:04:05.678900' AT TIME ZONE 'PST'",
+        ),
+        ("Date", None, "DATE '2019-01-02'"),
+        ("Other", None, None),
     ],
 )
 def test_convert_dttm(
     target_type: str,
+    time_zone: Optional[str],
     expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
-    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
 
-    assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
+    assert_convert_dttm(
+        db_engine_spec=spec,
+        target_type=target_type,
+        expected_result=expected_result,
+        dttm=dttm,
+        time_zone=time_zone,
+    )
 
 
 def test_extra_table_metadata() -> None:

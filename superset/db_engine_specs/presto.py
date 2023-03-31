@@ -54,7 +54,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DEFAULT_TIMEZONE_FUNCTION
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -250,7 +250,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             re.compile(r"^timestamp.*", re.IGNORECASE),
             types.TIMESTAMP(),
             GenericDataType.TEMPORAL,
-            lambda time_expr, time_zone: f"{time_expr} AT TIME ZONE '{time_zone}'",
+            DEFAULT_TIMEZONE_FUNCTION,
         ),
         (
             re.compile(r"^interval.*", re.IGNORECASE),

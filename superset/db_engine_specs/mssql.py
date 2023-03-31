@@ -77,6 +77,7 @@ class MssqlEngineSpec(BaseEngineSpec):
             re.compile(r"^smalldatetime.*", re.IGNORECASE),
             SMALLDATETIME(),
             GenericDataType.TEMPORAL,
+            None,
         ),
     )
 

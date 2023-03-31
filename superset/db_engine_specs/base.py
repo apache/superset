@@ -91,6 +91,10 @@ ColumnTypeMapping = Tuple[
 logger = logging.getLogger()
 
 
+def DEFAULT_TIMEZONE_FUNCTION(time_expr: str, time_zone: str) -> str:
+    return f"{time_expr} AT TIME ZONE '{time_zone}'"
+
+
 class TimeGrain(NamedTuple):
     name: str  # TODO: redundant field, remove
     label: str

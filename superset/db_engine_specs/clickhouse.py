@@ -75,46 +75,55 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             re.compile(r".*Enum.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r".*Array.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r".*UUID.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r".*Bool.*", re.IGNORECASE),
             types.Boolean(),
             GenericDataType.BOOLEAN,
+            None,
         ),
         (
             re.compile(r".*String.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
+            None,
         ),
         (
             re.compile(r".*Int\d+.*", re.IGNORECASE),
             types.INTEGER(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r".*Decimal.*", re.IGNORECASE),
             types.DECIMAL(),
             GenericDataType.NUMERIC,
+            None,
         ),
         (
             re.compile(r".*DateTime.*", re.IGNORECASE),
             types.DateTime(),
             GenericDataType.TEMPORAL,
+            None,
         ),
         (
             re.compile(r".*Date.*", re.IGNORECASE),
             types.Date(),
             GenericDataType.TEMPORAL,
+            None,
         ),
     )
 

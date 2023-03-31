@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 
 from sqlalchemy import types
 
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TimeZoneFunction
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
@@ -33,7 +33,11 @@ def assert_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,
     db_extra: Optional[Dict[str, Any]] = None,
+    time_zone: Optional[str] = None,
 ) -> None:
+    column_spec = db_engine_spec.get_column_spec(target_type)
+    tz_func = column_spec.tz_func if column_spec else None
+
     for target in (
         target_type,
         target_type.upper(),
@@ -44,9 +48,11 @@ def assert_convert_dttm(
             result := db_engine_spec.convert_dttm(
                 target_type=target,
                 dttm=dttm,
+                time_zone=time_zone,
+                tz_func=tz_func,
                 db_extra=db_extra,
             )
-        ) == expected_result, result
+        ) == expected_result, f"result: {result}, expected: {expected_result}"
 
 
 def assert_column_spec(

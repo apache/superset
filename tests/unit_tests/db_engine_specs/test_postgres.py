@@ -32,26 +32,42 @@ from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
-    "target_type,expected_result",
+    "target_type,time_zone,expected_result",
     [
-        ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
+        ("date", None, "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
         (
-            "DateTime",
+            "datetime",
+            None,
             "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
         ),
         (
-            "TimeStamp",
+            "timestamp",
+            None,
             "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
         ),
-        ("UnknownType", None),
+        (
+            "timestamptz",
+            "Europe/Helsinki",
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US') AT TIME ZONE 'Europe/Helsinki'",
+        ),
+        ("unknowntype", None, None),
     ],
 )
 def test_convert_dttm(
-    target_type: str, expected_result: Optional[str], dttm: datetime
+    target_type: str,
+    time_zone: Optional[str],
+    expected_result: Optional[str],
+    dttm: datetime,
 ) -> None:
     from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    assert_convert_dttm(
+        db_engine_spec=spec,
+        target_type=target_type,
+        expected_result=expected_result,
+        dttm=dttm,
+        time_zone=time_zone,
+    )
 
 
 @pytest.mark.parametrize(
