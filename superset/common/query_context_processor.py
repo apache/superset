@@ -106,11 +106,13 @@ class QueryContextProcessor:
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
+        timeout = self.get_cache_timeout()
+        force_query = self._query_context.force or timeout == -1
         cache = QueryCacheManager.get(
-            cache_key,
-            CacheRegion.DATA,
-            self._query_context.force,
-            force_cached,
+            key=cache_key,
+            region=CacheRegion.DATA,
+            force_query=force_query,
+            force_cached=force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
@@ -139,7 +141,7 @@ class QueryContextProcessor:
                     key=cache_key,
                     query_result=query_result,
                     annotation_data=annotation_data,
-                    force_query=self._query_context.force,
+                    force_query=force_query,
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,

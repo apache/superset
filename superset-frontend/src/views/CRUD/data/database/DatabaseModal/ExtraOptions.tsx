@@ -238,7 +238,7 @@ const ExtraOptions = ({
           <div className="helper">
             {t(
               'Duration (in seconds) of the caching timeout for charts of this database.' +
-                ' A timeout of 0 indicates that the cache never expires.' +
+                ' A timeout of 0 indicates that the cache never expires, and -1 bypasses the cache.' +
                 ' Note this defaults to the global timeout if undefined.',
             )}
           </div>
