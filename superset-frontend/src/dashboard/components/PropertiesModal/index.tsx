@@ -26,6 +26,7 @@ import rison from 'rison';
 import {
   CategoricalColorNamespace,
   ensureIsArray,
+  FeatureFlag,
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
   styled,
@@ -40,7 +41,7 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import TagType from 'src/types/TagType';
 import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
 import { loadTags } from 'src/components/Tags/utils';

@@ -30,12 +30,19 @@ import {
   withRouter,
 } from 'react-router-dom';
 import moment from 'moment';
-import { css, QueryFormData, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  QueryFormData,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
