@@ -23,6 +23,7 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import DrillDetailPane from './DrillDetailPane';
+import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
@@ -114,7 +115,10 @@ const fetchWithData = () => {
   });
 };
 
-afterEach(fetchMock.restore);
+afterEach(() => {
+  fetchMock.restore();
+  supersetGetCache.clear();
+});
 
 test('should render', async () => {
   fetchWithNoData();
@@ -180,11 +184,7 @@ test('should render the metadata bar', async () => {
 
 test('should render an error message when fails to load the metadata', async () => {
   fetchWithNoData();
-  fetchMock.get(
-    DATASET_ENDPOINT,
-    { status: 'error', error: 'Some error' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(DATASET_ENDPOINT, { status: 400 }, { overwriteRoutes: true });
   setup();
   expect(
     await screen.findByText('There was an error loading the dataset metadata'),
