@@ -37,18 +37,20 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
-import _ from 'lodash';
+import { debounce, pickBy } from 'lodash';
+import Checkbox from 'src/components/Checkbox';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
 
 const propTypes = {
-  fetchAllSlices: PropTypes.func.isRequired,
+  fetchSlices: PropTypes.func.isRequired,
+  updateSlices: PropTypes.func.isRequired,
   isLoading: PropTypes.bool.isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   lastUpdated: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
-  userId: PropTypes.string.isRequired,
+  userId: PropTypes.number.isRequired,
   selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
   editMode: PropTypes.bool,
   dashboardId: PropTypes.number,
@@ -133,23 +135,33 @@ class SliceAdder extends React.Component {
       searchTerm: '',
       sortBy: DEFAULT_SORT_KEY,
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
+      showAccessibleCharts: false,
     };
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
+    this.userIdForFetch = this.userIdForFetch.bind(this);
+    this.onAccessibleCharts = this.onAccessibleCharts.bind(this);
+  }
+
+  userIdForFetch() {
+    return this.state.showAccessibleCharts ? undefined : this.props.userId;
   }
 
   componentDidMount() {
-    this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
+    this.slicesRequest = this.props.fetchSlices(this.userIdForFetch());
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextState = {};
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
-      nextState.filteredSlices = Object.values(nextProps.slices)
-        .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
-        .sort(SliceAdder.sortByComparator(this.state.sortBy));
+      nextState.filteredSlices = this.getFilteredSortedSlices(
+        nextProps.slices,
+        this.state.searchTerm,
+        this.state.sortBy,
+        this.state.showAccessibleCharts,
+      );
     }
 
     if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
@@ -162,13 +174,25 @@ class SliceAdder extends React.Component {
   }
 
   componentWillUnmount() {
+    // Clears the redux store keeping only selected items
+    const selectedSlices = pickBy(this.props.slices, value =>
+      this.state.selectedSliceIdsSet.has(value.slice_id),
+    );
+    this.props.updateSlices(selectedSlices);
     if (this.slicesRequest && this.slicesRequest.abort) {
       this.slicesRequest.abort();
     }
   }
 
-  getFilteredSortedSlices(searchTerm, sortBy) {
-    return Object.values(this.props.slices)
+  getFilteredSortedSlices(slices, searchTerm, sortBy, showAccessibleCharts) {
+    return Object.values(slices)
+      .filter(slice =>
+        showAccessibleCharts
+          ? true
+          : (slice.owners &&
+              slice.owners.find(owner => owner.id === this.props.userId)) ||
+            (slice.created_by && slice.created_by.id === this.props.userId),
+      )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
       .sort(SliceAdder.sortByComparator(sortBy));
   }
@@ -181,19 +205,23 @@ class SliceAdder extends React.Component {
     }
   }
 
-  handleChange = _.debounce(value => {
+  handleChange = debounce(value => {
     this.searchUpdated(value);
-
-    const { userId } = this.props;
-    this.slicesRequest = this.props.fetchFilteredSlices(userId, value);
+    this.slicesRequest = this.props.fetchSlices(
+      this.userIdForFetch(),
+      value,
+      this.state.sortBy,
+    );
   }, 300);
 
   searchUpdated(searchTerm) {
     this.setState(prevState => ({
       searchTerm,
       filteredSlices: this.getFilteredSortedSlices(
+        this.props.slices,
         searchTerm,
         prevState.sortBy,
+        prevState.showAccessibleCharts,
       ),
     }));
   }
@@ -202,13 +230,17 @@ class SliceAdder extends React.Component {
     this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(
+        this.props.slices,
         prevState.searchTerm,
         sortBy,
+        prevState.showAccessibleCharts,
       ),
     }));
-
-    const { userId } = this.props;
-    this.slicesRequest = this.props.fetchSortedSlices(userId, sortBy);
+    this.slicesRequest = this.props.fetchSlices(
+      this.userIdForFetch(),
+      this.state.searchTerm,
+      sortBy,
+    );
   }
 
   rowRenderer({ key, index, style }) {
@@ -258,6 +290,25 @@ class SliceAdder extends React.Component {
     );
   }
 
+  onAccessibleCharts(showAccessibleCharts) {
+    if (showAccessibleCharts) {
+      this.slicesRequest = this.props.fetchSlices(
+        undefined,
+        this.state.searchTerm,
+        this.state.sortBy,
+      );
+    }
+    this.setState(prevState => ({
+      showAccessibleCharts,
+      filteredSlices: this.getFilteredSortedSlices(
+        this.props.slices,
+        prevState.searchTerm,
+        prevState.sortBy,
+        showAccessibleCharts,
+      ),
+    }));
+  }
+
   render() {
     return (
       <div
@@ -285,7 +336,11 @@ class SliceAdder extends React.Component {
         </NewChartButtonContainer>
         <Controls>
           <Input
-            placeholder={t('Filter your charts')}
+            placeholder={
+              this.state.showAccessibleCharts
+                ? t('Filter charts')
+                : t('Filter your charts')
+            }
             className="search-input"
             onChange={ev => this.handleChange(ev.target.value)}
             onKeyPress={this.handleKeyPress}
@@ -302,6 +357,25 @@ class SliceAdder extends React.Component {
             placeholder={t('Sort by')}
           />
         </Controls>
+        <div
+          css={theme => css`
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
+              ${theme.gridUnit * 3}px;
+
+            & > span {
+              margin-right: ${theme.gridUnit}px;
+            }
+          `}
+        >
+          <Checkbox
+            onChange={this.onAccessibleCharts}
+            checked={this.state.showAccessibleCharts}
+          />
+          {t('Show other charts I have access to')}
+        </div>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
           <ChartList>
