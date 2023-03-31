@@ -944,7 +944,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="cache_timeout"
           label={t('Cache timeout')}
           description={t(
-            'The duration of time in seconds before the cache is invalidated',
+            'The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.',
           )}
           control={<TextControl controlId="cache_timeout" />}
         />
