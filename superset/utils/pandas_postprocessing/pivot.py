@@ -28,7 +28,7 @@ from superset.utils.pandas_postprocessing.utils import (
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments,too-many-locals
+def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],
