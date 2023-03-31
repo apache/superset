@@ -25,8 +25,9 @@ export const crossFiltersSelector = (props: {
   dataMask: DataMaskStateWithId;
   chartConfiguration: JsonObject;
   dashboardLayout: DashboardLayout;
+  verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
-  const { dataMask, chartConfiguration, dashboardLayout } = props;
+  const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
   const chartsIds = Object.keys(chartConfiguration);
 
   return chartsIds
@@ -36,6 +37,7 @@ export const crossFiltersSelector = (props: {
         id,
         dataMask[id],
         dashboardLayout,
+        verboseMaps[id],
       );
       if (
         isDefined(filterIndicator.column) &&

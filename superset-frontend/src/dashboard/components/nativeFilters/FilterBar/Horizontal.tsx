@@ -31,7 +31,7 @@ import Loading from 'src/components/Loading';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import FilterControls from './FilterControls/FilterControls';
-import { getFilterBarTestId } from './utils';
+import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import FilterConfigurationLink from './FilterConfigurationLink';
@@ -117,11 +117,14 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
+  const verboseMaps = useChartsVerboseMaps();
+
   const selectedCrossFilters = isCrossFiltersEnabled
     ? crossFiltersSelector({
         dataMask,
         chartConfiguration,
         dashboardLayout,
+        verboseMaps,
       })
     : [];
   const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
