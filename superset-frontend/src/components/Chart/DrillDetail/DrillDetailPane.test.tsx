@@ -17,13 +17,13 @@
  * under the License.
  */
 import React from 'react';
+import fetchMock from 'fetch-mock';
+import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
-import DrillDetailPane from './DrillDetailPane';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import DrillDetailPane from './DrillDetailPane';
 
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
