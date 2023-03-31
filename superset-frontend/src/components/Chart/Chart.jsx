@@ -120,7 +120,7 @@ const Styles = styled.div`
 `;
 
 const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.typography.families.sansSerif};
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -211,7 +211,9 @@ class Chart extends React.PureComponent {
       datasetsStatus,
     } = this.props;
     const error = queryResponse?.errors?.[0];
-    const messageModified = `\n\nYou do not have permission to the underlying datasource used. Please reach out to the chart owners: ${this.props.slice.owners.toString()}`;
+    const messageModified = `\n\nYou do not have permission to the underlying datasource used. Please reach out to the chart owners: ${this.props.slice.owners.toString()} for providing access to ${
+      this.props.slice.perm
+    }`;
     const message =
       (chartAlert || queryResponse?.message || '') +
       (queryResponse?.errors?.[0].error_type ===

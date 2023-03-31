@@ -167,6 +167,8 @@ class ChartEntityResponseSchema(Schema):
     certified_by = fields.String(description=certified_by_description)
     certification_details = fields.String(description=certification_details_description)
     owners = fields.List(fields.String())
+    perm = fields.String()
+    schema_perm = fields.String()
 
 
 class ChartPostSchema(Schema):
