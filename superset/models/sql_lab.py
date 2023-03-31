@@ -366,14 +366,13 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        tags = relationship(
-            "Tag",
-            secondary="tagged_object",
-            primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
-            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
-            "TaggedObject.object_type == 'saved_query')",
-        )
+    tags = relationship(
+        "Tag",
+        secondary="tagged_object",
+        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        "TaggedObject.object_type == 'saved_query')",
+    )
 
     export_parent = "database"
     export_fields = [
