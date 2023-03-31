@@ -65,3 +65,36 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
         125326326, session=session_with_data, skip_base_filter=True
     )
     assert result is None
+
+
+def test_add_favorite(session_with_data: Session) -> None:
+    from superset.charts.dao import ChartDAO
+
+    chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
+    if not chart:
+        return
+    assert len(ChartDAO.favorited_ids([chart])) == 0
+
+    ChartDAO.add_favorite(chart)
+    assert len(ChartDAO.favorited_ids([chart])) == 1
+
+    ChartDAO.add_favorite(chart)
+    assert len(ChartDAO.favorited_ids([chart])) == 1
+
+
+def test_remove_favorite(session_with_data: Session) -> None:
+    from superset.charts.dao import ChartDAO
+
+    chart = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
+    if not chart:
+        return
+    assert len(ChartDAO.favorited_ids([chart])) == 0
+
+    ChartDAO.add_favorite(chart)
+    assert len(ChartDAO.favorited_ids([chart])) == 1
+
+    ChartDAO.remove_favorite(chart)
+    assert len(ChartDAO.favorited_ids([chart])) == 0
+
+    ChartDAO.remove_favorite(chart)
+    assert len(ChartDAO.favorited_ids([chart])) == 0

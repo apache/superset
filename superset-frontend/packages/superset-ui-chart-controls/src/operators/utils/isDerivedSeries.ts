@@ -21,7 +21,7 @@ import {
   ensureIsArray,
   JsonObject,
   QueryFormData,
-  ComparisionType,
+  ComparisonType,
 } from '@superset-ui/core';
 import { isString } from 'lodash';
 
@@ -30,7 +30,7 @@ export const isDerivedSeries = (
   formData: QueryFormData,
 ): boolean => {
   const comparisonType = formData.comparison_type;
-  if (comparisonType !== ComparisionType.Values) {
+  if (comparisonType !== ComparisonType.Values) {
     return false;
   }
 

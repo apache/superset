@@ -86,7 +86,13 @@ def test_flat_should_drop_index_level():
     df = pd.DataFrame(index=index, columns=columns, data=1)
 
     # drop level by index
-    assert pp.flatten(df.copy(), drop_levels=(0, 1,)).equals(
+    assert pp.flatten(
+        df.copy(),
+        drop_levels=(
+            0,
+            1,
+        ),
+    ).equals(
         pd.DataFrame(
             {
                 "__timestamp": index,

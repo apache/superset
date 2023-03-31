@@ -59,10 +59,11 @@ const StyledHeader = styled.header`
         justify-content: center;
         /* must be exactly the height of the Antd navbar */
         min-height: 50px;
-        padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px ${
-    theme.gridUnit
-  }px ${theme.gridUnit * 4}px;
-        max-width: ${theme.gridUnit * 37}px;
+        padding: ${theme.gridUnit}px
+          ${theme.gridUnit * 2}px
+          ${theme.gridUnit}px
+          ${theme.gridUnit * 4}px;
+        max-width: ${theme.gridUnit * theme.brandIconMaxWidth}px;
         img {
           height: 100%;
           object-fit: contain;

@@ -19,6 +19,14 @@
 import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 
+export function dedupeTabHistory(tabHistory) {
+  return tabHistory.reduce(
+    (result, tabId) =>
+      result.slice(-1)[0] === tabId ? result : result.concat(tabId),
+    [],
+  );
+}
+
 export default function getInitialState({
   defaultDbId,
   common,
@@ -193,7 +201,7 @@ export default function getInitialState({
       offline: false,
       queries,
       queryEditors: Object.values(queryEditors),
-      tabHistory,
+      tabHistory: dedupeTabHistory(tabHistory),
       tables,
       queriesLastUpdate: Date.now(),
       user,

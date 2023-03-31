@@ -56,6 +56,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -735,6 +736,43 @@ class TestSqlLab(SupersetTestCase):
             "template_parameters": {"state": "CA"},
             "undefined_parameters": ["stat"],
         }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_authorized(self):
+        self.login("admin")
+
+        data = self.run_sql(
+            "SELECT name FROM {{ table }} LIMIT 10",
+            "3",
+            template_params=json.dumps({"table": "birth_names"}),
+        )
+        assert data["status"] == "success"
+
+    @pytest.mark.usefixtures("create_gamma_sqllab_no_data")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_forbidden(self):
+        self.login("gamma_sqllab_no_data")
+
+        data = self.run_sql(
+            "SELECT name FROM {{ table }} LIMIT 10",
+            "4",
+            template_params=json.dumps({"table": "birth_names"}),
+        )
+        assert data["errors"][0]["message"] == (
+            "The database referenced in this query was not found."
+            " Please contact an administrator for further assistance or try again."
+        )
+        assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")

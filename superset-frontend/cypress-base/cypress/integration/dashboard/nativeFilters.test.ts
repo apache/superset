@@ -119,7 +119,6 @@ function prepareDashboardFilters(
     });
     if (dashboardId) {
       const jsonMetadata = {
-        show_native_filters: true,
         native_filter_configuration: allFilters,
         timed_refresh_immune_slices: [],
         expanded_slices: {},
@@ -283,7 +282,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
     cy.getBySel('form-item-value').should('have.length', 0);
-    openMoreFilters();
+    openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
@@ -379,10 +378,13 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_12', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
+    openMoreFilters();
+    applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
+    cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.getBySel('slice-header').within(() => {
-      cy.get('.filter-counts').click();
+      cy.get('.filter-counts').trigger('mouseover');
     });
-    cy.get('.filterStatusPopover').contains('test_8').click();
+    cy.get('.filterStatusPopover').contains('test_9').click();
     cy.getBySel('dropdown-content').should('be.visible');
     cy.get('.ant-select-focused').should('be.visible');
   });
@@ -574,7 +576,7 @@ describe('Native filters', () => {
         },
       );
       saveNativeFilterSettings([SAMPLE_CHART]);
-      enterNativeFilterEditModal();
+      enterNativeFilterEditModal(false);
       cy.get(nativeFilters.modal.tabsList.removeTab)
         .should('be.visible')
         .first()
@@ -629,7 +631,8 @@ describe('Native filters', () => {
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
       cy.contains('Filter value is required').should('be.visible').click();
-      checkNativeFilterTooltip(0, nativeFilterTooltips.defaultValue);
+      checkNativeFilterTooltip(0, nativeFilterTooltips.preFilter);
+      checkNativeFilterTooltip(1, nativeFilterTooltips.defaultValue);
       cy.get(nativeFilters.modal.container).should('be.visible');
       valueNativeFilterOptions.forEach(el => {
         cy.contains(el);
@@ -638,10 +641,10 @@ describe('Native filters', () => {
       cy.get(
         nativeFilters.filterConfigurationSections.checkedCheckbox,
       ).contains('Can select multiple values');
-      checkNativeFilterTooltip(1, nativeFilterTooltips.required);
-      checkNativeFilterTooltip(2, nativeFilterTooltips.defaultToFirstItem);
-      checkNativeFilterTooltip(3, nativeFilterTooltips.searchAllFilterOptions);
-      checkNativeFilterTooltip(4, nativeFilterTooltips.inverseSelection);
+      checkNativeFilterTooltip(2, nativeFilterTooltips.required);
+      checkNativeFilterTooltip(3, nativeFilterTooltips.defaultToFirstItem);
+      checkNativeFilterTooltip(4, nativeFilterTooltips.searchAllFilterOptions);
+      checkNativeFilterTooltip(5, nativeFilterTooltips.inverseSelection);
       clickOnAddFilterInModal();
       cy.contains('Values are dependent on other filters').should('exist');
     });
@@ -810,7 +813,7 @@ describe('Native filters', () => {
         force: true,
       });
       cancelNativeFilterSettings();
-      enterNativeFilterEditModal();
+      enterNativeFilterEditModal(false);
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
       cy.contains('You have removed this filter.').should('be.visible');
     });
@@ -853,7 +856,7 @@ describe('Native filters', () => {
         .contains(testItems.filterDefaultValue)
         .should('be.visible');
       validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
-      enterNativeFilterEditModal();
+      enterNativeFilterEditModal(false);
       deleteNativeFilter();
       saveNativeFilterSettings([SAMPLE_CHART]);
       cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {

@@ -67,7 +67,6 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-
         db_extra = db_extra or {}
 
         sqla_type = cls.get_sqla_column_type(target_type)
@@ -99,7 +98,6 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
-
     time_groupby_inline = True
     time_secondary_columns = True
     allows_joins = False

@@ -89,7 +89,6 @@ def _create_energy_table() -> List[Slice]:
 
     slices = []
     for slice_data in _get_energy_slices():
-
         slice = _create_and_commit_energy_slice(
             table,
             slice_data["slice_title"],

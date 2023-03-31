@@ -18,7 +18,7 @@ import json
 import re
 from typing import Any, Dict, Union
 
-from marshmallow import fields, post_load, Schema
+from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
@@ -108,7 +108,6 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
 
 
 class DashboardJSONMetadataSchema(Schema):
-    show_native_filters = fields.Boolean()
     # native_filter_configuration is for dashboard-native filters
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
@@ -136,6 +135,23 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
 
+    @pre_load
+    def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
+        self,
+        data: Dict[str, Any],
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Remove ``show_native_filters`` from the JSON metadata.
+
+        This field was removed in https://github.com/apache/superset/pull/23228, but might
+        be present in old exports.
+        """
+        if "show_native_filters" in data:
+            del data["show_native_filters"]
+
+        return data
+
 
 class UserSchema(Schema):
     id = fields.Int()
@@ -147,6 +163,12 @@ class UserSchema(Schema):
 class RolesSchema(Schema):
     id = fields.Int()
     name = fields.String()
+
+
+class TagSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
 
 
 class DashboardGetResponseSchema(Schema):
@@ -168,6 +190,7 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
+    tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
 

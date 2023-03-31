@@ -27,9 +27,9 @@ import {
   DataMask,
   SLOW_DEBOUNCE,
   isNativeFilter,
+  usePrevious,
 } from '@superset-ui/core';
 import { useHistory } from 'react-router-dom';
-import { usePrevious } from 'src/hooks/usePrevious';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
@@ -111,7 +111,6 @@ const publishDataMask = debounce(
 
 export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
-  focusedFilterId,
   orientation = FilterBarOrientation.VERTICAL,
   verticalConfig,
 }) => {
@@ -254,7 +253,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       canEdit={canEdit}
       dashboardId={dashboardId}
       dataMaskSelected={dataMaskSelected}
-      focusedFilterId={focusedFilterId}
       filterValues={filterValues}
       isInitialized={isInitialized}
       onSelectionChange={handleFilterSelectionChange}
@@ -264,7 +262,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       actions={actions}
       canEdit={canEdit}
       dataMaskSelected={dataMaskSelected}
-      focusedFilterId={focusedFilterId}
       filtersOpen={verticalConfig.filtersOpen}
       filterValues={filterValues}
       isInitialized={isInitialized}

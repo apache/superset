@@ -20,13 +20,18 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasets.commands.create import CreateDatasetCommand
+from superset.datasets.commands.exceptions import (
+    DatasetInvalidError,
+    DatasetNotFoundError,
+)
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
@@ -322,10 +327,11 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.datasets.commands.importers.v1.utils.g")
+    @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_import_v1_dataset(self, mock_g):
+    def test_import_v1_dataset(self, sm_g, utils_g):
         """Test that we can import a dataset"""
-        mock_g.user = security_manager.find_user("admin")
+        admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -355,7 +361,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
 
         # user should be included as one of the owners
-        assert dataset.owners == [mock_g.user]
+        assert dataset.owners == [admin]
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -390,8 +396,11 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset.database)
         db.session.commit()
 
-    def test_import_v1_dataset_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_dataset_multiple(self, mock_g):
         """Test that a dataset can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -478,8 +487,11 @@ class TestImportDatasetsCommand(SupersetTestCase):
             }
         }
 
-    def test_import_v1_dataset_existing_database(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_dataset_existing_database(self, mock_g):
         """Test that a dataset can be imported when the database already exists"""
+        mock_g.user = security_manager.find_user("admin")
+
         # first import database...
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
@@ -519,3 +531,47 @@ def _get_table_from_list_by_name(name: str, tables: List[Any]):
         if table.table_name == name:
             return table
     raise ValueError(f"Table {name} does not exists in database")
+
+
+class TestCreateDatasetCommand(SupersetTestCase):
+    def test_database_not_found(self):
+        self.login(username="admin")
+        with self.assertRaises(DatasetInvalidError):
+            CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
+
+    @patch("superset.models.core.Database.get_table")
+    def test_get_table_from_database_error(self, get_table_mock):
+        self.login(username="admin")
+        get_table_mock.side_effect = SQLAlchemyError
+        with self.assertRaises(DatasetInvalidError):
+            CreateDatasetCommand(
+                {"table_name": "table", "database": get_example_database().id}
+            ).run()
+
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.utils.g")
+    def test_create_dataset_command(self, mock_g, mock_g2):
+        mock_g.user = security_manager.find_user("admin")
+        mock_g2.user = mock_g.user
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
+            engine.execute(
+                "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
+            )
+
+        table = CreateDatasetCommand(
+            {"table_name": "test_create_dataset_command", "database": examples_db.id}
+        ).run()
+        fetched_table = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="test_create_dataset_command")
+            .one()
+        )
+        self.assertEqual(table, fetched_table)
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
+
+        db.session.delete(table)
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE test_create_dataset_command")
+        db.session.commit()

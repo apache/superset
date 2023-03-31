@@ -43,10 +43,7 @@ import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
@@ -58,8 +55,9 @@ import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+import { CLAUSES, EXPRESSION_TYPES } from '../FilterControl/types';
 
-const { confirm } = Modal;
+const { warning } = Modal;
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -78,14 +76,10 @@ export interface DndFilterSelectProps
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
-  confirmDeletion?: {
-    triggerCondition: (
-      valueToBeDeleted: OptionValueType,
-      values: OptionValueType[],
-    ) => boolean;
-    confirmationTitle: string;
-    confirmationText: string;
-  };
+  canDelete?: (
+    valueToBeDeleted: OptionValueType,
+    values: OptionValueType[],
+  ) => true | string;
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
@@ -93,7 +87,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     datasource,
     onChange = () => {},
     name: controlName,
-    confirmDeletion,
+    canDelete,
   } = props;
 
   const propsValues = Array.from(props.value ?? []);
@@ -217,23 +211,14 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onClickClose = useCallback(
     (index: number) => {
-      if (confirmDeletion) {
-        const { confirmationText, confirmationTitle, triggerCondition } =
-          confirmDeletion;
-        if (triggerCondition(values[index], values)) {
-          confirm({
-            title: confirmationTitle,
-            content: confirmationText,
-            onOk() {
-              removeValue(index);
-            },
-          });
-          return;
-        }
+      const result = canDelete?.(values[index], values);
+      if (typeof result === 'string') {
+        warning({ title: t('Warning'), content: result });
+        return;
       }
       removeValue(index);
     },
-    [confirmDeletion, removeValue, values],
+    [canDelete, removeValue, values],
   );
 
   const onShiftOptions = useCallback(

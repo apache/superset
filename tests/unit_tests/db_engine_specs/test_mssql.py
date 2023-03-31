@@ -20,7 +20,7 @@ from textwrap import dedent
 from typing import Any, Dict, Optional, Type
 
 import pytest
-from sqlalchemy import column, table, types
+from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
@@ -50,7 +50,7 @@ from tests.unit_tests.fixtures.common import dttm
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
+    sqla_type: Type[TypeEngine],
     attrs: Optional[Dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,

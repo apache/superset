@@ -72,7 +72,6 @@ from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
     from superset.models.sql_lab import Query
@@ -84,9 +83,6 @@ ColumnTypeMapping = Tuple[
 ]
 
 logger = logging.getLogger()
-
-
-CTE_ALIAS = "__cte"
 
 
 class TimeGrain(NamedTuple):
@@ -124,7 +120,7 @@ class TimestampExpression(
 ):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
-        respeting engine-specific quoting rules as part of a string-based expression.
+        respecting engine-specific quoting rules as part of a string-based expression.
 
         :param expr: Sql expression with '{col}' denoting the locations where the col
         object will be rendered.
@@ -334,9 +330,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
-    allows_hidden_ordeby_agg = True
+    allows_hidden_orderby_agg = True
 
-    # Whether ORDER BY clause can use sql caculated expression
+    # Whether ORDER BY clause can use sql calculated expression
     # if True, use alias of select column for `order by`
     # the True is safely for most database
     # But for backward compatibility, False by default
@@ -346,6 +342,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then it will allow  in subquery ,
     # if False it will allow as regular CTE
     allows_cte_in_subquery = True
+    # Define alias for CTE
+    cte_alias = "__cte"
     # Whether allow LIMIT clause in the SQL
     # If True, then the database engine is allowed for LIMIT clause
     # If False, then the database engine is allowed for TOP clause
@@ -356,6 +354,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # A set of disallowed connection query parameters
+    disallow_uri_query_params: Set[str] = set()
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -369,6 +369,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
+
+    # Is the DB engine spec able to change the default schema? This requires implementing
+    # a custom `adjust_engine_params` method.
+    supports_dynamic_schema = False
+
+    # Does the DB support catalogs? A catalog here is a group of schemas, and has
+    # different names depending on the DB: BigQuery calles it a "project", Postgres calls
+    # it a "database", Trino calls it a "catalog", etc.
+    supports_catalog = False
+
+    # Can the catalog be changed on a per-query basis?
+    supports_dynamic_catalog = False
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -421,6 +433,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return True
 
         return driver in cls.drivers
+
+    @classmethod
+    def get_default_schema(cls, database: Database) -> Optional[str]:
+        """
+        Return the default schema in a given database.
+        """
+        with database.get_inspector_with_context() as inspector:
+            return inspector.default_schema_name
+
+    @classmethod
+    def get_schema_from_engine_params(  # pylint: disable=unused-argument
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the schema configured in a SQLALchemy URI and connection argments, if any.
+        """
+        return None
+
+    @classmethod
+    def get_default_schema_for_query(
+        cls,
+        database: Database,
+        query: Query,
+    ) -> Optional[str]:
+        """
+        Return the default schema for a given query.
+
+        This is used to determine the schema of tables that aren't fully qualified, eg:
+
+            SELECT * FROM foo;
+
+        In the example above, the schema where the `foo` table lives depends on a few
+        factors:
+
+            1. For DB engine specs that allow dynamically changing the schema based on the
+               query we should use the query schema.
+            2. For DB engine specs that don't support dynamically changing the schema and
+               have the schema hardcoded in the SQLAlchemy URI we should use the schema
+               from the URI.
+            3. For DB engine specs that don't connect to a specific schema and can't
+               change it dynamically we need to probe the database for the default schema.
+
+        Determining the correct schema is crucial for managing access to data, so please
+        make sure you understand this logic when working on a new DB engine spec.
+        """
+        # dynamic schema varies on a per-query basis
+        if cls.supports_dynamic_schema:
+            return query.schema
+
+        # check if the schema is stored in the SQLAlchemy URI or connection arguments
+        try:
+            connect_args = database.get_extra()["engine_params"]["connect_args"]
+        except KeyError:
+            connect_args = {}
+        sqlalchemy_uri = make_url_safe(database.sqlalchemy_uri)
+        if schema := cls.get_schema_from_engine_params(sqlalchemy_uri, connect_args):
+            return schema
+
+        # return the default schema of the database
+        return cls.get_default_schema(database)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -630,7 +704,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
-            time_grain_expressions.pop(key)
+            time_grain_expressions.pop(key, None)
 
         return dict(
             sorted(
@@ -889,7 +963,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
             # extract rest of the SQLs after CTE
             remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
 
         return None
 
@@ -991,36 +1065,53 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(  # pylint: disable=unused-argument
+    def adjust_engine_params(  # pylint: disable=unused-argument
         cls,
         uri: URL,
-        selected_schema: Optional[str],
-    ) -> URL:
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         """
-        Return a modified URL with a new database component.
+        Return a new URL and ``connect_args`` for a specific catalog/schema.
 
-        The URI here represents the URI as entered when saving the database,
-        ``selected_schema`` is the schema currently active presumably in
-        the SQL Lab dropdown. Based on that, for some database engine,
-        we can return a new altered URI that connects straight to the
-        active schema, meaning the users won't have to prefix the object
-        names by the schema name.
+        This is used in SQL Lab, allowing users to select a schema from the list of
+        schemas available in a given database, and have the query run with that schema as
+        the default one.
 
-        Some databases engines have 2 level of namespacing: database and
-        schema (postgres, oracle, mssql, ...)
-        For those it's probably better to not alter the database
-        component of the URI with the schema name, it won't work.
+        For some databases (like MySQL, Presto, Snowflake) this requires modifying the
+        SQLAlchemy URI before creating the connection. For others (like Postgres), it
+        requires additional parameters in ``connect_args``.
 
-        Some database drivers like Presto accept '{catalog}/{schema}' in
-        the database component of the URL, that can be handled here.
+        When a DB engine spec implements this method it should also have the attribute
+        ``supports_dynamic_schema`` set to true, so that Superset knows in which schema a
+        given query is running in order to enforce permissions (see #23385 and #23401).
+
+        Currently, changing the catalog is not supported. The method acceps a catalog so
+        that when catalog support is added to Superse the interface remains the same. This
+        is important because DB engine specs can be installed from 3rd party packages.
         """
-        return uri
+        return uri, connect_args
 
     @classmethod
     def patch(cls) -> None:
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
+
+    @classmethod
+    def get_catalog_names(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Get all catalogs from database.
+
+        This needs to be implemented per database, since SQLAlchemy doesn't offer an
+        abstraction.
+        """
+        return []
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:
@@ -1725,6 +1816,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_file_upload": cls.supports_file_upload,
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
         }
+
+    @classmethod
+    def validate_database_uri(cls, sqlalchemy_uri: URL) -> None:
+        """
+        Validates a database SQLAlchemy URI per engine spec.
+        Use this to implement a final validation for unwanted connection configuration
+
+        :param sqlalchemy_uri:
+        """
+        if existing_disallowed := cls.disallow_uri_query_params.intersection(
+            sqlalchemy_uri.query
+        ):
+            raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 
 # schema for adding a database by providing parameters instead of the

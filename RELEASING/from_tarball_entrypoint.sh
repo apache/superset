@@ -19,6 +19,7 @@ set -ex
 
 echo "[WARNING] this entrypoint creates an admin/admin user"
 echo "[WARNING] it should only be used for lightweight testing/validation"
+if $SUPERSET_TESTENV then echo "SUPERSET IS RUNNING IN TEST MODE"
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
 superset fab create-admin \

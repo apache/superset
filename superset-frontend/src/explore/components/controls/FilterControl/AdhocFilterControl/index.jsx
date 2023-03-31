@@ -45,14 +45,12 @@ import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
-const { confirm } = Modal;
+const { warning } = Modal;
 
 const selectedMetricType = PropTypes.oneOfType([
   PropTypes.string,
@@ -74,11 +72,7 @@ const propTypes = {
     PropTypes.arrayOf(selectedMetricType),
   ]),
   isLoading: PropTypes.bool,
-  confirmDeletion: PropTypes.shape({
-    triggerCondition: PropTypes.func,
-    confirmationTitle: PropTypes.string,
-    confirmationText: PropTypes.string,
-  }),
+  canDelete: PropTypes.func,
 };
 
 const defaultProps = {
@@ -196,22 +190,12 @@ class AdhocFilterControl extends React.Component {
   }
 
   onRemoveFilter(index) {
-    const { confirmDeletion } = this.props;
+    const { canDelete } = this.props;
     const { values } = this.state;
-    const { removeFilter } = this;
-    if (confirmDeletion) {
-      const { confirmationText, confirmationTitle, triggerCondition } =
-        confirmDeletion;
-      if (triggerCondition(values[index], values)) {
-        confirm({
-          title: confirmationTitle,
-          content: confirmationText,
-          onOk() {
-            removeFilter(index);
-          },
-        });
-        return;
-      }
+    const result = canDelete?.(values[index], values);
+    if (typeof result === 'string') {
+      warning({ title: t('Warning'), content: result });
+      return;
     }
     this.removeFilter(index);
   }
