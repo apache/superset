@@ -28,6 +28,7 @@ import {
   SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
+  styled,
 } from '@superset-ui/core';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
@@ -50,6 +51,10 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
+
+const HiddenFilterBar = styled.div`
+  display: none;
+`;
 
 const EXCLUDED_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
@@ -113,6 +118,7 @@ export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
   orientation = FilterBarOrientation.VERTICAL,
   verticalConfig,
+  hidden = false,
 }) => {
   const history = useHistory();
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
@@ -247,31 +253,38 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     />
   );
 
-  return orientation === FilterBarOrientation.HORIZONTAL ? (
-    <Horizontal
-      actions={actions}
-      canEdit={canEdit}
-      dashboardId={dashboardId}
-      dataMaskSelected={dataMaskSelected}
-      filterValues={filterValues}
-      isInitialized={isInitialized}
-      onSelectionChange={handleFilterSelectionChange}
-    />
-  ) : verticalConfig ? (
-    <Vertical
-      actions={actions}
-      canEdit={canEdit}
-      dataMaskSelected={dataMaskSelected}
-      filtersOpen={verticalConfig.filtersOpen}
-      filterValues={filterValues}
-      isInitialized={isInitialized}
-      isDisabled={isApplyDisabled}
-      height={verticalConfig.height}
-      offset={verticalConfig.offset}
-      onSelectionChange={handleFilterSelectionChange}
-      toggleFiltersBar={verticalConfig.toggleFiltersBar}
-      width={verticalConfig.width}
-    />
-  ) : null;
+  const filterBarComponent =
+    orientation === FilterBarOrientation.HORIZONTAL ? (
+      <Horizontal
+        actions={actions}
+        canEdit={canEdit}
+        dashboardId={dashboardId}
+        dataMaskSelected={dataMaskSelected}
+        filterValues={filterValues}
+        isInitialized={isInitialized}
+        onSelectionChange={handleFilterSelectionChange}
+      />
+    ) : verticalConfig ? (
+      <Vertical
+        actions={actions}
+        canEdit={canEdit}
+        dataMaskSelected={dataMaskSelected}
+        filtersOpen={verticalConfig.filtersOpen}
+        filterValues={filterValues}
+        isInitialized={isInitialized}
+        isDisabled={isApplyDisabled}
+        height={verticalConfig.height}
+        offset={verticalConfig.offset}
+        onSelectionChange={handleFilterSelectionChange}
+        toggleFiltersBar={verticalConfig.toggleFiltersBar}
+        width={verticalConfig.width}
+      />
+    ) : null;
+
+  return hidden ? (
+    <HiddenFilterBar>{filterBarComponent}</HiddenFilterBar>
+  ) : (
+    filterBarComponent
+  );
 };
 export default React.memo(FilterBar);
