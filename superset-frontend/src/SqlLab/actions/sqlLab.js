@@ -275,7 +275,7 @@ export function queryFailed(query, msg, link, errors) {
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, extra }) => {
-      const messages = extra?.issue_codes.map(({ message }) => message) || [
+      const messages = extra?.issue_codes?.map(({ message }) => message) || [
         errorType,
       ];
       messages.forEach(message => {
