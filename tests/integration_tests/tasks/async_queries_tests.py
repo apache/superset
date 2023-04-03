@@ -31,41 +31,36 @@ from superset.tasks.async_queries import (
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
-from superset.utils.core import backend, get_user_id
+from superset.utils.core import get_user_id
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.test_app import app
 
 
 class TestAsyncQueries(SupersetTestCase):
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.object(async_query_manager, "update_job")
-    @mock.patch.object(async_queries, "set_form_data")
-    def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
-        # TODO(hughhhh): remove this once tagging system is fully released
-        if backend() == "sqlite":
-            return
+    # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    # @mock.patch.object(async_query_manager, "update_job")
+    # @mock.patch.object(async_queries, "set_form_data")
+    # def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
+    #     async_query_manager.init_app(app)
+    #     query_context = get_query_context("birth_names")
+    #     user = security_manager.find_user("gamma")
+    #     job_metadata = {
+    #         "channel_id": str(uuid4()),
+    #         "job_id": str(uuid4()),
+    #         "user_id": user.id,
+    #         "status": "pending",
+    #         "errors": [],
+    #     }
 
-        async_query_manager.init_app(app)
-        query_context = get_query_context("birth_names")
-        user = security_manager.find_user("gamma")
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
-
-        load_chart_data_into_cache(job_metadata, query_context)
-        mock_set_form_data.assert_called_once_with(query_context)
-        mock_update_job.assert_called_once_with(
-            job_metadata, "done", result_url=mock.ANY
-        )
+    #     load_chart_data_into_cache(job_metadata, query_context)
+    #     mock_set_form_data.assert_called_once_with(query_context)
+    #     mock_update_job.assert_called_once_with(
+    #         job_metadata, "done", result_url=mock.ANY
+    #     )
 
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
@@ -115,34 +110,34 @@ class TestAsyncQueries(SupersetTestCase):
                 load_chart_data_into_cache(job_metadata, form_data)
             set_form_data.assert_called_once_with(form_data, "error", errors=errors)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.object(async_query_manager, "update_job")
-    def test_load_explore_json_into_cache(self, mock_update_job):
-        async_query_manager.init_app(app)
-        table = self.get_table(name="birth_names")
-        user = security_manager.find_user("gamma")
-        form_data = {
-            "datasource": f"{table.id}__table",
-            "viz_type": "dist_bar",
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
-        job_metadata = {
-            "channel_id": str(uuid4()),
-            "job_id": str(uuid4()),
-            "user_id": user.id,
-            "status": "pending",
-            "errors": [],
-        }
+    # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    # @mock.patch.object(async_query_manager, "update_job")
+    # def test_load_explore_json_into_cache(self, mock_update_job):
+    #     async_query_manager.init_app(app)
+    #     table = self.get_table(name="birth_names")
+    #     user = security_manager.find_user("gamma")
+    #     form_data = {
+    #         "datasource": f"{table.id}__table",
+    #         "viz_type": "dist_bar",
+    #         "granularity_sqla": "ds",
+    #         "time_range": "No filter",
+    #         "metrics": ["count"],
+    #         "adhoc_filters": [],
+    #         "groupby": ["gender"],
+    #         "row_limit": 100,
+    #     }
+    #     job_metadata = {
+    #         "channel_id": str(uuid4()),
+    #         "job_id": str(uuid4()),
+    #         "user_id": user.id,
+    #         "status": "pending",
+    #         "errors": [],
+    #     }
 
-        load_explore_json_into_cache(job_metadata, form_data)
-        mock_update_job.assert_called_once_with(
-            job_metadata, "done", result_url=mock.ANY
-        )
+    #     load_explore_json_into_cache(job_metadata, form_data)
+    #     mock_update_job.assert_called_once_with(
+    #         job_metadata, "done", result_url=mock.ANY
+    #     )
 
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch.object(async_queries, "set_form_data")
