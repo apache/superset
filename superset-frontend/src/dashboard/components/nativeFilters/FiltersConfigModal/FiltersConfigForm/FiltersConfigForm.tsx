@@ -368,7 +368,7 @@ const FiltersConfigForm = (
   const formFilter = formValues || undoFormValues || defaultFormFilter;
 
   const dependencies: string[] =
-    formFilter?.dependencies || filterToEdit?.cascadeParentIds;
+    formFilter?.dependencies || filterToEdit?.cascadeParentIds || [];
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)

@@ -83,6 +83,7 @@ const Select = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      allowSelectAll = true,
       ariaLabel,
       filterOption = true,
       header = null,
@@ -195,10 +196,17 @@ const Select = forwardRef(
     const selectAllEnabled = useMemo(
       () =>
         !isSingleMode &&
+        allowSelectAll &&
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue,
-      [isSingleMode, selectOptions.length, enabledOptions.length, inputValue],
+      [
+        isSingleMode,
+        allowSelectAll,
+        selectOptions.length,
+        enabledOptions.length,
+        inputValue,
+      ],
     );
 
     const selectAllMode = useMemo(
@@ -360,9 +368,8 @@ const Select = forwardRef(
     useEffect(() => {
       // if all values are selected, add select all to value
       if (
-        !isSingleMode &&
-        ensureIsArray(value).length === selectAllEligible.length &&
-        selectOptions.length > 0
+        selectAllEnabled &&
+        ensureIsArray(value).length === selectAllEligible.length
       ) {
         setSelectValue(
           labelInValue
@@ -373,13 +380,7 @@ const Select = forwardRef(
               ] as AntdLabeledValue[]),
         );
       }
-    }, [
-      value,
-      isSingleMode,
-      labelInValue,
-      selectAllEligible.length,
-      selectOptions.length,
-    ]);
+    }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(

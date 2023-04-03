@@ -121,7 +121,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [],
   );
-  const [initialData, setInitialData] = useState<typeof data>([]);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -239,7 +238,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const options = useMemo(() => {
-    const allOptions = [...data, ...initialData];
+    const allOptions = [...data];
     const uniqueOptions = uniqWith(allOptions, isEqual);
     const selectOptions: { label: string; value: DataRecordValue }[] = [];
     uniqueOptions.forEach(row => {
@@ -250,7 +249,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
     });
     return selectOptions;
-  }, [data, initialData, datatype, groupby, labelFormatter]);
+  }, [data, datatype, groupby, labelFormatter]);
 
   const sortComparator = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) => {
@@ -301,12 +300,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
-  useEffect(() => {
-    if (data.length && !initialData.length) {
-      setInitialData(data);
-    }
-  }, [data, initialData.length]);
-
   return (
     <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
@@ -316,6 +309,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         <Select
           allowClear
           allowNewOptions
+          allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}
