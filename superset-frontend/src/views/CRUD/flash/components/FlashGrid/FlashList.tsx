@@ -45,6 +45,7 @@ import {
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
+import FlashType from '../FlashType/FlashType';
 
 const PAGE_SIZE = 25;
 
@@ -78,6 +79,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   );
   const [showFlashOwnership, setShowFlashOwnership] = useState<boolean>(false);
   const [showFlashTtl, setShowFlashTtl] = useState<boolean>(false);
+  const [showFlashType, setShowFlashType] = useState<boolean>(false);
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
   const [showFlashView, setShowFlashView] = useState<boolean>(false);
@@ -118,6 +120,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const changeTtl = (flash: FlashServiceObject) => {
     setCurrentFlash(flash);
     setShowFlashTtl(true);
+  };
+
+  const changeType = (flash: FlashServiceObject) => {
+    setCurrentFlash(flash);
+    setShowFlashType(true);
   };
 
   const changeSchedule = (flash: FlashServiceObject) => {
@@ -281,6 +288,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleChangeSchedule = () => changeSchedule(original);
           const handleChangeOwnership = () => changeOwnership(original);
           const handleChangeTtl = () => changeTtl(original);
+          const handleChangeType = () => changeType(original);
           const handleDelete = () => setDeleteFlash(original);
           const handleView = () => changeViewFlash(original);
           const handleGotoAuditLog = () =>
@@ -302,6 +310,14 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 placement: 'bottom' as TooltipPlacement,
                 icon: 'Share',
                 onClick: handleChangeTtl,
+              },
+            !isDeletedFlash(original?.status) &&
+              (original?.owner === user?.email || user?.roles?.Admin) && {
+                label: 'export-action',
+                tooltip: t('Change Flash Type'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Edit',
+                onClick: handleChangeType,
               },
             !isDeletedFlash(original?.status) && {
               label: 'ownership-action',
@@ -435,6 +451,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           flash={currentFlash as FlashServiceObject}
           show={showFlashTtl}
           onHide={() => setShowFlashTtl(false)}
+          refreshData={refreshData}
+        />
+      )}
+
+      {showFlashType && (
+        <FlashType
+          flash={currentFlash as FlashServiceObject}
+          show={showFlashType}
+          onHide={() => setShowFlashType(false)}
           refreshData={refreshData}
         />
       )}

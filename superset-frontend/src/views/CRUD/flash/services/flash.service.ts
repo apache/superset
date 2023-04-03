@@ -26,6 +26,7 @@ import {
   FlashUpdateQuery,
   FlashUpdateSchedule,
   FlashValidateQuery,
+  FlashUpdateType,
 } from '../types';
 
 export const fetchDatabases = (): Promise<any> =>
@@ -49,7 +50,8 @@ export const updateFlash = (
     | FlashUpdateOwnership
     | FlashExtendTtl
     | FlashUpdateSchedule
-    | FlashUpdateQuery,
+    | FlashUpdateQuery
+    | FlashUpdateType,
 ): Promise<any> => FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
 
 export const removeFlash = (id: number): Promise<any> =>

@@ -2121,7 +2121,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
         table.is_sqllab_view = True
-        table.sql = ParsedQuery(data.get("sql")).stripped()
+        table.sql = utils.add_metadata_to_queries(ParsedQuery(data.get("sql")).stripped(),query_source="Sql Lab",query_id = table.id)
         db.session.add(table)
         cols = []
         for config_ in data.get("columns"):
