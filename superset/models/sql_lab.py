@@ -42,7 +42,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
