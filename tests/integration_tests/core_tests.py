@@ -43,7 +43,11 @@ from unittest import mock
 
 import pandas as pd
 import sqlalchemy as sqla
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from superset.charts.commands.exceptions import ChartDataQueryFailedError
+from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.exceptions import QueryObjectValidationError
 from superset.models.cache import CacheKey
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import with_feature_flags
@@ -577,7 +581,8 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures(
-        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+        "load_birth_names_dashboard_with_slices",
+        "load_energy_table_with_slice",
     )
     def test_warm_up_cache(self):
         self.login()
@@ -602,6 +607,26 @@ class TestCore(SupersetTestCase):
             f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
             + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.object(ChartDataCommand, "run")
+    def test_warm_up_cache_error(self, run_mock) -> None:
+        self.login()
+        slc = self.get_slice("Pivot Table v2", db.session)
+        run_mock.side_effect = ChartDataQueryFailedError(
+            _(
+                "Error: %(error)s",
+                error=_("Empty query?"),
+            )
+        )
+
+        assert self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}") == [
+            {
+                "slice_id": slc.id,
+                "viz_error": "Error: Empty query?",
+                "viz_status": None,
+            }
+        ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):

@@ -132,6 +132,7 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     apply_max_row_limit,
+    base_json_conv,
     DatasourceType,
     get_user_id,
     ReservedUrlParameters,
@@ -1821,7 +1822,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 {"slice_id": slc.id, "viz_error": error, "viz_status": status}
             )
 
-        return json_success(json.dumps(result))
+        return json_success(json.dumps(result, default=base_json_conv))
 
     @has_access_api
     @event_logger.log_this
