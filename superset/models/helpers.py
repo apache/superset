@@ -1475,6 +1475,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         }
         columns = columns or []
         groupby = groupby or []
+        rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
@@ -2091,6 +2092,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
             qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
+        
+        filter_columns = [flt.get("col") for flt in filter] if filter else []
+        rejected_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and col not in self.column_names
+            and col not in applied_template_filters
+        ] + rejected_adhoc_filters_columns
+        
+        applied_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and (col in self.column_names or col in applied_template_filters)
+        ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
