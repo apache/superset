@@ -327,20 +327,24 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        !hasGenericChartAxes
+          ? [
+              {
+                name: 'include_time',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Include time'),
+                  description: t(
+                    'Whether to include the time granularity as defined in the time section',
+                  ),
+                  default: false,
+                  visibility: isAggMode,
+                  resetOnHide: false,
+                },
+              },
+            ]
+          : [null],
         [
-          {
-            name: 'include_time',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Include time'),
-              description: t(
-                'Whether to include the time granularity as defined in the time section',
-              ),
-              default: false,
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
           {
             name: 'order_desc',
             config: {
