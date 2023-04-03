@@ -1783,11 +1783,20 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
+          "changed_on_dttm": {
+            "readOnly": true
+          },
           "changed_on_utc": {
             "readOnly": true
           },
           "created_by": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+          },
+          "created_by_name": {
+            "readOnly": true
+          },
+          "created_by_url": {
+            "readOnly": true
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1821,6 +1830,9 @@
           "edit_url": {
             "readOnly": true
           },
+          "form_data": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -1847,6 +1859,9 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "slice_url": {
+            "readOnly": true
           },
           "table": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.SqlaTable"
@@ -2576,11 +2591,20 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
+          "changed_on_dttm": {
+            "readOnly": true
+          },
           "changed_on_utc": {
             "readOnly": true
           },
           "created_by": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "created_by_name": {
+            "readOnly": true
+          },
+          "created_by_url": {
+            "readOnly": true
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2614,6 +2638,9 @@
           "edit_url": {
             "readOnly": true
           },
+          "form_data": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -2640,6 +2667,9 @@
             "maxLength": 250,
             "nullable": true,
             "type": "string"
+          },
+          "slice_url": {
+            "readOnly": true
           },
           "table": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.SqlaTable"

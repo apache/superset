@@ -55,6 +55,7 @@ from superset.charts.filters import (
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
+    ChartOwnedCreatedFavoredByMeFilter,
     ChartTagFilter,
 )
 from superset.charts.schemas import (
@@ -158,10 +159,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by_name",
         "changed_by_url",
         "changed_on_delta_humanized",
+        "changed_on_dttm",
         "changed_on_utc",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "created_by_name",
+        "created_by_url",
         "created_on_delta_humanized",
         "datasource_id",
         "datasource_name_text",
@@ -170,6 +174,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "description_markeddown",
         "edit_url",
+        "form_data",
         "id",
         "last_saved_at",
         "last_saved_by.id",
@@ -183,6 +188,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "dashboards.dashboard_title",
         "params",
         "slice_name",
+        "slice_url",
         "table.default_endpoint",
         "table.table_name",
         "thumbnail_url",
@@ -224,7 +230,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
-        "id": [ChartFavoriteFilter, ChartCertifiedFilter],
+        "id": [
+            ChartFavoriteFilter,
+            ChartCertifiedFilter,
+            ChartOwnedCreatedFavoredByMeFilter,
+        ],
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
