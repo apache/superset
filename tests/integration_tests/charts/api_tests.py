@@ -28,7 +28,7 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db
+from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -1600,3 +1600,29 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
+
+    @pytest.mark.usefixtures("create_charts")
+    def test_gets_owned_created_favorited_by_me_filter(self):
+        """
+        Chart API: Test ChartOwnedCreatedFavoredByMeFilter
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_owned_created_favored_by_me",
+                    "value": True,
+                }
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": 25,
+        }
+        rv = self.client.get(f"api/v1/chart/?q={prison.dumps(arguments)}")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert data["result"][0]["slice_name"] == "name0"
+        assert data["result"][0]["datasource_id"] == 1
