@@ -16,7 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
+import pytest
 from typing import List, Optional
 
 from pytest_mock import MockFixture
@@ -143,3 +143,33 @@ def test_get_db_engine_spec(mocker: MockFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+def test_get_db_engine_spec_with_context(mocker: MockFixture) -> None:
+    import sshtunnel
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.models.core import Database
+
+    class MockFunctionHelperClass:
+        def __init__(self, failed_attempts_before_success: int) -> None:
+            self.failed_attempts_before_success = failed_attempts_before_success
+            self.attempts_counter = 0
+
+        def mock_function(self, return_value):
+            self.attempts_counter += 1
+            if self.attempts_counter <= self.failed_attempts_before_success:
+                raise Exception
+            return return_value
+
+    mock_get_sqla_engine = mocker.patch("superset.models.core.Database._get_sqla_engine")
+    mock_get_sqla_engine_with_context = mocker.patch("superset.models.core.Database.get_sqla_engine_with_context")
+
+    mock_get_sqla_engine.side_effect = sshtunnel.BaseSSHTunnelForwarderError()
+    mock_get_sqla_engine_with_context.side_effect = sshtunnel.BaseSSHTunnelForwarderError()
+    
+    test_db = Database(database_name="db", sqlalchemy_uri="postgresql://")
+    
+    with pytest.raises(sshtunnel.BaseSSHTunnelForwarderError):
+        with mock_get_sqla_engine_with_context() as engine:
+            print('hey')
+
+    mock_get_sqla_engine.assert_called_once()
