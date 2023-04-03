@@ -39,7 +39,7 @@ export default function DrillByChart({
   column,
   filters,
   formData,
-  groupbyFieldName,
+  groupbyFieldName = 'groupby',
 }: DrillByChartProps) {
   let updatedFormData = formData;
   let groupbyField: any = [];
@@ -56,7 +56,7 @@ export default function DrillByChart({
     updatedFormData = {
       ...formData,
       adhoc_filters: [...formData.adhoc_filters, ...adhocFilters],
-      [groupbyFieldName || 'groupby']: groupbyField,
+      [groupbyFieldName]: groupbyField,
     };
   }
 
@@ -77,6 +77,7 @@ export default function DrillByChart({
     >
       {chartDataResult ? (
         <SuperChart
+          disableErrorBoundary
           behaviors={[Behavior.INTERACTIVE_CHART]}
           chartType={formData.viz_type}
           enableNoResults

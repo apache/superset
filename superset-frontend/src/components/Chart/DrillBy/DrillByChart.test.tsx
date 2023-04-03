@@ -26,48 +26,6 @@ const CHART_DATA_ENDPOINT =
   'glob:*api/v1/chart/data?form_data=%7B%22slice_id%22%3A18%7D';
 
 const chart = chartQueries[sliceId];
-// const fetchWithData = () => {
-//   fetchMock.post(CHART_DATA_ENDPOINT, {
-//     result: [
-//       {
-//         cache_key: 'caaaf4408f8f440ac1c8fedc857d4e84',
-//         cached_dttm: null,
-//         cache_timeout: 300,
-//         applied_template_filters: [],
-//         annotation_data: {},
-//         error: null,
-//         is_cached: null,
-//         query:
-//           "SELECT num_girls AS num_girls,\n       SUM(num) AS sum__num\nFROM public.birth_names\nWHERE ds >= TO_TIMESTAMP('1923-04-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')\n  AND ds < TO_TIMESTAMP('2023-04-01 00:40:03.000000', 'YYYY-MM-DD HH24:MI:SS.US')\n  AND gender = 'boy'\nGROUP BY num_girls\nORDER BY sum__num DESC\nLIMIT 50000;\n\n",
-//         status: 'success',
-//         stacktrace: null,
-//         rowcount: 1,
-//         from_dttm: -1475452800000,
-//         to_dttm: 1680309603000,
-//         label_map: {
-//           num_girls: ['num_girls'],
-//           sum__num: ['sum__num'],
-//         },
-//         colnames: ['num_girls', 'sum__num'],
-//         indexnames: [0],
-//         coltypes: [0, 0],
-//         data: [
-//           {
-//             num_girls: 0,
-//             sum__num: 48133355,
-//           },
-//         ],
-//         result_format: 'json',
-//         applied_filters: [
-//           {
-//             column: 'gender',
-//           },
-//         ],
-//         rejected_filters: [],
-//       },
-//     ],
-//   });
-// };
 
 const fetchWithNoData = () => {
   fetchMock.post(CHART_DATA_ENDPOINT, {
@@ -84,15 +42,27 @@ const fetchWithNoData = () => {
 
 const setup = (overrides: Record<string, any> = {}) => {
   const props = {
-    filters: [],
-    column: { column_name: 'name' },
-    formData: chart.form_data,
-    groupbyFieldName: '',
+    column: { column_name: 'state' },
+    formData: { ...chart.form_data, viz_type: 'pie' },
+    groupbyFieldName: 'groupby',
     ...overrides,
   };
-  return render(<DrillByChart {...props} />, {
-    useRedux: true,
-  });
+  return render(
+    <DrillByChart
+      filters={[
+        {
+          col: 'gender',
+          op: '==',
+          val: 'boy',
+          formattedVal: 'boy',
+        },
+      ]}
+      {...props}
+    />,
+    {
+      useRedux: true,
+    },
+  );
 };
 
 const waitForRender = (overrides: Record<string, any> = {}) =>
@@ -118,10 +88,3 @@ test('should render the "No results" components', async () => {
   setup();
   expect(await screen.findByText('No Results')).toBeInTheDocument();
 });
-
-// test('should render SuperChart', async () => {
-//   fetchWithData();
-//   await waitForRender();
-//   screen.logTestingPlaygroundURL();
-//   expect(await screen.findByText('other')).toBeInTheDocument();
-// });

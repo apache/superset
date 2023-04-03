@@ -228,7 +228,7 @@ export const DrillByMenuItems = ({
                   key={`drill-by-item-${column.column_name}`}
                   tooltipText={column.verbose_name || column.column_name}
                   {...rest}
-                  onClick={() => openModal(null, column)}
+                  onClick={e => openModal(e, column)}
                 >
                   {column.verbose_name || column.column_name}
                 </MenuItemWithTruncation>
