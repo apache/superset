@@ -37,8 +37,8 @@ def session_with_data(session: Session) -> Iterator[Session]:
         datasource_name="tmp_perm_table",
         slice_name="slice_name",
     )
-
     session.add(slice_obj)
+
     session.commit()
     yield session
     session.rollback()
