@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import ListViewCard from 'src/components/ListViewCard';

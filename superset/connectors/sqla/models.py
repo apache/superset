@@ -1006,15 +1006,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def adhoc_column_to_sqla(
+    def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
+        force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
         Turn an adhoc column into a sqlalchemy column.
 
         :param col: Adhoc column definition
+        :param force_type_check: Should the column type be checked in the db.
+               This is needed to validate if a filter with an adhoc column
+               is applicable.
         :param template_processor: template_processor instance
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
@@ -1027,28 +1031,28 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             template_processor=template_processor,
         )
         col_in_metadata = self.get_column(expression)
+        time_grain = col.get("timeGrain")
+        has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
+        is_dttm = False
         if col_in_metadata:
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
         else:
-            try:
-                sqla_column = literal_column(expression)
-                # probe adhoc column type
-                tbl, _ = self.get_from_clause(template_processor)
-                qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-                sql = self.database.compile_sqla_query(qry)
-                col_desc = get_columns_description(self.database, sql)
-                is_dttm = col_desc[0]["is_dttm"]
-            except SupersetGenericDBErrorException as ex:
-                raise ColumnNotFoundException(message=str(ex)) from ex
+            sqla_column = literal_column(expression)
+            if has_timegrain or force_type_check:
+                try:
+                    # probe adhoc column type
+                    tbl, _ = self.get_from_clause(template_processor)
+                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    sql = self.database.compile_sqla_query(qry)
+                    col_desc = get_columns_description(self.database, sql)
+                    is_dttm = col_desc[0]["is_dttm"]
+                except SupersetGenericDBErrorException as ex:
+                    raise ColumnNotFoundException(message=str(ex)) from ex
 
-        if (
-            is_dttm
-            and col.get("columnType") == "BASE_AXIS"
-            and (time_grain := col.get("timeGrain"))
-        ):
+        if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
                 pdf=None,
@@ -1458,7 +1462,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
-                    sqla_col = self.adhoc_column_to_sqla(flt_col)
+                    sqla_col = self.adhoc_column_to_sqla(
+                        col=flt_col,
+                        force_type_check=True,
+                        template_processor=template_processor,
+                    )
                     applied_adhoc_filters_columns.append(flt_col)
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)

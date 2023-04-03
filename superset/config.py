@@ -1264,6 +1264,10 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
+# Default values that user using when creating alert
+ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+ALERT_REPORTS_DEFAULT_RETENTION = 90
+ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 * * * *"  # every hour
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False

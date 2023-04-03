@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  styled,
-  css,
-  t,
-  useTheme,
-  useComponentDidUpdate,
-} from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { styled, css, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
@@ -76,6 +70,7 @@ const ConditionalFormattingControl = ({
   onChange,
   columnOptions,
   verboseMap,
+  removeIrrelevantConditions,
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
@@ -88,20 +83,20 @@ const ConditionalFormattingControl = ({
     }
   }, [conditionalFormattingConfigs, onChange]);
 
-  // remove formatter when corresponding column is removed from controls
-  const removeFormattersWhenColumnsChange = useCallback(() => {
-    const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
-      columnOptions.some(option => option?.value === config?.column),
-    );
-    if (
-      newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
-      onChange
-    ) {
-      setConditionalFormattingConfigs(newFormattingConfigs);
-      onChange(newFormattingConfigs);
+  useEffect(() => {
+    if (removeIrrelevantConditions) {
+      // remove formatter when corresponding column is removed from controls
+      const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
+        columnOptions.some((option: any) => option?.value === config?.column),
+      );
+      if (
+        newFormattingConfigs.length !== conditionalFormattingConfigs.length &&
+        removeIrrelevantConditions
+      ) {
+        setConditionalFormattingConfigs(newFormattingConfigs);
+      }
     }
-  }, [JSON.stringify(columnOptions)]);
-  useComponentDidUpdate(removeFormattersWhenColumnsChange);
+  }, [conditionalFormattingConfigs, columnOptions, removeIrrelevantConditions]);
 
   const onDelete = (index: number) => {
     setConditionalFormattingConfigs(prevConfigs =>
