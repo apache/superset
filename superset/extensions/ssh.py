@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import backoff
 import importlib
 import logging
+import sshtunnel
 from io import StringIO
 from typing import TYPE_CHECKING
 
@@ -45,6 +47,7 @@ class SSHManager:
             port=server.local_bind_port,
         )
 
+    @backoff.on_exception(backoff.expo, sshtunnel.BaseSSHTunnelForwarderError, factor=10, base=2, max_tries=5)
     def create_tunnel(
         self,
         ssh_tunnel: "SSHTunnel",
