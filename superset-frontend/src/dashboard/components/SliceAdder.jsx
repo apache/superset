@@ -29,6 +29,11 @@ import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import {
+  LocalStorageKeys,
+  getItem,
+  setItem,
+} from 'src/utils/localStorageHelpers';
+import {
   CHART_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,
 } from 'src/dashboard/util/componentTypes';
@@ -39,6 +44,7 @@ import {
 import { slicePropShape } from 'src/dashboard/util/propShapes';
 import { debounce, pickBy } from 'lodash';
 import Checkbox from 'src/components/Checkbox';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
@@ -75,10 +81,15 @@ export const DEFAULT_SORT_KEY = 'changed_on';
 const DEFAULT_CELL_HEIGHT = 128;
 
 const Controls = styled.div`
-  display: flex;
-  flex-direction: row;
-  padding: ${({ theme }) => theme.gridUnit * 3}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: row;
+    padding:
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 3}px
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 3}px;
+  `}
 `;
 
 const StyledSelect = styled(Select)`
@@ -135,17 +146,20 @@ class SliceAdder extends React.Component {
       searchTerm: '',
       sortBy: DEFAULT_SORT_KEY,
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
-      showAccessibleCharts: false,
+      showOnlyMyCharts: getItem(
+        LocalStorageKeys.dashboard__editor_show_only_my_charts,
+        true,
+      ),
     };
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
     this.userIdForFetch = this.userIdForFetch.bind(this);
-    this.onAccessibleCharts = this.onAccessibleCharts.bind(this);
+    this.onShowOnlyMyCharts = this.onShowOnlyMyCharts.bind(this);
   }
 
   userIdForFetch() {
-    return this.state.showAccessibleCharts ? undefined : this.props.userId;
+    return this.state.showOnlyMyCharts ? this.props.userId : undefined;
   }
 
   componentDidMount() {
@@ -159,7 +173,7 @@ class SliceAdder extends React.Component {
         nextProps.slices,
         this.state.searchTerm,
         this.state.sortBy,
-        this.state.showAccessibleCharts,
+        this.state.showOnlyMyCharts,
       );
     }
 
@@ -183,14 +197,14 @@ class SliceAdder extends React.Component {
     }
   }
 
-  getFilteredSortedSlices(slices, searchTerm, sortBy, showAccessibleCharts) {
+  getFilteredSortedSlices(slices, searchTerm, sortBy, showOnlyMyCharts) {
     return Object.values(slices)
       .filter(slice =>
-        showAccessibleCharts
-          ? true
-          : (slice.owners &&
+        showOnlyMyCharts
+          ? (slice.owners &&
               slice.owners.find(owner => owner.id === this.props.userId)) ||
-            (slice.created_by && slice.created_by.id === this.props.userId),
+            (slice.created_by && slice.created_by.id === this.props.userId)
+          : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
       .sort(SliceAdder.sortByComparator(sortBy));
@@ -212,7 +226,7 @@ class SliceAdder extends React.Component {
         this.props.slices,
         searchTerm,
         prevState.sortBy,
-        prevState.showAccessibleCharts,
+        prevState.showOnlyMyCharts,
       ),
     }));
   }
@@ -224,7 +238,7 @@ class SliceAdder extends React.Component {
         this.props.slices,
         prevState.searchTerm,
         sortBy,
-        prevState.showAccessibleCharts,
+        prevState.showOnlyMyCharts,
       ),
     }));
     this.slicesRequest = this.props.fetchSlices(
@@ -281,8 +295,8 @@ class SliceAdder extends React.Component {
     );
   }
 
-  onAccessibleCharts(showAccessibleCharts) {
-    if (showAccessibleCharts) {
+  onShowOnlyMyCharts(showOnlyMyCharts) {
+    if (!showOnlyMyCharts) {
       this.slicesRequest = this.props.fetchSlices(
         undefined,
         this.state.searchTerm,
@@ -290,14 +304,18 @@ class SliceAdder extends React.Component {
       );
     }
     this.setState(prevState => ({
-      showAccessibleCharts,
+      showOnlyMyCharts,
       filteredSlices: this.getFilteredSortedSlices(
         this.props.slices,
         prevState.searchTerm,
         prevState.sortBy,
-        showAccessibleCharts,
+        showOnlyMyCharts,
       ),
     }));
+    setItem(
+      LocalStorageKeys.dashboard__editor_show_only_my_charts,
+      showOnlyMyCharts,
+    );
   }
 
   render() {
@@ -328,7 +346,7 @@ class SliceAdder extends React.Component {
         <Controls>
           <Input
             placeholder={
-              this.state.showAccessibleCharts
+              this.state.showOnlyMyCharts
                 ? t('Filter charts')
                 : t('Filter your charts')
             }
@@ -351,20 +369,25 @@ class SliceAdder extends React.Component {
           css={theme => css`
             display: flex;
             flex-direction: row;
-            justify-content: center;
-            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
+            justify-content: flex-start;
+            align-items: center;
+            gap: ${theme.gridUnit}px;
+            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
               ${theme.gridUnit * 3}px;
-
-            & > span {
-              margin-right: ${theme.gridUnit}px;
-            }
           `}
         >
           <Checkbox
-            onChange={this.onAccessibleCharts}
-            checked={this.state.showAccessibleCharts}
+            onChange={this.onShowOnlyMyCharts}
+            checked={this.state.showOnlyMyCharts}
           />
-          {t('Show other charts I have access to')}
+          {t('Show only my charts')}
+          <InfoTooltipWithTrigger
+            placement="top"
+            tooltip={t(
+              `By default, the chart list displays only charts that you own.
+              You can change the list to show all charts you have access to.`,
+            )}
+          />
         </div>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
