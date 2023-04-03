@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -596,7 +596,7 @@ function DashboardList(props: DashboardListProps) {
         key: 'tags',
         id: 'tags',
         input: 'select',
-        operator: FilterOperator.chartTags,
+        operator: FilterOperator.dashboardTags,
         unfilteredLabel: t('All'),
         fetchSelects: loadTags,
       });

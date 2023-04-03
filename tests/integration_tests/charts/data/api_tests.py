@@ -1132,6 +1132,14 @@ def test_custom_cache_timeout(test_client, login_as_admin, physical_query_contex
     assert rv.json["result"][0]["cache_timeout"] == 5678
 
 
+def test_force_cache_timeout(test_client, login_as_admin, physical_query_context):
+    physical_query_context["custom_cache_timeout"] = -1
+    test_client.post(CHART_DATA_URI, json=physical_query_context)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cached_dttm"] is None
+    assert rv.json["result"][0]["is_cached"] is None
+
+
 @mock.patch(
     "superset.common.query_context_processor.config",
     {

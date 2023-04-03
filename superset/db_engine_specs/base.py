@@ -374,6 +374,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
 
+    # Does the DB support catalogs? A catalog here is a group of schemas, and has
+    # different names depending on the DB: BigQuery calles it a "project", Postgres calls
+    # it a "database", Trino calls it a "catalog", etc.
+    supports_catalog = False
+
+    # Can the catalog be changed on a per-query basis?
+    supports_dynamic_catalog = False
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
@@ -696,7 +704,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
-            time_grain_expressions.pop(key)
+            time_grain_expressions.pop(key, None)
 
         return dict(
             sorted(
@@ -1090,6 +1098,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
+
+    @classmethod
+    def get_catalog_names(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Get all catalogs from database.
+
+        This needs to be implemented per database, since SQLAlchemy doesn't offer an
+        abstraction.
+        """
+        return []
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:

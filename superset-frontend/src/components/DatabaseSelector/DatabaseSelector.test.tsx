@@ -40,7 +40,6 @@ const createProps = (): DatabaseSelectorProps => ({
   handleError: jest.fn(),
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
-  onSchemasLoad: jest.fn(),
 });
 
 const fakeDatabaseApiResult = {

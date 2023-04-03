@@ -78,7 +78,6 @@ const SaveQuery = ({
     'latestQueryId',
     'queryLimit',
     'schema',
-    'schemaOptions',
     'selectedText',
     'sql',
     'tableOptions',

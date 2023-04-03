@@ -50,6 +50,7 @@ const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
 type Datasource = {
   time_grain_sqla?: [string, string][];
   granularity?: [string, string][];
+  verbose_map?: Record<string, string>;
 };
 
 type Filter = {
@@ -167,6 +168,7 @@ export const getCrossFilterIndicator = (
   chartId: number,
   dataMask: DataMask,
   dashboardLayout: DashboardLayout,
+  verboseMap: Record<string, string> = {},
 ) => {
   const filterState = dataMask?.filterState;
   const filters = dataMask?.extraFormData?.filters;
@@ -179,7 +181,7 @@ export const getCrossFilterIndicator = (
     layoutItem => layoutItem?.meta?.chartId === chartId,
   );
   const filterObject: Indicator = {
-    column,
+    column: verboseMap[column] || column,
     name:
       dashboardLayoutItem?.meta?.sliceNameOverride ||
       dashboardLayoutItem?.meta?.sliceName ||
@@ -288,6 +290,7 @@ export const selectChartCrossFilters = (
   chartConfiguration: ChartConfiguration = defaultChartConfig,
   appliedColumns: Set<string>,
   rejectedColumns: Set<string>,
+  verboseMap?: Record<string, string>,
   filterEmitter = false,
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: any = [];
@@ -309,6 +312,7 @@ export const selectChartCrossFilters = (
           chartConfig.id,
           dataMask[chartConfig.id],
           dashboardLayout,
+          verboseMap,
         );
         const filterStatus = getStatus({
           label: filterIndicator.value,
@@ -337,6 +341,7 @@ export const selectNativeIndicatorsForChart = (
   chart: any,
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
+  datasource: Datasource,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
@@ -392,6 +397,7 @@ export const selectNativeIndicatorsForChart = (
       chartConfiguration,
       appliedColumns,
       rejectedColumns,
+      datasource.verbose_map,
     );
   }
   const indicators = crossFilterIndicators.concat(nativeFilterIndicators);

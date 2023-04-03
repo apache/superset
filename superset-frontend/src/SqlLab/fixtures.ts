@@ -188,13 +188,6 @@ export const defaultQueryEditor = {
   tableOptions: [],
   functionNames: [],
   hideLeftBar: false,
-  schemaOptions: [
-    {
-      value: 'main',
-      label: 'main',
-      title: 'main',
-    },
-  ],
   templateParams: '{}',
 };
 

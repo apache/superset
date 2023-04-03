@@ -501,6 +501,12 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @property
+    def created_by_name(self) -> str:
+        if self.created_by:
+            return escape("{}".format(self.created_by))
+        return ""
+
+    @property
     def changed_by_name(self) -> str:
         if self.changed_by:
             return escape("{}".format(self.changed_by))
@@ -521,6 +527,10 @@ class AuditMixinNullable(AuditMixin):
     @renders("changed_on")
     def changed_on_delta_humanized(self) -> str:
         return self.changed_on_humanized
+
+    @renders("changed_on")
+    def changed_on_dttm(self) -> float:
+        return datetime_to_epoch(self.changed_on)
 
     @renders("created_on")
     def created_on_delta_humanized(self) -> str:

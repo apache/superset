@@ -1559,6 +1559,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
@@ -1644,6 +1645,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
@@ -1787,6 +1789,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
+    @deprecated()
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:

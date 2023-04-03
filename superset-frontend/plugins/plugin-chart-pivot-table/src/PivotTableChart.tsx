@@ -53,7 +53,7 @@ const Styles = styled.div<PivotTableStylesProps>`
 
 const PivotTableWrapper = styled.div`
   height: 100%;
-  max-width: fit-content;
+  max-width: inherit;
   overflow: auto;
 `;
 
@@ -478,10 +478,27 @@ export default function PivotTableChart(props: PivotTableProps) {
         onContextMenu(e.clientX, e.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(dataPoint),
+          drillBy: dataPoint && {
+            filters: [
+              {
+                col: Object.keys(dataPoint)[0],
+                op: '==',
+                val: Object.values(dataPoint)[0],
+              },
+            ],
+            groupbyFieldName: rowKey ? 'groupbyRows' : 'groupbyColumns',
+          },
         });
       }
     },
-    [cols, dateFormatters, onContextMenu, rows, timeGrainSqla],
+    [
+      cols,
+      dateFormatters,
+      getCrossFilterDataMask,
+      onContextMenu,
+      rows,
+      timeGrainSqla,
+    ],
   );
 
   return (

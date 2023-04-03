@@ -184,8 +184,12 @@ describe('Charts list', () => {
     });
 
     it('should allow to favorite/unfavorite', () => {
-      cy.intercept(`/superset/favstar/slice/*/select/`).as('select');
-      cy.intercept(`/superset/favstar/slice/*/unselect/`).as('unselect');
+      cy.intercept({ url: `/api/v1/chart/*/favorites/`, method: 'POST' }).as(
+        'select',
+      );
+      cy.intercept({ url: `/api/v1/chart/*/favorites/`, method: 'DELETE' }).as(
+        'unselect',
+      );
 
       setGridMode('card');
       orderAlphabetical();

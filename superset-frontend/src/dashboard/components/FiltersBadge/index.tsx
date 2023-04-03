@@ -209,6 +209,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             chart,
             present,
             dashboardInfo.metadata?.chart_configuration,
+            datasources[chart.form_data.datasource] ?? {},
           ),
         );
       }
@@ -219,6 +220,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardInfo.metadata?.chart_configuration,
     dataMask,
     nativeFilters,
+    datasources,
     nativeIndicators.length,
     present,
     prevChart?.queriesResponse,

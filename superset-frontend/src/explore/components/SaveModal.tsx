@@ -25,11 +25,12 @@ import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   css,
-  t,
-  styled,
   DatasourceType,
-  isDefined,
   ensureIsArray,
+  FeatureFlag,
+  isDefined,
+  styled,
+  t,
 } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
@@ -41,7 +42,7 @@ import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';

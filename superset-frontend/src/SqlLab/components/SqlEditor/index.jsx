@@ -29,7 +29,7 @@ import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, t, styled, useTheme } from '@superset-ui/core';
+import { css, FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -78,7 +78,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
@@ -545,7 +545,7 @@ const SqlEditor = ({
             />
           </Menu.Item>
         )}
-        {scheduledQueriesConf && (
+        {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.name}

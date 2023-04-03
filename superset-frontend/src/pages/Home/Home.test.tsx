@@ -40,7 +40,7 @@ const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status?*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info?*';
 const dashboardFavoriteStatusEndpoint =
-  'glob:*/api/v1/dashboard/favorite_status?*';
+  'glob:*/api/v1/dashboard/favorite_status/?*';
 const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
 const savedQueryInfoEndpoint = 'glob:*/api/v1/saved_query/_info?*';
 const recentActivityEndpoint = 'glob:*/api/v1/log/recent_activity/*';
