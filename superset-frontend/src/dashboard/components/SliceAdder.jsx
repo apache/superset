@@ -70,7 +70,7 @@ const KEYS_TO_SORT = {
   changed_on: t('recent'),
 };
 
-const DEFAULT_SORT_KEY = 'changed_on';
+export const DEFAULT_SORT_KEY = 'changed_on';
 
 const DEFAULT_CELL_HEIGHT = 128;
 
@@ -139,7 +139,6 @@ class SliceAdder extends React.Component {
     };
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
-    this.handleKeyPress = this.handleKeyPress.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
     this.userIdForFetch = this.userIdForFetch.bind(this);
     this.onAccessibleCharts = this.onAccessibleCharts.bind(this);
@@ -195,14 +194,6 @@ class SliceAdder extends React.Component {
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
       .sort(SliceAdder.sortByComparator(sortBy));
-  }
-
-  handleKeyPress(ev) {
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-
-      this.searchUpdated(ev.target.value);
-    }
   }
 
   handleChange = debounce(value => {
@@ -343,7 +334,6 @@ class SliceAdder extends React.Component {
             }
             className="search-input"
             onChange={ev => this.handleChange(ev.target.value)}
-            onKeyPress={this.handleKeyPress}
             data-test="dashboard-charts-filter-search-input"
           />
           <StyledSelect
