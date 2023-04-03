@@ -122,6 +122,12 @@ class TestTagsDAO(SupersetTestCase):
                     )
                 )
             yield tagged_objects
+            for tag in tags:
+                db.session.delete(tag)
+                db.session.commit()
+            for tagged_obj in tagged_objects:
+                db.session.delete(tagged_obj)
+                db.session.commit()
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
