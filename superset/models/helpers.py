@@ -97,6 +97,7 @@ from superset.utils.core import (
     is_adhoc_column,
     remove_duplicates,
 )
+from superset.utils.dates import datetime_to_epoch
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -675,19 +676,21 @@ def clone_model(
 # todo(hugh): centralize where this code lives
 class QueryStringExtended(NamedTuple):
     applied_template_filters: Optional[List[str]]
+    applied_filter_columns: List[ColumnTyping]
+    rejected_filter_columns: List[ColumnTyping]
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
 
-
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
+    applied_filter_columns: List[ColumnTyping]
+    rejected_filter_columns: List[ColumnTyping]
     cte: Optional[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
     prequeries: List[str]
     sqla_query: Select
-
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
@@ -1257,6 +1260,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def adhoc_column_to_sqla(
         self,
         col: "AdhocColumn",  # type: ignore
+        force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         raise NotImplementedError()

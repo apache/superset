@@ -93,8 +93,14 @@ from superset.connectors.sqla.utils import (
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Column as ColumnTyping,
+    Metric,
+    QueryObjectDict,
+)
 from superset.exceptions import (
-    AdvancedDataTypeResponseError,
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
@@ -117,7 +123,6 @@ from superset.models.helpers import (
     QueryStringExtended,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, get_username, MediumText
 
@@ -134,18 +139,6 @@ ADDITIVE_METRIC_TYPES = {
     "doubleSum",
 }
 ADDITIVE_METRIC_TYPES_LOWER = {op.lower() for op in ADDITIVE_METRIC_TYPES}
-
-
-class SqlaQuery(NamedTuple):
-    applied_template_filters: List[str]
-    applied_filter_columns: List[ColumnTyping]
-    rejected_filter_columns: List[ColumnTyping]
-    cte: Optional[str]
-    extra_cache_keys: List[Any]
-    labels_expected: List[str]
-    prequeries: List[str]
-    sqla_query: Select
-
 
 @dataclass
 class MetadataResult:
