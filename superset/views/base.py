@@ -30,6 +30,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    render_template,
     request,
     Response,
     send_file,
@@ -62,6 +63,7 @@ from superset import (
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
@@ -500,6 +502,16 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
             ),
         ],
         status=ex.code or 500,
+    )
+
+
+@superset_app.errorhandler(DashboardAccessDeniedError)
+def show_dashboard_access_errors(ex: DashboardAccessDeniedError) -> FlaskResponse:
+    logger.warning(ex)
+    # TODO Support access request here
+    return (
+        render_template(f"superset/errors/{ex.status}.html", message=ex.message),
+        ex.status,
     )
 
 
