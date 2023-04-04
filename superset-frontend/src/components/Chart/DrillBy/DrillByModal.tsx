@@ -29,6 +29,8 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
 import DrillByChart from './DrillByChart';
 
 interface ModalFooterProps {
@@ -59,6 +61,7 @@ interface DrillByModalProps {
   groupbyFieldName?: string;
   onHideModal: () => void;
   showModal: boolean;
+  dataset: Dataset;
 }
 
 export default function DrillByModal({
@@ -68,6 +71,7 @@ export default function DrillByModal({
   groupbyFieldName,
   onHideModal,
   showModal,
+  dataset,
 }: DrillByModalProps) {
   const theme = useTheme();
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -80,6 +84,7 @@ export default function DrillByModal({
     chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName;
   const exploreChart = () => {};
 
+  const { metadataBar } = useDatasetMetadataBar({ dataset });
   return (
     <Modal
       css={css`
@@ -105,12 +110,21 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      <DrillByChart
-        column={column}
-        filters={filters}
-        formData={formData}
-        groupbyFieldName={groupbyFieldName}
-      />
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        `}
+      >
+        {metadataBar}
+        <DrillByChart
+          column={column}
+          filters={filters}
+          formData={formData}
+          groupbyFieldName={groupbyFieldName}
+        />
+      </div>
     </Modal>
   );
 }

@@ -114,77 +114,73 @@ getChartMetadataRegistry().registerValue(
   }),
 );
 
-describe('Drill by menu items', () => {
-  afterEach(() => {
-    supersetGetCache.clear();
-    fetchMock.restore();
+afterEach(() => {
+  supersetGetCache.clear();
+  fetchMock.restore();
+});
+
+test('render disabled menu item for unsupported chart', async () => {
+  renderMenu({
+    formData: { ...defaultFormData, viz_type: 'unsupported_viz' },
+  });
+  await expectDrillByDisabled(
+    'Drill by is not yet supported for this chart type',
+  );
+});
+
+test('render disabled menu item for supported chart, no filters', async () => {
+  renderMenu({ filters: [] });
+  await expectDrillByDisabled('Drill by is not available for this data point');
+});
+
+test('render disabled menu item for supported chart, no columns', async () => {
+  fetchMock.get(datasetEndpointMatcher, { result: { columns: [] } });
+  renderMenu({});
+  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await expectDrillByDisabled('No dimensions available for drill by');
+});
+
+test('render menu item with submenu without searchbox', async () => {
+  const slicedColumns = defaultColumns.slice(0, 9);
+  fetchMock.get(datasetEndpointMatcher, {
+    result: { columns: slicedColumns },
+  });
+  renderMenu({});
+  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await expectDrillByEnabled();
+  slicedColumns.forEach(column => {
+    expect(screen.getByText(column.column_name)).toBeInTheDocument();
+  });
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+});
+
+test('render menu item with submenu and searchbox', async () => {
+  fetchMock.get(datasetEndpointMatcher, {
+    result: { columns: defaultColumns },
+  });
+  renderMenu({});
+  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await expectDrillByEnabled();
+  defaultColumns.forEach(column => {
+    expect(screen.getByText(column.column_name)).toBeInTheDocument();
   });
 
-  test('render disabled menu item for unsupported chart', async () => {
-    renderMenu({
-      formData: { ...defaultFormData, viz_type: 'unsupported_viz' },
-    });
-    await expectDrillByDisabled(
-      'Drill by is not yet supported for this chart type',
-    );
-  });
+  const searchbox = screen.getByRole('textbox');
+  expect(searchbox).toBeInTheDocument();
 
-  test('render disabled menu item for supported chart, no filters', async () => {
-    renderMenu({ filters: [] });
-    await expectDrillByDisabled(
-      'Drill by is not available for this data point',
-    );
-  });
+  userEvent.type(searchbox, 'col1');
 
-  test('render disabled menu item for supported chart, no columns', async () => {
-    fetchMock.get(datasetEndpointMatcher, { result: { columns: [] } });
-    renderMenu({});
-    await waitFor(() => fetchMock.called(datasetEndpointMatcher));
-    await expectDrillByDisabled('No dimensions available for drill by');
-  });
+  await screen.findByText('col1');
 
-  test('render menu item with submenu without searchbox', async () => {
-    const slicedColumns = defaultColumns.slice(0, 9);
-    fetchMock.get(datasetEndpointMatcher, {
-      result: { columns: slicedColumns },
-    });
-    renderMenu({});
-    await waitFor(() => fetchMock.called(datasetEndpointMatcher));
-    await expectDrillByEnabled();
-    slicedColumns.forEach(column => {
-      expect(screen.getByText(column.column_name)).toBeInTheDocument();
-    });
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-  });
+  const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
 
-  test('render menu item with submenu and searchbox', async () => {
-    fetchMock.get(datasetEndpointMatcher, {
-      result: { columns: defaultColumns },
-    });
-    renderMenu({});
-    await waitFor(() => fetchMock.called(datasetEndpointMatcher));
-    await expectDrillByEnabled();
-    defaultColumns.forEach(column => {
-      expect(screen.getByText(column.column_name)).toBeInTheDocument();
+  defaultColumns
+    .filter(col => !expectedFilteredColumnNames.includes(col.column_name))
+    .forEach(col => {
+      expect(screen.queryByText(col.column_name)).not.toBeInTheDocument();
     });
 
-    const searchbox = screen.getByRole('textbox');
-    expect(searchbox).toBeInTheDocument();
-
-    userEvent.type(searchbox, 'col1');
-
-    await screen.findByText('col1');
-
-    const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
-
-    defaultColumns
-      .filter(col => !expectedFilteredColumnNames.includes(col.column_name))
-      .forEach(col => {
-        expect(screen.queryByText(col.column_name)).not.toBeInTheDocument();
-      });
-
-    expectedFilteredColumnNames.forEach(colName => {
-      expect(screen.getByText(colName)).toBeInTheDocument();
-    });
+  expectedFilteredColumnNames.forEach(colName => {
+    expect(screen.getByText(colName)).toBeInTheDocument();
   });
 });
