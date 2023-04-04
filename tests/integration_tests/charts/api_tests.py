@@ -830,6 +830,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             ],
             "params": None,
             "slice_name": "title",
+            "tags": [],
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
