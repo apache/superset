@@ -126,15 +126,22 @@ def check_dashboard_access(
             from superset.models.dashboard import Dashboard
 
             dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
+            has_dashboard_rbac_access = True
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
                     current_app.appbuilder.sm.raise_for_dashboard_access(dashboard)
-                except DashboardAccessDeniedError as ex:
-                    return on_error(self, ex)
+                except DashboardAccessDeniedError:
+                    has_dashboard_rbac_access = False
                 except Exception as exception:
                     raise exception
 
-            return f(self, *args, dashboard=dashboard, **kwargs)
+            return f(
+                self,
+                *args,
+                dashboard=dashboard,
+                has_dashboard_rbac_access=has_dashboard_rbac_access,
+                **kwargs,
+            )
 
         return wrapper
 

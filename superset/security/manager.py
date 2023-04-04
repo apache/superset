@@ -2046,10 +2046,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
         def has_rbac_access() -> bool:
-            return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
-                dashboard_role.id
-                in [user_role.id for user_role in self.get_user_roles()]
-                for dashboard_role in dashboard.roles
+            if not is_feature_enabled("DASHBOARD_RBAC"):
+                return True
+
+            return (
+                any(
+                    dashboard_role.id
+                    in [user_role.id for user_role in self.get_user_roles()]
+                    for dashboard_role in dashboard.roles
+                )
+                or not dashboard.roles
             )
 
         if self.is_guest_user() and dashboard.embedded:
