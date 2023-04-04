@@ -232,24 +232,24 @@ const iconExprs = {
       ['==', ['get', 'description'], 'Transit Centre'],
       ['==', ['get', 'description'], 'Outlet Centre']
     ],
-    'local_transit_outlet',
+    'outletSC',
     [
       'any',
       ['==', ['get', 'description'], 'Regional'],
       ['==', ['get', 'description'], 'Super Regional']
     ],
-    'regional',
+    'regionalSC',
     ['==', ['get', 'description'], 'Market'],
-    'market',
+    'marketSC',
     ['==', ['get', 'description'], 'Themed'],
-    'themed',
+    'themedSC',
     ['==', ['get', 'description'], 'Large Format Retail'],
-    'lfr',
+    'lfrSC',
     ['==', ['get', 'description'], 'City Centre'],
-    'city_centre',
+    'cityCentreSC',
     ['==', ['get', 'description'], 'Neighbourhood'],
-    'neighbourhood',
-    'sub_regional'
+    'neighbourhoodSC',
+    'subRegionalSC'
   ],
   'department_stores': [
     'case',

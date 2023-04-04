@@ -46,12 +46,14 @@ const { Content, Sider } = Layout;
 const defaults = require('./defaultLayerStyles.js');
 
 const iconsCSS = require('./iconStyles.js');
+const iconsSVG = require('./iconSVG.js');
 
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
 const iconExprs = defaults.iconExprs;
 const intranetImgs = defaults.intranetImgs;
 const iconSizeExprs = defaults.iconSizeExprs;
+
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
 
@@ -133,6 +135,9 @@ export default function LiqThematicMaps(props) {
   const [drawerTitle, setDrawerTitle] = useState('');
 
   const [thematicLegend, setThematicLegend] = useState(null);
+
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
 
   const items = [
     !hideLegend && {
@@ -338,6 +343,24 @@ export default function LiqThematicMaps(props) {
         map.current.addImage(k, img);
       });
     });
+
+    // Load all CSS icon images
+    Object.keys(iconsSVG).map(k => {
+      map.current.addImage(k, iconsSVG[k]);
+      // if (!(k === 'scBase')) {
+        // const img = new Image();
+        // const style = iconsCSS[k];
+        // const width = parseInt(style.width.replace('px', ''));
+        // const height = parseInt(style.height.replace('px', ''));
+        // img.style = style;
+        // canvas.width = width;
+        // canvas.height = height;
+        // context.drawImage(img, 0, 0);
+        // console.log(canvas.toDataURL());
+        //const imageData = context.getImageData(0, 0, width, height);
+        //map.current.addImage(k, img);
+      // }
+    })
 
     // Load map tiles and their default styles
     map.current.on('load', () => {
