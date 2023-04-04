@@ -44,6 +44,18 @@ const drillByModalState = {
     },
   },
 };
+const dataset = {
+  changed_on_humanized: '01-01-2001',
+  created_on_humanized: '01-01-2001',
+  description: 'desc',
+  table_name: 'my_dataset',
+  owners: [
+    {
+      first_name: 'Sarah',
+      last_name: 'Connor',
+    },
+  ],
+};
 const renderModal = async (state?: object) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
@@ -57,6 +69,7 @@ const renderModal = async (state?: object) => {
           formData={formData}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
+          dataset={dataset}
         />
       </>
     );

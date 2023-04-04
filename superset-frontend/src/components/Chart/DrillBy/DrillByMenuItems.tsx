@@ -47,6 +47,7 @@ import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { Dataset } from '../types';
 
 const MAX_SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
@@ -74,6 +75,7 @@ export const DrillByMenuItems = ({
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
   const [searchInput, setSearchInput] = useState('');
+  const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
@@ -114,6 +116,7 @@ export const DrillByMenuItems = ({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then(({ json: { result } }) => {
+          setDataset(result);
           setColumns(
             ensureIsArray(result.columns)
               .filter(column => column.groupby)
@@ -248,6 +251,7 @@ export const DrillByMenuItems = ({
         groupbyFieldName={groupbyFieldName}
         onHideModal={closeModal}
         showModal={showModal}
+        dataset={dataset!}
       />
     </>
   );
