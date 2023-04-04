@@ -296,5 +296,5 @@ class TestTagsDAO(SupersetTestCase):
     def test_validate_tag_name(self):
         assert TagDAO.validate_tag_name("example_tag_name") is True
         assert TagDAO.validate_tag_name("invalid:tag_name") is False
-        db.session.query(Tag).delete()
         db.session.query(TaggedObject).delete()
+        db.session.query(Tag).delete()

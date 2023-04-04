@@ -190,7 +190,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "is_managed_externally",
     ]
-    list_columns += ["tags.id", "tags.name", "tags.type"]
+    if is_feature_enabled("TAGGING_SYSTEM"):
+        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
@@ -216,15 +217,28 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
 
     search_columns = (
-        "created_by",
-        "changed_by",
-        "dashboard_title",
-        "id",
-        "owners",
-        "published",
-        "roles",
-        "slug",
-        "tags",
+        (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+            "tags",
+        )
+        if is_feature_enabled("TAGGING_SYSTEM")
+        else (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+        )
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],

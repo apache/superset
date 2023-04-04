@@ -44,7 +44,6 @@ from tests.integration_tests.test_app import app
 
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("with_tagging_system_feature")
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch.object(async_queries, "set_form_data")
     def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
