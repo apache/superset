@@ -110,13 +110,21 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      {metadataBar}
-      <DrillByChart
-        column={column}
-        filters={filters}
-        formData={formData}
-        groupbyFieldName={groupbyFieldName}
-      />
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        `}
+      >
+        {metadataBar}
+        <DrillByChart
+          column={column}
+          filters={filters}
+          formData={formData}
+          groupbyFieldName={groupbyFieldName}
+        />
+      </div>
     </Modal>
   );
 }
