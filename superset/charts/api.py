@@ -145,8 +145,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "query_context",
         "is_managed_externally",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        show_columns += ["tags.id", "tags.name", "tags.type"]
+
+    show_columns += ["tags.id", "tags.name", "tags.type"]
 
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
@@ -195,8 +195,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "url",
         "viz_type",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        list_columns += ["tags.id", "tags.name", "tags.type"]
+    list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [
         "changed_by.first_name",
@@ -225,8 +224,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
     ]
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ["tags"]
+    search_columns += ["tags"]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
@@ -238,8 +236,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name": [ChartAllTextFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters["tags"] = [ChartTagFilter]
+    search_filters["tags"] = [ChartTagFilter]
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
