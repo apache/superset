@@ -30,7 +30,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ###### Disable dry-run mode
 
-Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
 ##### In your `Dockerfile`
 
@@ -100,7 +100,7 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True
 }
 
-REDIS_HOST = "redis-superset"
+REDIS_HOST = "superset_cache"
 REDIS_PORT = "6379"
 
 class CeleryConfig:
