@@ -88,7 +88,6 @@ class TestTagsDAO(SupersetTestCase):
                     )
                 )
             yield tags
-            db.session.commit()
 
     @pytest.fixture()
     def create_tagged_objects(self):
@@ -123,12 +122,6 @@ class TestTagsDAO(SupersetTestCase):
                 )
 
             yield tagged_objects
-
-            for tag in tags:
-                db.session.add(tag)
-            for tagged_obj in tagged_objects:
-                db.session.add(tagged_obj)
-            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
@@ -303,3 +296,5 @@ class TestTagsDAO(SupersetTestCase):
     def test_validate_tag_name(self):
         assert TagDAO.validate_tag_name("example_tag_name") is True
         assert TagDAO.validate_tag_name("invalid:tag_name") is False
+        db.session.query(Tag).delete()
+        db.session.query(TaggedObject).delete()
