@@ -45,7 +45,7 @@ export default function DrillByChart({
   let groupbyField: any = [];
   const [chartDataResult, setChartDataResult] = useState();
 
-  if (groupbyFieldName && column) {
+  if (column) {
     groupbyField = Array.isArray(formData[groupbyFieldName])
       ? [column.column_name]
       : column.column_name;
@@ -82,8 +82,8 @@ export default function DrillByChart({
           chartType={formData.viz_type}
           enableNoResults
           formData={updatedFormData}
-          height="100%"
           queriesData={chartDataResult}
+          height="100%"
           width="100%"
         />
       ) : (

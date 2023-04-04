@@ -16,27 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
-import { useApiV1Resource } from 'src/hooks/apiResources';
-import { Dataset } from 'src/components/Chart/DrillDetail/types';
+import { Dataset } from 'src/components/Chart/types';
 import MetadataBar from 'src/components/MetadataBar';
 import {
   ContentType,
   MetadataType,
 } from 'src/components/MetadataBar/ContentType';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 
-export const useDatasetMetadataBar = (datasetId: number | string) => {
+export type UseDatasetMetadataBarProps =
+  | { datasetId?: undefined; dataset: Dataset }
+  | { datasetId: number | string; dataset?: undefined };
+export const useDatasetMetadataBar = ({
+  dataset: datasetProps,
+  datasetId,
+}: UseDatasetMetadataBarProps) => {
   const theme = useTheme();
-  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasetId}`);
+  const [result, setResult] = useState<Dataset>();
+  const [status, setStatus] = useState<ResourceStatus>(
+    datasetProps ? ResourceStatus.COMPLETE : ResourceStatus.LOADING,
+  );
 
-  const { status, result } = response;
+  useEffect(() => {
+    if (!datasetProps && datasetId) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then(({ json: { result } }) => {
+          setResult(result);
+          setStatus(ResourceStatus.COMPLETE);
+        })
+        .catch(() => {
+          setStatus(ResourceStatus.ERROR);
+        });
+    }
+  }, [datasetId, datasetProps]);
 
   const metadataBar = useMemo(() => {
     const items: ContentType[] = [];
-    if (result) {
+    const dataset = datasetProps || result;
+    if (dataset) {
       const {
         changed_on_humanized,
         created_on_humanized,
@@ -45,7 +68,7 @@ export const useDatasetMetadataBar = (datasetId: number | string) => {
         changed_by,
         created_by,
         owners,
-      } = result;
+      } = dataset;
       const notAvailable = t('Not available');
       const createdBy =
         `${created_by?.first_name ?? ''} ${
@@ -98,7 +121,7 @@ export const useDatasetMetadataBar = (datasetId: number | string) => {
         )}
       </div>
     );
-  }, [result, status, theme.gridUnit]);
+  }, [datasetProps, result, status, theme.gridUnit]);
 
   return {
     metadataBar,
