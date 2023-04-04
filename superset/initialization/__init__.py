@@ -191,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
+        from superset.models.dashboard import get_dashboard_list
 
         #
         # Setup API views
@@ -370,6 +371,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL Lab"),
         )
+        dashboard_list=get_dashboard_list()
+        for i in dashboard_list:
+            appbuilder.add_link(
+            __(i.dashboard_title),
+            href=i.url,
+            icon="fa-save",
+            category="Navigation",
+            category_label=__("Navigation"),
+            )
+
         appbuilder.add_view(
             TaggedObjectsModelView,
             "All Entities",
