@@ -20,7 +20,6 @@ import json
 import logging
 import re
 import uuid
-# pylint: disable=too-many-lines
 from collections import defaultdict
 from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
