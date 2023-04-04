@@ -160,8 +160,10 @@ korean-lunar-calendar==0.2.1
     # via holidays
 limits==3.3.1
     # via flask-limiter
-mako==1.1.4
-    # via alembic
+mako==1.2.4
+    # via
+    #   alembic
+    #   apache-superset
 markdown==3.3.4
     # via apache-superset
 markdown-it-py==2.2.0
@@ -170,6 +172,7 @@ markupsafe==2.1.1
     # via
     #   jinja2
     #   mako
+    #   werkzeug
     #   wtforms
 marshmallow==3.13.0
     # via
@@ -310,14 +313,15 @@ vine==5.0.0
     #   kombu
 wcwidth==0.2.5
     # via prompt-toolkit
-werkzeug==2.1.2
+werkzeug==2.3.3
     # via
+    #   apache-superset
     #   flask
     #   flask-jwt-extended
     #   flask-login
 wrapt==1.12.1
     # via deprecated
-wtforms==3.0.1
+wtforms==2.3.3
     # via
     #   apache-superset
     #   flask-appbuilder
