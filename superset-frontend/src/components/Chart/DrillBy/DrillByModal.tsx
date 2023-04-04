@@ -29,6 +29,7 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
+import DrillByChart from './DrillByChart';
 
 interface ModalFooterProps {
   exploreChart: () => void;
@@ -44,7 +45,7 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
       buttonStyle="primary"
       buttonSize="small"
       onClick={closeModal}
-      data-test="close-drillby-modal"
+      data-test="close-drill-by-modal"
     >
       {t('Close')}
     </Button>
@@ -55,14 +56,16 @@ interface DrillByModalProps {
   column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
   formData: { [key: string]: any; viz_type: string };
+  groupbyFieldName?: string;
   onHideModal: () => void;
   showModal: boolean;
 }
 
 export default function DrillByModal({
   column,
-  formData,
   filters,
+  formData,
+  groupbyFieldName,
   onHideModal,
   showModal,
 }: DrillByModalProps) {
@@ -102,7 +105,12 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      {}
+      <DrillByChart
+        column={column}
+        filters={filters}
+        formData={formData}
+        groupbyFieldName={groupbyFieldName}
+      />
     </Modal>
   );
 }
