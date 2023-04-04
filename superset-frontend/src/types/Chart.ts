@@ -57,7 +57,7 @@ export type Slice = {
   form_data?: QueryFormData;
   query_context?: object;
   is_managed_externally: boolean;
-  owners?: number;
+  owners?: number[];
 };
 
 export default Chart;

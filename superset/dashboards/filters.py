@@ -34,9 +34,6 @@ from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 from superset.connectors.sqla import models
 
-
-import logging
-logger = logging.getLogger(__name__)
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Title or Slug")
     arg_name = "title_or_slug"
