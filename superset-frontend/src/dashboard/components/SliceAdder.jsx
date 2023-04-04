@@ -347,8 +347,8 @@ class SliceAdder extends React.Component {
           <Input
             placeholder={
               this.state.showOnlyMyCharts
-                ? t('Filter charts')
-                : t('Filter your charts')
+                ? t('Filter your charts')
+                : t('Filter charts')
             }
             className="search-input"
             onChange={ev => this.handleChange(ev.target.value)}
