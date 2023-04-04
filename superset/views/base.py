@@ -382,19 +382,16 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
         for k in FRONTEND_CONF_KEYS
     }
 
+    frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [ ReportRecipientType.EMAIL]
+
     if conf.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-        ]
-        if conf.get("VO_URL"):
-            frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+                ReportRecipientType.SLACK
+        )
+    if conf.get("VO_URL"):
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
                 ReportRecipientType.VO
-            )
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-        ]
+        )
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()

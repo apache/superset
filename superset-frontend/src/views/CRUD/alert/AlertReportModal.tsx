@@ -417,10 +417,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentNotification = JSON.parse(
     JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
   );
-  const reportNotificationsAllowed = currentNotification.splice(
-    currentNotification,
-    currentNotification.indexOf(RecipientIconName.VO),
-    1,
+  const reportNotificationsAllowed = currentNotification.filter(
+    (item: any) => item !== RecipientIconName.VO,
   );
   const allowedNotificationMethods: NotificationMethodOption[] =
     (isReport
