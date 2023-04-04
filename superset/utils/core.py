@@ -2045,7 +2045,7 @@ def raise_incident(conf, report_schedule, message_type, exception = "") -> None:
             recipient_config = json.loads(recipient.recipient_config_json)
             routing_key = recipient_config["target"]
     if routing_key:
-        WEBHOOK_URL = conf["VO_URL"] + routing_key.strip()
+        WEBHOOK_URL = "https://" + conf["VO_URL"] + "/" + routing_key.strip()
         victor_ops_data = get_vo_payload(conf, report_schedule, message_type,exception)
         try:
             logger.info("VO PAYLOAD", str(victor_ops_data))
