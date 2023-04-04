@@ -22,7 +22,13 @@ import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
+import fetchMock from 'fetch-mock';
 import DrillByModal from './DrillByModal';
+
+const CHART_DATA_ENDPOINT =
+  'glob:*api/v1/chart/data?form_data=%7B%22slice_id%22%3A18%7D';
+
+fetchMock.post(CHART_DATA_ENDPOINT, { body: {} }, {});
 
 const { form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
@@ -41,6 +47,7 @@ const drillByModalState = {
 const renderModal = async (state?: object) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
+
     return (
       <>
         <button type="button" onClick={() => setShowModal(true)}>
@@ -48,14 +55,12 @@ const renderModal = async (state?: object) => {
         </button>
         <DrillByModal
           formData={formData}
-          filters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
         />
       </>
     );
   };
-
   render(<DrillByModalWrapper />, {
     useDnd: true,
     useRedux: true,
@@ -66,6 +71,7 @@ const renderModal = async (state?: object) => {
   userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
 };
+afterEach(fetchMock.restore);
 
 test('should render the title', async () => {
   await renderModal(drillByModalState);

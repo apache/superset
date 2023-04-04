@@ -21,11 +21,12 @@ import React, { ReactNode } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
+import type { MenuProps } from 'antd/lib/menu';
 
 export type MenuItemWithTruncationProps = {
   tooltipText: ReactNode;
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: MenuProps['onClick'];
 };
 
 export const MenuItemWithTruncation = ({
