@@ -137,10 +137,14 @@ export function setupStore({
     },
     middleware: getDefaultMiddleware =>
       getDefaultMiddleware({
+        immutableCheck: {
+          warnAfter: 200,
+        },
         serializableCheck: {
           // Ignores AbortController instances
           ignoredActionPaths: [/queryController/g],
           ignoredPaths: [/queryController/g],
+          warnAfter: 200,
         },
       }).concat(logger),
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
