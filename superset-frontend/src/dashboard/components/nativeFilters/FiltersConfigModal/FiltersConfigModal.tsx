@@ -33,8 +33,7 @@ import {
   SLOW_DEBOUNCE,
   t,
 } from '@superset-ui/core';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { useDispatch } from 'react-redux';
 import { AntdForm } from 'src/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -91,7 +90,6 @@ export interface FiltersConfigModalProps {
   createNewOnOpen?: boolean;
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
-  updateCascadeParentIds: (id: string, parentIds: string[]) => void;
 }
 export const ALLOW_DEPENDENCIES = [
   'filter_range',
@@ -119,8 +117,9 @@ function FiltersConfigModal({
   createNewOnOpen,
   onSave,
   onCancel,
-  updateCascadeParentIds,
 }: FiltersConfigModalProps) {
+  const dispatch = useDispatch();
+
   const [form] = AntdForm.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
@@ -314,9 +313,11 @@ function FiltersConfigModal({
       }
       const { cascadeParentIds } = filter;
       if (cascadeParentIds) {
-        updateCascadeParentIds(
-          key,
-          cascadeParentIds.filter(id => canBeUsedAsDependency(id)),
+        dispatch(
+          updateCascadeParentIds(
+            key,
+            cascadeParentIds.filter(id => canBeUsedAsDependency(id)),
+          ),
         );
       }
     });
@@ -625,8 +626,4 @@ function FiltersConfigModal({
   );
 }
 
-export default React.memo(
-  connect(null, dispatch =>
-    bindActionCreators({ updateCascadeParentIds }, dispatch),
-  )(FiltersConfigModal),
-);
+export default React.memo(FiltersConfigModal);
