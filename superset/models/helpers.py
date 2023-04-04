@@ -1059,7 +1059,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql, self.schema, mutator=assign_column_label  # type: ignore
+            )
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
