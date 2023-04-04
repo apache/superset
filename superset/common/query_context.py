@@ -86,9 +86,7 @@ class QueryContext:
         self._processor = QueryContextProcessor(self)
 
     def get_data(
-        self,
-        df: pd.DataFrame,
-        coltypes:List[str]
+        self, df: pd.DataFrame, coltypes: List[str]
     ) -> Union[str, List[Dict[str, Any]]]:
         return self._processor.get_data(df, coltypes)
 
