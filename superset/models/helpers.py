@@ -682,6 +682,7 @@ class QueryStringExtended(NamedTuple):
     prequeries: List[str]
     sql: str
 
+
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
     applied_filter_columns: List[ColumnTyping]
@@ -691,6 +692,7 @@ class SqlaQuery(NamedTuple):
     labels_expected: List[str]
     prequeries: List[str]
     sqla_query: Select
+
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
@@ -941,6 +943,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
+            applied_filter_columns=sqlaq.applied_filter_columns,
+            rejected_filter_columns=sqlaq.rejected_filter_columns,
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
@@ -1476,6 +1480,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns = columns or []
         groupby = groupby or []
         rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
+        applied_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
@@ -2092,7 +2097,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
             qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
-        
+
         filter_columns = [flt.get("col") for flt in filter] if filter else []
         rejected_filter_columns = [
             col
@@ -2102,7 +2107,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and col not in self.column_names
             and col not in applied_template_filters
         ] + rejected_adhoc_filters_columns
-        
+
         applied_filter_columns = [
             col
             for col in filter_columns
@@ -2114,6 +2119,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
             cte=cte,
+            applied_filter_columns=applied_filter_columns,
+            rejected_filter_columns=rejected_filter_columns,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
             sqla_query=qry,
