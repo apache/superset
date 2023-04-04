@@ -92,7 +92,6 @@ class LiqMarker {
 }
 
 // Shopping Centres
-
 export const regionalSC = (new LiqMarker(35, 4, 'red', 'none').createCircle().img);
 export const subRegionalSC = (new LiqMarker(30, 3, 'blue', 'none').createCircle().img);
 export const neighbourhoodSC = (new LiqMarker(25, 3, 'orange', 'none').createCircle().img);
