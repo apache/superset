@@ -751,7 +751,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
-    it.only('should remove added charts', () => {
+    it('should remove added charts', () => {
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
