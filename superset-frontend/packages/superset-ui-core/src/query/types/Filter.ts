@@ -58,6 +58,7 @@ export interface FreeFormAdhocFilter {
   expressionType: 'SQL';
   clause: 'WHERE' | 'HAVING';
   sqlExpression: string;
+  isExtra?: boolean;
 }
 
 export type AdhocFilter = SimpleAdhocFilter | FreeFormAdhocFilter;
