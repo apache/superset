@@ -19,7 +19,7 @@
 
 import React, { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit } from 'lodash';
+import { omit, isUndefined, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -29,11 +29,7 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal from './DrillByModal';
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
-const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data*';
-
-fetchMock
-  .post(CHART_DATA_ENDPOINT, { body: {} }, {})
-  .post(FORM_DATA_KEY_ENDPOINT, { key: '123' });
+const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 
 const { form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
@@ -95,6 +91,11 @@ const renderModal = async () => {
   await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
 };
 
+beforeEach(() => {
+  fetchMock
+    .post(CHART_DATA_ENDPOINT, { body: {} }, {})
+    .post(FORM_DATA_KEY_ENDPOINT, { key: '123' });
+});
 afterEach(fetchMock.restore);
 
 test('should render the title', async () => {
@@ -121,7 +122,13 @@ test('should generate Explore url', async () => {
   await renderModal();
   await waitFor(() => fetchMock.called(FORM_DATA_KEY_ENDPOINT));
   const expectedRequestPayload = {
-    form_data: omit(formData, ['slice_id', 'slice_name', 'dashboards']),
+    form_data: {
+      ...omitBy(
+        omit(formData, ['slice_id', 'slice_name', 'dashboards']),
+        isUndefined,
+      ),
+      slice_id: 0,
+    },
     datasource_id: Number(formData.datasource.split('__')[0]),
     datasource_type: formData.datasource.split('__')[1],
   };
