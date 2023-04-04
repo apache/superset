@@ -434,6 +434,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
+            "tags": [],
             "thumbnail_url": dashboard.thumbnail_url,
             "is_managed_externally": False,
         }
