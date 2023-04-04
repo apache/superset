@@ -254,12 +254,12 @@ const iconExprs = {
   'department_stores': [
     'case',
     ['==', ['get', 'tenant_id'], 4537],
-    'david_jones',
+    'davidJones',
     ['==', ['get', 'tenant_id'], 11884],
     'myer',
     ['==', ['get', 'tenant_id'], 7644],
-    'harris_scarfe',
-    'unknown_ds'
+    'harrisScarfe',
+    'unknownDS'
   ],
   'discount_department_stores': [
     'case',
