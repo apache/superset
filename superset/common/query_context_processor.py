@@ -449,7 +449,7 @@ class QueryContextProcessor:
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def get_data(
-        self, df: pd.DataFrame, coltypes: List[str]
+        self, df: pd.DataFrame, coltypes: List[GenericDataType]
     ) -> Union[str, List[Dict[str, Any]]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
@@ -466,14 +466,9 @@ class QueryContextProcessor:
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 ndf = df.copy()
                 columns = list(df)
-                i = 0
-                for col in columns:
-                    coltype = None
-                    if i < len(coltypes):
-                        coltype = coltypes[i]
-                        if coltype == GenericDataType.NUMERIC:
-                            ndf[col] = pd.to_numeric(df[col], errors="ignore")
-                    i += 1
+                for i, col in enumerate(columns):
+                    if coltypes[i] == GenericDataType.NUMERIC:
+                        ndf[col] = pd.to_numeric(df[col], errors="ignore")
                 result = excel.df_to_excel(ndf, **config["EXCEL_EXPORT"])
             return result or ""
 
