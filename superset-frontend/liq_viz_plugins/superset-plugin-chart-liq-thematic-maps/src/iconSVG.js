@@ -15,6 +15,28 @@ class LiqMarker {
     return `0,${height} ${width/2},0 ${width},${height}`;
   }
 
+  static generatePentagonPolygon(width, height) {
+    // Calculate the distance from the center of the pentagon to its vertices
+    const radius = Math.min(width, height) / 2;
+    
+    // Calculate the angle between each vertex of the pentagon
+    const angle = (Math.PI * 2) / 5;
+    
+    // Initialize an empty array to store the coordinates of the pentagon's vertices
+    const points = [];
+    
+    // Loop through each vertex and calculate its coordinates
+    for (let i = 0; i < 5; i++) {
+      const x = width / 2 + radius * Math.cos(i * angle);
+      const y = height / 2 + radius * Math.sin(i * angle);
+      
+      // Push the coordinates to the points array
+      points.push(`${x},${y}`);
+    }
+    
+    return points.join(' ');
+  }
+
   static generateStarPolygon(width, height) {
   
     const centerX = width / 2;
@@ -77,6 +99,19 @@ class LiqMarker {
     star.setAttribute("stroke-width", strokeWidth);
   
     this.svg.appendChild(star);
+    return this;
+  }
+
+  createPentagon(size=this.size, strokeWidth=this.strokeWidth, strokeColor=this.strokeColor, fill=this.fill) {
+  
+    const pentagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const points = this.constructor.generatePentagonPolygon(size, size);
+    pentagon.setAttribute("points", points);
+    pentagon.setAttribute("fill", fill);
+    pentagon.setAttribute("stroke", strokeColor);
+    pentagon.setAttribute("stroke-width", strokeWidth);
+  
+    this.svg.appendChild(pentagon);
     return this;
   }
 
@@ -176,3 +211,41 @@ export const snooze = (new LiqMarker(25, 2, 'black', 'brown').createPolygon(
 ).img);
 export const spotlight = (new LiqMarker(25, 2, 'black', 'red').createCircle().img);
 export const theGoodGuys = (new LiqMarker(25, 2, 'black', 'purple').createStar().img);
+
+// Mini majors
+export const appleStore = (new LiqMarker(25, 2, 'black', '#90EE90').createStar().img);
+export const bestAndLess = (new LiqMarker(25, 2, 'black', 'blue').createCircle().img);
+export const chemistWarehouse = (new LiqMarker(25, 2, 'black', 'brown').createPolygon(
+  diamondPoints(25)
+).img);
+export const cottonOn = (new LiqMarker(25, 2, 'black', 'brown').createCircle().img);
+export const countryRoad = (new LiqMarker(25, 2, 'black', 'pink').createCircle().img);
+export const daiso = (new LiqMarker(25, 2, 'black', 'blue').createSquare().img);
+export const danMurphys = (new LiqMarker(25, 2, 'black', 'green').createPentagon().img);
+export const firstChoiceLiquor = (new LiqMarker(25, 2, 'black', 'brown').createPentagon().img);
+export const glueStore = (new LiqMarker(25, 2, 'black', 'orange').createCircle().img);
+export const hAndM = (new LiqMarker(25, 2, 'black', 'yellow').createCircle().img);
+export const harrisFarmMarkets = (new LiqMarker(25, 2, 'black', 'blue').createPentagon().img);
+export const hsHome = (new LiqMarker(25, 2, 'black', 'purple').createPolygon(
+  reverseTrianglePoints(25)
+).img);
+export const jbhifi = (new LiqMarker(25, 2, 'black', 'orange').createStar().img);
+export const kathmandu = (new LiqMarker(25, 2, 'black', 'yellow').createTriangle().img);
+export const meccaCosmetica = (new LiqMarker(25, 2, 'black', 'orange').createPolygon(
+  reverseTrianglePoints(25)
+).img);
+export const pricelinePharmacy = (new LiqMarker(25, 2, 'black', 'pink').createPolygon(
+  diamondPoints(25)
+).img);
+export const rebelSports = (new LiqMarker(25, 2, 'black', '#008080').createTriangle().img);
+export const rivers = (new LiqMarker(25, 2, 'black', '#90EE90').createCircle().img);
+export const sephora = (new LiqMarker(25, 2, 'black', 'green').createPolygon(
+  reverseTrianglePoints(25)
+).img);
+export const terryWhiteChemmart = (new LiqMarker(25, 2, 'black', 'blue').createPolygon(
+  diamondPoints(25)
+).img);
+export const theRejectShop = (new LiqMarker(25, 2, 'black', 'brown').createSquare().img);
+export const tkMaxx = (new LiqMarker(25, 2, 'black', '#008080').createCircle().img);
+export const uniqlo = (new LiqMarker(25, 2, 'black', 'purple').createCircle().img);
+export const zara = (new LiqMarker(25, 2, 'black', 'green').createCircle().img);
