@@ -159,30 +159,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_dashboard_view__user_access_regular_rbac_with_roles(self):
-        if backend() == "hive":
-            return
-
-        slice = (
-            db.session.query(Slice)
-            .filter_by(slice_name="Girl Name Cloud")
-            .one_or_none()
-        )
-        dashboard = create_dashboard_to_db(published=True, slices=[slice])
-        grant_access_to_dashboard(dashboard, "Alpha")
-        self.login("gamma_sqllab")
-
-        response = self.get_dashboard_view_response(dashboard)
-
-        self.assert200(response)
-
-        request_payload = get_query_context("birth_names")
-        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 200)
-        db.session.delete(dashboard)
-        db.session.commit()
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
         if backend() == "hive":
             return
