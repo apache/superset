@@ -8893,7 +8893,7 @@ msgstr "查询"
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:253
 #, python-format
 msgid "Query %s: %s"
-msgstr "查询 : %s "
+msgstr "查询 %s: %s "
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:258
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:283
@@ -11414,7 +11414,7 @@ msgid ""
 "The database %s is linked to %s charts that appear on %s dashboards and "
 "users have %s SQL Lab tabs using this database open. Are you sure you "
 "want to continue? Deleting the database will break those objects."
-msgstr "数据库 %s 已经关联了 %s 图表和 %s 看板。确定要继续吗？删除数据库将破坏这些对象。"
+msgstr "数据库 %s 已经关联了 %s 图表和 %s 仪表盘，并且用户在该数据库上打开了 %s 个 SQL 编辑器标签。确定要继续吗？删除数据库将破坏这些对象。"
 
 #: superset/errors.py:126
 msgid "The database is currently running too many queries."
@@ -12044,7 +12044,7 @@ msgstr "此组件没有足够的空间。请尝试减小其宽度，或增加目
 #: superset-frontend/src/views/CRUD/hooks.ts:522
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
-msgstr "获取此看板的收藏夹状态时出现问题。"
+msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 
 #: superset-frontend/src/views/CRUD/utils.tsx:181
 msgid "There was an error fetching your recent activity:"
@@ -12139,7 +12139,7 @@ msgstr "获取此看板的收藏夹状态时出现问题。"
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:195
 #, python-format
 msgid "There was an issue fetching your recent activity: %s"
-msgstr "获取您最近的活动时出错："
+msgstr "获取您最近的活动时出错：%s"
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:152
 #, python-format
@@ -12159,7 +12159,7 @@ msgstr "删除时出现问题：%s"
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:211
 #, python-format
 msgid "There was an issues fetching your dashboards: %s"
-msgstr "删除所选仪表板时出现问题："
+msgstr "删除所选仪表板时出现问题：%s"
 
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:233
 #, python-format
@@ -13406,7 +13406,7 @@ msgstr "已查看"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:124
 msgid "Viewed %s"
-msgstr "已查看"
+msgstr "已查看 %s"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:268
 msgid "Viewport"
@@ -13579,12 +13579,12 @@ msgstr "警告！如果元数据不存在，更改数据集可能会破坏图表
 #: superset/db_engine_specs/bigquery.py:166
 #, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
-msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column)\" 。"
 
 #: superset/db_engine_specs/sqlite.py:63
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\""
-msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+msgstr "我们似乎无法解析列 \"%(column_name)\" 。"
 
 #: superset/db_engine_specs/postgres.py:150
 #: superset/db_engine_specs/presto.py:171
@@ -14165,7 +14165,7 @@ msgstr "年"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:70
 #, python-format
 msgid "Years %s"
-msgstr "年"
+msgstr "年 %s"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:443
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:537
