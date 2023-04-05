@@ -1846,25 +1846,34 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
-        if config["ENABLE_ACCESS_REQUEST"]:
-            for datasource in dashboard.datasources:
-                datasource = DatasourceDAO.get_datasource(
-                    datasource_type=DatasourceType(datasource.type),
-                    datasource_id=datasource.id,
-                    session=db.session(),
+        has_access_ = False
+        for datasource in dashboard.datasources:
+            datasource = DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType(datasource.type),
+                datasource_id=datasource.id,
+                session=db.session(),
+            )
+            if datasource and security_manager.can_access_datasource(
+                datasource=datasource,
+            ):
+                has_access_ = True
+                break
+
+            if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
+                flash(
+                    __(security_manager.get_datasource_access_error_msg(datasource)),
+                    "danger",
                 )
-                if datasource and not security_manager.can_access_datasource(
-                    datasource=datasource
-                ):
-                    flash(
-                        __(
-                            security_manager.get_datasource_access_error_msg(datasource)
-                        ),
-                        "danger",
-                    )
-                    return redirect(
-                        f"/superset/request_access/?dashboard_id={dashboard.id}"
-                    )
+                return redirect(
+                    f"/superset/request_access/?dashboard_id={dashboard.id}"
+                )
+
+        if not has_access_:
+            flash(
+                __("You are not authorized to view this dashboard"),
+                "danger",
+            )
+            return redirect(f"/dashboard/list/")
 
         dash_edit_perm = security_manager.is_owner(
             dashboard
