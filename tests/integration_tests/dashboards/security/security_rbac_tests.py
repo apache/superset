@@ -129,9 +129,13 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
         self.login("gamma")
 
+        # assert redirect on regular rbac access denied
+        response = self.get_dashboard_view_response(dashboard)
+        assert response.status_code == 302
+
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
         db.session.delete(dashboard)
         db.session.commit()
 
@@ -150,11 +154,11 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         response = self.get_dashboard_view_response(dashboard)
 
-        self.assert200(response)
+        assert response.status_code == 200
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         db.session.delete(dashboard)
         db.session.commit()
 
