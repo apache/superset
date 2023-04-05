@@ -114,9 +114,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 # update datasource id, type, and name
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config.update(dataset_dict)
-                dataset_uid = (
-                    f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
-                )
+                # pylint: disable=line-too-long
+                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:
                     del config["query_context"]
