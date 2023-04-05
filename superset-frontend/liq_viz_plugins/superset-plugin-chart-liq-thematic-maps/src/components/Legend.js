@@ -3,7 +3,9 @@ import {Avatar } from 'antd';
 import LegendSub from './LegendSub.js';
 
 import { useAppStore } from '../store/appStore';
+import { icons } from 'antd/lib/image/PreviewGroup.js';
 
+const iconsSVG = require('../iconSVG.js');
 const defaults = require('../defaultLayerStyles.js');
 const intranetImgs = defaults.intranetImgs;
 const intranetLegendExprs = defaults.intranetLegendExprs;
@@ -22,94 +24,94 @@ const nameMap = {
 // Map each tile intranet layer and it's corresponding data for the legend in the format [Name, Image Icon Source, Description]
 const intranetLegend = {
   'shopping_centres': [
-    ['Super Regional', intranetImgs['regional'], ''],
-    ['Regional', intranetImgs['regional'], ''],
-    ['Sub-regional', intranetImgs['sub_regional'], ''],
-    ['Neighbourhood', intranetImgs['neighbourhood'], ''],
-    ['City Centre', intranetImgs['city_centre'], ''],
-    ['Themed', intranetImgs['themed'], ''],
-    ['Large Format Retail', intranetImgs['lfr'], ''],
-    ['Outlet', intranetImgs['local_transit_outlet'], ''],
-    ['Market', intranetImgs['market'], ''],
-    ['Local', intranetImgs['local_transit_outlet'], ''],
-    ['Transit', intranetImgs['local_transit_outlet'], '']
+    ['Super Regional', iconsSVG.regionalSC, ''],
+    ['Regional', iconsSVG.regionalSC, ''],
+    ['Sub-regional', iconsSVG.subRegionalSC, ''],
+    ['Neighbourhood', iconsSVG.neighbourhoodSC, ''],
+    ['City Centre', iconsSVG.cityCentreSC, ''],
+    ['Themed', iconsSVG.themedSC, ''],
+    ['Large Format Retail', iconsSVG.lfrSC, ''],
+    ['Outlet', iconsSVG.outletSC, ''],
+    ['Market', iconsSVG.marketSC, ''],
+    ['Local', iconsSVG.outletSC, ''],
+    ['Transit', iconsSVG.outletSC, '']
   ],
   'department_stores': [
-    ['David Jones', intranetImgs['david_jones'], ''],
-    ['Myer', intranetImgs['myer'], ''],
-    ['Harris Scarfe', intranetImgs['harris_scarfe'], ''],
-    ['Unknown DS', intranetImgs['unknown_ds'], '']
+    ['David Jones', iconsSVG.davidJones, ''],
+    ['Myer', iconsSVG.myer, ''],
+    ['Harris Scarfe', iconsSVG.harrisScarfe, ''],
+    ['Unknown DS', iconsSVG.unknownDS, '']
   ],
   'discount_department_stores': [
-    ['Kmart', intranetImgs['kmart'], ''],
-    ['Kmart Hub', intranetImgs['kmart_hub'], ''],
-    ['Target', intranetImgs['target'], ''],
-    ['Big W', intranetImgs['big_w'], ''],
-    ['Target Country', intranetImgs['target_country'], ''],
-    ['Unknown DDS', intranetImgs['unknown_dds'], '']
+    ['Kmart', iconsSVG.kmart, ''],
+    ['Kmart Hub', iconsSVG.kmartHub, ''],
+    ['Target', iconsSVG.target, ''],
+    ['Target Country', iconsSVG.targetCountry, ''],
+    ['Big W', iconsSVG.bigW, ''],
+    ['Unknown DDS', iconsSVG.unknownDDS, '']
   ],
   'large_format_retail': [
-    ['Amart', intranetImgs['amart'], ''],
-    ['Anaconda', intranetImgs['anaconda'], ''],
-    ['Bunnings', intranetImgs['bunnings'], ''],
-    ['Domayne', intranetImgs['domayne'], ''],
-    ['Fantastic Furniture', intranetImgs['fantastic_furniture'], ''],
-    ['Forty Winks', intranetImgs['forty_winks'], ''],
-    ['Harvey Norman Group', intranetImgs['harvey_norman'], ''],
-    ['Ikea', intranetImgs['ikea'], ''],
-    ['Lincraft', intranetImgs['lincraft'], ''],
-    ['Snooze', intranetImgs['snooze'], ''],
-    ['Spotlight', intranetImgs['spotlight'], ''],
-    ['The Good Guys', intranetImgs['the_good_guys'], '']
+    ['Amart', iconsSVG.amart, ''],
+    ['Anaconda', iconsSVG.anaconda, ''],
+    ['Bunnings', iconsSVG.bunnings, ''],
+    ['Domayne', iconsSVG.domayne, ''],
+    ['Fantastic Furniture', iconsSVG.fantasticFurniture, ''],
+    ['Forty Winks', iconsSVG.fortyWinks, ''],
+    ['Harvey Norman Group', iconsSVG.harveyNorman, ''],
+    ['Ikea', iconsSVG.ikea, ''],
+    ['Lincraft', iconsSVG.lincraft, ''],
+    ['Snooze', iconsSVG.snooze, ''],
+    ['Spotlight', iconsSVG.spotlight, ''],
+    ['The Good Guys', iconsSVG.theGoodGuys, '']
   ],
   'mini_majors': [
-    ['Apple Store', intranetImgs['apple_store'], ''],
-    ['Best & Less', intranetImgs['best_and_less'], ''],
-    ['Chemist Warehouse', intranetImgs['chemist_warehouse'], ''],
-    ['Cotton On', intranetImgs['cotton_on'], ''],
-    ['Country Road', intranetImgs['country_road'], ''],
-    ['Daiso', intranetImgs['daiso'], ''],
-    ['Dan Murphy\'s', intranetImgs['dan_murphys'], ''],
-    ['First Choice Liquor', intranetImgs['first_choice_liquor'], ''],
-    ['Glue Store', intranetImgs['glue_store'], ''],
-    ['H & M', intranetImgs['h_and_m'], ''],
-    ['Harris Farm Markets', intranetImgs['harris_farm_markets'], ''],
-    ['HS Home', intranetImgs['hs_home'], ''],
-    ['JB Hi-Fi', intranetImgs['jbhifi'], ''],
-    ['Kathmandu', intranetImgs['kathmandu'], ''],
-    ['Mecca Cosmetica', intranetImgs['mecca_cosmetica'], ''],
-    ['Priceline Pharmacy', intranetImgs['priceline_pharmacy'], ''],
-    ['Rebel Sport', intranetImgs['rebel_sports'], ''],
-    ['Rivers', intranetImgs['rivers'], ''],
-    ['Sephora', intranetImgs['sephora'], ''],
-    ['Terry White Chemist', intranetImgs['terry_white_chemmart'], ''],
-    ['The Reject Shop', intranetImgs['the_reject_shop'], ''],
-    ['TK Maxx', intranetImgs['tk_maxx'], ''],
-    ['Uniqlo', intranetImgs['uniqlo'], ''],
-    ['Zara', intranetImgs['zara'], '']
+    ['Apple Store', iconsSVG.appleStore, ''],
+    ['Best & Less', iconsSVG.bestAndLess, ''],
+    ['Chemist Warehouse', iconsSVG.chemistWarehouse, ''],
+    ['Cotton On', iconsSVG.cottonOn, ''],
+    ['Country Road', iconsSVG.countryRoad, ''],
+    ['Daiso', iconsSVG.daiso, ''],
+    ['Dan Murphy\'s', iconsSVG.danMurphys, ''],
+    ['First Choice Liquor', iconsSVG.firstChoiceLiquor, ''],
+    ['Glue Store', iconsSVG.glueStore, ''],
+    ['H & M', iconsSVG.hAndM, ''],
+    ['Harris Farm Markets', iconsSVG.harrisFarmMarkets, ''],
+    ['HS Home', iconsSVG.hsHome, ''],
+    ['JB Hi-Fi', iconsSVG.jbhifi, ''],
+    ['Kathmandu', iconsSVG.kathmandu, ''],
+    ['Mecca Cosmetica', iconsSVG.meccaCosmetica, ''],
+    ['Priceline Pharmacy', iconsSVG.pricelinePharmacy, ''],
+    ['Rebel Sport', iconsSVG.rebelSports, ''],
+    ['Rivers', iconsSVG.rivers, ''],
+    ['Sephora',iconsSVG.sephora, ''],
+    ['Terry White Chemist', iconsSVG.terryWhiteChemmart, ''],
+    ['The Reject Shop', iconsSVG.theRejectShop, ''],
+    ['TK Maxx', iconsSVG.tkMaxx, ''],
+    ['Uniqlo', iconsSVG.uniqlo, ''],
+    ['Zara', iconsSVG.zara, '']
   ],
   'supermarkets': [
-    ['Woolworths', intranetImgs['woolworths'], ''],
-    ['Coles', intranetImgs['coles'], ''],
-    ['Aldi', intranetImgs['aldi'], ''],
-    ['IGA', intranetImgs['iga'], ''],
-    ['FoodWorks', intranetImgs['foodworks'], ''],
-    ['Costco', intranetImgs['costco'], ''],
-    ['Drakes', intranetImgs['drakes_supermarket'], ''],
-    ['Spar', intranetImgs['spar'], ''],
-    ['IGA Express', intranetImgs['iga_express'], ''],
-    ['Others', intranetImgs['other_smkt'], ''],
-    ['Unknown Smkt', intranetImgs['unknown_smkt'], '']
+    ['Woolworths', iconsSVG.woolworths, ''],
+    ['Coles', iconsSVG.coles, ''],
+    ['Aldi',iconsSVG.aldi, ''],
+    ['IGA', iconsSVG.iga, ''],
+    ['FoodWorks', iconsSVG.foodWorks, ''],
+    ['Costco', iconsSVG.costco, ''],
+    ['Drakes', iconsSVG.drakes, ''],
+    ['Spar', iconsSVG.spar, ''],
+    ['IGA Express', iconsSVG.igaExpress, ''],
+    ['Others', iconsSVG.otherSmkt, ''],
+    ['Unknown Smkt', iconsSVG.unknownSmkt, '']
   ],
   'liquor': [
-    ['Liquorland', intranetImgs['liquorland'], ''],
-    ['BWS', intranetImgs['bws'], ''],
-    ['IGA Liquor', intranetImgs['iga_liquor'], ''],
-    ['Aldi Liquor', intranetImgs['aldi_liquor'], ''],
-    ['Vintage Cellars', intranetImgs['vintage_cellars'], ''],
-    ['First Choice Liquor', intranetImgs['first_choice_liquor'], ''],
-    ['Dan Murphys', intranetImgs['dan_murphys'], ''],
-    ['Other Liquor', intranetImgs['other_liquor']]
+    ['Liquorland', iconsSVG.liquorLand, ''],
+    ['BWS', iconsSVG.bws, ''],
+    ['IGA Liquor', iconsSVG.igaLiquor, ''],
+    ['Aldi Liquor', iconsSVG.aldiLiquor, ''],
+    ['Vintage Cellars', iconsSVG.vintageCellars, ''],
+    ['First Choice Liquor', iconsSVG.firstChoiceLiquor, ''],
+    ['Dan Murphys', iconsSVG.danMurphys, ''],
+    ['Other Liquor', iconsSVG.otherLiquor, '']
   ]
 };
 
@@ -169,7 +171,7 @@ export default function Legend(props) {
           return {
             title: d[0],
             desc: d[2],
-            avatar: <Avatar src={d[1]} shape='square' size={24} />,
+            avatar: <img src={d[1].src} />,
             hide: d[0]
           }
         })])

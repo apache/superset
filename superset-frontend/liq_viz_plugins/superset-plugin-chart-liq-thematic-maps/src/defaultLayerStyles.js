@@ -187,42 +187,6 @@ const intranetLegendExprs = {
   }
 };
 
-// const iconSizeExprs = {
-//   'shopping_centres': [
-//     'case',
-//     [
-//       'any',
-//       ['==', ['get', 'description'], 'Local Centre'],
-//       ['==', ['get', 'description'], 'Transit Centre'],
-//       ['==', ['get', 'description'], 'Outlet Centre'],
-//       ['==', ['get', 'description'], 'Large Format Retail'],
-//       ['==', ['get', 'description'], 'Market'],
-//       ['==', ['get', 'description'], 'Themed'],
-//       ['==', ['get', 'description'], 'Neighbourhood'],
-//       ['==', ['get', 'description'], 'City Centre']
-//     ],
-//     1.0,
-//     [
-//       'any',
-//       ['==', ['get', 'description'], 'Regional'],
-//       ['==', ['get', 'description'], 'Super Regional']
-//     ],
-//     1.0,
-//     1.0
-//   ],
-//   'department_stores': [
-//     'case',
-//     [
-//       'any',
-//       ['==', ['get', 'tenant_id'], 4537],
-//       ['==', ['get', 'tenant_id'], 11884]
-//     ],
-//     0.30,
-//     0.60
-//   ],
-//   'discount_department_stores': 0.5
-// }
-
 const iconExprs = {
   'shopping_centres': [
     'case',
