@@ -40,30 +40,10 @@ const fetchWithNoData = () => {
   });
 };
 
-const setup = (overrides: Record<string, any> = {}) => {
-  const props = {
-    column: { column_name: 'state' },
-    formData: { ...chart.form_data, viz_type: 'pie' },
-    groupbyFieldName: 'groupby',
-    ...overrides,
-  };
-  return render(
-    <DrillByChart
-      filters={[
-        {
-          col: 'gender',
-          op: '==',
-          val: 'boy',
-          formattedVal: 'boy',
-        },
-      ]}
-      {...props}
-    />,
-    {
-      useRedux: true,
-    },
-  );
-};
+const setup = (overrides: Record<string, any> = {}) =>
+  render(<DrillByChart formData={{ ...chart.form_data, ...overrides }} />, {
+    useRedux: true,
+  });
 
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
