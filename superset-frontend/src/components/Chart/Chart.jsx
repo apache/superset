@@ -216,7 +216,7 @@ class Chart extends React.PureComponent {
       .substr(
         1,
         this.props?.slice?.perm.split('.')[0].length - 2,
-      )}" role.\nPlease reach out to the chart owners: ${this.props?.slice?.owners?.toString()} for further assistance`;
+      )}" role.\nPlease reach out to the chart owner(s): ${this.props?.slice?.owners?.toString()} for further assistance.`;
     const message =
       (chartAlert || queryResponse?.message || '') +
       (queryResponse?.errors?.[0].error_type ===
