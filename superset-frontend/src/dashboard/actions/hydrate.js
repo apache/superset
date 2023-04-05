@@ -76,7 +76,6 @@ export const hydrateDashboard =
     const editMode = reservedUrlParams.edit === 'true';
 
     let preselectFilters = {};
-
     charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
@@ -153,6 +152,8 @@ export const hydrateDashboard =
         description: slice.description,
         description_markeddown: slice.description_markeddown,
         owners: slice.owners,
+        perm: slice.perm,
+        schema_perm: slice.schema_perm,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };

@@ -211,7 +211,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // should convert filter_box to filter component?
     const hasFilterBox =
       charts &&
-      charts.some(chart => chart.form_data?.viz_type === 'filter_box');
+      charts.some((chart: any) => chart.form_data?.viz_type === 'filter_box');
     const canEdit = dashboard && canUserEditDashboard(dashboard, user);
 
     if (canEdit) {

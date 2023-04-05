@@ -18,7 +18,13 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
+import {
+  styled,
+  logging,
+  t,
+  ensureIsArray,
+  ErrorTypeEnum,
+} from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
@@ -66,6 +72,7 @@ const propTypes = {
   triggerQuery: PropTypes.bool,
   chartIsStale: PropTypes.bool,
   errorMessage: PropTypes.node,
+  slice: PropTypes.arrayOf(PropTypes.object),
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
@@ -113,7 +120,7 @@ const Styles = styled.div`
 `;
 
 const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.typography.families.sansSerif};
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -204,8 +211,18 @@ class Chart extends React.PureComponent {
       datasetsStatus,
     } = this.props;
     const error = queryResponse?.errors?.[0];
-    const message = chartAlert || queryResponse?.message;
-
+    const messageModified = `\n\nYou do not have permission to the underlying datasource used. Kindly raise access for "${this.props?.slice?.perm
+      .split('.')[0]
+      .substr(
+        1,
+        this.props?.slice?.perm.split('.')[0].length - 2,
+      )}" role.\nPlease reach out to the chart owner(s): ${this.props?.slice?.owners?.toString()} for further assistance.`;
+    const message =
+      (chartAlert || queryResponse?.message || '') +
+      (queryResponse?.errors?.[0].error_type ===
+      ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR
+        ? messageModified
+        : '');
     // if datasource is still loading, don't render JS errors
     if (
       chartAlert !== undefined &&

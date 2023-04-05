@@ -110,7 +110,6 @@ class FlashClientClass {
     data?: T,
     config?: AxiosRequestConfig,
   ): Promise<R> {
-    console.log('FLASH CLIENT POST');
     return this.http.post<T, R>(url, data, config);
   }
 

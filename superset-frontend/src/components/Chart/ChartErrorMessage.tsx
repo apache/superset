@@ -36,7 +36,6 @@ export const ChartErrorMessage: React.FC<Props> = ({
   ...props
 }) => {
   const { result: owners } = useChartOwnerNames(chartId);
-
   // don't mutate props
   const ownedError = error && {
     ...error,

@@ -99,13 +99,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
+
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
-
   const indicator = useMemo(
     () => ({
       value: crossFilterValue,
@@ -136,7 +136,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={headerTooltip}>
+        <Tooltip
+          title={
+            chartStatus !== 'failed'
+              ? headerTooltip
+              : 'Chart Failed to load. Please check the details of the error by clicking the See more link below'
+          }
+        >
           <EditableTitle
             title={
               sliceName ||
@@ -148,7 +154,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            url={canExplore ? exploreUrl : undefined}
+            url={
+              canExplore && chartStatus !== 'failed' ? exploreUrl : undefined
+            }
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -199,7 +207,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            {!uiConfig.hideChartControls && (
+            {!uiConfig.hideChartControls && chartStatus !== 'failed' && (
               <SliceHeaderControls
                 slice={slice}
                 isCached={isCached}

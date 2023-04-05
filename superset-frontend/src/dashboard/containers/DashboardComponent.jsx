@@ -81,7 +81,6 @@ function mapStateToProps(
     dashboardId: dashboardInfo.id,
     fullSizeChartId: dashboardState.fullSizeChartId,
   };
-
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
   if (component) {

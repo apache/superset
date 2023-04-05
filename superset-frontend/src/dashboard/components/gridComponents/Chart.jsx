@@ -511,6 +511,7 @@ class Chart extends React.Component {
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
+            slice={slice}
           />
         </div>
       </SliceContainer>
