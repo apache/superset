@@ -273,7 +273,17 @@ export default function HeaderReportDropDown({
   );
 
   const iconMenu = () =>
-    report ? (
+    isEmpty(report) ? (
+      <span
+        role="button"
+        title={t('Schedule email report')}
+        tabIndex={0}
+        className="action-button action-schedule-report"
+        onClick={() => setShowModal(true)}
+      >
+        <Icons.Calendar />
+      </span>
+    ) : (
       <>
         <NoAnimationDropdown
           overlay={menu()}
@@ -291,16 +301,6 @@ export default function HeaderReportDropDown({
           </span>
         </NoAnimationDropdown>
       </>
-    ) : (
-      <span
-        role="button"
-        title={t('Schedule email report')}
-        tabIndex={0}
-        className="action-button action-schedule-report"
-        onClick={() => setShowModal(true)}
-      >
-        <Icons.Calendar />
-      </span>
     );
 
   return (
