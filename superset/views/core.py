@@ -1835,7 +1835,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dashboard_id_or_slug: str,  # pylint: disable=unused-argument
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
         dashboard: Optional[Dashboard] = None,
-        has_dashboard_rbac_access: Optional[bool] = None,
     ) -> FlaskResponse:
         """
         Server side rendering for a dashboard
@@ -1843,34 +1842,31 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         :param dashboard: added by `check_dashboard_access`
-        :param has_dashboard_rbac_access: added by `check_dashboard_access`
         """
         if not dashboard:
             abort(404)
 
-        has_datasource_rbac_access = True
+        has_access_ = True
+        for datasource in dashboard.datasources:
+            datasource = DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType(datasource.type),
+                datasource_id=datasource.id,
+                session=db.session(),
+            )
+            if datasource and not security_manager.can_access_datasource(
+                datasource=datasource
+            ):
+                has_access_ = False
+                break
 
-        if not has_dashboard_rbac_access:
-            for datasource in dashboard.datasources:
-                datasource = DatasourceDAO.get_datasource(
-                    datasource_type=DatasourceType(datasource.type),
-                    datasource_id=datasource.id,
-                    session=db.session(),
-                )
-                if datasource and not security_manager.can_access_datasource(
-                    datasource=datasource
-                ):
-                    has_datasource_rbac_access = False
-                    break
-
-        if config["ENABLE_ACCESS_REQUEST"] and not has_datasource_rbac_access:
+        if config["ENABLE_ACCESS_REQUEST"] and not has_access_:
             flash(
                 __(security_manager.get_datasource_access_error_msg(datasource)),
                 "danger",
             )
             return redirect(f"/superset/request_access/?dashboard_id={dashboard.id}")
 
-        if not has_datasource_rbac_access and not has_dashboard_rbac_access:
+        if not is_feature_enabled("DASHBOARD_RBAC") and not has_access_:
             flash(
                 __("You are not authorized to view this dashboard"),
                 "danger",
