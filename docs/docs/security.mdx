@@ -151,7 +151,7 @@ It's extremely important to correctly configure a Content Security Policy when d
 prevent many types of attacks. Superset provides two variables in `config.py` for deploying a CSP:
 
 - `TALISMAN_ENABLED` defaults to `False`; set this to `True` in order to implement a CSP
-- `TALISMAN_CONFIG` holds the actual the policy definition (*see example below*) as well as any 
+- `TALISMAN_CONFIG` holds the actual the policy definition (*see example below*) as well as any
 other arguments to be passed to Talisman.
 
 When running in production mode, Superset will check at startup for the presence
@@ -200,13 +200,13 @@ TALISMAN_CONFIG = {
 
 Setting `TALISMAN_ENABLED = True` will invoke Talisman's protection with its default arguments,
 of which `content_security_policy` is only one. Those can be found in the
-[Talisman documentation](https://pypi.org/project/flask-talisman/) under *Options*. 
+[Talisman documentation](https://pypi.org/project/flask-talisman/) under *Options*.
 These generally improve security, but administrators should be aware of their existence.
 
 In particular, the default option of `force_https = True` may break Superset's Alerts & Reports
 if workers are configured to access charts via a `WEBDRIVER_BASEURL` beginning
-with `http://`.  As long as a Superset deployment enforces https upstream, e.g., 
-through a loader balancer or application gateway, it should be acceptable to set this 
+with `http://`.  As long as a Superset deployment enforces https upstream, e.g.,
+through a loader balancer or application gateway, it should be acceptable to set this
 option to `False`, like this:
 
 ```python
