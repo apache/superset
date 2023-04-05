@@ -33,6 +33,17 @@ import {
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 
+const removeExtraFieldForNewCharts = (
+  filters: AdhocFilter[],
+  isNewChart: boolean,
+) =>
+  filters.map(filter => {
+    if (filter.isExtra) {
+      return { ...filter, isExtra: !isNewChart };
+    }
+    return filter;
+  });
+
 const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
     adhocFilter: AdhocFilter,
@@ -103,7 +114,6 @@ const mergeNativeFiltersToFormData = (
 ) => {
   const nativeFiltersData: JsonObject = {};
   const extraFormData = dashboardFormData.extra_form_data || {};
-
   Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
     ([srcKey, targetKey]) => {
       const val = extraFormData[srcKey];
@@ -193,13 +203,16 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: applyTimeRangeFilters(
-          dashboardContextFormData,
-          removeAdhocFilterDuplicates([
-            ...ensureIsArray(exploreFormData[key]),
-            ...ensureIsArray(filterBoxData[key]),
-            ...ensureIsArray(nativeFiltersData[key]),
-          ]),
+        [key]: removeExtraFieldForNewCharts(
+          applyTimeRangeFilters(
+            dashboardContextFormData,
+            removeAdhocFilterDuplicates([
+              ...ensureIsArray(exploreFormData[key]),
+              ...ensureIsArray(filterBoxData[key]),
+              ...ensureIsArray(nativeFiltersData[key]),
+            ]),
+          ),
+          exploreFormData.slice_id === 0,
         ),
       }),
       {},
