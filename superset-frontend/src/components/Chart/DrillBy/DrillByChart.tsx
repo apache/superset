@@ -17,52 +17,20 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import {
-  Behavior,
-  BinaryQueryObjectFilterClause,
-  Column,
-  css,
-  SuperChart,
-} from '@superset-ui/core';
-import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
+import { BaseFormData, Behavior, css, SuperChart } from '@superset-ui/core';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 
 interface DrillByChartProps {
-  column?: Column;
-  filters?: BinaryQueryObjectFilterClause[];
-  formData: { [key: string]: any; viz_type: string };
-  groupbyFieldName?: string;
+  formData: BaseFormData & { [key: string]: any };
 }
 
-export default function DrillByChart({
-  column,
-  filters,
-  formData,
-  groupbyFieldName = 'groupby',
-}: DrillByChartProps) {
-  let updatedFormData = formData;
-  let groupbyField: any = [];
+export default function DrillByChart({ formData }: DrillByChartProps) {
   const [chartDataResult, setChartDataResult] = useState();
-
-  if (column) {
-    groupbyField = Array.isArray(formData[groupbyFieldName])
-      ? [column.column_name]
-      : column.column_name;
-  }
-
-  if (filters) {
-    const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
-    updatedFormData = {
-      ...formData,
-      adhoc_filters: [...formData.adhoc_filters, ...adhocFilters],
-      [groupbyFieldName]: groupbyField,
-    };
-  }
 
   useEffect(() => {
     getChartDataRequest({
-      formData: updatedFormData,
+      formData,
     }).then(({ json }) => {
       setChartDataResult(json.result);
     });
@@ -81,7 +49,7 @@ export default function DrillByChart({
           behaviors={[Behavior.INTERACTIVE_CHART]}
           chartType={formData.viz_type}
           enableNoResults
-          formData={updatedFormData}
+          formData={formData}
           queriesData={chartDataResult}
           height="100%"
           width="100%"
