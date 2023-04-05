@@ -328,14 +328,19 @@ def apply_post_process(
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
             raise Exception(f"Result format {query['result_format']} not supported")
 
-        if not query["data"]:
+        data = query["data"]
+
+        if isinstance(data, str):
+            data = data.strip()
+
+        if not data:
             # do not try to process empty data
             continue
 
         if query["result_format"] == ChartDataResultFormat.JSON:
-            df = pd.DataFrame.from_dict(query["data"])
+            df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(query["data"]))
+            df = pd.read_csv(StringIO(data))
 
         # convert all columns to verbose (label) name
         if datasource:
