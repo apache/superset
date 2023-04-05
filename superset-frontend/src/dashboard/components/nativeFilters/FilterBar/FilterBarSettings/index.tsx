@@ -144,7 +144,7 @@ const FilterBarSettings = () => {
   );
   const menuItems: DropDownSelectableProps['menuItems'] = [];
 
-  if (isCrossFiltersFeatureEnabled) {
+  if (isCrossFiltersFeatureEnabled && canEdit) {
     menuItems.unshift({
       key: crossFiltersMenuKey,
       label: crossFiltersMenuItem,

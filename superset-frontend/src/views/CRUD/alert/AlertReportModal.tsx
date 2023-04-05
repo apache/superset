@@ -24,11 +24,12 @@ import React, {
   useCallback,
 } from 'react';
 import {
-  styled,
-  t,
-  SupersetClient,
   css,
+  FeatureFlag,
+  styled,
+  SupersetClient,
   SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -39,7 +40,7 @@ import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
 import { propertyComparator } from 'src/components/Select/utils';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
 import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
@@ -54,8 +55,10 @@ import {
   MetaObject,
   Operator,
   Recipient,
+  AlertsReportsConfig,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
@@ -81,6 +84,10 @@ interface AlertReportModalProps {
   onHide: () => void;
   show: boolean;
 }
+
+const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
+const DEFAULT_RETENTION = 90;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
@@ -133,25 +140,6 @@ const RETENTION_OPTIONS = [
     value: 90,
   },
 ];
-
-const DEFAULT_RETENTION = 90;
-const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
-const DEFAULT_ALERT = {
-  active: true,
-  creation_method: 'alerts_reports',
-  crontab: DEFAULT_CRON_VALUE,
-  log_retention: DEFAULT_RETENTION,
-  working_timeout: DEFAULT_WORKING_TIMEOUT,
-  name: '',
-  owners: [],
-  recipients: [],
-  sql: '',
-  validator_config_json: {},
-  validator_type: '',
-  force_screenshot: false,
-  grace_period: undefined,
-};
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -371,10 +359,9 @@ const timezoneHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
 `;
 
-const inputSpacer = (theme: SupersetTheme) =>
-  css`
-    margin-right: ${theme.gridUnit * 3}px;
-  `;
+const inputSpacer = (theme: SupersetTheme) => css`
+  margin-right: ${theme.gridUnit * 3}px;
+`;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
 
@@ -512,6 +499,38 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     );
   };
 
+  const {
+    ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
+    ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    ALERT_REPORTS_DEFAULT_RETENTION,
+  } = useSelector<any, AlertsReportsConfig>(state => {
+    const conf = state.common?.conf;
+    return {
+      ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT:
+        conf?.ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT ?? DEFAULT_WORKING_TIMEOUT,
+      ALERT_REPORTS_DEFAULT_CRON_VALUE:
+        conf?.ALERT_REPORTS_DEFAULT_CRON_VALUE ?? DEFAULT_CRON_VALUE,
+      ALERT_REPORTS_DEFAULT_RETENTION:
+        conf?.ALERT_REPORTS_DEFAULT_RETENTION ?? DEFAULT_RETENTION,
+    };
+  });
+
+  const defaultAlert = {
+    active: true,
+    creation_method: 'alerts_reports',
+    crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
+    working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
+    name: '',
+    owners: [],
+    recipients: [],
+    sql: '',
+    validator_config_json: {},
+    validator_type: '',
+    force_screenshot: false,
+    grace_period: undefined,
+  };
+
   const updateNotificationSetting = (
     index: number,
     setting: NotificationSetting,
@@ -549,7 +568,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(true);
     onHide();
     setNotificationSettings([]);
-    setCurrentAlert({ ...DEFAULT_ALERT });
+    setCurrentAlert({ ...defaultAlert });
     setNotificationAddState('active');
   };
 
@@ -992,7 +1011,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
-      setCurrentAlert({ ...DEFAULT_ALERT });
+      setCurrentAlert({ ...defaultAlert });
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -1299,7 +1318,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
+              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
@@ -1329,7 +1348,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={
                     typeof currentAlert?.log_retention === 'number'
                       ? currentAlert?.log_retention
-                      : DEFAULT_RETENTION
+                      : ALERT_REPORTS_DEFAULT_RETENTION
                   }
                   options={RETENTION_OPTIONS}
                   sortComparator={propertyComparator('value')}

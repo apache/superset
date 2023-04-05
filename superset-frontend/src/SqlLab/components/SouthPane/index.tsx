@@ -22,10 +22,10 @@ import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled } from '@superset-ui/core';
+import { FeatureFlag, styled, t } from '@superset-ui/core';
 
 import { setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
 import { SqlLabRootState } from 'src/SqlLab/types';

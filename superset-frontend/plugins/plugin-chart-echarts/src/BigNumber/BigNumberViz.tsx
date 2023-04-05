@@ -220,8 +220,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
           const { data } = eventParams;
           if (data) {
             const pointerEvent = eventParams.event.event;
-            const filters: BinaryQueryObjectFilterClause[] = [];
-            filters.push({
+            const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+            drillToDetailFilters.push({
               col: this.props.formData?.granularitySqla,
               grain: this.props.formData?.timeGrainSqla,
               op: '==',
@@ -231,7 +231,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
             this.props.onContextMenu(
               pointerEvent.clientX,
               pointerEvent.clientY,
-              filters,
+              { drillToDetail: drillToDetailFilters },
             );
           }
         }

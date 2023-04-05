@@ -100,7 +100,6 @@ describe.skip('MetricsControl', () => {
           hasCustomLabel: false,
           optionName: 'blahblahblah',
           sqlExpression: null,
-          isNew: false,
         },
       ]);
     });

@@ -24,12 +24,6 @@ import HeaderReportDropdown, { HeaderReportProps } from '.';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: () => <span />,
-  StyledIcon: () => <span />,
-}));
-
 const createProps = () => ({
   dashboardId: 1,
   useTextMenu: false,

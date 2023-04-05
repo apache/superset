@@ -31,9 +31,8 @@ import {
 } from 'react-router-dom';
 import moment from 'moment';
 import {
-  Behavior,
   css,
-  getChartMetadataRegistry,
+  FeatureFlag,
   QueryFormData,
   styled,
   t,
@@ -43,8 +42,7 @@ import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -57,7 +55,6 @@ import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 
 const MENU_KEYS = {
-  CROSS_FILTER_SCOPING: 'cross_filter_scoping',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
   EXPLORE_CHART: 'explore_chart',
   EXPORT_CSV: 'export_csv',
@@ -157,7 +154,6 @@ type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
 interface State {
   showControls: boolean;
-  showCrossFilterScopingModal: boolean;
 }
 
 const dropdownIconsStyles = css`
@@ -256,7 +252,6 @@ class SliceHeaderControls extends React.PureComponent<
 
     this.state = {
       showControls: false,
-      showCrossFilterScopingModal: false,
     };
   }
 
@@ -286,9 +281,6 @@ class SliceHeaderControls extends React.PureComponent<
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
         this.props.addSuccessToast(t('Data refreshed'));
-        break;
-      case MENU_KEYS.CROSS_FILTER_SCOPING:
-        this.setState({ showCrossFilterScopingModal: true });
         break;
       case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
         // eslint-disable-next-line no-unused-expressions
@@ -346,17 +338,8 @@ class SliceHeaderControls extends React.PureComponent<
       addDangerToast = () => {},
       supersetCanShare = false,
       isCached = [],
-      crossFiltersEnabled,
     } = this.props;
-    const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
-    const isCrossFilter = Object.entries(crossFilterItems)
-      // @ts-ignore
-      .filter(([, { value }]) =>
-        value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
-      )
-      .find(([key]) => key === slice.viz_type);
-
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
     );
@@ -477,17 +460,6 @@ class SliceHeaderControls extends React.PureComponent<
           <Menu.Divider />
         )}
 
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          isCrossFilter &&
-          crossFiltersEnabled && (
-            <>
-              <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
-                {t('Cross-filter scoping')}
-              </Menu.Item>
-              <Menu.Divider />
-            </>
-          )}
-
         {supersetCanShare && (
           <Menu.SubMenu title={t('Share')}>
             <ShareMenuItems
@@ -538,11 +510,6 @@ class SliceHeaderControls extends React.PureComponent<
 
     return (
       <>
-        <CrossFilterScopingModal
-          chartId={slice.slice_id}
-          isOpen={this.state.showCrossFilterScopingModal}
-          onClose={() => this.setState({ showCrossFilterScopingModal: false })}
-        />
         {isFullSize && (
           <Icons.FullscreenExitOutlined
             style={{ fontSize: 22 }}
@@ -557,6 +524,10 @@ class SliceHeaderControls extends React.PureComponent<
           placement="bottomRight"
         >
           <span
+            css={css`
+              display: flex;
+              align-items: center;
+            `}
             id={`slice_${slice.slice_id}-controls`}
             role="button"
             aria-label="More Options"

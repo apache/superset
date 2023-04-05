@@ -25,11 +25,12 @@ import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   css,
-  t,
-  styled,
   DatasourceType,
-  isDefined,
   ensureIsArray,
+  FeatureFlag,
+  isDefined,
+  styled,
+  t,
 } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
@@ -41,6 +42,7 @@ import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -69,6 +71,7 @@ type SaveModalState = {
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
+  vizType?: string;
 };
 
 export const StyledModal = styled(Modal)`
@@ -92,6 +95,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       alert: null,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
+      vizType: props.form_data?.viz_type,
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
@@ -198,6 +202,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
+      const formData = this.props.form_data || {};
+      delete formData.url_params;
+
       let dashboard: DashboardGetResponse | null = null;
       if (this.state.newDashboardName || this.state.saveToDashboardId) {
         let saveToDashboardId = this.state.saveToDashboardId || null;
@@ -216,13 +223,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           sliceDashboards = sliceDashboards.includes(dashboard.id)
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
-          const { url_params, ...formData } = this.props.form_data || {};
-          this.props.actions.setFormData({
-            ...formData,
-            dashboards: sliceDashboards,
-          });
+          formData.dashboards = sliceDashboards;
         }
       }
+
+      // Sets the form data
+      this.props.actions.setFormData({ ...formData });
 
       //  Update or create slice
       let value: { id: number };
@@ -337,27 +343,32 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        <FormItem
-          label={t('Add to dashboard')}
-          data-test="save-chart-modal-select-dashboard-form"
-        >
-          <Select
-            allowClear
-            allowNewOptions
-            ariaLabel={t('Select a dashboard')}
-            options={this.props.dashboards}
-            onChange={this.onDashboardSelectChange}
-            value={dashboardSelectValue || undefined}
-            placeholder={
-              <div>
-                <b>{t('Select')}</b>
-                {t(' a dashboard OR ')}
-                <b>{t('create')}</b>
-                {t(' a new one')}
-              </div>
-            }
-          />
-        </FormItem>
+        {!(
+          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+          this.state.vizType === 'filter_box'
+        ) && (
+          <FormItem
+            label={t('Add to dashboard')}
+            data-test="save-chart-modal-select-dashboard-form"
+          >
+            <Select
+              allowClear
+              allowNewOptions
+              ariaLabel={t('Select a dashboard')}
+              options={this.props.dashboards}
+              onChange={this.onDashboardSelectChange}
+              value={dashboardSelectValue || undefined}
+              placeholder={
+                <div>
+                  <b>{t('Select')}</b>
+                  {t(' a dashboard OR ')}
+                  <b>{t('create')}</b>
+                  {t(' a new one')}
+                </div>
+              }
+            />
+          </FormItem>
+        )}
       </Form>
     );
   };
@@ -374,7 +385,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           !this.state.newSliceName ||
           (!this.state.saveToDashboardId && !this.state.newDashboardName) ||
           (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName)
+            !this.state.datasetName) ||
+          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+            this.state.vizType === 'filter_box')
         }
         onClick={() => this.saveOrOverwrite(true)}
       >

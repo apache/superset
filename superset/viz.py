@@ -154,7 +154,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.status: Optional[str] = None
         self.error_msg = ""
         self.results: Optional[QueryResult] = None
-        self.applied_template_filters: List[str] = []
+        self.applied_filter_columns: List[Column] = []
+        self.rejected_filter_columns: List[Column] = []
         self.errors: List[Dict[str, Any]] = []
         self.force = force
         self._force_cached = force_cached
@@ -288,7 +289,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
-        self.applied_template_filters = self.results.applied_template_filters or []
+        self.applied_filter_columns = self.results.applied_filter_columns or []
+        self.rejected_filter_columns = self.results.rejected_filter_columns or []
         self.query = self.results.query
         self.status = self.results.status
         self.errors = self.results.errors
@@ -454,7 +456,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         "5 days ago" or "now").
 
         The `extra` arguments are currently used by time shift queries, since
-        different time shifts wil differ only in the `from_dttm`, `to_dttm`,
+        different time shifts will differ only in the `from_dttm`, `to_dttm`,
         `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
@@ -492,25 +494,21 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if "df" in payload:
             del payload["df"]
 
-        filters = self.form_data.get("filters", [])
-        filter_columns = [flt.get("col") for flt in filters]
-        columns = set(self.datasource.column_names)
-        applied_template_filters = self.applied_template_filters or []
+        applied_filter_columns = self.applied_filter_columns or []
+        rejected_filter_columns = self.rejected_filter_columns or []
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": get_column_name(col)}
-            for col in filter_columns
-            if is_adhoc_column(col) or col in columns or col in applied_template_filters
+            {"column": get_column_name(col)} for col in applied_filter_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
-            {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
-            for col in filter_columns
-            if not is_adhoc_column(col)
-            and col not in columns
-            and col not in applied_template_filters
+            {
+                "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+                "column": get_column_name(col),
+            }
+            for col in rejected_filter_columns
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
@@ -528,15 +526,20 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         is_loaded = False
         stacktrace = None
         df = None
-        if cache_key and cache_manager.data_cache and not self.force:
+        cache_timeout = self.cache_timeout
+        force = self.force or cache_timeout == -1
+        if cache_key and cache_manager.data_cache and not force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self.applied_template_filters = cache_value.get(
-                        "applied_template_filters", []
+                    self.applied_filter_columns = cache_value.get(
+                        "applied_filter_columns", []
+                    )
+                    self.rejected_filter_columns = cache_value.get(
+                        "rejected_filter_columns", []
                     )
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
@@ -608,16 +611,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_manager.data_cache,
-                    cache_key,
-                    {"df": df, "query": self.query},
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache_instance=cache_manager.data_cache,
+                    cache_key=cache_key,
+                    cache_value={"df": df, "query": self.query},
+                    cache_timeout=cache_timeout,
+                    datasource_uid=self.datasource.uid,
                 )
         return {
             "cache_key": cache_key,
             "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
-            "cache_timeout": self.cache_timeout,
+            "cache_timeout": cache_timeout,
             "df": df,
             "errors": self.errors,
             "form_data": self.form_data,
@@ -1708,9 +1711,9 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             values=utils.get_metric_name(self.form_data["metric"]),
         )
         chart_data = self.to_series(df)
-        for serie in chart_data:
-            serie["rank"] = rank_lookup[serie["key"]]
-            serie["perc"] = 1 - (serie["rank"] / (max_rank + 1))
+        for series in chart_data:
+            series["rank"] = rank_lookup[series["key"]]
+            series["perc"] = 1 - (series["rank"] / (max_rank + 1))
         return chart_data
 
 
@@ -2020,7 +2023,7 @@ class ChordViz(BaseViz):
 
         df.columns = ["source", "target", "value"]
 
-        # Preparing a symetrical matrix like d3.chords calls for
+        # Preparing a symmetrical matrix like d3.chords calls for
         nodes = list(set(df["source"]) | set(df["target"]))
         matrix = {}
         for source, target in product(nodes, nodes):
@@ -3029,7 +3032,6 @@ class PairedTTestViz(BaseViz):
 
 
 class RoseViz(NVD3TimeSeriesViz):
-
     viz_type = "rose"
     verbose_name = _("Time Series - Nightingale Rose Chart")
     sort_series = False

@@ -434,6 +434,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
+            "tags": [],
             "thumbnail_url": dashboard.thumbnail_url,
             "is_managed_externally": False,
         }
@@ -502,6 +503,43 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_draft_dashboard_without_roles_by_uuid(self):
+        """
+        Dashboard API: Test get draft dashboard without roles by uuid
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        assert not dashboard.published
+        assert dashboard.roles == []
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_cannot_get_draft_dashboard_with_roles_by_uuid(self):
+        """
+        Dashboard API: Test get dashboard by uuid
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], roles=[admin_role.id]
+        )
+        assert not dashboard.published
+        assert dashboard.roles == [admin_role]
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 403
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -683,6 +721,75 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         for res in data["result"]:
             if res["id"] in users_favorite_ids:
                 assert res["value"]
+
+    def test_add_favorite(self):
+        """
+        Dataset API: Test add dashboard to favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_remove_favorite(self):
+        """
+        Dataset API: Test remove dashboard from favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.delete(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        db.session.delete(dashboard)
+        db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboards_not_favorite_filter(self):
@@ -1346,6 +1453,65 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_update_dashboard_chart_owners_propagation(self):
+        """
+        Dashboard API: Test update chart owners propagation
+        """
+        user_alpha1 = self.create_user(
+            "alpha1",
+            "password",
+            "Alpha",
+            email="alpha1@superset.org",
+            first_name="alpha1",
+        )
+        admin = self.get_user("admin")
+        slices = []
+        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").one())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").one())
+
+        # Insert dashboard with admin as owner
+        dashboard = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            slices=slices,
+        )
+
+        # Updates dashboard without Boys in json_metadata positions
+        # and user_alpha1 as owner
+        dashboard_data = {
+            "owners": [user_alpha1.id],
+            "json_metadata": json.dumps(
+                {
+                    "positions": {
+                        f"{slices[0].id}": {
+                            "type": "CHART",
+                            "meta": {"chartId": slices[0].id},
+                        },
+                    }
+                }
+            ),
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        # Check that chart named Boys does not contain alpha 1 in its owners
+        boys = db.session.query(Slice).filter_by(slice_name="Boys").one()
+        self.assertNotIn(user_alpha1, boys.owners)
+
+        # Revert owners on slice
+        for slice in slices:
+            slice.owners = []
+            db.session.commit()
+
+        # Rollback changes
+        db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
         db.session.commit()
 
     def test_update_partial_dashboard(self):

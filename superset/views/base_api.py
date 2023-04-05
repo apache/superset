@@ -31,6 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
@@ -39,6 +40,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
+from superset.tags.models import Tag
 from superset.utils.core import get_user_id, time_function
 from superset.views.base import handle_api_exception
 
@@ -112,7 +114,10 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
         try:
             duration, response = time_function(f, self, *args, **kwargs)
         except Exception as ex:
-            self.incr_stats("error", func_name)
+            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
+                self.incr_stats("warning", func_name)
+            else:
+                self.incr_stats("error", func_name)
             raise ex
 
         self.send_stats_metrics(response, func_name, duration)
@@ -155,6 +160,29 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if value:
             return query.filter(and_(self.model.id.in_(users_favorite_query)))
         return query.filter(and_(~self.model.id.in_(users_favorite_query)))
+
+
+class BaseTagFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Base Custom filter for the GET list that filters all dashboards, slices
+    that a user has favored or not
+    """
+
+    name = _("Is tagged")
+    arg_name = ""
+    class_name = ""
+    """ The Tag class_name to user """
+    model: Type[Union[Dashboard, Slice, SqllabQuery, SqlaTable]] = Dashboard
+    """ The SQLAlchemy model """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        ilike_value = f"%{value}%"
+        tags_query = (
+            db.session.query(self.model.id)
+            .join(self.model.tags)
+            .filter(Tag.name.ilike(ilike_value))
+        )
+        return query.filter(self.model.id.in_(tags_query))
 
 
 class BaseSupersetApiMixin:
@@ -205,6 +233,8 @@ class BaseSupersetApiMixin:
         """
         if 200 <= response.status_code < 400:
             self.incr_stats("success", key)
+        elif 400 <= response.status_code < 500:
+            self.incr_stats("warning", key)
         else:
             self.incr_stats("error", key)
         if time_delta:

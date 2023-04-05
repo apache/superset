@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
+import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
-import rison from 'rison';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 type BaseQueryObject = {
   id: number;
 };
+
 export function useQueryPreviewState<D extends BaseQueryObject = any>({
   queries,
   fetchData,
@@ -81,35 +83,96 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
 /**
  * Retrieves all pages of dataset results
  */
-export const UseGetDatasetsList = async (filters: object[]) => {
-  let results: DatasetObject[] = [];
-  let page = 0;
-  let count;
+export const useDatasetsList = (
+  db:
+    | (DatabaseObject & {
+        owners: [number];
+      })
+    | undefined,
+  schema: string | null | undefined,
+) => {
+  const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
 
-  // If count is undefined or less than results, we need to
-  // asynchronously retrieve a page of dataset results
-  while (count === undefined || results.length < count) {
-    const queryParams = rison.encode_uri({ filters, page });
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${queryParams}`,
-      });
+  const getDatasetsList = useCallback(async (filters: object[]) => {
+    let results: DatasetObject[] = [];
+    let page = 0;
+    let count;
 
-      // Reassign local count to response's count
-      ({ count } = response.json);
+    // If count is undefined or less than results, we need to
+    // asynchronously retrieve a page of dataset results
+    while (count === undefined || results.length < count) {
+      const queryParams = rison.encode_uri({ filters, page });
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/?q=${queryParams}`,
+        });
 
-      const {
-        json: { result },
-      } = response;
+        // Reassign local count to response's count
+        ({ count } = response.json);
 
-      results = [...results, ...result];
+        const {
+          json: { result },
+        } = response;
 
-      page += 1;
-    } catch (error) {
-      addDangerToast(t('There was an error fetching dataset'));
-      logging.error(t('There was an error fetching dataset'), error);
+        results = [...results, ...result];
+
+        page += 1;
+      } catch (error) {
+        addDangerToast(t('There was an error fetching dataset'));
+        logging.error(t('There was an error fetching dataset'), error);
+      }
     }
-  }
-  return results;
+
+    setDatasets(results);
+  }, []);
+
+  useEffect(() => {
+    const filters = [
+      { col: 'database', opr: 'rel_o_m', value: db?.id },
+      { col: 'schema', opr: 'eq', value: encodedSchema },
+      { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
+    ];
+
+    if (schema) {
+      getDatasetsList(filters);
+    }
+  }, [db?.id, schema, encodedSchema, getDatasetsList]);
+
+  const datasetNames = datasets?.map(dataset => dataset.table_name);
+
+  return { datasets, datasetNames };
+};
+
+export const useGetDatasetRelatedCounts = (id: string) => {
+  const [usageCount, setUsageCount] = useState(0);
+
+  const getDatasetRelatedObjects = useCallback(
+    () =>
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${id}/related_objects`,
+      })
+        .then(({ json }) => {
+          setUsageCount(json?.charts.count);
+        })
+        .catch(error => {
+          addDangerToast(
+            t(`There was an error fetching dataset's related objects`),
+          );
+          logging.error(error);
+        }),
+    [id],
+  );
+
+  useEffect(() => {
+    // Todo: this useEffect should be used to call all count methods conncurently
+    // when we populate data for the new tabs. For right separating out this
+    // api call for building the usage page.
+    if (id) {
+      getDatasetRelatedObjects();
+    }
+  }, [id, getDatasetRelatedObjects]);
+
+  return { usageCount };
 };

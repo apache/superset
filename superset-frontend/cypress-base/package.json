@@ -10,7 +10,7 @@
   "author": "Apache",
   "license": "Apache-2.0",
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.25.3",
+    "@applitools/eyes-cypress": "^3.29.1",
     "@cypress/code-coverage": "^3.9.11",
     "@superset-ui/core": "^0.18.8",
     "brace": "^0.11.1",

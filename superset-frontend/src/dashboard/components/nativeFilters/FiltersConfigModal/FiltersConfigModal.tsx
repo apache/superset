@@ -89,7 +89,11 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
-export const ALLOW_DEPENDENCIES = ['filter_select'];
+export const ALLOW_DEPENDENCIES = [
+  'filter_range',
+  'filter_select',
+  'filter_time',
+];
 
 const DEFAULT_EMPTY_FILTERS: string[] = [];
 const DEFAULT_REMOVED_FILTERS: Record<string, FilterRemoval> = {};
@@ -287,11 +291,12 @@ function FiltersConfigModal({
   const getAvailableFilters = useCallback(
     (filterId: string) =>
       filterIds
-        .filter(key => key !== filterId)
-        .filter(filterId => canBeUsedAsDependency(filterId))
-        .map(key => ({
-          label: getFilterTitle(key),
-          value: key,
+        .filter(id => id !== filterId)
+        .filter(id => canBeUsedAsDependency(id))
+        .map(id => ({
+          label: getFilterTitle(id),
+          value: id,
+          type: filterConfigMap[id]?.filterType,
         })),
     [canBeUsedAsDependency, filterIds, getFilterTitle],
   );

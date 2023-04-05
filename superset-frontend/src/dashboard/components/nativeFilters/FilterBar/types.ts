@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { ReactNode } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -25,10 +27,9 @@ import {
 import { FilterBarOrientation } from 'src/dashboard/types';
 
 interface CommonFiltersBarProps {
-  actions: React.ReactNode;
+  actions: ReactNode;
   canEdit: boolean;
   dataMaskSelected: DataMaskStateWithId;
-  focusedFilterId?: string;
   filterValues: (Filter | Divider)[];
   isInitialized: boolean;
   onSelectionChange: (
@@ -45,8 +46,8 @@ interface VerticalBarConfig {
   width: number;
 }
 
-export interface FiltersBarProps
-  extends Pick<CommonFiltersBarProps, 'focusedFilterId'> {
+export interface FiltersBarProps {
+  hidden?: boolean;
   orientation: FilterBarOrientation;
   verticalConfig?: VerticalBarConfig;
 }

@@ -49,6 +49,6 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, types.TIMESTAMP):
-            datetime_fomatted = dttm.isoformat(sep=" ", timespec="seconds")
-            return f"""CAST('{datetime_fomatted}' AS TIMESTAMP)"""
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CAST('{datetime_formatted}' AS TIMESTAMP)"""
         return None

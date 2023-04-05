@@ -61,6 +61,7 @@ RUN pip install --upgrade setuptools pip \
 RUN flask fab babel-compile --target superset/translations
 
 ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH
+    PYTHONPATH=/home/superset/superset/:$PYTHONPATH \
+    SUPERSET_TESTENV=true
 COPY from_tarball_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

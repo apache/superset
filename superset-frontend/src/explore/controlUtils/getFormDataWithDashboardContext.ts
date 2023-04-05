@@ -18,41 +18,20 @@
  */
 import isEqual from 'lodash/isEqual';
 import {
-  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-  isDefined,
-  JsonObject,
-  ensureIsArray,
-  QueryObjectFilterClause,
-  SimpleAdhocFilter,
-  QueryFormData,
   AdhocFilter,
+  ensureIsArray,
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+  isDefined,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
+  JsonObject,
   NO_TIME_RANGE,
+  QueryFormData,
+  QueryObjectFilterClause,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
-
-const simpleFilterToAdhoc = (
-  filterClause: QueryObjectFilterClause,
-  clause = 'where',
-) => {
-  const result = {
-    clause: clause.toUpperCase(),
-    expressionType: 'SIMPLE',
-    operator: filterClause.op,
-    subject: filterClause.col,
-    comparator: 'val' in filterClause ? filterClause.val : undefined,
-  } as SimpleAdhocFilter;
-  if (filterClause.isExtra) {
-    Object.assign(result, {
-      isExtra: true,
-      filterOptionName: `filter_${Math.random()
-        .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
-    });
-  }
-  return result;
-};
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 
 const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
@@ -184,6 +163,7 @@ const applyTimeRangeFilters = (
         return {
           ...filter,
           comparator: extraFormData.time_range,
+          isExtra: true,
         };
       }
       return filter;

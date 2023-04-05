@@ -18,8 +18,11 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.8.13-slim
-FROM node:16-slim AS superset-node
+ARG PY_VER=3.8.16-slim
+
+# if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
+ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+FROM --platform=${BUILDPLATFORM} node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
@@ -114,7 +117,14 @@ COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 USER root
 
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1 wget
+    && apt-get install -y --no-install-recommends \
+          libnss3 \
+          libdbus-glib-1-2 \
+          libgtk-3-0 \
+          libx11-xcb1 \
+          libasound2 \
+          libxtst6 \
+          wget
 
 # Install GeckoDriver WebDriver
 RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
