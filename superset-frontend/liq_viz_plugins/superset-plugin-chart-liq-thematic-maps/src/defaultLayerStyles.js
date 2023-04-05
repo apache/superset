@@ -390,7 +390,7 @@ const iconExprs = {
   'liquor': [
     'case',
     ['==', ['get', 'tenant_id'], 10154],
-    'liquorland',
+    'liquorLand',
     ['==', ['get', 'tenant_id'], 2494],
     'bws',
     ['==', ['get', 'tenant_id'], 93808],

@@ -263,3 +263,20 @@ export const igaExpress = (new LiqMarker(25, 2, 'black', 'blue').createCircle().
 export const otherSmkt = (new LiqMarker(25, 2, 'black', 'blue').createCircle().img);
 export const unknownSmkt = (new LiqMarker(25, 2, 'black', 'black').createCircle().img);
 
+// Liquor
+export const liquorLand = (new LiqMarker(25, 2, 'black', 'brown').createPolygon(
+  diamondPoints(25)
+).img);
+export const bws = (new LiqMarker(25, 2, 'black', 'green').createPolygon(
+  diamondPoints(25)
+).img);
+export const igaLiquor = (new LiqMarker(25, 2, 'black', 'yellow').createPolygon(
+  diamondPoints(25)
+).img);
+export const aldiLiquor = (new LiqMarker(25, 2, 'black', '#008080').createPolygon(
+  diamondPoints(25)
+).img);
+export const vintageCellars = (new LiqMarker(25, 2, 'black', 'purple').createPolygon(
+  diamondPoints(25)
+).img);
+export const otherLiquor = (new LiqMarker(25, 2, 'black', 'blue').createCircle().img);
