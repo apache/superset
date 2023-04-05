@@ -249,3 +249,17 @@ export const theRejectShop = (new LiqMarker(25, 2, 'black', 'brown').createSquar
 export const tkMaxx = (new LiqMarker(25, 2, 'black', '#008080').createCircle().img);
 export const uniqlo = (new LiqMarker(25, 2, 'black', 'purple').createCircle().img);
 export const zara = (new LiqMarker(25, 2, 'black', 'green').createCircle().img);
+
+// Woolworths
+export const woolworths = (new LiqMarker(25, 2, 'black', '#90EE90').createCircle().img);
+export const coles = (new LiqMarker(25, 2, 'black', 'red').createCircle().img);
+export const aldi = (new LiqMarker(25, 2, 'black', '#ADD8E6').createCircle().img);
+export const iga = (new LiqMarker(25, 2, 'black', 'yellow').createCircle().img);
+export const foodWorks = (new LiqMarker(25, 2, 'black', 'orange').createCircle().img);
+export const costco = (new LiqMarker(25, 2, 'black', 'purple').createCircle().img);
+export const drakes = (new LiqMarker(25, 2, 'black', 'white').createCircle().img);
+export const spar = (new LiqMarker(25, 2, 'black', 'brown').createCircle().img);
+export const igaExpress = (new LiqMarker(25, 2, 'black', 'blue').createCircle().img);
+export const otherSmkt = (new LiqMarker(25, 2, 'black', 'blue').createCircle().img);
+export const unknownSmkt = (new LiqMarker(25, 2, 'black', 'black').createCircle().img);
+

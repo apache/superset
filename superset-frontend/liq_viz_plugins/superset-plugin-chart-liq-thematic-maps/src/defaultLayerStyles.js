@@ -322,18 +322,18 @@ const iconExprs = {
     ['==', ['get', 'tenant_id'], 8291],
     'iga',
     ['==', ['get', 'tenant_id'], 6267],
-    'foodworks',
+    'foodWorks',
     ['==', ['get', 'tenant_id'], 4149],
     'costco',
     ['==', ['get', 'tenant_id'], 39173],
-    'drakes_supermarket',
+    'drakes',
     ['==', ['get', 'tenant_id'], 15874],
     'spar',
     ['==', ['get', 'tenant_id'], 8294],
-    'iga_express',
+    'igaExpress',
     ['==', ['get', 'tenant_id'], 18239],
-    'unknown_smkt',
-    'other_smkt'
+    'unknownSmkt',
+    'otherSmkt'
   ],
   'mini_majors': [
     'case',
@@ -394,16 +394,16 @@ const iconExprs = {
     ['==', ['get', 'tenant_id'], 2494],
     'bws',
     ['==', ['get', 'tenant_id'], 93808],
-    'iga_liquor',
+    'igaLiquor',
     ['==', ['get', 'tenant_id'], 39252],
-    'aldi_liquor',
+    'aldiLiquor',
     ['==', ['get', 'tenant_id'], 18514],
-    'vintage_cellars',
+    'vintageCellars',
     ['==', ['get', 'tenant_id'], 6058],
-    'first_choice_liquor',
+    'firstChoiceLiquor',
     ['==', ['get', 'tenant_id'], 4492],
-    'dan_murphys',
-    'other_liquor'
+    'danMurphys',
+    'otherLiquor'
   ]
 }
 
