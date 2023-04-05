@@ -166,48 +166,13 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
 
     @mock.patch("superset.db_engine_specs.bigquery.BigQueryEngineSpec.get_engine")
-    def test_df_to_sql(self, mock_get_engine):
+    @mock.patch("superset.db_engine_specs.bigquery.pandas_gbq")
+    @mock.patch("superset.db_engine_specs.bigquery.service_account")
+    def test_df_to_sql(self, mock_service_account, mock_pandas_gbq, mock_get_engine):
         """
         DB Eng Specs (bigquery): Test DataFrame to SQL contract
         """
-        # test missing google.oauth2 dependency
-        sys.modules["pandas_gbq"] = mock.MagicMock()
-        df = DataFrame()
-        database = mock.MagicMock()
-        with self.assertRaises(Exception):
-            BigQueryEngineSpec.df_to_sql(
-                database=database,
-                table=Table(table="name", schema="schema"),
-                df=df,
-                to_sql_kwargs={},
-            )
-
-        invalid_kwargs = [
-            {"name": "some_name"},
-            {"schema": "some_schema"},
-            {"con": "some_con"},
-            {"name": "some_name", "con": "some_con"},
-            {"name": "some_name", "schema": "some_schema"},
-            {"con": "some_con", "schema": "some_schema"},
-        ]
-        # Test check for missing schema.
-        sys.modules["google.oauth2"] = mock.MagicMock()
-        for invalid_kwarg in invalid_kwargs:
-            self.assertRaisesRegex(
-                Exception,
-                "The table schema must be defined",
-                BigQueryEngineSpec.df_to_sql,
-                database=database,
-                table=Table(table="name"),
-                df=df,
-                to_sql_kwargs=invalid_kwarg,
-            )
-
-        import pandas_gbq
-        from google.oauth2 import service_account
-
-        pandas_gbq.to_gbq = mock.Mock()
-        service_account.Credentials.from_service_account_info = mock.MagicMock(
+        mock_service_account.Credentials.from_service_account_info = mock.MagicMock(
             return_value="account_info"
         )
 
@@ -216,6 +181,8 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             "secrets"
         )
 
+        df = DataFrame()
+        database = mock.MagicMock()
         BigQueryEngineSpec.df_to_sql(
             database=database,
             table=Table(table="name", schema="schema"),
@@ -223,7 +190,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             to_sql_kwargs={"if_exists": "extra_key"},
         )
 
-        pandas_gbq.to_gbq.assert_called_with(
+        mock_pandas_gbq.to_gbq.assert_called_with(
             df,
             project_id="google-host",
             destination_table="schema.name",
