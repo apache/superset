@@ -45,15 +45,12 @@ const { Content, Sider } = Layout;
 
 const defaults = require('./defaultLayerStyles.js');
 
-const iconsCSS = require('./iconStyles.js');
 const iconsSVG = require('./iconSVG.js');
 
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
 const iconExprs = defaults.iconExprs;
 const intranetImgs = defaults.intranetImgs;
-const iconSizeExprs = defaults.iconSizeExprs;
-
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
 
@@ -135,9 +132,6 @@ export default function LiqThematicMaps(props) {
   const [drawerTitle, setDrawerTitle] = useState('');
 
   const [thematicLegend, setThematicLegend] = useState(null);
-
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
 
   const items = [
     !hideLegend && {
@@ -249,17 +243,33 @@ export default function LiqThematicMaps(props) {
 
   // Loads each layer in "layers" onto the map with the default intranet layer styling
   const loadIntranetLayers = (layers) => {
-    layers.forEach(layer => {
+    layers.forEach(l => {
       map.current.addLayer({
-        'id': layer,
+        'id': l,
         'type': 'symbol',
         'source': 'intranet_tileset',
-        'source-layer': layer,
+        'source-layer': l,
         'layout': {
-          'icon-image': iconExprs[layer],
-          'icon-allow-overlap': true,
-          'icon-size': layer in iconSizeExprs ? iconSizeExprs[layer] : 0.46 
+          'icon-image': iconExprs[l],
+          'icon-allow-overlap': true
         }
+      });
+      map.current.on('mouseenter', l, () => {
+        map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', l, () => {
+        map.current.getCanvas().style.cursor = '';
+      });
+      map.current.on('click', l, (e) => {
+        const data = [];
+        e.features.map(d => {
+          const id = 'entity_id' in d.properties ? d.properties.entity_id : d.properties.tenancy_id;
+          if (d.layer.id in intranetData && id in intranetData[d.layer.id]) data.push(intranetData[d.layer.id][id]);
+        });
+        if (data.length === 0) e.features.map(d => data.push(d.properties));
+        setDrawerTitle('Data');
+        setDrawerContent(<DataDisplay data={data} />);
+        setDrawerOpen(true);
       });
     });
   };
@@ -334,32 +344,11 @@ export default function LiqThematicMaps(props) {
     map.current.loadImage('/static/custom_map_marker.png', (error, img) => {
       if (error) throw error;
       map.current.addImage('marker', img);
-    })
-
-    // Load all icons required for the intranet layers into the map
-    Object.keys(intranetImgs).forEach(k => {
-      map.current.loadImage(intranetImgs[k], (error, img) => {
-        if (error) throw error;
-        map.current.addImage(k, img);
-      });
     });
 
     // Load all CSS icon images
     Object.keys(iconsSVG).map(k => {
       map.current.addImage(k, iconsSVG[k]);
-      // if (!(k === 'scBase')) {
-        // const img = new Image();
-        // const style = iconsCSS[k];
-        // const width = parseInt(style.width.replace('px', ''));
-        // const height = parseInt(style.height.replace('px', ''));
-        // img.style = style;
-        // canvas.width = width;
-        // canvas.height = height;
-        // context.drawImage(img, 0, 0);
-        // console.log(canvas.toDataURL());
-        //const imageData = context.getImageData(0, 0, width, height);
-        //map.current.addImage(k, img);
-      // }
     })
 
     // Load map tiles and their default styles
@@ -510,27 +499,6 @@ export default function LiqThematicMaps(props) {
         const tileIds = getCurrTileIds('intranet_tileset');
         setCurrTileIDs([...tileIds]);
       }
-    });
-
-    // When intranet layers are clicked
-    intranetLayers.map(l => {
-      map.current.on('mouseenter', l, () => {
-        map.current.getCanvas().style.cursor = 'pointer';
-      });
-      map.current.on('mouseleave', l, () => {
-        map.current.getCanvas().style.cursor = '';
-      });
-      map.current.on('click', l, (e) => {
-        const data = [];
-        e.features.map(d => {
-          const id = 'entity_id' in d.properties ? d.properties.entity_id : d.properties.tenancy_id;
-          if (d.layer.id in intranetData && id in intranetData[d.layer.id]) data.push(intranetData[d.layer.id][id]);
-        });
-        if (data.length === 0) e.features.map(d => data.push(d.properties));
-        setDrawerTitle('Data');
-        setDrawerContent(<DataDisplay data={data} />);
-        setDrawerOpen(true);
-      });
     });
 
     // When custom tileset is clicked

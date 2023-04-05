@@ -187,41 +187,41 @@ const intranetLegendExprs = {
   }
 };
 
-const iconSizeExprs = {
-  'shopping_centres': [
-    'case',
-    [
-      'any',
-      ['==', ['get', 'description'], 'Local Centre'],
-      ['==', ['get', 'description'], 'Transit Centre'],
-      ['==', ['get', 'description'], 'Outlet Centre'],
-      ['==', ['get', 'description'], 'Large Format Retail'],
-      ['==', ['get', 'description'], 'Market'],
-      ['==', ['get', 'description'], 'Themed'],
-      ['==', ['get', 'description'], 'Neighbourhood'],
-      ['==', ['get', 'description'], 'City Centre']
-    ],
-    1.0,
-    [
-      'any',
-      ['==', ['get', 'description'], 'Regional'],
-      ['==', ['get', 'description'], 'Super Regional']
-    ],
-    1.0,
-    1.0
-  ],
-  'department_stores': [
-    'case',
-    [
-      'any',
-      ['==', ['get', 'tenant_id'], 4537],
-      ['==', ['get', 'tenant_id'], 11884]
-    ],
-    0.30,
-    0.60
-  ],
-  'discount_department_stores': 0.5
-}
+// const iconSizeExprs = {
+//   'shopping_centres': [
+//     'case',
+//     [
+//       'any',
+//       ['==', ['get', 'description'], 'Local Centre'],
+//       ['==', ['get', 'description'], 'Transit Centre'],
+//       ['==', ['get', 'description'], 'Outlet Centre'],
+//       ['==', ['get', 'description'], 'Large Format Retail'],
+//       ['==', ['get', 'description'], 'Market'],
+//       ['==', ['get', 'description'], 'Themed'],
+//       ['==', ['get', 'description'], 'Neighbourhood'],
+//       ['==', ['get', 'description'], 'City Centre']
+//     ],
+//     1.0,
+//     [
+//       'any',
+//       ['==', ['get', 'description'], 'Regional'],
+//       ['==', ['get', 'description'], 'Super Regional']
+//     ],
+//     1.0,
+//     1.0
+//   ],
+//   'department_stores': [
+//     'case',
+//     [
+//       'any',
+//       ['==', ['get', 'tenant_id'], 4537],
+//       ['==', ['get', 'tenant_id'], 11884]
+//     ],
+//     0.30,
+//     0.60
+//   ],
+//   'discount_department_stores': 0.5
+// }
 
 const iconExprs = {
   'shopping_centres': [
@@ -266,14 +266,14 @@ const iconExprs = {
     ['==', ['get', 'tenant_id'], 9595],
     'kmart',
     ['==', ['get', 'tenant_id'], 92073],
-    'kmart_hub',
+    'kmartHub',
     ['==', ['get', 'tenant_id'], 1759],
-    'big_w',
+    'bigW',
     ['==', ['get', 'tenant_id'], 16842],
     'target',
     ['==', ['get', 'tenant_id'], 16844],
-    'target_country',
-    'unknown_dds'
+    'targetCountry',
+    'unknownDDS'
   ],
   'large_format_retail': [
     'case',
@@ -286,11 +286,11 @@ const iconExprs = {
     ['==', ['get', 'tenant_id'], 4992],
     'domayne',
     ['==', ['get', 'tenant_id'], 5881],
-    'fantastic_furniture',
+    'fantasticFurniture',
     ['==', ['get', 'tenant_id'], 6334],
-    'forty_winks',
+    'fortyWinks',
     ['==', ['get', 'tenant_id'], 7656],
-    'harvey_norman',
+    'harveyNorman',
     ['==', ['get', 'tenant_id'], 8299],
     'ikea',
     ['==', ['get', 'tenant_id'], 10112],
@@ -300,7 +300,7 @@ const iconExprs = {
     ['==', ['get', 'tenant_id'], 15974],
     'spotlight',
     ['==', ['get', 'tenant_id'], 17321],
-    'the_good_guys',
+    'theGoodGuys',
     ''
   ],
   'supermarkets': [
@@ -452,20 +452,12 @@ const defaultLayerStyles = {
     ],
     'fill-outline-color': '#2E2EFF',
     'fill-opacity': 0.5
-  },
-  intranetLayerStyle: (layer) => {
-    return {
-      'circle-radius': 5,
-      'circle-color': intranetColors[layer],
-      'circle-stroke-width': 1
-    }
   }
 };
 
 module.exports = { 
   defaultLayerStyles, 
   iconExprs, 
-  iconSizeExprs, 
   intranetImgs, 
   tradeAreaColors,
   intranetLegendExprs 
