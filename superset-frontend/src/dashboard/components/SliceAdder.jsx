@@ -384,8 +384,8 @@ class SliceAdder extends React.Component {
           <InfoTooltipWithTrigger
             placement="top"
             tooltip={t(
-              `By default, the chart list displays only charts that you own.
-              You can change the list to show all charts you have access to.`,
+              `You can choose to display all charts that you have access to or only the ones you own.
+              Your filter selection will be saved and remain active until you choose to change it.`,
             )}
           />
         </div>
