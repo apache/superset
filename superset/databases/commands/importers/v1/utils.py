@@ -30,8 +30,12 @@ def import_database(
     session: Session,
     config: Dict[str, Any],
     overwrite: bool = False,
+    ignore_permissions: bool = False,
 ) -> Database:
-    can_write = security_manager.can_access("can_write", "Database")
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write",
+        "Database",
+    )
     existing = session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:

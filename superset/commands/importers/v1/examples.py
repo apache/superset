@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql import select
 
-from superset import db, security_manager
+from superset import db
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
@@ -42,7 +42,7 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_default_schema, override_user
+from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 
 
@@ -69,13 +69,12 @@ class ImportExamplesCommand(ImportModelsCommand):
 
         # rollback to prevent partial imports
         try:
-            with override_user(security_manager.find_user(username="admin")):
-                self._import(
-                    db.session,
-                    self._configs,
-                    self.overwrite,
-                    self.force_data,
-                )
+            self._import(
+                db.session,
+                self._configs,
+                self.overwrite,
+                self.force_data,
+            )
             db.session.commit()
         except Exception as ex:
             db.session.rollback()
@@ -102,7 +101,12 @@ class ImportExamplesCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets
@@ -131,9 +135,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                         config,
                         overwrite=overwrite,
                         force_data=force_data,
+                        ignore_permissions=True,
                     )
                 except MultipleResultsFound:
-                    # Multiple result can be found for datasets. There was a bug in
+                    # Multiple results can be found for datasets. There was a bug in
                     # load-examples that resulted in datasets being loaded with a NULL
                     # schema. Users could then add a new dataset with the same name in
                     # the correct schema, resulting in duplicates, since the uniqueness
@@ -156,7 +161,12 @@ class ImportExamplesCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=overwrite)
+                chart = import_chart(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
@@ -173,7 +183,12 @@ class ImportExamplesCommand(ImportModelsCommand):
                 except KeyError:
                     continue
 
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 dashboard.published = True
 
                 for uuid in find_chart_uuids(config["position"]):
