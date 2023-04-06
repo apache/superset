@@ -315,7 +315,7 @@ export default function transformProps(
         }),
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: keys,
     },
     graphic: showTotal
