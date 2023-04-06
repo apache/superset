@@ -144,3 +144,17 @@ test('should generate Explore url', async () => {
     await screen.findByRole('link', { name: 'Edit chart' }),
   ).toHaveAttribute('href', '/explore/?form_data_key=123&dashboard_page_id=1');
 });
+
+test('should render radio buttons', async () => {
+  await renderModal();
+  const chartRadio = screen.getByRole('radio', { name: /chart/i });
+  const tableRadio = screen.getByRole('radio', { name: /table/i });
+
+  expect(chartRadio).toBeInTheDocument();
+  expect(tableRadio).toBeInTheDocument();
+  expect(chartRadio).toBeChecked();
+  expect(tableRadio).not.toBeChecked();
+  userEvent.click(tableRadio);
+  expect(chartRadio).not.toBeChecked();
+  expect(tableRadio).toBeChecked();
+});

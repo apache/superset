@@ -29,7 +29,7 @@ import Loading from 'src/components/Loading';
 
 interface DrillByChartProps {
   formData: BaseFormData & { [key: string]: any };
-  result: QueryData[];
+  result?: QueryData[];
 }
 
 export default function DrillByChart({ formData, result }: DrillByChartProps) {
