@@ -72,6 +72,7 @@ from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
+    ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetSecurityException,
@@ -1756,9 +1757,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
-                sqla_col = self.adhoc_column_to_sqla(
-                    col=flt_col, template_processor=template_processor
-                )
+                try:
+                    sqla_col = self.adhoc_column_to_sqla(flt_col)
+                    applied_adhoc_filters_columns.append(flt_col)
+                except ColumnNotFoundException:
+                    rejected_adhoc_filters_columns.append(flt_col)
+                    continue
             else:
                 col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
