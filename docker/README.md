@@ -44,7 +44,7 @@ x-superset-environment: &superset-environment
   - SUPERSET_SECRET_KEY=<secret_key>
 ```
 
-Then add `*superset-environment` to each `superset service` as follows: 
+Then add `*superset-environment` to each `superset service` as follows:
 
 ```yml
 services:
