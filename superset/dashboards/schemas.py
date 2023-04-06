@@ -266,7 +266,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     position_json = fields.String(
         description=position_json_description, validate=validate_json
     )
-    css = fields.String()
+    css = fields.String(description=css_description)
     json_metadata = fields.String(
         description=json_metadata_description,
         validate=validate_json_metadata,
@@ -278,6 +278,23 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+
+
+class DashboardCopySchema(Schema):
+    dashboard_title = fields.String(
+        description=dashboard_title_description,
+        allow_none=True,
+        validate=Length(0, 500),
+    )
+    css = fields.String(description=css_description)
+    json_metadata = fields.String(
+        description=json_metadata_description,
+        validate=validate_json_metadata,
+        required=True,
+    )
+    duplicate_slices = fields.Boolean(
+        description="Whether or not to also copy all charts on the dashboard"
+    )
 
 
 class DashboardPutSchema(BaseDashboardSchema):
