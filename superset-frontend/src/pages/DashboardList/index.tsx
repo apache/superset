@@ -31,7 +31,7 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { TagsList } from 'src/components/Tags';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ListView, {
   ListViewProps,
   Filter,
@@ -55,8 +55,8 @@ import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
-import { DashboardStatus } from 'src/views/CRUD/dashboard/types';
+import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { DashboardStatus } from 'src/features/dashboards/types';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(

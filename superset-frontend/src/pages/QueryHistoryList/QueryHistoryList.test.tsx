@@ -27,12 +27,12 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import QueryList from 'src/pages/QueryHistoryList';
-import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
+import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import SubMenu from 'src/views/components/SubMenu';
+import SubMenu from 'src/features/home/SubMenu';
 import { QueryState } from '@superset-ui/core';
 
 // store needed for withToasts

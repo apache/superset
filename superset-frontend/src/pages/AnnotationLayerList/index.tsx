@@ -25,7 +25,7 @@ import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
   ListViewProps,
@@ -34,8 +34,8 @@ import ListView, {
 } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
-import { AnnotationLayerObject } from 'src/views/CRUD/annotationlayers/types';
+import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
+import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 
 const PAGE_SIZE = 25;
 const MOMENT_FORMAT = 'MMM DD, YYYY';

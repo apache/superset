@@ -27,14 +27,14 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 
-import { AnnotationObject } from 'src/views/CRUD/annotation/types';
-import AnnotationModal from 'src/views/CRUD/annotation/AnnotationModal';
+import { AnnotationObject } from 'src/features/annotations/types';
+import AnnotationModal from 'src/features/annotations/AnnotationModal';
 
 const PAGE_SIZE = 25;
 
