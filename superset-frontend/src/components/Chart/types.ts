@@ -18,8 +18,8 @@
  */
 
 export enum DrillByType {
-  chart,
-  table,
+  Chart,
+  Table,
 }
 
 export type Dataset = {

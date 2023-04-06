@@ -244,15 +244,17 @@ export const DrillByMenuItems = ({
           )}
         </div>
       </Menu.SubMenu>
-      <DrillByModal
-        column={currentColumn}
-        filters={filters}
-        formData={formData}
-        groupbyFieldName={groupbyFieldName}
-        onHideModal={closeModal}
-        showModal={showModal}
-        dataset={dataset!}
-      />
+      {showModal && (
+        <DrillByModal
+          column={currentColumn}
+          filters={filters}
+          formData={formData}
+          groupbyFieldName={groupbyFieldName}
+          onHideModal={closeModal}
+          showModal={showModal}
+          dataset={dataset!}
+        />
+      )}
     </>
   );
 };

@@ -46,16 +46,11 @@ import { getChartDataRequest } from '../chartAction';
 
 const DATA_SIZE = 14;
 interface ModalFooterProps {
-  formData: BaseFormData;
   closeModal?: () => void;
-  showEditChart: boolean;
+  formData: BaseFormData;
 }
 
-const ModalFooter = ({
-  formData,
-  closeModal,
-  showEditChart,
-}: ModalFooterProps) => {
+const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [datasource_id, datasource_type] = formData.datasource.split('__');
@@ -72,20 +67,19 @@ const ModalFooter = ({
   }, [dashboardPageId, datasource_id, datasource_type, formData]);
   return (
     <>
-      {showEditChart && (
-        <Button buttonStyle="secondary" buttonSize="small" onClick={noOp}>
-          <Link
-            css={css`
-              &:hover {
-                text-decoration: none;
-              }
-            `}
-            to={url}
-          >
-            {t('Edit chart')}
-          </Link>
-        </Button>
-      )}
+      <Button buttonStyle="secondary" buttonSize="small" onClick={noOp}>
+        <Link
+          css={css`
+            &:hover {
+              text-decoration: none;
+            }
+          `}
+          to={url}
+        >
+          {t('Edit chart')}
+        </Link>
+      </Button>
+
       <Button
         buttonStyle="primary"
         buttonSize="small"
@@ -100,26 +94,24 @@ const ModalFooter = ({
 
 interface DrillByModalProps {
   column?: Column;
+  dataset: Dataset;
   filters?: BinaryQueryObjectFilterClause[];
   formData: BaseFormData & { [key: string]: any };
   groupbyFieldName?: string;
   onHideModal: () => void;
-  showModal: boolean;
-  dataset: Dataset;
 }
 
 export default function DrillByModal({
   column,
+  dataset,
   filters,
   formData,
   groupbyFieldName = 'groupby',
   onHideModal,
-  showModal,
-  dataset,
 }: DrillByModalProps) {
   const theme = useTheme();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-  const [showChart, setShowChart] = useState(true);
+  const [drillBy, setDrillBy] = useState<DrillByType>(DrillByType.Chart);
   const [datasourceId] = useMemo(
     () => formData.datasource.split('__'),
     [formData.datasource],
@@ -160,14 +152,14 @@ export default function DrillByModal({
   }, [column, filters, formData, groupbyFieldName]);
 
   useEffect(() => {
-    if (updatedFormData && showModal) {
+    if (updatedFormData) {
       getChartDataRequest({
         formData: updatedFormData,
       }).then(({ json }) => {
         setChartDataResult(json.result);
       });
     }
-  }, [updatedFormData, showModal]);
+  }, [updatedFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
@@ -177,16 +169,10 @@ export default function DrillByModal({
           border-top: none;
         }
       `}
-      show={showModal}
-      onHide={() => {
-        setShowChart(true);
-        setChartDataResult(undefined);
-        onHideModal();
-      }}
+      show
+      onHide={onHideModal ?? (() => null)}
       title={t('Drill by: %s', chartName)}
-      footer={
-        <ModalFooter formData={updatedFormData} showEditChart={showChart} />
-      }
+      footer={<ModalFooter formData={updatedFormData} />}
       responsive
       resizable
       resizableConfig={{
@@ -219,36 +205,35 @@ export default function DrillByModal({
         >
           <Radio.Group
             onChange={({ target: { value } }) => {
-              setShowChart(value === DrillByType.chart);
+              setDrillBy(value);
             }}
-            defaultValue={DrillByType.chart}
+            defaultValue={DrillByType.Chart}
           >
             <Radio.Button
-              value={DrillByType.chart}
+              value={DrillByType.Chart}
               data-test="drill-by-chart-radio"
             >
               {t('Chart')}
             </Radio.Button>
             <Radio.Button
-              value={DrillByType.table}
+              value={DrillByType.Table}
               data-test="drill-by-table-radio"
             >
               {t('Table')}
             </Radio.Button>
           </Radio.Group>
         </div>
-        {showChart && chartDataResult && (
+        {drillBy === DrillByType.Chart && chartDataResult && (
           <DrillByChart formData={updatedFormData} result={chartDataResult} />
         )}
-        {!showChart && chartDataResult && (
+        {drillBy === DrillByType.Table && chartDataResult && (
           <SingleQueryResultPane
-            data={chartDataResult[0].data}
             colnames={chartDataResult[0].colnames}
             coltypes={chartDataResult[0].coltypes}
-            datasourceId={datasourceId}
+            data={chartDataResult[0].data}
             dataSize={DATA_SIZE}
-            key={1}
-            isVisible={!showChart}
+            datasourceId={datasourceId}
+            isVisible
           />
         )}
       </div>
