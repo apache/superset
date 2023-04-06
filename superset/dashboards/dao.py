@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -262,13 +263,6 @@ class DashboardDAO(BaseDAO):
             # positions have its own column, no need to store it in metadata
             md.pop("positions", None)
 
-        # The css and dashboard_title properties are not part of the metadata
-        # TODO (geido): remove by refactoring/deprecating save_dash endpoint
-        if data.get("css") is not None:
-            dashboard.css = data.get("css")
-        if data.get("dashboard_title") is not None:
-            dashboard.dashboard_title = data.get("dashboard_title")
-
         if new_filter_scopes:
             md["filter_scopes"] = new_filter_scopes
         else:
@@ -307,6 +301,41 @@ class DashboardDAO(BaseDAO):
             )
             .all()
         ]
+
+    @classmethod
+    def copy_dashboard(
+        cls, original_dash: Dashboard, data: Dict[str, Any]
+    ) -> Dashboard:
+        dash = Dashboard()
+        dash.owners = [g.user] if g.user else []
+        dash.dashboard_title = data["dashboard_title"]
+        dash.css = data.get("css")
+
+        metadata = json.loads(data["json_metadata"])
+        old_to_new_slice_ids: Dict[int, int] = {}
+        if data.get("duplicate_slices"):
+            # Duplicating slices as well, mapping old ids to new ones
+            for slc in original_dash.slices:
+                new_slice = slc.clone()
+                new_slice.owners = [g.user] if g.user else []
+                db.session.add(new_slice)
+                db.session.flush()
+                new_slice.dashboards.append(dash)
+                old_to_new_slice_ids[slc.id] = new_slice.id
+
+            # update chartId of layout entities
+            for value in metadata["positions"].values():
+                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
+                    old_id = value["meta"]["chartId"]
+                    new_id = old_to_new_slice_ids.get(old_id)
+                    value["meta"]["chartId"] = new_id
+        else:
+            dash.slices = original_dash.slices
+
+        cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
+        db.session.add(dash)
+        db.session.commit()
+        return dash
 
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:
