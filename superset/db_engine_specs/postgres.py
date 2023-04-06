@@ -310,7 +310,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
             """
-            ).fetchall()
+            )
         )
 
     @classmethod

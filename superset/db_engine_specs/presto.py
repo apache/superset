@@ -786,6 +786,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             return {row[0] for row in results}
 
     @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Get all catalogs.
+        """
+        return [catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")]
+
+    @classmethod
     def _create_column_info(
         cls, name: str, data_type: types.TypeEngine
     ) -> Dict[str, Any]:
