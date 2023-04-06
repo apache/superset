@@ -122,6 +122,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
+    supports_catalog = True
+
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
     raw_connections bypass the sqlalchemy-bigquery query execution context and deal with

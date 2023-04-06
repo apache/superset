@@ -29,6 +29,7 @@ from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
@@ -84,6 +85,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
+    supports_catalog = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -166,6 +168,24 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return None
 
         return parse.unquote(database.split("/")[1])
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Return all catalogs.
+
+        In Snowflake, a catalog is called a "database".
+        """
+        return sorted(
+            catalog
+            for (catalog,) in inspector.bind.execute(
+                "SELECT DATABASE_NAME from information_schema.databases"
+            )
+        )
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
