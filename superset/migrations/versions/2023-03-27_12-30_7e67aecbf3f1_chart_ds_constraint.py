@@ -24,9 +24,7 @@ Create Date: 2023-03-27 12:30:01.164594
 
 # revision identifiers, used by Alembic.
 revision = "7e67aecbf3f1"
-down_revision = "b5ea9d343307"
-
-import json
+down_revision = "07f9a902af1b"
 
 import sqlalchemy as sa
 from alembic import op
@@ -54,7 +52,7 @@ def upgrade():
         slc.datasource_type = "table"
 
     op.create_check_constraint(
-        "ck_chart_datasource", "slice", sa.column("datasource_type") == "table"
+        "ck_chart_datasource", "slices", sa.column("datasource_type") == "table"
     )
 
 
