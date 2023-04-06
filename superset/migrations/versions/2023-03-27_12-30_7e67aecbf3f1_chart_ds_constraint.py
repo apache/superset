@@ -47,13 +47,19 @@ class Slice(Base):  # type: ignore
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
-        # clean up all charts with datasource_type not != table
-        slc.datasource_type = "table"
 
-    op.create_check_constraint(
-        "ck_chart_datasource", "slices", sa.column("datasource_type") == "table"
-    )
+    with op.batch_alter_table("slices") as batch_op:
+        for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
+            # clean up all charts with datasource_type not != table
+            slc.datasource_type = "table"
+            session.add(slc)
+
+        batch_op.create_check_constraint(
+            "ck_chart_datasource", "datasource_type in ('table')"
+        )
+
+    session.commit()
+    session.close()
 
 
 def downgrade():
