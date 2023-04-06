@@ -29,6 +29,33 @@ const DODOPIZZA_THEME = {
   },
 };
 
+const MESSAGES = {
+  GET_MENU: {
+    CONFIG: {
+      stackTrace: 'GET_MENU',
+      title: 'Getting dashboards from Superset',
+    },
+    NO_DASHBOARDS: 'No dashboards were returned from Superset',
+    OTHER: 'While getting dashboards unexected error happened',
+  },
+  LOGIN: {
+    CONFIG: {
+      stackTrace: 'LOGIN',
+      title: 'Log into Superset',
+    },
+    NO_TOKEN: 'No access token was returned from Superset',
+    OTHER: 'While log in unexected error happened',
+  },
+  CSRF: {
+    CONFIG: {
+      stackTrace: 'CSRF',
+      title: 'Get CSRF token from Superset',
+    },
+    NO_TOKEN: 'No CSRF token was returned from Superset',
+    OTHER: 'While getting CSRF unexected error happened',
+  },
+};
+
 const DODOPIZZA_KNOWLEDGEBASE_URL =
   'https://dodopizza.info/support/categories/7647d4b4-5108-4b5e-9054-43f40a2ab287/ru';
 const DODOPIZZA_ANALYTICS_URL = 'https://analytics.dodois.io/dashboard/list/';
@@ -270,6 +297,7 @@ const USER_ROLES = {
 
 export {
   API_V1,
+  MESSAGES,
   SUPERSET_ENDPOINT,
   PLUGIN_SELECTOR,
   DODOPIZZA_THEME,

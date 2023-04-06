@@ -1,12 +1,9 @@
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose } from 'redux';
-import { initFeatureFlags } from 'src/Superstructure/utils/featureFlags';
-import {
-  USER_ROLES,
-  SUPERSET_WEBSERVER_TIMEOUT,
-} from 'src/Superstructure/constants';
-import { initEnhancer } from 'src/reduxUtils';
-import rootReducer from 'src/Superstructure/reducers/index';
+import { initFeatureFlags } from './utils/featureFlags';
+import { USER_ROLES, SUPERSET_WEBSERVER_TIMEOUT } from './constants';
+import { initEnhancer } from '../reduxUtils';
+import rootReducer from './reducers/index';
 
 // TODO: get data bootstrap from superset API
 // Because the roles are empty -> export in CSV is not shown

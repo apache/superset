@@ -33,9 +33,8 @@ export const API_HANDLER = {
       APIStore.dispatch({ type: 'auth/updateJWT', payload: access_token });
       return data;
     } catch (error) {
-      console.log('authanticateInDodoInner', error);
       this.errorObject = error;
-      throw error;
+      return error;
     }
   },
 
@@ -79,9 +78,8 @@ export const API_HANDLER = {
 
       return data;
     } catch (error) {
-      console.log('getCSRFToken', error);
       this.errorObject = error;
-      throw error;
+      return error;
     }
   },
 

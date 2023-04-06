@@ -1,118 +1,132 @@
-import { GET_TOKEN_AND_CSRF, GET_CSRF } from 'src/Superstructure/api/init';
+import { GET_LOGIN_TOKEN, GET_CSRF_TOKEN, GET_DASHBOARDS } from '../api/init';
+import { MESSAGES } from '../constants';
+import {
+  InitializedResponse,
+  DashboardFiltered,
+  Dashboard,
+  RouteFromDashboard,
+} from '../types/global';
+import {
+  handleAxiosError,
+  handleCorrectCaseReturn,
+  handleDefaultCaseReturn,
+} from './helpers';
 
-import { MicrofrontendParams } from 'src/Superstructure/types/global';
+const dirtyHackDodoIs = () => {
+  // In dodois the div.all has css property min-height, that forces the footer to be overlapped
+  const dodoElementAll = document.getElementsByClassName('all')[0];
 
-type INITIALIZE_RESPONSE = {
-  loaded: boolean;
-  error: boolean;
-  errorMsg: string;
-};
-
-const composed = ({
-  loaded,
-  name,
-  errorParams,
-}: {
-  loaded: boolean;
-  name: string;
-  errorParams?: string;
-}): INITIALIZE_RESPONSE => {
-  if (loaded) return { loaded: true, error: false, errorMsg: '' };
-  const errorMsg = `${
-    errorParams
-      ? errorParams.toString().split('Error: Error:').join('Error:')
-      : `Unexpected Error [ ${name} ]`
-  } [ ${name} ]`;
-
-  return {
-    loaded: false,
-    error: true,
-    errorMsg,
-  };
-};
-
-const initializeAuth = async (
-  params: MicrofrontendParams,
-): Promise<INITIALIZE_RESPONSE> => {
-  if (process.env.WEBPACK_MODE === 'development') {
-    try {
-      const initResponse = await GET_TOKEN_AND_CSRF(params.token || '');
-
-      if (initResponse?.csrf && initResponse?.token) {
-        return composed({ loaded: true, name: 'GET_TOKEN_AND_CSRF' });
-      }
-      return composed({
-        loaded: false,
-        name: 'GET_TOKEN_AND_CSRF',
-        errorParams: 'did not return csrf and|or token',
-      });
-    } catch (error) {
-      return composed({
-        loaded: false,
-        name: 'GET_TOKEN_AND_CSRF',
-        errorParams: error,
-      });
-    }
-  } else if (process.env.WEBPACK_MODE === 'production') {
-    try {
-      const initResponse = await GET_CSRF({ useAuth: false });
-
-      if (initResponse?.csrf) {
-        return composed({ loaded: true, name: 'GET_CSRF' });
-      }
-      return composed({
-        loaded: false,
-        name: 'GET_CSRF',
-        errorParams: 'did not return csrf',
-      });
-    } catch (error) {
-      return composed({
-        loaded: false,
-        name: 'GET_CSRF',
-        errorParams: error,
-      });
-    }
-  }
-  // process.env.WEBPACK_MODE === 'none'
-  try {
-    const initResponse = await GET_TOKEN_AND_CSRF(params.token || '');
-
-    if (initResponse?.csrf && initResponse?.token) {
-      return composed({ loaded: true, name: 'GET_TOKEN_AND_CSRF' });
-    }
-    return composed({
-      loaded: false,
-      name: 'GET_TOKEN_AND_CSRF',
-      errorParams: 'did not return csrf and|or token',
-    });
-  } catch (error) {
-    return composed({
-      loaded: false,
-      name: 'GET_TOKEN_AND_CSRF',
-      errorParams: error,
-    });
+  if (dodoElementAll && dodoElementAll.classList.contains('overwrite-height')) {
+    dodoElementAll.classList.remove('overwrite-height');
   }
 };
 
-const addSlash = (baseName?: string) => {
-  if (!baseName) return '/';
-  if (baseName[baseName.length - 1] === '/') return baseName;
-  return `${baseName}/`;
+const getLoginToken = async (): Promise<
+  InitializedResponse<{ access_token: string } | null>
+> => {
+  const loginResponse = await GET_LOGIN_TOKEN();
+
+  if ('code' in loginResponse) {
+    return handleAxiosError({
+      response: loginResponse,
+      errorObject: MESSAGES.LOGIN,
+    });
+  }
+
+  if ('access_token' in loginResponse) {
+    return handleCorrectCaseReturn<{ access_token: string }>({
+      response: loginResponse,
+      errorObject: MESSAGES.LOGIN,
+    });
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.LOGIN,
+    errorMessage: 'NO_TOKEN',
+  });
 };
 
-const logConfigs = (
-  CONFIG: Record<string, any>,
-  incomingParams: Record<string, any>,
-  params: Record<string, any>,
-) => {
-  console.groupCollapsed('CONFIGS:');
-  console.log('\n');
-  console.log('Initial =>', CONFIG);
-  console.log('Incoming =>', incomingParams);
-  console.log('\n');
-  console.log('Used Config:');
-  console.log(params);
-  console.groupEnd();
+const getCsrfToken = async ({
+  useAuth = true,
+}): Promise<InitializedResponse<{ result: string } | null>> => {
+  const csrfResponse = await GET_CSRF_TOKEN({ useAuth });
+
+  if ('code' in csrfResponse) {
+    return handleAxiosError({
+      response: csrfResponse,
+      errorObject: MESSAGES.CSRF,
+    });
+  }
+
+  if ('result' in csrfResponse) {
+    return handleCorrectCaseReturn<{ result: string }>({
+      response: csrfResponse,
+      errorObject: MESSAGES.CSRF,
+    });
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.CSRF,
+    errorMessage: 'NO_TOKEN',
+  });
 };
 
-export { initializeAuth, addSlash, logConfigs };
+const getDashboardsData = async (): Promise<
+  InitializedResponse<DashboardFiltered[] | null>
+> => {
+  const dashboardsResponse = await GET_DASHBOARDS();
+
+  if ('code' in dashboardsResponse) {
+    return handleAxiosError({
+      response: dashboardsResponse,
+      errorObject: MESSAGES.GET_MENU,
+    });
+  }
+
+  if ('result' in dashboardsResponse) {
+    const filteredDashboards = dashboardsResponse?.result.filter(
+      (dashboard: Dashboard) =>
+        dashboard.certification_details && dashboard.certified_by,
+    );
+
+    if (filteredDashboards && filteredDashboards.length) {
+      return handleCorrectCaseReturn<DashboardFiltered[]>({
+        response: filteredDashboards,
+        errorObject: MESSAGES.GET_MENU,
+      });
+    }
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.GET_MENU,
+    errorMessage: 'NO_DASHBOARDS',
+  });
+};
+
+const defineNavigation = (
+  dashboards: DashboardFiltered[],
+): RouteFromDashboard[] =>
+  dashboards.map(dashboard => {
+    const {
+      certification_details = '',
+      certified_by = '',
+      dashboard_title = '',
+      id,
+    } = dashboard;
+
+    return {
+      hidden: !certified_by,
+      idOrSlug: id,
+      name: dashboard_title,
+      location: certification_details,
+      isMainRoute: false,
+    };
+  });
+
+export {
+  getLoginToken,
+  getCsrfToken,
+  getDashboardsData,
+  dirtyHackDodoIs,
+  defineNavigation,
+};

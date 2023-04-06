@@ -1,15 +1,21 @@
 export interface RouteConfig {
   idOrSlug: null | string | number;
-  route: string;
+  location: string;
   name: string;
   hidden: boolean;
+  isMainRoute: boolean;
 }
 
 export interface MicrofrontendNavigation {
-  main: string;
   showNavigationMenu: boolean;
   routes: RouteConfig[];
-  routesObject: Record<string, RouteConfig>;
+}
+
+export interface FullConfiguration {
+  navigation: MicrofrontendNavigation;
+  originUrl: string;
+  frontendLogger: boolean;
+  basename: string;
 }
 
 export interface MicrofrontendParams {
@@ -18,11 +24,9 @@ export interface MicrofrontendParams {
   nativeFilters?: string;
   token?: string;
   basename?: string;
-  navigation: MicrofrontendNavigation;
 }
 
 export type RoutesConfig = MicrofrontendNavigation['routes'];
-export type MainRoute = MicrofrontendNavigation['main'];
 
 export interface MainComponentProps {
   navigation: MicrofrontendNavigation;
@@ -61,4 +65,49 @@ export interface IPanelMsgObj {
   messages?: string[];
   messagesExtra?: string[];
   buttons?: { txt: string; link: string; class?: string }[];
+}
+
+export interface Dashboard {
+  certification_details: null | string;
+  certified_by: null | string;
+  dashboard_title: string;
+  id: number;
+}
+
+export interface DashboardFiltered {
+  certification_details: string;
+  certified_by: string;
+  dashboard_title: string;
+  id: number;
+}
+
+export interface RouteFromDashboard {
+  isMainRoute: boolean;
+  hidden: boolean;
+  idOrSlug: number;
+  name: string;
+  location: string;
+}
+
+export type ComposedMessage = {
+  loaded: boolean;
+  name: string;
+  errorParams?: string;
+};
+
+export type CustomErrorObject<T> = {
+  loaded: boolean;
+  data: T;
+  title: string;
+  stackTrace: string;
+  errorMsg?: string;
+  isCustomError?: boolean;
+};
+
+export interface InitializedResponse<T> {
+  loaded: boolean;
+  error?: string;
+  data: T;
+  title: string;
+  stackTrace: string;
 }

@@ -7,52 +7,143 @@ import {
   Loading,
   Version,
   ServiceNotAvailable,
-} from 'src/Superstructure/components';
-import { MicrofrontendParams } from 'src/Superstructure/types/global';
-import { composeAPIConfig } from 'src/Superstructure/config';
+} from '../components';
+import { MicrofrontendParams, FullConfiguration } from '../types/global';
+import { composeAPIConfig } from '../config';
 
-import { store } from 'src/Superstructure/store';
+import { store } from '../store';
 
-import LeftNavigation from 'src/Superstructure/components/LeftNavigation/index';
-import Main from 'src/Superstructure/components/Main/index';
+import LeftNavigation from '../components/LeftNavigation/index';
+import Main from '../components/Main/index';
 
-import setupClient from 'src/Superstructure/setupClient';
+import setupClient from '../setupClient';
 import {
-  initializeAuth,
-  addSlash,
-  logConfigs,
-} from 'src/Superstructure/Root/utils';
+  getLoginToken,
+  getCsrfToken,
+  getDashboardsData,
+  dirtyHackDodoIs,
+  defineNavigation,
+} from './utils';
 
 import {
   RootComponentWrapper,
   DashboardComponentWrapper,
-} from 'src/Superstructure/Root/styles';
+  ContentWrapper,
+} from './styles';
 
 import {
-  getFullConfig,
+  getCoreConfig,
   getNavigationConfig,
   APP_VERSION,
-} from 'src/Superstructure/parseEnvFile/index';
-import { serializeValue } from 'src/Superstructure/parseEnvFile/utils';
+} from '../parseEnvFile/index';
+import { serializeValue } from '../parseEnvFile/utils';
+import { addSlash, logConfigs } from './helpers';
 
 import '../../theme';
-
-const NAV_CONFIG = getNavigationConfig();
-
-const CONFIG = getFullConfig(
-  process.env.WEBPACK_MODE as 'development' | 'production' | 'none',
-  NAV_CONFIG,
-);
 
 setupClient();
 
 export const RootComponent = (incomingParams: MicrofrontendParams) => {
-  // In dodois the div.all has css property min-height, that forces the footer to be overlapped
-  const dodoElementAll = document.getElementsByClassName('all')[0];
+  const [isLoaded, setLoaded] = useState(false);
+  const [isError, setError] = useState(false);
+  const [errorObject, setErrorObject] = useState({
+    msg: '',
+    title: '',
+    stackTrace: '',
+  });
+  const [FULL_CONFIG, setFullConfig] = useState({
+    navigation: { showNavigationMenu: false, routes: [] },
+    originUrl: '',
+    frontendLogger: false,
+    basename: '',
+  } as FullConfiguration);
+  const [isFullConfigReady, setFullConfigReady] = useState(false);
 
-  if (dodoElementAll && dodoElementAll.classList.contains('overwrite-height')) {
-    dodoElementAll.classList.remove('overwrite-height');
-  }
+  /**
+   * Helper functions
+   */
+  const handleLoginRequest = async () => {
+    const loginResponse = await getLoginToken();
+    // await initializeAuth(params);
+
+    if (!loginResponse.loaded) {
+      setLoaded(false);
+      setError(true);
+
+      if (loginResponse.error) {
+        setErrorObject({
+          msg: loginResponse.error,
+          title: loginResponse.title,
+          stackTrace: loginResponse.stackTrace,
+        });
+      } else {
+        setErrorObject({
+          msg: 'Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
+          title: 'UNEXPECTED_ERROR',
+          stackTrace: 'UNKNOWN',
+        });
+      }
+      return null;
+    }
+    return loginResponse;
+  };
+
+  const handleCsrfRequest = async ({ useAuth }: { useAuth: boolean }) => {
+    const csrfResponse = await getCsrfToken({ useAuth });
+
+    if (!csrfResponse.loaded) {
+      setLoaded(false);
+      setError(true);
+
+      if (csrfResponse.error) {
+        setErrorObject({
+          msg: csrfResponse.error,
+          title: csrfResponse.title,
+          stackTrace: csrfResponse.stackTrace,
+        });
+      } else {
+        setErrorObject({
+          msg: 'Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
+          title: 'UNEXPECTED_ERROR',
+          stackTrace: 'UNKNOWN',
+        });
+      }
+      return null;
+    }
+
+    return csrfResponse;
+  };
+
+  const handleDashboardsRequest = async () => {
+    const dashboardsResponse = await getDashboardsData();
+
+    if (!dashboardsResponse.loaded) {
+      setLoaded(false);
+      setError(true);
+
+      if (dashboardsResponse.error) {
+        setErrorObject({
+          msg: dashboardsResponse.error,
+          title: dashboardsResponse.title,
+          stackTrace: dashboardsResponse.stackTrace,
+        });
+      } else {
+        setErrorObject({
+          msg: 'Что-то пошло не так c получением списка дашбордов',
+          title: 'UNEXPECTED_ERROR',
+          stackTrace: 'UNKNOWN',
+        });
+      }
+      return null;
+    }
+    return dashboardsResponse;
+  };
+
+  dirtyHackDodoIs();
+
+  const CONFIG = getCoreConfig(
+    process.env.WEBPACK_MODE as 'development' | 'production' | 'none',
+  );
 
   const params = useMemo(() => {
     const parameters = { ...incomingParams, ...CONFIG };
@@ -64,94 +155,116 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     };
   }, [incomingParams]);
 
-  logConfigs(CONFIG, incomingParams, params);
-
   const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
 
   if (IS_UNAVAILABLE) {
     return <ServiceNotAvailable />;
   }
 
-  const [isLoaded, setLoaded] = useState(false);
-  const [isError, setError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
   useEffect(() => {
     composeAPIConfig(params);
   }, [params]);
 
   useEffect(() => {
-    const performInitilizeAuth = async () => {
-      const { loaded, error, errorMsg } = await initializeAuth(params);
-      if (loaded) setLoaded(true);
+    const initializeLoginAndMenu = async () => {
+      let isLoginSkipped = false;
+      let useAuth = false;
 
-      if (error) {
-        setLoaded(false);
-        setError(true);
-        setErrorMessage(errorMsg);
+      if (process.env.WEBPACK_MODE === 'development') {
+        isLoginSkipped = false;
+        useAuth = true;
+      }
+      if (process.env.WEBPACK_MODE === 'production') {
+        // On production we do not need to take acceess token
+        isLoginSkipped = true;
+        // On production we do not have acceess token, so we get csrf without a token
+        useAuth = false;
+      }
+
+      const login = await handleLoginRequest();
+
+      if (isLoginSkipped || (login && login.data && login.data.access_token)) {
+        const csrf = await handleCsrfRequest({ useAuth });
+
+        if (csrf && csrf.data && csrf.data.result) {
+          const dashboards = await handleDashboardsRequest();
+
+          if (dashboards && dashboards.data) {
+            const navConfigFull = getNavigationConfig(
+              defineNavigation(dashboards.data),
+            );
+
+            if (navConfigFull && navConfigFull.navigation.routes.length) {
+              setLoaded(true);
+
+              const { basename, originUrl, frontendLogger } = params;
+              setFullConfig({
+                ...navConfigFull,
+                basename,
+                originUrl,
+                frontendLogger,
+              });
+              setFullConfigReady(true);
+            } else {
+              setLoaded(false);
+              setError(true);
+              setErrorObject({
+                msg: 'Что-то пошло не так c настройкой меню',
+                title: 'UNEXPECTED_ERROR',
+                stackTrace: 'UNKNOWN',
+              });
+            }
+          }
+        }
       }
     };
 
-    performInitilizeAuth();
+    initializeLoginAndMenu();
   }, [params]);
 
-  const { navigation, basename } = params;
+  logConfigs(FULL_CONFIG, incomingParams, params);
 
-  const useNavigationMenu = navigation?.showNavigationMenu;
+  if (isError) {
+    return (
+      <>
+        <Version appVersion={APP_VERSION} />
+        <GlobalError
+          title={errorObject.title}
+          body={errorObject.msg}
+          stackTrace={errorObject.stackTrace}
+        />
+      </>
+    );
+  }
 
   return (
     <div>
       <Version appVersion={APP_VERSION} />
-      <div
-        // eslint-disable-next-line theme-colors/no-literal-colors
-        style={{ minHeight: '100vh', position: 'relative', background: '#fff' }}
-      >
-        {isError ? (
-          <GlobalError
-            title="Error happened =("
-            body={`${errorMessage}`}
-            stackTrace="Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна."
-          />
-        ) : !isLoaded ? (
+      <ContentWrapper>
+        {!isLoaded || !isFullConfigReady ? (
           <Loading />
-        ) : isLoaded && navigation && basename ? (
-          <RootComponentWrapper withNavigation={useNavigationMenu}>
-            {useNavigationMenu && navigation && navigation.main ? (
-              <Router>
-                <LeftNavigation
-                  routesConfig={navigation.routes}
-                  baseRoute={basename}
-                />
-                <DashboardComponentWrapper withNavigation={useNavigationMenu}>
-                  <Main
-                    navigation={navigation}
-                    store={store}
-                    basename={basename}
-                  />
-                </DashboardComponentWrapper>
-              </Router>
-            ) : (
-              <GlobalError
-                title="Error happened =("
-                body="There is no dashboard ID or slug provided."
-                stackTrace="Either provide dashboard ID or slug or enable navigation via useNavigationMenu flag"
-              />
-            )}
-          </RootComponentWrapper>
         ) : (
-          isLoaded &&
-          (!navigation || !basename) && (
-            <div>
-              <Version appVersion={APP_VERSION} />
-              <GlobalError
-                title="Error happened =("
-                body="There is no navigation object or basename provided"
-                stackTrace="Provide navigation object and|or basename"
+          <RootComponentWrapper
+            withNavigation={FULL_CONFIG.navigation.showNavigationMenu}
+          >
+            <Router>
+              <LeftNavigation
+                routesConfig={FULL_CONFIG.navigation.routes}
+                baseRoute={FULL_CONFIG.basename}
               />
-            </div>
-          )
+              <DashboardComponentWrapper
+                withNavigation={FULL_CONFIG.navigation.showNavigationMenu}
+              >
+                <Main
+                  navigation={FULL_CONFIG.navigation}
+                  store={store}
+                  basename={FULL_CONFIG.basename}
+                />
+              </DashboardComponentWrapper>
+            </Router>
+          </RootComponentWrapper>
         )}
-      </div>
+      </ContentWrapper>
     </div>
   );
 };

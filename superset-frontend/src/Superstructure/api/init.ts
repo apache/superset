@@ -1,35 +1,27 @@
-import { API_HANDLER } from 'src/Superstructure/api';
+import { AxiosError } from 'axios';
+import { API_HANDLER } from '.';
+import { DashboardFiltered } from '../types/global';
 
-export const GET_TOKEN_AND_CSRF = async (definedToken?: string) => {
-  try {
-    let token = '';
+const GET_LOGIN_TOKEN = async (
+  definedToken?: string,
+): Promise<{ access_token: string } | AxiosError> =>
+  (await definedToken)
+    ? { access_token: definedToken }
+    : API_HANDLER.authanticateInDodoInner();
 
-    if (!definedToken) {
-      const authResponse = await API_HANDLER.authanticateInDodoInner();
-      token = authResponse.access_token;
-    } else {
-      token = definedToken;
-    }
+const GET_CSRF_TOKEN = async ({
+  useAuth = false,
+}: {
+  useAuth: boolean;
+}): Promise<{ result: string } | AxiosError> =>
+  API_HANDLER.getCSRFToken({ useAuth });
 
-    if (token) {
-      const csrfResponse = await API_HANDLER.getCSRFToken({ useAuth: true });
-      const csrf = csrfResponse.result;
-      if (csrf) return { csrf, token };
-      return null;
-    }
-    return null;
-  } catch (error) {
-    throw new Error(error);
-  }
-};
+const GET_DASHBOARDS = (): Promise<
+  { result: DashboardFiltered[] } | AxiosError
+> =>
+  API_HANDLER.SupersetClient({
+    method: 'get',
+    url: '/api/v1/dashboard/',
+  });
 
-export const GET_CSRF = async ({ useAuth = false }: { useAuth: boolean }) => {
-  try {
-    const csrfResponse = await API_HANDLER.getCSRFToken({ useAuth });
-    const csrf = csrfResponse.result;
-    if (csrf) return { csrf };
-    return null;
-  } catch (error) {
-    throw new Error(error);
-  }
-};
+export { GET_LOGIN_TOKEN, GET_CSRF_TOKEN, GET_DASHBOARDS };

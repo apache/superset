@@ -1,5 +1,3 @@
-// DODO was here
-
 import React, { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';

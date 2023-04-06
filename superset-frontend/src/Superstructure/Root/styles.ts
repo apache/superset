@@ -17,3 +17,10 @@ export const RootComponentWrapper = styled.section<RootComponentWrapperProps>`
 export const DashboardComponentWrapper = styled.section<DashboardComponentWrapperProps>`
   width: ${({ withNavigation }) => (withNavigation ? '85%' : '100%')};
 `;
+
+// eslint-disable-next-line theme-colors/no-literal-colors
+export const ContentWrapper = styled.div`
+  min-height: 100vh;
+  position: relative;
+  background: #fff;
+`;

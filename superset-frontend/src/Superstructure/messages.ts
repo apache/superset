@@ -1,7 +1,7 @@
 import {
   DODOPIZZA_ANALYTICS_URL,
   DODOPIZZA_KNOWLEDGEBASE_URL,
-} from 'src/Superstructure/constants';
+} from './constants';
 
 const GLOBAL_WARNING_DEFAULT_HEADER = 'Unexpected error happend =(';
 const GLOBAL_WARNING_DEFAULT_BODY =

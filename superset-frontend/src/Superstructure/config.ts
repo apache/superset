@@ -1,5 +1,5 @@
-import { API_HANDLER } from 'src/Superstructure/api';
-import { MicrofrontendParams } from 'src/Superstructure/types/global';
+import { API_HANDLER } from './api';
+import { MicrofrontendParams } from './types/global';
 
 export const composeAPIConfig = (params: MicrofrontendParams) => {
   console.log('WEBPACK_MODE', process.env.WEBPACK_MODE);

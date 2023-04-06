@@ -1,9 +1,5 @@
 import { hot } from 'react-hot-loader/root';
 import React from 'react';
-
-// Messages
-import { RULES_RU, UPGRADE_2_0_RU } from 'src/Superstructure/messages';
-
 import {
   ButtonsBlock,
   RowWrapper,
@@ -12,9 +8,9 @@ import {
   WarningPanelInner,
   InfoPanel,
   InfoPanelInner,
-} from 'src/Superstructure/components';
-
-import { IPanelMsgObj } from 'src/Superstructure/types/global';
+} from '../index';
+import { IPanelMsgObj } from '../../types/global';
+import { RULES_RU, UPGRADE_2_0_RU } from '../../messages';
 
 const AnalyticsMain = () => {
   const InfoMessageObj: IPanelMsgObj = RULES_RU;

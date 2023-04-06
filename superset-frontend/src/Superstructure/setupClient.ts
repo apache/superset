@@ -1,5 +1,5 @@
 import { SupersetClient, logging } from '@superset-ui/core';
-import parseCookie from 'src/Superstructure/utils/parseCookie';
+import parseCookie from './utils/parseCookie';
 
 export default function setupClient() {
   const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');

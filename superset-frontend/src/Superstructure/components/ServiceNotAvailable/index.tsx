@@ -1,12 +1,6 @@
 import React from 'react';
-
-import {
-  InfoIcon,
-  ColumnWrapper,
-  RowWrapper,
-} from 'src/Superstructure/components';
-
-import { UNAVAILABLE } from 'src/Superstructure/messages';
+import { InfoIcon, ColumnWrapper, RowWrapper } from '../index';
+import { UNAVAILABLE } from '../../messages';
 import { ServiceNotAvailableWrapper, Alert, StyledH4, StyledP } from './styles';
 
 const ServiceNotAvailable = () => (

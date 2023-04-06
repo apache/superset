@@ -1,16 +1,10 @@
 import React from 'react';
-
-import { ErrorParams } from 'src/Superstructure/types/global';
-import {
-  InfoIcon,
-  ColumnWrapper,
-  RowWrapper,
-} from 'src/Superstructure/components';
-
+import { InfoIcon, ColumnWrapper, RowWrapper } from '../index';
 import {
   GLOBAL_WARNING_DEFAULT_HEADER,
   GLOBAL_WARNING_DEFAULT_BODY,
-} from 'src/Superstructure/messages';
+} from '../../messages';
+import { ErrorParams } from '../../types/global';
 import {
   GlobalErrorWrapper,
   Alert,

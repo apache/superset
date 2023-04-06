@@ -1,6 +1,5 @@
 import React from 'react';
-
-import { IPanelMsgObj } from 'src/Superstructure/types/global';
+import { IPanelMsgObj } from '../../types/global';
 import { ButtonsWrapper } from './styles';
 
 const ButtonsBlock = ({ btnsInfo }: { btnsInfo: IPanelMsgObj['buttons'] }) => (

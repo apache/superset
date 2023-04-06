@@ -1,11 +1,6 @@
 import React from 'react';
-
-import { PanelMsgParams } from 'src/Superstructure/types/global';
-import {
-  InfoIcon,
-  ColumnWrapper,
-  RowWrapper,
-} from 'src/Superstructure/components';
+import { PanelMsgParams } from '../../types/global';
+import { InfoIcon, ColumnWrapper, RowWrapper } from '../index';
 import {
   InfoPanelWrapper,
   Alert,

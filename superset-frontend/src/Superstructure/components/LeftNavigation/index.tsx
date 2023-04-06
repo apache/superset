@@ -1,6 +1,6 @@
 import { hot } from 'react-hot-loader/root';
 import React from 'react';
-import { RoutesConfig } from 'src/Superstructure/types/global';
+import { RoutesConfig } from '../../types/global';
 import {
   LeftNavigationWrapper,
   UlContainer,
@@ -17,16 +17,19 @@ const LeftNavigation = (props: {
   return (
     <LeftNavigationWrapper>
       <UlContainer>
-        {Object.keys(allAvailableRoutes).map((keyName, i) => (
-          <ListItem key={`${keyName}-${i}`}>
-            <StyledLink
-              activeClassName="active-link"
-              to={`${props.baseRoute}${allAvailableRoutes[keyName].route}`}
-            >
-              {allAvailableRoutes[keyName].name}
-            </StyledLink>
-          </ListItem>
-        ))}
+        {allAvailableRoutes.map((route, index) => {
+          const link = route.isMainRoute
+            ? `${props.baseRoute}Main`
+            : `${props.baseRoute}${route.idOrSlug}`;
+
+          return (
+            <ListItem key={`${route}-${index}`}>
+              <StyledLink activeClassName="active-link" to={link}>
+                {route.name}
+              </StyledLink>
+            </ListItem>
+          );
+        })}
       </UlContainer>
     </LeftNavigationWrapper>
   );
