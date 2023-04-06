@@ -24,7 +24,7 @@ import {
   QueryColumn,
   DatasourceType,
 } from '@superset-ui/core';
-import { ColumnMeta } from './types';
+import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
@@ -57,3 +57,16 @@ export const QueryModeLabel = {
   [QueryMode.aggregate]: t('Aggregate'),
   [QueryMode.raw]: t('Raw records'),
 };
+
+export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
+  sort_series_type: SortSeriesType.Sum,
+  sort_series_ascending: false,
+};
+
+export const SORT_SERIES_CHOICES = [
+  [SortSeriesType.Name, t('Category name')],
+  [SortSeriesType.Sum, t('Total value')],
+  [SortSeriesType.Min, t('Minimum value')],
+  [SortSeriesType.Max, t('Maximum value')],
+  [SortSeriesType.Avg, t('Average value')],
+];

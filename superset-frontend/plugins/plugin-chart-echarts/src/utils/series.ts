@@ -30,6 +30,7 @@ import {
   AxisType,
   SupersetTheme,
 } from '@superset-ui/core';
+import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import { sumBy, meanBy, minBy, maxBy, orderBy } from 'lodash';
 import {
@@ -37,12 +38,7 @@ import {
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import {
-  LegendOrientation,
-  LegendType,
-  SortSeriesType,
-  StackType,
-} from '../types';
+import { LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {

@@ -22,6 +22,7 @@ import {
   contributionModeControl,
   xAxisSortControl,
   xAxisSortAscControl,
+  xAxisSortSeriesControl,
 } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
@@ -54,6 +55,7 @@ export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
     [hasGenericChartAxes ? 'x_axis' : null],
     [hasGenericChartAxes ? 'time_grain_sqla' : null],
     [hasGenericChartAxes ? xAxisSortControl : null],
+    [hasGenericChartAxes ? xAxisSortSeriesControl : null],
     [hasGenericChartAxes ? xAxisSortAscControl : null],
     ...controlsWithoutXAxis,
   ],

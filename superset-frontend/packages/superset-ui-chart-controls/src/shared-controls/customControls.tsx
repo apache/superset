@@ -34,6 +34,7 @@ import {
   isDataset,
 } from '../types';
 import { isTemporalColumn } from '../utils';
+import { DEFAULT_SORT_SERIES_DATA, SORT_SERIES_CHOICES } from '../constants';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -58,6 +59,30 @@ const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   ) &&
   Array.isArray(controls?.groupby?.value) &&
   controls.groupby.value.length === 0;
+
+const xAxisSortAscVisibility = ({
+  controls,
+}: {
+  controls: ControlStateMapping;
+}) =>
+  isDefined(controls?.x_axis?.value) &&
+  !isTemporalColumn(
+    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+    controls?.datasource?.datasource,
+  );
+
+const xAxisMultiSortVisibility = ({
+  controls,
+}: {
+  controls: ControlStateMapping;
+}) =>
+  isDefined(controls?.x_axis?.value) &&
+  !isTemporalColumn(
+    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+    controls?.datasource?.datasource,
+  ) &&
+  Array.isArray(controls?.groupby?.value) &&
+  !!controls.groupby.value.length;
 
 export const xAxisSortControl = {
   name: 'x_axis_sort',
@@ -122,6 +147,23 @@ export const xAxisSortAscControl = {
         : t('X-Axis Sort Ascending'),
     default: true,
     description: t('Whether to sort ascending or descending on the base Axis.'),
-    visibility: xAxisSortVisibility,
+    visibility: xAxisSortAscVisibility,
+  },
+};
+
+export const xAxisSortSeriesControl = {
+  name: 'x_axis_sort_series',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort By')
+        : t('X-Axis Sort By'),
+    choices: SORT_SERIES_CHOICES,
+    default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+    renderTrigger: true,
+    description: t('Decides which value to sort the base axis by.'),
+    visibility: xAxisMultiSortVisibility,
   },
 };
