@@ -638,6 +638,7 @@ init:
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
+  helmHook: true
   loadExamples: false
   createAdmin: true
   adminUser:
