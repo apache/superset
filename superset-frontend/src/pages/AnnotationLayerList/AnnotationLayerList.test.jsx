@@ -24,8 +24,8 @@ import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationLayersList from 'src/pages/AnnotationLayerList';
-import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
-import SubMenu from 'src/views/components/SubMenu';
+import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
+import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import DeleteModal from 'src/components/DeleteModal';

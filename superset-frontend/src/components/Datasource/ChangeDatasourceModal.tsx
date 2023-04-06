@@ -40,7 +40,7 @@ import { Input } from 'src/components/Input';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
-} from 'src/views/CRUD/data/dataset/constants';
+} from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from '../FacePile';
 

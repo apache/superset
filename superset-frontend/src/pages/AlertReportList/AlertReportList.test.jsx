@@ -25,7 +25,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { Switch } from 'src/components/Switch';
 import ListView from 'src/components/ListView';
-import SubMenu from 'src/views/components/SubMenu';
+import SubMenu from 'src/features/home/SubMenu';
 import AlertList from 'src/pages/AlertReportList';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { act } from 'react-dom/test-utils';

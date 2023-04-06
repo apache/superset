@@ -34,8 +34,8 @@ import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
+import { WelcomeTable } from 'src/features/home/types';
 import { Dashboard, Filter, TableTab } from './types';
-import { WelcomeTable } from './welcome/types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.

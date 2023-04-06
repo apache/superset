@@ -30,7 +30,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
+import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { DatasourceModal } from 'src/components/Datasource';
@@ -42,10 +42,7 @@ import ListView, {
   FilterOperator,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
-import SubMenu, {
-  SubMenuProps,
-  ButtonProps,
-} from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
@@ -64,8 +61,8 @@ import {
   SORT_BY,
   PASSWORDS_NEEDED_MESSAGE,
   CONFIRM_OVERWRITE_MESSAGE,
-} from 'src/views/CRUD/data/dataset/constants';
-import DuplicateDatasetModal from 'src/views/CRUD/data/dataset/DuplicateDatasetModal';
+} from 'src/features/datasets/constants';
+import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;
