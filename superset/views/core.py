@@ -1848,6 +1848,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             abort(404)
 
         has_access_ = False
+        datasource: Optional[BaseDatasource] = None
         for datasource in dashboard.datasources:
             datasource = DatasourceDAO.get_datasource(
                 datasource_type=DatasourceType(datasource.type),
@@ -1858,14 +1859,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource=datasource,
             ):
                 has_access_ = True
-                break
 
-        if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
-            flash(
-                __(security_manager.get_datasource_access_error_msg(datasource)),
-                "danger",
-            )
-            return redirect(f"/superset/request_access/?dashboard_id={dashboard.id}")
+            if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
+                flash(
+                    __(security_manager.get_datasource_access_error_msg(datasource)),
+                    "danger",
+                )
+                return redirect(
+                    f"/superset/request_access/?dashboard_id={dashboard.id}"
+                )
+
+            if has_access_:
+                break
 
         if not has_access_:
             flash(DashboardAccessDeniedError.message, "danger")
