@@ -47,6 +47,7 @@ import {
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { EmptyStateSmall } from 'src/components/EmptyState';
+import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
 
 const AUTOMATIC_COLOR = '';
 
@@ -301,8 +302,12 @@ class AnnotationLayer extends React.PureComponent {
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
     if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        const queryParams = rison.encode({
+          page: 0,
+          page_size: FILTER_OPTIONS_LIMIT,
+        });
         SupersetClient.get({
-          endpoint: '/api/v1/annotation_layer/',
+          endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
         }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
@@ -327,7 +332,7 @@ class AnnotationLayer extends React.PureComponent {
           order_column: 'slice_name',
           order_direction: 'asc',
           page: 0,
-          page_size: 25,
+          page_size: FILTER_OPTIONS_LIMIT,
         });
         SupersetClient.get({
           endpoint: `/api/v1/chart/?q=${queryParams}`,
