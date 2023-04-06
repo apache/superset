@@ -246,6 +246,7 @@ class Query(
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "schema": self.schema,
+            "verbose_map": {},
         }
 
     def raise_for_access(self) -> None:
