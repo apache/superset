@@ -86,6 +86,10 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * If not defined, NoResultsComponent is used
      */
     noResults?: ReactNode;
+    /**
+     * Determines is the context menu related to the chart is open
+     */
+    inContextMenu?: boolean;
   };
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
