@@ -408,7 +408,9 @@ class BaseReportState:
             try:
                 if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                     logger.info(
-                        "Would send notification for alert %s, to %s",
+                        "Would send notification for alert %s, to %s. "
+                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                        "set it to False to send notifications.",
                         self._report_schedule.name,
                         recipient.recipient_config_json,
                     )
