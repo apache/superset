@@ -23,14 +23,40 @@ Create Date: 2023-03-27 12:30:01.164594
 """
 
 # revision identifiers, used by Alembic.
-revision = '7e67aecbf3f1'
-down_revision = 'b5ea9d343307'
+revision = "7e67aecbf3f1"
+down_revision = "b5ea9d343307"
 
-from alembic import op
+import json
+
 import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
+
+Base = declarative_base()
+
+
+class Slice(Base):  # type: ignore
+    __tablename__ = "slices"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    slice_name = sa.Column(sa.String(250))
+    datasource_type = sa.Column(sa.String(200))
+    query_context = sa.Column(sa.Text)
+
 
 def upgrade():
-    pass
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
+        # clean up all charts with datasource_type not != table
+        slc.datasource_type = "table"
+
+    op.create_check_constraint(
+        "ck_chart_datasource", "slice", sa.column("datasource_type") == "table"
+    )
+
 
 def downgrade():
-    pass 
+    op.drop_constraint("ck_chart_datasource", "slices", type_="check")
