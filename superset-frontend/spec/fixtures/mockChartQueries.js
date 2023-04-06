@@ -33,6 +33,7 @@ export default {
     triggerQuery: false,
     lastRendered: 0,
     form_data: {
+      adhoc_filters: [],
       datasource: datasourceId,
       viz_type: 'pie',
       slice_id: sliceId,

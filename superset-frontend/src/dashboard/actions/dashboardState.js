@@ -299,7 +299,7 @@ export function saveDashboardRequest(data, id, saveType) {
     };
 
     const onCopySuccess = response => {
-      const lastModifiedTime = response.json.last_modified_time;
+      const lastModifiedTime = response.json.result.last_modified_time;
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
@@ -450,24 +450,21 @@ export function saveDashboardRequest(data, id, saveType) {
         });
     }
     // changing the data as the endpoint requires
-    const copyData = { ...cleanedData };
-    if (copyData.metadata) {
-      delete copyData.metadata;
+    if ('positions' in cleanedData && !('positions' in cleanedData.metadata)) {
+      cleanedData.metadata.positions = cleanedData.positions;
     }
-    const finalCopyData = {
-      ...copyData,
-      // the endpoint is expecting the metadata to be flat
-      ...(cleanedData?.metadata || {}),
+    cleanedData.metadata.default_filters = safeStringify(serializedFilters);
+    cleanedData.metadata.filter_scopes = serializedFilterScopes;
+    const copyPayload = {
+      dashboard_title: cleanedData.dashboard_title,
+      css: cleanedData.css,
+      duplicate_slices: cleanedData.duplicate_slices,
+      json_metadata: JSON.stringify(cleanedData.metadata),
     };
+
     return SupersetClient.post({
-      endpoint: `/superset/copy_dash/${id}/`,
-      postPayload: {
-        data: {
-          ...finalCopyData,
-          default_filters: safeStringify(serializedFilters),
-          filter_scopes: safeStringify(serializedFilterScopes),
-        },
-      },
+      endpoint: `/api/v1/dashboard/${id}/copy/`,
+      jsonPayload: copyPayload,
     })
       .then(response => onCopySuccess(response))
       .catch(response => onError(response));

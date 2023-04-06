@@ -19,9 +19,11 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ template "superset.name" . }}-init-db
+  {{- if .Values.init.helmHook }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": "before-hook-creation"
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   template:

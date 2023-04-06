@@ -37,10 +37,6 @@ serviceAccount:
 # @default -- see `values.yaml`
 bootstrapScript: |
   #!/bin/bash
-  rm -rf /var/lib/apt/lists/* && \
-  pip install \
-    psycopg2-binary==2.9.1 \
-    redis==3.5.3 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 # -- The name of the secret which we will use to generate a superset_config.py file
@@ -642,6 +638,7 @@ init:
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
+  helmHook: true
   loadExamples: false
   createAdmin: true
   adminUser:

@@ -34,7 +34,12 @@ import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
-import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
+import {
+  addTag,
+  deleteTaggedObjects,
+  fetchTags,
+  OBJECT_TYPES,
+} from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {

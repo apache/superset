@@ -56,7 +56,6 @@ from superset import (
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
@@ -1244,6 +1243,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def copy_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1260,6 +1260,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
+        dash.css = data.get("css")
 
         old_to_new_slice_ids: Dict[int, int] = {}
         if data["duplicate_slices"]:
@@ -1294,6 +1295,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def save_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1320,6 +1322,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # remove to avoid confusion.
         data.pop("last_modified_time", None)
 
+        if data.get("css") is not None:
+            dash.css = data["css"]
+        if data.get("dashboard_title") is not None:
+            dash.dashboard_title = data["dashboard_title"]
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
@@ -1745,35 +1751,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for slc in slices:
             try:
-                query_context = slc.get_query_context()
-                if query_context:
-                    query_context.force = True
-                    command = ChartDataCommand(query_context)
-                    command.validate()
-                    payload = command.run()
-                else:
-                    form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                    if dashboard_id:
-                        form_data["extra_filters"] = (
-                            json.loads(extra_filters)
-                            if extra_filters
-                            else get_dashboard_extra_filters(slc.id, dashboard_id)
-                        )
-
-                    if not slc.datasource:
-                        raise Exception("Slice's datasource does not exist")
-
-                    obj = get_viz(
-                        datasource_type=slc.datasource.type,
-                        datasource_id=slc.datasource.id,
-                        form_data=form_data,
-                        force=True,
+                form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                if dashboard_id:
+                    form_data["extra_filters"] = (
+                        json.loads(extra_filters)
+                        if extra_filters
+                        else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
-                    # pylint: disable=assigning-non-slot
-                    g.form_data = form_data
-                    payload = obj.get_payload()
-                    delattr(g, "form_data")
 
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
+
+                obj = get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
+
+                # pylint: disable=assigning-non-slot
+                g.form_data = form_data
+                payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:  # pylint: disable=broad-except

@@ -66,6 +66,7 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
     DashboardPostSchema,
@@ -149,6 +150,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "set_embedded",
         "delete_embedded",
         "thumbnail",
+        "copy_dash",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -284,6 +286,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
+        DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
         GetFavStarIdsSchema,
@@ -1380,3 +1383,69 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         for embedded in dashboard.embedded:
             DashboardDAO.delete(embedded)
         return self.response(200, message="OK")
+
+    @expose("/<id_or_slug>/copy/", methods=["POST"])
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.copy_dash",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def copy_dash(self, original_dash: Dashboard) -> Response:
+        """Makes a copy of an existing dashboard
+        ---
+        post:
+          summary: Makes a copy of an existing dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardCopySchema'
+          responses:
+            200:
+              description: Id of new dashboard and last modified time
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      last_modified_time:
+                        type: number
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            data = DashboardCopySchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        dash = DashboardDAO.copy_dashboard(original_dash, data)
+        return self.response(
+            200,
+            result={
+                "id": dash.id,
+                "last_modified_time": dash.changed_on.replace(
+                    microsecond=0
+                ).timestamp(),
+            },
+        )

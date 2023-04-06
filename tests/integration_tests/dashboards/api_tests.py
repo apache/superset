@@ -20,7 +20,7 @@ import json
 from io import BytesIO
 from time import sleep
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
@@ -434,6 +434,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
+            "tags": [],
             "thumbnail_url": dashboard.thumbnail_url,
             "is_managed_externally": False,
         }
@@ -2169,4 +2170,96 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], len(expected_models))
         db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": False,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertCountEqual(dash.slices, original_dash.slices)
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+
+        db.session.delete(dash)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_copy_dashboard_duplicate_slices(self):
+        self.login(username="admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+
+        data = {
+            "dashboard_title": "copied dash",
+            "css": "<css>",
+            "duplicate_slices": True,
+            "json_metadata": json.dumps(
+                {
+                    "positions": original_dash.position,
+                    "color_namespace": "Color Namespace Test",
+                    "color_scheme": "Color Scheme Test",
+                }
+            ),
+        }
+        pk = original_dash.id
+        uri = f"api/v1/dashboard/{pk}/copy/"
+        rv = self.client.post(uri, json=data)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {"result": {"id": ANY, "last_modified_time": ANY}})
+
+        dash = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.id == response["result"]["id"])
+            .one()
+        )
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertEqual(dash.params_dict["color_namespace"], "Color Namespace Test")
+        self.assertEqual(dash.params_dict["color_scheme"], "Color Scheme Test")
+        self.assertEqual(len(dash.slices), len(original_dash.slices))
+        for original_slc in original_dash.slices:
+            for slc in dash.slices:
+                self.assertNotEqual(slc.id, original_slc.id)
+
+        for slc in dash.slices:
+            db.session.delete(slc)
+
+        db.session.delete(dash)
         db.session.commit()

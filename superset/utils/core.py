@@ -126,6 +126,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1711,7 +1712,7 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional[Union[BaseDatasource, Query]] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1731,13 +1732,13 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column
+                columns_by_name[column.get("column_name")] = column  # type: ignore
             else:
                 columns_by_name[column.column_name] = column
 
     generic_types: List[GenericDataType] = []
     for column in df.columns:
-        column_object = columns_by_name.get(column)
+        column_object = columns_by_name.get(column)  # type: ignore
         series = df[column]
         inferred_type = infer_dtype(series)
         if isinstance(column_object, dict):

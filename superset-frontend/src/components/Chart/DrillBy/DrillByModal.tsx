@@ -17,54 +17,93 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
+  BaseFormData,
   BinaryQueryObjectFilterClause,
   Column,
   css,
+  ensureIsArray,
   t,
   useTheme,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { noOp } from 'src/utils/common';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
+import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
+import DrillByChart from './DrillByChart';
 
 interface ModalFooterProps {
-  exploreChart: () => void;
+  formData: BaseFormData;
   closeModal?: () => void;
 }
 
-const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
-  <>
-    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
-      {t('Edit chart')}
-    </Button>
-    <Button
-      buttonStyle="primary"
-      buttonSize="small"
-      onClick={closeModal}
-      data-test="close-drillby-modal"
-    >
-      {t('Close')}
-    </Button>
-  </>
-);
+const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
+  const [url, setUrl] = useState('');
+  const dashboardPageId = useContext(DashboardPageIdContext);
+  const [datasource_id, datasource_type] = formData.datasource.split('__');
+  useEffect(() => {
+    postFormData(Number(datasource_id), datasource_type, formData, 0)
+      .then(key => {
+        setUrl(
+          `/explore/?form_data_key=${key}&dashboard_page_id=${dashboardPageId}`,
+        );
+      })
+      .catch(e => {
+        console.log(e);
+      });
+  }, [dashboardPageId, datasource_id, datasource_type, formData]);
+  return (
+    <>
+      <Button buttonStyle="secondary" buttonSize="small" onClick={noOp}>
+        <Link
+          css={css`
+            &:hover {
+              text-decoration: none;
+            }
+          `}
+          to={url}
+        >
+          {t('Edit chart')}
+        </Link>
+      </Button>
+      <Button
+        buttonStyle="primary"
+        buttonSize="small"
+        onClick={closeModal}
+        data-test="close-drill-by-modal"
+      >
+        {t('Close')}
+      </Button>
+    </>
+  );
+};
 
 interface DrillByModalProps {
   column?: Column;
   filters?: BinaryQueryObjectFilterClause[];
-  formData: { [key: string]: any; viz_type: string };
+  formData: BaseFormData & { [key: string]: any };
+  groupbyFieldName?: string;
   onHideModal: () => void;
   showModal: boolean;
+  dataset: Dataset;
 }
 
 export default function DrillByModal({
   column,
-  formData,
   filters,
+  formData,
+  groupbyFieldName = 'groupby',
   onHideModal,
   showModal,
+  dataset,
 }: DrillByModalProps) {
   const theme = useTheme();
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -75,8 +114,34 @@ export default function DrillByModal({
   );
   const chartName =
     chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName;
-  const exploreChart = () => {};
 
+  const updatedFormData = useMemo(() => {
+    let updatedFormData = { ...formData };
+    if (column) {
+      updatedFormData[groupbyFieldName] = Array.isArray(
+        formData[groupbyFieldName],
+      )
+        ? [column.column_name]
+        : column.column_name;
+    }
+
+    if (filters) {
+      const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
+      updatedFormData = {
+        ...updatedFormData,
+        adhoc_filters: [
+          ...ensureIsArray(formData.adhoc_filters),
+          ...adhocFilters,
+        ],
+      };
+    }
+    updatedFormData.slice_id = 0;
+    delete updatedFormData.slice_name;
+    delete updatedFormData.dashboards;
+    return updatedFormData;
+  }, [column, filters, formData, groupbyFieldName]);
+
+  const { metadataBar } = useDatasetMetadataBar({ dataset });
   return (
     <Modal
       css={css`
@@ -87,7 +152,7 @@ export default function DrillByModal({
       show={showModal}
       onHide={onHideModal ?? (() => null)}
       title={t('Drill by: %s', chartName)}
-      footer={<ModalFooter exploreChart={exploreChart} />}
+      footer={<ModalFooter formData={updatedFormData} />}
       responsive
       resizable
       resizableConfig={{
@@ -102,7 +167,16 @@ export default function DrillByModal({
       destroyOnClose
       maskClosable={false}
     >
-      {}
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        `}
+      >
+        {metadataBar}
+        <DrillByChart formData={updatedFormData} />
+      </div>
     </Modal>
   );
 }

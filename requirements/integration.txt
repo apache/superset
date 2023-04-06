@@ -37,7 +37,7 @@ platformdirs==2.6.2
     # via virtualenv
 pluggy==0.13.1
     # via tox
-pre-commit==3.2.0
+pre-commit==3.2.2
     # via -r integration.in
 py==1.10.0
     # via tox

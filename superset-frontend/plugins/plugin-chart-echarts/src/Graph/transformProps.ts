@@ -171,6 +171,7 @@ export default function transformProps(
     inContextMenu,
     filterState,
     emitCrossFilters,
+    theme,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
@@ -324,7 +325,7 @@ export default function transformProps(
         ),
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: categoryList,
     },
     series,

@@ -47,6 +47,7 @@ import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { Dataset } from '../types';
 
 const MAX_SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
@@ -58,25 +59,36 @@ export interface DrillByMenuItemsProps {
   contextMenuY?: number;
   submenuIndex?: number;
   groupbyFieldName?: string;
+  onSelection?: () => void;
+  onClick?: (event: MouseEvent) => void;
 }
+
 export const DrillByMenuItems = ({
   filters,
   groupbyFieldName,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
+  onSelection = () => {},
+  onClick = () => {},
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
   const [searchInput, setSearchInput] = useState('');
+  const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
 
-  const openModal = useCallback(column => {
-    setCurrentColumn(column);
-    setShowModal(true);
-  }, []);
+  const openModal = useCallback(
+    (event, column) => {
+      onClick(event);
+      onSelection();
+      setCurrentColumn(column);
+      setShowModal(true);
+    },
+    [onClick, onSelection],
+  );
   const closeModal = useCallback(() => {
     setShowModal(false);
   }, []);
@@ -104,6 +116,7 @@ export const DrillByMenuItems = ({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then(({ json: { result } }) => {
+          setDataset(result);
           setColumns(
             ensureIsArray(result.columns)
               .filter(column => column.groupby)
@@ -218,7 +231,7 @@ export const DrillByMenuItems = ({
                   key={`drill-by-item-${column.column_name}`}
                   tooltipText={column.verbose_name || column.column_name}
                   {...rest}
-                  onClick={() => openModal(column)}
+                  onClick={e => openModal(e, column)}
                 >
                   {column.verbose_name || column.column_name}
                 </MenuItemWithTruncation>
@@ -235,8 +248,10 @@ export const DrillByMenuItems = ({
         column={currentColumn}
         filters={filters}
         formData={formData}
+        groupbyFieldName={groupbyFieldName}
         onHideModal={closeModal}
         showModal={showModal}
+        dataset={dataset!}
       />
     </>
   );

@@ -43,7 +43,12 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { isFeatureEnabled } from 'src/featureFlags';
 import TagType from 'src/types/TagType';
-import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
+import {
+  addTag,
+  deleteTaggedObjects,
+  fetchTags,
+  OBJECT_TYPES,
+} from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
 
 const StyledFormItem = styled(FormItem)`

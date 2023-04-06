@@ -96,6 +96,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine_name = "PostgreSQL"
 
     supports_dynamic_schema = True
+    supports_catalog = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -310,7 +311,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
             """
-            ).fetchall()
+            )
         )
 
     @classmethod
