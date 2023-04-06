@@ -37,6 +37,21 @@ intended for use with local development.
 In order to override configuration settings locally, simply make a copy of [`./docker/pythonpath_dev/superset_config_local.example`](./pythonpath_dev/superset_config_local.example)
 into `./docker/pythonpath_dev/superset_config_docker.py` (git ignored) and fill in your overrides.
 
+Alternatively, you can override configuration settings in `docker-compose.yml` by using [extension fields](https://docs.docker.com/compose/compose-file/11-extension/#using-extensions-as-fragments) like this:
+
+```yml
+x-superset-environment: &superset-environment
+  - SUPERSET_SECRET_KEY=<secret_key>
+```
+
+Then add `*superset-environment` to each `superset service` as follows: 
+
+```yml
+services:
+  superset:
+    environment: *superset-environment
+```
+
 ### Local packages
 
 If you want to add Python packages in order to test things like databases locally, you can simply add a local requirements.txt (`./docker/requirements-local.txt`)
