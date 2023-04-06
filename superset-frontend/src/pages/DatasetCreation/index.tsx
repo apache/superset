@@ -18,18 +18,18 @@
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useDatasetsList } from 'src/views/CRUD/data/hooks';
-import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
-import EditPage from 'src/views/CRUD/data/dataset/AddDataset/EditDataset';
-import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
-import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
-import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
+import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
+import Header from 'src/features/datasets/AddDataset/Header';
+import EditPage from 'src/features/datasets/AddDataset/EditDataset';
+import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
+import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
+import Footer from 'src/features/datasets/AddDataset/Footer';
 import {
   DatasetActionType,
   DatasetObject,
   DSReducerActionType,
-} from 'src/views/CRUD/data/dataset/AddDataset/types';
-import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
+} from 'src/features/datasets/AddDataset/types';
+import DatasetLayout from 'src/features/datasets/DatasetLayout';
 
 type Schema = {
   schema: string;

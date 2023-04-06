@@ -27,7 +27,7 @@ import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/views/components/Menu';
+import Menu from 'src/features/home/Menu';
 import { theme } from 'src/preamble';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';

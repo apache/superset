@@ -34,7 +34,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
-import SubMenu from 'src/views/components/SubMenu';
+import SubMenu from 'src/features/home/SubMenu';
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
