@@ -19,6 +19,7 @@
 import {
   ChartProps,
   DataMaskStateWithId,
+  DatasourceType,
   ExtraFormData,
   GenericDataType,
   JsonObject,
@@ -192,4 +193,24 @@ export type EmbeddedDashboard = {
   uuid: string;
   dashboard_id: string;
   allowed_domains: string[];
+};
+
+export type Slice = {
+  slice_id: number;
+  slice_name: string;
+  description: string;
+  description_markdown: string;
+  form_data: any;
+  slice_url: string;
+  viz_type: string;
+  thumbnail_url: string;
+  changed_on: number;
+  changed_on_humanized: string;
+  modified: string;
+  datasource_id: number;
+  datasource_type: DatasourceType;
+  datasource_url: string;
+  datasource_name: string;
+  owners: { id: number }[];
+  created_by: { id: number };
 };
