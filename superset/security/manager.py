@@ -2076,15 +2076,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
+        dashboard_ids = db.session.query(Dashboard.id)
+        dashboard_ids = DashboardAccessFilter(
+            "id", SQLAInterface(Dashboard, db.session)
+        ).apply(dashboard_ids, None)
+
         datasource_class = type(datasource)
         query = (
-            db.session.query(datasource_class)
+            db.session.query(Dashboard.id)
+            .join(Slice, Dashboard.slices)
             .join(Slice.table)
             .filter(datasource_class.id == datasource.id)
-        )
-
-        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
+            .filter(Dashboard.id.in_(dashboard_ids))
         )
 
         exists = db.session.query(query.exists()).scalar()
