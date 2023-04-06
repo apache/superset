@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import urllib.parse
 from logging.config import fileConfig
 from typing import List
-import urllib.parse
 
 from alembic import context
 from alembic.operations.ops import MigrationScript
