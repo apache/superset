@@ -434,6 +434,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
+            "tags": [],
             "thumbnail_url": dashboard.thumbnail_url,
             "is_managed_externally": False,
         }
@@ -719,6 +720,75 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         for res in data["result"]:
             if res["id"] in users_favorite_ids:
                 assert res["value"]
+
+    def test_add_favorite(self):
+        """
+        Dataset API: Test add dashboard to favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_remove_favorite(self):
+        """
+        Dataset API: Test remove dashboard from favorites
+        """
+        dashboard = Dashboard(
+            id=100,
+            dashboard_title="test_dashboard",
+            slug="test_slug",
+            slices=[],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.post(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is True
+
+        uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
+        self.client.delete(uri)
+
+        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        for res in data["result"]:
+            assert res["value"] is False
+
+        db.session.delete(dashboard)
+        db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboards_not_favorite_filter(self):

@@ -22,7 +22,6 @@ import {
   ensureIsArray,
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-  isAdhocColumn,
   isDefined,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
@@ -32,51 +31,18 @@ import {
   QueryObjectFilterClause,
   SimpleAdhocFilter,
 } from '@superset-ui/core';
-import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from '../constants';
-import { translateToSql } from '../components/controls/FilterControl/utils/translateToSQL';
-import {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from '../components/controls/FilterControl/types';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 
-const simpleFilterToAdhoc = (
-  filterClause: QueryObjectFilterClause,
-  clause: CLAUSES = CLAUSES.WHERE,
-) => {
-  let result: AdhocFilter;
-  if (isAdhocColumn(filterClause.col)) {
-    result = {
-      expressionType: 'SQL',
-      clause,
-      sqlExpression: translateToSql({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: `(${filterClause.col.sqlExpression})`,
-        operator: filterClause.op,
-        comparator: 'val' in filterClause ? filterClause.val : undefined,
-      } as SimpleAdhocFilter),
-    };
-  } else {
-    result = {
-      expressionType: 'SIMPLE',
-      clause,
-      operator: filterClause.op,
-      operatorId: Object.entries(OPERATOR_ENUM_TO_OPERATOR_TYPE).find(
-        operatorEntry => operatorEntry[1].operation === filterClause.op,
-      )?.[0],
-      subject: filterClause.col,
-      comparator: 'val' in filterClause ? filterClause.val : undefined,
-    } as SimpleAdhocFilter;
-  }
-  if (filterClause.isExtra) {
-    Object.assign(result, {
-      isExtra: true,
-      filterOptionName: `filter_${Math.random()
-        .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
-    });
-  }
-  return result;
-};
+const removeExtraFieldForNewCharts = (
+  filters: AdhocFilter[],
+  isNewChart: boolean,
+) =>
+  filters.map(filter => {
+    if (filter.isExtra) {
+      return { ...filter, isExtra: !isNewChart };
+    }
+    return filter;
+  });
 
 const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
@@ -148,7 +114,6 @@ const mergeNativeFiltersToFormData = (
 ) => {
   const nativeFiltersData: JsonObject = {};
   const extraFormData = dashboardFormData.extra_form_data || {};
-
   Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
     ([srcKey, targetKey]) => {
       const val = extraFormData[srcKey];
@@ -238,13 +203,16 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: applyTimeRangeFilters(
-          dashboardContextFormData,
-          removeAdhocFilterDuplicates([
-            ...ensureIsArray(exploreFormData[key]),
-            ...ensureIsArray(filterBoxData[key]),
-            ...ensureIsArray(nativeFiltersData[key]),
-          ]),
+        [key]: removeExtraFieldForNewCharts(
+          applyTimeRangeFilters(
+            dashboardContextFormData,
+            removeAdhocFilterDuplicates([
+              ...ensureIsArray(exploreFormData[key]),
+              ...ensureIsArray(filterBoxData[key]),
+              ...ensureIsArray(nativeFiltersData[key]),
+            ]),
+          ),
+          exploreFormData.slice_id === 0,
         ),
       }),
       {},

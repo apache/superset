@@ -102,8 +102,9 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar, status: metadataBarStatus } =
-    useDatasetMetadataBar(datasourceId);
+  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
+    datasetId: datasourceId,
+  });
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);

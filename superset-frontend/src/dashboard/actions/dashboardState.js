@@ -18,11 +18,13 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import rison from 'rison';
 import {
   ensureIsArray,
-  t,
-  SupersetClient,
+  FeatureFlag,
   getSharedLabelColor,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -49,7 +51,7 @@ import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilte
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
@@ -82,7 +84,6 @@ export function removeSlice(sliceId) {
   return { type: REMOVE_SLICE, sliceId };
 }
 
-const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -92,10 +93,10 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
+      endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }) => {
-        if (json.count > 0) dispatch(toggleFaveStar(true));
+        dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
       })
       .catch(() =>
         dispatch(
@@ -112,10 +113,14 @@ export function fetchFaveStar(id) {
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-    return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`,
-    })
+    const endpoint = `/api/v1/dashboard/${id}/favorites/`;
+    const apiCall = isStarred
+      ? SupersetClient.delete({
+          endpoint,
+        })
+      : SupersetClient.post({ endpoint });
+
+    return apiCall
       .then(() => {
         dispatch(toggleFaveStar(!isStarred));
       })

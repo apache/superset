@@ -19,7 +19,7 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
 import {
   render,

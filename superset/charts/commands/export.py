@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 # keys present in the standard export that are not needed
-REMOVE_KEYS = ["datasource_type", "datasource_name", "url_params"]
+REMOVE_KEYS = ["datasource_type", "datasource_name", "query_context", "url_params"]
 
 
 class ExportChartsCommand(ExportModelsCommand):

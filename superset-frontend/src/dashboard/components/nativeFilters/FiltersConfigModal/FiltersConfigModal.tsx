@@ -33,10 +33,12 @@ import {
   SLOW_DEBOUNCE,
   t,
 } from '@superset-ui/core';
+import { useDispatch } from 'react-redux';
 import { AntdForm } from 'src/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
+import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
@@ -116,6 +118,8 @@ function FiltersConfigModal({
   onSave,
   onCancel,
 }: FiltersConfigModalProps) {
+  const dispatch = useDispatch();
+
   const [form] = AntdForm.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
@@ -309,8 +313,11 @@ function FiltersConfigModal({
       }
       const { cascadeParentIds } = filter;
       if (cascadeParentIds) {
-        filter.cascadeParentIds = cascadeParentIds.filter(id =>
-          canBeUsedAsDependency(id),
+        dispatch(
+          updateCascadeParentIds(
+            key,
+            cascadeParentIds.filter(id => canBeUsedAsDependency(id)),
+          ),
         );
       }
     });

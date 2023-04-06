@@ -56,7 +56,6 @@ from superset import (
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
@@ -1559,6 +1558,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
@@ -1644,6 +1644,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
@@ -1743,35 +1744,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for slc in slices:
             try:
-                query_context = slc.get_query_context()
-                if query_context:
-                    query_context.force = True
-                    command = ChartDataCommand(query_context)
-                    command.validate()
-                    payload = command.run()
-                else:
-                    form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                    if dashboard_id:
-                        form_data["extra_filters"] = (
-                            json.loads(extra_filters)
-                            if extra_filters
-                            else get_dashboard_extra_filters(slc.id, dashboard_id)
-                        )
-
-                    if not slc.datasource:
-                        raise Exception("Slice's datasource does not exist")
-
-                    obj = get_viz(
-                        datasource_type=slc.datasource.type,
-                        datasource_id=slc.datasource.id,
-                        form_data=form_data,
-                        force=True,
+                form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                if dashboard_id:
+                    form_data["extra_filters"] = (
+                        json.loads(extra_filters)
+                        if extra_filters
+                        else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
-                    # pylint: disable=assigning-non-slot
-                    g.form_data = form_data
-                    payload = obj.get_payload()
-                    delattr(g, "form_data")
 
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
+
+                obj = get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
+
+                # pylint: disable=assigning-non-slot
+                g.form_data = form_data
+                payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:  # pylint: disable=broad-except
@@ -1787,6 +1781,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
+    @deprecated()
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:

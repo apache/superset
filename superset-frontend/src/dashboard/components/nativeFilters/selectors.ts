@@ -50,6 +50,7 @@ const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
 type Datasource = {
   time_grain_sqla?: [string, string][];
   granularity?: [string, string][];
+  verbose_map?: Record<string, string>;
 };
 
 type Filter = {

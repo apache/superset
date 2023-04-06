@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { FeatureFlag, t } from '@superset-ui/core';
 import React, { useMemo, useCallback } from 'react';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -26,7 +26,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import ListView, {
   ListViewProps,
   Filters,
@@ -38,10 +38,10 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import FacePile from 'src/components/FacePile';
 import { Link } from 'react-router-dom';
-import { deleteTags } from 'src/tags';
+import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
 import { Tag } from 'src/views/CRUD/types';
-import TagCard from 'src/views/CRUD/tags/TagCard';
+import TagCard from 'src/features/tags/TagCard';
 
 const PAGE_SIZE = 25;
 

@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=arguments-renamed
 import logging
+from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -82,3 +83,32 @@ class ChartDAO(BaseDAO):
             )
             .all()
         ]
+
+    @staticmethod
+    def add_favorite(chart: Slice) -> None:
+        ids = ChartDAO.favorited_ids([chart])
+        if chart.id not in ids:
+            db.session.add(
+                FavStar(
+                    class_name=FavStarClassName.CHART,
+                    obj_id=chart.id,
+                    user_id=get_user_id(),
+                    dttm=datetime.now(),
+                )
+            )
+            db.session.commit()
+
+    @staticmethod
+    def remove_favorite(chart: Slice) -> None:
+        fav = (
+            db.session.query(FavStar)
+            .filter(
+                FavStar.class_name == FavStarClassName.CHART,
+                FavStar.obj_id == chart.id,
+                FavStar.user_id == get_user_id(),
+            )
+            .one_or_none()
+        )
+        if fav:
+            db.session.delete(fav)
+            db.session.commit()

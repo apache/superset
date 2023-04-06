@@ -26,6 +26,15 @@ export type Slice = {
   viz_type: string;
 };
 
+export type Chart = {
+  id: number;
+  slice_name: string;
+  slice_url: string;
+  created_by_name?: string;
+  created_by_url?: string;
+  changed_on_dttm: number;
+};
+
 export type Activity = {
   action: string;
   item_title: string;
