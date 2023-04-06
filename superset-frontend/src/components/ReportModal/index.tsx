@@ -93,6 +93,9 @@ type ReportObjectState = Partial<ReportObject> & {
   isSubmitting?: boolean;
 };
 
+// Same instance to be used in useEffects
+const EMPTY_OBJECT = {};
+
 function ReportModal({
   onHide,
   show = false,
@@ -147,7 +150,10 @@ function ReportModal({
     const resourceType = dashboardId
       ? CreationMethod.DASHBOARDS
       : CreationMethod.CHARTS;
-    return reportSelector(state, resourceType, dashboardId || chart?.id);
+    return (
+      reportSelector(state, resourceType, dashboardId || chart?.id) ||
+      EMPTY_OBJECT
+    );
   });
   const isEditMode = report && Object.keys(report).length;
 
