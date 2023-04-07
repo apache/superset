@@ -36,8 +36,12 @@ global.featureFlags = {
 
 const setup = ({
   onSelection = noOp,
-  displayedItems = [ContextMenuItem.All],
+  displayedItems = ContextMenuItem.All,
   additionalConfig = {},
+}: {
+  onSelection?: () => void;
+  displayedItems?: ContextMenuItem | ContextMenuItem[];
+  additionalConfig?: Record<string, any>;
 } = {}) => {
   const { result } = renderHook(() =>
     useContextMenu(
