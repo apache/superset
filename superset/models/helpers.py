@@ -943,7 +943,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)  # type: ignore
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
-        sql = self.mutate_query_from_config(sql)
+        if mutate:
+            sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
@@ -1151,7 +1152,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def adhoc_metric_to_sqla(
         self,
         metric: AdhocMetric,
-        columns_by_name: Dict[str, "TableColumn"],  # # pylint: disable=unused-argument
+        columns_by_name: Dict[str, "TableColumn"],  # pylint: disable=unused-argument
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
@@ -1278,23 +1279,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         raise NotImplementedError()
-        # """
-        # Turn an adhoc column into a sqlalchemy column.
-
-        # :param col: Adhoc column definition
-        # :param template_processor: template_processor instance
-        # :returns: The metric defined as a sqlalchemy column
-        # :rtype: sqlalchemy.sql.column
-        # """
-        # label = utils.get_column_name(col)  # type: ignore
-        # expression = self._process_sql_expression(
-        #     expression=col["sqlExpression"],
-        #     database_id=self.database_id,
-        #     schema=self.schema,
-        #     template_processor=template_processor,
-        # )
-        # sqla_column = literal_column(expression)
-        # return self.make_sqla_column_compatible(sqla_column, label)
 
     def _get_top_groups(
         self,
@@ -1589,9 +1573,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
-                # col = columns_by_name[col].get_sqla_col(
-                #     template_processor=template_processor
-                # )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
@@ -1636,9 +1617,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             columns_by_name[selected],
                             template_processor=template_processor,
                         )
-                    # outer = columns_by_name[selected].get_sqla_col(
-                    #     template_processor=template_processor
-                    # )
                     else:
                         selected = validate_adhoc_subquery(
                             selected,
@@ -1786,9 +1764,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
-                    # sqla_col = col_obj.get_sqla_col(
-                    #     template_processor=template_processor
-                    # )
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
                     native_type=col_type,
@@ -1916,12 +1891,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 label=sqla_col.key,
                                 template_processor=template_processor,
                             )
-                            # col_obj.get_time_filter(
-                            #     start_dttm=_since,
-                            #     end_dttm=_until,
-                            #     label=sqla_col.key,
-                            #     template_processor=template_processor,
-                            # )
                         )
                     else:
                         raise QueryObjectValidationError(
@@ -2026,11 +1995,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             end_dttm=inner_to_dttm or to_dttm,
                             template_processor=template_processor,
                         )
-                        # dttm_col.get_time_filter(
-                        #     start_dttm=inner_from_dttm or from_dttm,
-                        #     end_dttm=inner_to_dttm or to_dttm,
-                        #     template_processor=template_processor,
-                        # )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
