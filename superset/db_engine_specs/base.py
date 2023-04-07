@@ -449,7 +449,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connect_args: Dict[str, Any],
     ) -> Optional[str]:
         """
-        Return the schema configured in a SQLALchemy URI and connection argments, if any.
+        Return the schema configured in a SQLALchemy URI and connection arguments, if any.
         """
         return None
 
