@@ -243,7 +243,7 @@ export function clickOnAddFilterInModal() {
 
 /** ************************************************************************
  * Fills value native filter form with basic information
- * @param {string} type type for filter: Value, Numerical range,Time column,Time grain,Time range
+ * @param {string} type type for filter: Value, Numerical range, Time column, Time grain, Time range
  *  @param {string} name name for filter
  * @param {string} dataset which dataset should be used
  * @param {string} filterColumn which column should be used
