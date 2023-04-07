@@ -195,7 +195,7 @@ export function expandFilterOnLeftPanel() {
 }
 
 /** ************************************************************************
- * Collapse Native Filter from the left panel on dashboard
+ * Collapse Native filter from the left panel on dashboard
  * @returns {None}
  * @summary helper for collapse native filter
  ************************************************************************* */
@@ -209,7 +209,7 @@ export function collapseFilterOnLeftPanel() {
 }
 
 /** ************************************************************************
- * Enter Native Filter edit modal from the left panel on dashboard
+ * Enter Native filter edit modal from the left panel on dashboard
  * @returns {None}
  * @summary helper for enter native filter edit modal
  ************************************************************************* */
