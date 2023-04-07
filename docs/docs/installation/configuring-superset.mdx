@@ -290,6 +290,6 @@ PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY'
 # 1. Got to superset shell : $ superset shell
 # 2. Run the command       : >>> from flask import current_app; print(current_app.config["SECRET_KEY"])
 
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY usng "openssl rand -base64 42"
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY using "openssl rand -base64 42"
 ```
 Then run `superset re-encrypt-secrets`
