@@ -236,6 +236,7 @@ const ChartContextMenu = (
       <DrillByMenuItems
         filters={filters?.drillBy?.filters}
         groupbyFieldName={filters?.drillBy?.groupbyFieldName}
+        adhocFilterFieldName={filters?.drillBy?.adhocFilterFieldName}
         onSelection={onSelection}
         formData={formData}
         contextMenuY={clientY}
