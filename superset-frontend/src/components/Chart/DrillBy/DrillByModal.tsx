@@ -131,7 +131,12 @@ export default function DrillByModal({
   const [currentColumn, setCurrentColumn] = useState(column);
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [currentFilters, setCurrentFilters] = useState(filters);
-  const [usedGroupbyColumns, setUsedGroupbyColumns] = useState([column]);
+  const [usedGroupbyColumns, setUsedGroupbyColumns] = useState([
+    ...ensureIsArray(formData[groupbyFieldName]).map(colName =>
+      dataset.columns?.find(col => col.column_name === colName),
+    ),
+    column,
+  ]);
 
   const updatedFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
