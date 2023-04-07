@@ -65,7 +65,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "roles": _(
             "Roles is a list which defines access to the dashboard. "
             "Granting a role access to a dashboard will bypass dataset level checks."
-            "If no roles are defined then the dashboard is available to all roles."
+            "If no roles are defined, regular access permissions apply."
         ),
         "published": _(
             "Determines whether or not this dashboard is "
