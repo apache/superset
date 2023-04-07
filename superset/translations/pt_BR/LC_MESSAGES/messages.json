@@ -196,6 +196,9 @@
       ],
       "Add delivery method": ["Adicionar método de entrega"],
       "Add filter": ["Adicionar filtro"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": [""],
       "Add item": ["Adicionar item"],
       "Add metric": ["Adicionar métrica"],
@@ -1237,6 +1240,9 @@
       "Draw line from Pie to label when labels outside?": [""],
       "Draw split lines for minor axis ticks": [""],
       "Draw split lines for minor y-axis ticks": [""],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1258,9 +1264,6 @@
       "Duration": ["Duração"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Duração (em segundos) do timeout do cache para os gráficos desse banco de dados. Um timeout de 0 indica que o cache nunca expira. Se esse valor não for definido será utilizado o timeout global."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Duração (em segundos) do timeout do cache para este gráfico. Caso este valor não seja definido será usado o timeout do conjunto de dados."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Duração (em segundos) do timeout do cache para este gráfico. Se este valor não for definido será utilizado o timeout da fonte de dados/tabela."
@@ -1915,6 +1918,7 @@
       ],
       "No data in file": ["Nenhum dado no arquivo"],
       "No databases match your search": [""],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Ainda não há gráficos favoritos, clique nas estrelas!"
       ],
@@ -2068,6 +2072,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Sobrescrever texto no editor com uma consulta nessa tabela"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Proprietário"],
       "Owners": ["os Proprietários"],
       "Owners are invalid": ["Donos inválidos"],
@@ -2386,10 +2391,10 @@
         "Papel %(r)s foi extendido para prover acesso à fonte de dados %(ds)s"
       ],
       "Roles": ["Roles"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         ""
       ],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         ""
       ],
       "Roles to grant": ["Papeis para conceder"],
@@ -2596,6 +2601,7 @@
       "Show labels when the node has children.": [""],
       "Show legend": [""],
       "Show less...": [""],
+      "Show only my charts": [""],
       "Show percentage": [""],
       "Show pointer": [""],
       "Show rows total": [""],
@@ -2856,9 +2862,6 @@
         "A descrição pode ser mostrada como cabeçalho do elemento visual na visão do painel. Suporta markdown."
       ],
       "The distance between cells, in pixels": [""],
-      "The duration of time in seconds before the cache is invalidated": [
-        "A duração de tempo em segundos antes do cache ser invalidado"
-      ],
       "The following entries in `series_columns` are missing in `columns`: %(columns)s. ": [
         ""
       ],
@@ -2950,6 +2953,9 @@
       ],
       "The query contains one or more malformed template parameters.": [""],
       "The query couldn't be loaded": ["A consulta não pôde ser carregada"],
+      "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        ""
+      ],
       "The query has a syntax error.": [""],
       "The query returned no data": ["A consulta não retornou dados"],
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
@@ -3713,6 +3719,9 @@
       "You can add the components in the": [""],
       "You can add the components in the edit mode.": [""],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
       ],

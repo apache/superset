@@ -324,6 +324,9 @@
         "Дополнительная информация по подключению"
       ],
       "Add filter": ["Добавить фильтр"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": ["Добавить фильтры и разделители"],
       "Add item": ["Добавить запись"],
       "Add metric": ["Добавить меру"],
@@ -1828,6 +1831,9 @@
       "Draw split lines for minor y-axis ticks": [
         "Рисует разделительные линии для небольших отметок оси Y"
       ],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1878,9 +1884,6 @@
       "Duration": ["Продолжительность"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Продолжительность (в секундах) таймаута кэша для графиков этой базы данных. Таймаут 0 означает, что кэш никогда не очистится. Обратите внимание, что если значение не задано, применяется значение по умолчанию из основной конфигурации."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Продолжительность (в секундах) таймаута кэша для этого графикаОбратите внимание, что если значение не задано, применяется значение таймаута датасета."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Продолжительность (в секундах) таймаута кэша для этого графикаОбратите внимание, что если значение не задано, применяется значение источника данных/таблицы."
@@ -2929,6 +2932,7 @@
         "Нет баз данных, удовлетворяющих вашему поиску"
       ],
       "No description available.": ["Описание отсутствует."],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Пока нет избранных графиков, для добавления в избранное нажмите на звездочку рядом с графиком"
       ],
@@ -3181,6 +3185,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Вставить этот запрос в редактор SQL"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Владелец"],
       "Owners": ["Владельцы"],
       "Owners are invalid": ["Неверный список владельцев"],
@@ -3614,9 +3619,6 @@
         "Роль %(r)s была расширена для предоставления доступа к источнику данных %(ds)s"
       ],
       "Roles": ["Роли"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
-        "Список ролей, определяющий доступ к дашборду. Предоставляя доступ определенной роли, пользователь сможет обойти ограничения своей роли. Если роли не указаны, дашборд доступен всем ролям."
-      ],
       "Roles to grant": ["Роли для предоставления"],
       "Rolling Function": ["Скользящая средняя"],
       "Rolling Window": ["Скользящее окно"],
@@ -3963,6 +3965,7 @@
       "Show legend": ["Показывать легенду"],
       "Show less columns": ["Показать меньше столбцов"],
       "Show less...": ["Показать меньше..."],
+      "Show only my charts": [""],
       "Show password.": ["Показать пароль."],
       "Show percentage": ["Показывать долю"],
       "Show pointer": ["Показывать указатель"],
@@ -4359,9 +4362,6 @@
       ],
       "The distance between cells, in pixels": [
         "Расстояние между ячейками (в пикселях)"
-      ],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Количество секунд до истечения срока действия кэша"
       ],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
         "Объект engine_params вызывает sqlalchemy.create_engine"
@@ -5585,6 +5585,9 @@
         "Вы можете добавить компоненты в режиме редактирования."
       ],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Вы можете создать новый график или использовать существующие из панели справа"
       ],
@@ -5960,7 +5963,7 @@
       ],
       "year": ["год"],
       "yellow": ["Желтая"],
-      "zoom area": ["область масштабирования"]
+      "zoom area": [""]
     }
   }
 }

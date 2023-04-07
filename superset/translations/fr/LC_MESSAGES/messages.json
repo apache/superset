@@ -228,6 +228,9 @@
       ],
       "Add delivery method": ["Ajouter méthode de livraison"],
       "Add filter": ["Ajouter un filtre"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": ["Ajouter un filtre ou un diviseur"],
       "Add item": ["Ajouter un item"],
       "Add metric": ["Ajouter une métrique"],
@@ -1415,6 +1418,9 @@
       "Draw line from Pie to label when labels outside?": [""],
       "Draw split lines for minor axis ticks": [""],
       "Draw split lines for minor y-axis ticks": [""],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1441,9 +1447,6 @@
       "Duration": ["Durée"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Durée (en secondes) du timeout de cache pour les graphiques cette base de données. Un timeout de 0 indique que le cache n'expire jamais. Noter que s'il n'est pas défini, c'est le timeout global qui est pris en compte."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Durée (en secondes) du timeout du cache pour ce graphique. Notez que c'est par défaut le timeout du jeu de données si indéfinie."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Durée (en seconds) du délai de mise en cache pour ce graphique."
@@ -2218,6 +2221,7 @@
       "No data in file": ["Pas de données dans le fichier"],
       "No databases match your search": [""],
       "No description available.": ["Pas de description disponible."],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Aucun graphique favori pour le moment, cliquer sur les étoiles !"
       ],
@@ -2392,6 +2396,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Ecraser le texte dans l'éditeur avec une requête sur cette table"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Propriétaire"],
       "Owners": ["Propriétaires"],
       "Owners are invalid": ["Les propriétaires sont invalides"],
@@ -2998,6 +3003,7 @@
       "Show labels when the node has children.": [""],
       "Show legend": [""],
       "Show less...": ["Afficher moins ..."],
+      "Show only my charts": [""],
       "Show pointer": [""],
       "Show rows total": [""],
       "Show series values on the chart": [""],
@@ -3309,9 +3315,6 @@
         "La description peut être affichée comme des widgets d'entête dans la vue tableau de bord. Prend en charge le Markdown."
       ],
       "The distance between cells, in pixels": [""],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Le nombre de secondes avant l'expiration du cache"
-      ],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
         "L'objet engine_params contient les paramètres envoyés à sqlalchemy.create_engine."
       ],
@@ -4309,6 +4312,9 @@
         "Vous pouvez ajouter les composants via le"
       ],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Vous pouvez créer un nouveau graphique ou utililser ceux existants à partir du panneau de droite"
       ],

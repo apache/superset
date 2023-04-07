@@ -343,6 +343,9 @@
         "Zusätzliche Verbindungsinformationen hinzufügen"
       ],
       "Add filter": ["Filter hinzufügen"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": ["Filter und Trennlinien hinzufügen"],
       "Add item": ["Element hinzufügen"],
       "Add metric": ["Metrik hinzufügen"],
@@ -1962,6 +1965,8 @@
       "Draw split lines for minor y-axis ticks": [
         "Geteilten Linien für kleinere Ticks der y-Achse zeichnen"
       ],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
       "Drill to detail": ["Ins-Detail-Zoomen"],
       "Drill to detail by": ["Zu Detail zoomen anhand"],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -2011,9 +2016,6 @@
       "Duration": ["Dauer"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Dauer (in Sekunden) des Caching-Timeouts für Diagramme dieser Datenbank. Ein Timeout von 0 gibt an, dass der Cache nie abläuft. Beachten Sie, dass standardmäßig das globale Timeout verwendet wird, wenn es nicht definiert ist."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Dauer (in Sekunden) des Caching-Timeouts für dieses Diagramm. Beachten Sie, dass standardmäßig das Timeout des Datensatzes verwendet wird, wenn es nicht definiert ist."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Dauer (in Sekunden) des Caching-Timeouts für dieses Diagramm. Beachten Sie, dass standardmäßig das Datenquellen-/Tabellentimeout verwendet wird, wenn es nicht definiert ist."
@@ -3161,6 +3163,7 @@
         "Keine Datenbanken stimmen mit Ihrer Suche überein"
       ],
       "No description available.": ["Keine Beschreibung verfügbar."],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Noch keine Lieblingsdashboards, klicken Sie auf die Sterne!"
       ],
@@ -3450,6 +3453,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Überschreiben von Text im Editor mit einer Abfrage für diese Tabelle"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Besitzer*in"],
       "Owners": ["Besitzende"],
       "Owners are invalid": ["Besitzende sind ungültig"],
@@ -3950,12 +3954,6 @@
         "Rolle %(r)s wurde erweitert, um den Zugriff auf die Datenquelle %(ds)s zu gewähren"
       ],
       "Roles": ["Rollen"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
-        "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine Rollen definiert sind, steht das Dashboard allen Rollen zur Verfügung."
-      ],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined then the dashboard is available to all roles.": [
-        "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine Rollen definiert sind, steht das Dashboard allen Rollen zur Verfügung."
-      ],
       "Roles to grant": ["Zu vergebende Rollen"],
       "Rolling Function": ["Rollierende Funktion"],
       "Rolling Window": ["Rollierendes Fenster"],
@@ -4350,6 +4348,7 @@
       "Show legend": ["Legende anzeigen"],
       "Show less columns": ["Weniger Spalten anzeigen"],
       "Show less...": ["Weniger..."],
+      "Show only my charts": [""],
       "Show password.": ["Passwort anzeigen."],
       "Show percentage": ["Prozentsatz anzeigen"],
       "Show pointer": ["Zeiger anzeigen"],
@@ -4795,9 +4794,6 @@
       ],
       "The distance between cells, in pixels": [
         "Der Abstand zwischen Zellen in Pixel"
-      ],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Die Zeitdauer in Sekunden, bevor der Cache ungültig wird"
       ],
       "The encoding format of the lines": ["Das Kodierungsformat der Zeilen"],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
@@ -6131,6 +6127,9 @@
       ],
       "You can also just click on the chart to apply cross-filter.": [
         "Sie können auch einfach auf das Diagramm klicken, um den Kreuzfilter anzuwenden."
+      ],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
       ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Sie können ein neues Diagramm erstellen oder vorhandene Diagramme aus dem Bereich auf der rechten Seite verwenden."

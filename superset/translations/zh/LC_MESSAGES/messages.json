@@ -216,6 +216,9 @@
       ],
       "Add delivery method": ["添加通知方法"],
       "Add filter": ["增加过滤条件"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": [""],
       "Add item": ["增加条件"],
       "Add metric": ["添加指标"],
@@ -1313,6 +1316,9 @@
         "当标签在外侧时，是否在饼图到标签之间连线？"
       ],
       "Draw split lines for minor y-axis ticks": ["绘制次要y轴记号的分割线"],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1335,9 +1341,6 @@
       "Duration": ["持续时间"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为全局超时。"
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "此图表的缓存超时前的持续时间（秒）。请注意，如果未定义则默认为数据集的超时时间。"
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "此图表的缓存超时持续时间(以秒为单位)。注意，如果未定义，这默认为数据源/表超时。"
@@ -2159,6 +2162,7 @@
       "No data in file": ["文件中无数据"],
       "No databases match your search": ["没有与您的搜索匹配的数据库"],
       "No description available.": ["没有可用的描述"],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "暂无收藏的图表，去点击星星吧！"
       ],
@@ -2341,6 +2345,7 @@
       "Overwrite text in the editor with a query on this table": [
         "使用该表上的查询覆盖编辑器中的文本"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["所有者"],
       "Owners": ["所有者"],
       "Owners are invalid": ["所有者无效"],
@@ -2533,7 +2538,7 @@
       "Quarter": ["季度"],
       "Quarters %s": [" %s 季度"],
       "Query": ["查询"],
-      "Query %s: %s": ["查询 : %s "],
+      "Query %s: %s": ["查询 %s: %s "],
       "Query A": ["查询 A"],
       "Query B": ["查询 B"],
       "Query History": ["历史查询"],
@@ -2944,6 +2949,7 @@
       "Show legend": ["显示图例"],
       "Show less columns": ["显示较少时间列"],
       "Show less...": ["显示..."],
+      "Show only my charts": [""],
       "Show percentage": ["显示百分比"],
       "Show pointer": ["显示鼠标"],
       "Show progress": ["显示进度"],
@@ -3224,7 +3230,7 @@
         "由数据库推断的数据类型。在某些情况下，可能需要为表达式定义的列手工输入一个类型。在大多数情况下，用户不需要修改这个数据类型。"
       ],
       "The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.": [
-        "数据库 %s 已经关联了 %s 图表和 %s 看板。确定要继续吗？删除数据库将破坏这些对象。"
+        "数据库 %s 已经关联了 %s 图表和 %s 仪表盘，并且用户在该数据库上打开了 %s 个 SQL 编辑器标签。确定要继续吗？删除数据库将破坏这些对象。"
       ],
       "The database is currently running too many queries.": [
         "数据库当前运行的查询太多"
@@ -3256,9 +3262,6 @@
       ],
       "The distance between cells, in pixels": [
         "单元格之间的距离，以像素为单位"
-      ],
-      "The duration of time in seconds before the cache is invalidated": [
-        "缓存失效前的持续时间（以秒为单位）"
       ],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
         "1. engine_params 对象在调用 sqlalchemy.create_engine 时被引用, metadata_params 在调用 sqlalchemy.MetaData 时被引用。"
@@ -3479,7 +3482,7 @@
         "此组件没有足够的空间。请尝试减小其宽度，或增加目标宽度。"
       ],
       "There was an error fetching the favorite status: %s": [
-        "获取此看板的收藏夹状态时出现问题。"
+        "获取此看板的收藏夹状态时出现问题：%s。"
       ],
       "There was an error fetching your recent activity:": [
         "获取您最近的活动时出错："
@@ -3528,7 +3531,7 @@
         "获取此看板的收藏夹状态时出现问题。"
       ],
       "There was an issue fetching your recent activity: %s": [
-        "获取您最近的活动时出错："
+        "获取您最近的活动时出错：%s"
       ],
       "There was an issue previewing the selected query %s": [
         "预览所选查询时出现问题 %s"
@@ -3972,7 +3975,7 @@
       "View keys & indexes (%s)": ["查看键和索引（%s）"],
       "View query": ["检查查询"],
       "Viewed": ["已查看"],
-      "Viewed %s": ["已查看"],
+      "Viewed %s": ["已查看 %s"],
       "Viewport": ["视口"],
       "Virtual (SQL)": ["虚拟（SQL）"],
       "Virtual dataset": ["虚拟数据集"],
@@ -4038,10 +4041,10 @@
         ""
       ],
       "We can't seem to resolve column \"%(column)s\" at line %(location)s.": [
-        "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+        "我们似乎无法解析行 %(location)s 所处的列 \"%(column)\" 。"
       ],
       "We can't seem to resolve the column \"%(column_name)s\"": [
-        "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+        "我们似乎无法解析列 \"%(column_name)\" 。"
       ],
       "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
         "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
@@ -4239,7 +4242,7 @@
       "Year": ["年"],
       "Year (freq=AS)": [""],
       "Yearly seasonality": [""],
-      "Years %s": ["年"],
+      "Years %s": ["年 %s"],
       "Yes": ["是"],
       "Yes, cancel": ["是的，取消"],
       "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
@@ -4263,6 +4266,9 @@
       "You can add the components in the": [""],
       "You can add the components in the edit mode.": [""],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
       ],
@@ -4457,7 +4463,6 @@
       "geohash (square)": [""],
       "green": ["绿色"],
       "heatmap: values are normalized across the entire heatmap": [""],
-      "here": ["这里"],
       "hour": ["小时"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
         "图像渲染画布对象的 CSS 属性，它定义了浏览器如何放大图像"

@@ -260,6 +260,9 @@
       ],
       "Add delivery method": ["Dodajte način dostave"],
       "Add filter": ["Dodaj filter"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": ["Dodaj filtre in ločilnike"],
       "Add item": ["Dodaj"],
       "Add metric": ["Dodaj mero"],
@@ -1693,6 +1696,9 @@
       "Draw split lines for minor y-axis ticks": [
         "Izriši ločilne črte za pomožne oznake y-osi"
       ],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": ["Vrtaj v podrobnosti"],
       "Drill to detail by value is not yet supported for this chart type.": [
         ""
@@ -1717,9 +1723,6 @@
       "Duration": ["Trajanje"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Trajanje (v sekundah) predpomnjenja za grafikon v tej podatkovni bazi. Vrednost 0 označuje, da predpomnilnik nikoli ne poteče. V primeru, da ni definirano, ima globalno nastavitev."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Časovna veljavnost (v sekundah) predpomnjenja za ta grafikon. Če ni definirana, je uporabljena vrednost za podatkovni set."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Časovna veljavnost (v sekundah) predpomnjenja za ta grafikon. Če ni definirana, je uporabljena vrednost za podatkovni vir/tabelo."
@@ -2707,6 +2710,7 @@
         "Nobena podatkovna baza ne ustreza iskanju"
       ],
       "No description available.": ["Opisa ni na razpolago."],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Priljubljenih grafikonov še ni. Kliknite na zvezdice!"
       ],
@@ -2924,6 +2928,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Besedilo v urejevalniku prepišite s poizvedbo na to tabelo"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Lastnik"],
       "Owners": ["Lastniki"],
       "Owners are invalid": ["Lastniki niso veljavni"],
@@ -3348,9 +3353,6 @@
         "Vloga %(r)s je bila razširjena za zagotovitev dostopa do podatkovnega vira %(ds)s"
       ],
       "Roles": ["Vloge"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
-        "\"Vloge\" je seznam, ki definira dostop do nadzorne plošče. Dodelitev vloge za dostop do nadzorne plošče bo obšlo preverjanje na nivoju podatkovnega seta. Če vloga ni definirana, bo nadzorna plošča dostopna vsem vlogam."
-      ],
       "Roles to grant": ["Vloge za dovoljevanje"],
       "Rolling Function": ["Drseča funkcija"],
       "Rolling Window": ["Drseče okno"],
@@ -3658,6 +3660,7 @@
       "Show legend": ["Prikaži legendo"],
       "Show less columns": ["Prikaži manj stolpcev"],
       "Show less...": ["Prikaži manj..."],
+      "Show only my charts": [""],
       "Show percentage": ["Prikaži procente"],
       "Show pointer": ["Prikaži kazalec"],
       "Show progress": ["Prikaži območje"],
@@ -4027,9 +4030,6 @@
       ],
       "The distance between cells, in pixels": [
         "Razdalja med celicami v pikslih"
-      ],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Trajanje (v sekundah) do razveljavitve predpomnilnika"
       ],
       "The encoding format of the lines": ["Oblika kodiranja črt"],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
@@ -5198,6 +5198,9 @@
         "Elemente lahko dodate v načinu urejanja."
       ],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Ustvarite lahko nove grafikone ali uporabite obstoječe iz panela na desni"
       ],
@@ -5533,7 +5536,7 @@
       "y: values are normalized within each row": [""],
       "year": ["leto"],
       "yellow": ["rumena"],
-      "zoom area": ["približaj območje"]
+      "zoom area": [""]
     }
   }
 }

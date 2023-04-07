@@ -205,6 +205,9 @@
       ],
       "Add delivery method": [""],
       "Add filter": ["Adicionar filtro"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": [""],
       "Add metric": ["Adicionar Métrica"],
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
@@ -1148,6 +1151,9 @@
       "Draw line from Pie to label when labels outside?": [""],
       "Draw split lines for minor axis ticks": [""],
       "Draw split lines for minor y-axis ticks": [""],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1176,11 +1182,11 @@
       ],
       "Duplicate tab": [""],
       "Duration": ["Descrição"],
-      "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
+      "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires, and -1 bypasses the cache. Note this defaults to the global timeout if undefined.": [
         ""
       ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Duração (em segundos) do tempo limite da cache para esta visualização."
+      "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
+        ""
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Duração (em segundos) do tempo limite da cache para esta visualização."
@@ -1861,6 +1867,7 @@
       "No data in file": [""],
       "No database tables found": [""],
       "No databases match your search": [""],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Ainda não há dashboards favoritos, comece a clicar nas estrelas!"
       ],
@@ -2027,6 +2034,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Substitua texto no editor com uma query nesta tabela"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Proprietário"],
       "Owners": ["Proprietários"],
       "Owners are invalid": [""],
@@ -2332,10 +2340,10 @@
         "O cargo %(r)s foi alargado para providenciar acesso à origem de dados %(ds)s"
       ],
       "Roles": ["Cargo"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         ""
       ],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         ""
       ],
       "Roles to grant": ["Cargos a permitir ao utilizador"],
@@ -2552,6 +2560,7 @@
       "Show labels when the node has children.": [""],
       "Show legend": [""],
       "Show less...": [""],
+      "Show only my charts": [""],
       "Show percentage": [""],
       "Show pointer": [""],
       "Show progress": [""],
@@ -2840,9 +2849,6 @@
         ""
       ],
       "The distance between cells, in pixels": [""],
-      "The duration of time in seconds before the cache is invalidated": [
-        "O número de segundos antes de expirar a cache"
-      ],
       "The encoding format of the lines": [""],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
         ""
@@ -2944,6 +2950,9 @@
       ],
       "The query contains one or more malformed template parameters.": [""],
       "The query couldn't be loaded": ["Não foi possível carregar a query"],
+      "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        ""
+      ],
       "The query has a syntax error.": [""],
       "The query returned no data": [""],
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
@@ -3690,6 +3699,9 @@
       "You can add the components in the": [""],
       "You can add the components in the edit mode.": [""],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
       ],

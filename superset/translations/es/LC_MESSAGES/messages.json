@@ -200,6 +200,9 @@
       ],
       "Add delivery method": ["Agregar método de entrega"],
       "Add filter": ["Añadir filtro"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": [""],
       "Add item": ["Añadir elemento"],
       "Add metric": ["Añadir Métrica"],
@@ -1225,6 +1228,9 @@
       "Draw line from Pie to label when labels outside?": [""],
       "Draw split lines for minor axis ticks": [""],
       "Draw split lines for minor y-axis ticks": [""],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1244,13 +1250,16 @@
       ],
       "Duplicate tab": ["Duplicar pestaña"],
       "Duration": ["Duración"],
+      "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires, and -1 bypasses the cache. Note this defaults to the global timeout if undefined.": [
+        ""
+      ],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         ""
       ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
+      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         ""
       ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
+      "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.": [
         ""
       ],
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
@@ -1930,6 +1939,7 @@
       ],
       "No data in file": ["No hay datos en el archivo"],
       "No databases match your search": [""],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "No hay gráficos favoritos aun, clica en la estrella!"
       ],
@@ -2082,6 +2092,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Sobreescribir texto en el editor con una consulta sobre esta tabla"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Propietario"],
       "Owners": ["Propietarios"],
       "Owners are invalid": ["Los propietarios son invalidos"],
@@ -2401,10 +2412,10 @@
         "El rol %(r)s se extendió para proporcionar el acceso al origen de datos %(ds)s"
       ],
       "Roles": ["Roles"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         ""
       ],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         ""
       ],
       "Roles to grant": ["Roles a conceder"],
@@ -2614,6 +2625,7 @@
       "Show labels when the node has children.": [""],
       "Show legend": [""],
       "Show less...": [""],
+      "Show only my charts": [""],
       "Show percentage": [""],
       "Show pointer": [""],
       "Show rows total": [""],
@@ -2870,7 +2882,9 @@
         ""
       ],
       "The distance between cells, in pixels": [""],
-      "The duration of time in seconds before the cache is invalidated": [""],
+      "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.": [
+        ""
+      ],
       "The following entries in `series_columns` are missing in `columns`: %(columns)s. ": [
         ""
       ],
@@ -2965,6 +2979,9 @@
       ],
       "The query contains one or more malformed template parameters.": [""],
       "The query couldn't be loaded": ["No se pudo cargar la consulta."],
+      "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        ""
+      ],
       "The query has a syntax error.": [""],
       "The query returned no data": ["La consulta no arrojó resultados"],
       "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
@@ -3754,6 +3771,9 @@
       "You can add the components in the": [""],
       "You can add the components in the edit mode.": [""],
       "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
       ],
