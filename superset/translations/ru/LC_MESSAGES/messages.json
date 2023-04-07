@@ -5,7 +5,7 @@
       "22": ["22"],
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);",
+        "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2)",
         "lang": "ru"
       },
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
@@ -52,9 +52,6 @@
       "%(object)s does not exist in this database.": [
         "%(object)s не существует в этой базе данных."
       ],
-      "%(other)s %(tableName)s will appear here": [
-        "%(other)s %(tableName)s появятся здесь после добавления"
-      ],
       "%(prefix)s %(title)s": ["%(prefix)s %(title)s"],
       "%(rows)d rows returned": ["Получено строк: %(rows)d"],
       "%(subtitle)s\nThis may be triggered by:\n %(issue)s": [
@@ -74,6 +71,8 @@
       ],
       "%s Error": ["%s Ошибка"],
       "%s PASSWORD": ["%s ПАРОЛЬ"],
+      "%s SSH TUNNEL PASSWORD": [""],
+      "%s SSH TUNNEL PRIVATE KEY": [""],
       "%s Selected": ["%s Выбрано"],
       "%s Selected (%s Physical, %s Virtual)": [
         "%s Выбрано (%s Физические, %s Виртуальные)"
@@ -296,7 +295,6 @@
       "Add Column": ["Добавить столбец"],
       "Add Dashboard": ["Добавить дашборд"],
       "Add Database": ["Добавить базу данных"],
-      "Add Dataset and Create Chart": ["Добавить датасет и создать график"],
       "Add Log": ["Добавить запись"],
       "Add Metric": ["Добавить меру"],
       "Add Report": ["Добавить рассылку"],
@@ -321,12 +319,14 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         "Добавьте новые столбцы формата дата/время в датасет в настройках датасета"
       ],
-      "Add dataset": ["Добавить датасет"],
       "Add delivery method": ["Добавить способ оповещения"],
       "Add extra connection information.": [
         "Дополнительная информация по подключению"
       ],
       "Add filter": ["Добавить фильтр"],
+      "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
+        ""
+      ],
       "Add filters and dividers": ["Добавить фильтры и разделители"],
       "Add item": ["Добавить запись"],
       "Add metric": ["Добавить меру"],
@@ -367,6 +367,7 @@
       "Adjust how this database will interact with SQL Lab.": [
         "Настройка взаимодействия базы данных с Лабораторией SQL"
       ],
+      "Adjust performance settings of this database.": [""],
       "Advanced": ["Продвинутая настройка"],
       "Advanced Analytics": ["Расширенная аналитика"],
       "Advanced Data type": ["Расширенный тип данных"],
@@ -734,8 +735,6 @@
         "Любые базы данных, подключаемые через SQL Alchemy URI, могут быть добавлены. Узнайте больше о том, как подключить драйвер базы данных "
       ],
       "Append": ["Добавить"],
-      "Applied Cross Filters (%d)": ["Применено кросс-фильтров: (%d)"],
-      "Applied Filters (%d)": ["Применено фильтров: (%d)"],
       "Applied filters: %s": ["Применены фильтры: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         "Применное скользязее окно не вернуло данных. Убедитесь, что исходный запрос удовлетворяет минимальному количеству периодов скользящего окна."
@@ -841,6 +840,7 @@
       "Based on granularity, number of time periods to compare against": [
         "Основываясь на группировке времени, количество периодов времени для сравнения"
       ],
+      "Based on what should series be ordered on the chart and legend": [""],
       "Basic": ["Базовая настройка"],
       "Basic information": ["Основная информация"],
       "Batch editing %d filters:": [
@@ -951,9 +951,11 @@
       "Cancel query on window unload event": [
         "Отменять запрос при закрытии вкладки"
       ],
+      "Cannot access the query": [""],
       "Cannot delete a database that has datasets attached": [
         "Невозможно удалить базу данных с подключенными датасетами"
       ],
+      "Cannot have multiple credentials for the SSH Tunnel": [""],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
         "Невозможно импортировать дашборд: %(db_error)s.\nУбедитесь, что база даннах создана перед импортированием дашборда."
       ],
@@ -1142,11 +1144,11 @@
       "Clear all": ["Сбросить фильтры"],
       "Clear all data": ["Очистить все данные"],
       "Clear form": ["Очистить форму"],
+      "Click on \"+Add/Edit Filters\" button to create new dashboard filters": [
+        ""
+      ],
       "Click on \"Create chart\" button in the control panel on the left to preview a visualization or": [
         "Нажмите на кнопку \"Создать график\" на панели управления слева для просмотра графика или"
-      ],
-      "Click the button above to add a filter to the dashboard": [
-        "Нажмите кнопку выше для добавления фильтров в дашборд"
       ],
       "Click the lock to make changes.": [
         "Нажмите на замок для внесения изменений"
@@ -1161,7 +1163,6 @@
         "Нажмите для переключения на альтернативную форму подключения, которая позволит вам ввести все данные в соответствующую форму для данной базы данных."
       ],
       "Click to cancel sorting": ["Нажмите для отмены сортировки"],
-      "Click to clear emitted filters": ["Нажмите для сброса кросс-фильтра"],
       "Click to edit": ["Нажмите для редактирования"],
       "Click to edit %s in a new tab": [
         "Нажмите для редактирования «%s» в новой вкладке"
@@ -1412,7 +1413,6 @@
       "Country Map": ["Карта Стран"],
       "Create": ["Создать"],
       "Create Chart": ["Создать график"],
-      "Create Dataset": ["Создать датасет"],
       "Create a dataset": ["Создать датасет"],
       "Create a dataset to begin visualizing your data as a chart or go to\n          SQL Lab to query your data.": [
         "Создайте датасет для визуализации ваших данных на графике или перейдите в Лабораторию SQL для просмотра данных."
@@ -1437,8 +1437,9 @@
       ],
       "Creator": ["Автор"],
       "Crimson": ["Малиновый"],
-      "Cross Filter Scoping": ["Область действия кросс-фильтра"],
-      "Cross-filter scoping": ["Задать область действия кросс-фильтра"],
+      "Cross-filter will be applied to all of the charts that use this dataset.": [
+        ""
+      ],
       "Cumulative": ["С накоплением"],
       "Currently rendered: %s": ["Сейчас отрисовано: %s"],
       "Custom": ["Пользовательский"],
@@ -1460,9 +1461,6 @@
       "D3 format": ["Формат даты/времени"],
       "D3 format syntax: https://github.com/d3/d3-format": [
         "Формат D3: https://github.com/d3/d3-format."
-      ],
-      "D3 number format for numbers between -1.0 and 1.0, useful when you want to have different siginificant digits for small and large numbers": [
-        "Числовой формат D3 для чисел от -1 до 1, полезно, если вы работаете как с маленькими числами, где нужна точность, так и с большими целыми числами"
       ],
       "D3 time format for datetime columns": [
         "Формат времени D3 для столбцов типа дата/время"
@@ -1506,6 +1504,7 @@
       "Dashed": ["Штрих"],
       "Data": ["Данные"],
       "Data Table": ["Таблица"],
+      "Data URI is not allowed.": [""],
       "Data Zoom": ["Масштабирование графика"],
       "Data could not be deserialized from the results backend. The storage format might have changed, rendering the old data stake. You need to re-run the original query.": [
         "Не удалось распознать данные с сервера . Формат хранилища мог измениться, что привело к потере старых данных. Вам нужно повторно запустить исходный запрос."
@@ -1621,6 +1620,7 @@
       ],
       "Deactivate": ["Выключить"],
       "December": ["Декабрь"],
+      "Decides which column to sort the base axis by.": [""],
       "Decimal Character": ["Десятичный разделитель"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D сетка"],
       "Deck.gl - Arc": ["Deck.gl - Дуга"],
@@ -1831,6 +1831,9 @@
       "Draw split lines for minor y-axis ticks": [
         "Рисует разделительные линии для небольших отметок оси Y"
       ],
+      "Drill by": [""],
+      "Drill by is not available for this data point": [""],
+      "Drill by is not yet supported for this chart type": [""],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1881,9 +1884,6 @@
       "Duration": ["Продолжительность"],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Продолжительность (в секундах) таймаута кэша для графиков этой базы данных. Таймаут 0 означает, что кэш никогда не очистится. Обратите внимание, что если значение не задано, применяется значение по умолчанию из основной конфигурации."
-      ],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        "Продолжительность (в секундах) таймаута кэша для этого графикаОбратите внимание, что если значение не задано, применяется значение таймаута датасета."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Продолжительность (в секундах) таймаута кэша для этого графикаОбратите внимание, что если значение не задано, применяется значение источника данных/таблицы."
@@ -1975,7 +1975,6 @@
       "Embed code": ["Встроенный код"],
       "Embed dashboard": ["Встроить дашборд"],
       "Embedding deactivated.": ["Встраивание отключено"],
-      "Emitted values": ["Отображаемые значения"],
       "Emphasis": ["Акцент"],
       "Employment and education": ["Трудоустройство и образование"],
       "Empty circle": ["Пустой круг"],
@@ -2451,7 +2450,6 @@
         "Включить имена категорий в качестве оси"
       ],
       "Include time": ["Включить время"],
-      "Incompatible Filters (%d)": ["Несовместимые фильтры (%d)"],
       "Index": ["Индекс"],
       "Index Column": ["Индесный столбец"],
       "Info": ["Личные данные"],
@@ -2544,11 +2542,6 @@
       "JUL": ["ИЮЛ"],
       "JUN": ["ИЮН"],
       "January": ["Январь"],
-      "Javascript data interceptor": ["Javascript редактор данных"],
-      "Javascript onClick href": ["Javascript onClick href"],
-      "Javascript tooltip generator": [
-        "Javascript генератор всплывающих подсказок"
-      ],
       "Jinja templating": ["Шаблонизацию Jinja."],
       "Json list of the column names that should be read": [
         "Список столбцов в формате JSON из файла, которые будут использованы."
@@ -2656,9 +2649,6 @@
       "Link Copied!": ["Ссылка скопирована"],
       "List Saved Query": [""],
       "List Unique Values": ["Список уникальных значений"],
-      "List of extra columns made available in Javascript functions": [
-        "Список дополнительных столбцов, доступных в функциях Javascript"
-      ],
       "List of n+1 values for bucketing metric into n buckets.": [""],
       "List of values to mark with lines": [
         "Список числовых значений для отображения в виде линий на графике. Например, 10,20,30"
@@ -2736,9 +2726,6 @@
       "Maximum Font Size": ["Максимальный размер шрифта"],
       "Maximum Radius": ["Максимальный радиус"],
       "Maximum value on the gauge axis": ["Максимальное значение индикатора"],
-      "Maxium radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this maximum radius.": [
-        "Максимальный размер радиуса окружности (в пикселях). При изменении уровня масштабирования это гарантирует, что окружность соответствует этому максимальному радиусу"
-      ],
       "May": ["Май"],
       "Mean of values over specified period": [
         "Среднее значений за указанный период"
@@ -2871,6 +2858,7 @@
       "Must have at least one numeric column specified": [
         "Должен быть указан хотя бы один числовой столбец"
       ],
+      "Must provide credentials for the SSH Tunnel": [""],
       "Must specify a value for filters with comparison operators": [
         "Необходимо указать значение для фильтров с операторами сравнения"
       ],
@@ -2944,6 +2932,7 @@
         "Нет баз данных, удовлетворяющих вашему поиску"
       ],
       "No description available.": ["Описание отсутствует."],
+      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Пока нет избранных графиков, для добавления в избранное нажмите на звездочку рядом с графиком"
       ],
@@ -2953,7 +2942,6 @@
       "No filter": ["Без фильтрации"],
       "No filter is selected.": ["Не выбраны фильтры."],
       "No filters": ["Нет фильтров"],
-      "No filters are currently added": ["Не применено ни одного фильтра"],
       "No filters are currently added to this dashboard.": [
         "Не применено ни одного фильтра к данному дашборду."
       ],
@@ -3100,7 +3088,7 @@
       "One or more parameters specified in the query are missing.": [
         "Один или несколько параметров, указанных в запросе, отсутствуют"
       ],
-      "One or more required fields are missing in the request. Please try again, and if the problem persists conctact your administrator.": [
+      "One or more required fields are missing in the request. Please try again, and if the problem persists contact your administrator.": [
         ""
       ],
       "One ore more annotation layers failed loading.": [
@@ -3113,6 +3101,8 @@
       "Only `SELECT` statements are allowed": [
         "Доступны только SELECT запросы"
       ],
+      "Only applies when \"Label Type\" is not set to a percentage.": [""],
+      "Only applies when \"Label Type\" is set to show values.": [""],
       "Only selected panels will be affected by this filter": [
         "Фильтр будет применён только к выбранным панелям"
       ],
@@ -3152,9 +3142,6 @@
       "Optional d3 number format string": ["Формат числовой строки"],
       "Optional name of the data column.": [
         "Необязательное имя столбца данныхэ"
-      ],
-      "Optional time column if time range should apply to another column than the default time column": [
-        ""
       ],
       "Optional warning about use of this metric": [
         "Необязательное предупреждение об использовании этой меры"
@@ -3198,6 +3185,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Вставить этот запрос в редактор SQL"
       ],
+      "Owned Created or Favored": [""],
       "Owner": ["Владелец"],
       "Owners": ["Владельцы"],
       "Owners are invalid": ["Неверный список владельцев"],
@@ -3380,7 +3368,6 @@
       "Position of column level subtotal": [
         "Расположение промежуточного итога на уровне столбца"
       ],
-      "Position of intermidiate node label on tree": [""],
       "Position of row level subtotal": [
         "Расположение промежуточного итога на уровне строки"
       ],
@@ -3632,9 +3619,6 @@
         "Роль %(r)s была расширена для предоставления доступа к источнику данных %(ds)s"
       ],
       "Roles": ["Роли"],
-      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.": [
-        "Список ролей, определяющий доступ к дашборду. Предоставляя доступ определенной роли, пользователь сможет обойти ограничения своей роли. Если роли не указаны, дашборд доступен всем ролям."
-      ],
       "Roles to grant": ["Роли для предоставления"],
       "Rolling Function": ["Скользящая средняя"],
       "Rolling Window": ["Скользящее окно"],
@@ -3696,6 +3680,7 @@
       "SSH Host": [""],
       "SSH Password": ["Пароль SSH"],
       "SSH Port": ["SSH порт"],
+      "SSH Tunnel": [""],
       "SSH Tunnel configuration parameters": [
         "Параметры конфигурации SSH туннеля"
       ],
@@ -3862,9 +3847,6 @@
       "Select column": ["Выберите столбец"],
       "Select current page": ["Выбрать текущую страницу"],
       "Select database & schema": ["Выберите базу данных и схему"],
-      "Select database or type database name": [
-        "Выберите базу данных или введите ее имя"
-      ],
       "Select database table": ["Выберите таблицу из базы данных"],
       "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
         "Некоторые базы данных требуют ручной настройки во вкладке Продвинутая настройка для успешного подключения. Вы можете ознакомиться с требованиями к вашей базе данных "
@@ -3881,15 +3863,9 @@
       "Select or type dataset name": ["Выберите/введите имя датасета"],
       "Select owners": ["Выбрать владельцев"],
       "Select saved metrics": ["Выберите сохраненные меры"],
-      "Select schema or type schema name": [
-        "Выберите схему или введите ее имя"
-      ],
       "Select scheme": ["Выберите схему"],
       "Select start and end date": ["Выберите дату начала"],
       "Select subject": [""],
-      "Select table or type table name": [
-        "Выберите таблицу или введите ее имя"
-      ],
       "Select the Annotation Layer you would like to use.": [
         "Выбрать слой аннотации, который вы хотите использовать."
       ],
@@ -3981,9 +3957,6 @@
       "Show columns total": ["Показать общий итог по столбцам"],
       "Show data points as circle markers on the lines": [""],
       "Show empty columns": ["Показывать пустые столбцы"],
-      "Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.": [
-        "Показывает иерархические взаимосвязи данных со значением, представленным областью, показывая пропорцию и вклад в целое."
-      ],
       "Show info tooltip": ["Показать информационную подсказку"],
       "Show label": ["Показывать метку"],
       "Show labels when the node has children.": [
@@ -3992,6 +3965,7 @@
       "Show legend": ["Показывать легенду"],
       "Show less columns": ["Показать меньше столбцов"],
       "Show less...": ["Показать меньше..."],
+      "Show only my charts": [""],
       "Show password.": ["Показать пароль."],
       "Show percentage": ["Показывать долю"],
       "Show pointer": ["Показывать указатель"],
@@ -4115,6 +4089,7 @@
       "Sort filter values": ["Сортировать отфильтрованные значения"],
       "Sort metric": ["Показатель для сортировки"],
       "Sort rows by": ["Сортировка строк по"],
+      "Sort series in ascending order": [""],
       "Sort type": ["Тип сортировки"],
       "Source": ["Источник"],
       "Source / Target": ["Источник / Цель"],
@@ -4269,6 +4244,7 @@
       "Tables": ["Таблицы"],
       "Tabs": ["Вкладки"],
       "Tabular": ["Таблицы"],
+      "Tag name is invalid (cannot contain ':')": [""],
       "Tags": ["Теги"],
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
@@ -4291,6 +4267,9 @@
       "Text": ["Текст"],
       "Text align": ["Выравнивание текста"],
       "Text embedded in email": ["Текст, включенный в email"],
+      "The API response from %s does not match the IDatabaseTable interface.": [
+        ""
+      ],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
         ""
       ],
@@ -4383,9 +4362,6 @@
       ],
       "The distance between cells, in pixels": [
         "Расстояние между ячейками (в пикселях)"
-      ],
-      "The duration of time in seconds before the cache is invalidated": [
-        "Количество секунд до истечения срока действия кэша"
       ],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
         "Объект engine_params вызывает sqlalchemy.create_engine"
@@ -4741,6 +4717,9 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "Это может быть как IP адрес (например, 127.0.0.1), так и доменное имя (например, моябазаданных.рф)."
       ],
+      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+        ""
+      ],
       "This chart has been moved to a different filter scope.": [
         "Этот график был перемещён в другой набор фильтров."
       ],
@@ -4751,7 +4730,7 @@
       "This chart type is not supported when using an unsaved query as a chart source. ": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\n    Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overridden by custom label colors.\n    Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This column might be incompatible with current dataset": [
@@ -4799,6 +4778,7 @@
       "This dataset is managed externally, and can't be edited in Superset": [
         "Этот датасет управляется извне и не может быть изменена в Суперсете"
       ],
+      "This dataset is not used to power any charts.": [""],
       "This defines the element to be plotted on the chart": [
         "Элемент, который будет отражен на графике"
       ],
@@ -4810,9 +4790,6 @@
       ],
       "This filter doesn't exist in dashboard. It will not be applied.": [
         "Этот фильтр не существует в дашборде. Он не будет применен."
-      ],
-      "This filter is the last temporal filter. If you proceed,\n          this chart won't be affected by time range filters in dashboards.": [
-        ""
       ],
       "This filter might be incompatible with current dataset": [
         "Этот фильтр может быть несовместим с этим датасетом"
@@ -4903,6 +4880,8 @@
         "Столбец формата дата/время \"%(col)s\" не существует в датасете"
       ],
       "Time column filter plugin": [""],
+      "Time column to apply dependent temporal filter to": [""],
+      "Time column to apply time range to": [""],
       "Time comparison": ["Столбец с датой"],
       "Time delta in natural language\n                  (example:  24 hours, 7 days, 56 weeks, 365 days)": [
         "Временной сдвиг на естественном языке (например: 24 hours, 7 days, 56 weeks, 365 days)"
@@ -5059,9 +5038,6 @@
       "Unable to migrate table schema state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
         "Не удается перенести состояние схемы таблицы на сервер. Суперсет повторит попытку позже. Пожалуйста, свяжитесь с вашим администратором, если эта проблема не устранена."
       ],
-      "Unable to process right-click on %s. Check you chart configuration.": [
-        "Не удалось обработать ПКМ на %s. Проверьте настройки графика."
-      ],
       "Unable to retrieve dashboard colors": [
         "Не удалось получать цветовую схему дашборда"
       ],
@@ -5103,7 +5079,6 @@
       "Unsafe template value for key %(key)s: %(value_type)s": [
         "Небезопасное значение шаблона для ключа %(key)s: %(value_type)s"
       ],
-      "Unset Filters (%d)": ["Сбросить фильтры (%d)"],
       "Unsupported clause type: %(clause)s": [
         "Неподдерживаемый оператор: %(clause)s"
       ],
@@ -5292,7 +5267,7 @@
       "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.": [
         "Визуализирует, как показатель изменился с течением времени, используя цветовую шкалу и календарь. Значения серого цвета используются для обозначения отсутствующих значений, а линейная цветовая схема используется для отображения величины значения каждого дня."
       ],
-      "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a chloropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary.": [
+      "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a choropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary.": [
         ""
       ],
       "Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead.": [
@@ -5392,6 +5367,7 @@
       "When using 'Group By' you are limited to use a single metric": [
         "При использовании 'GROUP BY' вы ограничены использованием одной меры"
       ],
+      "When using other than adaptive formatting, labels may overlap": [""],
       "When using this option, default value can’t be set": [
         "При включении этой опции нельзя установить значение по умолчанию"
       ],
@@ -5441,9 +5417,6 @@
         "Отображать интерактивную таблицу с данными"
       ],
       "Whether to display the labels.": ["Отображать метки"],
-      "Whether to display the labels. Note that the label only displays when the the 5% threshold.": [
-        "Отображать метки. Обратите внимание, что метка отображается только при достижении порогового значения 5%."
-      ],
       "Whether to display the legend (toggles)": [
         "Отображать легенду (переключатель)"
       ],
@@ -5516,9 +5489,6 @@
       "Whether to sort descending or ascending if a series limit is present": [
         "Сортировка по убыванию или по возрастанию, если есть ограничение на количество категорий"
       ],
-      "Whether to sort descending or ascending on the X-Axis.": [
-        "Сортировка по убыванию или по возрастанию для оси X"
-      ],
       "Whether to sort results by the selected metric in descending order.": [
         "Сортировка результатов по выбранной мере в порядке убывания"
       ],
@@ -5581,6 +5551,7 @@
       "Y Axis Title": ["Название оси Y"],
       "Y Log Scale": ["Логарифмическая ось Y"],
       "Y bounds": ["Показывать границы оси Y"],
+      "Y-Axis Sort By": [""],
       "Y-axis": ["Ось Y"],
       "Y-axis bounds": ["Границы оси Y"],
       "Year": ["Год"],
@@ -5613,10 +5584,17 @@
       "You can add the components in the edit mode.": [
         "Вы можете добавить компоненты в режиме редактирования."
       ],
+      "You can also just click on the chart to apply cross-filter.": [""],
+      "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
+        ""
+      ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Вы можете создать новый график или использовать существующие из панели справа"
       ],
       "You can preview the list of dashboards in the chart settings dropdown.": [
+        ""
+      ],
+      "You cannot delete the last temporal filter as it's used for time range filters in dashboards.": [
         ""
       ],
       "You cannot use 45° tick layout along with the time range filter": [
@@ -5955,6 +5933,7 @@
       "string type icon": [""],
       "sum": ["Сумма"],
       "syntax.": [""],
+      "tag": [""],
       "temporal type icon": [""],
       "textarea": ["текстовая область"],
       "to": ["по"],
@@ -5984,7 +5963,7 @@
       ],
       "year": ["год"],
       "yellow": ["Желтая"],
-      "zoom area": ["область масштабирования"]
+      "zoom area": [""]
     }
   }
 }
