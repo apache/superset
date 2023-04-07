@@ -21,8 +21,8 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { renderHook } from '@testing-library/react-hooks';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
-import { useContextMenu } from './useContextMenu';
 import { noOp } from 'src/utils/common';
+import { useContextMenu } from './useContextMenu';
 import { ContextMenuItem } from './ChartContextMenu';
 
 const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
