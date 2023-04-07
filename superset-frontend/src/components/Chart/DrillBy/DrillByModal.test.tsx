@@ -71,12 +71,13 @@ const renderModal = async () => {
         <button type="button" onClick={() => setShowModal(true)}>
           Show modal
         </button>
-        <DrillByModal
-          formData={formData}
-          showModal={showModal}
-          onHideModal={() => setShowModal(false)}
-          dataset={dataset}
-        />
+        {showModal && (
+          <DrillByModal
+            formData={formData}
+            onHideModal={() => setShowModal(false)}
+            dataset={dataset}
+          />
+        )}
       </DashboardPageIdContext.Provider>
     );
   };
