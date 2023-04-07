@@ -183,9 +183,9 @@ export function setFilter(filter: string, option: string) {
 }
 
 /** ************************************************************************
- * Expend Native filter from the left panel on dashboard
+ * Expand Native filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for expend native filter
+ * @summary helper for expand native filter
  ************************************************************************* */
 export function expandFilterOnLeftPanel() {
   return cy
