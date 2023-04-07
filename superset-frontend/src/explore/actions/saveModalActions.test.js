@@ -31,6 +31,7 @@ import {
   SAVE_SLICE_FAILED,
   SAVE_SLICE_SUCCESS,
   updateSlice,
+  getSlicePayload,
 } from './saveModalActions';
 
 /**
@@ -338,4 +339,125 @@ test('getSliceDashboards with slice handles failure', async () => {
   expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
+});
+
+describe('getSlicePayload', () => {
+  const sliceName = 'Test Slice';
+  const formDataWithNativeFilters = {
+    datasource: '22__table',
+    viz_type: 'pie',
+    adhoc_filters: [],
+  };
+  const dashboards = [5];
+  const owners = [1];
+  const formDataFromSlice = {
+    datasource: '22__table',
+    viz_type: 'pie',
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+      },
+    ],
+  };
+
+  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', () => {
+    const result = getSlicePayload(
+      sliceName,
+      formDataWithNativeFilters,
+      dashboards,
+      owners,
+      formDataFromSlice,
+    );
+    expect(result).toHaveProperty('params');
+    expect(result).toHaveProperty('slice_name', sliceName);
+    expect(result).toHaveProperty(
+      'viz_type',
+      formDataWithNativeFilters.viz_type,
+    );
+    expect(result).toHaveProperty('datasource_id', 22);
+    expect(result).toHaveProperty('datasource_type', 'table');
+    expect(result).toHaveProperty('dashboards', dashboards);
+    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('query_context');
+    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+      formDataFromSlice.adhoc_filters,
+    );
+  });
+
+  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
+    const formDataWithAdhocFilters = {
+      ...formDataWithNativeFilters,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+        },
+      ],
+    };
+    const result = getSlicePayload(
+      sliceName,
+      formDataWithAdhocFilters,
+      dashboards,
+      owners,
+      formDataFromSlice,
+    );
+    expect(result).toHaveProperty('params');
+    expect(result).toHaveProperty('slice_name', sliceName);
+    expect(result).toHaveProperty(
+      'viz_type',
+      formDataWithAdhocFilters.viz_type,
+    );
+    expect(result).toHaveProperty('datasource_id', 22);
+    expect(result).toHaveProperty('datasource_type', 'table');
+    expect(result).toHaveProperty('dashboards', dashboards);
+    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('query_context');
+    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+      formDataWithAdhocFilters.adhoc_filters,
+    );
+  });
+
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
+    const formDataWithAdhocFiltersWithExtra = {
+      ...formDataWithNativeFilters,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: 'No filter',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+    const result = getSlicePayload(
+      sliceName,
+      formDataWithAdhocFiltersWithExtra,
+      dashboards,
+      owners,
+      formDataFromSlice,
+    );
+    expect(result).toHaveProperty('params');
+    expect(result).toHaveProperty('slice_name', sliceName);
+    expect(result).toHaveProperty(
+      'viz_type',
+      formDataWithAdhocFiltersWithExtra.viz_type,
+    );
+    expect(result).toHaveProperty('datasource_id', 22);
+    expect(result).toHaveProperty('datasource_type', 'table');
+    expect(result).toHaveProperty('dashboards', dashboards);
+    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('query_context');
+    expect(JSON.parse(result.params).adhoc_filters).toEqual(
+      formDataFromSlice.adhoc_filters,
+    );
+  });
 });
