@@ -49,9 +49,9 @@ import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useData
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
+import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
+import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest } from '../chartAction';
-import { ContextMenuItem } from '../ChartContextMenu';
-import { useContextMenu } from '../useContextMenu';
 
 const DATA_SIZE = 15;
 interface ModalFooterProps {

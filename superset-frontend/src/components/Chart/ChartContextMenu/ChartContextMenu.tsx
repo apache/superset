@@ -40,12 +40,12 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
-import { AntdDropdown as Dropdown } from 'src/components';
-import { DrillDetailMenuItems } from './DrillDetail';
-import { getMenuAdjustedY } from './utils';
-import { updateDataMask } from '../../dataMask/actions';
-import { MenuItemTooltip } from './DisabledMenuItemTooltip';
-import { DrillByMenuItems } from './DrillBy/DrillByMenuItems';
+import { AntdDropdown as Dropdown } from 'src/components/index';
+import { updateDataMask } from 'src/dataMask/actions';
+import { DrillDetailMenuItems } from '../DrillDetail';
+import { getMenuAdjustedY } from '../utils';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -274,7 +274,7 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <Dropdown
       overlay={
-        <Menu>
+        <Menu className="chart-context-menu" data-test="chart-context-menu">
           {menuItems.length ? (
             menuItems
           ) : (

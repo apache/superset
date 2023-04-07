@@ -31,7 +31,7 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
-import ChartContextMenu from './ChartContextMenu';
+import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
 const propTypes = {
   annotationData: PropTypes.object,
