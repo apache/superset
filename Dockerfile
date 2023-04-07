@@ -61,13 +61,13 @@ RUN mkdir -p ${PYTHONPATH} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    default-libmysqlclient-dev \
-    libsasl2-dev \
-    libsasl2-modules-gssapi-mit \
-    libpq-dev \
-    libecpg-dev \
+        build-essential \
+        curl \
+        default-libmysqlclient-dev \
+        libsasl2-dev \
+        libsasl2-modules-gssapi-mit \
+        libpq-dev \
+        libecpg-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -114,13 +114,13 @@ USER root
 
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
-    libnss3 \
-    libdbus-glib-1-2 \
-    libgtk-3-0 \
-    libx11-xcb1 \
-    libasound2 \
-    libxtst6 \
-    wget
+        libnss3 \
+        libdbus-glib-1-2 \
+        libgtk-3-0 \
+        libx11-xcb1 \
+        libasound2 \
+        libxtst6 \
+        wget
 
 # Install GeckoDriver WebDriver
 RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
