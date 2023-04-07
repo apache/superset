@@ -251,7 +251,6 @@ export const DrillByMenuItems = ({
           formData={formData}
           groupbyFieldName={groupbyFieldName}
           onHideModal={closeModal}
-          showModal={showModal}
           dataset={dataset!}
         />
       )}
