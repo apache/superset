@@ -989,3 +989,114 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=ex.message)
+
+    @expose("/sqllab_viz/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".sqllab_viz",
+        log_to_statsd=False,
+    )
+    def sqllab_viz(self) -> Response:
+        """ endpoint that builds a dataset from sqllab
+        ---
+        post:
+          summary: {fill this in}
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: {fill this in} '#/components/schemas/GetOrCreateDatasetSchema'
+          responses:
+            200:
+              description: The ID of the dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          table_id:
+                            type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            data = json.loads(request.form["data"])
+            table_name = data["datasourceName"]
+            database_id = data["dbId"]
+        except KeyError as ex:
+            raise SupersetGenericErrorException(
+                __(
+                    "One or more required fields are missing in the request. Please try "
+                    "again, and if the problem persists contact your administrator."
+                ),
+                status=400,
+            ) from ex
+        database = db.session.query(Database).get(database_id)
+        if not database:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("The database was not found."),
+                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=404,
+            )
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+
+        if table:
+            return json_errors_response(
+                [
+                    SupersetError(
+                        message=f"Dataset [{table_name}] already exists",
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.WARNING,
+                    )
+                ],
+                status=422,
+            )
+
+        table = SqlaTable(table_name=table_name, owners=[g.user])
+        table.database = database
+        table.schema = data.get("schema")
+        table.template_params = data.get("templateParams")
+        table.is_sqllab_view = True
+        table.sql = ParsedQuery(data.get("sql")).stripped()
+        db.session.add(table)
+        cols = []
+        for config_ in data.get("columns"):
+            column_name = config_.get("name")
+            col = TableColumn(
+                column_name=column_name,
+                filterable=True,
+                groupby=True,
+                is_dttm=config_.get("is_dttm", False),
+                type=config_.get("type", False),
+            )
+            cols.append(col)
+
+        table.columns = cols
+        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
+        db.session.commit()
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
