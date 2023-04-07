@@ -1758,7 +1758,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
-                    sqla_col = self.adhoc_column_to_sqla(flt_col)
+                    sqla_col = self.adhoc_column_to_sqla(flt_col, force_type_check=True)
                     applied_adhoc_filters_columns.append(flt_col)
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
