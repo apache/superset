@@ -31,7 +31,6 @@ from typing import (
     Dict,
     Hashable,
     List,
-    NamedTuple,
     Optional,
     Set,
     Tuple,
@@ -78,7 +77,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
-from sqlalchemy.sql.expression import Label, Select, TextAsFrom
+from sqlalchemy.sql.expression import Label, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -116,13 +115,7 @@ from superset.models.helpers import (
     QueryStringExtended,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import (
-    AdhocColumn,
-    AdhocMetric,
-    Column as ColumnTyping,
-    Metric,
-    QueryObjectDict,
-)
+from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, get_username, MediumText
 

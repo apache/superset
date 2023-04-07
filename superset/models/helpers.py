@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
 import dataclasses
 import json
@@ -935,7 +936,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return ";\n".join(str(statement) for statement in statements)
 
-    def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
+    def get_query_str_extended(
+        self, query_obj: QueryObjectDict, mutate: bool = True
+    ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)  # type: ignore
         sql = self._apply_cte(sql, sqlaq.cte)
