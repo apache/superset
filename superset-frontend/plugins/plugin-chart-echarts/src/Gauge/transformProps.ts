@@ -104,7 +104,7 @@ export default function transformProps(
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-  const { verboseMap } = datasource;
+  const { verboseMap = {} } = datasource;
   const {
     groupby,
     metric,
