@@ -24,20 +24,19 @@ const schemes = [
     id: 'bnbColors',
     label: 'Airbnb Colors',
     colors: [
-      '#ff385c', // rausch
-      '#92174d', // plus
-      '#460479', // luxe
-      '#222222', // hof
-      '#dddddd', // deco
-      '#c13515', // arches
-      '#d0650b', // ondo
-      '#ffaf0f', // beach
-      '#7dv734', // lima
-      '#22bc4e', // spruce
-      '#00ba92', // norrr
-      '#007e82', // babu
-      '#2875f0', // mykonou
-      '#9b3197', // omiya
+      '#29696B',
+      '#5BCACE',
+      '#F4B02A',
+      '#F1826A',
+      '#792EB2',
+      '#C96EC6',
+      '#921E50',
+      '#B27700',
+      '#9C3498',
+      '#9C3498',
+      '#E4679D',
+      '#C32F0E',
+      '#9D63CA',
     ],
   },
 ].map(s => new CategoricalScheme(s));
