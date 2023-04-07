@@ -301,9 +301,7 @@ export const SaveDatasetModal = ({
           ...formDataWithDefaults,
           datasource: `${data.table_id}__table`,
           ...(defaultVizType === 'table' && {
-            all_columns: selectedColumns.map(
-              column => column.column_name || column.name,
-            ),
+            all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),
       )
