@@ -16,20 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable theme-colors/no-literal-colors */
 
 import { JsonObject } from '@superset-ui/core';
-import {
-  getDashboardFormData,
-  getExploreFormData,
-} from 'spec/fixtures/mockExploreFormData';
-import { getFormDataWithDashboardContext } from './getFormDataWithDashboardContext';
 
-const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
+export const getExploreFormData = (overrides: JsonObject = {}) => ({
   adhoc_filters: [
     {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: 'IN',
+      clause: 'WHERE' as const,
+      expressionType: 'SIMPLE' as const,
+      operator: 'IN' as const,
       subject: 'gender',
       comparator: ['boys'],
       filterOptionName: '123',
@@ -53,40 +49,12 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       filterOptionName: '567',
     },
     {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: 'TEMPORAL_RANGE',
+      clause: 'WHERE' as const,
+      expressionType: 'SIMPLE' as const,
+      operator: 'TEMPORAL_RANGE' as const,
       subject: 'ds',
-      comparator: 'Last month',
-      filterOptionName: expect.any(String),
-      isExtra: true,
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: 'IN',
-      operatorId: 'IN',
-      subject: 'name',
-      comparator: ['Aaron'],
-      isExtra: true,
-      filterOptionName: expect.any(String),
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: '<=',
-      operatorId: 'LESS_THAN_OR_EQUAL',
-      subject: 'num_boys',
-      comparator: 10000,
-      isExtra: true,
-      filterOptionName: expect.any(String),
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SQL',
-      sqlExpression: `(totally viable sql expression) IN ('Value1', 'Value2')`,
-      filterOptionName: expect.any(String),
-      isExtra: true,
+      comparator: 'No filter',
+      filterOptionName: '678',
     },
   ],
   adhoc_filters_b: [
@@ -97,41 +65,11 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       subject: null,
       comparator: null,
       sqlExpression: "country = 'Poland'",
-      filterOptionName: expect.any(String),
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: 'IN',
-      operatorId: 'IN',
-      subject: 'name',
-      comparator: ['Aaron'],
-      isExtra: true,
-      filterOptionName: expect.any(String),
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SIMPLE',
-      operator: '<=',
-      operatorId: 'LESS_THAN_OR_EQUAL',
-      subject: 'num_boys',
-      comparator: 10000,
-      isExtra: true,
-      filterOptionName: expect.any(String),
-    },
-    {
-      clause: 'WHERE',
-      expressionType: 'SQL',
-      sqlExpression: `(totally viable sql expression) IN ('Value1', 'Value2')`,
-      filterOptionName: expect.any(String),
-      isExtra: true,
+      filterOptionName: '789',
     },
   ],
-  applied_time_extras: {
-    __time_grain: 'P1D',
-    __time_col: 'ds',
-  },
-  color_scheme: 'd3Category20b',
+  applied_time_extras: {},
+  color_scheme: 'supersetColors',
   datasource: '2__table',
   granularity_sqla: 'ds',
   groupby: ['gender'],
@@ -145,8 +83,12 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
     label: 'Births',
   },
   slice_id: 46,
-  time_range: 'Last month',
+  time_range: '100 years ago : now',
   viz_type: 'pie',
+  ...overrides,
+});
+
+export const getDashboardFormData = (overrides: JsonObject = {}) => ({
   label_colors: {
     Girls: '#FF69B4',
     Boys: '#ADD8E6',
@@ -157,6 +99,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
     boy: '#ADD8E6',
     girl: '#FF69B4',
   },
+  color_scheme: 'd3Category20b',
   extra_filters: [
     {
       col: '__time_range',
@@ -188,9 +131,9 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
       },
       {
         col: {
+          sqlExpression: 'totally viable sql expression',
           expressionType: 'SQL',
           label: 'My column',
-          sqlExpression: 'totally viable sql expression',
         },
         op: 'IN',
         val: ['Value1', 'Value2'],
@@ -201,18 +144,5 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
     time_grain_sqla: 'PT1S',
   },
   dashboardId: 2,
-  time_grain_sqla: 'PT1S',
-  granularity: 'ds',
-  extras: {
-    time_grain_sqla: 'PT1S',
-  },
   ...overrides,
-});
-
-test('merges dashboard context form data with explore form data', () => {
-  const fullFormData = getFormDataWithDashboardContext(
-    getExploreFormData(),
-    getDashboardFormData(),
-  );
-  expect(fullFormData).toEqual(getExpectedResultFormData());
 });
