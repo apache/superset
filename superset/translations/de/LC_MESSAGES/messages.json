@@ -5,7 +5,7 @@
       "22": ["22"],
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=2; plural=(n != 1)",
+        "plural_forms": "nplurals=2; plural=(n != 1);",
         "lang": "de"
       },
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
@@ -344,7 +344,7 @@
       ],
       "Add filter": ["Filter hinzufügen"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
-        ""
+        "Fügen Sie Filterklauseln hinzu, um die Anfrage der Filter-Quelle zu steuern.\n                    allerdings nur im Zusammenhang mit der Autovervollständigung, d.h. diese Bedingungen\n                    wirken Sie sich nicht darauf aus, wie der Filter auf das Dashboard angewendet wird. Das ist nützlich,\n                    wenn Sie die Antwortzeit der Abfrage verbessern möchten, indem Sie nur eine Teilmenge\n                    der zugrunde liegenden Daten scannen oder die verfügbaren Werte einschränken, die im Filter angezeigt werden."
       ],
       "Add filters and dividers": ["Filter und Trennlinien hinzufügen"],
       "Add item": ["Element hinzufügen"],
@@ -871,6 +871,7 @@
       "Back": ["Zurück"],
       "Back to all": ["Zurück zu allen"],
       "Backend": ["Backend"],
+      "Backward values": ["Rückwärtsinterpolation"],
       "Bad formula.": ["Fehlerhafte Formel."],
       "Bad spatial key": ["Fehlerhafter räumlicher Schlüssel"],
       "Bar": ["Balken"],
@@ -918,6 +919,7 @@
       "Bubble Color": ["Blasenfarbe"],
       "Bubble Size": ["Blasengröße"],
       "Bubble size": ["Blasengröße"],
+      "Bucket break points": ["Klassen-Schwellwerte"],
       "Build": ["Build"],
       "Bulk select": ["Massenauswahl"],
       "Bullet Chart": ["Bullet-Diagramm"],
@@ -1965,8 +1967,14 @@
       "Draw split lines for minor y-axis ticks": [
         "Geteilten Linien für kleinere Ticks der y-Achse zeichnen"
       ],
-      "Drill by": [""],
-      "Drill by is not available for this data point": [""],
+      "Drill by": ["Ins-Detail-Zoomen"],
+      "Drill by is not available for this data point": [
+        "Heinzoomem ist für diesen Datenpunkt nicht verfügbar"
+      ],
+      "Drill by is not yet supported for this chart type": [
+        "Das Ins-Detail-Zoomen (Drilldown) nach Wert wird für diesen Diagrammtyp noch nicht unterstützt."
+      ],
+      "Drill by: %s": ["Hineinzogen nach %s"],
       "Drill to detail": ["Ins-Detail-Zoomen"],
       "Drill to detail by": ["Zu Detail zoomen anhand"],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -2014,11 +2022,17 @@
       "Duplicate dataset": ["Datensatz duplizieren"],
       "Duplicate tab": ["Registerkarte duplizieren"],
       "Duration": ["Dauer"],
+      "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires, and -1 bypasses the cache. Note this defaults to the global timeout if undefined.": [
+        "Dauer (in Sekunden) des Caching-Timeouts für Diagramme dieser Datenbank. Ein Timeout von 0 gibt an, dass der Cache nie abläuft, und -1 umgeht den Cache. Beachten Sie, dass standardmäßig das globale Timeout verwendet wird, wenn kein Wert definiert wurde."
+      ],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "Dauer (in Sekunden) des Caching-Timeouts für Diagramme dieser Datenbank. Ein Timeout von 0 gibt an, dass der Cache nie abläuft. Beachten Sie, dass standardmäßig das globale Timeout verwendet wird, wenn es nicht definiert ist."
       ],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.": [
         "Dauer (in Sekunden) des Caching-Timeouts für dieses Diagramm. Beachten Sie, dass standardmäßig das Datenquellen-/Tabellentimeout verwendet wird, wenn es nicht definiert ist."
+      ],
+      "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.": [
+        "Dauer (in Sekunden) des Caching-Timeouts für dieses Diagramm. Setzen Sie diesen auf -1 um das Coaching zu umgehen. Beachten Sie, dass standardmäßig das Timeout des Datensatzes verwendet wird, wenn kein Wert definiert wurde."
       ],
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
         "Dauer (in Sekunden) des Caching-Timeouts für diese Tabelle. Ein Timeout von 0 gibt an, dass der Cache nie abläuft. Beachten Sie, dass standardmäßig das Datenbanktimeout verwendet wird, wenn es nicht definiert ist."
@@ -2341,6 +2355,7 @@
       "Filter Settings": ["Filtereinstellungen"],
       "Filter Type": ["Filtertyp"],
       "Filter box": ["Filterkomponente"],
+      "Filter charts": ["Diagramme filtern"],
       "Filter configuration": ["Filterkonfiguration"],
       "Filter configuration for the filter box": [
         "Filterkonfiguration für die Filterkomponente"
@@ -2441,6 +2456,7 @@
       "Formatted value": ["Formatierter Wert"],
       "Formatting": ["Formatierung"],
       "Formula": ["Formel"],
+      "Forward values": ["Vorwärtsinterpolation"],
       "Found invalid orderby options": ["Ungültige Order-By-Optionen gefunden"],
       "Fraction digits": ["Nachkommastellen"],
       "Frequency": ["Häufigkeit"],
@@ -3148,6 +3164,7 @@
       "No charts": ["Keine Diagramme"],
       "No charts yet": ["Noch keine Diagramme"],
       "No columns": ["Keine Spalten"],
+      "No columns found": ["Keine Spalten gefunden"],
       "No compatible columns found": ["Keine kompatiblen Quellen gefunden"],
       "No compatible datasets found": ["Keine kompatiblen Datensätze gefunden"],
       "No compatible schema found": ["Kein kompatibles Schema gefunden"],
@@ -3163,7 +3180,9 @@
         "Keine Datenbanken stimmen mit Ihrer Suche überein"
       ],
       "No description available.": ["Keine Beschreibung verfügbar."],
-      "No dimensions available for drill by": [""],
+      "No dimensions available for drill by": [
+        "Keine Dimensionen verfügbar für das Hineinzoomen nach"
+      ],
       "No favorite charts yet, go click on stars!": [
         "Noch keine Lieblingsdashboards, klicken Sie auf die Sterne!"
       ],
@@ -3266,6 +3285,9 @@
       ],
       "Number of periods to compare against": [
         "Anzahl der zu vergleichenden Perioden"
+      ],
+      "Number of periods to ratio against": [
+        "Anzahl ins Verhältnis zu setzender Perioden"
       ],
       "Number of rows of file to read": [
         "Anzahl der aus Datei zu lesenden Zeilen."
@@ -3453,7 +3475,7 @@
       "Overwrite text in the editor with a query on this table": [
         "Überschreiben von Text im Editor mit einer Abfrage für diese Tabelle"
       ],
-      "Owned Created or Favored": [""],
+      "Owned Created or Favored": ["Im Besitz, Erstellt oder Favorisiert"],
       "Owner": ["Besitzer*in"],
       "Owners": ["Besitzende"],
       "Owners are invalid": ["Besitzende sind ungültig"],
@@ -3954,6 +3976,12 @@
         "Rolle %(r)s wurde erweitert, um den Zugriff auf die Datenquelle %(ds)s zu gewähren"
       ],
       "Roles": ["Rollen"],
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
+        "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine Rollen definiert sind, werden die generellen Berechtigungen angewendet."
+      ],
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
+        "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine Rollen definiert sind, werden die generellen Berechtigungen angewendet."
+      ],
       "Roles to grant": ["Zu vergebende Rollen"],
       "Rolling Function": ["Rollierende Funktion"],
       "Rolling Window": ["Rollierendes Fenster"],
@@ -4143,6 +4171,7 @@
       "Search all filter options": ["Alle Filteroptionen durchsuchen"],
       "Search box": ["Suchfeld"],
       "Search by query text": ["Suche nach Abfragetext"],
+      "Search columns": ["Suchspalten"],
       "Search in filters": ["Suche in Filtern"],
       "Search tables": ["Tabellen durchsuchen"],
       "Search...": ["Suche..."],
@@ -4348,7 +4377,7 @@
       "Show legend": ["Legende anzeigen"],
       "Show less columns": ["Weniger Spalten anzeigen"],
       "Show less...": ["Weniger..."],
-      "Show only my charts": [""],
+      "Show only my charts": ["Nur meine Diagramme anzeigen"],
       "Show password.": ["Passwort anzeigen."],
       "Show percentage": ["Prozentsatz anzeigen"],
       "Show pointer": ["Zeiger anzeigen"],
@@ -4553,6 +4582,7 @@
       "Stopped an unsafe database connection": [
         "Eine unsichere Datenbankverbindung wurde beendet"
       ],
+      "Stream": ["Stream"],
       "Streets": ["Straßen"],
       "Strength to pull the graph toward center": [
         "Stärke, mit der Graph in Richtung Mitte gezogen wird"
@@ -4756,6 +4786,7 @@
       "The database columns that contains lines information": [
         "Die Datenbankspalten, die Zeileninformationen enthalten"
       ],
+      "The database could not be found": ["Datenbank nicht gefunden."],
       "The database is currently running too many queries.": [
         "Die Datenbank führt derzeit zu viele Abfragen aus."
       ],
@@ -4794,6 +4825,9 @@
       ],
       "The distance between cells, in pixels": [
         "Der Abstand zwischen Zellen in Pixel"
+      ],
+      "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.": [
+        "Die Zeitdauer in Sekunden, bevor der Cache ungültig wird. Setzen Sie diese auf -1 um den Cache zu umgehen."
       ],
       "The encoding format of the lines": ["Das Kodierungsformat der Zeilen"],
       "The engine_params object gets unpacked into the sqlalchemy.create_engine call.": [
@@ -4927,6 +4961,9 @@
       ],
       "The query couldn't be loaded": [
         "Die Abfrage konnte nicht geladen werden"
+      ],
+      "The query estimation was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load.": [
+        "Die Abfrage-Schätzung wurde nach %(sqllab_timeout)s Sekunden abgebrochen. Sie war eventuell zu komplex, oder die Datenbank ist aktuell stark belastet."
       ],
       "The query has a syntax error.": [
         "Die Abfrage weist einen Syntaxfehler auf."
@@ -6129,7 +6166,7 @@
         "Sie können auch einfach auf das Diagramm klicken, um den Kreuzfilter anzuwenden."
       ],
       "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
-        ""
+        "Sie können auswählen, ob alle Diagramme angezeigt werden sollen, auf die Sie Zugriff haben, oder nur die Diagramme, die Sie besitzen.\n              Ihre Filterauswahl wird gespeichert und bleibt aktiv, bis Sie sie ändern."
       ],
       "You can create a new chart or use existing ones from the panel on the right": [
         "Sie können ein neues Diagramm erstellen oder vorhandene Diagramme aus dem Bereich auf der rechten Seite verwenden."
