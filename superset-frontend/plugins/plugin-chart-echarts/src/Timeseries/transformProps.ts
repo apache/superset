@@ -146,6 +146,8 @@ export default function transformProps(
     truncateYAxis,
     xAxis: xAxisOrig,
     xAxisLabelRotation,
+    xAxisSortSeries,
+    xAxisSortSeriesAscending,
     xAxisTimeFormat,
     xAxisTitle,
     xAxisTitleMargin,
@@ -200,6 +202,8 @@ export default function transformProps(
     isHorizontal,
     sortSeriesType,
     sortSeriesAscending,
+    xAxisSortSeries,
+    xAxisSortSeriesAscending,
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
