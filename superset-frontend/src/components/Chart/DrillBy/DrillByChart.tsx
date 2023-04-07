@@ -25,11 +25,9 @@ import {
   css,
 } from '@superset-ui/core';
 
-import Loading from 'src/components/Loading';
-
 interface DrillByChartProps {
   formData: BaseFormData & { [key: string]: any };
-  result?: QueryData[];
+  result: QueryData[];
 }
 
 export default function DrillByChart({ formData, result }: DrillByChartProps) {
@@ -40,20 +38,16 @@ export default function DrillByChart({ formData, result }: DrillByChartProps) {
         height: 100%;
       `}
     >
-      {result ? (
-        <SuperChart
-          disableErrorBoundary
-          behaviors={[Behavior.INTERACTIVE_CHART]}
-          chartType={formData.viz_type}
-          enableNoResults
-          formData={formData}
-          queriesData={result}
-          height="100%"
-          width="100%"
-        />
-      ) : (
-        <Loading />
-      )}
+      <SuperChart
+        disableErrorBoundary
+        behaviors={[Behavior.INTERACTIVE_CHART]}
+        chartType={formData.viz_type}
+        enableNoResults
+        formData={formData}
+        queriesData={result}
+        height="100%"
+        width="100%"
+      />
     </div>
   );
 }

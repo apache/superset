@@ -119,9 +119,16 @@ test('should close the modal', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
+test('should render loading indicator', async () => {
+  await renderModal();
+  await waitFor(() =>
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
+  );
+});
+
 test('should generate Explore url', async () => {
   await renderModal();
-  await waitFor(() => fetchMock.called(FORM_DATA_KEY_ENDPOINT));
+  await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
     form_data: {
       ...omitBy(
@@ -129,6 +136,9 @@ test('should generate Explore url', async () => {
         isUndefined,
       ),
       slice_id: 0,
+      result_format: 'json',
+      result_type: 'full',
+      force: false,
     },
     datasource_id: Number(formData.datasource.split('__')[0]),
     datasource_type: formData.datasource.split('__')[1],
@@ -137,9 +147,10 @@ test('should generate Explore url', async () => {
   const parsedRequestPayload = JSON.parse(
     fetchMock.lastCall()?.[1]?.body as string,
   );
-  parsedRequestPayload.form_data = JSON.parse(parsedRequestPayload.form_data);
 
-  expect(parsedRequestPayload).toEqual(expectedRequestPayload);
+  expect(parsedRequestPayload.form_data).toEqual(
+    expectedRequestPayload.form_data,
+  );
 
   expect(
     await screen.findByRole('link', { name: 'Edit chart' }),

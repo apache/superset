@@ -45,13 +45,6 @@ test('should render', async () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render loading indicator', async () => {
-  setup();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
-  );
-});
-
 test('should render the "No results" components', async () => {
   setup({}, []);
   expect(await screen.findByText('No Results')).toBeInTheDocument();

@@ -31,6 +31,7 @@ import {
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Modal from 'src/components/Modal';
+import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import { Radio } from 'src/components/Radio';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
@@ -44,7 +45,7 @@ import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { getChartDataRequest } from '../chartAction';
 
-const DATA_SIZE = 14;
+const DATA_SIZE = 15;
 interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
@@ -111,7 +112,9 @@ export default function DrillByModal({
 }: DrillByModalProps) {
   const theme = useTheme();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-  const [drillBy, setDrillBy] = useState<DrillByType>(DrillByType.Chart);
+  const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
+    DrillByType.Chart,
+  );
   const [datasourceId] = useMemo(
     () => formData.datasource.split('__'),
     [formData.datasource],
@@ -205,7 +208,7 @@ export default function DrillByModal({
         >
           <Radio.Group
             onChange={({ target: { value } }) => {
-              setDrillBy(value);
+              setDrillByDisplayMode(value);
             }}
             defaultValue={DrillByType.Chart}
           >
@@ -223,18 +226,27 @@ export default function DrillByModal({
             </Radio.Button>
           </Radio.Group>
         </div>
-        {drillBy === DrillByType.Chart && chartDataResult && (
+        {!chartDataResult && <Loading />}
+        {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
           <DrillByChart formData={updatedFormData} result={chartDataResult} />
         )}
-        {drillBy === DrillByType.Table && chartDataResult && (
-          <SingleQueryResultPane
-            colnames={chartDataResult[0].colnames}
-            coltypes={chartDataResult[0].coltypes}
-            data={chartDataResult[0].data}
-            dataSize={DATA_SIZE}
-            datasourceId={datasourceId}
-            isVisible
-          />
+        {drillByDisplayMode === DrillByType.Table && chartDataResult && (
+          <div
+            css={css`
+              .pagination-container {
+                bottom: ${-theme.gridUnit * 4}px;
+              }
+            `}
+          >
+            <SingleQueryResultPane
+              colnames={chartDataResult[0].colnames}
+              coltypes={chartDataResult[0].coltypes}
+              data={chartDataResult[0].data}
+              dataSize={DATA_SIZE}
+              datasourceId={datasourceId}
+              isVisible
+            />
+          </div>
         )}
       </div>
     </Modal>
