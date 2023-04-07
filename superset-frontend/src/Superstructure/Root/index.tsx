@@ -8,7 +8,11 @@ import {
   Version,
   ServiceNotAvailable,
 } from '../components';
-import { MicrofrontendParams, FullConfiguration } from '../types/global';
+import {
+  MicrofrontendParams,
+  FullConfiguration,
+  Dashboard,
+} from '../types/global';
 import { composeAPIConfig } from '../config';
 
 import { store } from '../store';
@@ -31,15 +35,16 @@ import {
   ContentWrapper,
 } from './styles';
 
-import {
-  getCoreConfig,
-  getNavigationConfig,
-  APP_VERSION,
-} from '../parseEnvFile/index';
+import { getNavigationConfig, APP_VERSION } from '../parseEnvFile/index';
 import { serializeValue } from '../parseEnvFile/utils';
 import { addSlash, logConfigs } from './helpers';
 
 import '../../theme';
+import {
+  MESSAGES,
+  KNOWN_CERTIFIED_BY,
+  KNOWN_CERTIFICATAION_DETAILS,
+} from '../constants';
 
 setupClient();
 
@@ -136,23 +141,108 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       }
       return null;
     }
-    return dashboardsResponse;
+
+    const validCertifiedBy = (cert_by: string | null) =>
+      cert_by && KNOWN_CERTIFIED_BY.indexOf(cert_by) >= 0;
+
+    const validCertificationDetails = (cert_details: string | null) =>
+      cert_details && KNOWN_CERTIFICATAION_DETAILS.indexOf(cert_details) >= 0;
+
+    const filteredDashboards =
+      dashboardsResponse.data &&
+      dashboardsResponse.data.filter(
+        (dashboard: Dashboard) =>
+          dashboard.certified_by && dashboard.certification_details,
+      );
+
+    if (!filteredDashboards?.length) {
+      setLoaded(false);
+      setError(true);
+      setErrorObject({
+        msg: MESSAGES.GET_MENU.NO_DASHBOARDS,
+        title: dashboardsResponse.title,
+        stackTrace: dashboardsResponse.stackTrace,
+      });
+
+      return null;
+    }
+
+    const validatedDashboards = filteredDashboards?.filter(
+      (dashboard: Dashboard) =>
+        validCertifiedBy(dashboard.certified_by) &&
+        validCertificationDetails(dashboard.certification_details),
+    );
+
+    if (!validatedDashboards?.length) {
+      setLoaded(false);
+      setError(true);
+      setErrorObject({
+        msg: MESSAGES.GET_MENU.NOT_VALID_CERTIFICATION,
+        title: dashboardsResponse.title,
+        stackTrace: dashboardsResponse.stackTrace,
+      });
+
+      return null;
+    }
+
+    const alteredDashboardResponse = {
+      ...dashboardsResponse,
+      data: validatedDashboards,
+    };
+
+    console.group('Dashboards:');
+    console.log('Before validation', dashboardsResponse.data);
+    console.log('After validation', alteredDashboardResponse);
+    console.groupEnd();
+
+    if (!alteredDashboardResponse.data?.length) {
+      setLoaded(false);
+      setError(true);
+      setErrorObject({
+        msg: MESSAGES.GET_MENU.NO_DASHBOARDS,
+        title: dashboardsResponse.title,
+        stackTrace: dashboardsResponse.stackTrace,
+      });
+
+      return null;
+    }
+
+    return alteredDashboardResponse;
   };
 
   dirtyHackDodoIs();
 
-  const CONFIG = getCoreConfig(
-    process.env.WEBPACK_MODE as 'development' | 'production' | 'none',
-  );
+  const params: {
+    originUrl: string;
+    token: string;
+    basename: string;
+    frontendLogger: boolean;
+  } = useMemo(() => {
+    const env = process.env.WEBPACK_MODE;
 
-  const params = useMemo(() => {
-    const parameters = { ...incomingParams, ...CONFIG };
-    const basename = addSlash(parameters.basename);
-
-    return {
-      ...parameters,
-      basename,
+    let parameters = {
+      originUrl:
+        incomingParams.originUrl || `${window.location.origin}/superset`,
+      token: incomingParams.token || '',
+      basename: incomingParams.basename
+        ? addSlash(incomingParams.basename)
+        : '/',
+      frontendLogger: incomingParams.frontendLogger || true,
     };
+
+    // Superset API works only with port 3000
+    if (env === 'development') {
+      parameters = {
+        ...parameters,
+        basename: '/',
+        originUrl: 'https://superset.dodois.dev',
+        frontendLogger: true,
+      };
+    }
+    console.log('Incoming Parameters: ', incomingParams);
+    console.log('Checked and altered parameters: ', parameters);
+
+    return parameters;
   }, [incomingParams]);
 
   const IS_UNAVAILABLE = serializeValue(process.env.isUnavailable) === 'true';
@@ -169,6 +259,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     const initializeLoginAndMenu = async () => {
       let isLoginSkipped = false;
       let useAuth = false;
+      let login = null;
 
       if (process.env.WEBPACK_MODE === 'development') {
         isLoginSkipped = false;
@@ -181,15 +272,18 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         useAuth = false;
       }
 
-      const login = await handleLoginRequest();
+      if (!isLoginSkipped) login = await handleLoginRequest();
 
-      if (isLoginSkipped || (login && login.data && login.data.access_token)) {
+      if (
+        isLoginSkipped ||
+        (!isLoginSkipped && login && login.data && login.data.access_token)
+      ) {
         const csrf = await handleCsrfRequest({ useAuth });
 
         if (csrf && csrf.data && csrf.data.result) {
           const dashboards = await handleDashboardsRequest();
 
-          if (dashboards && dashboards.data) {
+          if (dashboards && dashboards.data && dashboards.data.length) {
             const navConfigFull = getNavigationConfig(
               defineNavigation(dashboards.data),
             );

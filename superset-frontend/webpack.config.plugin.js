@@ -55,7 +55,7 @@ const BUILD_DIR = path.resolve(
  */
 const APP_VERSION_BASE = '2.0.1';
 const date = new Date();
-const month = date.getMonth();
+const month = date.getMonth() + 1;
 const day = date.getDate();
 const hours = date.getHours();
 const APP_VERSION = `${APP_VERSION_BASE}.${month}-${day}:${hours}`;
@@ -130,15 +130,6 @@ const plugins = [
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
   }),
-
-  // new CopyPlugin({
-  //   patterns: [
-  //     'package.json',
-  //     { from: 'src/assets/images', to: 'images' },
-  //     { from: 'src/assets/branding', to: 'branding' },
-  //     { from: 'src/assets/stylesheets', to: 'stylesheets' },
-  //   ],
-  // }),
 
   new HtmlWebpackPlugin({
     title: 'Superset dashboard plugin',

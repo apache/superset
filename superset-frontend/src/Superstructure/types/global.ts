@@ -21,7 +21,6 @@ export interface FullConfiguration {
 export interface MicrofrontendParams {
   originUrl?: string;
   frontendLogger?: boolean;
-  nativeFilters?: string;
   token?: string;
   basename?: string;
 }

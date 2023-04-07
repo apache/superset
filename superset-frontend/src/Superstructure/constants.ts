@@ -35,7 +35,10 @@ const MESSAGES = {
       stackTrace: 'GET_MENU',
       title: 'Getting dashboards from Superset',
     },
-    NO_DASHBOARDS: 'No dashboards were returned from Superset',
+    NO_DASHBOARDS:
+      'No dashboards were returned from Superset. In standalone Superset (https://analytics.dodois.io/) please add CERTIFIED BY (DODOPIZZA) and CERTIFICATION DETAILS (OfficeManager/Analytics) to all the needed dashboards',
+    NOT_VALID_CERTIFICATION:
+      'No dashboards can be displayed from Superset. Check CERTIFIED BY parameter i.e. "DODOPIZZA" and|or CERTIFICATION DETAILS "OfficeManager/Analytics" on all the needed dashboards',
     OTHER: 'While getting dashboards unexected error happened',
   },
   LOGIN: {
@@ -55,6 +58,9 @@ const MESSAGES = {
     OTHER: 'While getting CSRF unexected error happened',
   },
 };
+
+const KNOWN_CERTIFIED_BY = ['DODOPIZZA'];
+const KNOWN_CERTIFICATAION_DETAILS = ['OfficeManager/Analytics'];
 
 const DODOPIZZA_KNOWLEDGEBASE_URL =
   'https://dodopizza.info/support/categories/7647d4b4-5108-4b5e-9054-43f40a2ab287/ru';
@@ -305,4 +311,6 @@ export {
   SUPERSET_WEBSERVER_TIMEOUT,
   DODOPIZZA_KNOWLEDGEBASE_URL,
   DODOPIZZA_ANALYTICS_URL,
+  KNOWN_CERTIFIED_BY,
+  KNOWN_CERTIFICATAION_DETAILS,
 };

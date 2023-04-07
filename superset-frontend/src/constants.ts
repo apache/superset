@@ -11,7 +11,7 @@ export const BOOL_FALSE_DISPLAY = 'False';
  */
 const APP_VERSION_BASE = '2.0.1';
 const date = new Date();
-const month = date.getMonth();
+const month = date.getMonth() + 1;
 const day = date.getDate();
 const hours = date.getHours();
 export const APP_VERSION = `${APP_VERSION_BASE}.${month}-${day}:${hours}`;

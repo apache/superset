@@ -3,7 +3,6 @@ import { MESSAGES } from '../constants';
 import {
   InitializedResponse,
   DashboardFiltered,
-  Dashboard,
   RouteFromDashboard,
 } from '../types/global';
 import {
@@ -84,17 +83,10 @@ const getDashboardsData = async (): Promise<
   }
 
   if ('result' in dashboardsResponse) {
-    const filteredDashboards = dashboardsResponse?.result.filter(
-      (dashboard: Dashboard) =>
-        dashboard.certification_details && dashboard.certified_by,
-    );
-
-    if (filteredDashboards && filteredDashboards.length) {
-      return handleCorrectCaseReturn<DashboardFiltered[]>({
-        response: filteredDashboards,
-        errorObject: MESSAGES.GET_MENU,
-      });
-    }
+    return handleCorrectCaseReturn<DashboardFiltered[]>({
+      response: dashboardsResponse.result,
+      errorObject: MESSAGES.GET_MENU,
+    });
   }
 
   return handleDefaultCaseReturn({

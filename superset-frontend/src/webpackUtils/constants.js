@@ -165,7 +165,14 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
                   )[0],
               )}),
               () => true,
-              ${JSON.stringify({ token: '' })}
+              ${JSON.stringify({
+                token: '',
+                originUrl: '/superset',
+                navigation: {
+                  showNavigationMenu: true,
+                  base: '/OfficeManager/Analytics/',
+                },
+              })}
             )
             singleSpa.start()
             </script>
