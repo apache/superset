@@ -149,9 +149,7 @@ export default function transformProps(
       const name = groupbyLabels
         .map(
           column =>
-            `${verboseMap ? verboseMap[column] : column}: ${
-              data_point[column]
-            }`,
+            `${verboseMap[column] || column}: ${data_point[column]}`,
         )
         .join(', ');
       columnsLabelMap.set(
