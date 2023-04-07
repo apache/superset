@@ -185,7 +185,7 @@ export function setFilter(filter: string, option: string) {
 /** ************************************************************************
  * Expand Native filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for expand native filter
+ * @summary helper to expand native filter
  ************************************************************************* */
 export function expandFilterOnLeftPanel() {
   return cy
@@ -197,7 +197,7 @@ export function expandFilterOnLeftPanel() {
 /** ************************************************************************
  * Collapse Native filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for collapse native filter
+ * @summary helper to collapse native filter
  ************************************************************************* */
 export function collapseFilterOnLeftPanel() {
   cy.get(nativeFilters.filterFromDashboardView.collapse)
@@ -211,7 +211,7 @@ export function collapseFilterOnLeftPanel() {
 /** ************************************************************************
  * Enter Native filter edit modal from the left panel on dashboard
  * @returns {None}
- * @summary helper for enter native filter edit modal
+ * @summary helper to enter native filter edit modal
  ************************************************************************* */
 export function enterNativeFilterEditModal(waitForDataset = true) {
   interceptDataset();
@@ -340,7 +340,7 @@ export function addParentFilterWithValue(index: number, value: string) {
 /** ************************************************************************
  * Save Native Filter Settings
  * @returns {None}
- * @summary helper for save native filters settings
+ * @summary helper to save native filters settings
  ************************************************************************* */
 export function saveNativeFilterSettings(charts: ChartSpec[]) {
   cy.get(nativeFilters.modal.footer)
@@ -354,7 +354,7 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
 /** ************************************************************************
  * Cancel Native filter settings
  * @returns {None}
- * @summary helper for cancel native filters settings
+ * @summary helper to cancel native filters settings
  ************************************************************************* */
 export function cancelNativeFilterSettings() {
   cy.get(nativeFilters.modal.footer)
@@ -375,7 +375,7 @@ export function cancelNativeFilterSettings() {
  * Validate filter name on dashboard
  * @param name: filter name to validate
  * @return {null}
- * @summary helper for validate filter name on dashboard
+ * @summary helper to validate filter name on dashboard
  ************************************************************************* */
 export function validateFilterNameOnDashboard(name: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterName)
@@ -387,7 +387,7 @@ export function validateFilterNameOnDashboard(name: string) {
  * Validate filter content on dashboard
  * @param filterContent: filter content to validate
  * @return {null}
- * @summary helper for validate filter content on dashboard
+ * @summary helper to validate filter content on dashboard
  ************************************************************************* */
 export function validateFilterContentOnDashboard(filterContent: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterContent)
@@ -398,7 +398,7 @@ export function validateFilterContentOnDashboard(filterContent: string) {
 /** ************************************************************************
  * Delete Native filter
  * @return {null}
- * @summary helper for delete native filter
+ * @summary helper to delete native filter
  ************************************************************************* */
 export function deleteNativeFilter() {
   cy.get(nativeFilters.filtersList.removeIcon).first().click();
@@ -407,7 +407,7 @@ export function deleteNativeFilter() {
 /** ************************************************************************
  * Undo delete Native filter
  * @return {null}
- * @summary helper for undo delete native filter
+ * @summary helper to undo delete native filter
  ************************************************************************ */
 export function undoDeleteNativeFilter() {
   deleteNativeFilter();
@@ -465,7 +465,7 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
  * Input default valule in Native filter in filter settings
  * @param defaultValue: default value for native filter
  * @return {null}
- * @summary helper for input default valule in Native filter in filter settings
+ * @summary helper to input default valule in Native filter in filter settings
  ************************************************************************* */
 export function inputNativeFilterDefaultValue(
   defaultValue: string,
@@ -500,7 +500,7 @@ export function inputNativeFilterDefaultValue(
 /** ************************************************************************
  * add filter for test column 'Country name'
  * @return {null}
- * @summary helper for add filter for test column 'Country name'
+ * @summary helper to add filter for test column 'Country name'
  ************************************************************************* */
 export function addCountryNameFilter() {
   fillNativeFilterForm(
