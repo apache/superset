@@ -100,10 +100,11 @@ export default function transformProps(
     filterState,
     theme,
     emitCrossFilters,
+    datasource,
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-
+  const { verboseMap = {} } = datasource;
   const {
     groupby,
     metric,
@@ -146,7 +147,7 @@ export default function transformProps(
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(column => `${column}: ${data_point[column]}`)
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
       columnsLabelMap.set(
         name,
