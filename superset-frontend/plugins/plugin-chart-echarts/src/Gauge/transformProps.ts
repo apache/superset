@@ -147,10 +147,7 @@ export default function transformProps(
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(
-          column =>
-            `${verboseMap[column] || column}: ${data_point[column]}`,
-        )
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
       columnsLabelMap.set(
         name,
