@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { cloneDeep } from 'lodash';
 import {
   Behavior,
   FeatureFlag,
@@ -60,7 +60,8 @@ export const getCrossFiltersConfiguration = (
 
     if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
       if (initialConfig[chartId]) {
-        chartConfiguration[chartId] = initialConfig[chartId];
+        // We need to clone to avoid mutating Redux state
+        chartConfiguration[chartId] = cloneDeep(initialConfig[chartId]);
       }
       if (!chartConfiguration[chartId]) {
         chartConfiguration[chartId] = {

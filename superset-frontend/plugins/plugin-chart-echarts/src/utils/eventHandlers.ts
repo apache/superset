@@ -111,11 +111,11 @@ export const contextMenuEventHandler =
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+      const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
-          drillToDetailFilters.push({
+          drillFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
@@ -124,8 +124,9 @@ export const contextMenuEventHandler =
         );
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-        drillToDetail: drillToDetailFilters,
+        drillToDetail: drillFilters,
         crossFilter: getCrossFilterDataMask(e.name),
+        drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }
   };

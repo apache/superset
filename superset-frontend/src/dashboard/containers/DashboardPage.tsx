@@ -59,7 +59,11 @@ import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore
 import shortid from 'shortid';
 import { RootState } from '../types';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import { filterCardPopoverStyle, headerStyles } from '../styles';
+import {
+  chartContextMenuStyles,
+  filterCardPopoverStyle,
+  headerStyles,
+} from '../styles';
 
 export const DashboardPageIdContext = React.createContext('');
 
@@ -275,11 +279,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
-  if (!readyToRender) return <Loading />;
+  if (!readyToRender || !isDashboardHydrated.current) return <Loading />;
 
   return (
     <>
-      <Global styles={[filterCardPopoverStyle(theme), headerStyles(theme)]} />
+      <Global
+        styles={[
+          filterCardPopoverStyle(theme),
+          headerStyles(theme),
+          chartContextMenuStyles(theme),
+        ]}
+      />
       <DashboardPageIdContext.Provider value={dashboardPageId}>
         <DashboardContainer />
       </DashboardPageIdContext.Provider>

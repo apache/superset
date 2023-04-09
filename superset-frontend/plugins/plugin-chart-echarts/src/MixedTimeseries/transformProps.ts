@@ -458,7 +458,13 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
+      ...getLegendProps(
+        legendType,
+        legendOrientation,
+        showLegend,
+        theme,
+        zoomable,
+      ),
       // @ts-ignore
       data: rawSeriesA
         .concat(rawSeriesB)

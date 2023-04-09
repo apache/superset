@@ -56,7 +56,6 @@ from superset import (
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
@@ -67,6 +66,7 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -167,6 +167,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     loads_request_json,
+    redirect_with_flash,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -192,6 +193,7 @@ DATABASE_KEYS = [
     "disable_data_preview",
 ]
 
+DASHBOARD_LIST_URL = "/dashboard/list/"
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 PARAMETER_MISSING_ERR = __(
@@ -1244,6 +1246,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def copy_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1260,6 +1263,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
+        dash.css = data.get("css")
 
         old_to_new_slice_ids: Dict[int, int] = {}
         if data["duplicate_slices"]:
@@ -1294,6 +1298,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def save_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1320,6 +1325,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # remove to avoid confusion.
         data.pop("last_modified_time", None)
 
+        if data.get("css") is not None:
+            dash.css = data["css"]
+        if data.get("dashboard_title") is not None:
+            dash.dashboard_title = data["dashboard_title"]
         DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
@@ -1559,6 +1568,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
@@ -1644,6 +1654,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
@@ -1743,35 +1754,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         for slc in slices:
             try:
-                query_context = slc.get_query_context()
-                if query_context:
-                    query_context.force = True
-                    command = ChartDataCommand(query_context)
-                    command.validate()
-                    payload = command.run()
-                else:
-                    form_data = get_form_data(slc.id, use_slice_data=True)[0]
-                    if dashboard_id:
-                        form_data["extra_filters"] = (
-                            json.loads(extra_filters)
-                            if extra_filters
-                            else get_dashboard_extra_filters(slc.id, dashboard_id)
-                        )
-
-                    if not slc.datasource:
-                        raise Exception("Slice's datasource does not exist")
-
-                    obj = get_viz(
-                        datasource_type=slc.datasource.type,
-                        datasource_id=slc.datasource.id,
-                        form_data=form_data,
-                        force=True,
+                form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                if dashboard_id:
+                    form_data["extra_filters"] = (
+                        json.loads(extra_filters)
+                        if extra_filters
+                        else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
-                    # pylint: disable=assigning-non-slot
-                    g.form_data = form_data
-                    payload = obj.get_payload()
-                    delattr(g, "form_data")
 
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
+
+                obj = get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
+
+                # pylint: disable=assigning-non-slot
+                g.form_data = form_data
+                payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:  # pylint: disable=broad-except
@@ -1787,6 +1791,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
+    @deprecated()
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
@@ -1823,9 +1828,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
     @check_dashboard_access(
-        on_error=lambda self, ex: Response(
-            utils.error_msg_from_exception(ex), status=403
-        )
+        on_error=lambda msg: redirect_with_flash(DASHBOARD_LIST_URL, msg, "danger")
     )
     def dashboard(
         self,
@@ -1843,25 +1846,33 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
-        if config["ENABLE_ACCESS_REQUEST"]:
-            for datasource in dashboard.datasources:
-                datasource = DatasourceDAO.get_datasource(
-                    datasource_type=DatasourceType(datasource.type),
-                    datasource_id=datasource.id,
-                    session=db.session(),
+        has_access_ = False
+        for datasource in dashboard.datasources:
+            datasource = DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType(datasource.type),
+                datasource_id=datasource.id,
+                session=db.session(),
+            )
+            if datasource and security_manager.can_access_datasource(
+                datasource=datasource,
+            ):
+                has_access_ = True
+
+            if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
+                flash(
+                    __(security_manager.get_datasource_access_error_msg(datasource)),
+                    "danger",
                 )
-                if datasource and not security_manager.can_access_datasource(
-                    datasource=datasource
-                ):
-                    flash(
-                        __(
-                            security_manager.get_datasource_access_error_msg(datasource)
-                        ),
-                        "danger",
-                    )
-                    return redirect(
-                        f"/superset/request_access/?dashboard_id={dashboard.id}"
-                    )
+                return redirect(
+                    f"/superset/request_access/?dashboard_id={dashboard.id}"
+                )
+
+            if has_access_:
+                break
+
+        if dashboard.datasources and not has_access_:
+            flash(DashboardAccessDeniedError.message, "danger")
+            return redirect(DASHBOARD_LIST_URL)
 
         dash_edit_perm = security_manager.is_owner(
             dashboard

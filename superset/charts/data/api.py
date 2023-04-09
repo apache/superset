@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 import simplejson
 from flask import current_app, make_response, request, Response
@@ -44,6 +44,7 @@ from superset.connectors.base.models import BaseDatasource
 from superset.dao.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
+from superset.models.sql_lab import Query
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -342,7 +343,7 @@ class ChartDataRestApi(ChartRestApi):
         self,
         result: Dict[Any, Any],
         form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        datasource: Optional[Union[BaseDatasource, Query]] = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -405,7 +406,7 @@ class ChartDataRestApi(ChartRestApi):
         command: ChartDataCommand,
         force_cached: bool = False,
         form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        datasource: Optional[Union[BaseDatasource, Query]] = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)

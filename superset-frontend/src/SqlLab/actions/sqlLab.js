@@ -18,10 +18,10 @@
  */
 import shortid from 'shortid';
 import rison from 'rison';
-import { SupersetClient, t } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/utils/dates';
 import {
@@ -275,7 +275,7 @@ export function queryFailed(query, msg, link, errors) {
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, extra }) => {
-      const messages = extra?.issue_codes.map(({ message }) => message) || [
+      const messages = extra?.issue_codes?.map(({ message }) => message) || [
         errorType,
       ];
       messages.forEach(message => {

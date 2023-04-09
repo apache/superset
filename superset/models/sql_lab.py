@@ -42,7 +42,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -246,6 +246,7 @@ class Query(
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "schema": self.schema,
+            "verbose_map": {},
         }
 
     def raise_for_access(self) -> None:
@@ -366,14 +367,13 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        tags = relationship(
-            "Tag",
-            secondary="tagged_object",
-            primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
-            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
-            "TaggedObject.object_type == 'saved_query')",
-        )
+    tags = relationship(
+        "Tag",
+        secondary="tagged_object",
+        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        "TaggedObject.object_type == 'saved_query')",
+    )
 
     export_parent = "database"
     export_fields = [

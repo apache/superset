@@ -116,17 +116,25 @@ export default function EchartsTreemap({
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-          treePath.forEach((path, i) =>
+          const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+          treePath.forEach((path, i) => {
+            const val = path === 'null' ? NULL_STRING : path;
             drillToDetailFilters.push({
               col: groupby[i],
               op: '==',
-              val: path === 'null' ? NULL_STRING : path,
+              val,
               formattedVal: path,
-            }),
-          );
+            });
+            drillByFilters.push({
+              col: groupby[i],
+              op: '==',
+              val,
+            });
+          });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
             crossFilter: getCrossFilterDataMask(data, treePathInfo),
+            drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }
       }

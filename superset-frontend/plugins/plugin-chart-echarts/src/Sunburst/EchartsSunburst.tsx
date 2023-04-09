@@ -40,7 +40,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     refs,
     emitCrossFilters,
   } = props;
-
   const { columns } = formData;
 
   const getCrossFilterDataMask = useCallback(
@@ -62,7 +61,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             filters:
               values.length === 0 || !columns
                 ? []
-                : columns.map((col, idx) => {
+                : columns.slice(0, treePath.length).map((col, idx) => {
                     const val = labels.map(v => v[idx]);
                     if (val === null || val === undefined)
                       return {
@@ -111,6 +110,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const treePath = extractTreePathInfo(eventParams.treePathInfo);
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
@@ -120,10 +120,16 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
               formattedVal: path,
             }),
           );
+          drillByFilters.push({
+            col: columns[treePath.length - 1],
+            op: '==',
+            val: treePath[treePath.length - 1],
+          });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(treePathInfo),
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'columns' },
         });
       }
     },

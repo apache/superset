@@ -105,8 +105,12 @@ def import_dataset(
     config: Dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
+    ignore_permissions: bool = False,
 ) -> SqlaTable:
-    can_write = security_manager.can_access("can_write", "Dataset")
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write",
+        "Dataset",
+    )
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:

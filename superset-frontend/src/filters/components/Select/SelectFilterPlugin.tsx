@@ -121,7 +121,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }),
     [],
   );
-  const [initialData, setInitialData] = useState<typeof data>([]);
 
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -129,7 +128,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         enableEmptyFilter && !inverseSelection && !values?.length;
 
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
-
       dispatchDataMask({
         type: 'filterState',
         __cache: filterState,
@@ -239,7 +237,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const options = useMemo(() => {
-    const allOptions = [...data, ...initialData];
+    const allOptions = [...data];
     const uniqueOptions = uniqWith(allOptions, isEqual);
     const selectOptions: { label: string; value: DataRecordValue }[] = [];
     uniqueOptions.forEach(row => {
@@ -250,7 +248,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
     });
     return selectOptions;
-  }, [data, initialData, datatype, groupby, labelFormatter]);
+  }, [data, datatype, groupby, labelFormatter]);
 
   const sortComparator = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) => {
@@ -290,22 +288,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMask,
     data,
     groupby,
-    JSON.stringify(filterState),
+    JSON.stringify(filterState.value),
   ]);
-
-  useEffect(() => {
-    updateDataMask(filterState.value);
-  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
-
-  useEffect(() => {
-    if (data.length && !initialData.length) {
-      setInitialData(data);
-    }
-  }, [data, initialData.length]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -316,6 +304,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         <Select
           allowClear
           allowNewOptions
+          allowSelectAll={!searchAllOptions}
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}

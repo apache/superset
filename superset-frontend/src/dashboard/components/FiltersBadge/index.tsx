@@ -23,6 +23,7 @@ import cx from 'classnames';
 import {
   DataMaskStateWithId,
   Filters,
+  JsonObject,
   styled,
   usePrevious,
 } from '@superset-ui/core';
@@ -36,12 +37,7 @@ import {
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
-import {
-  ChartsState,
-  DashboardInfo,
-  DashboardLayout,
-  RootState,
-} from '../../types';
+import { Chart, DashboardLayout, RootState } from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -113,10 +109,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
   );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const present = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -138,7 +134,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const chart = charts[chartId];
   const prevChart = usePrevious(chart);
   const prevChartStatus = prevChart?.chartStatus;
   const prevDashboardFilters = usePrevious(dashboardFilters);
@@ -184,9 +179,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevNativeFilters = usePrevious(nativeFilters);
   const prevDashboardLayout = usePrevious(present);
   const prevDataMask = usePrevious(dataMask);
-  const prevChartConfig = usePrevious(
-    dashboardInfo.metadata?.chart_configuration,
-  );
+  const prevChartConfig = usePrevious(chartConfiguration);
   useEffect(() => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
@@ -199,7 +192,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         nativeFilters !== prevNativeFilters ||
         present !== prevDashboardLayout ||
         dataMask !== prevDataMask ||
-        prevChartConfig !== dashboardInfo.metadata?.chart_configuration
+        prevChartConfig !== chartConfiguration
       ) {
         setNativeIndicators(
           selectNativeIndicatorsForChart(
@@ -208,7 +201,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             chartId,
             chart,
             present,
-            dashboardInfo.metadata?.chart_configuration,
+            chartConfiguration,
           ),
         );
       }
@@ -216,7 +209,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [
     chart,
     chartId,
-    dashboardInfo.metadata?.chart_configuration,
+    chartConfiguration,
     dataMask,
     nativeFilters,
     nativeIndicators.length,

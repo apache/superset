@@ -128,6 +128,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "test_connection": "read",
     "validate_parameters": "read",
     "favorite_status": "read",
+    "add_favorite": "read",
+    "remove_favorite": "read",
     "thumbnail": "read",
     "import_": "write",
     "refresh": "write",
@@ -145,11 +147,13 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_ssh_tunnel": "write",
     "get_updated_since": "read",
     "stop_query": "read",
+    "get_user_slices": "read",
     "schemas_access_for_file_upload": "read",
     "get_objects": "read",
     "get_all_objects": "read",
     "add_objects": "write",
     "delete_object": "write",
+    "copy_dash": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
