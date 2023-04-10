@@ -2032,7 +2032,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         db.session.add(table)
         cols = []
         for config_ in data.get("columns"):
-            column_name = config_.get("name")
+            column_name = config_.get("column_name") or config_.get("name")
             col = TableColumn(
                 column_name=column_name,
                 filterable=True,

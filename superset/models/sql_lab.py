@@ -19,7 +19,7 @@ import inspect
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Dict, Hashable, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -52,9 +52,10 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import GenericDataType, QueryStatus, user_label
+from superset.utils.core import QueryStatus, user_label
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
 
 
@@ -183,47 +184,33 @@ class Query(
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
-        bool_types = ("BOOL",)
-        num_types = (
-            "DOUBLE",
-            "FLOAT",
-            "INT",
-            "BIGINT",
-            "NUMBER",
-            "LONG",
-            "REAL",
-            "NUMERIC",
-            "DECIMAL",
-            "MONEY",
+    def columns(self) -> List["TableColumn"]:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            TableColumn,
         )
-        date_types = ("DATE", "TIME")
-        str_types = ("VARCHAR", "STRING", "CHAR")
+
         columns = []
-        col_type = ""
         for col in self.extra.get("columns", []):
-            computed_column = {**col}
-            col_type = col.get("type")
-
-            if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
-                computed_column["type_generic"] = GenericDataType.STRING
-            if col_type and any(map(lambda t: t in col_type.upper(), bool_types)):
-                computed_column["type_generic"] = GenericDataType.BOOLEAN
-            if col_type and any(map(lambda t: t in col_type.upper(), num_types)):
-                computed_column["type_generic"] = GenericDataType.NUMERIC
-            if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
-                computed_column["type_generic"] = GenericDataType.TEMPORAL
-
-            computed_column["column_name"] = col.get("name")
-            computed_column["groupby"] = True
-            columns.append(computed_column)
+            columns.append(
+                TableColumn(
+                    column_name=col["name"],
+                    type=col["type"],
+                    is_dttm=col["is_dttm"],
+                    groupby=True,
+                    filterable=True,
+                )
+            )
         return columns
+
+    @property
+    def db_extra(self) -> Optional[Dict[str, Any]]:
+        return None
 
     @property
     def data(self) -> Dict[str, Any]:
         order_by_choices = []
         for col in self.columns:
-            column_name = str(col.get("column_name") or "")
+            column_name = str(col.column_name or "")
             order_by_choices.append(
                 (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
@@ -237,7 +224,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": self.columns,
+            "columns": [o.data for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
@@ -280,7 +267,7 @@ class Query(
 
     @property
     def column_names(self) -> List[Any]:
-        return [col.get("column_name") for col in self.columns]
+        return [col.column_name for col in self.columns]
 
     @property
     def offset(self) -> int:
@@ -295,7 +282,7 @@ class Query(
 
     @property
     def dttm_cols(self) -> List[Any]:
-        return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
+        return [col.column_name for col in self.columns if col.is_dttm]
 
     @property
     def schema_perm(self) -> str:
@@ -310,7 +297,7 @@ class Query(
         return ""
 
     @staticmethod
-    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[Hashable]:
         return []
 
     @property
@@ -338,7 +325,7 @@ class Query(
         if not column_name:
             return None
         for col in self.columns:
-            if col.get("column_name") == column_name:
+            if col.column_name == column_name:
                 return col
         return None
 
