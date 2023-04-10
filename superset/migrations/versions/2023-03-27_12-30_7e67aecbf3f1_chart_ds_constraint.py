@@ -49,7 +49,7 @@ def upgrade():
     session = db.Session(bind=bind)
 
     with op.batch_alter_table("slices") as batch_op:
-        for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
+        for slc in session.query(Slice).filter(Slice.datasource_type == "query").all():
             # clean up all charts with datasource_type not != table
             slc.datasource_type = "table"
             session.add(slc)
