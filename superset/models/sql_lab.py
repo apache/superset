@@ -359,7 +359,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         secondary="tagged_object",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
-        "TaggedObject.object_type == 'saved_query')",
+        "TaggedObject.object_type == 'query')",
     )
 
     export_parent = "database"
