@@ -117,6 +117,11 @@ class ChartRenderer extends React.Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
     };
+
+    // TODO: queriesResponse comes from Redux store but it's being edited by
+    // the plugins, hence we need to clone it to avoid state mutation
+    // until we change the reducers to use Redux Toolkit with Immer
+    this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -131,6 +136,11 @@ class ChartRenderer extends React.Component {
       }
       this.hasQueryResponseChange =
         nextProps.queriesResponse !== this.props.queriesResponse;
+
+      if (this.hasQueryResponseChange) {
+        this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
+      }
+
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
@@ -246,14 +256,8 @@ class ChartRenderer extends React.Component {
       chartIsStale,
       formData,
       latestQueryFormData,
-      queriesResponse,
       postTransformProps,
     } = this.props;
-
-    // TODO: queriesResponse comes from Redux store but it's being edited by
-    // the plugins, hence we need to clone it to avoid state mutation
-    // until we change the reducers to use Redux Toolkit with Immer
-    const mutableQueriesResponse = cloneDeep(queriesResponse);
 
     const currentFormData =
       chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
@@ -344,7 +348,7 @@ class ChartRenderer extends React.Component {
             filterState={filterState}
             hooks={this.hooks}
             behaviors={behaviors}
-            queriesData={mutableQueriesResponse}
+            queriesData={this.mutableQueriesResponse}
             onRenderSuccess={this.handleRenderSuccess}
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
