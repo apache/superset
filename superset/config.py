@@ -456,9 +456,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERTS_ATTACH_REPORTS": True,
     # FORCE_DATABASE_CONNECTIONS_SSL is depreciated.
     "FORCE_DATABASE_CONNECTIONS_SSL": False,
-    # Enabling ENFORCE_DB_ENCRYPTION_UI forces all database connections to be
-    # encrypted before being saved into superset metastore.
-    "ENFORCE_DB_ENCRYPTION_UI": False,
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
