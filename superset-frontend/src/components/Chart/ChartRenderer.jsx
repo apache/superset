@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual } from 'lodash';
+import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {
@@ -250,6 +250,11 @@ class ChartRenderer extends React.Component {
       postTransformProps,
     } = this.props;
 
+    // TODO: queriesResponse comes from Redux store but it's being edited by
+    // the plugins, hence we need to clone it to avoid state mutation
+    // until we change the reducers to use Redux Toolkit with Immer
+    const mutableQueriesResponse = cloneDeep(queriesResponse);
+
     const currentFormData =
       chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     const vizType = currentFormData.viz_type || this.props.vizType;
@@ -339,7 +344,7 @@ class ChartRenderer extends React.Component {
             filterState={filterState}
             hooks={this.hooks}
             behaviors={behaviors}
-            queriesData={queriesResponse}
+            queriesData={mutableQueriesResponse}
             onRenderSuccess={this.handleRenderSuccess}
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
