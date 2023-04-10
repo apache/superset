@@ -28,14 +28,14 @@ Docker is an easy way to get started with Superset.
 
 ## Configuration
 
-The `/app/pythonpath` folder is mounted from [`./docker/pythonpath_dev`](./pythonpath_dev)
-which contains a base configuration [`./docker/pythonpath_dev/superset_config.py`](./pythonpath_dev/superset_config.py)
+The `/app/pythonpath` folder is mounted from [`./docker/pythonpath`](./pythonpath)
+which contains a base configuration [`./docker/pythonpath/superset_config.py`](./pythonpath/superset_config.py)
 intended for use with local development.
 
 ### Local overrides
 
-In order to override configuration settings locally, simply make a copy of [`./docker/pythonpath_dev/superset_config_local.example`](./pythonpath_dev/superset_config_local.example)
-into `./docker/pythonpath_dev/superset_config_docker.py` (git ignored) and fill in your overrides.
+In order to override configuration settings locally, simply make a copy of [`./docker/pythonpath/superset_config_local.example`](./pythonpath/superset_config_local.example)
+into `./docker/pythonpath/superset_config_docker.py` (git ignored) and fill in your overrides.
 
 ### Local packages
 
