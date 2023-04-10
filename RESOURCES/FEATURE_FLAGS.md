@@ -82,7 +82,6 @@ These features flags are **safe for production** and have been tested.
 - ENABLE_DND_WITH_CLICK_UX
 - ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_TEMPLATE_PROCESSING
-- ENFORCE_DB_ENCRYPTION_UI
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
