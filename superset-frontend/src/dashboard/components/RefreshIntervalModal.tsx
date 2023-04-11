@@ -122,6 +122,23 @@ class RefreshIntervalModal extends React.PureComponent<
               onChange={this.handleFrequencyChange}
               sortComparator={propertyComparator('value')}
             />
+            <br></br>
+            <FormLabel>{t('OR ENTER YOUR CUSTOM FREQUENCY (in seconds)')}</FormLabel>
+            <input style={{width: "100%", border: "1px solid #ccc", borderRadius: "3px", paddingLeft: "10px"}} type="number" id="custom_refresh_frequency"></input>
+            <Button
+              buttonStyle="primary"
+              buttonSize="small"
+              style={{marginTop: "4px"}}
+              onClick={
+                ()=>{
+                  const input = document.getElementById('custom_refresh_frequency')
+                  const value = Number((input as HTMLInputElement).value)
+                  this.handleFrequencyChange(value)
+                }
+              }
+              >
+              USE CUSTOM REFRESH FREQUENCY
+            </Button>
             {showRefreshWarning && (
               <RefreshWarningContainer>
                 <Alert
