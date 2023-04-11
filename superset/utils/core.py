@@ -2022,7 +2022,7 @@ def gen_query_hash(sql: str):
 
 def get_alert_link(conf, report_schedule) -> str:
     baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-    return f"{baseurl}{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
+    return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
 def get_vo_payload(conf, report_schedule,message_type,exception = ""):
     ex = (" Error occured for" + str(exception)) if str(exception) else ""
