@@ -49,7 +49,6 @@ import {
   persistEditorHeight,
   postStopQuery,
   queryEditorSetAutorun,
-  queryEditorSetSql,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
