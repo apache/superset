@@ -414,7 +414,7 @@ export default function LiqThematicMaps(props) {
         'source': 'boundary_tileset',
         'source-layer': boundary,
         'layout': {},
-        'paint': layerStyles.boundaryStyle
+        'paint': {...layerStyles.boundaryStyle, 'fill-opacity': opacity}
       });        
 
       if (mapType.includes('trade_area')) {
