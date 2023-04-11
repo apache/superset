@@ -42,7 +42,7 @@ import Radius from './components/Radius.js';
 import DataDisplay from './components/DataDisplay.js';
 import Drivetime from './components/Drivetime.js';
 
-const { Content, Sider } = Layout;
+const { Content } = Layout;
 const { SubMenu } = Menu;
 
 const defaults = require('./defaultLayerStyles.js');
@@ -52,7 +52,6 @@ const iconsSVG = require('./iconSVG.js');
 const liqSecrets = require('../../liq_secrets.js').liqSecrets;
 const layerStyles = defaults.defaultLayerStyles;
 const iconExprs = defaults.iconExprs;
-const intranetImgs = defaults.intranetImgs;
 
 mapboxgl.accessToken = liqSecrets.mapbox.accessToken;
 
