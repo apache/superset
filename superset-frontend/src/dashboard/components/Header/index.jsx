@@ -672,6 +672,7 @@ class Header extends React.PureComponent {
               filterboxMigrationState={filterboxMigrationState}
               isDropdownVisible={this.state.isDropdownVisible}
               setIsDropdownVisible={this.setIsDropdownVisible}
+              user={user}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
