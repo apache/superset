@@ -49,7 +49,6 @@ import {
   persistEditorHeight,
   postStopQuery,
   queryEditorSetAutorun,
-  queryEditorSetSql,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
@@ -456,7 +455,6 @@ const SqlEditor = ({
   );
 
   const onSqlChanged = sql => {
-    dispatch(queryEditorSetSql(queryEditor, sql));
     setQueryEditorAndSaveSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (canValidateQuery()) {
