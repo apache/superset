@@ -383,21 +383,14 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     }
 
     frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [ ReportRecipientType.EMAIL]
-    logger.info("before VO_URL received check", conf.get("VO_URL"))
-
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
                 ReportRecipientType.SLACK
         )
     if conf.get("VO_URL"):
-        logger.info("VO_URL received", conf.get("VO_URL"))
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
                 ReportRecipientType.VO
         )
-
-    logger.info("DROPDOWN", str(frontend_config("ALERT_REPORTS_NOTIFICATION_METHODS")))
-
-
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
