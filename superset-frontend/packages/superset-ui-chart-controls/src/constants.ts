@@ -59,7 +59,7 @@ export const QueryModeLabel = {
 };
 
 export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
-  sort_series_type: SortSeriesType.Sum,
+  sort_series_type: SortSeriesType.Name,
   sort_series_ascending: false,
 };
 

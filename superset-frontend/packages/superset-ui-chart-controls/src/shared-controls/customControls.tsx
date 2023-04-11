@@ -152,7 +152,7 @@ export const xAxisSortSeriesControl = {
     choices: SORT_SERIES_CHOICES,
     default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
     renderTrigger: true,
-    description: t('Decides which value to sort the base axis by.'),
+    description: t('Decides which measure to sort the base axis by.'),
     visibility: xAxisMultiSortVisibility,
   },
 };
