@@ -124,7 +124,7 @@ export const PageHeaderWithActions = ({
         )}
       </div>
       {/* DODO-changed */}
-      {process.env.business === undefined && (
+      {process.env.type === undefined && (
         <div className="right-button-panel">
           {rightPanelAdditionalItems}
           <div css={additionalActionsContainerStyles}>

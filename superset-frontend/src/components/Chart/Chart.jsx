@@ -212,7 +212,7 @@ class Chart extends React.PureComponent {
     }
 
     // DODO-changed
-    if (process.env.business === undefined) {
+    if (process.env.type === undefined) {
       return (
         <ChartErrorMessage
           key={chartId}

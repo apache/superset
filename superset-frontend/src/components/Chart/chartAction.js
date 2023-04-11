@@ -108,11 +108,11 @@ const legacyChartDataRequest = async (
   requestParams = {},
 ) => {
   console.log(
-    'legacyChartDataRequest [ process.env.business => ',
-    process.env.business,
+    'legacyChartDataRequest [ process.env.type => ',
+    process.env.type,
     ']',
   );
-  if (process.env.business === undefined) {
+  if (process.env.type === undefined) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     const allowDomainSharding =
       // eslint-disable-next-line camelcase
@@ -184,7 +184,7 @@ const legacyChartDataRequest = async (
       body: bodyFormData,
     });
   }
-  if (process.env.business === undefined) {
+  if (process.env.type === undefined) {
     const clientMethod =
       'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
         ? SupersetClient.get
@@ -230,11 +230,11 @@ const v1ChartDataRequest = async (
   ownState,
 ) => {
   console.log(
-    'v1ChartDataRequest [ process.env.business => ',
-    process.env.business,
+    'v1ChartDataRequest [ process.env.type => ',
+    process.env.type,
     ']',
   );
-  if (process.env.business === undefined) {
+  if (process.env.type === undefined) {
     const payload = buildV1ChartDataPayload({
       formData,
       resultType,
@@ -492,11 +492,11 @@ export function exploreJSON(
 
     dispatch(chartUpdateStarted(controller, formData, key));
     console.log(
-      'exploreJSON dispatch [ process.env.business => ',
-      process.env.business,
+      'exploreJSON dispatch [ process.env.type => ',
+      process.env.type,
       ']',
     );
-    if (process.env.business === undefined) {
+    if (process.env.type === undefined) {
       const chartDataRequestCaught = chartDataRequest
         .then(({ response, json }) => {
           console.log('response', response, 'json', json);

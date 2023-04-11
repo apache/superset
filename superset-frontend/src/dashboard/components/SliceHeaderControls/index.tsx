@@ -277,7 +277,7 @@ class SliceHeaderControls extends React.PureComponent<
         <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
 
         {/* DODO-changed */}
-        {process.env.business === undefined && <Menu.Divider />}
+        {process.env.type === undefined && <Menu.Divider />}
 
         {slice.description && (
           <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
@@ -288,7 +288,7 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {/* DODO-changed */}
-        {process.env.business === undefined && this.props.supersetCanExplore && (
+        {process.env.type === undefined && this.props.supersetCanExplore && (
           <Menu.Item
             key={MENU_KEYS.EXPLORE_CHART}
             onClick={this.props.onExploreChart}
@@ -298,7 +298,7 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {/* DODO-changed */}
-        {process.env.business === undefined && this.props.supersetCanExplore && (
+        {process.env.type === undefined && this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
             <ModalTrigger
               triggerNode={
@@ -316,7 +316,7 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {/* DODO-changed */}
-        {process.env.business === undefined && this.props.supersetCanExplore && (
+        {process.env.type === undefined && this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
             <ModalTrigger
               triggerNode={
@@ -365,7 +365,7 @@ class SliceHeaderControls extends React.PureComponent<
             </>
           )}
         {/* DODO-changed */}
-        {process.env.business === undefined && supersetCanShare && (
+        {process.env.type === undefined && supersetCanShare && (
           <Menu.SubMenu title={t('Share')}>
             <ShareMenuItems
               dashboardId={dashboardId}

@@ -59,8 +59,8 @@ const MESSAGES = {
   },
 };
 
-const KNOWN_CERTIFIED_BY = ['DODOPIZZA'];
-const KNOWN_CERTIFICATAION_DETAILS = ['OfficeManager/Analytics'];
+const KNOWN_CERTIFIED_BY = ['dodopizza'];
+const KNOWN_CERTIFICATAION_DETAILS = ['officemanager/analytics'];
 
 const DODOPIZZA_KNOWLEDGEBASE_URL =
   'https://dodopizza.info/support/categories/7647d4b4-5108-4b5e-9054-43f40a2ab287/ru';

@@ -300,7 +300,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   // DODO-changed
   const filterBarHeight =
-    process.env.business === undefined ? `calc(100vh - ${offset}px)` : 'auto';
+    process.env.type === undefined ? `calc(100vh - ${offset}px)` : 'auto';
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
   const draggableStyle = useMemo(

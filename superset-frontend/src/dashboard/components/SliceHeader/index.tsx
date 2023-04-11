@@ -92,7 +92,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 
   // DODO-changed
   useEffect(() => {
-    if (process.env.business === undefined) {
+    if (process.env.type === undefined) {
       const headerElement = headerRef.current;
       if (handleClickTitle) {
         setHeaderTooltip(
@@ -129,7 +129,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             showTooltip={false}
             // DODO-changed
             onClickTitle={
-              process.env.business === undefined ? handleClickTitle : () => {}
+              process.env.type === undefined ? handleClickTitle : () => {}
             }
           />
         </Tooltip>

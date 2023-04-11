@@ -143,10 +143,14 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     }
 
     const validCertifiedBy = (cert_by: string | null) =>
-      cert_by && KNOWN_CERTIFIED_BY.indexOf(cert_by) >= 0;
+      cert_by &&
+      KNOWN_CERTIFIED_BY.indexOf(cert_by.toLocaleLowerCase().trim()) >= 0;
 
     const validCertificationDetails = (cert_details: string | null) =>
-      cert_details && KNOWN_CERTIFICATAION_DETAILS.indexOf(cert_details) >= 0;
+      cert_details &&
+      KNOWN_CERTIFICATAION_DETAILS.indexOf(
+        cert_details.toLocaleLowerCase().trim(),
+      ) >= 0;
 
     const filteredDashboards =
       dashboardsResponse.data &&

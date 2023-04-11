@@ -138,7 +138,7 @@ const FilterValue: React.FC<FilterProps> = ({
       }
       setIsRefreshing(true);
       // DODO-changed
-      if (process.env.business === undefined) {
+      if (process.env.type === undefined) {
         getChartDataRequest({
           formData: newFormData,
           force: false,

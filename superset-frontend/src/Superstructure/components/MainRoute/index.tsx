@@ -1,5 +1,6 @@
 import { hot } from 'react-hot-loader/root';
 import React from 'react';
+import { Collapse } from 'antd';
 import {
   ButtonsBlock,
   RowWrapper,
@@ -10,11 +11,37 @@ import {
   InfoPanelInner,
 } from '../index';
 import { IPanelMsgObj } from '../../types/global';
-import { RULES_RU, UPGRADE_2_0_RU } from '../../messages';
+import {
+  RULES_RU,
+  UPGRADE_2_0_RU,
+  NEW_FEATURES_APRIL_2023_RU,
+} from '../../messages';
 
 const AnalyticsMain = () => {
   const InfoMessageObj: IPanelMsgObj = RULES_RU;
-  const WarningMessageObj: IPanelMsgObj = UPGRADE_2_0_RU;
+  const WarningMessageObj1: IPanelMsgObj = UPGRADE_2_0_RU;
+  const WarningMessageObj2: IPanelMsgObj = NEW_FEATURES_APRIL_2023_RU;
+
+  const renderCollapse = (messagesArray: IPanelMsgObj[]) =>
+    messagesArray.map((msgObj, index) => (
+      <Collapse.Panel
+        header={
+          <div>
+            <h4>{msgObj.title}</h4>
+            <p className="helper">{msgObj.date}</p>
+          </div>
+        }
+        key={index}
+      >
+        <WarningPanel
+          title={msgObj.title}
+          subTitle={msgObj.date}
+          extra={msgObj.extra}
+        >
+          <WarningPanelInner msgObj={msgObj} />
+        </WarningPanel>
+      </Collapse.Panel>
+    ));
 
   return (
     <div style={{ padding: '12px 0 0 15px' }}>
@@ -30,14 +57,10 @@ const AnalyticsMain = () => {
               </RowWrapper>
             </div>
           </InfoPanel>
-          <div style={{ marginTop: '20px' }}>
-            <WarningPanel
-              title={WarningMessageObj.title}
-              subTitle={WarningMessageObj.date}
-              extra={WarningMessageObj.extra}
-            >
-              <WarningPanelInner msgObj={WarningMessageObj} />
-            </WarningPanel>
+          <div style={{ margin: '20px 0' }}>
+            <Collapse expandIconPosition="right" accordion>
+              {renderCollapse([WarningMessageObj2, WarningMessageObj1])}
+            </Collapse>
           </div>
         </ColumnWrapper>
       </RowWrapper>

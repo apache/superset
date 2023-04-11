@@ -234,14 +234,10 @@ class ChartRenderer extends React.Component {
         : undefined;
     const noResultImage = 'chart.svg';
 
-    console.log(
-      'ChartRenderer [ process.env.business => ',
-      process.env.business,
-      ']',
-    );
+    console.log('ChartRenderer [ process.env.type => ', process.env.type, ']');
 
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
-      if (process.env.business === undefined) {
+      if (process.env.type === undefined) {
         noResultsComponent = (
           <EmptyStateBig
             title={noResultTitle}
@@ -259,7 +255,7 @@ class ChartRenderer extends React.Component {
         );
       }
     } else {
-      if (process.env.business === undefined) {
+      if (process.env.type === undefined) {
         noResultsComponent = (
           <EmptyStateSmall title={noResultTitle} image={noResultImage} />
         );

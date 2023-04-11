@@ -54,6 +54,23 @@ const CSV_TEMP_PROBLEM_RU = {
   ],
 };
 
+const NEW_FEATURES_APRIL_2023_RU = {
+  title: 'Обновления [Апрель 2023]',
+  date: '11.04.2023',
+  subTitle: 'Релиз тестируется',
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  messages: [
+    'Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)) необходимо указать CERTIFIED BY и CERTIFICATION DETAILS в Superset Standalone',
+    'Добавлен Change Log фич и фиксов',
+  ],
+  listTitleExtra: 'Возможные проблемы',
+  messagesExtra: [
+    'Если вашего дашборда нет в списке дашбордов, проверьте правильность заполнения CERTIFIED BY и CERTIFICATION DETAILS',
+    'Пример верного формата: CERTIFIED BY -> DODOPIZZA, CERTIFICATION DETAILS -> OfficeManager/Analytics',
+  ],
+};
+
 const UPGRADE_2_0_RU = {
   title: 'Успешный переход на версию Superset 2.0',
   date: '17.03.2023',
@@ -84,4 +101,5 @@ export {
   UNAVAILABLE,
   CSV_TEMP_PROBLEM_RU,
   UPGRADE_2_0_RU,
+  NEW_FEATURES_APRIL_2023_RU,
 };

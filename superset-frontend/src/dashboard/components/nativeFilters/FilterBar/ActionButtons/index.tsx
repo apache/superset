@@ -44,7 +44,7 @@ const ActionButtonsContainer = styled.div`
     flex-direction: column;
     align-items: center;
 
-    ${process.env.business === undefined
+    ${process.env.type === undefined
       ? 'position: fixed;'
       : 'position: absolute;'}
 
@@ -52,7 +52,7 @@ const ActionButtonsContainer = styled.div`
 
     // filter bar width minus 1px for border
     width: ${OPEN_FILTER_BAR_WIDTH - 1}px;
-    bottom: ${process.env.business === undefined ? 0 : '-20px'};
+    bottom: ${process.env.type === undefined ? 0 : '-20px'};
 
     padding: ${theme.gridUnit * 4}px;
     padding-top: ${theme.gridUnit * 6}px;

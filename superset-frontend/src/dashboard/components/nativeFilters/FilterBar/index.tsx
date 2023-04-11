@@ -100,9 +100,7 @@ const Bar = styled.div<{ width: number }>`
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  ${process.env.business === undefined
-    ? 'min-height: 100%;'
-    : 'max-height: 100vh;'}
+  ${process.env.type === undefined ? 'min-height: 100%;' : 'max-height: 100vh;'}
   display: none;
   &.open {
     display: flex;

@@ -9,12 +9,8 @@ const assembleEndpoint = (
   key?: string | null,
   tabId?: string,
 ) => {
-  console.log(
-    'assembleEndpoint [ process.env.business => ',
-    process.env.business,
-    ']',
-  );
-  if (process.env.business === undefined) {
+  console.log('assembleEndpoint [ process.env.type => ', process.env.type, ']');
+  if (process.env.type === undefined) {
     let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
     if (key) {
       endpoint = endpoint.concat(`/${key}`);
@@ -42,7 +38,7 @@ export const updateFilterKey = (
   key: string,
   tabId?: string,
 ) => {
-  if (process.env.business === undefined) {
+  if (process.env.type === undefined) {
     return SupersetClient.put({
       endpoint: assembleEndpoint(dashId, key, tabId),
       jsonPayload: { value },
@@ -71,12 +67,8 @@ export const createFilterKey = (
   value: string,
   tabId?: string,
 ) => {
-  console.log(
-    'createFilterKey [ process.env.business => ',
-    process.env.business,
-    ']',
-  );
-  if (process.env.business === undefined) {
+  console.log('createFilterKey [ process.env.type => ', process.env.type, ']');
+  if (process.env.type === undefined) {
     return SupersetClient.post({
       endpoint: assembleEndpoint(dashId, undefined, tabId),
       jsonPayload: { value },
@@ -104,12 +96,8 @@ export const getFilterValue = (
   dashId: string | number,
   key?: string | null,
 ) => {
-  console.log(
-    'getFilterValue [ process.env.business => ',
-    process.env.business,
-    ']',
-  );
-  if (process.env.business === undefined) {
+  console.log('getFilterValue [ process.env.type => ', process.env.type, ']');
+  if (process.env.type === undefined) {
     return SupersetClient.get({
       endpoint: assembleEndpoint(dashId, key),
     })
