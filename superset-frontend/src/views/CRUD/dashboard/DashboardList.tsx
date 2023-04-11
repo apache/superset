@@ -50,6 +50,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { bootstrapData } from 'src/preamble';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -93,6 +94,25 @@ interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .ant-menu-item:hover {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+      cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
 `;
 
 function DashboardList(props: DashboardListProps) {
@@ -349,6 +369,9 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          const allowActions =
+            original.owners.map((o: Owner) => o.id).includes(userId) ||
+            isUserAdmin(props.user);
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -375,14 +398,20 @@ function DashboardList(props: DashboardListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowActions
+                          ? t('Delete')
+                          : t(
+                              'You must be a dashboard owner in order to delete. Please reach out to a dashboard owner to request modifications or delete access.',
+                            )
+                      }
                       placement="bottom"
                     >
                       <span
                         role="button"
                         tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
+                        className={allowActions ? 'action-button' : 'disabled'}
+                        onClick={allowActions ? confirmDelete : undefined}
                       >
                         <Icons.Trash data-test="dashboard-list-trash-icon" />
                       </span>
@@ -409,14 +438,20 @@ function DashboardList(props: DashboardListProps) {
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowActions
+                      ? t('Edit')
+                      : t(
+                          'You must be a dashboard owner in order to edit. Please reach out to a dashboard owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
+                    className={allowActions ? 'action-button' : 'disabled'}
+                    onClick={allowActions ? handleEdit : undefined}
                   >
                     <Icons.EditAlt data-test="edit-alt" />
                   </span>
