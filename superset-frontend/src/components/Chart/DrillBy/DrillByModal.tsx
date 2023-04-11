@@ -22,6 +22,7 @@ import {
   BaseFormData,
   BinaryQueryObjectFilterClause,
   Column,
+  QueryData,
   css,
   ensureIsArray,
   t,
@@ -30,19 +31,24 @@ import {
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Modal from 'src/components/Modal';
+import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
+import { Radio } from 'src/components/Radio';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { noOp } from 'src/utils/common';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { Dataset } from '../types';
+import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
+import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
+import { getChartDataRequest } from '../chartAction';
 
+const DATA_SIZE = 15;
 interface ModalFooterProps {
-  formData: BaseFormData;
   closeModal?: () => void;
+  formData: BaseFormData;
 }
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
@@ -74,6 +80,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
           {t('Edit chart')}
         </Link>
       </Button>
+
       <Button
         buttonStyle="primary"
         buttonSize="small"
@@ -88,24 +95,30 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
 interface DrillByModalProps {
   column?: Column;
+  dataset: Dataset;
   filters?: BinaryQueryObjectFilterClause[];
   formData: BaseFormData & { [key: string]: any };
   groupbyFieldName?: string;
   onHideModal: () => void;
-  showModal: boolean;
-  dataset: Dataset;
 }
 
 export default function DrillByModal({
   column,
+  dataset,
   filters,
   formData,
   groupbyFieldName = 'groupby',
   onHideModal,
-  showModal,
-  dataset,
 }: DrillByModalProps) {
   const theme = useTheme();
+  const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
+  const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
+    DrillByType.Chart,
+  );
+  const [datasourceId] = useMemo(
+    () => formData.datasource.split('__'),
+    [formData.datasource],
+  );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -141,7 +154,17 @@ export default function DrillByModal({
     return updatedFormData;
   }, [column, filters, formData, groupbyFieldName]);
 
+  useEffect(() => {
+    if (updatedFormData) {
+      getChartDataRequest({
+        formData: updatedFormData,
+      }).then(({ json }) => {
+        setChartDataResult(json.result);
+      });
+    }
+  }, [updatedFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
+
   return (
     <Modal
       css={css`
@@ -149,7 +172,7 @@ export default function DrillByModal({
           border-top: none;
         }
       `}
-      show={showModal}
+      show
       onHide={onHideModal ?? (() => null)}
       title={t('Drill by: %s', chartName)}
       footer={<ModalFooter formData={updatedFormData} />}
@@ -160,7 +183,7 @@ export default function DrillByModal({
         minWidth: theme.gridUnit * 128,
         defaultSize: {
           width: 'auto',
-          height: '75vh',
+          height: '80vh',
         },
       }}
       draggable
@@ -175,7 +198,56 @@ export default function DrillByModal({
         `}
       >
         {metadataBar}
-        <DrillByChart formData={updatedFormData} />
+        <div
+          css={css`
+            margin-bottom: ${theme.gridUnit * 6}px;
+            .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):focus-within {
+              box-shadow: none;
+            }
+          `}
+        >
+          <Radio.Group
+            onChange={({ target: { value } }) => {
+              setDrillByDisplayMode(value);
+            }}
+            defaultValue={DrillByType.Chart}
+          >
+            <Radio.Button
+              value={DrillByType.Chart}
+              data-test="drill-by-chart-radio"
+            >
+              {t('Chart')}
+            </Radio.Button>
+            <Radio.Button
+              value={DrillByType.Table}
+              data-test="drill-by-table-radio"
+            >
+              {t('Table')}
+            </Radio.Button>
+          </Radio.Group>
+        </div>
+        {!chartDataResult && <Loading />}
+        {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
+          <DrillByChart formData={updatedFormData} result={chartDataResult} />
+        )}
+        {drillByDisplayMode === DrillByType.Table && chartDataResult && (
+          <div
+            css={css`
+              .pagination-container {
+                bottom: ${-theme.gridUnit * 4}px;
+              }
+            `}
+          >
+            <SingleQueryResultPane
+              colnames={chartDataResult[0].colnames}
+              coltypes={chartDataResult[0].coltypes}
+              data={chartDataResult[0].data}
+              dataSize={DATA_SIZE}
+              datasourceId={datasourceId}
+              isVisible
+            />
+          </div>
+        )}
       </div>
     </Modal>
   );
