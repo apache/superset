@@ -122,6 +122,8 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
     teamSlackChannel: '',
     teamSlackHandle: '',
     ttl: '',
+    scheduleType: '',
+    scheduleStartTime: '',
   });
 
   useEffect(() => {
@@ -131,6 +133,10 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
       formData.teamSlackChannel = flash?.teamSlackChannel ?? '';
       formData.teamSlackHandle = flash?.teamSlackHandle ?? '';
       formData.ttl = flash?.ttl ?? '';
+      formData.scheduleType = flash?.scheduleType ? flash?.scheduleType : '';
+      formData.scheduleStartTime = flash?.scheduleStartTime
+        ? new Date(flash?.scheduleStartTime).toISOString()
+        : '';
     }
   }, []);
 

@@ -47,6 +47,8 @@ export interface FlashUpdateType {
   teamSlackChannel: string;
   teamSlackHandle: string;
   ttl: string;
+  scheduleType: string;
+  scheduleStartTime: string;
 }
 
 export interface FlashExtendTtl {
