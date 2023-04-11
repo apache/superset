@@ -202,8 +202,10 @@ export default function transformProps(
     isHorizontal,
     sortSeriesType,
     sortSeriesAscending,
-    xAxisSortSeries,
-    xAxisSortSeriesAscending,
+    xAxisSortSeries: groupby.length ? xAxisSortSeries : undefined,
+    xAxisSortSeriesAscending: groupby.length
+      ? xAxisSortSeriesAscending
+      : undefined,
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,

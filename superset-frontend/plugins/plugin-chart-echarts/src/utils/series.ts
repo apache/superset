@@ -159,9 +159,10 @@ export function sortRows(
 ) {
   const sortedRows = rows.map(row => {
     let sortKey: DataRecordValue = '';
-    let aggregate = 0;
+    let aggregate: number | undefined;
     let entries = 0;
     Object.entries(row).forEach(([key, value]) => {
+      const isValueDefined = isDefined(value);
       if (key === xAxis) {
         sortKey = value;
       }
@@ -172,26 +173,40 @@ export function sortRows(
         return;
       }
 
-      if (!(xAxisSortSeries === SortSeriesType.Avg && !isDefined(value))) {
+      if (!(xAxisSortSeries === SortSeriesType.Avg && !isValueDefined)) {
         entries += 1;
       }
 
       switch (xAxisSortSeries) {
         case SortSeriesType.Avg:
         case SortSeriesType.Sum:
-          aggregate += value;
+          if (aggregate === undefined) {
+            aggregate = value;
+          } else {
+            aggregate += value;
+          }
           break;
         case SortSeriesType.Min:
-          aggregate = aggregate < value ? aggregate : value;
+          aggregate =
+            aggregate === undefined || (isValueDefined && value < aggregate)
+              ? value
+              : aggregate;
           break;
         case SortSeriesType.Max:
-          aggregate = aggregate > value ? aggregate : value;
+          aggregate =
+            aggregate === undefined || (isValueDefined && value > aggregate)
+              ? value
+              : aggregate;
           break;
         default:
           break;
       }
     });
-    if (xAxisSortSeries === SortSeriesType.Avg && entries > 0) {
+    if (
+      xAxisSortSeries === SortSeriesType.Avg &&
+      entries > 0 &&
+      aggregate !== undefined
+    ) {
       aggregate /= entries;
     }
 
@@ -206,7 +221,6 @@ export function sortRows(
       row,
     };
   });
-  console.log('!!!', sortedRows);
 
   return orderBy(
     sortedRows,
