@@ -30,7 +30,8 @@ import entity from '../../liq_data/entity.json';
 import {
   BarsOutlined,
   RadiusSettingOutlined,
-  CarOutlined
+  CarOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import { Menu, Layout } from 'antd';
 
@@ -42,6 +43,7 @@ import DataDisplay from './components/DataDisplay.js';
 import Drivetime from './components/Drivetime.js';
 
 const { Content, Sider } = Layout;
+const { SubMenu } = Menu;
 
 const defaults = require('./defaultLayerStyles.js');
 
@@ -134,75 +136,83 @@ export default function LiqThematicMaps(props) {
   const [thematicLegend, setThematicLegend] = useState(null);
 
   const items = [
-    !hideLegend && {
-      icon: <BarsOutlined />,
-      label: <span>Legend</span>,
-      key: '1',
-      onClick: () => {
-        let reverseMap = {};
-        Object.keys(colorMap).map(x => {
-          if (colorMap[x] in reverseMap) {
-            reverseMap[colorMap[x]].push(x);
-          } else {
-            reverseMap[colorMap[x]] = [x];
+    {
+      icon: <PlusOutlined />,
+      label: 'Menu',
+      key: 'menu',
+      children: [
+        !hideLegend && 
+        {
+          icon: <BarsOutlined />,
+          label: <span>Legend</span>,
+          key: '1',
+          onClick: () => {
+            let reverseMap = {};
+            Object.keys(colorMap).map(x => {
+              if (colorMap[x] in reverseMap) {
+                reverseMap[colorMap[x]].push(x);
+              } else {
+                reverseMap[colorMap[x]] = [x];
+              }
+            });
+            setDrawerTitle('Map Legend');
+            setDrawerContent(
+              <Legend
+                intranetLayers={intranetLayers}
+                tradeAreas={tradeAreas} 
+                thematicData={thematicLegend}
+                taSectorSA1Map={taSectorSA1Map}
+                taSectorColorMap={taSectorColorMap}
+                colorMap={reverseMap} 
+                thematicCol={metricCol}
+                groupCol={groupCol}
+                map={map}
+              />
+            );
+            setDrawerOpen(true);
           }
-        });
-        setDrawerTitle('Map Legend');
-        setDrawerContent(
-          <Legend
-            intranetLayers={intranetLayers}
-            tradeAreas={tradeAreas} 
-            thematicData={thematicLegend}
-            taSectorSA1Map={taSectorSA1Map}
-            taSectorColorMap={taSectorColorMap}
-            colorMap={reverseMap} 
-            thematicCol={metricCol}
-            groupCol={groupCol}
-            map={map}
-          />
-        );
-        setDrawerOpen(true);
-      }
-    },
-    {
-      icon: <RadiusSettingOutlined />,
-      label: <span>Radius</span>,
-      key: '2',
-      onClick: () => {
-        setDrawerTitle('Radius Settings');
-        setDrawerContent(
-          <Radius 
-            map={map} 
-            groupCol={groupCol} 
-            boundary={boundary}
-            radiusColor={newRadiusColor}
-            radiusThreshold={radiusThreshold} 
-            radiusLinkedCharts={newRadiusLinkedCharts}
-          />
-        );
-        setDrawerOpen(true);
-      }
-    },
-    {
-      icon: <CarOutlined />,
-      label: <span>Drivetime</span>,
-      key: '3',
-      onClick: () => {
-        setDrawerTitle('Drivetime Settings');
-        setDrawerContent(
-          <Drivetime 
-            map={map}
-            groupCol={groupCol}
-            boundary={boundary}
-            drivetimeColor={newDrivetimeColor}
-            drivetimeThreshold={drivetimeThreshold}
-            drivetimeLinkedCharts={newDrivetimeLinkedCharts}
-          />
-        );
-        setDrawerOpen(true);
-      }
+        },
+        {
+          icon: <RadiusSettingOutlined />,
+          label: <span>Radius</span>,
+          key: '2',
+          onClick: () => {
+            setDrawerTitle('Radius Settings');
+            setDrawerContent(
+              <Radius 
+                map={map} 
+                groupCol={groupCol} 
+                boundary={boundary}
+                radiusColor={newRadiusColor}
+                radiusThreshold={radiusThreshold} 
+                radiusLinkedCharts={newRadiusLinkedCharts}
+              />
+            );
+            setDrawerOpen(true);
+          }
+        },
+        {
+          icon: <CarOutlined />,
+          label: <span>Drivetime</span>,
+          key: '3',
+          onClick: () => {
+            setDrawerTitle('Drivetime Settings');
+            setDrawerContent(
+              <Drivetime 
+                map={map}
+                groupCol={groupCol}
+                boundary={boundary}
+                drivetimeColor={newDrivetimeColor}
+                drivetimeThreshold={drivetimeThreshold}
+                drivetimeLinkedCharts={newDrivetimeLinkedCharts}
+              />
+            );
+            setDrawerOpen(true);
+          }
+        }
+      ]
     }
-  ];
+  ]
 
   /*
     State used to store the names of intranet layers currently rendered onto the map. Since the control
@@ -660,22 +670,45 @@ export default function LiqThematicMaps(props) {
 
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed
-      >
-        <Menu mode="inline" theme='dark'>
-          {items.map(i => (
-            i && <Menu.Item key={i.key} onClick={i.onClick} disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}>
-              {i.icon}
-              {i.label}
-            </Menu.Item>
-          ))}
-        </Menu>
-      </Sider>
       <Layout>
         <Content>
+          <Menu 
+            mode='horizontal' 
+            style={{
+              position: 'absolute',
+              zIndex: 100,
+              top: '5px',
+              left: '5px',
+              opacity: '80%'
+            }}
+          >
+            {items.map(i => (
+              i.children && i.children.length > 0 ?
+                <SubMenu title={<span>{i.icon}{i.label}</span>} style={{ opacity: '80%' }}>
+                  {i.children.map(c => (
+                    c && <Menu.Item
+                      key={c.key} 
+                      onClick={c.onClick ? c.onClick : () => {}} 
+                      disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}
+                      style={{ opacity: '80%' }}
+                    >
+                      {c.icon}
+                      {c.label}
+                    </Menu.Item>
+                  ))}
+                </SubMenu>
+              :
+                i && <Menu.Item 
+                  key={i.key} 
+                  onClick={i.onClick ? i.onClick : () => {}} 
+                  disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}
+                  style={{ opacity: '80%' }}
+                >
+                  {i.icon}
+                  {i.label}
+                </Menu.Item>
+            ))}
+          </Menu>
           <div
             ref={mapContainer}
             style={{ height: height, width: '100%' }}
