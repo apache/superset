@@ -18,10 +18,8 @@
  */
 
 import { JsonObject } from '@superset-ui/core';
-import {
-  getDashboardFormData,
-  getExploreFormData,
-} from 'spec/fixtures/mockExploreFormData';
+import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
+import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { getFormDataWithDashboardContext } from './getFormDataWithDashboardContext';
 
 const getExpectedResultFormData = (overrides: JsonObject = {}) => ({

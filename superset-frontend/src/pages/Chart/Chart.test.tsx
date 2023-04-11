@@ -27,10 +27,8 @@ import {
   screen,
   fireEvent,
 } from 'spec/helpers/testing-library';
-import {
-  getDashboardFormData,
-  getExploreFormData,
-} from 'spec/fixtures/mockExploreFormData';
+import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
+import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
