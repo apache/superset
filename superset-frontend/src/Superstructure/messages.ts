@@ -63,6 +63,9 @@ const NEW_FEATURES_APRIL_2023_RU = {
   messages: [
     'Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)) необходимо указать CERTIFIED BY и CERTIFICATION DETAILS в Superset Standalone',
     'Добавлен Change Log фич и фиксов',
+    'Включена поддержка Cross-filters (standalone, plugin)',
+    'Включена поддержка Filter-sets (standalone)',
+    'Включен тип визуализации MapBox',
   ],
   listTitleExtra: 'Возможные проблемы',
   messagesExtra: [
