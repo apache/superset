@@ -12,11 +12,11 @@ const bootstrap = {
   common: {
     conf: { SUPERSET_WEBSERVER_TIMEOUT },
     feature_flags: {
-      DASHBOARD_NATIVE_FILTERS: true,
-      DASHBOARD_NATIVE_FILTERS_SET: false,
       GLOBAL_ASYNC_QUERIES: true,
-      // TODO: breaks logic
       DYNAMIC_PLUGINS: true,
+      DASHBOARD_NATIVE_FILTERS: true,
+      DASHBOARD_CROSS_FILTERS: true,
+      DASHBOARD_NATIVE_FILTERS_SET: false,
     },
   },
 };
