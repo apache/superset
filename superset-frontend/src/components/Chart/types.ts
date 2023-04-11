@@ -17,6 +17,11 @@
  * under the License.
  */
 
+export enum DrillByType {
+  Chart,
+  Table,
+}
+
 export type Dataset = {
   changed_by?: {
     first_name: string;

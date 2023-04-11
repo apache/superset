@@ -22,28 +22,18 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import fetchMock from 'fetch-mock';
 import DrillByChart from './DrillByChart';
 
-const CHART_DATA_ENDPOINT =
-  'glob:*api/v1/chart/data?form_data=%7B%22slice_id%22%3A18%7D';
-
 const chart = chartQueries[sliceId];
 
-const fetchWithNoData = () => {
-  fetchMock.post(CHART_DATA_ENDPOINT, {
-    result: [
-      {
-        total_count: 0,
-        data: [],
-        colnames: [],
-        coltypes: [],
-      },
-    ],
-  });
-};
-
-const setup = (overrides: Record<string, any> = {}) =>
-  render(<DrillByChart formData={{ ...chart.form_data, ...overrides }} />, {
-    useRedux: true,
-  });
+const setup = (overrides: Record<string, any> = {}, result?: any) =>
+  render(
+    <DrillByChart
+      formData={{ ...chart.form_data, ...overrides }}
+      result={result}
+    />,
+    {
+      useRedux: true,
+    },
+  );
 
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
@@ -51,20 +41,11 @@ const waitForRender = (overrides: Record<string, any> = {}) =>
 afterEach(fetchMock.restore);
 
 test('should render', async () => {
-  fetchWithNoData();
   const { container } = await waitForRender();
   expect(container).toBeInTheDocument();
 });
 
-test('should render loading indicator', async () => {
-  setup();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
-  );
-});
-
 test('should render the "No results" components', async () => {
-  fetchWithNoData();
-  setup();
+  setup({}, []);
   expect(await screen.findByText('No Results')).toBeInTheDocument();
 });
