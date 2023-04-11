@@ -37,8 +37,8 @@ def upgrade():
             'ALTER TABLE "tagged_object" ALTER COLUMN "object_type" TYPE VARCHAR'
         )
         conn.execute('ALTER TABLE "tag" ALTER COLUMN "type" TYPE VARCHAR')
-        conn.execute("DROP TYPE objecttypes")
-        conn.execute("DROP TYPE tagtypes")
+        conn.execute("DROP TYPE IF EXISTS objecttypes")
+        conn.execute("DROP TYPE IF EXISTS tagtypes")
 
 
 def downgrade():
