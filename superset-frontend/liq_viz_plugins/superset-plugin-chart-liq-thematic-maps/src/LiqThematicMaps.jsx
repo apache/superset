@@ -349,6 +349,17 @@ export default function LiqThematicMaps(props) {
       })
     );
 
+    // Add location tracker
+    map.current.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserHeading: true
+      })
+    )
+
     // load marker image
     map.current.loadImage('/static/custom_map_marker.png', (error, img) => {
       if (error) throw error;
