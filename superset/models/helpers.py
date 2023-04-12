@@ -1314,7 +1314,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if sql:
             return sql
 
-        return f'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'
+        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
     def get_time_filter(  # pylint: disable=too-many-arguments
         self,
