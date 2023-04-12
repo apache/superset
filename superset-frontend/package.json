@@ -81,7 +81,7 @@
     "@babel/runtime-corejs3": "^7.12.5",
     "@emotion/babel-preset-css-prop": "^11.2.0",
     "@emotion/cache": "^11.4.0",
-    "@emotion/react": "^11.4.1",
+    "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
     "@reduxjs/toolkit": "^1.9.3",
