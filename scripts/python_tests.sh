@@ -31,5 +31,4 @@ superset db upgrade
 superset init
 
 echo "Running tests"
-
-pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset ./tests/integration_tests "$@"
+pytest --durations-min=2 --maxfail=1 --cov-report=html --cov=superset --numprocesses=auto --random-order ./tests/integration_tests "$@"
