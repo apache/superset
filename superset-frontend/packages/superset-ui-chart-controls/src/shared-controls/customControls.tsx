@@ -34,7 +34,10 @@ import {
   isDataset,
 } from '../types';
 import { isTemporalColumn } from '../utils';
-import { DEFAULT_SORT_SERIES_DATA, SORT_SERIES_CHOICES } from '../constants';
+import {
+  DEFAULT_XAXIS_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
+} from '../constants';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -150,7 +153,7 @@ export const xAxisSortSeriesControl = {
         ? t('Y-Axis Sort By')
         : t('X-Axis Sort By'),
     choices: SORT_SERIES_CHOICES,
-    default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_type,
     renderTrigger: true,
     description: t('Decides which measure to sort the base axis by.'),
     visibility: xAxisMultiSortVisibility,
@@ -165,7 +168,7 @@ export const xAxisSortSeriesAscendingControl = {
       state.form_data?.orientation === 'horizontal'
         ? t('Y-Axis Sort Ascending')
         : t('X-Axis Sort Ascending'),
-    default: true,
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
     description: t('Whether to sort ascending or descending on the base Axis.'),
     renderTrigger: true,
     visibility: xAxisMultiSortVisibility,

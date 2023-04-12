@@ -59,7 +59,7 @@ export const QueryModeLabel = {
 };
 
 export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {
-  sort_series_type: SortSeriesType.Name,
+  sort_series_type: SortSeriesType.Sum,
   sort_series_ascending: false,
 };
 
@@ -70,3 +70,8 @@ export const SORT_SERIES_CHOICES = [
   [SortSeriesType.Max, t('Maximum value')],
   [SortSeriesType.Avg, t('Average value')],
 ];
+
+export const DEFAULT_XAXIS_SORT_SERIES_DATA: SortSeriesData = {
+  sort_series_type: SortSeriesType.Name,
+  sort_series_ascending: true,
+};
