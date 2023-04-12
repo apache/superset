@@ -102,10 +102,14 @@ const AceEditorWrapper = ({
     'validationResult',
     'schema',
   ]);
-  const { data: schemaOptions } = useSchemas({ dbId: queryEditor.dbId });
+  const { data: schemaOptions } = useSchemas({
+    ...(autocomplete && { dbId: queryEditor.dbId }),
+  });
   const { data: tableData } = useTables({
-    dbId: queryEditor.dbId,
-    schema: queryEditor.schema,
+    ...(autocomplete && {
+      dbId: queryEditor.dbId,
+      schema: queryEditor.schema,
+    }),
   });
 
   const currentSql = queryEditor.sql ?? '';
