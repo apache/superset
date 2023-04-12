@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   BaseFormData,
   BinaryQueryObjectFilterClause,
@@ -34,7 +40,7 @@ import Modal from 'src/components/Modal';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import { Radio } from 'src/components/Radio';
-import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { noOp } from 'src/utils/common';
@@ -43,6 +49,8 @@ import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useData
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
+import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
+import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest } from '../chartAction';
 
 const DATA_SIZE = 15;
@@ -119,31 +127,35 @@ export default function DrillByModal({
     () => formData.datasource.split('__'),
     [formData.datasource],
   );
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
-  const chartLayoutItem = Object.values(dashboardLayout).find(
-    layoutItem => layoutItem.meta?.chartId === formData.slice_id,
-  );
-  const chartName =
-    chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName;
+
+  const [currentColumn, setCurrentColumn] = useState(column);
+  const [currentFormData, setCurrentFormData] = useState(formData);
+  const [currentFilters, setCurrentFilters] = useState(filters);
+  const [usedGroupbyColumns, setUsedGroupbyColumns] = useState([
+    ...ensureIsArray(formData[groupbyFieldName]).map(colName =>
+      dataset.columns?.find(col => col.column_name === colName),
+    ),
+    column,
+  ]);
 
   const updatedFormData = useMemo(() => {
-    let updatedFormData = { ...formData };
-    if (column) {
+    let updatedFormData = { ...currentFormData };
+    if (currentColumn) {
       updatedFormData[groupbyFieldName] = Array.isArray(
-        formData[groupbyFieldName],
+        currentFormData[groupbyFieldName],
       )
-        ? [column.column_name]
-        : column.column_name;
+        ? [currentColumn.column_name]
+        : currentColumn.column_name;
     }
 
-    if (filters) {
-      const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
+    if (currentFilters) {
+      const adhocFilters = currentFilters.map(filter =>
+        simpleFilterToAdhoc(filter),
+      );
       updatedFormData = {
         ...updatedFormData,
         adhoc_filters: [
-          ...ensureIsArray(formData.adhoc_filters),
+          ...ensureIsArray(currentFormData.adhoc_filters),
           ...adhocFilters,
         ],
       };
@@ -152,7 +164,46 @@ export default function DrillByModal({
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
     return updatedFormData;
-  }, [column, filters, formData, groupbyFieldName]);
+  }, [currentColumn, currentFormData, currentFilters, groupbyFieldName]);
+
+  useEffect(() => {
+    setUsedGroupbyColumns(cols =>
+      cols.includes(currentColumn) ? cols : [...cols, currentColumn],
+    );
+  }, [currentColumn]);
+
+  const onSelection = useCallback(
+    (newColumn: Column, filters: BinaryQueryObjectFilterClause[]) => {
+      setCurrentColumn(newColumn);
+      setCurrentFormData(updatedFormData);
+      setCurrentFilters(filters);
+    },
+    [updatedFormData],
+  );
+
+  const additionalConfig = useMemo(
+    () => ({
+      drillBy: { excludedColumns: usedGroupbyColumns, openNewModal: false },
+    }),
+    [usedGroupbyColumns],
+  );
+
+  const { contextMenu, inContextMenu, onContextMenu } = useContextMenu(
+    0,
+    currentFormData,
+    onSelection,
+    ContextMenuItem.DrillBy,
+    additionalConfig,
+  );
+
+  const chartName = useSelector<RootState, string | undefined>(state => {
+    const chartLayoutItem = Object.values(state.dashboardLayout.present).find(
+      layoutItem => layoutItem.meta?.chartId === formData.slice_id,
+    );
+    return (
+      chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName
+    );
+  });
 
   useEffect(() => {
     if (updatedFormData) {
@@ -228,7 +279,12 @@ export default function DrillByModal({
         </div>
         {!chartDataResult && <Loading />}
         {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
-          <DrillByChart formData={updatedFormData} result={chartDataResult} />
+          <DrillByChart
+            formData={updatedFormData}
+            result={chartDataResult}
+            onContextMenu={onContextMenu}
+            inContextMenu={inContextMenu}
+          />
         )}
         {drillByDisplayMode === DrillByType.Table && chartDataResult && (
           <div
@@ -248,6 +304,7 @@ export default function DrillByModal({
             />
           </div>
         )}
+        {contextMenu}
       </div>
     </Modal>
   );
