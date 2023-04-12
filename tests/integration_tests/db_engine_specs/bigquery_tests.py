@@ -144,26 +144,77 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
         self.assertEqual(result, expected_result)
 
-    def test_normalize_indexes(self):
-        """
-        DB Eng Specs (bigquery): Test extra table metadata
-        """
-        indexes = [{"name": "partition", "column_names": [None], "unique": False}]
-        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
-        self.assertEqual(normalized_idx, [])
+    def test_get_indexes(self):
+        database = mock.Mock()
+        inspector = mock.Mock()
+        schema = "foo"
+        table_name = "bar"
 
-        indexes = [{"name": "partition", "column_names": ["dttm"], "unique": False}]
-        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
-        self.assertEqual(normalized_idx, indexes)
-
-        indexes = [
-            {"name": "partition", "column_names": ["dttm", None], "unique": False}
-        ]
-        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
-        self.assertEqual(
-            normalized_idx,
-            [{"name": "partition", "column_names": ["dttm"], "unique": False}],
+        inspector.get_indexes = mock.Mock(
+            return_value=[
+                {
+                    "name": "partition",
+                    "column_names": [None],
+                    "unique": False,
+                }
+            ]
         )
+
+        assert (
+            BigQueryEngineSpec.get_indexes(
+                database,
+                inspector,
+                table_name,
+                schema,
+            )
+            == []
+        )
+
+        inspector.get_indexes = mock.Mock(
+            return_value=[
+                {
+                    "name": "partition",
+                    "column_names": ["dttm"],
+                    "unique": False,
+                }
+            ]
+        )
+
+        assert BigQueryEngineSpec.get_indexes(
+            database,
+            inspector,
+            table_name,
+            schema,
+        ) == [
+            {
+                "name": "partition",
+                "column_names": ["dttm"],
+                "unique": False,
+            }
+        ]
+
+        inspector.get_indexes = mock.Mock(
+            return_value=[
+                {
+                    "name": "partition",
+                    "column_names": ["dttm", None],
+                    "unique": False,
+                }
+            ]
+        )
+
+        assert BigQueryEngineSpec.get_indexes(
+            database,
+            inspector,
+            table_name,
+            schema,
+        ) == [
+            {
+                "name": "partition",
+                "column_names": ["dttm"],
+                "unique": False,
+            }
+        ]
 
     @mock.patch("superset.db_engine_specs.bigquery.BigQueryEngineSpec.get_engine")
     @mock.patch("superset.db_engine_specs.bigquery.pandas_gbq")
