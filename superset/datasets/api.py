@@ -271,6 +271,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 application/json:
                   schema:
                     type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        items:
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
             400:
               $ref: '#/components/responses/400'
             401:
