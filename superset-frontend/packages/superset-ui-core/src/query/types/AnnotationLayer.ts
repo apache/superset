@@ -30,6 +30,7 @@ export enum AnnotationType {
 
 export enum AnnotationSourceType {
   Line = 'line',
+  PredictionLine = 'prediction_line',
   Native = 'NATIVE',
   Table = 'table',
   Undefined = '',

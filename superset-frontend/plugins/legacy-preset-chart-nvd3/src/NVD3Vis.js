@@ -128,6 +128,7 @@ const TIMESERIES_VIZ_TYPES = [
   'line',
   'dual_line',
   'line_multi',
+  'prediction_line',
   'area',
   'compare',
   'bar',
@@ -199,6 +200,7 @@ const propTypes = {
     'dist_bar',
     'line',
     'line_multi',
+    'prediction_line',
     'time_pivot',
     'pie',
     'dual_line',
@@ -406,6 +408,23 @@ function nvd3Vis(element, props) {
         chart = nv.models.multiChart();
         chart.interpolate(lineInterpolation);
         chart.xScale(d3.time.scale.utc());
+        break;
+
+      case 'prediction_line':
+        if (canShowBrush) {
+          chart = nv.models.lineWithFocusChart();
+          if (staggerLabels) {
+            // Give a bit more room to focus area if X axis ticks are staggered
+            chart.focus.margin({ bottom: 40 });
+            chart.focusHeight(80);
+          }
+          chart.focus.xScale(d3.time.scale.utc());
+        } else {
+          chart = nv.models.lineChart();
+        }
+        chart.xScale(d3.time.scale.utc());
+        chart.interpolate(lineInterpolation);
+        chart.clipEdge(false);
         break;
 
       case 'bar':
@@ -680,9 +699,16 @@ function nvd3Vis(element, props) {
       );
     }
 
-    if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {
+    if (
+      isVizTypes(['line', 'area', 'prediction_line', 'bar', 'dist_bar']) &&
+      useRichTooltip
+    ) {
       chart.useInteractiveGuideline(true);
-      if (vizType === 'line' || vizType === 'bar') {
+      if (
+        vizType === 'line' ||
+        vizType === 'bar' ||
+        vizType === 'prediction_line'
+      ) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(
             d,

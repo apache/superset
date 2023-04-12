@@ -45,6 +45,7 @@ import {
   DistBarChartPlugin,
   DualLineChartPlugin,
   LineChartPlugin,
+  PredictionLineChartPlugin,
   LineMultiChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
@@ -82,6 +83,7 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
+// import { SupersetPluginChartHelloWorld } from '..../packages/generator-superset/tmp/superset-plugin-chart-hello-world';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -122,6 +124,8 @@ export default class MainPreset extends Preset {
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
         new LineChartPlugin().configure({ key: 'line' }),
+        new PredictionLineChartPlugin().configure({ key: 'prediction_line' }),
+        // new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
         new LineMultiChartPlugin().configure({ key: 'line_multi' }),
         new MapBoxChartPlugin().configure({ key: 'mapbox' }),
         new PairedTTestChartPlugin().configure({ key: 'paired_ttest' }),

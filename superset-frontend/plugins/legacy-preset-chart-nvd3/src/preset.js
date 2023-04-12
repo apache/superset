@@ -27,6 +27,7 @@ import DistBarChartPlugin from './DistBar';
 import DualLineChartPlugin from './DualLine';
 import LineChartPlugin from './Line';
 import LineMultiChartPlugin from './LineMulti';
+import PredictionLineChartPlugin from './PredictionLineChart';
 import PieChartPlugin from './Pie';
 import TimePivotChartPlugin from './TimePivot';
 
@@ -44,6 +45,7 @@ export default class NVD3ChartPreset extends Preset {
         new DistBarChartPlugin().configure({ key: 'dist_bar' }),
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new LineChartPlugin().configure({ key: 'line' }),
+        new PredictionLineChartPlugin().configure({ key: 'prediction_line' }),
         new LineMultiChartPlugin().configure({ key: 'line_multi' }),
         new PieChartPlugin().configure({ key: 'pie' }),
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),

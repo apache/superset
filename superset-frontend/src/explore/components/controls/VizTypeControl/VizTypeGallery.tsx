@@ -67,6 +67,7 @@ enum SECTIONS {
 
 const DEFAULT_ORDER = [
   'line',
+  'prediction_line',
   'big_number',
   'big_number_total',
   'table',

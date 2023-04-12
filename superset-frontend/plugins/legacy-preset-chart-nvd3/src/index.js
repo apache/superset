@@ -28,5 +28,6 @@ export { default as DistBarChartPlugin } from './DistBar';
 export { default as DualLineChartPlugin } from './DualLine';
 export { default as LineChartPlugin } from './Line';
 export { default as LineMultiChartPlugin } from './LineMulti';
+export { default as PredictionLineChartPlugin } from './PredictionLineChart';
 export { default as PieChartPlugin } from './Pie';
 export { default as TimePivotChartPlugin } from './TimePivot';

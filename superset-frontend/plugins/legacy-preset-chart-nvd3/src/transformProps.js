@@ -123,7 +123,9 @@ export default function transformProps(chartProps) {
     yAxisFormat = yAxisFormat || grabD3Format(datasource, metric);
     yAxis2Format = yAxis2Format || grabD3Format(datasource, metric2);
   } else if (
-    ['line', 'dist_bar', 'bar', 'area'].includes(chartProps.formData.vizType)
+    ['line', 'dist_bar', 'prediction_line', 'bar', 'area'].includes(
+      chartProps.formData.vizType,
+    )
   ) {
     yAxisFormat =
       yAxisFormat ||
