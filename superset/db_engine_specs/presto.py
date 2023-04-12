@@ -561,10 +561,18 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             )
 
         column_names = indexes[0]["column_names"]
-        part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, database, 1, part_fields)
-        df = database.get_df(sql, schema)
-        return column_names, cls._latest_partition_from_df(df)
+
+        return column_names, cls._latest_partition_from_df(
+            df=database.get_df(
+                sql=cls._partition_query(
+                    table_name,
+                    database,
+                    limit=1,
+                    order_by=[(column_name, True) for column_name in column_names],
+                ),
+                schema=schema,
+            )
+        )
 
     @classmethod
     def latest_sub_partition(
