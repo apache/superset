@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Column } from '@superset-ui/core';
 
 export enum DrillByType {
   Chart,
@@ -39,4 +40,5 @@ export type Dataset = {
     first_name: string;
     last_name: string;
   }[];
+  columns?: Column[];
 };
