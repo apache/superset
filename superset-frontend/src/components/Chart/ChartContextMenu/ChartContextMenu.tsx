@@ -29,6 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Behavior,
   ContextMenuFilters,
+  ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
   isFeatureEnabled,
@@ -39,21 +40,33 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
-import { AntdDropdown as Dropdown } from 'src/components';
-import { DrillDetailMenuItems } from './DrillDetail';
-import { getMenuAdjustedY } from './utils';
-import { updateDataMask } from '../../dataMask/actions';
-import { MenuItemTooltip } from './DisabledMenuItemTooltip';
-import { DrillByMenuItems } from './DrillBy/DrillByMenuItems';
+import { AntdDropdown as Dropdown } from 'src/components/index';
+import { updateDataMask } from 'src/dataMask/actions';
+import { DrillDetailMenuItems } from '../DrillDetail';
+import { getMenuAdjustedY } from '../utils';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
 
+export enum ContextMenuItem {
+  CrossFilter,
+  DrillToDetail,
+  DrillBy,
+  All,
+}
 export interface ChartContextMenuProps {
   id: number;
   formData: QueryFormData;
   onSelection: () => void;
   onClose: () => void;
+  additionalConfig?: {
+    crossFilter?: Record<string, any>;
+    drillToDetail?: Record<string, any>;
+    drillBy?: Record<string, any>;
+  };
+  displayedItems?: ContextMenuItem[] | ContextMenuItem;
 }
 
-export interface Ref {
+export interface ChartContextMenuRef {
   open: (
     clientX: number,
     clientY: number,
@@ -62,8 +75,15 @@ export interface Ref {
 }
 
 const ChartContextMenu = (
-  { id, formData, onSelection, onClose }: ChartContextMenuProps,
-  ref: RefObject<Ref>,
+  {
+    id,
+    formData,
+    onSelection,
+    onClose,
+    displayedItems = ContextMenuItem.All,
+    additionalConfig,
+  }: ChartContextMenuProps,
+  ref: RefObject<ChartContextMenuRef>,
 ) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -74,6 +94,10 @@ const ChartContextMenu = (
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
+  const isDisplayed = (item: ContextMenuItem) =>
+    displayedItems === ContextMenuItem.All ||
+    ensureIsArray(displayedItems).includes(item);
+
   const [{ filters, clientX, clientY }, setState] = useState<{
     clientX: number;
     clientY: number;
@@ -83,13 +107,19 @@ const ChartContextMenu = (
   const menuItems = [];
 
   const showDrillToDetail =
-    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
+    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
+    canExplore &&
+    isDisplayed(ContextMenuItem.DrillToDetail);
 
-  const showDrillBy = isFeatureEnabled(FeatureFlag.DRILL_BY) && canExplore;
+  const showDrillBy =
+    isFeatureEnabled(FeatureFlag.DRILL_BY) &&
+    canExplore &&
+    isDisplayed(ContextMenuItem.DrillBy);
 
-  const showCrossFilters = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
-  );
+  const showCrossFilters =
+    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isDisplayed(ContextMenuItem.CrossFilter);
+
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
     ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
@@ -108,7 +138,7 @@ const ChartContextMenu = (
     itemsCount = 1; // "No actions" appears if no actions in menu
   }
 
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (showCrossFilters) {
     const isCrossFilterDisabled =
       !isCrossFilteringSupportedByChart ||
       !crossFiltersEnabled ||
@@ -190,6 +220,7 @@ const ChartContextMenu = (
         contextMenuY={clientY}
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
+        {...(additionalConfig?.drillToDetail || {})}
       />,
     );
   }
@@ -205,9 +236,11 @@ const ChartContextMenu = (
       <DrillByMenuItems
         filters={filters?.drillBy?.filters}
         groupbyFieldName={filters?.drillBy?.groupbyFieldName}
+        onSelection={onSelection}
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
+        {...(additionalConfig?.drillBy || {})}
       />,
     );
   }
@@ -241,7 +274,7 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <Dropdown
       overlay={
-        <Menu>
+        <Menu className="chart-context-menu" data-test="chart-context-menu">
           {menuItems.length ? (
             menuItems
           ) : (

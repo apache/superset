@@ -16,21 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   BaseFormData,
-  Behavior,
   QueryData,
   SuperChart,
   css,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 
 interface DrillByChartProps {
   formData: BaseFormData & { [key: string]: any };
   result: QueryData[];
+  onContextMenu: (
+    offsetX: number,
+    offsetY: number,
+    filters: ContextMenuFilters,
+  ) => void;
+  inContextMenu: boolean;
 }
 
-export default function DrillByChart({ formData, result }: DrillByChartProps) {
+export default function DrillByChart({
+  formData,
+  result,
+  onContextMenu,
+  inContextMenu,
+}: DrillByChartProps) {
+  const hooks = useMemo(() => ({ onContextMenu }), [onContextMenu]);
+
   return (
     <div
       css={css`
@@ -40,11 +53,12 @@ export default function DrillByChart({ formData, result }: DrillByChartProps) {
     >
       <SuperChart
         disableErrorBoundary
-        behaviors={[Behavior.INTERACTIVE_CHART]}
         chartType={formData.viz_type}
         enableNoResults
         formData={formData}
         queriesData={result}
+        hooks={hooks}
+        inContextMenu={inContextMenu}
         height="100%"
         width="100%"
       />

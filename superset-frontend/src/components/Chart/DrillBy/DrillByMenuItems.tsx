@@ -59,8 +59,10 @@ export interface DrillByMenuItemsProps {
   contextMenuY?: number;
   submenuIndex?: number;
   groupbyFieldName?: string;
-  onSelection?: () => void;
+  onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
+  openNewModal?: boolean;
+  excludedColumns?: Column[];
 }
 
 export const DrillByMenuItems = ({
@@ -71,6 +73,8 @@ export const DrillByMenuItems = ({
   submenuIndex = 0,
   onSelection = () => {},
   onClick = () => {},
+  excludedColumns,
+  openNewModal = true,
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
@@ -80,14 +84,16 @@ export const DrillByMenuItems = ({
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
 
-  const openModal = useCallback(
+  const handleSelection = useCallback(
     (event, column) => {
       onClick(event);
-      onSelection();
+      onSelection(column, filters);
       setCurrentColumn(column);
-      setShowModal(true);
+      if (openNewModal) {
+        setShowModal(true);
+      }
     },
-    [onClick, onSelection],
+    [filters, onClick, onSelection, openNewModal],
   );
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -142,12 +148,16 @@ export const DrillByMenuItems = ({
 
   const filteredColumns = useMemo(
     () =>
-      columns.filter(column =>
-        (column.verbose_name || column.column_name)
-          .toLowerCase()
-          .includes(searchInput.toLowerCase()),
+      columns.filter(
+        column =>
+          (column.verbose_name || column.column_name)
+            .toLowerCase()
+            .includes(searchInput.toLowerCase()) &&
+          !ensureIsArray(excludedColumns)?.some(
+            col => col.column_name === column.column_name,
+          ),
       ),
-    [columns, searchInput],
+    [columns, excludedColumns, searchInput],
   );
 
   const submenuYOffset = useMemo(
@@ -231,7 +241,7 @@ export const DrillByMenuItems = ({
                   key={`drill-by-item-${column.column_name}`}
                   tooltipText={column.verbose_name || column.column_name}
                   {...rest}
-                  onClick={e => openModal(e, column)}
+                  onClick={e => handleSelection(e, column)}
                 >
                   {column.verbose_name || column.column_name}
                 </MenuItemWithTruncation>
