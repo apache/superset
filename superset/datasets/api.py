@@ -63,6 +63,7 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
 )
+from superset.exceptions import SupersetException
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
@@ -247,6 +248,59 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     list_outer_default_load = True
     show_outer_default_load = True
+
+    @expose("/<int:pk>", methods=["GET"])
+    @protect()
+    @safe
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Get a dataset
+        ---
+        get:
+          description: >-
+            Get a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The dataset id
+            name: pk
+          responses:
+            200:
+              description: dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        data = self.get_headless(pk, **kwargs)
+        try:
+            verbose_map = {}
+            payload = data.json
+            verbose_map = {"__timestamp": "Time"}
+            verbose_map.update(
+                {
+                    o["metric_name"]: o["verbose_name"] or o["metric_name"]
+                    for o in payload["result"]["metrics"]
+                }
+            )
+            verbose_map.update(
+                {
+                    o["column_name"]: o["verbose_name"] or o["column_name"]
+                    for o in payload["result"]["columns"]
+                }
+            )
+            payload["result"]["verbose_map"] = verbose_map
+            return payload
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/", methods=["POST"])
     @protect()
