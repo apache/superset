@@ -220,22 +220,6 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
   }, [JSON.stringify(latestQueryFormData)]);
 
-  const validate = (formData: any, errors: any) => {
-    if (formData) {
-      if (
-        formData.flashType === FlashTypes.SHORT_TERM ||
-        formData.flashType === FlashTypes.LONG_TERM
-      ) {
-        if (Date.parse(formData.scheduleStartTime) < Date.now()) {
-          errors.scheduleStartTime.addError(
-            'Schedule Start Time should be greater than current data-time',
-          );
-        }
-      }
-    }
-    return errors;
-  };
-
   const transformErrors = (errors: FormErrors[]) =>
     errors.map((error: FormErrors) => {
       const newError = { ...error };
@@ -430,7 +414,6 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
               uiSchema={getUISchema()}
               onSubmit={onFlashCreationSubmit}
               transformErrors={transformErrors}
-              validate={validate}
               onChange={e => onFieldChange(e.formData)}
             >
               <Button
