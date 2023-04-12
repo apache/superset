@@ -72,7 +72,6 @@ These features flags are **safe for production** and have been tested.
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ALERTS_ATTACH_REPORTS
-- ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - DISABLE_LEGACY_DATASOURCE_EDITOR
@@ -95,6 +94,7 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- ALLOW_ADHOC_SUBQUERY
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
 - FORCE_DATABASE_CONNECTIONS_SSL

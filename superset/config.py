@@ -461,7 +461,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALLOW_FULL_CSV_EXPORT": False,
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
-    "ALLOW_ADHOC_SUBQUERY": False,
+    "ALLOW_ADHOC_SUBQUERY": True,
     "USE_ANALAGOUS_COLORS": False,
     "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
