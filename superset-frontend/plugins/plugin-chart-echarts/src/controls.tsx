@@ -22,15 +22,12 @@ import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  DEFAULT_SORT_SERIES_DATA,
-  StackControlOptions,
-} from './constants';
+import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
-import { SortSeriesType } from './types';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -225,13 +222,7 @@ const sortSeriesType: ControlSetItem = {
     type: 'SelectControl',
     freeForm: false,
     label: t('Sort Series By'),
-    choices: [
-      [SortSeriesType.Name, t('Category name')],
-      [SortSeriesType.Sum, t('Total value')],
-      [SortSeriesType.Min, t('Minimum value')],
-      [SortSeriesType.Max, t('Maximum value')],
-      [SortSeriesType.Avg, t('Average value')],
-    ],
+    choices: SORT_SERIES_CHOICES,
     default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
     renderTrigger: true,
     description: t(
