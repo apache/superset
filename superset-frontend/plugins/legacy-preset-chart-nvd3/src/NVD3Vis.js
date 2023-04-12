@@ -844,14 +844,12 @@ function nvd3Vis(element, props) {
       }
 
       chart.yDomain1([
-        isDefined(yAxisBounds[0]) ? yAxisBounds[0] : ticks1[0],
-        isDefined(yAxisBounds[1]) ? yAxisBounds[1] : ticks1[ticks1.length - 1],
+        yAxisBounds[0] ?? ticks1[0],
+        yAxisBounds[1] ?? ticks1[ticks1.length - 1],
       ]);
       chart.yDomain2([
-        isDefined(yAxis2Bounds[0]) ? yAxis2Bounds[0] : ticks2[0],
-        isDefined(yAxis2Bounds[1])
-          ? yAxis2Bounds[1]
-          : ticks2[ticks2.length - 1],
+        yAxis2Bounds[0] ?? ticks2[0],
+        yAxis2Bounds[1] ?? ticks2[ticks2.length - 1],
       ]);
     }
 
