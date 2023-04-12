@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKIN
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from deprecation import deprecated
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -278,6 +279,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return "_" + md5_sha_from_str(label)
 
     @classmethod
+    @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Normalizes indexes for more consistency across db engines
@@ -295,6 +297,26 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if ix["column_names"]:
                 normalized_idxs.append(ix)
         return normalized_idxs
+
+    @classmethod
+    def get_indexes(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        table_name: str,
+        schema: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Get the indexes associated with the specified schema/table.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param table_name: The table to inspect
+        :param schema: The schema to inspect
+        :returns: The indexes
+        """
+
+        return cls.normalize_indexes(inspector.get_indexes(table_name, schema))
 
     @classmethod
     def extra_table_metadata(
