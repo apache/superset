@@ -39,7 +39,22 @@ describe('CategoricalColorScale', () => {
       expect(scale).toBeInstanceOf(CategoricalColorScale);
       expect(scale.parentForcedColors).toBe(parentForcedColors);
     });
+
+    it('can refer to colors based on their index', () => {
+      const parentForcedColors = { pig: 1, horse: 5 };
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        parentForcedColors,
+      );
+      expect(scale.getColor('pig')).toEqual('red');
+      expect(parentForcedColors.pig).toEqual('red');
+
+      // can loop around the scale
+      expect(scale.getColor('horse')).toEqual('green');
+      expect(parentForcedColors.horse).toEqual('green');
+    });
   });
+
   describe('.getColor(value)', () => {
     it('returns same color for same value', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
