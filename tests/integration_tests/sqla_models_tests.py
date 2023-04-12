@@ -41,6 +41,7 @@ from superset.utils.core import (
     GenericDataType,
 )
 from superset.utils.database import get_example_database
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -260,6 +261,7 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
 
+    @with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)
     def test_adhoc_metrics_and_calc_columns(self):
         base_query_obj = {
             "granularity": None,
