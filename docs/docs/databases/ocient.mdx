@@ -17,15 +17,20 @@ pip install sqlalchemy-ocient
 
 ## Connecting to Ocient
 
-The connection string for Ocient looks like this:
+The format of the Ocient DSN is:
 
 ```shell
-ocient://{user}:{password}@{DNSname}:{port}/{database}
+ocient://user:password@[host][:port][/database][?param1=value1&...]
+```
+
+The DSN for connecting to an `exampledb` database hosted at `examplehost:4050` with TLS enabled is:
+```shell
+ocient://admin:abc123@examplehost:4050/exampledb?tls=on
 ```
 
 **NOTE**: You must enter the `user` and `password` credentials.  `host` defaults to localhost,
 port defaults to 4050, database defaults to `system` and `tls` defaults
-to `off`.
+to `unverified`.
 
 ## User Access Control
 
