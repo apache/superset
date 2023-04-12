@@ -103,8 +103,10 @@ class SuperChart extends React.PureComponent<Props, {}> {
   private createChartProps = ChartProps.createSelector();
 
   private parseDimension = createSelector(
-    ({ width }: { width: string | number; height: string | number }) => width,
-    ({ height }) => height,
+    [
+      ({ width }: { width: string | number; height: string | number }) => width,
+      ({ height }) => height,
+    ],
     (width, height) => {
       // Parse them in case they are % or 'auto'
       const widthInfo = parseLength(width);
