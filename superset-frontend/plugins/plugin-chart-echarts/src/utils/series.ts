@@ -18,6 +18,7 @@
  * under the License.
  */
 import {
+  AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
@@ -27,22 +28,17 @@ import {
   NumberFormats,
   NumberFormatter,
   TimeFormatter,
-  AxisType,
   SupersetTheme,
 } from '@superset-ui/core';
+import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
-import { sumBy, meanBy, minBy, maxBy, orderBy } from 'lodash';
+import { maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
-  StackControlsValue,
   NULL_STRING,
+  StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import {
-  LegendOrientation,
-  LegendType,
-  SortSeriesType,
-  StackType,
-} from '../types';
+import { LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -155,6 +151,84 @@ export function sortAndFilterSeries(
   ).map(({ name }) => name);
 }
 
+export function sortRows(
+  rows: DataRecord[],
+  xAxis: string,
+  xAxisSortSeries: SortSeriesType,
+  xAxisSortSeriesAscending: boolean,
+) {
+  const sortedRows = rows.map(row => {
+    let sortKey: DataRecordValue = '';
+    let aggregate: number | undefined;
+    let entries = 0;
+    Object.entries(row).forEach(([key, value]) => {
+      const isValueDefined = isDefined(value);
+      if (key === xAxis) {
+        sortKey = value;
+      }
+      if (
+        xAxisSortSeries === SortSeriesType.Name ||
+        typeof value !== 'number'
+      ) {
+        return;
+      }
+
+      if (!(xAxisSortSeries === SortSeriesType.Avg && !isValueDefined)) {
+        entries += 1;
+      }
+
+      switch (xAxisSortSeries) {
+        case SortSeriesType.Avg:
+        case SortSeriesType.Sum:
+          if (aggregate === undefined) {
+            aggregate = value;
+          } else {
+            aggregate += value;
+          }
+          break;
+        case SortSeriesType.Min:
+          aggregate =
+            aggregate === undefined || (isValueDefined && value < aggregate)
+              ? value
+              : aggregate;
+          break;
+        case SortSeriesType.Max:
+          aggregate =
+            aggregate === undefined || (isValueDefined && value > aggregate)
+              ? value
+              : aggregate;
+          break;
+        default:
+          break;
+      }
+    });
+    if (
+      xAxisSortSeries === SortSeriesType.Avg &&
+      entries > 0 &&
+      aggregate !== undefined
+    ) {
+      aggregate /= entries;
+    }
+
+    const value =
+      xAxisSortSeries === SortSeriesType.Name && typeof sortKey === 'string'
+        ? sortKey.toLowerCase()
+        : aggregate;
+
+    return {
+      key: sortKey,
+      value,
+      row,
+    };
+  });
+
+  return orderBy(
+    sortedRows,
+    ['value'],
+    [xAxisSortSeriesAscending ? 'asc' : 'desc'],
+  ).map(({ row }) => row);
+}
+
 export function extractSeries(
   data: DataRecord[],
   opts: {
@@ -167,6 +241,8 @@ export function extractSeries(
     isHorizontal?: boolean;
     sortSeriesType?: SortSeriesType;
     sortSeriesAscending?: boolean;
+    xAxisSortSeries?: SortSeriesType;
+    xAxisSortSeriesAscending?: boolean;
   } = {},
 ): SeriesOption[] {
   const {
@@ -179,24 +255,30 @@ export function extractSeries(
     isHorizontal = false,
     sortSeriesType,
     sortSeriesAscending,
+    xAxisSortSeries,
+    xAxisSortSeriesAscending,
   } = opts;
   if (data.length === 0) return [];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
   }));
-  const series = sortAndFilterSeries(
+  const sortedSeries = sortAndFilterSeries(
     rows,
     xAxis,
     extraMetricLabels,
     sortSeriesType,
     sortSeriesAscending,
   );
+  const sortedRows =
+    isDefined(xAxisSortSeries) && isDefined(xAxisSortSeriesAscending)
+      ? sortRows(rows, xAxis, xAxisSortSeries!, xAxisSortSeriesAscending!)
+      : rows;
 
-  return series.map(name => ({
+  return sortedSeries.map(name => ({
     id: name,
     name,
-    data: rows
+    data: sortedRows
       .map((row, idx) => {
         const isNextToDefinedValue =
           isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
