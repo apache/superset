@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
+import {
+  DEFAULT_SORT_SERIES_DATA,
+  sections,
+} from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
   OrientationType,
@@ -25,7 +28,6 @@ import {
 } from './types';
 import {
   DEFAULT_LEGEND_FORM_DATA,
-  DEFAULT_SORT_SERIES_DATA,
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
 
