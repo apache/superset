@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  applyMiddleware,
-  combineReducers,
-  compose,
-  createStore,
-  Store,
-} from 'redux';
-import thunk from 'redux-thunk';
+import { configureStore, ConfigureStoreOptions, Store } from '@reduxjs/toolkit';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import reports from 'src/reports/reducers/reports';
@@ -102,8 +94,7 @@ const CombinedDatasourceReducers = (
   );
 };
 
-// exported for tests
-export const rootReducer = combineReducers({
+const reducers = {
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrapData.common),
   user: userReducer,
@@ -120,13 +111,7 @@ export const rootReducer = combineReducers({
   reports,
   saveModal,
   explore,
-});
-
-export const store: Store = createStore(
-  rootReducer,
-  {},
-  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
-);
+};
 
 /* In some cases the jinja template injects two seperate React apps into basic.html
  * One for the top navigation Menu and one for the application below the Menu
@@ -135,13 +120,36 @@ export const store: Store = createStore(
  * setupStore with disableDebugger true enables the menu.tsx component to avoid connecting
  * to redux debugger so the application can connect to redux debugger
  */
-export function setupStore(disableDegugger = false): Store {
-  return createStore(
-    rootReducer,
-    {},
-    compose(
-      applyMiddleware(thunk, logger),
-      initEnhancer(false, undefined, disableDegugger),
-    ),
-  );
+export function setupStore({
+  disableDebugger = false,
+  initialState = {},
+  rootReducers = reducers,
+  ...overrides
+}: {
+  disableDebugger?: boolean;
+  initialState?: ConfigureStoreOptions['preloadedState'];
+  rootReducers?: ConfigureStoreOptions['reducer'];
+} & Partial<ConfigureStoreOptions> = {}): Store {
+  return configureStore({
+    preloadedState: initialState,
+    reducer: {
+      ...rootReducers,
+    },
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware({
+        immutableCheck: {
+          warnAfter: 200,
+        },
+        serializableCheck: {
+          // Ignores AbortController instances
+          ignoredActionPaths: [/queryController/g],
+          ignoredPaths: [/queryController/g],
+          warnAfter: 200,
+        },
+      }).concat(logger),
+    devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
+    ...overrides,
+  });
 }
+
+export const store: Store = setupStore();

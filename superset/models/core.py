@@ -847,8 +847,7 @@ class Database(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         with self.get_inspector_with_context() as inspector:
-            indexes = inspector.get_indexes(table_name, schema)
-            return self.db_engine_spec.normalize_indexes(indexes)
+            return self.db_engine_spec.get_indexes(self, inspector, table_name, schema)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
