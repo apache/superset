@@ -258,7 +258,6 @@ export default function DrillByModal({
     [drilledFormData],
   );
 
-  console.log(currentFormData);
   const additionalConfig = useMemo(
     () => ({
       drillBy: { excludedColumns: usedGroupbyColumns, openNewModal: false },
