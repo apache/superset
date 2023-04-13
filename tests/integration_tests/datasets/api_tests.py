@@ -349,7 +349,7 @@ class TestDatasetApi(SupersetTestCase):
             "template_params": None,
             "uid": "2__table",
             "datasource_name": "energy_usage",
-            "name": "public.energy_usage",
+            "name": f"{get_example_default_schema()}.energy_usage",
             "column_formats": {},
             "granularity_sqla": [],
             "time_grain_sqla": ANY,
