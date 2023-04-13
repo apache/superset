@@ -28,7 +28,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.sql import literal_column
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
@@ -111,7 +111,7 @@ class BaseDatasource(
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
-    filter_select_enabled = Column(Boolean, default=is_feature_enabled("UX_BETA"))
+    filter_select_enabled = Column(Boolean, default=True)
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     params = Column(String(1000))
