@@ -60,6 +60,7 @@ from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
+    DatasetResponse,
     get_delete_ids_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
@@ -242,8 +243,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_component_schemas = (
-        DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
+        DatasetRelatedObjectsResponse,
+        DatasetResponse,
         GetOrCreateDatasetSchema,
     )
 
