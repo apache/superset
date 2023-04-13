@@ -53,7 +53,7 @@ describe('Visualization > Table', () => {
       granularity_sqla: undefined,
       metrics: ['count'],
     });
-    cy.get('[data-test=granularity_sqla] .column-option-label').contains('ds');
+    cy.get('[data-test=adhoc_filters]').contains('ds');
   });
 
   it('Format non-numeric metrics correctly', () => {
@@ -126,7 +126,7 @@ describe('Visualization > Table', () => {
     // should handle frontend sorting correctly
     cy.get('.chart-container th').contains('name').click();
     cy.get('.chart-container td:nth-child(2):eq(0)').contains('Adam');
-    cy.get('.chart-container th').contains('Time').click().click();
+    cy.get('.chart-container th').contains('ds').click().click();
     cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
 

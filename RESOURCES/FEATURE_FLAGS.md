@@ -57,7 +57,6 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_NATIVE_FILTERS
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - ENABLE_JAVASCRIPT_CONTROLS
-- GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
@@ -98,3 +97,4 @@ These features flags currently default to True and **will be removed in a future
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
 - FORCE_DATABASE_CONNECTIONS_SSL
+- GENERIC_CHART_AXES
