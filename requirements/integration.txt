@@ -50,7 +50,7 @@ six==1.16.0
 toml==0.10.2
     # via tox
 tomli==1.2.1
-    # via pep517
+    # via build
 toposort==1.6
     # via pip-compile-multi
 tox==3.25.1
