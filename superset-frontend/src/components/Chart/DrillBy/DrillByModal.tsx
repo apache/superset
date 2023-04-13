@@ -144,12 +144,9 @@ export default function DrillByModal({
     [formData.datasource],
   );
 
-  // currentColumn can be an array when the original chart is grouped by multiple
-  // columns and user navigates back to the original chart by clicking the first
-  // breadcrumb
-  const [currentColumn, setCurrentColumn] = useState<
-    Column | Column[] | undefined
-  >(column);
+  const [currentColumn, setCurrentColumn] = useState<Column | undefined>(
+    column,
+  );
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [currentFilters, setCurrentFilters] = useState(filters || []);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
@@ -161,18 +158,18 @@ export default function DrillByModal({
   ]);
 
   const getNewGroupby = useCallback(
-    (groupbyCol: Column | Column[]) => {
-      const columnNames = ensureIsArray(groupbyCol).map(col => col.column_name);
-      return Array.isArray(formData[groupbyFieldName])
-        ? columnNames
-        : columnNames[0];
-    },
+    (groupbyCol: Column) =>
+      Array.isArray(formData[groupbyFieldName])
+        ? [groupbyCol.column_name]
+        : groupbyCol.column_name,
     [formData, groupbyFieldName],
   );
 
   const onBreadcrumbClick = useCallback(
     (breadcrumb: DrillByBreadcrumb, index: number) => {
-      setCurrentColumn(breadcrumb.groupby);
+      const newGroupbyCol =
+        index === 0 ? undefined : (breadcrumb.groupby as Column);
+      setCurrentColumn(newGroupbyCol);
       setCurrentFilters(filters => filters.slice(0, index));
       setBreadcrumbsData(prevBreadcrumbs => {
         const newBreadcrumbs = prevBreadcrumbs.slice(0, index + 1);
@@ -184,7 +181,9 @@ export default function DrillByModal({
       );
       setCurrentFormData(prevFormData => ({
         ...prevFormData,
-        [groupbyFieldName]: getNewGroupby(breadcrumb.groupby),
+        [groupbyFieldName]: newGroupbyCol
+          ? getNewGroupby(newGroupbyCol)
+          : formData[groupbyFieldName],
         [adhocFilterFieldName]: [
           ...formData[adhocFilterFieldName],
           ...prevFormData[adhocFilterFieldName].slice(
@@ -205,18 +204,16 @@ export default function DrillByModal({
       updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    if (currentFilters) {
-      const adhocFilters = currentFilters.map(filter =>
-        simpleFilterToAdhoc(filter),
-      );
-      updatedFormData = {
-        ...updatedFormData,
-        [adhocFilterFieldName]: [
-          ...ensureIsArray(formData[adhocFilterFieldName]),
-          ...adhocFilters,
-        ],
-      };
-    }
+    const adhocFilters = currentFilters.map(filter =>
+      simpleFilterToAdhoc(filter),
+    );
+    updatedFormData = {
+      ...updatedFormData,
+      [adhocFilterFieldName]: [
+        ...ensureIsArray(formData[adhocFilterFieldName]),
+        ...adhocFilters,
+      ],
+    };
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
@@ -231,17 +228,14 @@ export default function DrillByModal({
   ]);
 
   useEffect(() => {
-    setUsedGroupbyColumns(usedCols => {
-      const currentColumns = ensureIsArray(currentColumn);
-      return !currentColumn ||
-        usedCols.some(usedCol =>
-          currentColumns.some(
-            currentCol => currentCol?.column_name === usedCol.column_name,
-          ),
-        )
+    setUsedGroupbyColumns(usedCols =>
+      !currentColumn ||
+      usedCols.some(
+        usedCol => usedCol.column_name === currentColumn.column_name,
+      )
         ? usedCols
-        : [...usedCols, ...currentColumns];
-    });
+        : [...usedCols, currentColumn],
+    );
   }, [currentColumn]);
 
   const onSelection = useCallback(
