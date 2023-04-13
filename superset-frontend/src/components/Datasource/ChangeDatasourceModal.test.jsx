@@ -112,6 +112,6 @@ describe('ChangeDatasourceModal', () => {
     });
     await waitForComponentToPaint(wrapper);
 
-    expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
+    expect(fetchMock.calls(/api\/v1\/dataset\/7/)).toHaveLength(1);
   });
 });

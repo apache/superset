@@ -96,7 +96,7 @@ describe('DatasourceModal', () => {
 
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
-    fetchMock.post(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
