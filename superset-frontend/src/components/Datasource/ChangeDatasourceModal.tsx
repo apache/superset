@@ -176,6 +176,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
     })
       .then(({ json }) => {
+        // eslint-disable-next-line no-param-reassign
         json.result.type = 'table';
         onDatasourceSave(json.result);
         onChange(`${confirmedDataset?.id}__table`);
