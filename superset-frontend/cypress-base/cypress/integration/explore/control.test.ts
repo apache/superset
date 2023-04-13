@@ -45,7 +45,7 @@ describe('Datasource control', () => {
       '[data-test="table-content-rows"] [data-test="editable-title-input"]',
     )
       .first()
-      .click({ force: true });
+      .click();
 
     cy.get(
       '[data-test="table-content-rows"] [data-test="editable-title-input"]',

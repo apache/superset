@@ -160,10 +160,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         ),
       },
     })
-      .then(({ json }) => {
+      .then(() => {
         addSuccessToast(t('The dataset has been saved'));
+        return SupersetClient.get({
+          endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
+        });
+      })
+      .then(({ json }) => {
+        // eslint-disable-next-line no-param-reassign
+        json.result.type = 'table';
         onDatasourceSave({
-          ...json,
+          ...json.result,
           owners: currentDatasource.owners,
         });
         onHide();
