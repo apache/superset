@@ -651,7 +651,7 @@ const FiltersConfigForm = (
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
-    .some(filter => dependencies.includes(filter.value));
+    .some(filter => dependencies?.includes(filter.value));
 
   useEffect(() => {
     if (datasetId) {
