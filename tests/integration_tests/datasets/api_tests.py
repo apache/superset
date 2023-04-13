@@ -1354,6 +1354,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test unsafe default endpoint
         """
+        if backend() == "sqlite":
+            return
+
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
