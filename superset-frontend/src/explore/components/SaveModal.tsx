@@ -123,11 +123,17 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       dashboardId = lastDashboard && parseInt(lastDashboard, 10);
     }
     if (dashboardId) {
-      const { result } = await this.loadDashboard(dashboardId);
-      if (result) {
-        this.setState({
-          dashboard: { label: result.dashboard_title, value: result.id },
-        });
+      try {
+        const result = await this.loadDashboard(dashboardId);
+        if (result) {
+          this.setState({
+            dashboard: { label: result.dashboard_title, value: result.id },
+          });
+        }
+      } catch (error) {
+        this.props.actions.addDangerToast(
+          t('An error occurred while loading dashboard information.'),
+        );
       }
     }
   }
@@ -201,12 +207,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           validId = response.id;
         }
 
-        const { result } = await this.loadDashboard(validId as number);
-        if (!result) {
+        try {
+          dashboard = await this.loadDashboard(validId as number);
+        } catch (error) {
           this.props.actions.saveSliceFailed();
           return;
         }
-        dashboard = result;
+
         if (isDefined(dashboard) && isDefined(dashboard?.id)) {
           sliceDashboards = sliceDashboards.includes(dashboard.id)
             ? sliceDashboards
@@ -273,14 +280,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   loadDashboard = async (id: number) => {
-    try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${id}`,
-      });
-      return response.json;
-    } catch (error) {
-      return { result: undefined };
-    }
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+    return response.json.result;
   };
 
   loadDashboards = async (search: string, page: number, pageSize: number) => {
