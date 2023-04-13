@@ -19,7 +19,18 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
