@@ -347,7 +347,41 @@ class TestDatasetApi(SupersetTestCase):
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
+            "uid": "2__table",
+            "datasource_name": "energy_usage",
+            "name": "public.energy_usage",
+            "column_formats": {},
+            "granularity_sqla": [],
+            "time_grain_sqla": [
+                ['PT1S', 'Second'],
+                ['PT1M', 'Minute'],
+                ['PT1H', 'Hour'],
+                ['P1D', 'Day'],
+                ['P1W', 'Week'],
+                ['P1M', 'Month'],
+                ['P3M', 'Quarter'],
+                ['P1Y', 'Year'],
+            ],
+            "order_by_choices": [
+                ['["source", true]', 'source [asc]'],
+                ['["source", false]', 'source [desc]'],
+                ['["target", true]', 'target [asc]'],
+                ['["target", false]', 'target [desc]'],
+                ['["value", true]', 'value [asc]'],
+                ['["value", false]', 'value [desc]'],
+            ],
+            "verbose_map": {
+                '__timestamp': 'Time',
+                'count': 'COUNT(*)',
+                'source': 'source',
+                'sum__value': 'sum__value',
+                'target': 'target',
+                'value': 'value',
+            },
         }
+        import pprint
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(response["result"])
         if response["result"]["database"]["backend"] not in ("presto", "hive"):
             assert {
                 k: v for k, v in response["result"].items() if k in expected_result
