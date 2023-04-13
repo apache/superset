@@ -28,7 +28,7 @@ export const PLACEHOLDER_DATASOURCE: Datasource = {
   columns: [],
   column_types: [],
   metrics: [],
-  column_format: {},
+  column_formats: {},
   verbose_map: {},
   main_dttm_col: '',
   description: '',

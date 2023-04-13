@@ -195,6 +195,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.backend",
         "columns.advanced_data_type",
         "is_managed_externally",
+        "uid",
+        "datasource_name",
+        "name",
+        "column_formats",
+        "granularity_sqla",
+        "time_grain_sqla",
+        "order_by_choices",
+        "verbose_map",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()

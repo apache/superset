@@ -40,7 +40,7 @@ const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
-const SAVE_DATASOURCE_ENDPOINT = 'glob:*/datasource/save/';
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 
 const mockedProps = {
   datasource,
@@ -111,7 +111,7 @@ describe('DatasourceModal', () => {
       okButton.simulate('click');
     });
     await waitForComponentToPaint(wrapper);
-    const expected = ['http://localhost/datasource/save/'];
+    const expected = ['http://localhost/api/v1/dataset/7'];
     expect(callsP._calls.map(call => call[0])).toEqual(
       expected,
     ); /* eslint no-underscore-dangle: 0 */
