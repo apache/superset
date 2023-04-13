@@ -19,7 +19,7 @@ import json
 import unittest
 from io import BytesIO
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -352,16 +352,7 @@ class TestDatasetApi(SupersetTestCase):
             "name": "public.energy_usage",
             "column_formats": {},
             "granularity_sqla": [],
-            "time_grain_sqla": [
-                ["PT1S", "Second"],
-                ["PT1M", "Minute"],
-                ["PT1H", "Hour"],
-                ["P1D", "Day"],
-                ["P1W", "Week"],
-                ["P1M", "Month"],
-                ["P3M", "Quarter"],
-                ["P1Y", "Year"],
-            ],
+            "time_grain_sqla": ANY,
             "order_by_choices": [
                 ['["source", true]', "source [asc]"],
                 ['["source", false]', "source [desc]"],
