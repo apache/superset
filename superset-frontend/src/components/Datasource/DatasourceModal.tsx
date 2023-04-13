@@ -131,7 +131,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               uuid: metric.uuid,
               extra: buildExtraJsonObject(metric),
             };
-            if (!isNaN(metric.id as number)) {
+            if (!Number.isNaN(Number(metric.id))) {
               metricBody.id = metric.id;
             }
             return metricBody;
