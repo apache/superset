@@ -21,12 +21,12 @@ import React, { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, isUndefined, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
+import { waitFor, within } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import DrillByModal from './DrillByModal';
+import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
@@ -60,9 +60,15 @@ const dataset = {
       last_name: 'Connor',
     },
   ],
+  columns: [
+    {
+      column_name: 'gender',
+    },
+    { column_name: 'name' },
+  ],
 };
 
-const renderModal = async () => {
+const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
 
@@ -76,6 +82,7 @@ const renderModal = async () => {
             formData={formData}
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
+            {...modalProps}
           />
         )}
       </DashboardPageIdContext.Provider>
@@ -127,7 +134,10 @@ test('should render loading indicator', async () => {
 });
 
 test('should generate Explore url', async () => {
-  await renderModal();
+  await renderModal({
+    column: { column_name: 'name' },
+    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+  });
   await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
     form_data: {
@@ -135,6 +145,18 @@ test('should generate Explore url', async () => {
         omit(formData, ['slice_id', 'slice_name', 'dashboards']),
         isUndefined,
       ),
+      groupby: ['name'],
+      adhoc_filters: [
+        ...formData.adhoc_filters,
+        {
+          clause: 'WHERE',
+          comparator: 'boy',
+          expressionType: 'SIMPLE',
+          operator: '==',
+          operatorId: 'EQUALS',
+          subject: 'gender',
+        },
+      ],
       slice_id: 0,
       result_format: 'json',
       result_type: 'full',
@@ -169,4 +191,26 @@ test('should render radio buttons', async () => {
   userEvent.click(tableRadio);
   expect(chartRadio).not.toBeChecked();
   expect(tableRadio).toBeChecked();
+});
+
+test('render breadcrumbs', async () => {
+  await renderModal({
+    column: { column_name: 'name' },
+    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+  });
+
+  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  expect(breadcrumbItems).toHaveLength(2);
+  expect(
+    within(breadcrumbItems[0]).getByText('gender (boy)'),
+  ).toBeInTheDocument();
+  expect(within(breadcrumbItems[1]).getByText('name')).toBeInTheDocument();
+
+  userEvent.click(screen.getByText('gender (boy)'));
+
+  const newBreadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  // we need to assert that there is only 1 element now
+  // eslint-disable-next-line jest-dom/prefer-in-document
+  expect(newBreadcrumbItems).toHaveLength(1);
+  expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
 });
