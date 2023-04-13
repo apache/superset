@@ -23,6 +23,7 @@ from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
+from superset.dashboards.schemas import DatabaseSchema
 from superset.datasets.models import Dataset
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -143,6 +144,34 @@ class DatasetRelatedDashboards(Schema):
 class DatasetRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatasetRelatedCharts)
     dashboards = fields.Nested(DatasetRelatedDashboards)
+
+
+class DatasetResponse(Schema):
+    id = fields.Int()
+    cache_timeout = fields.Int()
+    columns = fields.List(fields.Dict())
+    database = fields.Nested(DatabaseSchema)
+    datasource_type = fields.String()
+    default_endpoint = fields.String()
+    description = fields.String()
+    extra = fields.String()
+    fetch_values_predicate = fields.String()
+    filter_select_enabled = fields.Bool()
+    is_managed_externally = fields.Bool()
+    is_sqllab_view = fields.Bool()
+    kind = fields.String()
+    main_dttm_col = fields.String()
+    metrics = fields.List(fields.Dict())
+    name = fields.String()
+    offset = fields.Int()
+    owners = fields.List(fields.Dict())
+    schema = fields.String()
+    select_star = fields.String()
+    sql = fields.String()
+    table_name = fields.String()
+    template_params = fields.String()
+    url = fields.String()
+    verbose_map = fields.Dict(fields.String(), fields.String())
 
 
 class ImportV1ColumnSchema(Schema):

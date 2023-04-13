@@ -276,7 +276,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         items:
-                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+                          $ref: '#/components/schemas/DatasetResponse'
             400:
               $ref: '#/components/responses/400'
             401:
