@@ -49,18 +49,20 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._database is not None
+        assert self._base_model is not None
         try:
             table_name = self._properties["table_name"]
             owners = self._properties["owners"]
             table = SqlaTable(table_name=table_name, owners=owners)
-            table.database = self._database  # type: ignore
-            table.schema = self._base_model.schema  # type: ignore
-            table.template_params = self._base_model.template_params  # type: ignore
+            table.database = self._database
+            table.schema = self._base_model.schema
+            table.template_params = self._base_model.template_params
             table.is_sqllab_view = True
-            table.sql = ParsedQuery(self._base_model.sql).stripped()  # type: ignore
+            table.sql = ParsedQuery(self._base_model.sql).stripped()
             db.session.add(table)
             cols = []
-            for config_ in self._base_model.columns:  # type: ignore
+            for config_ in self._base_model.columns:
                 column_name = config_.column_name
                 col = TableColumn(
                     column_name=column_name,
@@ -75,7 +77,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 cols.append(col)
             table.columns = cols
             mets = []
-            for config_ in self._base_model.metrics:  # type: ignore
+            for config_ in self._base_model.metrics:
                 metric_name = config_.metric_name
                 met = SqlMetric(
                     metric_name=metric_name,
