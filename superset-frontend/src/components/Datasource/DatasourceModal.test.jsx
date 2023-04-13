@@ -95,7 +95,7 @@ describe('DatasourceModal', () => {
     expect(wrapper.find(DatasourceEditor)).toExist();
   });
 
-  it.only('saves on confirm', async () => {
+  it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     fetchMock.get(GET_DATASOURCE_ENDPOINT, {});
