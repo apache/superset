@@ -150,7 +150,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Map Style Settings'),
+      label: t('Map Style & Layer Settings'),
       expanded: true,
       controlSetRows: [
         [
@@ -176,24 +176,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'hide_legend',
-            config: {
-              type: 'CheckboxControl',
-              default: false,
-              renderTrigger: true,
-              label: t('Hide Legend?'),
-              description: t('Check this if you don\'t want the legend option to appear on the map.')
-            }
-          }
-        ]
-      ]
-    },
-    {
-      label: t('Base Layer Settings'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
             name: 'intranet_layers',
             config: {
               type: 'SelectControl',
@@ -210,6 +192,30 @@ const config: ControlPanelConfig = {
                 ['supermarkets', 'Supermarkets'],
                 ['liquor', 'Liquor']
               ]
+            }
+          }
+        ],
+      ]
+    },
+    {
+      label: t('Map Feature Settings'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'features',
+            config: {
+              type: 'SelectControl',
+              default: 'legend',
+              multi: true,
+              choices: [
+                ['legend', 'Legend'],
+                ['radius', 'Radius'],
+                ['drivetime', 'Drivetime']
+              ],
+              renderTrigger: true,
+              label: t('Map Features'),
+              description: t('Select features/functionality you want to add to the map.')
             }
           }
         ]
@@ -366,7 +372,8 @@ const config: ControlPanelConfig = {
                 g: 168,
                 b: 201,
                 a: 100
-              }
+              },
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ],
@@ -381,7 +388,8 @@ const config: ControlPanelConfig = {
               default: 0.5,
               renderTrigger: false,
               label: t('Radius Intersection Threshold'),
-              description: t('Threshold for ratio of SA1 intersection with radius, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the radius.')
+              description: t('Threshold for ratio of SA1 intersection with radius, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the radius.'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ],
@@ -392,7 +400,8 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               renderTrigger: false,
               label: t('Chart IDs'),
-              description: t('Comma separated list of chart IDs whose charts we want to update when radius updates.')
+              description: t('Comma separated list of chart IDs whose charts we want to update when radius updates.'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ]
@@ -414,7 +423,8 @@ const config: ControlPanelConfig = {
                 g: 168,
                 b: 201,
                 a: 100
-              }
+              },
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
           }
         ],
@@ -429,7 +439,8 @@ const config: ControlPanelConfig = {
               default: 0.5,
               renderTrigger: false,
               label: t('Drivetime Intersection Threshold'),
-              description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.')
+              description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
           }
         ],
@@ -440,7 +451,8 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               renderTrigger: false,
               label: t('Chart IDs'),
-              description: t('Comma separated list of chart IDs whose charts we want to update when drivetime updates.')
+              description: t('Comma separated list of chart IDs whose charts we want to update when drivetime updates.'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
           }
         ]

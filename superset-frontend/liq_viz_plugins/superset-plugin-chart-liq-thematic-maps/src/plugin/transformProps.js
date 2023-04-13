@@ -54,9 +54,9 @@ export default function transformProps(chartProps) {
   const { 
     mapType,
     mapStyle,
-    hideLegend,
     boundary,
     intranetLayers, 
+    features,
     linearColorScheme, 
     breaksMode,
     customMode,
@@ -147,9 +147,9 @@ export default function transformProps(chartProps) {
     // and now your control data, manipulated as needed, and passed through as props!
     mapType,
     mapStyle,
-    hideLegend,
     boundary,
     intranetLayers,
+    features,
     linearColorScheme,
     breaksMode,
     customMode,

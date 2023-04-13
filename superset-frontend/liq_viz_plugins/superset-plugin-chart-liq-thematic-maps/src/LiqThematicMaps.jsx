@@ -84,9 +84,9 @@ export default function LiqThematicMaps(props) {
     width, 
     mapType, // type of map, can be one or more of thematic, trade_area and intranet
     mapStyle, // Mapbox "base map" style, i.e. Streets, Light, etc.
-    hideLegend, // whether or not to show the legend 
     boundary, // boundary layer for the map, i.e. SA1, POA, etc.
     intranetLayers, // list of intranet layers, i.e. shopping centres, supermarkets, etc.
+    features, // list of features to include in map
     linearColorScheme, // color palette for thematic
     breaksMode, // how to break up data
     customMode, // if breaksMode is "custom", user defined breaks 
@@ -140,7 +140,7 @@ export default function LiqThematicMaps(props) {
       label: 'Menu',
       key: 'menu',
       children: [
-        !hideLegend && 
+        features.includes('legend') && 
         {
           icon: <BarsOutlined />,
           label: <span>Legend</span>,
@@ -171,7 +171,7 @@ export default function LiqThematicMaps(props) {
             setDrawerOpen(true);
           }
         },
-        {
+        features.includes('radius') && {
           icon: <RadiusSettingOutlined />,
           label: <span>Radius</span>,
           key: '2',
@@ -190,7 +190,7 @@ export default function LiqThematicMaps(props) {
             setDrawerOpen(true);
           }
         },
-        {
+        features.includes('drivetime') && {
           icon: <CarOutlined />,
           label: <span>Drivetime</span>,
           key: '3',
