@@ -59,6 +59,7 @@ export interface DrillByMenuItemsProps {
   contextMenuY?: number;
   submenuIndex?: number;
   groupbyFieldName?: string;
+  adhocFilterFieldName?: string;
   onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
   openNewModal?: boolean;
@@ -68,6 +69,7 @@ export interface DrillByMenuItemsProps {
 export const DrillByMenuItems = ({
   filters,
   groupbyFieldName,
+  adhocFilterFieldName,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
@@ -130,6 +132,11 @@ export const DrillByMenuItems = ({
                 column =>
                   !ensureIsArray(formData[groupbyFieldName]).includes(
                     column.column_name,
+                  ) &&
+                  column.column_name !== formData.x_axis &&
+                  ensureIsArray(excludedColumns)?.every(
+                    excludedCol =>
+                      excludedCol.column_name !== column.column_name,
                   ),
               ),
           );
@@ -138,7 +145,13 @@ export const DrillByMenuItems = ({
           supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
         });
     }
-  }, [formData, groupbyFieldName, handlesDimensionContextMenu, hasDrillBy]);
+  }, [
+    excludedColumns,
+    formData,
+    groupbyFieldName,
+    handlesDimensionContextMenu,
+    hasDrillBy,
+  ]);
 
   const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -148,16 +161,12 @@ export const DrillByMenuItems = ({
 
   const filteredColumns = useMemo(
     () =>
-      columns.filter(
-        column =>
-          (column.verbose_name || column.column_name)
-            .toLowerCase()
-            .includes(searchInput.toLowerCase()) &&
-          !ensureIsArray(excludedColumns)?.some(
-            col => col.column_name === column.column_name,
-          ),
+      columns.filter(column =>
+        (column.verbose_name || column.column_name)
+          .toLowerCase()
+          .includes(searchInput.toLowerCase()),
       ),
-    [columns, excludedColumns, searchInput],
+    [columns, searchInput],
   );
 
   const submenuYOffset = useMemo(
@@ -260,6 +269,7 @@ export const DrillByMenuItems = ({
           filters={filters}
           formData={formData}
           groupbyFieldName={groupbyFieldName}
+          adhocFilterFieldName={adhocFilterFieldName}
           onHideModal={closeModal}
           dataset={dataset!}
         />
