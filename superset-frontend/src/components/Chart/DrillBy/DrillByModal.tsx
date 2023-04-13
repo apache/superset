@@ -127,7 +127,6 @@ export default function DrillByModal({
 }: DrillByModalProps) {
   const theme = useTheme();
 
-  console.log('DUPA', formData);
   const initialGroupbyColumns = useMemo(
     () =>
       ensureIsArray(formData[groupbyFieldName])
