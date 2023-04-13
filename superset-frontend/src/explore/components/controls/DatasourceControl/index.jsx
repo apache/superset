@@ -173,7 +173,6 @@ class DatasourceControl extends React.PureComponent {
   }
 
   onDatasourceSave = datasource => {
-    console.log(datasource);
     this.props.actions.changeDatasource(datasource);
     const { temporalColumns, defaultTemporalColumn } =
       getTemporalColumns(datasource);
