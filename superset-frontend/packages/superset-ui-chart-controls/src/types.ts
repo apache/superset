@@ -481,3 +481,16 @@ export function isQueryResponse(
 ): datasource is QueryResponse {
   return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};

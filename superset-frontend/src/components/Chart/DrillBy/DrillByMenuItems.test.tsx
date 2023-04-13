@@ -32,7 +32,9 @@ import { DrillByMenuItems, DrillByMenuItemsProps } from './DrillByMenuItems';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-const datasetEndpointMatcher = 'glob:*/api/v1/dataset/7';
+const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/7';
+const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
+const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
 const defaultColumns = [
@@ -60,6 +62,7 @@ const defaultFilters = [
 const renderMenu = ({
   formData = defaultFormData,
   filters = defaultFilters,
+  ...rest
 }: Partial<DrillByMenuItemsProps>) =>
   render(
     <Menu>
@@ -67,6 +70,7 @@ const renderMenu = ({
         formData={formData ?? defaultFormData}
         filters={filters}
         groupbyFieldName="groupby"
+        {...rest}
       />
     </Menu>,
     { useRouter: true, useRedux: true },
@@ -134,19 +138,19 @@ test('render disabled menu item for supported chart, no filters', async () => {
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {
-  fetchMock.get(datasetEndpointMatcher, { result: { columns: [] } });
+  fetchMock.get(DATASET_ENDPOINT, { result: { columns: [] } });
   renderMenu({});
-  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByDisabled('No dimensions available for drill by');
 });
 
 test('render menu item with submenu without searchbox', async () => {
   const slicedColumns = defaultColumns.slice(0, 9);
-  fetchMock.get(datasetEndpointMatcher, {
+  fetchMock.get(DATASET_ENDPOINT, {
     result: { columns: slicedColumns },
   });
   renderMenu({});
-  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
   slicedColumns.forEach(column => {
     expect(screen.getByText(column.column_name)).toBeInTheDocument();
@@ -155,11 +159,11 @@ test('render menu item with submenu without searchbox', async () => {
 });
 
 test('render menu item with submenu and searchbox', async () => {
-  fetchMock.get(datasetEndpointMatcher, {
+  fetchMock.get(DATASET_ENDPOINT, {
     result: { columns: defaultColumns },
   });
   renderMenu({});
-  await waitFor(() => fetchMock.called(datasetEndpointMatcher));
+  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
   defaultColumns.forEach(column => {
     expect(screen.getByText(column.column_name)).toBeInTheDocument();
@@ -183,4 +187,56 @@ test('render menu item with submenu and searchbox', async () => {
   expectedFilteredColumnNames.forEach(colName => {
     expect(screen.getByText(colName)).toBeInTheDocument();
   });
+});
+
+test('Do not display excluded column in the menu', async () => {
+  fetchMock.get(DATASET_ENDPOINT, {
+    result: { columns: defaultColumns },
+  });
+
+  const excludedColNames = ['col3', 'col5'];
+  renderMenu({
+    excludedColumns: excludedColNames.map(colName => ({
+      column_name: colName,
+    })),
+  });
+
+  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
+  await expectDrillByEnabled();
+
+  excludedColNames.forEach(colName => {
+    expect(screen.queryByText(colName)).not.toBeInTheDocument();
+  });
+
+  defaultColumns
+    .filter(column => !excludedColNames.includes(column.column_name))
+    .forEach(column => {
+      expect(screen.getByText(column.column_name)).toBeInTheDocument();
+    });
+});
+
+test('When menu item is clicked, call onSelection with clicked column and drill by filters', async () => {
+  fetchMock
+    .get(DATASET_ENDPOINT, {
+      result: { columns: defaultColumns },
+    })
+    .post(FORM_DATA_KEY_ENDPOINT, {})
+    .post(CHART_DATA_ENDPOINT, {});
+
+  const onSelectionMock = jest.fn();
+  renderMenu({
+    onSelection: onSelectionMock,
+  });
+
+  await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
+  await expectDrillByEnabled();
+
+  userEvent.click(screen.getByText('col1'));
+  expect(onSelectionMock).toHaveBeenCalledWith(
+    {
+      column_name: 'col1',
+      groupby: true,
+    },
+    defaultFilters,
+  );
 });
