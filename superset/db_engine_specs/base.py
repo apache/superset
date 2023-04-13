@@ -43,6 +43,7 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from deprecation import deprecated
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -797,6 +798,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Normalizes indexes for more consistency across db engines
@@ -1178,6 +1180,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema and cls.try_remove_schema_from_table_name:
             views = {re.sub(f"^{schema}\\.", "", view) for view in views}
         return views
+
+    @classmethod
+    def get_indexes(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+        inspector: Inspector,
+        table_name: str,
+        schema: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Get the indexes associated with the specified schema/table.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param table_name: The table to inspect
+        :param schema: The schema to inspect
+        :returns: The indexes
+        """
+
+        return inspector.get_indexes(table_name, schema)
 
     @classmethod
     def get_table_comment(

@@ -1732,13 +1732,13 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column  # type: ignore
+                columns_by_name[column.get("column_name")] = column
             else:
                 columns_by_name[column.column_name] = column
 
     generic_types: List[GenericDataType] = []
     for column in df.columns:
-        column_object = columns_by_name.get(column)  # type: ignore
+        column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
         if isinstance(column_object, dict):
@@ -1786,15 +1786,9 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns: Set[Any]
-    if datasource.type == "query":
-        temporal_columns = {
-            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
-        }
-    else:
-        temporal_columns = {
-            col.column_name for col in datasource.columns if col.is_dttm
-        }
+    temporal_columns: Set[Any] = {
+        col.column_name for col in datasource.columns if col.is_dttm
+    }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)

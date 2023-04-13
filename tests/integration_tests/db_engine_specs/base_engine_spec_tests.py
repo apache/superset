@@ -521,3 +521,26 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
             },
         )
     ]
+
+
+def test_get_indexes():
+    indexes = [
+        {
+            "name": "partition",
+            "column_names": ["a", "b"],
+            "unique": False,
+        },
+    ]
+
+    inspector = mock.Mock()
+    inspector.get_indexes = mock.Mock(return_value=indexes)
+
+    assert (
+        BaseEngineSpec.get_indexes(
+            database=mock.Mock(),
+            inspector=inspector,
+            table_name="bar",
+            schema="foo",
+        )
+        == indexes
+    )

@@ -64,7 +64,6 @@ These features are **finished** but currently being tested. They are usable, but
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
-- UX_BETA
 - VERSIONED_EXPORT
 
 ## Stable
@@ -86,7 +85,6 @@ These features flags are **safe for production**. They have been tested and will
 - ENABLE_DND_WITH_CLICK_UX
 - ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_TEMPLATE_PROCESSING
-- ENFORCE_DB_ENCRYPTION_UI
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
@@ -103,3 +101,4 @@ These features flags currently default to True and **will be removed in a future
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
 - FORCE_DATABASE_CONNECTIONS_SSL
+- GENERIC_CHART_AXES

@@ -1242,8 +1242,8 @@ def test_chart_cache_timeout_chart_not_found(
     [
         (200, {"where": "1 = 1"}),
         (200, {"having": "count(*) > 0"}),
-        (400, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
-        (400, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+        (403, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (403, {"having": "count(*) > (select count(*) from physical_dataset)"}),
     ],
 )
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)

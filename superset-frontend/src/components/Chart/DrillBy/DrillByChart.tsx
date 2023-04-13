@@ -16,25 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { BaseFormData, Behavior, css, SuperChart } from '@superset-ui/core';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import Loading from 'src/components/Loading';
+import React, { useMemo } from 'react';
+import {
+  BaseFormData,
+  QueryData,
+  SuperChart,
+  css,
+  ContextMenuFilters,
+} from '@superset-ui/core';
 
 interface DrillByChartProps {
   formData: BaseFormData & { [key: string]: any };
+  result: QueryData[];
+  onContextMenu: (
+    offsetX: number,
+    offsetY: number,
+    filters: ContextMenuFilters,
+  ) => void;
+  inContextMenu: boolean;
 }
 
-export default function DrillByChart({ formData }: DrillByChartProps) {
-  const [chartDataResult, setChartDataResult] = useState();
-
-  useEffect(() => {
-    getChartDataRequest({
-      formData,
-    }).then(({ json }) => {
-      setChartDataResult(json.result);
-    });
-  }, []);
+export default function DrillByChart({
+  formData,
+  result,
+  onContextMenu,
+  inContextMenu,
+}: DrillByChartProps) {
+  const hooks = useMemo(() => ({ onContextMenu }), [onContextMenu]);
 
   return (
     <div
@@ -43,20 +51,17 @@ export default function DrillByChart({ formData }: DrillByChartProps) {
         height: 100%;
       `}
     >
-      {chartDataResult ? (
-        <SuperChart
-          disableErrorBoundary
-          behaviors={[Behavior.INTERACTIVE_CHART]}
-          chartType={formData.viz_type}
-          enableNoResults
-          formData={formData}
-          queriesData={chartDataResult}
-          height="100%"
-          width="100%"
-        />
-      ) : (
-        <Loading />
-      )}
+      <SuperChart
+        disableErrorBoundary
+        chartType={formData.viz_type}
+        enableNoResults
+        formData={formData}
+        queriesData={result}
+        hooks={hooks}
+        inContextMenu={inContextMenu}
+        height="100%"
+        width="100%"
+      />
     </div>
   );
 }

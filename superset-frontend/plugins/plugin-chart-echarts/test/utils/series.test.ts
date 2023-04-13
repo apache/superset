@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   DataRecord,
   getNumberFormatter,
@@ -33,8 +34,9 @@ import {
   getOverMaxHiddenFormatter,
   sanitizeHtml,
   sortAndFilterSeries,
+  sortRows,
 } from '../../src/utils/series';
-import { LegendOrientation, LegendType, SortSeriesType } from '../../src/types';
+import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
@@ -48,42 +50,149 @@ const expectedThemeProps = {
   },
 };
 
-test('sortAndFilterSeries', () => {
-  const data: DataRecord[] = [
+const sortData: DataRecord[] = [
+  { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  { my_x_axis: null, x: 4, y: 3, z: 7 },
+];
+
+test('sortRows by name ascending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Name, true)).toEqual([
     { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
     { my_x_axis: 'foo', x: null, y: 10, z: 5 },
     { my_x_axis: null, x: 4, y: 3, z: 7 },
-  ];
+  ]);
+});
 
+test('sortRows by name descending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Name, false)).toEqual([
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  ]);
+});
+
+test('sortRows by sum ascending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Sum, true)).toEqual([
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  ]);
+});
+
+test('sortRows by sum descending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Sum, false)).toEqual([
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  ]);
+});
+
+test('sortRows by avg ascending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Avg, true)).toEqual([
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  ]);
+});
+
+test('sortRows by avg descending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Avg, false)).toEqual([
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  ]);
+});
+
+test('sortRows by min ascending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, true)).toEqual([
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  ]);
+});
+
+test('sortRows by min descending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, false)).toEqual([
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  ]);
+});
+
+test('sortRows by max ascending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, true)).toEqual([
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  ]);
+});
+
+test('sortRows by max descending', () => {
+  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, false)).toEqual([
+    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+    { my_x_axis: null, x: 4, y: 3, z: 7 },
+    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  ]);
+});
+
+test('sortAndFilterSeries by min ascending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, true),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
   ).toEqual(['y', 'x', 'z']);
+});
+
+test('sortAndFilterSeries by min descending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Min, false),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, false),
   ).toEqual(['z', 'x', 'y']);
+});
+
+test('sortAndFilterSeries by max ascending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, true),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, true),
   ).toEqual(['x', 'z', 'y']);
+});
+
+test('sortAndFilterSeries by max descending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Max, false),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, false),
   ).toEqual(['y', 'z', 'x']);
+});
+
+test('sortAndFilterSeries by avg ascending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, true),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, true),
   ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by avg descending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Avg, false),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, false),
   ).toEqual(['z', 'y', 'x']);
+});
+
+test('sortAndFilterSeries by sum ascending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, true),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, true),
   ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by sum descending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Sum, false),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, false),
   ).toEqual(['z', 'y', 'x']);
+});
+
+test('sortAndFilterSeries by name ascending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, true),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, true),
   ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by name descending', () => {
   expect(
-    sortAndFilterSeries(data, 'my_x_axis', [], SortSeriesType.Name, false),
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, false),
   ).toEqual(['z', 'y', 'x']);
 });
 
