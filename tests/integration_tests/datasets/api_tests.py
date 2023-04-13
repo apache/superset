@@ -379,10 +379,6 @@ class TestDatasetApi(SupersetTestCase):
                 "value": "value",
             },
         }
-        import pprint
-
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(response["result"])
         if response["result"]["database"]["backend"] not in ("presto", "hive"):
             assert {
                 k: v for k, v in response["result"].items() if k in expected_result
