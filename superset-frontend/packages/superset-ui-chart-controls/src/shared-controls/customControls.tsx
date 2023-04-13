@@ -54,27 +54,29 @@ export const contributionModeControl = {
   },
 };
 
+function isNotTemporal(controls: ControlStateMapping): boolean {
+  return (
+    isDefined(controls?.x_axis?.value) &&
+    !isTemporalColumn(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+    )
+  );
+}
+
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  isDefined(controls?.x_axis?.value) &&
-  !isTemporalColumn(
-    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-    controls?.datasource?.datasource,
-  ) &&
-  Array.isArray(controls?.groupby?.value) &&
-  controls.groupby.value.length === 0;
+  isNotTemporal(controls) &&
+  ensureIsArray(controls?.groupby?.value).length === 0 &&
+  ensureIsArray(controls?.metrics?.value).length === 1;
 
 const xAxisMultiSortVisibility = ({
   controls,
 }: {
   controls: ControlStateMapping;
 }) =>
-  isDefined(controls?.x_axis?.value) &&
-  !isTemporalColumn(
-    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-    controls?.datasource?.datasource,
-  ) &&
-  Array.isArray(controls?.groupby?.value) &&
-  !!controls.groupby.value.length;
+  isNotTemporal(controls) &&
+  (!!ensureIsArray(controls?.groupby?.value).length ||
+    ensureIsArray(controls?.metrics?.value).length > 1);
 
 export const xAxisSortControl = {
   name: 'x_axis_sort',

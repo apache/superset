@@ -56,83 +56,165 @@ const sortData: DataRecord[] = [
   { my_x_axis: null, x: 4, y: 3, z: 7 },
 ];
 
+const totalStackedValues = [3, 15, 14];
+
 test('sortRows by name ascending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Name, true)).toEqual([
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Name,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
   ]);
 });
 
 test('sortRows by name descending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Name, false)).toEqual([
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Name,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
 test('sortRows by sum ascending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Sum, true)).toEqual([
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Sum,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
 test('sortRows by sum descending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Sum, false)).toEqual([
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Sum,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
 test('sortRows by avg ascending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Avg, true)).toEqual([
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Avg,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
 test('sortRows by avg descending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Avg, false)).toEqual([
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Avg,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
 test('sortRows by min ascending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, true)).toEqual([
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
 test('sortRows by min descending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, false)).toEqual([
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
 test('sortRows by max ascending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, true)).toEqual([
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
 test('sortRows by max descending', () => {
-  expect(sortRows(sortData, 'my_x_axis', SortSeriesType.Min, false)).toEqual([
-    { my_x_axis: 'foo', x: null, y: 10, z: 5 },
-    { my_x_axis: null, x: 4, y: 3, z: 7 },
-    { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
@@ -215,25 +297,29 @@ describe('extractSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractSeries(data)).toEqual([
-      {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [
-          ['2000-01-01', null],
-          ['2000-02-01', 2],
-          ['2000-03-01', 1],
-        ],
-      },
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          ['2000-01-01', 2],
-          ['2000-02-01', 10],
-          ['2000-03-01', 5],
-        ],
-      },
+    const totalStackedValues = [2, 12, 6];
+    expect(extractSeries(data, { totalStackedValues })).toEqual([
+      [
+        {
+          id: 'Hulk',
+          name: 'Hulk',
+          data: [
+            ['2000-01-01', null],
+            ['2000-02-01', 2],
+            ['2000-03-01', 1],
+          ],
+        },
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            ['2000-01-01', 2],
+            ['2000-02-01', 10],
+            ['2000-03-01', 5],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 
@@ -255,20 +341,30 @@ describe('extractSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
-      {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [[2, 1]],
-      },
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          [1, 2],
-          [2, 5],
-        ],
-      },
+    const totalStackedValues = [3, 12, 8];
+    expect(
+      extractSeries(data, {
+        totalStackedValues,
+        xAxis: 'x',
+        removeNulls: true,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'Hulk',
+          name: 'Hulk',
+          data: [[2, 1]],
+        },
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            [1, 2],
+            [2, 5],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 
@@ -315,23 +411,29 @@ describe('extractSeries', () => {
         abc: null,
       },
     ];
-    expect(extractSeries(data, { fillNeighborValue: 0 })).toEqual([
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          ['2000-01-01', null],
-          ['2000-02-01', 0],
-          ['2000-03-01', 1],
-          ['2000-04-01', 0],
-          ['2000-05-01', null],
-          ['2000-06-01', 0],
-          ['2000-07-01', 2],
-          ['2000-08-01', 3],
-          ['2000-09-01', 0],
-          ['2000-10-01', null],
-        ],
-      },
+    const totalStackedValues = [0, 0, 1, 0, 0, 0, 2, 3, 0, 0];
+    expect(
+      extractSeries(data, { totalStackedValues, fillNeighborValue: 0 }),
+    ).toEqual([
+      [
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            ['2000-01-01', null],
+            ['2000-02-01', 0],
+            ['2000-03-01', 1],
+            ['2000-04-01', 0],
+            ['2000-05-01', null],
+            ['2000-06-01', 0],
+            ['2000-07-01', 2],
+            ['2000-08-01', 3],
+            ['2000-09-01', 0],
+            ['2000-10-01', null],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 });
