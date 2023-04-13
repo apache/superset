@@ -119,18 +119,23 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         is_managed_externally: currentDatasource.is_managed_externally,
         external_url: currentDatasource.external_url,
         metrics: currentDatasource?.metrics?.map(
-          (metric: Record<string, unknown>) => ({
-            id: metric.id,
-            expression: metric.expression,
-            description: metric.description,
-            metric_name: metric.metric_name,
-            metric_type: metric.metric_type,
-            d3format: metric.d3format,
-            verbose_name: metric.verbose_name,
-            warning_text: metric.warning_text,
-            uuid: metric.uuid,
-            extra: buildExtraJsonObject(metric),
-          }),
+          (metric: Record<string, unknown>) => {
+            const metricBody: any = {
+              expression: metric.expression,
+              description: metric.description,
+              metric_name: metric.metric_name,
+              metric_type: metric.metric_type,
+              d3format: metric.d3format,
+              verbose_name: metric.verbose_name,
+              warning_text: metric.warning_text,
+              uuid: metric.uuid,
+              extra: buildExtraJsonObject(metric),
+            };
+            if (!isNaN(metric.id as number)) {
+              metricBody.id = metric.id;
+            }
+            return metricBody;
+          },
         ),
         columns: currentDatasource?.columns?.map(
           (column: Record<string, unknown>) => ({
