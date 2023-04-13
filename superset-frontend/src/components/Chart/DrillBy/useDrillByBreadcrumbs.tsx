@@ -58,6 +58,16 @@ export const useDrillByBreadcrumbs = (
   useMemo(() => {
     // the last breadcrumb is not clickable
     const isClickable = (index: number) => index < breadcrumbsData.length - 1;
+    const getBreadcrumbText = (breadcrumb: DrillByBreadcrumb) =>
+      `${ensureIsArray(breadcrumb.groupby)
+        .map(column => column.verbose_name || column.column_name)
+        .join(', ')} ${
+        breadcrumb.filters
+          ? `(${breadcrumb.filters
+              .map(filter => filter.formattedVal || filter.val)
+              .join(', ')})`
+          : ''
+      }`;
     return (
       <AntdBreadcrumb
         css={(theme: SupersetTheme) => css`
@@ -73,15 +83,9 @@ export const useDrillByBreadcrumbs = (
                 ? () => onBreadcrumbClick(breadcrumb, index)
                 : noOp
             }
+            data-test="drill-by-breadcrumb-item"
           >
-            {ensureIsArray(breadcrumb.groupby)
-              .map(column => column.verbose_name || column.column_name)
-              .join(', ')}{' '}
-            {breadcrumb.filters
-              ? `(${breadcrumb.filters
-                  .map(filter => filter.formattedVal || filter.val)
-                  .join(', ')})`
-              : ''}
+            {getBreadcrumbText(breadcrumb)}
           </BreadcrumbItem>
         ))}
       </AntdBreadcrumb>

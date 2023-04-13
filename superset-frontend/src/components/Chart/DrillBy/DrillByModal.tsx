@@ -106,7 +106,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   );
 };
 
-interface DrillByModalProps {
+export interface DrillByModalProps {
   column?: Column;
   dataset: Dataset;
   filters?: BinaryQueryObjectFilterClause[];
@@ -127,6 +127,7 @@ export default function DrillByModal({
 }: DrillByModalProps) {
   const theme = useTheme();
 
+  console.log('DUPA', formData);
   const initialGroupbyColumns = useMemo(
     () =>
       ensureIsArray(formData[groupbyFieldName])
