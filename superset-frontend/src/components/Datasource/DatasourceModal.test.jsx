@@ -41,6 +41,7 @@ const datasource = mockDatasource['7__table'];
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
 const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
+const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
 
 const mockedProps = {
   datasource,
@@ -94,9 +95,10 @@ describe('DatasourceModal', () => {
     expect(wrapper.find(DatasourceEditor)).toExist();
   });
 
-  it('saves on confirm', async () => {
+  it.only('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
+    fetchMock.get(GET_DATASOURCE_ENDPOINT, {});
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')
@@ -111,7 +113,11 @@ describe('DatasourceModal', () => {
       okButton.simulate('click');
     });
     await waitForComponentToPaint(wrapper);
-    const expected = ['http://localhost/api/v1/dataset/7'];
+    // one call to PUT, then one to GET
+    const expected = [
+      'http://localhost/api/v1/dataset/7',
+      'http://localhost/api/v1/dataset/7',
+    ];
     expect(callsP._calls.map(call => call[0])).toEqual(
       expected,
     ); /* eslint no-underscore-dangle: 0 */

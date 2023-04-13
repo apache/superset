@@ -69,9 +69,20 @@ const createProps = (overrides: JsonObject = {}) => ({
 });
 
 async function openAndSaveChanges(datasource: any) {
-  fetchMock.put('glob:*/api/v1/dataset/*', datasource, {
-    overwriteRoutes: true,
-  });
+  fetchMock.put(
+    'glob:*/api/v1/dataset/*',
+    {},
+    {
+      overwriteRoutes: true,
+    },
+  );
+  fetchMock.get(
+    'glob:*/api/v1/dataset/*',
+    { result: datasource },
+    {
+      overwriteRoutes: true,
+    },
+  );
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   userEvent.click(await screen.findByTestId('edit-dataset'));
   userEvent.click(await screen.findByTestId('datasource-modal-save'));
