@@ -255,7 +255,8 @@ const config: ControlPanelConfig = {
               choices: [
                 ['custom', 'Custom'],
                 ['equal_count', 'Equal Count (Quantile)'],
-                ['equal_interval', 'Equal Interval']
+                ['equal_interval', 'Equal Interval'],
+                ['categorized', 'Categorized']
               ],
               renderTrigger: false,
               label: t('Mode'),

@@ -552,6 +552,30 @@ export default function LiqThematicMaps(props) {
     var myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 
+    const colors = getSequentialSchemeRegistry().get(linearColorScheme).colors;
+    const initParams = {
+      'colors': colors,
+      'cmap_type': breaksMode,
+      'values': data.map(d => d[metricCol]),
+      'secret': liqSecrets.lambdaFunctions.cMap.secret
+    }
+    var raw;
+
+    if (breaksMode === 'custom') {
+      raw = JSON.stringify({
+        ...initParams,
+        'breaks': customMode,
+        'n_classes': numClasses
+      })
+    } else if (breaksMode === 'categorized') {
+      raw = JSON.stringify(initParams)
+    } else {
+      raw = JSON.stringify({
+        ...initParams,
+        'n_classes': numClasses
+      })
+    }
+
     var raw = (!breaksMode || breaksMode === 'custom') ? JSON.stringify({
       'colors': getSequentialSchemeRegistry().get(linearColorScheme).colors,
       'breaks': customMode,
