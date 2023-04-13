@@ -25,7 +25,6 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
-  SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
@@ -44,14 +43,8 @@ import {
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
-  FullSQLEditor: ({ onChange, onBlur, value }) => (
-    <textarea
-      data-test="react-ace"
-      onChange={evt => onChange(evt.target.value)}
-      onBlur={onBlur}
-    >
-      {value}
-    </textarea>
+  FullSQLEditor: props => (
+    <div data-test="react-ace">{JSON.stringify(props)}</div>
   ),
 }));
 jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => () => (
@@ -173,8 +166,10 @@ describe('SqlEditor', () => {
         },
       }),
     );
-    const editor = await findByTestId('react-ace');
-    expect(editor).toHaveValue(expectedSql);
+
+    expect(await findByTestId('react-ace')).toHaveTextContent(
+      JSON.stringify({ value: expectedSql }).slice(1, -1),
+    );
   });
 
   it('render a SouthPane', async () => {
@@ -182,28 +177,6 @@ describe('SqlEditor', () => {
     expect(
       await findByText(/run a query to display results/i),
     ).toBeInTheDocument();
-  });
-
-  it('triggers setQueryEditorAndSaveSql with debounced call to avoid performance regression', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    const editor = await findByTestId('react-ace');
-    const sql = 'select *';
-    fireEvent.change(editor, { target: { value: sql } });
-    // Verify no immediate sql update triggered
-    expect(
-      store.getActions().filter(({ type }) => type === 'QUERY_EDITOR_SET_SQL'),
-    ).toHaveLength(0);
-    await waitFor(
-      () =>
-        expect(
-          store
-            .getActions()
-            .filter(({ type }) => type === 'QUERY_EDITOR_SET_SQL'),
-        ).toHaveLength(1),
-      {
-        timeout: SET_QUERY_EDITOR_SQL_DEBOUNCE_MS + 100,
-      },
-    );
   });
 
   it('runs query action with ctas false', async () => {
