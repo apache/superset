@@ -337,7 +337,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "Energy consumption",
             "extra": None,
             "fetch_values_predicate": None,
-            "filter_select_enabled": False,
+            "filter_select_enabled": True,
             "is_sqllab_view": False,
             "kind": "physical",
             "main_dttm_col": None,
