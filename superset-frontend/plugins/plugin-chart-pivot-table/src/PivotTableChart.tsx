@@ -17,22 +17,24 @@
  * under the License.
  */
 import React, { useCallback, useMemo } from 'react';
-import { PlusSquareOutlined, MinusSquareOutlined } from '@ant-design/icons';
+import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
+  BinaryQueryObjectFilterClause,
   DataRecordValue,
+  FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
+  getSelectedText,
+  isAdhocColumn,
+  isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
   styled,
-  useTheme,
-  isAdhocColumn,
-  BinaryQueryObjectFilterClause,
   t,
-  getSelectedText,
+  useTheme,
 } from '@superset-ui/core';
-import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
+import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
   MetricsLayoutEnum,
@@ -407,7 +409,10 @@ export default function PivotTableChart(props: PivotTableProps) {
       clickColumnHeaderCallback: toggleFilter,
       colTotals,
       rowTotals,
-      highlightHeaderCellsOnHover: emitCrossFilters,
+      highlightHeaderCellsOnHover:
+        emitCrossFilters ||
+        isFeatureEnabled(FeatureFlag.DRILL_BY) ||
+        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
