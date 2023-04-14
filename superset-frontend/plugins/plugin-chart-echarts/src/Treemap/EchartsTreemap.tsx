@@ -19,6 +19,7 @@
 import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
@@ -26,6 +27,7 @@ import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
+import moment from 'moment';
 
 export default function EchartsTreemap({
   echartOptions,
@@ -113,6 +115,8 @@ export default function EchartsTreemap({
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
         const { treePath } = extractTreePathInfo(treePathInfo);
+        const timestampFormatter = (value: any) =>
+          getTimeFormatterForGranularity()(value);
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
@@ -129,6 +133,9 @@ export default function EchartsTreemap({
               col: groupby[i],
               op: '==',
               val,
+              formattedVal: moment(val).isValid()
+                ? String(timestampFormatter(val))
+                : String(val),
             });
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

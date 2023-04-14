@@ -25,6 +25,7 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
+import moment from 'moment';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
 
@@ -171,6 +172,7 @@ function WorldMap(element, props) {
     const key = source.id || source.country;
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+    const timestampFormatter = (value) => getTimeFormatterForGranularity(timeGrain)(value)
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
@@ -187,6 +189,9 @@ function WorldMap(element, props) {
           col: entity,
           op: '==',
           val,
+          formattedVal: moment(val).isValid()
+              ? String(timestampFormatter(val))
+              : String(val),
         },
       ];
     }

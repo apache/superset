@@ -17,7 +17,11 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
+import moment from 'moment';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
@@ -111,6 +115,8 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+        const timestampFormatter = (value: any) =>
+          getTimeFormatterForGranularity()(value);
         if (columns?.length) {
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
@@ -120,10 +126,14 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
               formattedVal: path,
             }),
           );
+          const val = treePath[treePath.length - 1];
           drillByFilters.push({
             col: columns[treePath.length - 1],
             op: '==',
-            val: treePath[treePath.length - 1],
+            val,
+            formattedVal: moment(val).isValid()
+              ? String(timestampFormatter(val))
+              : String(val),
           });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

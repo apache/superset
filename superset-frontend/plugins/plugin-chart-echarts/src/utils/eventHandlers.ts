@@ -21,7 +21,9 @@ import {
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import moment from 'moment';
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
@@ -108,6 +110,9 @@ export const contextMenuEventHandler =
     ) => ContextMenuFilters['crossFilter'],
   ) =>
   (e: Event) => {
+    debugger;
+    const timestampFormatter = (value: any) =>
+      getTimeFormatterForGranularity()(value);
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
@@ -119,7 +124,9 @@ export const contextMenuEventHandler =
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: String(values[i]),
+            formattedVal: moment(values[i]).isValid()
+              ? String(timestampFormatter(values[i]))
+              : String(values[i]),
           }),
         );
       }

@@ -22,7 +22,9 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import moment from 'moment';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -133,6 +135,8 @@ export default function EchartsMixedTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const isFirst = isFirstQuery(seriesIndex);
+        const timestampFormatter = (value: any) =>
+          getTimeFormatterForGranularity()(value);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
           ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
@@ -167,6 +171,9 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
+              formattedVal: moment(values[i]).isValid()
+                ? String(timestampFormatter(values[i]))
+                : String(values[i]),
             }),
         );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

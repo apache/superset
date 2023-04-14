@@ -21,10 +21,12 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
+import moment from 'moment';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
@@ -203,6 +205,8 @@ export default function EchartsTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
+        const timestampFormatter = (value: any) =>
+          getTimeFormatterForGranularity()(value);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
           ...labelMap[seriesName],
@@ -236,6 +240,9 @@ export default function EchartsTimeseries({
             col: dimension,
             op: '==',
             val: labelMap[seriesName][i],
+            formattedVal: moment(labelMap[seriesName][i]).isValid()
+              ? String(timestampFormatter(labelMap[seriesName][i]))
+              : String(labelMap[seriesName][i]),
           });
         });
 
