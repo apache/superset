@@ -54,8 +54,8 @@ export const contributionModeControl = {
   },
 };
 
-function isNotTemporal(controls: ControlStateMapping): boolean {
-  return (
+function isTemporal(controls: ControlStateMapping): boolean {
+  return !(
     isDefined(controls?.x_axis?.value) &&
     !isTemporalColumn(
       getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
@@ -65,7 +65,7 @@ function isNotTemporal(controls: ControlStateMapping): boolean {
 }
 
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  isNotTemporal(controls) &&
+  !isTemporal(controls) &&
   ensureIsArray(controls?.groupby?.value).length === 0 &&
   ensureIsArray(controls?.metrics?.value).length === 1;
 
@@ -74,7 +74,7 @@ const xAxisMultiSortVisibility = ({
 }: {
   controls: ControlStateMapping;
 }) =>
-  isNotTemporal(controls) &&
+  !isTemporal(controls) &&
   (!!ensureIsArray(controls?.groupby?.value).length ||
     ensureIsArray(controls?.metrics?.value).length > 1);
 
