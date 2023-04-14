@@ -327,7 +327,7 @@ export default function LiqThematicMaps(props) {
           // element: geocodeMarker
         },
         localGeocoder: forwardGeocoder,
-        minLength: 4,
+        minLength: 3,
         limit: 10,
         // Define custom render with LIQ pins on the side of the dropdown to distinguish local results
         render: (item) => {

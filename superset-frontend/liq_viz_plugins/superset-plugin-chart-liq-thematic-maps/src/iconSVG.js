@@ -165,14 +165,48 @@ const OTHER_SC_SIZE = 20;
 const OTHER_SIZE = 15;
 
 // Shopping Centres
-export const regionalSC = (new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none').createCircle().img);
-export const subRegionalSC = (new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none').createCircle().img);
-export const neighbourhoodSC = (new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none').createCircle().img);
-export const cityCentreSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none').createCircle().img);
-export const themedSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none').createCircle().img);
-export const lfrSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none').createCircle().img);
-export const outletSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none').createCircle().img);
-export const marketSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none').createCircle().img);
+const regional = new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none').createCircle();
+const sub_regional = new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none').createCircle();
+const neighbourhood = new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none').createCircle();
+const city_centre = new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none').createCircle();
+const themed = new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none').createCircle();
+const lfr = new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none').createCircle();
+const outlet = new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none').createCircle();
+const market = new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none').createCircle();
+
+export const regionalSC = regional.img;
+export const regionalSCP = regional.createCircle(REGIONAL_SIZE, 1, 'white', 'none').img;
+
+export const subRegionalSC = sub_regional.img;
+export const subRegionalSCP = sub_regional.createCircle(SUB_REGIONAL_SIZE, 1, 'white', 'none').img;
+
+export const neighbourhoodSC = neighbourhood.img;
+export const neighbourhoodSCP = neighbourhood.createCircle(NEIGHBOURHOOD_SIZE, 1, 'white', 'none').img;
+
+export const cityCentreSC = city_centre.img;
+export const cityCentreSCP = city_centre.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+
+export const themedSC = themed.img;
+export const themedSCP = themed.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+
+export const lfrSC = lfr.img;
+export const lfrSCP = lfr.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+
+export const outletSC = outlet.img;
+export const outletSCP = outlet.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+
+export const marketSC = market.img;
+export const marketSCP = market.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+
+
+// export const regionalSC = (new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none').createCircle().img);
+// export const subRegionalSC = (new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none').createCircle().img);
+// export const neighbourhoodSC = (new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none').createCircle().img);
+// export const cityCentreSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none').createCircle().img);
+// export const themedSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none').createCircle().img);
+// export const lfrSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none').createCircle().img);
+// export const outletSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none').createCircle().img);
+// export const marketSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none').createCircle().img);
 
 // Department stores
 export const davidJones = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createStar().img);

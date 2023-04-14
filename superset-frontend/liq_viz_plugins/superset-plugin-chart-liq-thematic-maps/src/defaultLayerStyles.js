@@ -137,8 +137,16 @@ const iconExprs = {
     'lfrSC',
     ['==', ['get', 'description'], 'City Centre'],
     'cityCentreSC',
+    [
+      'all',
+      ['==', ['get', 'proposed'], true],
+      ['==', ['get', 'description'], 'Neighbourhood']
+    ],
+    'neighbourhoodSCP',
     ['==', ['get', 'description'], 'Neighbourhood'],
     'neighbourhoodSC',
+    ['==', ['get', 'proposed'], true],
+    'subRegionalSCP',
     'subRegionalSC'
   ],
   'department_stores': [
