@@ -84,6 +84,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         if schema_name and "." not in table_name
                         else table_name
                     ),
+                    schema=schema_name,
+                    indexes=indexes,
                     database=database,
                 ),
             }
