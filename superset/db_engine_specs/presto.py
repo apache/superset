@@ -437,7 +437,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Return a partition query.
 
         Note the unused arguments are exposed for sub-classing purposes where custom
-        integrations may require the schema, indexes, etc. to build the paritiion query.
+        integrations may require the schema, indexes, etc. to build the partition query.
 
         :param table_name: the name of the table to get partitions from
         :param schema: the schema name
