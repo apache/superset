@@ -13,6 +13,9 @@ jobs:
   cypress-matrix:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      pull-requests: read
     strategy:
       # when one test fails, DO NOT cancel the other
       # containers, because this will kill Cypress processes
@@ -28,7 +31,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
         image: postgres:14-alpine
@@ -43,13 +46,13 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         if: github.event_name == 'push'
         with:
           persist-credentials: false
           submodules: recursive
       - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
