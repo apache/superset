@@ -283,7 +283,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         timestamp_format = None
         if self.datasource.type == "table":
-            granularity_col = self.datasource.get_column(query_obj["granularity"])
+            granularity_col = self.datasource.get_column(
+                query_obj["granularity"])
             if granularity_col:
                 timestamp_format = granularity_col.python_date_format
 
@@ -351,7 +352,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         metrics = self.all_metrics or []
 
-        groupby = self.dedup_columns(self.groupby, self.form_data.get("columns"))
+        groupby = self.dedup_columns(
+            self.groupby, self.form_data.get("columns"))
         groupby_labels = get_column_names(groupby)
 
         is_timeseries = self.is_timeseries
@@ -468,7 +470,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
-        cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
+        cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(
+            query_obj)
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
@@ -736,8 +739,10 @@ class TableViz(BaseViz):
             else QueryMode.AGGREGATE
         )
 
-        columns: List[str]  # output columns sans time and percent_metric column
-        percent_columns: List[str] = []  # percent columns that needs extra computation
+        # output columns sans time and percent_metric column
+        columns: List[str]
+        # percent columns that needs extra computation
+        percent_columns: List[str] = []
 
         if self.query_mode == QueryMode.RAW:
             columns = get_metric_names(self.form_data.get("all_columns"))
@@ -918,11 +923,13 @@ class PivotTableViz(BaseViz):
                 )
             )
         if not metrics:
-            raise QueryObjectValidationError(_("Please choose at least one metric"))
+            raise QueryObjectValidationError(
+                _("Please choose at least one metric"))
         deduped_cols = self.dedup_columns(groupby, columns)
 
         if len(deduped_cols) < (len(groupby) + len(columns)):
-            raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
+            raise QueryObjectValidationError(
+                _("Group By' and 'Columns' can't overlap"))
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
@@ -1050,7 +1057,8 @@ class TreemapViz(BaseViz):
     def _nest(self, metric: str, df: pd.DataFrame) -> List[Dict[str, Any]]:
         nlevels = df.index.nlevels
         if nlevels == 1:
-            result = [{"name": n, "value": v} for n, v in zip(df.index, df[metric])]
+            result = [{"name": n, "value": v}
+                      for n, v in zip(df.index, df[metric])]
         else:
             result = [
                 {"name": l, "children": self._nest(metric, df.loc[l])}
@@ -1143,7 +1151,8 @@ class CalHeatmapViz(BaseViz):
             "month": "P1M",
             "year": "P1Y",
         }
-        time_grain = mapping[self.form_data.get("subdomain_granularity", "min")]
+        time_grain = mapping[self.form_data.get(
+            "subdomain_granularity", "min")]
         if self.datasource.type == "druid":
             query_obj["granularity"] = time_grain
         else:
@@ -1188,9 +1197,11 @@ class BubbleViz(NVD3Viz):
 
         query_obj["metrics"] = [self.z_metric, self.x_metric, self.y_metric]
         if len(set(self.metric_labels)) < 3:
-            raise QueryObjectValidationError(_("Please use 3 different metric labels"))
+            raise QueryObjectValidationError(
+                _("Please use 3 different metric labels"))
         if not all(query_obj["metrics"] + [self.entity]):
-            raise QueryObjectValidationError(_("Pick a metric for x, y and size"))
+            raise QueryObjectValidationError(
+                _("Pick a metric for x, y and size"))
         return query_obj
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1450,7 +1461,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object["from_dttm"] -= delta
             query_object["to_dttm"] -= delta
 
-            df2 = self.get_df_payload(query_object, time_compare=option).get("df")
+            df2 = self.get_df_payload(
+                query_object, time_compare=option).get("df")
             if df2 is not None and DTTM_ALIAS in df2:
                 dttm_series = df2[DTTM_ALIAS] + delta
                 df2 = df2.drop(DTTM_ALIAS, axis=1)
@@ -1491,11 +1503,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     diff = df / df2
                 else:
                     raise QueryObjectValidationError(
-                        "Invalid `comparison_type`: {0}".format(comparison_type)
+                        "Invalid `comparison_type`: {0}".format(
+                            comparison_type)
                     )
 
                 # remove leading/trailing NaNs from the time shift difference
-                diff = diff[diff.first_valid_index() : diff.last_valid_index()]
+                diff = diff[diff.first_valid_index(): diff.last_valid_index()]
 
                 chart_data.extend(
                     self.to_series(
@@ -1602,7 +1615,8 @@ class NVD3DualLineViz(NVD3Viz):
         if not m1:
             raise QueryObjectValidationError(_("Pick a metric for left axis!"))
         if not m2:
-            raise QueryObjectValidationError(_("Pick a metric for right axis!"))
+            raise QueryObjectValidationError(
+                _("Pick a metric for right axis!"))
         if m1 == m2:
             raise QueryObjectValidationError(
                 _("Please choose different metrics" " on left and right axis")
@@ -1749,7 +1763,7 @@ class HistogramViz(BaseViz):
             raise QueryObjectValidationError(
                 _("Must have at least one numeric column specified")
             )
-        self.columns = (  #  pylint: disable=attribute-defined-outside-init
+        self.columns = (  # pylint: disable=attribute-defined-outside-init
             numeric_columns
         )
         query_obj["columns"] = numeric_columns + self.groupby
@@ -1810,7 +1824,8 @@ class DistributionBarViz(BaseViz):
         if not self.form_data.get("metrics"):
             raise QueryObjectValidationError(_("Pick at least one metric"))
         if not self.form_data.get("groupby"):
-            raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
+            raise QueryObjectValidationError(
+                _("Pick at least one field for [Series]"))
 
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
@@ -2164,7 +2179,8 @@ class FilterBoxViz(BaseViz):
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
             self.get_query_context_factory().create(
-                datasource={"id": self.datasource.id, "type": self.datasource.type},
+                datasource={"id": self.datasource.id,
+                            "type": self.datasource.type},
                 queries=[query_obj],
             ).raise_for_access()
             df = self.get_df_payload(query_obj=query_obj).get("df")
@@ -2268,8 +2284,10 @@ class HeatmapViz(BaseViz):
         if df.empty:
             return None
 
-        x = get_column_name(self.form_data.get("all_columns_x"))  # type: ignore
-        y = get_column_name(self.form_data.get("all_columns_y"))  # type: ignore
+        x = get_column_name(self.form_data.get(
+            "all_columns_x"))  # type: ignore
+        y = get_column_name(self.form_data.get(
+            "all_columns_y"))  # type: ignore
         v = self.metric_labels[0]
         if x == y:
             df.columns = ["x", "y", "v"]
@@ -2377,7 +2395,8 @@ class MapboxViz(BaseViz):
                 )
 
             if (
-                self.form_data.get("all_columns_x") not in self.form_data["groupby"]
+                self.form_data.get(
+                    "all_columns_x") not in self.form_data["groupby"]
                 or self.form_data.get("all_columns_y") not in self.form_data["groupby"]
             ):
                 raise QueryObjectValidationError(
@@ -2396,9 +2415,11 @@ class MapboxViz(BaseViz):
         has_custom_metric = label_col is not None and len(label_col) > 0
         metric_col = [None] * len(df.index)
         if has_custom_metric:
-            if label_col[0] == self.form_data.get("all_columns_x"):  # type: ignore
+            # type: ignore
+            if label_col[0] == self.form_data.get("all_columns_x"):
                 metric_col = df[self.form_data.get("all_columns_x")]
-            elif label_col[0] == self.form_data.get("all_columns_y"):  # type: ignore
+            # type: ignore
+            elif label_col[0] == self.form_data.get("all_columns_y"):
                 metric_col = df[self.form_data.get("all_columns_y")]
             else:
                 metric_col = df[label_col[0]]  # type: ignore
@@ -2535,7 +2556,8 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     def reverse_latlong(df: pd.DataFrame, key: str) -> None:
-        df[key] = [tuple(reversed(o)) for o in df[key] if isinstance(o, (list, tuple))]
+        df[key] = [tuple(reversed(o))
+                   for o in df[key] if isinstance(o, (list, tuple))]
 
     def process_spatial_data_obj(self, key: str, df: pd.DataFrame) -> pd.DataFrame:
         spatial = self.form_data.get(key)
@@ -2554,7 +2576,8 @@ class BaseDeckGLViz(BaseViz):
             df[key] = df[lon_lat_col].apply(self.parse_coordinates)
             del df[lon_lat_col]
         elif spatial.get("type") == "geohash":
-            df[key] = df[spatial.get("geohashCol")].map(self.reverse_geohash_decode)
+            df[key] = df[spatial.get("geohashCol")].map(
+                self.reverse_geohash_decode)
             del df[spatial.get("geohashCol")]
 
         if spatial.get("reverseCheckbox"):
@@ -2664,7 +2687,8 @@ class DeckScatterViz(BaseDeckGLViz):
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
         self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
+            self.form_data.get(
+                "time_grain_sqla") or self.form_data.get("granularity")
         )
         self.point_radius_fixed = self.form_data.get("point_radius_fixed") or {
             "type": "fix",
@@ -2695,7 +2719,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         # pylint: disable=attribute-defined-outside-init
-        self.metric_label = utils.get_metric_name(self.metric) if self.metric else None
+        self.metric_label = utils.get_metric_name(
+            self.metric) if self.metric else None
         self.point_radius_fixed = self.form_data.get("point_radius_fixed")
         self.fixed_value = None
         self.dim = self.form_data.get("dimension")
@@ -2715,7 +2740,8 @@ class DeckScreengrid(BaseDeckGLViz):
 
     def query_obj(self) -> QueryObjectDict:
         self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
+            self.form_data.get(
+                "time_grain_sqla") or self.form_data.get("granularity")
         )
         return super().query_obj()
 
@@ -2782,7 +2808,8 @@ class DeckPathViz(BaseDeckGLViz):
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
         self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
+            self.form_data.get(
+                "time_grain_sqla") or self.form_data.get("granularity")
         )
         query_obj = super().query_obj()
         self.metric = self.form_data.get("metric")
@@ -2900,7 +2927,8 @@ class DeckArc(BaseDeckGLViz):
 
     def query_obj(self) -> QueryObjectDict:
         self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
+            self.form_data.get(
+                "time_grain_sqla") or self.form_data.get("granularity")
         )
         return super().query_obj()
 
@@ -3123,7 +3151,8 @@ class PartitionViz(NVD3TimeSeriesViz):
             agg_df = df.groupby([DTTM_ALIAS] + groups[:i]).sum()
             levels[i] = pd.DataFrame(
                 {
-                    m: func[0](agg_df[m][until], agg_df[m][since], fill_value=0)
+                    m: func[0](agg_df[m][until], agg_df[m]
+                               [since], fill_value=0)
                     for m in agg_df.columns
                 }
             )
@@ -3175,6 +3204,18 @@ class PartitionViz(NVD3TimeSeriesViz):
         if level >= len(levels):
             return []
         dim_level = levels[level][metric][[dims[0]]]
+
+        if (level > 2):
+            output = []
+            for i in dim_level.index:
+                if (dims[-1][-1] in i):
+                    output.append({
+                        "name": i,
+                        "val": dim_level[i],
+                        "children": self.nest_values(levels, level + 1, metric, dims + [i]),
+                    })
+            return output
+
         return [
             {
                 "name": i,
