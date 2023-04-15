@@ -197,7 +197,7 @@ export const regionalSC = regional.createCircle().img;
 export const regionalSCP = regionalP.createCircle(REGIONAL_SIZE, 4, '#d02033', 'none', true).img;
 
 export const subRegionalSC = sub_regional.createCircle().img;
-export const subRegionalSCP = sub_regionalP.createCircle(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none', true);
+export const subRegionalSCP = sub_regionalP.createCircle(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none', true).img;
 
 export const neighbourhoodSC = neighbourhood.createCircle().img;
 export const neighbourhoodSCP = neighbourhoodP.createCircle(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none', true).img;
