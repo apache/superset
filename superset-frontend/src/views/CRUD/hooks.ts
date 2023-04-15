@@ -121,12 +121,36 @@ export function useListViewResource<D extends object = any>(
     return Boolean(state.permissions.find(p => p === perm));
   }
 
+  function updatePreviousState(collection : any,data : any){
+    if( data != null && data.length > 0 ){
+      collection.map(
+        ( row : any ) => {
+          data.map(
+            ( item : any ) => {
+              if( row.url === item.url ){
+                if( item.isChecked != null){
+                  row['isChecked'] = item.isChecked ;
+                }else{
+                  row['isChecked'] = false ;
+                }
+              }
+            }
+          );
+          return row;
+        }
+      );
+  }
+  return collection;
+  }
+
+
   const fetchData = useCallback(
     ({
       pageIndex,
       pageSize,
       sortBy,
       filters: filterValues,
+      data
     }: FetchDataConfig) => {
       // set loading state, cache the last config for refreshing data.
       updateState({
@@ -163,8 +187,10 @@ export function useListViewResource<D extends object = any>(
       })
         .then(
           ({ json = {} }) => {
+            let collection = json.result;
+            collection = updatePreviousState(collection,data);
             updateState({
-              collection: json.result,
+              collection: collection,
               count: json.count,
               lastFetched: new Date().toISOString(),
             });

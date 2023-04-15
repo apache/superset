@@ -86,6 +86,7 @@ export interface FetchDataConfig {
   pageSize: number;
   sortBy: SortColumns;
   filters: FilterValue[];
+  data?:any,
 }
 
 export interface InternalFilter extends FilterValue {
