@@ -118,6 +118,25 @@ const iconExprs = {
     'case',
     [
       'any',
+      [
+        'all',
+        ['==', ['get', 'proposed'], true],
+        ['==', ['get', 'description'], 'Local Centre']
+      ],
+      [
+        'all',
+        ['==', ['get', 'proposed'], true],
+        ['==', ['get', 'description'], 'Transit Centre']
+      ],
+      [
+        'all',
+        ['==', ['get', 'proposed'], true],
+        ['==', ['get', 'description'], 'Outlet Centre']
+      ]
+    ],
+    'outletSCP',
+    [
+      'any',
       ['==', ['get', 'description'], 'Local Centre'],
       ['==', ['get', 'description'], 'Transit Centre'],
       ['==', ['get', 'description'], 'Outlet Centre']
@@ -125,16 +144,54 @@ const iconExprs = {
     'outletSC',
     [
       'any',
+      [
+        'all',
+        ['==', ['get', 'proposed'], true],
+        ['==', ['get', 'description'], 'Regional']
+      ],
+      [
+        'all',
+        ['==', ['get', 'proposed'], true],
+        ['==', ['get', 'description'], 'Super Regional']
+      ]
+    ],
+    'regionalSCP',
+    [
+      'any',
       ['==', ['get', 'description'], 'Regional'],
       ['==', ['get', 'description'], 'Super Regional']
     ],
     'regionalSC',
+    [
+      'all',
+      ['==', ['get', 'proposed'], true],
+      ['==', ['get', 'description'], 'Market']
+    ],
+    'marketSCP',
     ['==', ['get', 'description'], 'Market'],
     'marketSC',
+    [
+      'all',
+      ['==', ['get', 'proposed'], true],
+      ['==', ['get', 'description'], 'Themed']
+    ],
+    'themedSCP',
     ['==', ['get', 'description'], 'Themed'],
     'themedSC',
+    [
+      'all',
+      ['==', ['get', 'proposed'], true],
+      ['==', ['get', 'description'], 'Large Format Retail']
+    ],
+    'lfrSCP',
     ['==', ['get', 'description'], 'Large Format Retail'],
     'lfrSC',
+    [
+      'all',
+      ['==', ['get', 'proposed'], true],
+      ['==', ['get', 'description'], 'City Centre']
+    ],
+    'cityCentreSCP',
     ['==', ['get', 'description'], 'City Centre'],
     'cityCentreSC',
     [

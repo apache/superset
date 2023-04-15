@@ -60,7 +60,13 @@ class LiqMarker {
     return points.join(' ');
   }
 
-  createCircle(size=this.size, strokeWidth=this.strokeWidth, strokeColor=this.strokeColor, fill=this.fill) {
+  createCircle(
+    size=this.size, 
+    strokeWidth=this.strokeWidth, 
+    strokeColor=this.strokeColor, 
+    fill=this.fill,
+    proposed=false
+  ) {
 
     const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", size/2);
@@ -70,6 +76,11 @@ class LiqMarker {
     circle.setAttribute("stroke-width", strokeWidth);
     circle.setAttribute("fill", fill);
   
+    if (proposed) {
+      circle.setAttribute('stroke-dasharray', '2 2');
+      circle.setAttribute('stroke-dashoffset', '0');
+    }
+
     this.svg.appendChild(circle);
     return this;
   }
@@ -165,48 +176,46 @@ const OTHER_SC_SIZE = 20;
 const OTHER_SIZE = 15;
 
 // Shopping Centres
-const regional = new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none').createCircle();
-const sub_regional = new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none').createCircle();
-const neighbourhood = new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none').createCircle();
-const city_centre = new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none').createCircle();
-const themed = new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none').createCircle();
-const lfr = new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none').createCircle();
-const outlet = new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none').createCircle();
-const market = new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none').createCircle();
+const regional = new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none');
+const regionalP = new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none');
+const sub_regional = new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none');
+const sub_regionalP = new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none');
+const neighbourhood = new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none');
+const neighbourhoodP = new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none');
+const city_centre = new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none');
+const city_centreP = new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none');
+const themed = new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none');
+const themedP = new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none');
+const lfr = new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none');
+const lfrP = new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none');
+const outlet = new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none');
+const outletP = new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none');
+const market = new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none');
+const marketP = new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none');
 
-export const regionalSC = regional.img;
-export const regionalSCP = regional.createCircle(REGIONAL_SIZE, 1, 'white', 'none').img;
+export const regionalSC = regional.createCircle().img;
+export const regionalSCP = regionalP.createCircle(REGIONAL_SIZE, 4, '#d02033', 'none', true).img;
 
-export const subRegionalSC = sub_regional.img;
-export const subRegionalSCP = sub_regional.createCircle(SUB_REGIONAL_SIZE, 1, 'white', 'none').img;
+export const subRegionalSC = sub_regional.createCircle().img;
+export const subRegionalSCP = sub_regionalP.createCircle(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none', true);
 
-export const neighbourhoodSC = neighbourhood.img;
-export const neighbourhoodSCP = neighbourhood.createCircle(NEIGHBOURHOOD_SIZE, 1, 'white', 'none').img;
+export const neighbourhoodSC = neighbourhood.createCircle().img;
+export const neighbourhoodSCP = neighbourhoodP.createCircle(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none', true).img;
 
-export const cityCentreSC = city_centre.img;
-export const cityCentreSCP = city_centre.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+export const cityCentreSC = city_centre.createCircle().img;
+export const cityCentreSCP = city_centreP.createCircle(OTHER_SC_SIZE, 3, '#e8e80c', 'none', true).img;
 
-export const themedSC = themed.img;
-export const themedSCP = themed.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+export const themedSC = themed.createCircle().img;
+export const themedSCP = themedP.createCircle(OTHER_SC_SIZE, 3, '#FF69B4', 'none', true).img;
 
-export const lfrSC = lfr.img;
-export const lfrSCP = lfr.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+export const lfrSC = lfr.createCircle().img;
+export const lfrSCP = lfrP.createCircle(OTHER_SC_SIZE, 3, 'purple', 'none', true).img;
 
-export const outletSC = outlet.img;
-export const outletSCP = outlet.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
+export const outletSC = outlet.createCircle().img;
+export const outletSCP = outletP.createCircle(OTHER_SC_SIZE, 3, 'brown', 'none', true).img;
 
-export const marketSC = market.img;
-export const marketSCP = market.createCircle(OTHER_SC_SIZE, 1, 'white', 'none').img;
-
-
-// export const regionalSC = (new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none').createCircle().img);
-// export const subRegionalSC = (new LiqMarker(SUB_REGIONAL_SIZE, 3, '#2b2bc9', 'none').createCircle().img);
-// export const neighbourhoodSC = (new LiqMarker(NEIGHBOURHOOD_SIZE, 3, '#ffbd01', 'none').createCircle().img);
-// export const cityCentreSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#e8e80c', 'none').createCircle().img);
-// export const themedSC = (new LiqMarker(OTHER_SC_SIZE, 3, '#FF69B4', 'none').createCircle().img);
-// export const lfrSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'purple', 'none').createCircle().img);
-// export const outletSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'brown', 'none').createCircle().img);
-// export const marketSC = (new LiqMarker(OTHER_SC_SIZE, 3, 'green', 'none').createCircle().img);
+export const marketSC = market.createCircle().img;
+export const marketSCP = marketP.createCircle(OTHER_SC_SIZE, 3, 'green', 'none', true).img;
 
 // Department stores
 export const davidJones = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createStar().img);

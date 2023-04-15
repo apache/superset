@@ -24,7 +24,7 @@ export default function DataDisplay(props) {
     data.map((d, i) => {
       let row = {key: i};
       Object.keys(d).map(k => {
-        row[k] = d[k]
+        row[k] = d[k].toString();
       });
       nD.push(row);
     });
