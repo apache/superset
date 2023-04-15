@@ -97,7 +97,7 @@ export default {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Conditional Formatting'),
-              description: t('Apply conditional color formatting to metrics'),
+              description: t('Apply conditional color formatting to metric'),
               shouldMapStateToProps() {
                 return true;
               },
