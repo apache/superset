@@ -258,7 +258,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         ConfigurationMethod,
         by_value=True,
         metadata={"description": configuration_method_description},
-        missing=ConfigurationMethod.SQLALCHEMY_FORM,
+        load_default=ConfigurationMethod.SQLALCHEMY_FORM,
     )
 
     @pre_load
