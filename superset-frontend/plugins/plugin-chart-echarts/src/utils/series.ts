@@ -153,11 +153,12 @@ export function sortAndFilterSeries(
 
 export function sortRows(
   rows: DataRecord[],
+  totalStackedValues: number[],
   xAxis: string,
   xAxisSortSeries: SortSeriesType,
   xAxisSortSeriesAscending: boolean,
 ) {
-  const sortedRows = rows.map(row => {
+  const sortedRows = rows.map((row, idx) => {
     let sortKey: DataRecordValue = '';
     let aggregate: number | undefined;
     let entries = 0;
@@ -219,6 +220,7 @@ export function sortRows(
       key: sortKey,
       value,
       row,
+      totalStackedValue: totalStackedValues[idx],
     };
   });
 
@@ -226,7 +228,7 @@ export function sortRows(
     sortedRows,
     ['value'],
     [xAxisSortSeriesAscending ? 'asc' : 'desc'],
-  ).map(({ row }) => row);
+  ).map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
 }
 
 export function extractSeries(
@@ -244,7 +246,7 @@ export function extractSeries(
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
   } = {},
-): SeriesOption[] {
+): [SeriesOption[], number[]] {
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
@@ -258,7 +260,7 @@ export function extractSeries(
     xAxisSortSeries,
     xAxisSortSeriesAscending,
   } = opts;
-  if (data.length === 0) return [];
+  if (data.length === 0) return [[], []];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
@@ -272,14 +274,23 @@ export function extractSeries(
   );
   const sortedRows =
     isDefined(xAxisSortSeries) && isDefined(xAxisSortSeriesAscending)
-      ? sortRows(rows, xAxis, xAxisSortSeries!, xAxisSortSeriesAscending!)
-      : rows;
+      ? sortRows(
+          rows,
+          totalStackedValues,
+          xAxis,
+          xAxisSortSeries!,
+          xAxisSortSeriesAscending!,
+        )
+      : rows.map((row, idx) => ({
+          row,
+          totalStackedValue: totalStackedValues[idx],
+        }));
 
-  return sortedSeries.map(name => ({
+  const finalSeries = sortedSeries.map(name => ({
     id: name,
     name,
     data: sortedRows
-      .map((row, idx) => {
+      .map(({ row, totalStackedValue }, idx) => {
         const isNextToDefinedValue =
           isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
         const isFillNeighborValue =
@@ -291,15 +302,19 @@ export function extractSeries(
           value = fillNeighborValue;
         } else if (
           stack === StackControlsValue.Expand &&
-          totalStackedValues.length > 0
+          totalStackedValue !== undefined
         ) {
-          value = ((value || 0) as number) / totalStackedValues[idx];
+          value = ((value || 0) as number) / totalStackedValue;
         }
         return [row[xAxis], value];
       })
       .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
       .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
   }));
+  return [
+    finalSeries,
+    sortedRows.map(({ totalStackedValue }) => totalStackedValue),
+  ];
 }
 
 export function formatSeriesName(

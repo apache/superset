@@ -31,6 +31,7 @@ import {
   QueryData,
   css,
   ensureIsArray,
+  isDefined,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -39,7 +40,6 @@ import { Link } from 'react-router-dom';
 import Modal from 'src/components/Modal';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
-import { Radio } from 'src/components/Radio';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
@@ -52,6 +52,11 @@ import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest } from '../chartAction';
+import { useDisplayModeToggle } from './useDisplayModeToggle';
+import {
+  DrillByBreadcrumb,
+  useDrillByBreadcrumbs,
+} from './useDrillByBreadcrumbs';
 
 const DATA_SIZE = 15;
 interface ModalFooterProps {
@@ -101,12 +106,13 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   );
 };
 
-interface DrillByModalProps {
+export interface DrillByModalProps {
   column?: Column;
   dataset: Dataset;
   filters?: BinaryQueryObjectFilterClause[];
   formData: BaseFormData & { [key: string]: any };
   groupbyFieldName?: string;
+  adhocFilterFieldName?: string;
   onHideModal: () => void;
 }
 
@@ -116,69 +122,134 @@ export default function DrillByModal({
   filters,
   formData,
   groupbyFieldName = 'groupby',
+  adhocFilterFieldName = 'adhoc_filters',
   onHideModal,
 }: DrillByModalProps) {
   const theme = useTheme();
-  const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-  const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
-    DrillByType.Chart,
+
+  const initialGroupbyColumns = useMemo(
+    () =>
+      ensureIsArray(formData[groupbyFieldName])
+        .map(colName =>
+          dataset.columns?.find(col => col.column_name === colName),
+        )
+        .filter(isDefined),
+    [dataset.columns, formData, groupbyFieldName],
   );
+
+  const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
+  const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
   const [datasourceId] = useMemo(
     () => formData.datasource.split('__'),
     [formData.datasource],
   );
 
-  const [currentColumn, setCurrentColumn] = useState(column);
-  const [currentFormData, setCurrentFormData] = useState(formData);
-  const [currentFilters, setCurrentFilters] = useState(filters);
-  const [usedGroupbyColumns, setUsedGroupbyColumns] = useState([
-    ...ensureIsArray(formData[groupbyFieldName]).map(colName =>
-      dataset.columns?.find(col => col.column_name === colName),
-    ),
+  const [currentColumn, setCurrentColumn] = useState<Column | undefined>(
     column,
+  );
+  const [currentFormData, setCurrentFormData] = useState(formData);
+  const [currentFilters, setCurrentFilters] = useState(filters || []);
+  const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
+    [...initialGroupbyColumns, column].filter(isDefined),
+  );
+  const [breadcrumbsData, setBreadcrumbsData] = useState<DrillByBreadcrumb[]>([
+    { groupby: initialGroupbyColumns, filters },
+    { groupby: column || [] },
   ]);
 
-  const updatedFormData = useMemo(() => {
-    let updatedFormData = { ...currentFormData };
+  const getNewGroupby = useCallback(
+    (groupbyCol: Column) =>
+      Array.isArray(formData[groupbyFieldName])
+        ? [groupbyCol.column_name]
+        : groupbyCol.column_name,
+    [formData, groupbyFieldName],
+  );
+
+  const onBreadcrumbClick = useCallback(
+    (breadcrumb: DrillByBreadcrumb, index: number) => {
+      const newGroupbyCol =
+        index === 0 ? undefined : (breadcrumb.groupby as Column);
+      setCurrentColumn(newGroupbyCol);
+      setCurrentFilters(filters => filters.slice(0, index));
+      setBreadcrumbsData(prevBreadcrumbs => {
+        const newBreadcrumbs = prevBreadcrumbs.slice(0, index + 1);
+        delete newBreadcrumbs[newBreadcrumbs.length - 1].filters;
+        return newBreadcrumbs;
+      });
+      setUsedGroupbyColumns(prevUsedGroupbyColumns =>
+        prevUsedGroupbyColumns.slice(0, index),
+      );
+      setCurrentFormData(prevFormData => ({
+        ...prevFormData,
+        [groupbyFieldName]: newGroupbyCol
+          ? getNewGroupby(newGroupbyCol)
+          : formData[groupbyFieldName],
+        [adhocFilterFieldName]: [
+          ...formData[adhocFilterFieldName],
+          ...prevFormData[adhocFilterFieldName].slice(
+            formData[adhocFilterFieldName].length,
+            formData[adhocFilterFieldName].length + index,
+          ),
+        ],
+      }));
+    },
+    [adhocFilterFieldName, formData, getNewGroupby, groupbyFieldName],
+  );
+
+  const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
+
+  const drilledFormData = useMemo(() => {
+    let updatedFormData = { ...formData };
     if (currentColumn) {
-      updatedFormData[groupbyFieldName] = Array.isArray(
-        currentFormData[groupbyFieldName],
-      )
-        ? [currentColumn.column_name]
-        : currentColumn.column_name;
+      updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    if (currentFilters) {
-      const adhocFilters = currentFilters.map(filter =>
-        simpleFilterToAdhoc(filter),
-      );
-      updatedFormData = {
-        ...updatedFormData,
-        adhoc_filters: [
-          ...ensureIsArray(currentFormData.adhoc_filters),
-          ...adhocFilters,
-        ],
-      };
-    }
+    const adhocFilters = currentFilters.map(filter =>
+      simpleFilterToAdhoc(filter),
+    );
+    updatedFormData = {
+      ...updatedFormData,
+      [adhocFilterFieldName]: [
+        ...ensureIsArray(formData[adhocFilterFieldName]),
+        ...adhocFilters,
+      ],
+    };
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
     return updatedFormData;
-  }, [currentColumn, currentFormData, currentFilters, groupbyFieldName]);
+  }, [
+    formData,
+    currentColumn,
+    currentFilters,
+    groupbyFieldName,
+    getNewGroupby,
+    adhocFilterFieldName,
+  ]);
 
   useEffect(() => {
-    setUsedGroupbyColumns(cols =>
-      cols.includes(currentColumn) ? cols : [...cols, currentColumn],
+    setUsedGroupbyColumns(usedCols =>
+      !currentColumn ||
+      usedCols.some(
+        usedCol => usedCol.column_name === currentColumn.column_name,
+      )
+        ? usedCols
+        : [...usedCols, currentColumn],
     );
   }, [currentColumn]);
 
   const onSelection = useCallback(
     (newColumn: Column, filters: BinaryQueryObjectFilterClause[]) => {
       setCurrentColumn(newColumn);
-      setCurrentFormData(updatedFormData);
-      setCurrentFilters(filters);
+      setCurrentFormData(drilledFormData);
+      setCurrentFilters(prevFilters => [...prevFilters, ...filters]);
+      setBreadcrumbsData(prevBreadcrumbs => {
+        const newBreadcrumbs = [...prevBreadcrumbs, { groupby: newColumn }];
+        newBreadcrumbs[newBreadcrumbs.length - 2].filters = filters;
+        return newBreadcrumbs;
+      });
     },
-    [updatedFormData],
+    [drilledFormData],
   );
 
   const additionalConfig = useMemo(
@@ -206,14 +277,15 @@ export default function DrillByModal({
   });
 
   useEffect(() => {
-    if (updatedFormData) {
+    if (drilledFormData) {
+      setChartDataResult(undefined);
       getChartDataRequest({
-        formData: updatedFormData,
+        formData: drilledFormData,
       }).then(({ json }) => {
         setChartDataResult(json.result);
       });
     }
-  }, [updatedFormData]);
+  }, [drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
@@ -226,7 +298,7 @@ export default function DrillByModal({
       show
       onHide={onHideModal ?? (() => null)}
       title={t('Drill by: %s', chartName)}
-      footer={<ModalFooter formData={updatedFormData} />}
+      footer={<ModalFooter formData={drilledFormData} />}
       responsive
       resizable
       resizableConfig={{
@@ -249,38 +321,12 @@ export default function DrillByModal({
         `}
       >
         {metadataBar}
-        <div
-          css={css`
-            margin-bottom: ${theme.gridUnit * 6}px;
-            .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):focus-within {
-              box-shadow: none;
-            }
-          `}
-        >
-          <Radio.Group
-            onChange={({ target: { value } }) => {
-              setDrillByDisplayMode(value);
-            }}
-            defaultValue={DrillByType.Chart}
-          >
-            <Radio.Button
-              value={DrillByType.Chart}
-              data-test="drill-by-chart-radio"
-            >
-              {t('Chart')}
-            </Radio.Button>
-            <Radio.Button
-              value={DrillByType.Table}
-              data-test="drill-by-table-radio"
-            >
-              {t('Table')}
-            </Radio.Button>
-          </Radio.Group>
-        </div>
+        {breadcrumbs}
+        {displayModeToggle}
         {!chartDataResult && <Loading />}
         {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
           <DrillByChart
-            formData={updatedFormData}
+            formData={drilledFormData}
             result={chartDataResult}
             onContextMenu={onContextMenu}
             inContextMenu={inContextMenu}
