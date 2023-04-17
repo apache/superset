@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset import is_feature_enabled
+
 from .base import MigrateViz
 
 
@@ -51,3 +53,37 @@ class MigrateAreaChart(MigrateViz):
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label
             self.data["x_axis_title_margin"] = 30
+
+
+class MigratePivotTable(MigrateViz):
+    source_viz_type = "pivot_table"
+    target_viz_type = "pivot_table_v2"
+    migrate_generic_chart_axes = is_feature_enabled("GENERIC_CHART_AXES")
+    remove_keys = {"pivot_margins"}
+    rename_keys = {
+        "columns": "groupbyColumns",
+        "combine_metric": "combineMetric",
+        "groupby": "groupbyRows",
+        "number_format": "valueFormat",
+        "pandas_aggfunc": "aggregateFunction",
+        "timeseries_limit_metric": "series_limit_metric",
+        "transpose_pivot": "transposePivot",
+    }
+    aggregation_mapping = {
+        "sum": "Sum",
+        "mean": "Average",
+        "min": "Minimum",
+        "max": "Maximum",
+        "std": "Sample Standard Deviation",
+        "var": "Sample Variance",
+    }
+
+    def _pre_action(self) -> None:
+        pivot_margins = self.data.get("pivot_margins")
+        if pivot_margins:
+            self.data["colTotals"] = pivot_margins
+            self.data["rowTotals"] = pivot_margins
+
+        pandas_aggfunc = self.data.get("pandas_aggfunc")
+        if pandas_aggfunc:
+            self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
