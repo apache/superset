@@ -26,7 +26,6 @@ import {
   ChartClient,
   getColumnLabel,
 } from '@superset-ui/core';
-import moment from 'moment';
 import { isTemporalColumn } from '@superset-ui/chart-controls';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
