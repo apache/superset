@@ -21,11 +21,14 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
+  CategoricalColorNamespace,
+  ChartClient,
+  getColumnLabel,
   getNumberFormatter,
   getSequentialSchemeRegistry,
-  CategoricalColorNamespace,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { isTemporalColumn } from '@superset-ui/chart-controls';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
 
@@ -72,6 +75,7 @@ function WorldMap(element, props) {
     inContextMenu,
     filterState,
     emitCrossFilters,
+    formData,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -166,16 +170,19 @@ function WorldMap(element, props) {
     }
   };
 
-  const handleContextMenu = source => {
+  const handleContextMenu = async source => {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
-    const timestampFormatter = (value) => getTimeFormatterForGranularity(timeGrain)(value)
+    const timestampFormatter = value => getTimeFormatterForGranularity()(value);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
+      const datasource = await new ChartClient()
+        .loadDatasource(formData.datasource, undefined)
+        .then(data => data);
       drillToDetailFilters = [
         {
           col: entity,
@@ -189,9 +196,9 @@ function WorldMap(element, props) {
           col: entity,
           op: '==',
           val,
-          formattedVal: moment(val).isValid()
-              ? String(timestampFormatter(val))
-              : String(val),
+          formattedVal: isTemporalColumn(getColumnLabel(entity), datasource)
+            ? String(timestampFormatter(val))
+            : String(val),
         },
       ];
     }

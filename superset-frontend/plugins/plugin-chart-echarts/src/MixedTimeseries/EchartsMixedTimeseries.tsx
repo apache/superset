@@ -19,12 +19,12 @@
 import React, { useCallback } from 'react';
 import {
   AxisType,
-  DataRecordValue,
-  DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
-  getTimeFormatterForGranularity,
   ChartClient,
+  DTTM_ALIAS,
+  DataRecordValue,
   getColumnLabel,
+  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { isTemporalColumn } from '@superset-ui/chart-controls';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
