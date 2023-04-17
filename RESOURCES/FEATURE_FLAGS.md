@@ -93,7 +93,4 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- ALLOW_DASHBOARD_DOMAIN_SHARDING
-- DISPLAY_MARKDOWN_HTML
-- FORCE_DATABASE_CONNECTIONS_SSL
 - GENERIC_CHART_AXES
