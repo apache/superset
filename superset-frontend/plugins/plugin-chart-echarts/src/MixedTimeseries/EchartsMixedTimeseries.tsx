@@ -23,8 +23,11 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   getTimeFormatterForGranularity,
+  ChartClient,
+  getColumnLabel,
 } from '@superset-ui/core';
 import moment from 'moment';
+import { isTemporalColumn } from '@superset-ui/chart-controls';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -127,7 +130,7 @@ export default function EchartsMixedTimeseries({
     mouseover: params => {
       currentSeries.name = params.seriesName;
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName, seriesIndex } = eventParams;
@@ -135,6 +138,9 @@ export default function EchartsMixedTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const isFirst = isFirstQuery(seriesIndex);
+        const datasource = await new ChartClient()
+          .loadDatasource(formData.datasource, undefined)
+          .then(data => data);
         const timestampFormatter = (value: any) =>
           getTimeFormatterForGranularity()(value);
         const values = [
@@ -171,7 +177,10 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: moment(values[i]).isValid()
+              formattedVal: isTemporalColumn(
+                getColumnLabel(dimension),
+                datasource,
+              )
                 ? String(timestampFormatter(values[i]))
                 : String(values[i]),
             }),

@@ -19,9 +19,11 @@
 import React, { useCallback } from 'react';
 import {
   BinaryQueryObjectFilterClause,
+  ChartClient,
+  getColumnLabel,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { isTemporalColumn } from '@superset-ui/chart-controls';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
@@ -44,7 +46,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     refs,
     emitCrossFilters,
   } = props;
-  const { columns } = formData;
+  const { columns, datasource } = formData;
 
   const getCrossFilterDataMask = useCallback(
     (treePathInfo: TreePathInfo[]) => {
@@ -106,7 +108,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
       const { treePathInfo } = props;
       handleChange(treePathInfo);
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
@@ -118,6 +120,9 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const timestampFormatter = (value: any) =>
           getTimeFormatterForGranularity()(value);
         if (columns?.length) {
+          const dataset = await new ChartClient()
+            .loadDatasource(datasource, undefined)
+            .then(data => data);
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
               col: columns[i],
@@ -131,7 +136,10 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             col: columns[treePath.length - 1],
             op: '==',
             val,
-            formattedVal: moment(val).isValid()
+            formattedVal: isTemporalColumn(
+              getColumnLabel(columns[treePath.length - 1]),
+              dataset,
+            )
               ? String(timestampFormatter(val))
               : String(val),
           });

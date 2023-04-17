@@ -20,14 +20,16 @@ import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
   getTimeFormatterForGranularity,
+  ChartClient,
+  getColumnLabel,
 } from '@superset-ui/core';
 import React, { useCallback } from 'react';
+import { isTemporalColumn } from '@superset-ui/chart-controls';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
-import moment from 'moment';
 
 export default function EchartsTreemap({
   echartOptions,
@@ -40,6 +42,7 @@ export default function EchartsTreemap({
   setDataMask,
   selectedValues,
   width,
+  formData,
 }: TreemapTransformedProps) {
   const getCrossFilterDataMask = useCallback(
     (data, treePathInfo) => {
@@ -110,11 +113,14 @@ export default function EchartsTreemap({
       const { data, treePathInfo } = props;
       handleChange(data, treePathInfo);
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
         const { treePath } = extractTreePathInfo(treePathInfo);
+        const datasource = await new ChartClient()
+          .loadDatasource(formData.datasource, undefined)
+          .then(data => data);
         const timestampFormatter = (value: any) =>
           getTimeFormatterForGranularity()(value);
         if (treePath.length > 0) {
@@ -133,7 +139,10 @@ export default function EchartsTreemap({
               col: groupby[i],
               op: '==',
               val,
-              formattedVal: moment(val).isValid()
+              formattedVal: isTemporalColumn(
+                getColumnLabel(groupby[i]),
+                datasource,
+              )
                 ? String(timestampFormatter(val))
                 : String(val),
             });

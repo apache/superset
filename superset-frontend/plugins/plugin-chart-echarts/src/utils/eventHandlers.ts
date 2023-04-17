@@ -22,8 +22,11 @@ import {
   DataMask,
   QueryFormColumn,
   getTimeFormatterForGranularity,
+  ChartClient,
+  getColumnLabel,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { isTemporalColumn } from '@superset-ui/chart-controls';
+
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
@@ -108,23 +111,29 @@ export const contextMenuEventHandler =
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
+    formData: any,
   ) =>
-  (e: Event) => {
-    debugger;
-    const timestampFormatter = (value: any) =>
-      getTimeFormatterForGranularity()(value);
+  async (e: Event) => {
     if (onContextMenu) {
+      const timestampFormatter = (value: any) =>
+        getTimeFormatterForGranularity()(value);
       e.event.stop();
       const pointerEvent = e.event.event;
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
+        const datasource = await new ChartClient()
+          .loadDatasource(formData.datasource, undefined)
+          .then(data => data);
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
           drillFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: moment(values[i]).isValid()
+            formattedVal: isTemporalColumn(
+              getColumnLabel(dimension),
+              datasource,
+            )
               ? String(timestampFormatter(values[i]))
               : String(values[i]),
           }),
@@ -148,6 +157,7 @@ export const allEventHandlers = (
     labelMap,
     emitCrossFilters,
     selectedValues,
+    formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(
@@ -160,6 +170,7 @@ export const allEventHandlers = (
       onContextMenu,
       labelMap,
       getCrossFilterDataMask(selectedValues, groupby, labelMap),
+      formData,
     ),
   };
   return eventHandlers;
