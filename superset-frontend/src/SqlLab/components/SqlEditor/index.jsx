@@ -26,7 +26,7 @@ import React, {
   useCallback,
 } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { css, FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
@@ -230,6 +230,7 @@ const SqlEditor = ({
         hideLeftBar,
       };
     },
+    shallowEqual,
   );
 
   const [height, setHeight] = useState(0);
