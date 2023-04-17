@@ -140,6 +140,14 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         get_pk=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
+    dtype = StringField(
+        _("Column Data Types"),
+        description=_(
+            "A dictionary with column names and their data types if you need to change the defaults. Example: {“Column”:“data type”}"
+        ),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+    )
     schema = StringField(
         _("Schema"),
         description=_("Select a schema if the database supports this"),
