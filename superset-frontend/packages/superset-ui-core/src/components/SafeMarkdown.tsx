@@ -44,12 +44,11 @@ function SafeMarkdown({
   htmlSanitization = true,
   htmlSchemaOverrides = {},
 }: SafeMarkdownProps) {
-  const displayHtml = isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML);
   const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
 
   const rehypePlugins = useMemo(() => {
     const rehypePlugins: any = [];
-    if (displayHtml && !escapeHtml) {
+    if (!escapeHtml) {
       rehypePlugins.push(rehypeRaw);
       if (htmlSanitization) {
         const schema = getOverrideHtmlSchema(
@@ -60,14 +59,14 @@ function SafeMarkdown({
       }
     }
     return rehypePlugins;
-  }, [displayHtml, escapeHtml, htmlSanitization, htmlSchemaOverrides]);
+  }, [escapeHtml, htmlSanitization, htmlSchemaOverrides]);
 
   // React Markdown escapes HTML by default
   return (
     <ReactMarkdown
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
-      skipHtml={!displayHtml}
+      skipHtml={false}
     >
       {source}
     </ReactMarkdown>
