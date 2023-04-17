@@ -139,7 +139,7 @@ class ReportSchedulePostSchema(Schema):
     description = fields.String(
         metadata={
             "description": description_description,
-            "example": "Daily sales dashboard to marketing"
+            "example": "Daily sales dashboard to marketing",
         },
         allow_none=True,
         required=False,
@@ -147,14 +147,11 @@ class ReportSchedulePostSchema(Schema):
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
-        required=False
+        required=False,
     )
     active = fields.Boolean()
     crontab = fields.String(
-        metadata={
-            "description": crontab_description,
-            "example": "*/5 * * * *"
-        },
+        metadata={"description": crontab_description, "example": "*/5 * * * *"},
         validate=[validate_crontab, Length(1, 1000)],
         allow_none=False,
         required=True,
@@ -167,7 +164,7 @@ class ReportSchedulePostSchema(Schema):
     sql = fields.String(
         metadata={
             "description": sql_description,
-            "example": "SELECT value FROM time_series_table"
+            "example": "SELECT value FROM time_series_table",
         }
     )
     chart = fields.Integer(required=False, allow_none=True)
@@ -193,18 +190,12 @@ class ReportSchedulePostSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        metadata={
-            "description": grace_period_description,
-            "example": 60 * 60 * 4
-        },
+        metadata={"description": grace_period_description, "example": 60 * 60 * 4},
         dump_default=60 * 60 * 4,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
-        metadata={
-            "description": working_timeout_description,
-            "example": 60 * 60 * 1
-        },
+        metadata={"description": working_timeout_description, "example": 60 * 60 * 1},
         dump_default=60 * 60 * 1,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
@@ -234,19 +225,17 @@ class ReportSchedulePutSchema(Schema):
     type = fields.String(
         metadata={"description": type_description},
         required=False,
-        validate=validate.OneOf(
-            choices=tuple(key.value for key in ReportScheduleType)
-        ),
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
     name = fields.String(
         metadata={"description": name_description},
         required=False,
-        validate=[Length(1, 150)]
+        validate=[Length(1, 150)],
     )
     description = fields.String(
         metadata={
             "description": description_description,
-            "example": "Daily sales dashboard to marketing"
+            "example": "Daily sales dashboard to marketing",
         },
         allow_none=True,
         required=False,
@@ -254,7 +243,7 @@ class ReportSchedulePutSchema(Schema):
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
         allow_none=True,
-        required=False
+        required=False,
     )
     active = fields.Boolean(required=False)
     crontab = fields.String(
@@ -270,7 +259,7 @@ class ReportSchedulePutSchema(Schema):
     sql = fields.String(
         metadata={
             "description": sql_description,
-            "example": "SELECT value FROM time_series_table"
+            "example": "SELECT value FROM time_series_table",
         },
         required=False,
         allow_none=True,
@@ -285,9 +274,7 @@ class ReportSchedulePutSchema(Schema):
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(
-        fields.Integer(
-            metadata={"description": owners_description}),
-        required=False
+        fields.Integer(metadata={"description": owners_description}), required=False
     )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
@@ -304,18 +291,12 @@ class ReportSchedulePutSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        metadata={
-            "description": grace_period_description,
-            "example": 60 * 60 * 4
-        },
+        metadata={"description": grace_period_description, "example": 60 * 60 * 4},
         required=False,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
-        metadata={
-            "description": working_timeout_description,
-            "example": 60 * 60 * 1
-        },
+        metadata={"description": working_timeout_description, "example": 60 * 60 * 1},
         allow_none=True,
         required=False,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],

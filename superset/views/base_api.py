@@ -58,12 +58,16 @@ get_related_schema = {
 
 class RelatedResultResponseSchema(Schema):
     value = fields.Integer(metadata={"description": "The related item identifier"})
-    text = fields.String(metadata={"description": "The related item string representation"})
+    text = fields.String(
+        metadata={"description": "The related item string representation"}
+    )
     extra = fields.Dict(metadata={"description": "The extra metadata for related item"})
 
 
 class RelatedResponseSchema(Schema):
-    count = fields.Integer(metadata={"description": "The total number of related values"})
+    count = fields.Integer(
+        metadata={"description": "The total number of related values"}
+    )
     result = fields.List(fields.Nested(RelatedResultResponseSchema))
 
 
@@ -72,7 +76,9 @@ class DistinctResultResponseSchema(Schema):
 
 
 class DistincResponseSchema(Schema):
-    count = fields.Integer(metadata={"description": "The total number of distinct values"})
+    count = fields.Integer(
+        metadata={"description": "The total number of distinct values"}
+    )
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
 
 

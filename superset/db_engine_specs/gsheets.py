@@ -49,7 +49,7 @@ class GSheetsParametersSchema(Schema):
         required=False,
         metadata={
             "description": "Contents of GSheets JSON credentials.",
-            "field_name": "service_account_info"
+            "field_name": "service_account_info",
         },
     )
 
