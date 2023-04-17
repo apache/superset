@@ -718,7 +718,10 @@ export default function LiqThematicMaps(props) {
           >
             {items.map(i => (
               i.children && i.children.length > 0 ?
-                <SubMenu title={<span>{i.icon}{i.label}</span>} style={{ opacity: '80%' }}>
+                <SubMenu 
+                  title={<span>{i.icon}{i.label}</span>} style={{ opacity: '80%' }}
+                  key='subMenu'
+                >
                   {i.children.map(c => (
                     c && <Menu.Item
                       key={c.key} 

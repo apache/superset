@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Radio, Form, InputNumber, Typography } from 'antd';
 import { refreshChart } from '../utils/overrides/chartActionOverride';
 import { useDispatch } from 'react-redux';
+import { SupersetClient } from '@superset-ui/core';
 
 const liqSecrets = require('../../../liq_secrets.js').liqSecrets;
 
@@ -138,22 +139,13 @@ export default function Drivetime(props) {
 
   // Post constituent SA1s and radius key to internal api
   const postRkeySA1s = (sa1s) => {
-    var myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    var raw = JSON.stringify({
-      'radius_key': id,
-      'sa1s': sa1s
-    });
-    var requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      body: raw,
-      redirect: 'follow'
-    };
-    fetch('http://3.106.109.198:8088/api/v1/liq/set_radius/', requestOptions)
-      .then(() => {
-        refreshLinkedCharts();
-      });
+    SupersetClient.post({
+      endpoint: 'api/v1/liq/set_radius',
+      jsonPayload: {
+        'radius_key': id,
+        'sa1s': sa1s
+      }
+    }).then(() => refreshLinkedCharts());
   }
 
   const onSettingsSave = () => {
