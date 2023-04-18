@@ -1092,8 +1092,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         given query is running in order to enforce permissions (see #23385 and #23401).
 
         Currently, changing the catalog is not supported. The method accepts a catalog so
-        that when catalog support is added to Superset the interface remains the same. This
-        is important because DB engine specs can be installed from 3rd party packages.
+        that when catalog support is added to Superset the interface remains the same.
+        This is important because DB engine specs can be installed from 3rd party
+        packages.
         """
         return uri, {**connect_args, **cls.enforce_uri_query_params}
 
