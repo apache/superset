@@ -121,7 +121,7 @@ def setup_sample_data() -> Any:
     # relying on `tests.integration_tests.test_app.app` leveraging an  `app` fixture which is purposely
     # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
-        setup_presto_if_needed()
+        # setup_presto_if_needed()
 
         from superset.cli.test import load_test_users_run
 
