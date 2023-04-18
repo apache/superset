@@ -47,6 +47,8 @@ import { noOp } from 'src/utils/common';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import Alert from 'src/components/Alert';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -65,6 +67,7 @@ interface ModalFooterProps {
 }
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
+  const { addDangerToast } = useToasts();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [datasource_id, datasource_type] = formData.datasource.split('__');
@@ -75,13 +78,24 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
           `/explore/?form_data_key=${key}&dashboard_page_id=${dashboardPageId}`,
         );
       })
-      .catch(e => {
-        console.log(e);
+      .catch(() => {
+        addDangerToast(t('Failed to generate chart edit URL'));
       });
-  }, [dashboardPageId, datasource_id, datasource_type, formData]);
+  }, [
+    addDangerToast,
+    dashboardPageId,
+    datasource_id,
+    datasource_type,
+    formData,
+  ]);
   return (
     <>
-      <Button buttonStyle="secondary" buttonSize="small" onClick={noOp}>
+      <Button
+        buttonStyle="secondary"
+        buttonSize="small"
+        onClick={noOp}
+        disabled={!url}
+      >
         <Link
           css={css`
             &:hover {
@@ -126,6 +140,8 @@ export default function DrillByModal({
   onHideModal,
 }: DrillByModalProps) {
   const theme = useTheme();
+  const { addDangerToast } = useToasts();
+  const [isChartDataLoading, setIsChartDataLoading] = useState(true);
 
   const initialGroupbyColumns = useMemo(
     () =>
@@ -278,14 +294,22 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
+      setIsChartDataLoading(true);
       setChartDataResult(undefined);
       getChartDataRequest({
         formData: drilledFormData,
-      }).then(({ json }) => {
-        setChartDataResult(json.result);
-      });
+      })
+        .then(({ json }) => {
+          setChartDataResult(json.result);
+        })
+        .catch(() => {
+          addDangerToast(t('Failed to load chart data.'));
+        })
+        .finally(() => {
+          setIsChartDataLoading(false);
+        });
     }
-  }, [drilledFormData]);
+  }, [addDangerToast, drilledFormData]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
@@ -323,7 +347,13 @@ export default function DrillByModal({
         {metadataBar}
         {breadcrumbs}
         {displayModeToggle}
-        {!chartDataResult && <Loading />}
+        {isChartDataLoading && <Loading />}
+        {!isChartDataLoading && !chartDataResult && (
+          <Alert
+            type="error"
+            message={t('There was an error loading the chart data')}
+          />
+        )}
         {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
           <DrillByChart
             formData={drilledFormData}
