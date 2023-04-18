@@ -141,7 +141,7 @@ export default function DrillByModal({
 }: DrillByModalProps) {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
-  const [isChartDataLoading, setIsChartDataLoading] = useState(false);
+  const [isChartDataLoading, setIsChartDataLoading] = useState(true);
 
   const initialGroupbyColumns = useMemo(
     () =>
