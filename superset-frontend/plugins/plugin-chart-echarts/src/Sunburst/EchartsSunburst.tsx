@@ -21,9 +21,8 @@ import {
   BinaryQueryObjectFilterClause,
   ChartClient,
   getColumnLabel,
-  getTimeFormatterForGranularity,
+  getTimeFormatter,
 } from '@superset-ui/core';
-import { isTemporalColumn } from '@superset-ui/chart-controls';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
@@ -118,7 +117,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const timestampFormatter = (value: any) =>
-          getTimeFormatterForGranularity()(value);
+          getTimeFormatter(formData.dateFormat)(value);
         if (columns?.length) {
           const dataset = await new ChartClient()
             .loadDatasource(datasource, undefined)
@@ -136,12 +135,11 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             col: columns[treePath.length - 1],
             op: '==',
             val,
-            formattedVal: isTemporalColumn(
-              getColumnLabel(columns[treePath.length - 1]),
-              dataset,
-            )
-              ? String(timestampFormatter(val))
-              : String(val),
+            formattedVal:
+              getColumnLabel(columns[treePath.length - 1]) ===
+              formData.granularitySqla
+                ? String(timestampFormatter(val))
+                : String(val),
           });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

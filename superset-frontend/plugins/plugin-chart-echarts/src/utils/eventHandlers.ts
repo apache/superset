@@ -21,11 +21,9 @@ import {
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
-  getTimeFormatterForGranularity,
-  ChartClient,
+  getTimeFormatter,
   getColumnLabel,
 } from '@superset-ui/core';
-import { isTemporalColumn } from '@superset-ui/chart-controls';
 
 import {
   BaseTransformedProps,
@@ -116,26 +114,21 @@ export const contextMenuEventHandler =
   async (e: Event) => {
     if (onContextMenu) {
       const timestampFormatter = (value: any) =>
-        getTimeFormatterForGranularity()(value);
+        getTimeFormatter(formData.dateFormat)(value);
       e.event.stop();
       const pointerEvent = e.event.event;
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
-        const datasource = await new ChartClient()
-          .loadDatasource(formData.datasource, undefined)
-          .then(data => data);
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
           drillFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: isTemporalColumn(
-              getColumnLabel(dimension),
-              datasource,
-            )
-              ? String(timestampFormatter(values[i]))
-              : String(values[i]),
+            formattedVal:
+              getColumnLabel(dimension) === formData.granularitySqla
+                ? String(timestampFormatter(values[i]))
+                : String(values[i]),
           }),
         );
       }

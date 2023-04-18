@@ -19,7 +19,7 @@
 import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
-  getTimeFormatterForGranularity,
+  getTimeFormatter,
   ChartClient,
   getColumnLabel,
 } from '@superset-ui/core';
@@ -122,7 +122,7 @@ export default function EchartsTreemap({
           .loadDatasource(formData.datasource, undefined)
           .then(data => data);
         const timestampFormatter = (value: any) =>
-          getTimeFormatterForGranularity()(value);
+          getTimeFormatter(formData.dateFormat)(value);
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
@@ -139,12 +139,10 @@ export default function EchartsTreemap({
               col: groupby[i],
               op: '==',
               val,
-              formattedVal: isTemporalColumn(
-                getColumnLabel(groupby[i]),
-                datasource,
-              )
-                ? String(timestampFormatter(val))
-                : String(val),
+              formattedVal:
+                getColumnLabel(groupby[i]) === formData.granularitySqla
+                  ? String(timestampFormatter(val))
+                  : String(val),
             });
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

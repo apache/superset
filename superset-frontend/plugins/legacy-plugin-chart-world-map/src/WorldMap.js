@@ -22,13 +22,11 @@ import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
-  ChartClient,
   getColumnLabel,
   getNumberFormatter,
+  getTimeFormatter,
   getSequentialSchemeRegistry,
-  getTimeFormatterForGranularity,
 } from '@superset-ui/core';
-import { isTemporalColumn } from '@superset-ui/chart-controls';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
 
@@ -176,13 +174,11 @@ function WorldMap(element, props) {
     const key = source.id || source.country;
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
-    const timestampFormatter = value => getTimeFormatterForGranularity()(value);
+    const timestampFormatter = value =>
+      getTimeFormatter(formData.dateFormat)(value);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
-      const datasource = await new ChartClient()
-        .loadDatasource(formData.datasource, undefined)
-        .then(data => data);
       drillToDetailFilters = [
         {
           col: entity,
@@ -196,9 +192,10 @@ function WorldMap(element, props) {
           col: entity,
           op: '==',
           val,
-          formattedVal: isTemporalColumn(getColumnLabel(entity), datasource)
-            ? String(timestampFormatter(val))
-            : String(val),
+          formattedVal:
+            getColumnLabel(entity) === formData.granularitySqla
+              ? String(timestampFormatter(val))
+              : String(val),
         },
       ];
     }
