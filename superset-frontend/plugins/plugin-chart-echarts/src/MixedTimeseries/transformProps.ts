@@ -347,6 +347,27 @@ export default function transformProps(
   const { setDataMask = () => {} } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
+  const compileLegendData = ({
+    seriesA,
+    seriesB,
+  }: {
+    seriesA: SeriesOption[];
+    seriesB: SeriesOption[];
+  }) => {
+    const combinedSeries = seriesA.concat(seriesB);
+
+    // need to add deduplication for id and name as well, because the legend does not show the same dimension names
+
+    return dedupSeries(combinedSeries)
+      .filter(
+        entry =>
+          extractForecastSeriesContext((entry.name || '') as string).type ===
+          ForecastSeriesEnum.Observation,
+      )
+      .map(entry => entry.name || '')
+      .concat(extractAnnotationLabels(annotationLayers, annotationData));
+  };
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -432,16 +453,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
-      // @ts-ignore
-      data: rawSeriesA
-        .concat(rawSeriesB)
-        .filter(
-          entry =>
-            extractForecastSeriesContext((entry.name || '') as string).type ===
-            ForecastSeriesEnum.Observation,
-        )
-        .map(entry => entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers, annotationData)),
+      data: compileLegendData({ seriesA: rawSeriesA, seriesB: rawSeriesB }),
     },
     series: dedupSeries(series),
     toolbox: {
@@ -469,6 +481,7 @@ export default function transformProps(
         ]
       : [],
   };
+  console.log('echartOptionsXX', echartOptions);
 
   return {
     formData,

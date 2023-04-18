@@ -295,17 +295,28 @@ export function getChartPadding(
 }
 
 export function dedupSeries(series: SeriesOption[]): SeriesOption[] {
-  const counter = new Map<string, number>();
+  const counterId = new Map<string, number>();
+  const counterName = new Map<string, number>();
+
   return series.map(row => {
-    let { id } = row;
-    if (id === undefined) return row;
+    let { id, name } = row;
+    if (id === undefined || name === undefined) return row;
     id = String(id);
-    const count = counter.get(id) || 0;
-    const suffix = count > 0 ? ` (${count})` : '';
-    counter.set(id, count + 1);
+    name = String(name);
+
+    const countId = counterId.get(id) || 0;
+    const suffixId = countId > 0 ? ` (${countId})` : '';
+    counterId.set(id, countId + 1);
+
+    const countName = counterName.get(name) || 0;
+    const suffixName = countId > 0 ? ` (${countName})` : '';
+    counterName.set(name, countName + 1);
+
+    // need to add deduplication for name as well, because the legend does not show the same dimension names
     return {
       ...row,
-      id: `${id}${suffix}`,
+      id: `${id}${suffixId}`,
+      name: `${name}${suffixName}`,
     };
   });
 }
