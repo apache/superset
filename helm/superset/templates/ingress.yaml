@@ -20,32 +20,31 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "superset.name" . }}
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
   {{- with .Values.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
+  annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
-  namespace: {{ .Release.Namespace }}
 spec:
-{{- if .Values.ingress.ingressClassName }}
+  {{- if .Values.ingress.ingressClassName }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}
-{{- end }}
-{{- if .Values.ingress.tls }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
   tls:
-  {{- range .Values.ingress.tls }}
+    {{- range .Values.ingress.tls }}
     - hosts:
       {{- range .hosts }}
         - {{ . }}
       {{- end }}
       secretName: {{ .secretName }}
+    {{- end }}
   {{- end }}
-{{- end }}
   rules:
-  {{- range .Values.ingress.hosts }}
+    {{- range .Values.ingress.hosts }}
     - host: {{ . }}
       http:
         paths:
@@ -65,8 +64,8 @@ spec:
                 port:
                   name: ws
           {{- end }}
-  {{- end }}
+    {{- end }}
   {{- if .Values.ingress.extraHostsRaw }}
-  {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}
+    {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}
   {{- end }}
 {{- end }}
