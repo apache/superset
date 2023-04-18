@@ -20,7 +20,8 @@ from marshmallow import fields, Schema
 class DatasetSchema(Schema):
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Duration (in seconds) of the caching timeout for this dataset."
+            "description": "Duration (in seconds) of the caching timeout for this "
+            "dataset."
         }
     )
     column_formats = fields.Dict(metadata={"description": "Column formats."})

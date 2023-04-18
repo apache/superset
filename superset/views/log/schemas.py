@@ -41,7 +41,8 @@ class RecentActivitySchema(Schema):
     )
     time_delta_humanized = fields.String(
         metadata={
-            "description": "Human-readable description of how long ago activity took place"
+            "description": "Human-readable description of how long ago activity took "
+            "place."
         }
     )
 
