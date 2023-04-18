@@ -357,6 +357,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     top_keywords: Set[str] = {"TOP"}
     # A set of disallowed connection query parameters
     disallow_uri_query_params: Set[str] = set()
+    # A Dict of query parameters that will always be used on every connection
+    enforce_uri_query_params: Dict[str, Any] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -1089,11 +1091,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ``supports_dynamic_schema`` set to true, so that Superset knows in which schema a
         given query is running in order to enforce permissions (see #23385 and #23401).
 
-        Currently, changing the catalog is not supported. The method acceps a catalog so
-        that when catalog support is added to Superse the interface remains the same. This
-        is important because DB engine specs can be installed from 3rd party packages.
+        Currently, changing the catalog is not supported. The method accepts a catalog so
+        that when catalog support is added to Superset the interface remains the same.
+        This is important because DB engine specs can be installed from 3rd party
+        packages.
         """
-        return uri, connect_args
+        return uri, {**connect_args, **cls.enforce_uri_query_params}
 
     @classmethod
     def patch(cls) -> None:
