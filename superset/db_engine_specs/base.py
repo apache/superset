@@ -356,6 +356,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     top_keywords: Set[str] = {"TOP"}
     # A set of disallowed connection query parameters
     disallow_uri_query_params: Set[str] = set()
+    # A Dict of query parameters that will always be used on every connection
+    enforce_uri_query_params: Dict[str, Any] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -1016,8 +1018,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Some database drivers like Presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
+
+        Currently, changing the catalog is not supported. The method accepts a catalog so
+        that when catalog support is added to Superset the interface remains the same.
+        This is important because DB engine specs can be installed from 3rd party
+        packages.
         """
-        return uri
+        return uri, {**cls.enforce_uri_query_params}
 
     @classmethod
     def patch(cls) -> None:
