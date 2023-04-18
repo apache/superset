@@ -112,12 +112,6 @@ export default function LiqThematicMaps(props) {
 
   const rootElem = createRef();
 
-  // Custom marker on geocode
-  // const geocodeMarker = document.createElement('img');
-  // geocodeMarker.height = 50;
-  // geocodeMarker.width = 50;
-  // geocodeMarker.src = '/static/liq_pin_geocode_marker.svg';
-
   const mapContainer = useRef(null);
   const map = useRef(null);
   const taPopup = useRef(null);

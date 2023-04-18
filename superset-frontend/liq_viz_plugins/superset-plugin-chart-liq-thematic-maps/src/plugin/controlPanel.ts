@@ -464,15 +464,139 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'custom_geom',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: false,
+              label: t('Geometry type'),
+              choices: [
+                ['point', 'Point'],
+                ['polygon', 'Polygon'],
+                ['polyline', 'Polyline'],
+                ['h3', 'H3']
+              ],
+              placeholder: t('Select geometry')
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_type',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: false,
+              label: t('Data Source'),
+              description: t('Custom layer is either from a mapbox tileset URL or an existing table.'),
+              choices: [
+                ['tileset', 'Tileset'],
+                ['table', 'Table']
+              ],
+              placeholder: t('Select type') 
+            }
+          }
+        ],
+        [
+          {
             name: 'custom_tileset',
             config: {
               type: 'TextControl',
               renderTrigger: false,
-              default: '',
-              label: t('Mapbox Tileset URL')
+              label: t('Mapbox Tileset URL'),
+              visibility: ({ controls }) => Boolean(controls.custom_type.value === 'tileset')
             }
           }
-        ]
+        ],
+        [
+          {
+            name: 'custom_database',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: false,
+              label: t('Database'),
+              dataEndpoint:
+                '/api/v1/database',
+              placeholder: t('Select database'),
+              onAsyncErrorMessage: t('Error while fetching databases'),
+              mutator: (data?: Data) => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o.id,
+                  label: o.database_name,
+                }));
+              },
+              visibility: ({ controls }) => Boolean(controls.custom_type.value === 'table')
+            },
+          },
+        ],
+        [
+          {
+            name: 'custom_schema',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: false,
+              label: t('Schema'),
+              placeholder: t('Select schema'),
+              onAsyncErrorMessage: t('Error while fetching schemas'),
+              mapStateToProps(state) {
+                const db = state.controls.custom_database.value;
+                if (typeof db === 'number') {
+                  return {
+                    dataEndpoint: `/api/v1/database/${db}/schemas`
+                  }
+                }
+              },
+              shouldMapStateToProps() {
+                return true
+              },
+              mutator: (data?: Data) => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o,
+                  label: o,
+                }));
+              },
+              visibility: ({ controls }) => Boolean(typeof controls.custom_database.value === 'number')
+            },
+          },
+        ],
+        [
+          {
+            name: 'custom_table',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: false,
+              label: t('Table'),
+              placeholder: t('Select table'),
+              onAsyncErrorMessage: t('Error while fetching tables'),
+              mapStateToProps(state) {
+                const db = state.controls.custom_database.value;
+                const schema = state.controls.custom_schema.value;
+                if ((typeof db === 'number') && (typeof schema === 'string')) {
+                  return {
+                    dataEndpoint: `/api/v1/database/${db}/tables/?q=(schema_name:${schema})`
+                  }
+                }
+              },
+              shouldMapStateToProps() {
+                return true
+              },
+              mutator: (data?: Data) => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o.value,
+                  label: o.value,
+                }));
+              },
+              visibility: ({ controls }) => Boolean(typeof controls.custom_schema.value === 'string')
+            },
+          },
+        ],
       ]
     }
   ],
