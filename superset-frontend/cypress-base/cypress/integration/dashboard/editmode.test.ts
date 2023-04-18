@@ -725,6 +725,7 @@ describe('Dashboard edit', () => {
 
     it('should filter charts', () => {
       interceptCharts();
+      cy.get('[role="checkbox"]').click();
       cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
       cy.wait('@filtering');
       cy.getBySel('chart-card')
@@ -734,6 +735,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should disable the Save button when undoing', () => {
+      cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
@@ -747,12 +749,14 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
+      cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it('should remove added charts', () => {
-      dragComponent('Pivot Table');
+      cy.get('[role="checkbox"]').click();
+      dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 0);
@@ -793,6 +797,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should save', () => {
+      cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       saveChanges();

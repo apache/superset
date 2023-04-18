@@ -54,7 +54,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -70,7 +70,7 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -165,6 +165,94 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    supports_dynamic_schema = True
+
+    column_type_mappings = (
+        (
+            re.compile(r"^boolean.*", re.IGNORECASE),
+            types.BOOLEAN(),
+            GenericDataType.BOOLEAN,
+        ),
+        (
+            re.compile(r"^tinyint.*", re.IGNORECASE),
+            TinyInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^smallint.*", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^integer.*", re.IGNORECASE),
+            types.INTEGER(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^bigint.*", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^real.*", re.IGNORECASE),
+            types.FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^double.*", re.IGNORECASE),
+            types.FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^decimal.*", re.IGNORECASE),
+            types.DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.CHAR(int(match[2])) if match[2] else types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^varbinary.*", re.IGNORECASE),
+            types.VARBINARY(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^date.*", re.IGNORECASE),
+            types.Date(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^timestamp.*", re.IGNORECASE),
+            types.TIMESTAMP(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^interval.*", re.IGNORECASE),
+            Interval(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^time.*", re.IGNORECASE),
+            types.Time(),
+            GenericDataType.TEMPORAL,
+        ),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
+    )
+
     # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
@@ -199,14 +287,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Superset only defines time zone naive `datetime` objects, though this method
         handles both time zone naive and aware conversions.
         """
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
-        if tt in (
-            utils.TemporalType.TIMESTAMP,
-            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
-        ):
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+
         return None
 
     @classmethod
@@ -214,19 +301,44 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         database = uri.database
-        if selected_schema and database:
-            selected_schema = parse.quote(selected_schema, safe="")
+        if schema and database:
+            schema = parse.quote(schema, safe="")
             if "/" in database:
-                database = database.split("/")[0] + "/" + selected_schema
+                database = database.split("/")[0] + "/" + schema
             else:
-                database += "/" + selected_schema
+                database += "/" + schema
             uri = uri.set(database=database)
 
-        return uri
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        For Presto the SQLAlchemy URI looks like this:
+
+            presto://localhost:8080/hive[/default]
+
+        """
+        database = sqlalchemy_uri.database.strip("/")
+
+        if "/" not in database:
+            return None
+
+        return parse.unquote(database.split("/")[1])
 
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
@@ -311,24 +423,30 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
+    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         cls,
         table_name: str,
+        schema: Optional[str],
+        indexes: List[Dict[str, Any]],
         database: Database,
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
     ) -> str:
-        """Returns a partition query
+        """
+        Return a partition query.
+
+        Note the unused arguments are exposed for sub-classing purposes where custom
+        integrations may require the schema, indexes, etc. to build the partition query.
 
         :param table_name: the name of the table to get partitions from
-        :type table_name: str
+        :param schema: the schema name
+        :param indexes: the indexes associated with the table
+        :param database: the database the query will be run against
         :param limit: the number of partitions to be returned
-        :type limit: int
         :param order_by: a list of tuples of field name and a boolean
             that determines if that field should be sorted in descending
             order
-        :type order_by: list of (str, bool) tuples
         :param filters: dict of field name and filter value combinations
         """
         limit_clause = "LIMIT {}".format(limit) if limit else ""
@@ -449,10 +567,20 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             )
 
         column_names = indexes[0]["column_names"]
-        part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, database, 1, part_fields)
-        df = database.get_df(sql, schema)
-        return column_names, cls._latest_partition_from_df(df)
+
+        return column_names, cls._latest_partition_from_df(
+            df=database.get_df(
+                sql=cls._partition_query(
+                    table_name,
+                    schema,
+                    indexes,
+                    database,
+                    limit=1,
+                    order_by=[(column_name, True) for column_name in column_names],
+                ),
+                schema=schema,
+            )
+        )
 
     @classmethod
     def latest_sub_partition(
@@ -500,7 +628,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 field_to_return = field
 
         sql = cls._partition_query(
-            table_name, database, 1, [(field_to_return, True)], kwargs
+            table_name,
+            schema,
+            indexes,
+            database,
+            limit=1,
+            order_by=[(field_to_return, True)],
+            filters=kwargs,
         )
         df = database.get_df(sql, schema)
         if df.empty:
@@ -674,6 +808,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             return {row[0] for row in results}
 
     @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Get all catalogs.
+        """
+        return [catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")]
+
+    @classmethod
     def _create_column_info(
         cls, name: str, data_type: types.TypeEngine
     ) -> Dict[str, Any]:
@@ -826,92 +971,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         if schema:
             full_table = "{}.{}".format(quote(schema), full_table)
         return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
-
-    column_type_mappings = (
-        (
-            re.compile(r"^boolean.*", re.IGNORECASE),
-            types.BOOLEAN,
-            GenericDataType.BOOLEAN,
-        ),
-        (
-            re.compile(r"^tinyint.*", re.IGNORECASE),
-            TinyInteger(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^smallint.*", re.IGNORECASE),
-            types.SMALLINT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^integer.*", re.IGNORECASE),
-            types.INTEGER(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^bigint.*", re.IGNORECASE),
-            types.BIGINT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^real.*", re.IGNORECASE),
-            types.FLOAT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^double.*", re.IGNORECASE),
-            types.FLOAT(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^decimal.*", re.IGNORECASE),
-            types.DECIMAL(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
-            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
-            lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^varbinary.*", re.IGNORECASE),
-            types.VARBINARY(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^json.*", re.IGNORECASE),
-            types.JSON(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^date.*", re.IGNORECASE),
-            types.DATE(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^timestamp.*", re.IGNORECASE),
-            types.TIMESTAMP(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^interval.*", re.IGNORECASE),
-            Interval(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^time.*", re.IGNORECASE),
-            types.Time(),
-            GenericDataType.TEMPORAL,
-        ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
-    )
 
     @classmethod
     def get_columns(
@@ -1169,6 +1228,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         if schema_name and "." not in table_name
                         else table_name
                     ),
+                    schema=schema_name,
+                    indexes=indexes,
                     database=database,
                 ),
             }
@@ -1268,10 +1329,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     def _extract_error_message(cls, ex: Exception) -> str:
         if (
             hasattr(ex, "orig")
-            and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
-            and isinstance(ex.orig[0], dict)  # type: ignore
+            and type(ex.orig).__name__ == "DatabaseError"
+            and isinstance(ex.orig[0], dict)
         ):
-            error_dict = ex.orig[0]  # type: ignore
+            error_dict = ex.orig[0]
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),
@@ -1281,24 +1342,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             error_dict = ex.args[0]
             return error_dict.get("message", _("Unknown Presto Error"))
         return utils.error_msg_from_exception(ex)
-
-    @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
-
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(native_type)
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:

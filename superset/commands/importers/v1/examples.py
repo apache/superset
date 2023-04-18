@@ -69,7 +69,12 @@ class ImportExamplesCommand(ImportModelsCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite, self.force_data)
+            self._import(
+                db.session,
+                self._configs,
+                self.overwrite,
+                self.force_data,
+            )
             db.session.commit()
         except Exception as ex:
             db.session.rollback()
@@ -96,7 +101,12 @@ class ImportExamplesCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets
@@ -119,16 +129,16 @@ class ImportExamplesCommand(ImportModelsCommand):
                 if config["schema"] is None:
                     config["schema"] = get_example_default_schema()
 
-                dataset = import_dataset(
-                    session, config, overwrite=overwrite, force_data=force_data
-                )
-
                 try:
                     dataset = import_dataset(
-                        session, config, overwrite=overwrite, force_data=force_data
+                        session,
+                        config,
+                        overwrite=overwrite,
+                        force_data=force_data,
+                        ignore_permissions=True,
                     )
                 except MultipleResultsFound:
-                    # Multiple result can be found for datasets. There was a bug in
+                    # Multiple results can be found for datasets. There was a bug in
                     # load-examples that resulted in datasets being loaded with a NULL
                     # schema. Users could then add a new dataset with the same name in
                     # the correct schema, resulting in duplicates, since the uniqueness
@@ -151,7 +161,12 @@ class ImportExamplesCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=overwrite)
+                chart = import_chart(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
@@ -168,7 +183,12 @@ class ImportExamplesCommand(ImportModelsCommand):
                 except KeyError:
                     continue
 
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    ignore_permissions=True,
+                )
                 dashboard.published = True
 
                 for uuid in find_chart_uuids(config["position"]):

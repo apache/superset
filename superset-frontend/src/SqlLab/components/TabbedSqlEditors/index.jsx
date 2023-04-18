@@ -22,8 +22,8 @@ import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { styled, t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, styled, t } from '@superset-ui/core';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
@@ -201,27 +201,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    const activeQueryEditor = this.activeQueryEditor();
-    const firstDbId = Math.min(
-      ...Object.values(this.props.databases).map(database => database.id),
-    );
-    const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? ''
-      : t(
-          '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
-        );
-
-    const qe = {
-      dbId:
-        activeQueryEditor && activeQueryEditor.dbId
-          ? activeQueryEditor.dbId
-          : this.props.defaultDbId || firstDbId,
-      schema: activeQueryEditor ? activeQueryEditor.schema : null,
-      autorun: false,
-      sql: `${warning}SELECT ...`,
-      queryLimit: this.props.defaultQueryLimit,
-    };
-    this.props.actions.addNewQueryEditor(qe);
+    this.props.actions.addNewQueryEditor();
   }
 
   handleSelect(key) {

@@ -21,18 +21,19 @@ import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
   css,
+  DatasourceType,
   ensureIsArray,
+  FeatureFlag,
+  getChartMetadataRegistry,
   styled,
   SupersetClient,
   t,
   useTheme,
-  getChartMetadataRegistry,
-  DatasourceType,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
@@ -411,7 +412,7 @@ const ExploreChartPanel = ({
   );
 
   if (standalone) {
-    // dom manipulation hack to get rid of the boostrap theme's body background
+    // dom manipulation hack to get rid of the bootstrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
     if (!bodyClasses.includes(standaloneClass)) {

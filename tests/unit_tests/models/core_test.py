@@ -59,9 +59,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
                 },
             ]
 
-    database.get_db_engine_spec = mocker.MagicMock(  # type: ignore
-        return_value=CustomSqliteEngineSpec
-    )
+    database.get_db_engine_spec = mocker.MagicMock(return_value=CustomSqliteEngineSpec)
     assert database.get_metrics("table") == [
         {
             "expression": "COUNT(DISTINCT user_id)",

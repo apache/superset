@@ -16,60 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React from 'react';
 import { RadarChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsRadar(props: RadarChartTransformedProps) {
-  const {
-    height,
-    width,
-    echartOptions,
-    setDataMask,
-    labelMap,
-    groupby,
-    selectedValues,
-    emitCrossFilters,
-    refs,
-  } = props;
-  const handleChange = useCallback(
-    (values: string[]) => {
-      if (!emitCrossFilters) {
-        return;
-      }
-
-      const groupbyValues = values.map(value => labelMap[value]);
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val as (string | number | boolean)[],
-                  };
-                }),
-        },
-        filterState: {
-          value: groupbyValues.length ? groupbyValues : null,
-          selectedValues: values.length ? values : null,
-        },
-      });
-    },
-    [groupby, labelMap, setDataMask, selectedValues],
-  );
-
-  const eventHandlers = allEventHandlers(props, handleChange);
+  const { height, width, echartOptions, selectedValues, refs } = props;
+  const eventHandlers = allEventHandlers(props);
 
   return (
     <Echart

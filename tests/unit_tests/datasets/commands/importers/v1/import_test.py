@@ -18,20 +18,33 @@
 
 import copy
 import json
+import re
 import uuid
 from typing import Any, Dict
+from unittest.mock import Mock, patch
 
+import pytest
+from flask import current_app
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset.datasets.commands.exceptions import (
+    DatasetForbiddenDataURI,
+    ImportFailedError,
+)
+from superset.datasets.commands.importers.v1.utils import validate_data_uri
 
-def test_import_dataset(session: Session) -> None:
+
+def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
-    from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -137,14 +150,17 @@ def test_import_dataset(session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(session: Session) -> None:
+def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
+    from superset import security_manager
     from superset.columns.models import Column as NewColumn
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -260,14 +276,17 @@ def test_import_dataset_duplicate_column(session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_column_extra_is_string(session: Session) -> None:
+def test_import_column_extra_is_string(mocker: MockFixture, session: Session) -> None:
     """
     Test importing a dataset when the column extra is a string.
     """
+    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -340,15 +359,26 @@ def test_import_column_extra_is_string(session: Session) -> None:
     assert sqla_table.extra == '{"warning_markdown": "*WARNING*"}'
 
 
-def test_import_dataset_managed_externally(session: Session) -> None:
+@patch("superset.datasets.commands.importers.v1.utils.request")
+def test_import_column_allowed_data_url(
+    request: Mock,
+    mocker: MockFixture,
+    session: Session,
+) -> None:
     """
-    Test importing a dataset that is managed externally.
+    Test importing a dataset when using data key to fetch data from a URL.
     """
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    import io
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
+
+    request.urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -358,6 +388,79 @@ def test_import_dataset_managed_externally(session: Session) -> None:
     session.flush()
 
     dataset_uuid = uuid.uuid4()
+    yaml_config: Dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "description": "This is the description",
+        "default_endpoint": None,
+        "offset": -8,
+        "cache_timeout": 3600,
+        "schema": None,
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": None,
+        "filter_select_enabled": True,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "columns": [
+            {
+                "column_name": "col1",
+                "verbose_name": None,
+                "is_dttm": False,
+                "is_active": True,
+                "type": "TEXT",
+                "groupby": False,
+                "filterable": False,
+                "expression": None,
+                "description": None,
+                "python_date_format": None,
+                "extra": None,
+            }
+        ],
+        "database_uuid": database.uuid,
+        "data": "https://some-external-url.com/data.csv",
+    }
+
+    # the Marshmallow schema should convert strings to objects
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    _ = import_dataset(session, dataset_config, force_data=True)
+    session.connection()
+    assert [("value1",), ("value2",)] == session.execute(
+        "SELECT * FROM my_table"
+    ).fetchall()
+
+
+def test_import_dataset_managed_externally(
+    mocker: MockFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a dataset that is managed externally.
+    """
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import dataset_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
     config = copy.deepcopy(dataset_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
@@ -366,3 +469,44 @@ def test_import_dataset_managed_externally(session: Session) -> None:
     sqla_table = import_dataset(session, config)
     assert sqla_table.is_managed_externally is True
     assert sqla_table.external_url == "https://example.org/my_table"
+
+
+@pytest.mark.parametrize(
+    "allowed_urls, data_uri, expected, exception_class",
+    [
+        ([r".*"], "https://some-url/data.csv", True, None),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain1.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host2.domain1.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain2.com/data.csv",
+            True,
+            None,
+        ),
+        (
+            [r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"],
+            "https://host1.domain3.com/data.csv",
+            False,
+            DatasetForbiddenDataURI,
+        ),
+        ([], "https://host1.domain3.com/data.csv", False, DatasetForbiddenDataURI),
+        (["*"], "https://host1.domain3.com/data.csv", False, re.error),
+    ],
+)
+def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = allowed_urls
+    if expected:
+        validate_data_uri(data_uri)
+    else:
+        with pytest.raises(exception_class):
+            validate_data_uri(data_uri)

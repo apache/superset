@@ -111,6 +111,9 @@ def get_chart_dataframe(
     pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
+    if df.empty:
+        return None
+
     try:
         # if any column type is equal to 2, need to convert data into
         # datetime timestamp for that column.

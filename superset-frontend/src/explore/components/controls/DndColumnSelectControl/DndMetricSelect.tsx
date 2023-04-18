@@ -315,20 +315,18 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
-        if (itemValue.type_generic === GenericDataType.NUMERIC) {
-          config.aggregate = AGGREGATES.SUM;
-        } else if (
-          itemValue.type_generic === GenericDataType.STRING ||
-          itemValue.type_generic === GenericDataType.BOOLEAN ||
-          itemValue.type_generic === GenericDataType.TEMPORAL
-        ) {
-          config.aggregate = AGGREGATES.COUNT_DISTINCT;
-        }
+      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+        config.aggregate = AGGREGATES.SUM;
+      } else if (
+        itemValue.type_generic === GenericDataType.STRING ||
+        itemValue.type_generic === GenericDataType.BOOLEAN ||
+        itemValue.type_generic === GenericDataType.TEMPORAL
+      ) {
+        config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }
       return new AdhocMetric(config);
     }
-    return new AdhocMetric({ isNew: true });
+    return new AdhocMetric({});
   }, [droppedItem]);
 
   const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
@@ -370,6 +368,7 @@ const DndMetricSelect = (props: any) => {
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
+        isNew
       >
         <div />
       </AdhocMetricPopoverTrigger>

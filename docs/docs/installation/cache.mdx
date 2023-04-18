@@ -66,6 +66,9 @@ The cache timeout for charts may be overridden by the settings for an individual
 database. Each of these configurations will be checked in order before falling back to the default
 value defined in `DATA_CACHE_CONFIG.
 
+Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
+per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
+
 ### SQL Lab Query Results
 
 Caching for SQL Lab query results is used when async queries are enabled and is configured using

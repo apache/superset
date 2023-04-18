@@ -27,8 +27,9 @@ import {
   getCategoricalSchemeRegistry,
   isFeatureEnabled,
   SupersetClient,
+  useComponentDidUpdate,
 } from '@superset-ui/core';
-import { ParentSize } from '@vx/responsive';
+import { ParentSize } from '@visx/responsive';
 import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -48,7 +49,6 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { setColorScheme } from 'src/dashboard/actions/dashboardState';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import jsonStringify from 'json-stringify-pretty-compact';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';

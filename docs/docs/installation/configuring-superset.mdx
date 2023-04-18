@@ -23,8 +23,8 @@ SUPERSET_WEBSERVER_PORT = 8088
 # Your App secret key will be used for securely signing the session cookie
 # and encrypting sensitive information on the database
 # Make sure you are changing this key for your deployment with a strong key.
-# You can generate a strong key using `openssl rand -base64 42`
-
+# You can generate a strong key using `openssl rand -base64 42`.
+# Alternatively you can set it with `SUPERSET_SECRET_KEY` environment variable.
 SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 # The SQLAlchemy connection string to your database backend
@@ -285,7 +285,11 @@ If you want to rotate the SECRET_KEY(change the existing secret key), follow the
 Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
 
 ```python
-PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY'
+# To find out 'CURRENT_SECRET_KEY' follow these steps
+# 1. Got to superset shell : $ superset shell
+# 2. Run the command       : >>> from flask import current_app; print(current_app.config["SECRET_KEY"])
+
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY usng "openssl rand -base64 42"
 ```
 Then run `superset re-encrypt-secrets`

@@ -24,7 +24,13 @@ import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
@@ -42,7 +48,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
@@ -491,7 +497,7 @@ ColumnCollectionTable.defaultProps = {
   allowAddItem: false,
   allowEditDataType: false,
   itemGenerator: () => ({
-    column_name: '<new column>',
+    column_name: t('<new column>'),
     filterable: true,
     groupby: true,
   }),
@@ -938,7 +944,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="cache_timeout"
           label={t('Cache timeout')}
           description={t(
-            'The duration of time in seconds before the cache is invalidated',
+            'The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.',
           )}
           control={<TextControl controlId="cache_timeout" />}
         />
@@ -976,8 +982,8 @@ class DatasourceEditor extends React.PureComponent {
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
           itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
+            name: t('<new spatial>'),
+            type: t('<no type>'),
             config: null,
           })}
           collection={spatials}
@@ -1256,7 +1262,7 @@ class DatasourceEditor extends React.PureComponent {
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
-          metric_name: '<new metric>',
+          metric_name: t('<new metric>'),
           verbose_name: '',
           expression: '',
         })}
@@ -1418,10 +1424,10 @@ class DatasourceEditor extends React.PureComponent {
                 allowAddItem
                 allowEditDataType
                 itemGenerator={() => ({
-                  column_name: '<new column>',
+                  column_name: t('<new column>'),
                   filterable: true,
                   groupby: true,
-                  expression: '<enter SQL expression here>',
+                  expression: t('<enter SQL expression here>'),
                   __expanded: true,
                 })}
               />

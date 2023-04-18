@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
+import { t } from '@superset-ui/core';
 import rison from 'rison';
 
 import TableLoader from '../../components/TableLoader';
@@ -48,6 +49,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         mutator={mutator}
         sortable
         dataEndpoint={`/api/v1/log/recent_activity/${user?.userId}/?q=${params}`}
+        noDataText={t('No Data')}
       />
     </div>
   );

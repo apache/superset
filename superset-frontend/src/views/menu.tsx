@@ -20,20 +20,21 @@
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
 import React from 'react';
+import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
+import { Route, BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
+import { QueryParamProvider } from 'use-query-params';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/views/components/Menu';
+import Menu from 'src/features/home/Menu';
 import { theme } from 'src/preamble';
 import getBootstrapData from 'src/utils/getBootstrapData';
-
-import { Provider } from 'react-redux';
 import { setupStore } from './store';
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
-const store = setupStore(true);
+const store = setupStore({ disableDebugger: true });
 const bootstrapData = getBootstrapData();
 const menu = { ...bootstrapData.common.menu_data };
 
@@ -46,7 +47,14 @@ const app = (
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
-        <Menu data={menu} />
+        <BrowserRouter>
+          <QueryParamProvider
+            ReactRouterRoute={Route}
+            stringifyOptions={{ encode: false }}
+          >
+            <Menu data={menu} />
+          </QueryParamProvider>
+        </BrowserRouter>
       </Provider>
     </ThemeProvider>
   </CacheProvider>

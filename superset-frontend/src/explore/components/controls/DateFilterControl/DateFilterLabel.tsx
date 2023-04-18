@@ -24,6 +24,7 @@ import {
   useTheme,
   NO_TIME_RANGE,
   SupersetTheme,
+  useCSSTextTruncation,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -35,7 +36,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
-import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -248,27 +248,28 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   function onSave() {
     onChange(timeRangeValue);
     setShow(false);
+    onClosePopover();
   }
 
   function onOpen() {
     setTimeRangeValue(value);
     setFrame(guessedFrame);
     setShow(true);
+    onOpenPopover();
   }
 
   function onHide() {
     setTimeRangeValue(value);
     setFrame(guessedFrame);
     setShow(false);
+    onClosePopover();
   }
 
   const toggleOverlay = () => {
     if (show) {
       onHide();
-      onClosePopover();
     } else {
       onOpen();
-      onOpenPopover();
     }
   };
 

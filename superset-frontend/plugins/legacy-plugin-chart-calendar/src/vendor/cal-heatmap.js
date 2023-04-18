@@ -9,7 +9,7 @@
 /* eslint-disable */
 
 import d3tip from 'd3-tip';
-import { getContrastingColor } from '@superset-ui/core';
+import { getContrastingColor, t } from '@superset-ui/core';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 
@@ -256,9 +256,9 @@ var CalHeatMap = function () {
 
     // Formatting of the title displayed when hovering a legend cell
     legendTitleFormat: {
-      lower: 'less than {min} {name}',
-      inner: 'between {down} and {up} {name}',
-      upper: 'more than {max} {name}',
+      lower: t('less than {min} {name}'),
+      inner: t('between {down} and {up} {name}'),
+      upper: t('more than {max} {name}'),
     },
 
     // Animation duration, in ms

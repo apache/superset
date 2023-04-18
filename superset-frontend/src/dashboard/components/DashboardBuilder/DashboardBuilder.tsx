@@ -29,10 +29,12 @@ import React, {
 import {
   addAlpha,
   css,
+  FeatureFlag,
   JsonObject,
   styled,
   t,
   useTheme,
+  useElementOnScreen,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -56,8 +58,7 @@ import {
   setDirectPathToChild,
   setEditMode,
 } from 'src/dashboard/actions/dashboardState';
-import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -442,10 +443,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardIsSaving = useSelector<RootState, boolean>(
     ({ dashboardState }) => dashboardState.dashboardIsSaving,
   );
-  const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-  const focusedFilterId = nativeFilters?.focusedFilterId;
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
+  );
+  const crossFiltersEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
@@ -525,7 +527,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterSetEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
-  const showFilterBar = nativeFiltersEnabled && !editMode;
+  const showFilterBar =
+    (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -581,8 +584,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
             <FilterBar
-              focusedFilterId={focusedFilterId}
               orientation={FilterBarOrientation.HORIZONTAL}
+              hidden={isReport}
             />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
@@ -613,7 +616,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       </div>
     ),
     [
-      focusedFilterId,
       nativeFiltersEnabled,
       filterBarOrientation,
       editMode,
@@ -656,19 +658,17 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                 >
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
                     <ErrorBoundary>
-                      {!isReport && (
-                        <FilterBar
-                          focusedFilterId={focusedFilterId}
-                          orientation={FilterBarOrientation.VERTICAL}
-                          verticalConfig={{
-                            filtersOpen: dashboardFiltersOpen,
-                            toggleFiltersBar: toggleDashboardFiltersOpen,
-                            width: filterBarWidth,
-                            height: filterBarHeight,
-                            offset: filterBarOffset,
-                          }}
-                        />
-                      )}
+                      <FilterBar
+                        orientation={FilterBarOrientation.VERTICAL}
+                        verticalConfig={{
+                          filtersOpen: dashboardFiltersOpen,
+                          toggleFiltersBar: toggleDashboardFiltersOpen,
+                          width: filterBarWidth,
+                          height: filterBarHeight,
+                          offset: filterBarOffset,
+                        }}
+                        hidden={isReport}
+                      />
                     </ErrorBoundary>
                   </StickyPanel>
                 </FiltersPanel>

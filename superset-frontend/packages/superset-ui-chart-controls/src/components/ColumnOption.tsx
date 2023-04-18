@@ -59,11 +59,9 @@ export function ColumnOption({
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span
           className="option-label column-option-label"
-          css={(theme: SupersetTheme) =>
-            css`
-              margin-right: ${theme.gridUnit}px;
-            `
-          }
+          css={(theme: SupersetTheme) => css`
+            margin-right: ${theme.gridUnit}px;
+          `}
           ref={labelRef}
         >
           {getColumnLabelText(column)}

@@ -24,6 +24,7 @@ import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
 import * as actions from 'src/SqlLab/actions/sqlLab';
+import { LOG_EVENT } from 'src/logger/actions';
 import {
   defaultQueryEditor,
   query,
@@ -44,7 +45,6 @@ describe('async actions', () => {
     latestQueryId: null,
     sql: 'SELECT *\nFROM\nWHERE',
     name: 'Untitled Query 1',
-    schemaOptions: [{ value: 'main', label: 'main', title: 'main' }],
   };
 
   let dispatch;
@@ -55,13 +55,13 @@ describe('async actions', () => {
 
   afterEach(fetchMock.resetHistory);
 
-  const fetchQueryEndpoint = 'glob:*/superset/results/*';
+  const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
     fetchQueryEndpoint,
     JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
   );
 
-  const runQueryEndpoint = 'glob:*/superset/sql_json/';
+  const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
@@ -240,22 +240,38 @@ describe('async actions', () => {
       });
     });
 
-    it('calls queryFailed on fetch error', () => {
-      expect.assertions(1);
+    it('calls queryFailed on fetch error and logs the error details', () => {
+      expect.assertions(3);
 
       fetchMock.post(
         runQueryEndpoint,
-        { throws: { message: 'error text' } },
+        {
+          throws: {
+            message: 'error text',
+            timeout: true,
+            statusText: 'timeout',
+          },
+        },
         { overwriteRoutes: true },
       );
 
       const store = mockStore({});
-      const expectedActionTypes = [actions.START_QUERY, actions.QUERY_FAILED];
+      const expectedActionTypes = [
+        actions.START_QUERY,
+        LOG_EVENT,
+        LOG_EVENT,
+        actions.QUERY_FAILED,
+      ];
       const { dispatch } = store;
       const request = actions.runQuery(query);
       return request(dispatch, () => initialState).then(() => {
-        expect(store.getActions().map(a => a.type)).toEqual(
-          expectedActionTypes,
+        const actions = store.getActions();
+        expect(actions.map(a => a.type)).toEqual(expectedActionTypes);
+        expect(actions[1].payload.eventData.error_details).toContain(
+          'Issue 1000',
+        );
+        expect(actions[2].payload.eventData.error_details).toContain(
+          'Issue 1001',
         );
       });
     });
@@ -280,13 +296,37 @@ describe('async actions', () => {
     };
 
     it('makes the fetch request', async () => {
-      const runQueryEndpointWithParams = 'glob:*/superset/sql_json/?foo=bar';
+      const runQueryEndpointWithParams =
+        'glob:*/api/v1/sqllab/execute/?foo=bar';
       fetchMock.post(
         runQueryEndpointWithParams,
         `{ "data": ${mockBigNumber} }`,
       );
       await makeRequest().then(() => {
         expect(fetchMock.calls(runQueryEndpointWithParams)).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('runQuery with comments', () => {
+    const makeRequest = () => {
+      const request = actions.runQuery({
+        ...query,
+        sql: '/*\nSELECT * FROM\n */\nSELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/\n\nFROM table',
+      });
+      return request(dispatch, () => initialState);
+    };
+
+    it('makes the fetch request without comments', async () => {
+      const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
+      fetchMock.post(runQueryEndpoint, '{}', {
+        overwriteRoutes: true,
+      });
+      await makeRequest().then(() => {
+        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+        expect(
+          JSON.parse(fetchMock.calls(runQueryEndpoint)[0][1].body).sql,
+        ).toEqual('SELECT 213\n\n\nFROM table');
       });
     });
   });
@@ -432,15 +472,21 @@ describe('async actions', () => {
           {
             type: actions.ADD_QUERY_EDITOR,
             queryEditor: {
-              ...defaultQueryEditor,
               id: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
               name: `Untitled Query ${
                 store.getState().sqlLab.queryEditors.length + 1
               }`,
+              dbId: defaultQueryEditor.dbId,
+              schema: defaultQueryEditor.schema,
+              autorun: false,
+              queryLimit:
+                defaultQueryEditor.queryLimit ||
+                initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
             },
           },
         ];
-        const request = actions.addNewQueryEditor(defaultQueryEditor);
+        const request = actions.addNewQueryEditor();
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
         });
