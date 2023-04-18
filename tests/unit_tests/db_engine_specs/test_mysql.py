@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Tuple, Type
 from unittest.mock import Mock, patch
 
 import pytest
@@ -33,7 +33,7 @@ from sqlalchemy.dialects.mysql import (
     TINYINT,
     TINYTEXT,
 )
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -117,6 +117,36 @@ def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
             MySQLEngineSpec.validate_database_uri(url)
         return
     MySQLEngineSpec.validate_database_uri(url)
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri,connect_args,returns",
+    [
+        ("mysql://user:password@host/db1", {"local_infile": 1}, {"local_infile": 0}),
+        ("mysql://user:password@host/db1", {"local_infile": -1}, {"local_infile": 0}),
+        ("mysql://user:password@host/db1", {"local_infile": 0}, {"local_infile": 0}),
+        (
+            "mysql://user:password@host/db1",
+            {"param1": "some_value"},
+            {"local_infile": 0, "param1": "some_value"},
+        ),
+        (
+            "mysql://user:password@host/db1",
+            {"local_infile": 1, "param1": "some_value"},
+            {"local_infile": 0, "param1": "some_value"},
+        ),
+    ],
+)
+def test_adjust_engine_params(
+    sqlalchemy_uri: str, connect_args: Dict[str, Any], returns: Dict[str, Any]
+) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    url = make_url(sqlalchemy_uri)
+    returned_url, returned_connect_args = MySQLEngineSpec.adjust_engine_params(
+        url, connect_args
+    )
+    assert returned_connect_args == returns
 
 
 @patch("sqlalchemy.engine.Engine.connect")
