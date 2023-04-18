@@ -486,3 +486,18 @@ click the 3-dot icon and select `Create Release`, paste the content of the ANNOU
 release notes, and publish the new release.
 
 At this point, a GitHub action will run that will check whether this release's version number is higher than the current 'latest' release. If that condition is true, this release sha will automatically be tagged as `latest` so that the most recent release can be referenced simply by using the 'latest' tag instead of looking up the version number. The existing version number tag will still exist, and can also be used for reference.
+
+### Npm Release
+You might want to publish the latest @superset-ui release to npm
+```bash
+cd superset/superset-front
+```
+An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+```bash
+export GH_TOKEN={GITHUB_TOKEN}
+npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+```
+This action will publish the specified version to npm registry.
+```bash
+npx lerna publish from-package --yes
+```
