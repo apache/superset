@@ -481,7 +481,6 @@ export default function transformProps(
         ]
       : [],
   };
-  console.log('echartOptionsXX', echartOptions);
 
   return {
     formData,
