@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.1.0](https://github.com/apache-superset/superset-ui/compare/v2021.41.0...v2.1.0) (2023-04-18)
+
+### Bug Fixes
+
+- Allow empty CSS in Handlebars ([#22422](https://github.com/apache-superset/superset-ui/issues/22422)) ([bb318cb](https://github.com/apache-superset/superset-ui/commit/bb318cb137acd27009ddbe63ba4f8e0c37b754ca))
+- explore warnings cleanup ([#20864](https://github.com/apache-superset/superset-ui/issues/20864)) ([5d107b8](https://github.com/apache-superset/superset-ui/commit/5d107b86abd1712571861e92f922ace57fb622ba))
+- **explore:** Prevent shared controls from checking feature flags outside React render ([#21315](https://github.com/apache-superset/superset-ui/issues/21315)) ([2285ebe](https://github.com/apache-superset/superset-ui/commit/2285ebe72ec4edded6d195052740b7f9f13d1f1b))
+- Force configuration for SafeMarkdown component in Handlebars ([#22417](https://github.com/apache-superset/superset-ui/issues/22417)) ([ebaa949](https://github.com/apache-superset/superset-ui/commit/ebaa94974b2fca41d21f1c0972c288e086525687))
+- **plugin-chart-handlebars:** fix overflow, debounce and control reset ([#19879](https://github.com/apache-superset/superset-ui/issues/19879)) ([d5ea537](https://github.com/apache-superset/superset-ui/commit/d5ea537b0eb3e102677d63811b99cf2c4b31a3ab))
+- **plugin-chart-handlebars:** order by control not work ([#21005](https://github.com/apache-superset/superset-ui/issues/21005)) ([e70699f](https://github.com/apache-superset/superset-ui/commit/e70699fb433849e07af81ea1812f20aa271d028e))
+
+### Features
+
+- Adds plugin-chart-handlebars ([#17903](https://github.com/apache-superset/superset-ui/issues/17903)) ([e632b82](https://github.com/apache-superset/superset-ui/commit/e632b82395bd379e2c4d42cb581972e6fe690a50))
+- **explore:** Apply denormalization to tier 2 charts form data ([#20524](https://github.com/apache-superset/superset-ui/issues/20524)) ([e12ee59](https://github.com/apache-superset/superset-ui/commit/e12ee59b13822241dca8d8015f1222c477edd4f3))
+- **explore:** Frontend implementation of dataset creation from infobox ([#19855](https://github.com/apache-superset/superset-ui/issues/19855)) ([ba0c37d](https://github.com/apache-superset/superset-ui/commit/ba0c37d3df85b1af39404af1d578daeb0ff2d278))
+- **handlebars plugin:** adding handlebars helpers for common math operations ([#20648](https://github.com/apache-superset/superset-ui/issues/20648)) ([9856d88](https://github.com/apache-superset/superset-ui/commit/9856d88c03c78a97f6037077e0d0e1e2bac491fe))
+- Move cross filters to Dashboard ([#22785](https://github.com/apache-superset/superset-ui/issues/22785)) ([9ed2326](https://github.com/apache-superset/superset-ui/commit/9ed2326a20329d41abc8e0995b0ba6110379088f))
+- support mulitple temporal filters in AdhocFilter and move the Time Section away ([#21767](https://github.com/apache-superset/superset-ui/issues/21767)) ([a9b229d](https://github.com/apache-superset/superset-ui/commit/a9b229dd1dd9cb9dc8166b1392179fcccb4da138))
+
 # [0.19.0](https://github.com/apache-superset/superset-ui/compare/v2021.41.0...v0.19.0) (2023-04-18)
 
 ### Bug Fixes

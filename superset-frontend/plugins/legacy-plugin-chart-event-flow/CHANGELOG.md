@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.1.0](https://github.com/apache-superset/superset-ui/compare/v2021.41.0...v2.1.0) (2023-04-18)
+
+### Bug Fixes
+
+- **generic-chart-axes:** set x-axis if unset and ff is enabled ([#20107](https://github.com/apache-superset/superset-ui/issues/20107)) ([0b3d3dd](https://github.com/apache-superset/superset-ui/commit/0b3d3dd4caa7f4c31c1ba7229966a40ba0469e85))
+
+### Features
+
+- **explore:** Frontend implementation of dataset creation from infobox ([#19855](https://github.com/apache-superset/superset-ui/issues/19855)) ([ba0c37d](https://github.com/apache-superset/superset-ui/commit/ba0c37d3df85b1af39404af1d578daeb0ff2d278))
+
 # [0.19.0](https://github.com/apache-superset/superset-ui/compare/v2021.41.0...v0.19.0) (2023-04-18)
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/switchboard",
-  "version": "0.19.0",
+  "version": "2.1.0",
   "description": "Switchboard is a library to make it easier to communicate across browser windows using the MessageChannel API",
   "keywords": [
     "switchboard",
