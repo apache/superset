@@ -229,6 +229,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/override_role_permissions/", methods=["POST"])
+    @deprecated()
     def override_role_permissions(self) -> FlaskResponse:
         """Updates the role with the give datasource permissions.
 
