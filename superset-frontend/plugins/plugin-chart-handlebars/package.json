@@ -1,7 +1,20 @@
 {
   "name": "@superset-ui/plugin-chart-handlebars",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset Chart - Write a handlebars template to render the data",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,25 +22,14 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
-  },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "handlebars": "^4.7.7",
     "just-handlebars-helpers": "^1.0.19"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.0",
+    "@types/lodash": "^4.14.149",
+    "jest": "^26.0.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
@@ -39,9 +41,7 @@
     "react-ace": "^10.1.0",
     "react-dom": "^16.13.1"
   },
-  "devDependencies": {
-    "@types/jest": "^26.0.0",
-    "@types/lodash": "^4.14.149",
-    "jest": "^26.0.1"
+  "publishConfig": {
+    "access": "public"
   }
 }
