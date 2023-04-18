@@ -126,6 +126,7 @@ export default function transformProps(
     logAxis,
     markerEnabled,
     markerSize,
+    metrics,
     minorSplitLine,
     onlyTotal,
     opacity,
@@ -146,6 +147,8 @@ export default function transformProps(
     truncateYAxis,
     xAxis: xAxisOrig,
     xAxisLabelRotation,
+    xAxisSortSeries,
+    xAxisSortSeriesAscending,
     xAxisTimeFormat,
     xAxisTitle,
     xAxisTitleMargin,
@@ -191,7 +194,9 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const rawSeries = extractSeries(rebasedData, {
+  const isMultiSeries = groupby.length || metrics.length > 1;
+
+  const [rawSeries, sortedTotalValues] = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisLabel,
     extraMetricLabels,
@@ -200,6 +205,10 @@ export default function transformProps(
     isHorizontal,
     sortSeriesType,
     sortSeriesAscending,
+    xAxisSortSeries: isMultiSeries ? xAxisSortSeries : undefined,
+    xAxisSortSeriesAscending: isMultiSeries
+      ? xAxisSortSeriesAscending
+      : undefined,
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
@@ -234,7 +243,7 @@ export default function transformProps(
       formatter,
       showValue,
       onlyTotal,
-      totalStackedValues,
+      totalStackedValues: sortedTotalValues,
       showValueIndexes,
       thresholdValues,
       richTooltip,

@@ -51,7 +51,7 @@ import polyline
 import simplejson as json
 from dateutil import relativedelta as rdelta
 from flask import request
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
@@ -1007,6 +1007,7 @@ class PivotTableViz(BaseViz):
             values=metrics,
             aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
+            margins_name=__("Total"),
         )
 
         # Re-order the columns adhering to the metric ordering.

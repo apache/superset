@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
-import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
+import { initFeatureFlags } from 'src/featureFlags';
 import getBootstrapData from './getBootstrapData';
 
 function getDomainsConfig() {
@@ -43,7 +42,6 @@ function getDomainsConfig() {
   initFeatureFlags(bootstrapData.common.feature_flags);
 
   if (
-    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING) &&
     bootstrapData &&
     bootstrapData.common &&
     bootstrapData.common.conf &&

@@ -242,7 +242,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               <Tooltip
                 placement="top"
                 title={t(
-                  'This chart emits/applies cross-filters to other charts that use the same dataset',
+                  'This chart applies cross-filters to charts whose datasets contain columns with the same name.',
                 )}
               >
                 <CrossFilterIcon iconSize="m" />

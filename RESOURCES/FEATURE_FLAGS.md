@@ -57,12 +57,10 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_NATIVE_FILTERS
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - ENABLE_JAVASCRIPT_CONTROLS
-- GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
-- UX_BETA
 - VERSIONED_EXPORT
 
 ## Stable
@@ -82,7 +80,6 @@ These features flags are **safe for production** and have been tested.
 - ENABLE_DND_WITH_CLICK_UX
 - ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_TEMPLATE_PROCESSING
-- ENFORCE_DB_ENCRYPTION_UI
 - ESCAPE_MARKDOWN_HTML
 - LISTVIEWS_DEFAULT_CARD_VIEW
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
@@ -96,6 +93,4 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- ALLOW_DASHBOARD_DOMAIN_SHARDING
-- DISPLAY_MARKDOWN_HTML
-- FORCE_DATABASE_CONNECTIONS_SSL
+- GENERIC_CHART_AXES

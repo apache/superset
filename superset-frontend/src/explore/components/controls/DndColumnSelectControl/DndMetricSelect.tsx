@@ -315,16 +315,14 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
-        if (itemValue.type_generic === GenericDataType.NUMERIC) {
-          config.aggregate = AGGREGATES.SUM;
-        } else if (
-          itemValue.type_generic === GenericDataType.STRING ||
-          itemValue.type_generic === GenericDataType.BOOLEAN ||
-          itemValue.type_generic === GenericDataType.TEMPORAL
-        ) {
-          config.aggregate = AGGREGATES.COUNT_DISTINCT;
-        }
+      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+        config.aggregate = AGGREGATES.SUM;
+      } else if (
+        itemValue.type_generic === GenericDataType.STRING ||
+        itemValue.type_generic === GenericDataType.BOOLEAN ||
+        itemValue.type_generic === GenericDataType.TEMPORAL
+      ) {
+        config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }
       return new AdhocMetric(config);
     }
