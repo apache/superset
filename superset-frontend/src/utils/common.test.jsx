@@ -50,28 +50,28 @@ describe('utils/common', () => {
   });
   describe('prepareCopyToClipboardTabularData', () => {
     it('converts empty array', () => {
-      const array = [];
-      const column = [];
-      expect(prepareCopyToClipboardTabularData(array, column)).toEqual('');
+      const data = [];
+      const columns = [];
+      expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('');
     });
     it('converts non empty array', () => {
-      const array = [
+      const data = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
-      const column = ['column1', 'column2', 'column3'];
-      expect(prepareCopyToClipboardTabularData(array, column)).toEqual(
-        'lorem\tipsum\t\ndolor\tsit\tamet\n',
+      const columns = ['column1', 'column2', 'column3'];
+      expect(prepareCopyToClipboardTabularData(data, columns)).toEqual(
+        'column1\tcolumn2\tcolumn3\nlorem\tipsum\t\ndolor\tsit\tamet\n',
       );
     });
-    it('includes 0 values', () => {
-      const array = [
+    it('includes 0 values and handle column objects', () => {
+      const data = [
         { column1: 0, column2: 0 },
         { column1: 1, column2: -1, 0: 0 },
       ];
-      const column = ['column1', 'column2', '0'];
-      expect(prepareCopyToClipboardTabularData(array, column)).toEqual(
-        '0\t0\t\n1\t-1\t0\n',
+      const columns = [{ name: 'column1' }, { name: 'column2' }, { name: '0' }];
+      expect(prepareCopyToClipboardTabularData(data, columns)).toEqual(
+        'column1\tcolumn2\t0\n0\t0\t\n1\t-1\t0\n',
       );
     });
   });

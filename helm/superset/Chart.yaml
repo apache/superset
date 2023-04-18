@@ -29,13 +29,13 @@ maintainers:
   - name: craig-rueda
     email: craig@craigrueda.com
     url: https://github.com/craig-rueda
-version: 0.9.1
+version: 0.9.2
 dependencies:
   - name: postgresql
     version: 12.1.6
     repository: https://charts.bitnami.com/bitnami
     condition: postgresql.enabled
   - name: redis
-    version: 17.3.17
+    version: 17.9.4
     repository: https://charts.bitnami.com/bitnami
     condition: redis.enabled
