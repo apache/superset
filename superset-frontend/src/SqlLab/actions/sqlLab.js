@@ -80,6 +80,7 @@ export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
+export const CLEAR_INACTIVE_QUERIES = 'CLEAR_INACTIVE_QUERIES';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
@@ -217,6 +218,10 @@ export function estimateQueryCost(queryEditor) {
         ),
     ]);
   };
+}
+
+export function clearInactiveQueries() {
+  return { type: CLEAR_INACTIVE_QUERIES };
 }
 
 export function startQuery(query) {
