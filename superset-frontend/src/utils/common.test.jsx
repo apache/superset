@@ -52,7 +52,7 @@ describe('utils/common', () => {
     it('converts empty array', () => {
       const data = [];
       const columns = [];
-      expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('\n');
+      expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('');
     });
     it('converts non empty array', () => {
       const data = [
