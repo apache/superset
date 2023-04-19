@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { hasGenericChartAxes } from '@superset-ui/core';
 import buildQueryObject from './buildQueryObject';
 import DatasourceKey from './DatasourceKey';
 import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
@@ -59,38 +58,6 @@ export default function buildQueryContext(
   });
   if (isXAxisSet(formData)) {
     queries = queries.map(query => normalizeTimeColumn(formData, query));
-  }
-
-  /* Some charts saved before GENERIC_CHART_AXES is enabled will have the wrong
-   * time granularity set. This fixes the generated payload to conform with the new
-   * schema used when GENERIC_CHART_AXES is enabled.
-   */
-  if (hasGenericChartAxes && formData.granularity_sqla) {
-    const filterSubject = formData.granularity_sqla;
-    const filterComparator = formData?.time_range || 'No Filter';
-
-    queries.forEach(query => {
-      if (query.columns) {
-        const index = query.columns.indexOf(filterSubject);
-        if (index > -1) {
-          // eslint-disable-next-line no-param-reassign
-          query.columns[index] = {
-            columnType: 'BASE_AXIS',
-            expressionType: 'SQL',
-            label: filterSubject,
-            sqlExpression: filterSubject,
-            timeGrain: formData.time_grain_sqla,
-          };
-        }
-      }
-      // eslint-disable-next-line no-param-reassign
-      query.filters = query.filters || [];
-      query.filters.push({
-        col: filterSubject,
-        op: 'TEMPORAL_RANGE',
-        val: filterComparator,
-      });
-    });
   }
   // --- query mutator end ---
   return {
