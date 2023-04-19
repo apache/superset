@@ -47,7 +47,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import ArgumentError, NoSuchModuleError
+from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
