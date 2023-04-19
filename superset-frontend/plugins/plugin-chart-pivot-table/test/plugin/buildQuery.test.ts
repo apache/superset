@@ -19,6 +19,7 @@
 
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
+import * as buildQueryModule from '../../src/plugin/buildQuery';
 
 describe('PivotTableChart buildQuery', () => {
   const formData: PivotTableQueryFormData = {
@@ -54,5 +55,30 @@ describe('PivotTableChart buildQuery', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['col1', 'col2', 'row1', 'row2']);
+  });
+
+  it('should work with old charts after GENERIC_CHART_AXES is enabled', () => {
+    Object.defineProperty(buildQueryModule, 'hasGenericChartAxes', {
+      value: true,
+    });
+    const modifiedFormData = {
+      ...formData,
+      time_grain_sqla: 'P1M',
+      granularity_sqla: 'col1',
+    };
+    const queryContext = buildQuery(modifiedFormData);
+    const [query] = queryContext.queries;
+    expect(query.columns).toEqual([
+      {
+        timeGrain: 'P1M',
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'col1',
+        label: 'col1',
+        expressionType: 'SQL',
+      },
+      'col2',
+      'row1',
+      'row2',
+    ]);
   });
 });
