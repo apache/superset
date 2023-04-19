@@ -123,13 +123,12 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         :param df: The dataframe with data to be uploaded
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
-
         to_sql_kwargs["dtype"] = {
-            # use the max size for redshift(65335)
+            # uses the max size for redshift nvarchar(65335)
             # the default object and string types create a varchar(256)
             col_name: NVARCHAR(length=65535)
             for col_name, type in zip(df.columns, df.dtypes)
-            if str(type) == "string"
+            if isinstance(type, pd.StringDtype)
         }
 
         super().df_to_sql(
