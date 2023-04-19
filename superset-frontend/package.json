@@ -99,7 +99,6 @@
     "@superset-ui/legacy-plugin-chart-paired-t-test": "file:./plugins/legacy-plugin-chart-paired-t-test",
     "@superset-ui/legacy-plugin-chart-parallel-coordinates": "file:./plugins/legacy-plugin-chart-parallel-coordinates",
     "@superset-ui/legacy-plugin-chart-partition": "file:./plugins/legacy-plugin-chart-partition",
-    "@superset-ui/legacy-plugin-chart-pivot-table": "file:./plugins/legacy-plugin-chart-pivot-table",
     "@superset-ui/legacy-plugin-chart-rose": "file:./plugins/legacy-plugin-chart-rose",
     "@superset-ui/legacy-plugin-chart-sankey": "file:./plugins/legacy-plugin-chart-sankey",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "file:./plugins/legacy-plugin-chart-sankey-loop",
