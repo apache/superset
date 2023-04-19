@@ -46,25 +46,13 @@ export class ColorStyleAttribute {
   }
 }
 
-
-export class PointStyle {
-  constructor(color, shape, size) {
-    this.color = color;
-    this.shape = shape;
-    this.size = size;
-    this.createImg();
-  }
-
-  createImg() {
-    this.img = createSVG(this.color, this.shape, this.size);
-  }
-}
-
 export class BaseCustom {
   constructor(
     name,
     source,
     geom,
-
+    // Add other table metadata attributes here
   )
+
+  // Add async function to grab data
 }
