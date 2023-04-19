@@ -3008,7 +3008,6 @@ class DeckHeatmap(BaseDeckGLViz):
         }
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        # pdb.set_trace()
         self.metric_label = (  # pylint: disable=attribute-defined-outside-init
             utils.get_metric_name(self.metric) if self.metric else None
         )
