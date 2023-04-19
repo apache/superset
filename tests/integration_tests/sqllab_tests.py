@@ -511,7 +511,7 @@ class TestSqlLab(SupersetTestCase):
             "dbId": examples_dbid,
         }
         data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
+        resp = self.get_json_resp("/api/v1/dataset/sqllab_viz/", data=data)
         self.assertIn("table_id", resp)
 
         # ensure owner is set correctly
@@ -548,7 +548,7 @@ class TestSqlLab(SupersetTestCase):
                 LIMIT 10""",
         }
         data = {"data": json.dumps(payload)}
-        url = "/superset/sqllab_viz/"
+        url = "/api/v1/dataset/sqllab_viz/"
         response = self.client.post(url, data=data, follow_redirects=True)
         assert response.status_code == 400
 

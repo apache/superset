@@ -1512,7 +1512,7 @@ export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
-      endpoint: '/superset/sqllab_viz/',
+      endpoint: '/api/v1/dataset/sqllab_viz/',
       postPayload: { data: vizOptions },
     })
       .then(({ json }) => {

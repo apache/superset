@@ -49,7 +49,7 @@ export function saveDataset({
       const {
         json: { data },
       } = await SupersetClient.post({
-        endpoint: '/superset/sqllab_viz/',
+        endpoint: '/api/v1/dataset/sqllab_viz/',
         postPayload: {
           data: {
             schema,

@@ -22,16 +22,16 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 import yaml
-from flask import request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask import g, request, Response, send_file
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext as __, lazy_gettext as _, ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
+from superset import db, event_logger, is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
@@ -63,8 +63,18 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
 )
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetGenericErrorException
+from superset.models.core import Database
+from superset.sql_parse import ParsedQuery
 from superset.utils.core import parse_boolean_string
-from superset.views.base import DatasourceFilter, generate_download_headers
+from superset.views.base import (
+    DatasourceFilter,
+    generate_download_headers,
+    json_errors_response,
+    json_success,
+    validate_sqlatable,
+)
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -73,6 +83,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.utils import sanitize_datasource_data
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +106,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "related_objects",
         "duplicate",
         "get_or_create_dataset",
+        "sqllab_viz",
     }
     list_columns = [
         "id",
@@ -993,6 +1005,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/sqllab_viz/", methods=["POST"])
     @protect()
     @safe
+    @permission_name("write")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -1000,7 +1013,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def sqllab_viz(self) -> Response:
-        """ endpoint that builds a dataset from sqllab
+        """endpoint that builds a dataset from sqllab
         ---
         post:
           summary: {fill this in}
@@ -1061,16 +1074,17 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
 
         if table:
-            return json_errors_response(
-                [
-                    SupersetError(
-                        message=f"Dataset [{table_name}] already exists",
-                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                        level=ErrorLevel.WARNING,
-                    )
-                ],
-                status=422,
-            )
+            return self.response_422(message=f"Dataset [{table_name}] already exists")
+            # return json_errors_response(
+            #     [
+            #         SupersetError(
+            #             message=f"Dataset [{table_name}] already exists",
+            #             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            #             level=ErrorLevel.WARNING,
+            #         )
+            #     ],
+            #     status=422,
+            # )
 
         table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database = database
@@ -1095,8 +1109,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
 
-        return json_success(
-            json.dumps(
-                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
-            )
+        return self.response(
+            200,
+            result={"table_id": table.id, "data": sanitize_datasource_data(table.data)},
         )
+        # return json_success(
+        #     json.dumps(
+        #         {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+        #     )
+        # )
