@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { TimeGranularity } from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
 import * as buildQueryModule from '../../src/plugin/buildQuery';
@@ -63,7 +64,7 @@ describe('PivotTableChart buildQuery', () => {
     });
     const modifiedFormData = {
       ...formData,
-      time_grain_sqla: 'P1M',
+      time_grain_sqla: TimeGranularity.MONTH,
       granularity_sqla: 'col1',
     };
     const queryContext = buildQuery(modifiedFormData);
