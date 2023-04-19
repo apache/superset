@@ -786,13 +786,19 @@ class SqlaTable(
         return check(self) if check else None
 
     @property
+    def granularity_sqla(self) -> List[Tuple[Any, Any]]:
+        return utils.choicify(self.dttm_cols)
+
+    @property
+    def time_grain_sqla(self) -> List[Tuple[Any, Any]]:
+        return [(g.duration, g.name) for g in self.database.grains() or []]
+
+    @property
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
-            data_["granularity_sqla"] = utils.choicify(self.dttm_cols)
-            data_["time_grain_sqla"] = [
-                (g.duration, g.name) for g in self.database.grains() or []
-            ]
+            data_["granularity_sqla"] = self.granularity_sqla
+            data_["time_grain_sqla"] = self.time_grain_sqla
             data_["main_dttm_col"] = self.main_dttm_col
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
