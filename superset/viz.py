@@ -3002,10 +3002,6 @@ class DeckHeatmap(BaseDeckGLViz):
     spatial_control_keys = ["spatial"]
 
     def get_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        # pdb.set_trace()
-        weight = 1
-        if (self.metric_label):
-            weight = data.get(self.metric_label)
         return {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
@@ -3017,6 +3013,7 @@ class DeckHeatmap(BaseDeckGLViz):
             utils.get_metric_name(self.metric) if self.metric else None
         )
         return super().get_data(df)
+
 
 class DeckGeoJson(BaseDeckGLViz):
 
