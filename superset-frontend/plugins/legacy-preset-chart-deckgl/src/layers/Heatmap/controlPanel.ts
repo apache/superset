@@ -66,9 +66,10 @@ const config: ControlPanelConfig = {
             name: 'intensity',
             config: {
               type: 'SelectControl',
-              label: 'Intesity',
-              description:
+              label: t('Intesity'),
+              description: t(
                 'Intensity is the value multiplied by the weight to obtain the final weight',
+              ),
               freeForm: true,
               clearable: false,
               validators: [legacyValidateNumber],
@@ -83,9 +84,10 @@ const config: ControlPanelConfig = {
             name: 'radius_pixels',
             config: {
               type: 'SelectControl',
-              label: 'Intensity Radius',
-              description:
+              label: t('Intensity Radius'),
+              description: t(
                 'Intensity Radius is the radius at which the weight is distributed',
+              ),
               freeForm: true,
               clearable: false,
               validators: [legacyValidateInteger],
