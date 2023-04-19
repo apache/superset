@@ -490,7 +490,7 @@ At this point, a GitHub action will run that will check whether this release's v
 ### Npm Release
 You might want to publish the latest @superset-ui release to npm
 ```bash
-cd superset/superset-front
+cd superset/superset-frontend
 ```
 An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
 ```bash
