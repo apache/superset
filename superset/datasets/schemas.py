@@ -55,7 +55,7 @@ class DatasetColumnsPutSchema(Schema):
     extra = fields.String(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
-    is_active = fields.Boolean()
+    is_active = fields.Boolean(allow_none=True)
     is_dttm = fields.Boolean(default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
