@@ -62,7 +62,6 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         [
           {
-            // TODO: add translations
             name: 'intensity',
             config: {
               type: 'SelectControl',
@@ -80,7 +79,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            // TODO: add translations
             name: 'radius_pixels',
             config: {
               type: 'SelectControl',
