@@ -16,8 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty, legacyValidateInteger, validateNumber } from '@superset-ui/core';
+import { 
+  t, 
+  validateNonEmpty, 
+  legacyValidateInteger, 
+  validateNumber,   
+  getSequentialSchemeRegistry,
+  SequentialScheme 
+} from '@superset-ui/core';
 import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
+
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+
+export type Result = {
+  id: unknown;
+  database_name?: string;
+  value?: string;
+};
+
+export type Data = {
+  result?: Result[];
+};
 
 const config: ControlPanelConfig = {
   /**
@@ -151,7 +170,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map Style & Layer Settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -199,7 +218,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map Feature Settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -223,7 +242,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Thematic Settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -293,13 +312,11 @@ const config: ControlPanelConfig = {
               default: 0,
               validators: [legacyValidateInteger],
               renderTrigger: false,
-              label: t('Number of classes'),
+              label: t('Classes'),
               description: t('The number of breaks for the thematic'),
               visibility: ({ controls }) => Boolean(!(controls.breaks_mode.value === 'categorized')) && Boolean(controls.map_type.value.includes('thematic'))
             },
           },
-        ],
-        [
           {
             name: 'opacity',
             config: {
@@ -318,7 +335,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Initial Map Position'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -358,7 +375,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Radius Settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -375,9 +392,7 @@ const config: ControlPanelConfig = {
               },
               visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
             }
-          }
-        ],
-        [
+          },
           {
             name: 'radius_threshold',
             config: {
@@ -387,7 +402,7 @@ const config: ControlPanelConfig = {
               step: 0.1,
               default: 0.5,
               renderTrigger: false,
-              label: t('Radius Intersection Threshold'),
+              label: t('Threshold'),
               description: t('Threshold for ratio of SA1 intersection with radius, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the radius.'),
               visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
             }
@@ -409,7 +424,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Drivetime Settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
@@ -426,9 +441,7 @@ const config: ControlPanelConfig = {
               },
               visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
-          }
-        ],
-        [
+          },
           {
             name: 'drivetime_threshold',
             config: {
@@ -438,7 +451,7 @@ const config: ControlPanelConfig = {
               step: 0.1,
               default: 0.5,
               renderTrigger: false,
-              label: t('Drivetime Intersection Threshold'),
+              label: t('Threshold'),
               description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.'),
               visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
@@ -459,23 +472,17 @@ const config: ControlPanelConfig = {
       ]
     },
     {
-      label: t('Custom Layers'),
-      expanded: true,
+      label: t('Custom Data'),
+      expanded: false,
       controlSetRows: [
         [
           {
-            name: 'custom_geom',
+            name: 'custom_name',
             config: {
-              type: 'SelectControl',
+              type: 'TextControl',
               renderTrigger: false,
-              label: t('Geometry type'),
-              choices: [
-                ['point', 'Point'],
-                ['polygon', 'Polygon'],
-                ['polyline', 'Polyline'],
-                ['h3', 'H3']
-              ],
-              placeholder: t('Select geometry')
+              label: t('Custom layer name'),
+              default: ''
             }
           }
         ],
@@ -502,7 +509,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               renderTrigger: false,
               label: t('Mapbox Tileset URL'),
-              visibility: ({ controls }) => Boolean(controls.custom_type.value === 'tileset')
+              visibility: ({ controls }) => Boolean(controls?.custom_type.value === 'tileset')
             }
           }
         ],
@@ -517,7 +524,7 @@ const config: ControlPanelConfig = {
                 '/api/v1/database',
               placeholder: t('Select database'),
               onAsyncErrorMessage: t('Error while fetching databases'),
-              mutator: (data?: Data) => {
+              mutator: (data? : Data) => {
                 if (!data || !data.result) {
                   return [];
                 }
@@ -597,6 +604,279 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'custom_geom',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: false,
+              label: t('Geometry type'),
+              choices: [
+                ['point', 'Point'],
+                ['polygon', 'Polygon'],
+                ['polyline', 'Polyline'],
+                ['h3', 'H3']
+              ],
+              placeholder: t('Select geometry')
+            }
+          }
+        ],
+      ]
+    },
+    {
+      label: t('Custom Style'),
+      expanded: false,
+      controlSetRows: [
+        // Custom shape settings
+        [
+          {
+            name: 'custom_shape',
+            config: {
+              label: t('Shape'),
+              type: 'SelectControl',
+              renderTrigger: false,
+              choices: [
+                ['circle', 'Circle'],
+                ['square', 'Square'],
+                ['star', 'Star'],
+                ['pentagon', 'Pentagon'],
+                ['triangle', 'Triangle']
+              ],
+              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point')
+            },
+          }
+        ],
+        [
+          {
+            name: 'custom_color_attribute_check',
+            config: {
+              type: 'CheckboxControl',
+              default: false,
+              label: t('Color based on attribute?')
+            }
+          }
+        ],
+        // Custom color settings
+        [
+          {
+            name: 'custom_color_attribute',
+            config: {
+              label: t('Color Attribute'),
+              type: 'TextControl',
+              renderTrigger: false,
+              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_color',
+            config: {
+              label: t('Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              },
+              visibility: ({ controls }) => Boolean(!(controls.custom_color_attribute_check.value === true))
+            }
+          },
+          {
+            name: 'custom_color_scheme',
+            config: {
+              type: 'ColorSchemeControl',
+              label: t('Linear Color Scheme'),
+              choices: () =>
+                (sequentialSchemeRegistry.values() as SequentialScheme[]).map(value => [
+                  value.id,
+                  value.label,
+                ]),
+              default: sequentialSchemeRegistry.getDefaultKey(),
+              clearable: false,
+              description: '',
+              renderTrigger: true,
+              schemes: () => sequentialSchemeRegistry.getMap(),
+              isLinear: true,
+              mapStateToProps: state => ({
+                dashboardId: state?.form_data?.dashboardId,
+              }),
+              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_color_breaks_mode',
+            config: {
+              type: 'SelectControl',
+              default: 'equal_count',
+              choices: [
+                ['custom', 'Custom'],
+                ['equal_count', 'Equal Count (Quantile)'],
+                ['equal_interval', 'Equal Interval'],
+                ['categorized', 'Categorized']
+              ],
+              renderTrigger: false,
+              label: t('Mode'),
+              description: t('Method used for color styling in thematic.'),
+              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_color_mode',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              default: '',
+              label: t('Custom Mode'),
+              description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
+              visibility: ({ controls }) => Boolean(controls.custom_color_breaks_mode.value === 'custom') 
+                && Boolean(controls.custom_color_attribute_check.value === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_color_num_classes',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: 0,
+              validators: [legacyValidateInteger],
+              renderTrigger: false,
+              label: t('Classes'),
+              description: t('The number of breaks for the thematic'),
+              visibility: ({ controls }) => Boolean(!(controls.custom_color_breaks_mode.value === 'categorized')) 
+                && Boolean(controls.custom_color_attribute_check.value === true)
+            },
+          },
+          {
+            name: 'custom_color_opacity',
+            config: {
+              type: 'SliderControl',
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: 0.5,
+              renderTrigger: true,
+              label: t('Opacity'),
+              description: t('Opacity of thematic'),
+              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+            }
+          }
+        ],
+        // Custom size settings
+        [
+          {
+            name: 'custom_size_attribute_check',
+            config: {
+              type: 'CheckboxControl',
+              default: false,
+              label: t('Size based on attribute?'),
+              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point')
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_size_attribute',
+            config: {
+              label: t('Size Attribute'),
+              type: 'TextControl',
+              renderTrigger: false,
+              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_size',
+            config: {
+              label: t('Size (px)'),
+              type: 'TextControl',
+              validators: [legacyValidateInteger],
+              default: 25,
+              renderTrigger: false,
+              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point'),
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(state) {
+                if (state.controls.custom_size_attribute_check.value === true) {
+                  return {
+                    label: t('Min Size (px)')
+                  }
+                }
+              }
+            }
+          },
+          {
+            name: 'custom_size_multiplier',
+            config: {
+              label: t('Multiplier'),
+              description: t('Size increase multiplier for each increase in class'),
+              type: 'TextControl',
+              renderTrigger: false,
+              validators: [validateNumber],
+              default: 2,
+              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check.value === true),
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_size_breaks_mode',
+            config: {
+              type: 'SelectControl',
+              default: 'equal_count',
+              choices: [
+                ['custom', 'Custom'],
+                ['equal_count', 'Equal Count (Quantile)'],
+                ['equal_interval', 'Equal Interval'],
+                ['categorized', 'Categorized']
+              ],
+              renderTrigger: false,
+              label: t('Mode'),
+              description: t('Method used for color styling in thematic.'),
+              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check.value === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_size_mode',
+            config: {
+              type: 'TextControl',
+              renderTrigger: false,
+              default: '',
+              label: t('Custom Mode'),
+              description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
+              visibility: ({ controls }) => Boolean(controls.custom_size_breaks_mode.value === 'custom') 
+                && Boolean(controls.custom_size_attribute_check.value === true)
+            }
+          }
+        ],
+        [
+          {
+            name: 'custom_size_num_classes',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: 0,
+              validators: [legacyValidateInteger],
+              renderTrigger: false,
+              label: t('Classes'),
+              description: t('The number of breaks for the thematic'),
+              visibility: ({ controls }) => Boolean(!(controls.custom_size_breaks_mode.value === 'categorized')) 
+                && Boolean(controls.custom_size_attribute_check.value === true)
+            },
+          },
+        ]
       ]
     }
   ],

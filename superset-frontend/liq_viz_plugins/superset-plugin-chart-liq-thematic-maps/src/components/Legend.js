@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import {Avatar } from 'antd';
 import LegendSub from './LegendSub.js';
 
 import { useAppStore } from '../store/appStore';
-import { icons } from 'antd/lib/image/PreviewGroup.js';
 
 const iconsSVG = require('../iconSVG.js');
 const defaults = require('../defaultLayerStyles.js');
-const intranetImgs = defaults.intranetImgs;
 const intranetLegendExprs = defaults.intranetLegendExprs;
 
 // Map tile layer names to a more human readable format

@@ -71,7 +71,27 @@ export default function transformProps(chartProps) {
     drivetimeColor,
     drivetimeThreshold,
     drivetimeLinkedCharts,
-    customTileset
+    customName,
+    customType,
+    customTileset,
+    customDatabase,
+    customSchema,
+    customTable,
+    customGeom,
+    customShape,
+    customColorAttributeCheck,
+    customColor,
+    customColorScheme,
+    customColorBreaksMode,
+    customColorMode,
+    customColorNumClasses,
+    customColorOpacity,
+    customSizeAttributeCheck,
+    customSize,
+    customSizeMultiplier,
+    customSizeBreaksMode,
+    customSizeMode,
+    customSizeNumClasses
   } = formData;
 
   const data = queriesData[0].data;
@@ -132,8 +152,15 @@ export default function transformProps(chartProps) {
     });
   };
 
-  const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
-  const newDrivetimeColor = `rgba(${drivetimeColor.r},${drivetimeColor.g},${drivetimeColor.b},${drivetimeColor.a})`;
+  const toRgbaStr = color => `rgba(${color.r},${color.g},${color.b},${color.a})`;
+
+  // const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
+  // const newDrivetimeColor = `rgba(${drivetimeColor.r},${drivetimeColor.g},${drivetimeColor.b},${drivetimeColor.a})`;
+  // const newCustomColor = `rgba(${customColor.r},${customColor.g},${customColor.b},${customColor.a})`;
+
+  const newRadiusColor = toRgbaStr(radiusColor);
+  const newDrivetimeColor = toRgbaStr(drivetimeColor);
+  const newCustomColor = toRgbaStr(customColor);
 
   const newRadiusLinkedCharts = radiusLinkedCharts ? radiusLinkedCharts.split(',').map(Number) : [];
   const newDrivetimeLinkedCharts = drivetimeLinkedCharts ? drivetimeLinkedCharts.split(',').map(Number) : [];
@@ -170,6 +197,28 @@ export default function transformProps(chartProps) {
     newDrivetimeColor,
     drivetimeThreshold,
     newDrivetimeLinkedCharts,
-    customTileset
+    customName,
+    customType,
+    customTileset,
+    customDatabase,
+    customSchema,
+    customTable,
+    customGeom,
+    customShape,
+    customColorAttributeCheck,
+    customColorAttribute,
+    newCustomColor,
+    customColorScheme,
+    customColorBreaksMode,
+    customColorMode,
+    customColorNumClasses,
+    customColorOpacity,
+    customSizeAttributeCheck,
+    customSizeAttribute,
+    customSize,
+    customSizeMultiplier,
+    customSizeBreaksMode,
+    customSizeMode,
+    customSizeNumClasses
   };
 }

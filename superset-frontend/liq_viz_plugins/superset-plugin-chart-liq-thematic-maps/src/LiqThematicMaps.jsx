@@ -107,14 +107,35 @@ export default function LiqThematicMaps(props) {
     newDrivetimeColor, // color of drivetime in rgba
     drivetimeThreshold, // intersection area threshold for drivetime
     newDrivetimeLinkedCharts, // chart ids to update in dashboard when drivetime is updated
-    customTileset // mapbox tileset URL for custom layer
+    customName, // name of custom layer
+    customType, // custom layer is either from a tileset or existing table
+    customTileset, // url of custom layer tileset
+    customDatabase, // database name of custom layer
+    customSchema, // database schema of custom layer
+    customTable, // database table of custom layer
+    customGeom, // type of custom layer geometry, one of: Point, Polygon, Polyline, H3
+    customShape, // shape for Point 
+    customColorAttributeCheck, // whether to style custom layer colour based off attribute or not
+    customColorAttribute, // metric for custom layer color
+    newCustomColor, // fixed color, no attribute styling
+    customColorScheme, // color scheme to use for attribute driven styling
+    customColorBreaksMode, // how to break up data
+    customColorMode, // if customColorBreaksMode is "custom", user defined breaks 
+    customColorNumClasses, // number of classes for breaks, i.e. number of ranges
+    customColorOpacity, // opacity of custom layer color
+    customSizeAttributeCheck, // style custom layer Point size based off attribute or not
+    customSizeAttribute, // metric for custom layer size
+    customSize, // fixed size, no attribute styling
+    customSizeMultiplier, // multiplier to increase size as we go up in class
+    customSizeBreaksMode, // how to break up data
+    customSizeMode, // if customSizeBreaksMode is "custom", user defined breaks
+    customSizeNumClasses // number of classes for breaks, i.e. number of ranges
   } = props;
 
   const rootElem = createRef();
 
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const taPopup = useRef(null);
   let hovered = useRef({});
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
@@ -277,6 +298,27 @@ export default function LiqThematicMaps(props) {
     });
   };
 
+  const handleCustomDetails = () => {
+    if (customDetails.tileset && !(customDetails.tileset === '')) {
+      map.current.addSource('custom_tileset', {
+        'type': 'vector',
+        'url': customTileset
+      });
+
+      map.current.addLayer({
+        'id': 'custom_tileset',
+        'type': 'symbol',
+        'source': 'custom_tileset',
+        'source-layer': 'gdf1',
+        'layout': {
+          'icon-image': 'unknown_ds',
+          'icon-allow-overlap': true,
+          'icon-size': 1
+        }
+      });
+    }
+  };
+
   /*
     Initializes the map. The initialization process consists of:
     1. Instantiating a new Map with the ref to the map container, the map style defined in "mapStyle",
@@ -296,11 +338,6 @@ export default function LiqThematicMaps(props) {
       style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
       center: [mapPos.lng, mapPos.lat],
       zoom: mapPos.zoom    
-    });
-    
-    taPopup.current = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false
     });
 
     // Flat map projection
@@ -382,25 +419,6 @@ export default function LiqThematicMaps(props) {
         'type': 'geojson',
         'data': taSectorCentroids
       });
-
-      if (customTileset && !(customTileset === '')) {
-        map.current.addSource('custom_tileset', {
-          'type': 'vector',
-          'url': customTileset
-        });
-  
-        map.current.addLayer({
-          'id': 'custom_tileset',
-          'type': 'symbol',
-          'source': 'custom_tileset',
-          'source-layer': 'gdf1',
-          'layout': {
-            'icon-image': 'unknown_ds',
-            'icon-allow-overlap': true,
-            'icon-size': 1
-          }
-        });
-      }
 
       map.current.addLayer({
         'id': 'boundary_tileset',
