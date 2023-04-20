@@ -167,7 +167,7 @@ function styled<
       getOptionLabel = option =>
         typeof option === 'string'
           ? option
-          : option[labelKey] || option[valueKey],
+          : String(option[labelKey]) || String(option[valueKey]),
 
       formatOptionLabel = (
         option: OptionType,
