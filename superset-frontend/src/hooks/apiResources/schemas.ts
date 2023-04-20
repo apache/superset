@@ -16,20 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
-import { useQuery, UseQueryOptions } from 'react-query';
-import rison from 'rison';
-import { SupersetClient } from '@superset-ui/core';
-
-export type FetchSchemasQueryParams = {
-  dbId?: string | number;
-  forceRefresh?: boolean;
-};
-
-type QueryData = {
-  json: { result: string[] };
-  response: Response;
-};
+import { useCallback, useEffect } from 'react';
+import { api, JsonResponse } from './queryApi';
 
 export type SchemaOption = {
   value: string;
@@ -37,44 +25,83 @@ export type SchemaOption = {
   title: string;
 };
 
-export function fetchSchemas({ dbId, forceRefresh }: FetchSchemasQueryParams) {
-  const queryParams = rison.encode({ force: forceRefresh });
-  // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-  const endpoint = `/api/v1/database/${dbId}/schemas/?q=${queryParams}`;
-  return SupersetClient.get({ endpoint }) as Promise<QueryData>;
-}
+export type FetchSchemasQueryParams = {
+  dbId?: string | number;
+  forceRefresh: boolean;
+  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onError?: () => void;
+};
 
-type Params = FetchSchemasQueryParams &
-  Pick<UseQueryOptions<SchemaOption[]>, 'onSuccess' | 'onError'>;
+type Params = Omit<FetchSchemasQueryParams, 'forceRefresh'>;
+
+const schemaApi = api.injectEndpoints({
+  endpoints: builder => ({
+    schemas: builder.query<SchemaOption[], FetchSchemasQueryParams>({
+      providesTags: [{ type: 'Schemas', id: 'LIST' }],
+      query: ({ dbId, forceRefresh }) => ({
+        endpoint: `/api/v1/database/${dbId}/schemas/`,
+        // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+        urlParams: {
+          force: forceRefresh,
+        },
+        transformResponse: ({ json }: JsonResponse) =>
+          json.result.map((value: string) => ({
+            value,
+            label: value,
+            title: value,
+          })),
+      }),
+      serializeQueryArgs: ({ queryArgs: { dbId } }) => ({
+        dbId,
+      }),
+    }),
+  }),
+});
+
+const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
+  const { useLazySchemasQuery, useSchemasQuery } = schemaApi;
+
   const { dbId, onSuccess, onError } = options || {};
-  const forceRefreshRef = useRef(false);
-  const params = { dbId };
-  const result = useQuery<QueryData, Error, SchemaOption[]>(
-    ['schemas', { dbId }],
-    () => fetchSchemas({ ...params, forceRefresh: forceRefreshRef.current }),
+  const [trigger, refetchResult] = useLazySchemasQuery();
+  const result = useSchemasQuery(
+    { dbId, forceRefresh: false },
     {
-      select: ({ json }) =>
-        json.result.map((value: string) => ({
-          value,
-          label: value,
-          title: value,
-        })),
-      enabled: Boolean(dbId),
-      onSuccess,
-      onError,
-      onSettled: () => {
-        forceRefreshRef.current = false;
-      },
+      skip: !dbId,
     },
   );
 
+  const refetch = useCallback(() => {
+    if (dbId) {
+      trigger({ dbId, forceRefresh: true }).then(
+        ({ isSuccess, isError, data }) => {
+          if (isSuccess) {
+            onSuccess?.(data, true);
+          }
+          if (isError) {
+            onError?.();
+          }
+        },
+      );
+    }
+  }, [dbId]);
+
+  useEffect(() => {
+    const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
+      result;
+    if (!originalArgs?.forceRefresh && requestId && !isFetching) {
+      if (isSuccess) {
+        onSuccess?.(data || EMPTY_SCHEMAS, false);
+      }
+      if (isError) {
+        onError?.();
+      }
+    }
+  }, [result]);
+
   return {
-    ...result,
-    refetch: () => {
-      forceRefreshRef.current = true;
-      return result.refetch();
-    },
+    ...(refetchResult.isUninitialized ? result : refetchResult),
+    refetch,
   };
 }

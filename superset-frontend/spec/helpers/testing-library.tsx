@@ -26,8 +26,8 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
-import QueryProvider from 'src/views/QueryProvider';
 import { configureStore, Store } from '@reduxjs/toolkit';
+import { api } from 'src/hooks/apiResources/queryApi';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -39,6 +39,15 @@ type Options = Omit<RenderOptions, 'queries'> & {
   reducers?: {};
   store?: Store;
 };
+
+export const storeWithQuery = configureStore({
+  reducer: {
+    [api.reducerPath]: api.reducer,
+  },
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware().concat(api.middleware),
+  devTools: false,
+});
 
 export function createWrapper(options?: Options) {
   const {
@@ -67,7 +76,12 @@ export function createWrapper(options?: Options) {
         configureStore({
           preloadedState: initialState || {},
           devTools: false,
-          reducer: reducers || reducerIndex,
+          reducer: {
+            ...(reducers || reducerIndex),
+            [api.reducerPath]: api.reducer,
+          },
+          middleware: getDefaultMiddleware =>
+            getDefaultMiddleware().concat(api.middleware),
         });
 
       result = <Provider store={mockStore}>{result}</Provider>;
@@ -81,8 +95,8 @@ export function createWrapper(options?: Options) {
       result = <BrowserRouter>{result}</BrowserRouter>;
     }
 
-    if (useQuery) {
-      result = <QueryProvider>{result}</QueryProvider>;
+    if (useQuery && !useRedux) {
+      result = <Provider store={storeWithQuery}>{result}</Provider>;
     }
 
     return result;
