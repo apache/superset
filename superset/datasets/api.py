@@ -62,6 +62,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
+    SqllabVizSchema,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetGenericErrorException
@@ -255,6 +256,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        SqllabVizSchema,
     )
 
     list_outer_default_load = True
@@ -1013,16 +1015,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def sqllab_viz(self) -> Response:
-        """endpoint that builds a dataset from sqllab
+        """
         ---
         post:
-          summary: {fill this in}
+          summary: endpoint that builds a dataset from sqllab
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  $ref: {fill this in} '#/components/schemas/GetOrCreateDatasetSchema'
+                  $ref: '#/components/schemas/SqllabVizSchema'
           responses:
             200:
               description: The ID of the dataset

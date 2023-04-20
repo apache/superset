@@ -239,6 +239,21 @@ class GetOrCreateDatasetSchema(Schema):
     template_params = fields.String(description="Template params for the table")
 
 
+class SqllabVizColumnSchema(Schema):
+    name = fields.String(required=True, description="Name of table")
+    type = fields.String(required=True, description="Name of table")
+    is_dttm = fields.Boolean(required=True, description="Name of table")
+
+
+class SqllabVizSchema(Schema):
+    schema = fields.String(required=True, description="Name of table")
+    sql = fields.String(required=True, description="Name of table")
+    dbId = fields.Integer(required=True, description="")
+    datasourceName = fields.String(required=True, description="")
+
+    columns = fields.List(fields.Nested(SqllabVizColumnSchema))
+
+
 class DatasetSchema(SQLAlchemyAutoSchema):
     """
     Schema for the ``Dataset`` model.
