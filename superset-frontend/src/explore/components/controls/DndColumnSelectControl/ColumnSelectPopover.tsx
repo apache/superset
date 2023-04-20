@@ -49,6 +49,7 @@ import {
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import useResizeButton from './useResizeButton';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -119,68 +120,15 @@ const ColumnSelectPopover = ({
 
   const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
   const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
-  const [clientX, setClientX] = useState(0);
-  const [clientY, setClientY] = useState(0);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragStartY, setDragStartY] = useState(0);
-  const [dragStartWidth, setDragStartWidth] = useState(width);
-  const [dragStartHeight, setDragStartHeight] = useState(height);
-  const [isDragging, setIsDragging] = useState(false);
 
-  const onMouseMove = useCallback((ev: MouseEvent): void => {
-    ev.preventDefault();
-    setClientX(ev.clientX);
-    setClientY(ev.clientY);
-  }, []);
-
-  const onMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const onDragDown = useCallback((ev: React.MouseEvent): void => {
-    setDragStartX(ev.clientX);
-    setDragStartY(ev.clientY);
-    setIsDragging(true);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', onMouseMove);
-    } else {
-      setDragStartWidth(width);
-      setDragStartHeight(height);
-      document.removeEventListener('mousemove', onMouseMove);
-    }
-  }, [onMouseMove, isDragging]);
-
-  useEffect(() => {
-    if (isDragging) {
-      setWidth(
-        Math.max(
-          dragStartWidth + (clientX - dragStartX),
-          POPOVER_INITIAL_WIDTH,
-        ),
-      );
-      setHeight(
-        Math.max(
-          dragStartHeight + (clientY - dragStartY),
-          POPOVER_INITIAL_HEIGHT,
-        ),
-      );
-    }
-  }, [
-    isDragging,
-    clientX,
-    clientY,
-    dragStartWidth,
-    dragStartHeight,
-    dragStartX,
-    dragStartY,
-  ]);
-
-  useEffect(() => {
-    document.addEventListener('mouseup', onMouseUp);
-  }, [onMouseUp]);
+  const resizeButton = useResizeButton(
+    POPOVER_INITIAL_WIDTH,
+    POPOVER_INITIAL_HEIGHT,
+    width,
+    height,
+    setWidth,
+    setHeight,
+  );
 
   const sqlEditorRef = useRef(null);
 
@@ -482,13 +430,7 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
-        <i
-          role="button"
-          aria-label="Resize"
-          tabIndex={0}
-          onMouseDown={onDragDown}
-          className="fa fa-expand edit-popover-resize text-muted"
-        />
+        {resizeButton}
       </div>
     </Form>
   );
