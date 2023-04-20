@@ -25,7 +25,16 @@ from pyocient import _STLinestring, _STPoint, _STPolygon, TypeCodes
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
-from superset import app
+# Need to try-catch here because pyocient may not be installed
+try:
+    # Ensure pyocient inherits Superset's logging level
+    import pyocient
+    from superset import app
+    superset_log_level = app.config["LOG_LEVEL"]
+    pyocient.logger.setLevel(superset_log_level)
+except ImportError as e:
+    pass
+
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -132,14 +141,20 @@ PlacedSanitizeFunc = NamedTuple(
 # Superset serializes temporal objects using a custom serializer
 # defined in superset/utils/core.py (#json_int_dttm_ser(...)). Other
 # are serialized by the default JSON encoder.
-_sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {
-    TypeCodes.BINARY: _to_hex,
-    TypeCodes.ST_POINT: _point_to_comma_delimited,
-    TypeCodes.IP: str,
-    TypeCodes.IPV4: str,
-    TypeCodes.ST_LINESTRING: _linestring_to_json,
-    TypeCodes.ST_POLYGON: _polygon_to_json,
-}
+# 
+# Need to try-catch here because pyocient may not be installed
+try:
+    from pyocient import TypeCodes
+    _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {
+        TypeCodes.BINARY: _to_hex,
+        TypeCodes.ST_POINT: _point_to_comma_delimited,
+        TypeCodes.IP: str,
+        TypeCodes.IPV4: str,
+        TypeCodes.ST_LINESTRING: _linestring_to_json,
+        TypeCodes.ST_POLYGON: _polygon_to_json,
+    }
+except ImportError as e:
+    _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {}
 
 
 def _find_columns_to_sanitize(cursor: Any) -> List[PlacedSanitizeFunc]:
