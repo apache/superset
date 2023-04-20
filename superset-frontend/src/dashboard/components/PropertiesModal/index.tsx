@@ -580,6 +580,19 @@ const PropertiesModal = ({
             <p className="help-block">
               {t('Person or group that has certified this dashboard.')}
             </p>
+            <p className="help-block">
+              Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)),
+              необходимо заполнить поле CERTIFIED BY:
+            </p>
+            <p className="help-block">
+              <code>DODOPIZZA, DRINKIT, DONER42</code>
+              или
+              <br />
+              <code>DRINKIT, DONER42</code>
+              или
+              <br />
+              <code>DONER42</code>
+            </p>
           </Col>
           <Col xs={24} md={12}>
             <StyledFormItem
@@ -590,6 +603,13 @@ const PropertiesModal = ({
             </StyledFormItem>
             <p className="help-block">
               {t('Any additional detail to show in the certification tooltip.')}
+            </p>
+            <p className="help-block">
+              Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)),
+              необходимо заполнить поле CERTIFICATION DETAILS:
+            </p>
+            <p className="help-block">
+              <code>OfficeManager/Analytics</code>
             </p>
           </Col>
         </Row>
