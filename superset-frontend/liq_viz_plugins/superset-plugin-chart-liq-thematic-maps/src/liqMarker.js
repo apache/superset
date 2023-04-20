@@ -85,7 +85,13 @@ export default class LiqMarker {
     return this;
   }
 
-  createSquare(size = this.size, strokeWidth = this.strokeWidth, strokeColor = this.strokeColor, fill = this.fill) {
+  createSquare(
+    size = this.size, 
+    strokeWidth = this.strokeWidth, 
+    strokeColor = this.strokeColor, 
+    fill = this.fill,
+    proposed = false  
+  ) {
 
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute("x", "0");
@@ -96,11 +102,22 @@ export default class LiqMarker {
     rect.setAttribute("stroke", strokeColor);
     rect.setAttribute("stroke-width", strokeWidth);
 
+    if (proposed) {
+      rect.setAttribute('stroke-dasharray', '2 2');
+      rect.setAttribute('stroke-dashoffset', '0');
+    }
+
     this.svg.appendChild(rect);
     return this;
   }
 
-  createStar(size = this.size, strokeWidth = this.strokeWidth, strokeColor = this.strokeColor, fill = this.fill) {
+  createStar(
+    size = this.size, 
+    strokeWidth = this.strokeWidth, 
+    strokeColor = this.strokeColor, 
+    fill = this.fill,
+    proposed = false  
+  ) {
 
     const star = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateStarPolygon(size, size);
@@ -109,11 +126,22 @@ export default class LiqMarker {
     star.setAttribute("stroke", strokeColor);
     star.setAttribute("stroke-width", strokeWidth);
 
+    if (proposed) {
+      star.setAttribute('stroke-dasharray', '2 2');
+      star.setAttribute('stroke-dashoffset', '0');
+    }
+
     this.svg.appendChild(star);
     return this;
   }
 
-  createPentagon(size = this.size, strokeWidth = this.strokeWidth, strokeColor = this.strokeColor, fill = this.fill) {
+  createPentagon(
+    size = this.size, 
+    strokeWidth = this.strokeWidth, 
+    strokeColor = this.strokeColor, 
+    fill = this.fill,
+    proposed = false  
+  ) {
 
     const pentagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generatePentagonPolygon(size, size);
@@ -122,11 +150,22 @@ export default class LiqMarker {
     pentagon.setAttribute("stroke", strokeColor);
     pentagon.setAttribute("stroke-width", strokeWidth);
 
+    if (proposed) {
+      pentagon.setAttribute('stroke-dasharray', '2 2');
+      pentagon.setAttribute('stroke-dashoffset', '0');
+    }
+
     this.svg.appendChild(pentagon);
     return this;
   }
 
-  createTriangle(size = this.size, strokeWidth = this.strokeWidth, strokeColor = this.strokeColor, fill = this.fill) {
+  createTriangle(
+    size = this.size, 
+    strokeWidth = this.strokeWidth, 
+    strokeColor = this.strokeColor, 
+    fill = this.fill,
+    proposed = false  
+  ) {
 
     const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateTrianglePolygon(size, size);
@@ -134,6 +173,11 @@ export default class LiqMarker {
     triangle.setAttribute("fill", fill);
     triangle.setAttribute("stroke", strokeColor);
     triangle.setAttribute("stroke-width", strokeWidth);
+
+    if (proposed) {
+      triangle.setAttribute('stroke-dasharray', '2 2');
+      triangle.setAttribute('stroke-dashoffset', '0');
+    }
 
     this.svg.appendChild(triangle);
     return this;

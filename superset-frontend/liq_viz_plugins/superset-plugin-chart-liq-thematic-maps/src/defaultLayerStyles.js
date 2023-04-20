@@ -1,3 +1,28 @@
+const PROPOSED_CHECK = ['==', ['get', 'proposed'], true];
+
+const gen_proposed = (val, attr, img) => {
+  
+  if (typeof val === 'object') {
+
+    const p_expr = ['any'];
+    const c_expr = ['any'];
+
+    val.map(v => {
+      const check = ['==', ['get', attr], v];
+      p_expr.push(['all', PROPOSED_CHECK, check]);
+      c_expr.push(check);
+    })
+
+    return [[...p_expr], `${img}P`, [...c_expr], img];
+
+  }
+
+  const check = ['==', ['get', attr], val];
+  
+  return [['all', PROPOSED_CHECK, check], `${img}P`, check, img]
+
+}
+
 const intranetLegendExprs = {
   'shopping_centres': {
     'Super Regional': ['!', ['==', ['get', 'description'], 'Super Regional']],
@@ -116,104 +141,24 @@ const intranetLegendExprs = {
 const iconExprs = {
   'shopping_centres': [
     'case',
-    [
-      'any',
-      [
-        'all',
-        ['==', ['get', 'proposed'], true],
-        ['==', ['get', 'description'], 'Local Centre']
-      ],
-      [
-        'all',
-        ['==', ['get', 'proposed'], true],
-        ['==', ['get', 'description'], 'Transit Centre']
-      ],
-      [
-        'all',
-        ['==', ['get', 'proposed'], true],
-        ['==', ['get', 'description'], 'Outlet Centre']
-      ]
-    ],
-    'outletSCP',
-    [
-      'any',
-      ['==', ['get', 'description'], 'Local Centre'],
-      ['==', ['get', 'description'], 'Transit Centre'],
-      ['==', ['get', 'description'], 'Outlet Centre']
-    ],
-    'outletSC',
-    [
-      'any',
-      [
-        'all',
-        ['==', ['get', 'proposed'], true],
-        ['==', ['get', 'description'], 'Regional']
-      ],
-      [
-        'all',
-        ['==', ['get', 'proposed'], true],
-        ['==', ['get', 'description'], 'Super Regional']
-      ]
-    ],
-    'regionalSCP',
-    [
-      'any',
-      ['==', ['get', 'description'], 'Regional'],
-      ['==', ['get', 'description'], 'Super Regional']
-    ],
-    'regionalSC',
-    [
-      'all',
-      ['==', ['get', 'proposed'], true],
-      ['==', ['get', 'description'], 'Market']
-    ],
-    'marketSCP',
-    ['==', ['get', 'description'], 'Market'],
-    'marketSC',
-    [
-      'all',
-      ['==', ['get', 'proposed'], true],
-      ['==', ['get', 'description'], 'Themed']
-    ],
-    'themedSCP',
-    ['==', ['get', 'description'], 'Themed'],
-    'themedSC',
-    [
-      'all',
-      ['==', ['get', 'proposed'], true],
-      ['==', ['get', 'description'], 'Large Format Retail']
-    ],
-    'lfrSCP',
-    ['==', ['get', 'description'], 'Large Format Retail'],
-    'lfrSC',
-    [
-      'all',
-      ['==', ['get', 'proposed'], true],
-      ['==', ['get', 'description'], 'City Centre']
-    ],
-    'cityCentreSCP',
-    ['==', ['get', 'description'], 'City Centre'],
-    'cityCentreSC',
-    [
-      'all',
-      ['==', ['get', 'proposed'], true],
-      ['==', ['get', 'description'], 'Neighbourhood']
-    ],
-    'neighbourhoodSCP',
-    ['==', ['get', 'description'], 'Neighbourhood'],
-    'neighbourhoodSC',
-    ['==', ['get', 'proposed'], true],
+    ...gen_proposed(['Local Centre', 'Transit Centre', 'Outlet Centre'], 'description', 'outletSC'),
+    ...gen_proposed(['Regional', 'Super Regional'], 'description', 'regionalSC'),
+    ...gen_proposed('Market', 'description', 'marketSC'),
+    ...gen_proposed('Themed', 'description', 'themedSC'),
+    ...gen_proposed('Large Format Retail', 'description', 'lfrSC'),
+    ...gen_proposed('City Centre', 'description', 'cityCentreSC'),
+    ...gen_proposed('Neighbourhood', 'description', 'neighbourhoodSC'),
+    PROPOSED_CHECK,
     'subRegionalSCP',
     'subRegionalSC'
   ],
   'department_stores': [
     'case',
-    ['==', ['get', 'tenant_id'], 4537],
-    'davidJones',
-    ['==', ['get', 'tenant_id'], 11884],
-    'myer',
-    ['==', ['get', 'tenant_id'], 7644],
-    'harrisScarfe',
+    ...gen_proposed(4537, 'tenant_id', 'davidJones'),
+    ...gen_proposed(11884, 'tenant_id', 'myer'),
+    ...gen_proposed(7644, 'tenant_id', 'harrisScarfe'),
+    PROPOSED_CHECK,
+    'unknownDSP',
     'unknownDS'
   ],
   'discount_department_stores': [
@@ -292,6 +237,8 @@ const iconExprs = {
   ],
   'mini_majors': [
     'case',
+    ['==', ['get', 'tenant_id'], 20105],
+    'appleStore',
     ['==', ['get', 'tenant_id'], 20105],
     'appleStore',
     ['==', ['get', 'tenant_id'], 1655],
