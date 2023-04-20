@@ -40,29 +40,6 @@ export function setSaveChartModalVisibility(isVisible) {
   return { type: SET_SAVE_CHART_MODAL_VISIBILITY, isVisible };
 }
 
-export function fetchDashboards(userId) {
-  return function fetchDashboardsThunk(dispatch) {
-    return SupersetClient.get({
-      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
-    })
-      .then(({ json }) => {
-        const choices = json.pks.map((id, index) => ({
-          value: id,
-          label: (json.result[index] || {}).dashboard_title,
-        }));
-        choices.sort((a, b) =>
-          a.label.localeCompare(b.label, {
-            sensitivity: 'base',
-            numeric: true,
-          }),
-        );
-
-        return dispatch(fetchDashboardsSucceeded(choices));
-      })
-      .catch(() => dispatch(fetchDashboardsFailed(userId)));
-  };
-}
-
 export const SAVE_SLICE_FAILED = 'SAVE_SLICE_FAILED';
 export function saveSliceFailed() {
   return { type: SAVE_SLICE_FAILED };
@@ -232,20 +209,6 @@ export const createDashboard = dashboardName => async dispatch => {
     const response = await SupersetClient.post({
       endpoint: `/api/v1/dashboard/`,
       jsonPayload: { dashboard_title: dashboardName },
-    });
-
-    return response.json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
-};
-
-//  Get existing dashboard from ID
-export const getDashboard = dashboardId => async dispatch => {
-  try {
-    const response = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}`,
     });
 
     return response.json;

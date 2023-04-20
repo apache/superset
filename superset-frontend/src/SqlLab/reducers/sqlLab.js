@@ -742,6 +742,21 @@ export default function sqlLabReducer(state = {}, action) {
       }
       return { ...state, queries: newQueries, queriesLastUpdate };
     },
+    [actions.CLEAR_INACTIVE_QUERIES]() {
+      const { queries } = state;
+      const cleanedQueries = Object.fromEntries(
+        Object.entries(queries).filter(([, query]) => {
+          if (
+            ['running', 'pending'].includes(query.state) &&
+            query.progress === 0
+          ) {
+            return false;
+          }
+          return true;
+        }),
+      );
+      return { ...state, queries: cleanedQueries };
+    },
     [actions.SET_USER_OFFLINE]() {
       return { ...state, offline: action.offline };
     },

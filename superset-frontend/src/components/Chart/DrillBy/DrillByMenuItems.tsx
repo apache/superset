@@ -39,6 +39,7 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -80,12 +81,12 @@ export const DrillByMenuItems = ({
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
+  const { addDangerToast } = useToasts();
   const [searchInput, setSearchInput] = useState('');
   const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
-
   const handleSelection = useCallback(
     (event, column) => {
       onClick(event);
@@ -143,9 +144,11 @@ export const DrillByMenuItems = ({
         })
         .catch(() => {
           supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
+          addDangerToast(t('Failed to load dimensions for drill by'));
         });
     }
   }, [
+    addDangerToast,
     excludedColumns,
     formData,
     groupbyFieldName,
