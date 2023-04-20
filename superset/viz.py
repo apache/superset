@@ -28,9 +28,9 @@ import logging
 import math
 import re
 from collections import defaultdict, OrderedDict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from itertools import product
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import geohash
 import numpy as np
@@ -40,7 +40,7 @@ import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import request
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
@@ -76,14 +76,12 @@ from superset.utils.core import (
     get_column_names,
     get_column_names_from_columns,
     get_metric_names,
-    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
