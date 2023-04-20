@@ -118,16 +118,9 @@ const ColumnSelectPopover = ({
     ColumnMeta | undefined
   >(initialSimpleColumn);
 
-  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
-  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
-
-  const resizeButton = useResizeButton(
+  const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
     POPOVER_INITIAL_HEIGHT,
-    width,
-    height,
-    setWidth,
-    setHeight,
   );
 
   const sqlEditorRef = useRef(null);

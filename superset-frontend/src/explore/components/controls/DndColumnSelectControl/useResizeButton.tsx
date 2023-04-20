@@ -19,17 +19,19 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import throttle from 'lodash/throttle';
+import {
+  POPOVER_INITIAL_HEIGHT,
+  POPOVER_INITIAL_WIDTH,
+} from 'src/explore/constants';
 
 const RESIZE_THROTTLE_MS = 50;
 
 export default function useResizeButton(
   minWidth: number,
   minHeight: number,
-  width: number,
-  height: number,
-  setWidth: (newWidth: number) => void,
-  setHeight: (newHeight: number) => void,
-) {
+): [JSX.Element, number, number] {
+  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
+  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
   const [clientX, setClientX] = useState(0);
   const [clientY, setClientY] = useState(0);
   const [dragStartX, setDragStartX] = useState(0);
@@ -123,13 +125,15 @@ export default function useResizeButton(
     return () => document.removeEventListener('mouseup', onMouseUp);
   }, [onMouseUp]);
 
-  return (
+  return [
     <i
       role="button"
       aria-label="Resize"
       tabIndex={0}
       onMouseDown={onDragDown}
       className="fa fa-expand edit-popover-resize text-muted"
-    />
-  );
+    />,
+    width,
+    height,
+  ];
 }
