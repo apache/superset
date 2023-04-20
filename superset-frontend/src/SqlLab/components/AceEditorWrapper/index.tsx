@@ -65,9 +65,6 @@ const StyledAceEditor = styled(AceEditor)`
       // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};
       font-feature-settings: 'liga' off, 'calt' off;
-      // Fira Code causes problem with Ace under Firefox
-      font-family: 'Menlo', 'Consolas', 'Courier New', 'Ubuntu Mono',
-        'source-code-pro', 'Lucida Console', monospace;
 
       &.ace_autocomplete {
         // Use !important because Ace Editor applies extra CSS at the last second
