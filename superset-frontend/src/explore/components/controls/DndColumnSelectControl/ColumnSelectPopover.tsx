@@ -46,7 +46,7 @@ import { EmptyStateSmall } from 'src/components/EmptyState';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
-  UNRESIZABLE_POPOVER_WIDTH,
+  POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
 
@@ -116,6 +116,71 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+
+  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
+  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
+  const [clientX, setClientX] = useState(0);
+  const [clientY, setClientY] = useState(0);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartWidth, setDragStartWidth] = useState(width);
+  const [dragStartHeight, setDragStartHeight] = useState(height);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const onMouseMove = useCallback((ev: MouseEvent): void => {
+    ev.preventDefault();
+    setClientX(ev.clientX);
+    setClientY(ev.clientY);
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const onDragDown = useCallback((ev: React.MouseEvent): void => {
+    setDragStartX(ev.clientX);
+    setDragStartY(ev.clientY);
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', onMouseMove);
+    } else {
+      setDragStartWidth(width);
+      setDragStartHeight(height);
+      document.removeEventListener('mousemove', onMouseMove);
+    }
+  }, [onMouseMove, isDragging]);
+
+  useEffect(() => {
+    if (isDragging) {
+      setWidth(
+        Math.max(
+          dragStartWidth + (clientX - dragStartX),
+          POPOVER_INITIAL_WIDTH,
+        ),
+      );
+      setHeight(
+        Math.max(
+          dragStartHeight + (clientY - dragStartY),
+          POPOVER_INITIAL_HEIGHT,
+        ),
+      );
+    }
+  }, [
+    isDragging,
+    clientX,
+    clientY,
+    dragStartWidth,
+    dragStartHeight,
+    dragStartX,
+    dragStartY,
+  ]);
+
+  useEffect(() => {
+    document.addEventListener('mouseup', onMouseUp);
+  }, [onMouseUp]);
 
   const sqlEditorRef = useRef(null);
 
@@ -258,8 +323,8 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${POPOVER_INITIAL_HEIGHT}px;
-          width: ${UNRESIZABLE_POPOVER_WIDTH}px;
+          height: ${height}px;
+          width: ${width}px;
         `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
@@ -393,7 +458,7 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
@@ -417,6 +482,13 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
+        <i
+          role="button"
+          aria-label="Resize"
+          tabIndex={0}
+          onMouseDown={onDragDown}
+          className="fa fa-expand edit-popover-resize text-muted"
+        />
       </div>
     </Form>
   );
