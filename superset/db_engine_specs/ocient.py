@@ -38,37 +38,35 @@ from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 
-# Ensure pyocient inherits Superset's logging level
-superset_log_level = app.config["LOG_LEVEL"]
-pyocient.logger.setLevel(superset_log_level)
-
 
 # Regular expressions to catch custom errors
 
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
-    "The referenced user does not exist \(User '(?P<username>.*?)' not found\)"
+    r"The referenced user does not exist \(User '(?P<username>.*?)' not found\)"
 )
 CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
-    "The userid/password combination was not valid \(Incorrect password for user\)"
+    r"The userid/password combination was not valid \(Incorrect password for user\)"
 )
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
-    r"Unable to connect to (?P<host>.*?):(?P<port>.*?):"
+    r"Unable to connect to (?P<host>.*?):(?P<port>.*?)"
 )
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
-    "No database named '(?P<database>.*?)' exists"
+    r"No database named '(?P<database>.*?)' exists"
 )
 CONNECTION_INVALID_PORT_ERROR = re.compile("Port out of range 0-65535")
 INVALID_CONNECTION_STRING_REGEX = re.compile(
-    "An invalid connection string attribute was specified \(failed to decrypt cipher text\)"
+    r"An invalid connection string attribute was specified"
+    r" \(failed to decrypt cipher text\)"
 )
 SYNTAX_ERROR_REGEX = re.compile(
-    r"There is a syntax error in your statement \((?P<qualifier>.*?) input '(?P<input>.*?)' expecting {.*}"
+    r"There is a syntax error in your statement \((?P<qualifier>.*?)"
+    r" input '(?P<input>.*?)' expecting (?P<expected>.*?)\)"
 )
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
-    "The referenced table or view '(?P<table>.*?)' does not exist"
+    r"The referenced table or view '(?P<table>.*?)' does not exist"
 )
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
-    "The reference to column '(?P<column>.*?)' is not valid"
+    r"The reference to column '(?P<column>.*?)' is not valid"
 )
 
 
@@ -139,7 +137,7 @@ PlacedSanitizeFunc = NamedTuple(
 # Superset serializes temporal objects using a custom serializer
 # defined in superset/utils/core.py (#json_int_dttm_ser(...)). Other
 # are serialized by the default JSON encoder.
-# 
+#
 # Need to try-catch here because pyocient may not be installed
 try:
     from pyocient import TypeCodes
@@ -193,7 +191,8 @@ class OcientEngineSpec(BaseEngineSpec):
         ),
         CONNECTION_INVALID_PASSWORD_REGEX: (
             __(
-                "The user/password combination is not valid (Incorrect password for user)."
+                "The user/password combination is not valid"
+                " (Incorrect password for user)."
             ),
             SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
             {},
@@ -215,13 +214,14 @@ class OcientEngineSpec(BaseEngineSpec):
         ),
         INVALID_CONNECTION_STRING_REGEX: (
             __(
-                "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'."
+                "Invalid Connection String: Expecting String of"
+                " the form 'ocient://user:pass@host:port/database'."
             ),
             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             {},
         ),
         SYNTAX_ERROR_REGEX: (
-            __('Syntax Error: %(qualifier)s input "%(input)s".'),
+            __('Syntax Error: %(qualifier)s input "%(input)s" expecting "%(expected)s'),
             SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
@@ -256,11 +256,11 @@ class OcientEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(
-        cls, cursor: Any, lim: Optional[int] = None
+        cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
         try:
             rows: List[Tuple[Any, ...]] = super(OcientEngineSpec, cls).fetch_data(
-                cursor, lim
+                cursor, limit
             )
         except Exception as exception:
             with OcientEngineSpec.query_id_mapping_lock:
@@ -302,7 +302,7 @@ class OcientEngineSpec(BaseEngineSpec):
                     for row in rows
                 ]
         return rows
-    
+
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "DATEADD(S, {col}, '1970-01-01')"
@@ -331,10 +331,10 @@ class OcientEngineSpec(BaseEngineSpec):
         with OcientEngineSpec.query_id_mapping_lock:
             if query.id in OcientEngineSpec.query_id_mapping:
                 cursor.execute(f"CANCEL {OcientEngineSpec.query_id_mapping[query.id]}")
-                # Query has been cancelled, so we can safely remove the cursor from the cache
+                # Query has been cancelled, so we can safely remove the cursor from
+                # the cache
                 del OcientEngineSpec.query_id_mapping[query.id]
-
                 return True
-            # If the query is not in the cache, it must have either been cancelled elsewhere or completed
-            else:
-                return False
+            # If the query is not in the cache, it must have either been cancelled
+            # elsewhere or completed
+            return False

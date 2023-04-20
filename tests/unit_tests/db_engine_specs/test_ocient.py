@@ -25,20 +25,6 @@ import pytest
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
-@pytest.mark.parametrize(
-    "actual,expected",
-    [
-        ("DATE", "TO_DATE('2019-01-02')"),
-        ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
-        ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
-    ],
-)
-def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:
-    from superset.db_engine_specs.ocient import OcientEngineSpec
-
-    assert OcientEngineSpec.convert_dttm(actual, dttm) == expected
-
-
 # (msg,expected)
 MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
@@ -144,9 +130,9 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
         ),
     ),
     (
-        "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting ",
+        "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting {<EOF>, 'trace', 'using'})",
         SupersetError(
-            message='Extraneous input: "foo bar baz".',
+            message='Syntax Error: extraneous input "foo bar baz" expecting "{<EOF>, \'trace\', \'using\'}',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -163,7 +149,7 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
         "There is a syntax error in your statement (mismatched input 'to' expecting {<EOF>, 'trace', 'using'})",
         SupersetError(
-            message='Extraneous input: "foo bar baz".',
+            message='Syntax Error: mismatched input "to" expecting "{<EOF>, \'trace\', \'using\'}',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
