@@ -19,9 +19,7 @@ import re
 import threading
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Pattern, Set, Tuple
 
-import pyocient
 from flask_babel import gettext as __
-from pyocient import _STLinestring, _STPoint, _STPolygon, TypeCodes
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
