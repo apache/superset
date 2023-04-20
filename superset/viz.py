@@ -906,53 +906,6 @@ class TimeTableViz(BaseViz):
         )
 
 
-class TreemapViz(BaseViz):
-
-    """Tree map visualisation for hierarchical data."""
-
-    viz_type = "treemap"
-    verbose_name = _("Treemap")
-    credits = '<a href="https://d3js.org">d3.js</a>'
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        if sort_by := self.form_data.get("timeseries_limit_metric"):
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                query_obj["orderby"] = [
-                    (sort_by, not self.form_data.get("order_desc", True))
-                ]
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def _nest(self, metric: str, df: pd.DataFrame) -> list[dict[str, Any]]:
-        nlevels = df.index.nlevels
-        if nlevels == 1:
-            result = [{"name": n, "value": v} for n, v in zip(df.index, df[metric])]
-        else:
-            result = [
-                {"name": l, "children": self._nest(metric, df.loc[l])}
-                for l in df.index.levels[0]
-            ]
-        return result
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        df = df.set_index(get_column_names(self.form_data.get("groupby")))
-        chart_data = [
-            {"name": metric, "children": self._nest(metric, df)}
-            for metric in df.columns
-        ]
-        return chart_data
-
-
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
