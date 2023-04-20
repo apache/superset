@@ -27,7 +27,9 @@ from sqlalchemy.orm import Session
 try:
     # Ensure pyocient inherits Superset's logging level
     import pyocient
+
     from superset import app
+
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
 except ImportError as e:
@@ -37,7 +39,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
-
 
 # Regular expressions to catch custom errors
 
@@ -83,7 +84,7 @@ def _to_hex(data: bytes) -> str:
     return data.hex()
 
 
-def _polygon_to_json(polygon: "_STPolygon") -> str:
+def _polygon_to_json(polygon: Any) -> str:
     """
     Converts the _STPolygon object into its JSON representation.
 
@@ -98,7 +99,7 @@ def _polygon_to_json(polygon: "_STPolygon") -> str:
     return json_value
 
 
-def _linestring_to_json(linestring: "_STLinestring") -> str:
+def _linestring_to_json(linestring: Any) -> str:
     """
     Converts the _STLinestring object into its JSON representation.
 
@@ -108,7 +109,7 @@ def _linestring_to_json(linestring: "_STLinestring") -> str:
     return f"{str([[p.long, p.lat] for p in linestring.points])}"
 
 
-def _point_to_comma_delimited(point: "_STPoint") -> str:
+def _point_to_comma_delimited(point: Any) -> str:
     """
     Returns the x and y coordinates as a comma delimited string.
 
@@ -141,6 +142,7 @@ PlacedSanitizeFunc = NamedTuple(
 # Need to try-catch here because pyocient may not be installed
 try:
     from pyocient import TypeCodes
+
     _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {
         TypeCodes.BINARY: _to_hex,
         TypeCodes.ST_POINT: _point_to_comma_delimited,
@@ -150,7 +152,7 @@ try:
         TypeCodes.ST_POLYGON: _polygon_to_json,
     }
 except ImportError as e:
-    _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {}
+    _sanitized_ocient_type_codes = {}
 
 
 def _find_columns_to_sanitize(cursor: Any) -> List[PlacedSanitizeFunc]:
@@ -270,7 +272,7 @@ class OcientEngineSpec(BaseEngineSpec):
             raise exception
 
         # TODO: Unsure if we need to verify that we are receiving rows:
-        if len(rows) > 0 and type(rows[0]).__name__ == 'Row':
+        if len(rows) > 0 and type(rows[0]).__name__ == "Row":
             # Peek at the schema to determine which column values, if any,
             # require sanitization.
             columns_to_sanitize: List[PlacedSanitizeFunc] = _find_columns_to_sanitize(

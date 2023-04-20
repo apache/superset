@@ -24,7 +24,6 @@ import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
-
 # (msg,expected)
 MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
@@ -132,7 +131,7 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
         "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting {<EOF>, 'trace', 'using'})",
         SupersetError(
-            message='Syntax Error: extraneous input "foo bar baz" expecting "{<EOF>, \'trace\', \'using\'}',
+            message="Syntax Error: extraneous input \"foo bar baz\" expecting \"{<EOF>, 'trace', 'using'}",
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -149,7 +148,7 @@ MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
     (
         "There is a syntax error in your statement (mismatched input 'to' expecting {<EOF>, 'trace', 'using'})",
         SupersetError(
-            message='Syntax Error: mismatched input "to" expecting "{<EOF>, \'trace\', \'using\'}',
+            message="Syntax Error: mismatched input \"to\" expecting \"{<EOF>, 'trace', 'using'}",
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
