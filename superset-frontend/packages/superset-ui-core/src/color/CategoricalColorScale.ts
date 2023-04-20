@@ -76,12 +76,13 @@ class CategoricalColorScale extends ExtensibleFunction {
   getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
+    const sharedColorMap = sharedLabelColor.getColorMap();
 
     // priority: parentForcedColors > forcedColors > labelColors
     let color =
       this.parentForcedColors?.[cleanedValue] ||
       this.forcedColors?.[cleanedValue] ||
-      sharedLabelColor.getColorMap().get(cleanedValue);
+      sharedColorMap.get(cleanedValue);
 
     if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
       const multiple = Math.floor(
@@ -96,6 +97,17 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
+      if (sharedColorMap.size > 0) {
+        const updatedRange = [...this.originColors];
+        sharedColorMap.forEach((value, key) => {
+          if (key !== cleanedValue) {
+            const index = updatedRange.indexOf(value);
+            updatedRange.splice(index, 1);
+          }
+        });
+        this.range(updatedRange);
+        color = this.scale(cleanedValue);
+      }
     }
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
