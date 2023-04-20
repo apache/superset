@@ -168,6 +168,7 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
               ${JSON.stringify({
                 token: '',
                 originUrl: '/superset',
+                businessId: 'dodopizza',
                 navigation: {
                   showNavigationMenu: true,
                   base: '/OfficeManager/Analytics/',

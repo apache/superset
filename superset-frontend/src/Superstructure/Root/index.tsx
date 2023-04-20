@@ -27,6 +27,8 @@ import {
   getDashboardsData,
   dirtyHackDodoIs,
   defineNavigation,
+  validCertifiedBy,
+  validCertificationDetails,
 } from './utils';
 
 import {
@@ -40,11 +42,7 @@ import { serializeValue } from '../parseEnvFile/utils';
 import { addSlash, logConfigs } from './helpers';
 
 import '../../theme';
-import {
-  MESSAGES,
-  KNOWN_CERTIFIED_BY,
-  KNOWN_CERTIFICATAION_DETAILS,
-} from '../constants';
+import { MESSAGES } from '../constants';
 
 setupClient();
 
@@ -119,7 +117,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     return csrfResponse;
   };
 
-  const handleDashboardsRequest = async () => {
+  const handleDashboardsRequest = async (business: string) => {
     const dashboardsResponse = await getDashboardsData();
 
     if (!dashboardsResponse.loaded) {
@@ -142,16 +140,6 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       return null;
     }
 
-    const validCertifiedBy = (cert_by: string | null) =>
-      cert_by &&
-      KNOWN_CERTIFIED_BY.indexOf(cert_by.toLocaleLowerCase().trim()) >= 0;
-
-    const validCertificationDetails = (cert_details: string | null) =>
-      cert_details &&
-      KNOWN_CERTIFICATAION_DETAILS.indexOf(
-        cert_details.toLocaleLowerCase().trim(),
-      ) >= 0;
-
     const filteredDashboards =
       dashboardsResponse.data &&
       dashboardsResponse.data.filter(
@@ -171,11 +159,13 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       return null;
     }
 
-    const validatedDashboards = filteredDashboards?.filter(
-      (dashboard: Dashboard) =>
-        validCertifiedBy(dashboard.certified_by) &&
-        validCertificationDetails(dashboard.certification_details),
-    );
+    const validatedDashboards = filteredDashboards
+      ?.filter(
+        (dashboard: Dashboard) =>
+          validCertifiedBy(business, dashboard.certified_by) &&
+          validCertificationDetails(dashboard.certification_details),
+      )
+      .sort((dashboardA, dashboardB) => dashboardA.id - dashboardB.id);
 
     if (!validatedDashboards?.length) {
       setLoaded(false);
@@ -221,6 +211,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     token: string;
     basename: string;
     frontendLogger: boolean;
+    business: string;
   } = useMemo(() => {
     const env = process.env.WEBPACK_MODE;
 
@@ -232,6 +223,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         ? addSlash(incomingParams.basename)
         : '/',
       frontendLogger: incomingParams.frontendLogger || true,
+      business: incomingParams.businessId || 'dodopizza',
     };
 
     // Superset API works only with port 3000
@@ -285,7 +277,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         const csrf = await handleCsrfRequest({ useAuth });
 
         if (csrf && csrf.data && csrf.data.result) {
-          const dashboards = await handleDashboardsRequest();
+          const dashboards = await handleDashboardsRequest(params.business);
 
           if (dashboards && dashboards.data && dashboards.data.length) {
             const navConfigFull = getNavigationConfig(

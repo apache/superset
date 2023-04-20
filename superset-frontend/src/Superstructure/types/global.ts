@@ -23,6 +23,7 @@ export interface MicrofrontendParams {
   frontendLogger?: boolean;
   token?: string;
   basename?: string;
+  businessId?: 'dodopizza' | 'drinkit' | 'doner42';
 }
 
 export type RoutesConfig = MicrofrontendNavigation['routes'];
@@ -74,10 +75,14 @@ export interface Dashboard {
 }
 
 export interface DashboardFiltered {
-  certification_details: string;
-  certified_by: string;
+  created_on_delta_humanized: string;
+  changed_on_delta_humanized: string;
   dashboard_title: string;
   id: number;
+  certification_details: string;
+  certified_by: string;
+  status: string;
+  url: string;
 }
 
 export interface RouteFromDashboard {

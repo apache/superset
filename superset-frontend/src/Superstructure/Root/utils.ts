@@ -1,5 +1,5 @@
 import { GET_LOGIN_TOKEN, GET_CSRF_TOKEN, GET_DASHBOARDS } from '../api/init';
-import { MESSAGES } from '../constants';
+import { KNOWN_CERTIFICATAION_DETAILS, MESSAGES } from '../constants';
 import {
   InitializedResponse,
   DashboardFiltered,
@@ -115,10 +115,34 @@ const defineNavigation = (
     };
   });
 
+const cleanUpString = (str: string) => str.toLocaleLowerCase().trim();
+
+const prepareBusinessId = (str: string) =>
+  str
+    .split(' ')
+    .filter(x => x)
+    .map(x => cleanUpString(x))
+    .join('')
+    .split(',');
+
+const validCertifiedBy = (businessId: string, cert_by: string | null) => {
+  if (!cert_by) return false;
+
+  return prepareBusinessId(cert_by).indexOf(businessId) >= 0;
+};
+
+const validCertificationDetails = (cert_details: string | null) =>
+  cert_details &&
+  KNOWN_CERTIFICATAION_DETAILS.indexOf(
+    cert_details.toLocaleLowerCase().trim(),
+  ) >= 0;
+
 export {
   getLoginToken,
   getCsrfToken,
   getDashboardsData,
   dirtyHackDodoIs,
   defineNavigation,
+  validCertifiedBy,
+  validCertificationDetails,
 };
