@@ -82,6 +82,7 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
             formData={formData}
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
+            drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
             {...modalProps}
           />
         )}
@@ -148,7 +149,10 @@ test('should render alert banner when results fail to load', async () => {
 test('should generate Explore url', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
   await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
@@ -208,7 +212,10 @@ test('should render radio buttons', async () => {
 test('render breadcrumbs', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
 
   const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
