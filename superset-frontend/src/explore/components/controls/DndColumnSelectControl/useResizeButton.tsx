@@ -18,6 +18,9 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import throttle from 'lodash/throttle';
+
+const RESIZE_THROTTLE_MS = 50;
 
 export default function useResizeButton(
   minWidth: number,
@@ -62,25 +65,8 @@ export default function useResizeButton(
   }, [onMouseMove, isDragging]);
 
   const handleResize = useCallback(
-    (
-      dragStartX: number,
-      dragStartY: number,
-      dragStartWidth: number,
-      dragStartHeight: number,
-      clientX: number,
-      clientY: number,
-      minWidth: number,
-      minHeight: number,
-    ) => {
-      setWidth(Math.max(dragStartWidth + (clientX - dragStartX), minWidth));
-      setHeight(Math.max(dragStartHeight + (clientY - dragStartY), minHeight));
-    },
-    [setHeight, setWidth],
-  );
-
-  useEffect(() => {
-    if (isDragging) {
-      handleResize(
+    throttle(
+      ({
         dragStartX,
         dragStartY,
         dragStartWidth,
@@ -89,7 +75,38 @@ export default function useResizeButton(
         clientY,
         minWidth,
         minHeight,
-      );
+      }: {
+        dragStartX: number;
+        dragStartY: number;
+        dragStartWidth: number;
+        dragStartHeight: number;
+        clientX: number;
+        clientY: number;
+        minWidth: number;
+        minHeight: number;
+      }): void => {
+        setWidth(Math.max(dragStartWidth + (clientX - dragStartX), minWidth));
+        setHeight(
+          Math.max(dragStartHeight + (clientY - dragStartY), minHeight),
+        );
+      },
+      RESIZE_THROTTLE_MS,
+    ),
+    [setHeight, setWidth],
+  );
+
+  useEffect(() => {
+    if (isDragging) {
+      handleResize({
+        dragStartX,
+        dragStartY,
+        dragStartWidth,
+        dragStartHeight,
+        clientX,
+        clientY,
+        minWidth,
+        minHeight,
+      });
     }
   }, [
     isDragging,
