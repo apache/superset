@@ -85,7 +85,7 @@ def _to_hex(data: bytes) -> str:
     return data.hex()
 
 
-def _polygon_to_json(polygon: _STPolygon) -> str:
+def _polygon_to_json(polygon: "_STPolygon") -> str:
     """
     Converts the _STPolygon object into its JSON representation.
 
@@ -100,7 +100,7 @@ def _polygon_to_json(polygon: _STPolygon) -> str:
     return json_value
 
 
-def _linestring_to_json(linestring: _STLinestring) -> str:
+def _linestring_to_json(linestring: "_STLinestring") -> str:
     """
     Converts the _STLinestring object into its JSON representation.
 
@@ -110,7 +110,7 @@ def _linestring_to_json(linestring: _STLinestring) -> str:
     return f"{str([[p.long, p.lat] for p in linestring.points])}"
 
 
-def _point_to_comma_delimited(point: _STPoint) -> str:
+def _point_to_comma_delimited(point: "_STPoint") -> str:
     """
     Returns the x and y coordinates as a comma delimited string.
 
