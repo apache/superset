@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import { act, renderHook } from '@testing-library/react-hooks';
 import {
   createWrapper,
-  storeWithQuery as store,
+  storeWithApi as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useTables } from './tables';

@@ -25,7 +25,7 @@ import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { storeWithQuery as store } from 'spec/helpers/testing-library';
+import { storeWithApi as store } from 'spec/helpers/testing-library';
 import Modal from 'src/components/Modal';
 import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';

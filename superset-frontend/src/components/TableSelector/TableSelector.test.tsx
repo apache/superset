@@ -24,7 +24,7 @@ import {
   screen,
   waitFor,
   within,
-  storeWithQuery as store,
+  storeWithApi as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import fetchMock from 'fetch-mock';
