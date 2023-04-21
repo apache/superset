@@ -36,7 +36,7 @@ export const useResultsTableView = (
   datasourceId: string,
 ) => {
   if (!isDefined(chartDataResult)) {
-    return null;
+    return <div />;
   }
   if (chartDataResult.length === 1) {
     return (
