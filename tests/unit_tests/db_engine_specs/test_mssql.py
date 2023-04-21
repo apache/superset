@@ -257,6 +257,7 @@ select TOP 100 * from currency""",
 select TOP 100 * from currency""",
             1000,
         ),
+        ("SELECT DISTINCT x from tbl", "SELECT DISTINCT TOP 100 x from tbl", 100),
         ("SELECT 1 as cnt", "SELECT TOP 10 1 as cnt", 10),
         (
             "select TOP 1000 * from abc where id=1",

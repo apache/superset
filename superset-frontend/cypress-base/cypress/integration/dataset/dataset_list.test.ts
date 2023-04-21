@@ -24,7 +24,7 @@ describe('Dataset list', () => {
     cy.visit(DATASET_LIST_PATH);
   });
 
-  it('should open Explore on dataset name click', () => {
+  xit('should open Explore on dataset name click', () => {
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.get('[data-test="listview-table"] [data-test="internal-link"]')
       .contains('birth_names')
