@@ -34,12 +34,13 @@ logger = logging.getLogger(__name__)
 class BulkDeleteRLSRuleCommand(BaseCommand):
     def __init__(self, model_ids: List[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[ReportSchedule]] = None
+        self._models: List[ReportSchedule] = []
 
     def run(self) -> None:
         self.validate()
         try:
             RLSDAO.bulk_delete(self._models)
+
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
