@@ -19,7 +19,6 @@
 import React, { useCallback } from 'react';
 import {
   BinaryQueryObjectFilterClause,
-  ChartClient,
   getColumnLabel,
   getTimeFormatter,
 } from '@superset-ui/core';
@@ -45,7 +44,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     refs,
     emitCrossFilters,
   } = props;
-  const { columns, datasource } = formData;
+  const { columns } = formData;
 
   const getCrossFilterDataMask = useCallback(
     (treePathInfo: TreePathInfo[]) => {
@@ -119,9 +118,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const timestampFormatter = (value: any) =>
           getTimeFormatter(formData.dateFormat)(value);
         if (columns?.length) {
-          const dataset = await new ChartClient()
-            .loadDatasource(datasource, undefined)
-            .then(data => data);
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
               col: columns[i],

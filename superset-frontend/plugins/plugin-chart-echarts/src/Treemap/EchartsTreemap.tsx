@@ -20,11 +20,9 @@ import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
   getTimeFormatter,
-  ChartClient,
   getColumnLabel,
 } from '@superset-ui/core';
 import React, { useCallback } from 'react';
-import { isTemporalColumn } from '@superset-ui/chart-controls';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
@@ -118,9 +116,6 @@ export default function EchartsTreemap({
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
         const { treePath } = extractTreePathInfo(treePathInfo);
-        const datasource = await new ChartClient()
-          .loadDatasource(formData.datasource, undefined)
-          .then(data => data);
         const timestampFormatter = (value: any) =>
           getTimeFormatter(formData.dateFormat)(value);
         if (treePath.length > 0) {
