@@ -41,6 +41,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
@@ -52,7 +53,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import QueryStatus, user_label
+from superset.utils.core import get_column_name, QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -328,6 +329,29 @@ class Query(
             if col.column_name == column_name:
                 return col
         return None
+
+    def adhoc_column_to_sqla(
+        self,
+        col: "AdhocColumn",  # type: ignore
+        force_type_check: bool = False,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> ColumnElement:
+        """
+        Turn an adhoc column into a sqlalchemy column.
+        :param col: Adhoc column definition
+        :param template_processor: template_processor instance
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
+        label = get_column_name(col)
+        expression = self._process_sql_expression(
+            expression=col["sqlExpression"],
+            database_id=self.database_id,
+            schema=self.schema,
+            template_processor=template_processor,
+        )
+        sqla_column = literal_column(expression)
+        return self.make_sqla_column_compatible(sqla_column, label)
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
