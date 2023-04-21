@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
@@ -141,13 +147,24 @@ const ExploreChartPanel = ({
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const {
-    width: chartPanelWidth,
-    height: chartPanelHeight,
-    ref: chartPanelRef,
-  } = useResizeDetector({
+  const chartPanelRef = useRef();
+  const [{ chartPanelWidth, chartPanelHeight }, setChartPanelSize] = useState(
+    {},
+  );
+  const onResize = useCallback(() => {
+    if (chartPanelRef.current) {
+      const { width, height } =
+        chartPanelRef.current.getBoundingClientRect?.() || {};
+      setChartPanelSize({
+        chartPanelWidth: width,
+        chartPanelHeight: height,
+      });
+    }
+  }, []);
+  const { ref: resizeObserverRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
+    onResize,
   });
   const [splitSizes, setSplitSizes] = useState(
     isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
@@ -309,6 +326,7 @@ const ExploreChartPanel = ({
           display: flex;
           flex-direction: column;
         `}
+        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
