@@ -16,9 +16,8 @@
 # under the License.
 
 import logging
-from typing import List, Optional
+from typing import List
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.reports.models import ReportSchedule
