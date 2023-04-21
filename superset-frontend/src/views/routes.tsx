@@ -112,6 +112,13 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const RowLevelSecurityList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: React.ComponentType;
@@ -205,6 +212,10 @@ export const routes: Routes = [
   {
     path: '/dataset/:datasetId',
     Component: DatasetCreation,
+  },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurityList,
   },
 ];
 
