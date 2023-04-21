@@ -410,6 +410,34 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'radius_border_color',
+            config: {
+              label: t('Border Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              },
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+            }
+          },
+          {
+            name: 'radius_border_width',
+            config: {
+              type: 'TextControl',
+              min: 0,
+              validators: [validateNumber],
+              default: 0,
+              label: t('Border Width'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+            }
+          }
+        ],
+        [
+          {
             name: 'radius_linked_charts',
             config: {
               type: 'TextControl',
@@ -453,6 +481,34 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Threshold'),
               description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.'),
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+            }
+          }
+        ],
+        [
+          {
+            name: 'drivetime_border_color',
+            config: {
+              label: t('Border Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              },
+              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+            }
+          },
+          {
+            name: 'drivetime_border_width',
+            config: {
+              type: 'TextControl',
+              min: 0,
+              validators: [validateNumber],
+              default: 0,
+              label: t('Border Width'),
               visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
             }
           }

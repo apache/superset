@@ -103,9 +103,13 @@ export default function LiqThematicMaps(props) {
     zoom, // starting zoom
     newRadiusColor, // color of radius in rgba
     radiusThreshold, // intersection area threshold for radius
+    newRadiusBorderColor, // color of radius border in rgba
+    radiusBorderWidth, // stroke width of radius border
     newRadiusLinkedCharts, // chart ids to update in dashboard when radius is updated
     newDrivetimeColor, // color of drivetime in rgba
     drivetimeThreshold, // intersection area threshold for drivetime
+    newDrivetimeBorderColor, // color of drivetime border in rgba
+    drivetimeBorderWidth, // stroke width of drivetime border
     newDrivetimeLinkedCharts, // chart ids to update in dashboard when drivetime is updated
     customName, // name of custom layer
     customType, // custom layer is either from a tileset or existing table

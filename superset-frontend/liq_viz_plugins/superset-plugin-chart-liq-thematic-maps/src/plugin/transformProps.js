@@ -67,9 +67,13 @@ export default function transformProps(chartProps) {
     zoom,
     radiusColor,
     radiusThreshold,
+    radiusBorderColor,
+    radiusBorderWidth,
     radiusLinkedCharts,
     drivetimeColor,
     drivetimeThreshold,
+    drivetimeBorderColor,
+    drivetimeBorderWidth,
     drivetimeLinkedCharts,
     customName,
     customType,
@@ -156,13 +160,11 @@ export default function transformProps(chartProps) {
 
   const toRgbaStr = color => `rgba(${color.r},${color.g},${color.b},${color.a})`;
 
-  // const newRadiusColor = `rgba(${radiusColor.r},${radiusColor.g},${radiusColor.b},${radiusColor.a})`;
-  // const newDrivetimeColor = `rgba(${drivetimeColor.r},${drivetimeColor.g},${drivetimeColor.b},${drivetimeColor.a})`;
-  // const newCustomColor = `rgba(${customColor.r},${customColor.g},${customColor.b},${customColor.a})`;
-
   const newRadiusColor = toRgbaStr(radiusColor);
   const newDrivetimeColor = toRgbaStr(drivetimeColor);
   const newCustomColor = toRgbaStr(customColor);
+  const newRadiusBorderColor = toRgbaStr(radiusBorderColor);
+  const newDrivetimeBorderColor = toRgbaStr(drivetimeBorderColor);
 
   const newRadiusLinkedCharts = radiusLinkedCharts ? radiusLinkedCharts.split(',').map(Number) : [];
   const newDrivetimeLinkedCharts = drivetimeLinkedCharts ? drivetimeLinkedCharts.split(',').map(Number) : [];
@@ -195,9 +197,13 @@ export default function transformProps(chartProps) {
     zoom,
     newRadiusColor,
     radiusThreshold,
+    newRadiusBorderColor,
+    radiusBorderWidth,
     newRadiusLinkedCharts,
     newDrivetimeColor,
     drivetimeThreshold,
+    newDrivetimeBorderColor,
+    drivetimeBorderWidth,
     newDrivetimeLinkedCharts,
     customName,
     customType,
