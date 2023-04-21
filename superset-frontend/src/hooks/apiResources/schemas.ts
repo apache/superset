@@ -77,7 +77,7 @@ export function useSchemas(options: Params) {
       trigger({ dbId, forceRefresh: true }).then(
         ({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            onSuccess?.(data, true);
+            onSuccess?.(data || EMPTY_SCHEMAS, true);
           }
           if (isError) {
             onError?.();

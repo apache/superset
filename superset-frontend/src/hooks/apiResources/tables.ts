@@ -132,7 +132,7 @@ export function useTables(options: Params) {
         originalArgs,
       } = result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-        if (isSuccess) {
+        if (isSuccess && data) {
           onSuccess?.(data, false);
         }
         if (isError) {
