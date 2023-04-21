@@ -31,11 +31,10 @@ These features are considered **unfinished** and should only be used on developm
 - DASHBOARD_CACHE
 - DASHBOARD_NATIVE_FILTERS_SET
 - DISABLE_DATASET_SOURCE_EDIT
-- DRILL_TO_DETAIL
+- DRILL_BY
 - ENABLE_ADVANCED_DATA_TYPES
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
 - ENABLE_TEMPLATE_REMOVE_FILTERS
-- HORIZONTAL_FILTER_BAR
 - KV_STORE
 - PRESTO_EXPAND_DATA
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
@@ -54,10 +53,14 @@ These features are **finished** but currently being tested. They are usable, but
 - CONFIRM_DASHBOARD_DIFF
 - DASHBOARD_EDIT_CHART_IN_NEW_TAB
 - DASHBOARD_FILTERS_EXPERIMENTAL
-- DASHBOARD_NATIVE_FILTERS
+- DASHBOARD_VIRTUALIZATION
+- DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - ENABLE_JAVASCRIPT_CONTROLS
+- ESTIMATE_QUERY_COST
+- GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
+- HORIZONTAL_FILTER_BAR
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
@@ -65,7 +68,7 @@ These features are **finished** but currently being tested. They are usable, but
 
 ## Stable
 
-These features flags are **safe for production** and have been tested.
+These features flags are **safe for production**. They have been tested and will be supported for the foreseeable future.
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
@@ -73,6 +76,8 @@ These features flags are **safe for production** and have been tested.
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
+- DASHBOARD_NATIVE_FILTERS
+- DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
