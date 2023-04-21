@@ -380,6 +380,12 @@ export default function LiqThematicMaps(props) {
       })
     );
 
+    // Add scale control
+    map.current.addControl(new mapboxgl.ScaleControl);
+
+    // Add zoom control
+    map.current.addControl(new mapboxgl.NavigationControl);
+
     // Add location tracker
     map.current.addControl(
       new mapboxgl.GeolocateControl({
