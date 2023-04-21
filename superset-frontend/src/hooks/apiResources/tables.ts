@@ -109,7 +109,7 @@ export function useTables(options: Params) {
     if (enabled) {
       trigger({ dbId, schema, forceRefresh: true }).then(
         ({ isSuccess, isError, data, error }) => {
-          if (isSuccess) {
+          if (isSuccess && data) {
             onSuccess?.(data, true);
           }
           if (isError) {
