@@ -46,9 +46,7 @@ const logAction = () => next => action => {
   if (typeof action === 'function') {
     return next(action);
   }
-
   actions.push(action);
-
   return next(action);
 };
 

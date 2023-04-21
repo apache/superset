@@ -34,13 +34,13 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
-  useQuery?: boolean;
+  useApi?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
 };
 
-export const storeWithQuery = configureStore({
+export const storeWithApi = configureStore({
   reducer: {
     [api.reducerPath]: api.reducer,
   },
@@ -54,7 +54,7 @@ export function createWrapper(options?: Options) {
     useDnd,
     useRedux,
     useQueryParams,
-    useQuery = true,
+    useApi = true,
     useRouter,
     initialState,
     reducers,
@@ -95,8 +95,8 @@ export function createWrapper(options?: Options) {
       result = <BrowserRouter>{result}</BrowserRouter>;
     }
 
-    if (useQuery && !useRedux) {
-      result = <Provider store={storeWithQuery}>{result}</Provider>;
+    if (useApi && !useRedux) {
+      result = <Provider store={storeWithApi}>{result}</Provider>;
     }
 
     return result;

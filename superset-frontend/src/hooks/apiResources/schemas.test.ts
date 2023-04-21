@@ -66,7 +66,7 @@ describe('useSchemas hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useQuery: true,
+          useApi: true,
         }),
       },
     );
@@ -106,7 +106,7 @@ describe('useSchemas hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useQuery: true,
+          useApi: true,
         }),
       },
     );
@@ -133,7 +133,7 @@ describe('useSchemas hook', () => {
       {
         initialProps: { dbId: expectDbId },
         wrapper: createWrapper({
-          useQuery: true,
+          useApi: true,
         }),
       },
     );
