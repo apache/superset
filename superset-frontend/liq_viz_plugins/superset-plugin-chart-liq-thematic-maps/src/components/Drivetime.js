@@ -17,6 +17,8 @@ export default function Drivetime(props) {
     drivetimeColor,
     drivetimeThreshold,
     drivetimeLinkedCharts,
+    borderColor,
+    borderWidth,
     map
   } = props;
 
@@ -43,6 +45,7 @@ export default function Drivetime(props) {
     if ('drivetime' in map.current.getStyle().sources) {
       map.current.removeLayer('drivetime');
       map.current.removeLayer('drivetime_sa1s');
+      map.current.removeLayer('drivetime-outline');
       map.current.removeSource('drivetime');
       const url = new URL(window.location.href);
       url.searchParams.delete('drivetime_key');
@@ -53,10 +56,12 @@ export default function Drivetime(props) {
 
   // Add drivetime geojson source and layer and update drivetime key url param
   const drawDrivetime = (drivetime) => {
+    // add geojson source
     map.current.addSource('drivetime', {
       'type': 'geojson',
       'data': drivetime
     });
+    // add fill layer
     map.current.addLayer({
       'id': 'drivetime',
       'type': 'fill',
@@ -66,6 +71,17 @@ export default function Drivetime(props) {
         'fill-color': drivetimeColor,
       }
     });
+    // add border layer
+    map.current.addLayer({
+      'id': 'drivetime-outline',
+      'type': 'line',
+      'source': 'drivetime',
+      'paint': {
+        'line-color': borderColor,
+        'line-width': parseFloat(borderWidth)
+      }
+    })
+    // add intersecting sa1 layer
     map.current.addLayer({
       'id': 'drivetime_sa1s',
       'type': 'line',

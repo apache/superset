@@ -148,7 +148,7 @@ export const domayne = domayne_c.createPolygon(diamondPoints(OTHER_SIZE)).img;
 export const domayneP = domayne_cP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
 
 export const fantasticFurniture = fantastic_furniture.createPolygon(diamondPoints(OTHER_SIZE)).img;
-export const fantasticFurnitureP = fantastic_furnitureP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED);
+export const fantasticFurnitureP = fantastic_furnitureP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
 
 export const fortyWinks = forty_winks.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
 export const fortyWinksP = forty_winksP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;

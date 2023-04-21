@@ -430,6 +430,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               min: 0,
               validators: [validateNumber],
+              renderTrigger: true,
               default: 0,
               label: t('Border Width'),
               visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
@@ -507,6 +508,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               min: 0,
               validators: [validateNumber],
+              renderTrigger: true,
               default: 0,
               label: t('Border Width'),
               visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))

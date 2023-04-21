@@ -19,6 +19,8 @@ export default function Radius(props) {
     groupCol,
     radiusColor,
     radiusThreshold,
+    borderColor,
+    borderWidth,
     radiusLinkedCharts,
     map
   } = props;
@@ -44,6 +46,7 @@ export default function Radius(props) {
     if ('radius' in map.current.getStyle().sources) {
       map.current.removeLayer('radius');
       map.current.removeLayer('radius_sa1s');
+      map.current.removeLayer('radius-outline');
       map.current.removeSource('radius');
       const url = new URL(window.location.href);
       url.searchParams.delete('radius_key');
@@ -55,10 +58,12 @@ export default function Radius(props) {
   // Add radius geojson source and layer and update radius key url param
   const drawRadius = (e) => {
     const radius = getRadius([e.lngLat.lng, e.lngLat.lat], distance, 256);
+    // add geojson source
     map.current.addSource('radius', {
       'type': 'geojson',
       'data': radius
     });
+    // add fill layer
     map.current.addLayer({
       'id': 'radius',
       'type': 'fill',
@@ -68,6 +73,17 @@ export default function Radius(props) {
         'fill-color': radiusColor,
       }
     });
+    // add border layer
+    map.current.addLayer({
+      'id': 'radius-outline',
+      'type': 'line',
+      'source': 'radius',
+      'paint': {
+        'line-color': borderColor,
+        'line-width': parseFloat(borderWidth)
+      }
+    })
+    // add sa1 intersection layer
     map.current.addLayer({
       'id': 'radius_sa1s',
       'type': 'line',

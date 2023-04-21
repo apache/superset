@@ -202,7 +202,9 @@ export default function LiqThematicMaps(props) {
                 groupCol={groupCol} 
                 boundary={boundary}
                 radiusColor={newRadiusColor}
-                radiusThreshold={radiusThreshold} 
+                radiusThreshold={radiusThreshold}
+                borderColor={newRadiusBorderColor}
+                borderWidth={radiusBorderWidth} 
                 radiusLinkedCharts={newRadiusLinkedCharts}
               />
             );
@@ -222,6 +224,8 @@ export default function LiqThematicMaps(props) {
                 boundary={boundary}
                 drivetimeColor={newDrivetimeColor}
                 drivetimeThreshold={drivetimeThreshold}
+                borderColor={newDrivetimeBorderColor}
+                borderWidth={drivetimeBorderWidth}
                 drivetimeLinkedCharts={newDrivetimeLinkedCharts}
               />
             );
@@ -714,15 +718,19 @@ export default function LiqThematicMaps(props) {
   useEffect(() => {
     if (map.current.isStyleLoaded() && 'radius' in map.current.getStyle().sources) {
       map.current.setPaintProperty('radius', 'fill-color', newRadiusColor);
+      map.current.setPaintProperty('radius-outline', 'line-color', newRadiusBorderColor);
+      map.current.setPaintProperty('radius-outline', 'line-width', parseFloat(radiusBorderWidth));
     }
-  }, [newRadiusColor])
+  }, [newRadiusColor, newRadiusBorderColor, radiusBorderWidth]);
 
   // Hooks for appling drivetime style settings in real time
   useEffect(() => {
     if (map.current.isStyleLoaded() && 'drivetime' in map.current.getStyle().sources) {
       map.current.setPaintProperty('drivetime', 'fill-color', newDrivetimeColor);
+      map.current.setPaintProperty('drivetime-outline', 'line-color', newDrivetimeBorderColor);
+      map.current.setPaintProperty('drivetime-outline', 'line-width', parseFloat(drivetimeBorderWidth));
     }
-  }, [newDrivetimeColor]);
+  }, [newDrivetimeColor, newDrivetimeBorderColor, drivetimeBorderWidth]);
 
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>
