@@ -26,7 +26,6 @@ import React, {
 } from 'react';
 import {
   BaseFormData,
-  BinaryQueryObjectFilterClause,
   Column,
   QueryData,
   css,
@@ -34,6 +33,7 @@ import {
   isDefined,
   t,
   useTheme,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -61,6 +61,8 @@ import {
 } from './useDrillByBreadcrumbs';
 
 const DATA_SIZE = 15;
+
+const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
@@ -123,25 +125,35 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 export interface DrillByModalProps {
   column?: Column;
   dataset: Dataset;
-  filters?: BinaryQueryObjectFilterClause[];
+  drillByConfig: Required<ContextMenuFilters>['drillBy'];
   formData: BaseFormData & { [key: string]: any };
-  groupbyFieldName?: string;
-  adhocFilterFieldName?: string;
   onHideModal: () => void;
 }
+
+type DrillByConfigs = (ContextMenuFilters['drillBy'] & { column?: Column })[];
 
 export default function DrillByModal({
   column,
   dataset,
-  filters,
+  drillByConfig,
   formData,
-  groupbyFieldName = 'groupby',
-  adhocFilterFieldName = 'adhoc_filters',
   onHideModal,
 }: DrillByModalProps) {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
   const [isChartDataLoading, setIsChartDataLoading] = useState(true);
+
+  const [drillByConfigs, setDrillByConfigs] = useState<DrillByConfigs>([
+    { ...drillByConfig, column },
+  ]);
+
+  const {
+    column: currentColumn,
+    filters,
+    groupbyFieldName = drillByConfig.groupbyFieldName,
+    adhocFilterFieldName = drillByConfig.adhocFilterFieldName ||
+      DEFAULT_ADHOC_FILTER_FIELD_NAME,
+  } = drillByConfigs[drillByConfigs.length - 1] || {};
 
   const initialGroupbyColumns = useMemo(
     () =>
@@ -160,11 +172,7 @@ export default function DrillByModal({
     [formData.datasource],
   );
 
-  const [currentColumn, setCurrentColumn] = useState<Column | undefined>(
-    column,
-  );
   const [currentFormData, setCurrentFormData] = useState(formData);
-  const [currentFilters, setCurrentFilters] = useState(filters || []);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
     [...initialGroupbyColumns, column].filter(isDefined),
   );
@@ -174,19 +182,48 @@ export default function DrillByModal({
   ]);
 
   const getNewGroupby = useCallback(
-    (groupbyCol: Column) =>
-      Array.isArray(formData[groupbyFieldName])
+    (groupbyCol: Column, fieldName = groupbyFieldName) =>
+      Array.isArray(formData[fieldName])
         ? [groupbyCol.column_name]
         : groupbyCol.column_name,
     [formData, groupbyFieldName],
   );
 
+  const getFormDataChangesFromConfigs = useCallback(
+    (configs: DrillByConfigs) =>
+      configs.reduce(
+        (acc, config) => {
+          if (config?.groupbyFieldName && config.column) {
+            acc.formData[config.groupbyFieldName] = getNewGroupby(
+              config.column,
+              config.groupbyFieldName,
+            );
+            acc.overridenGroupbyFields.add(config.groupbyFieldName);
+          }
+          const adhocFilterFieldName =
+            config?.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
+          acc.formData[adhocFilterFieldName] = [
+            ...ensureIsArray(acc[adhocFilterFieldName]),
+            ...ensureIsArray(config.filters).map(filter =>
+              simpleFilterToAdhoc(filter),
+            ),
+          ];
+          acc.overridenAdhocFilterFields.add(adhocFilterFieldName);
+
+          return acc;
+        },
+        {
+          formData: {},
+          overridenGroupbyFields: new Set<string>(),
+          overridenAdhocFilterFields: new Set<string>(),
+        },
+      ),
+    [getNewGroupby],
+  );
+
   const onBreadcrumbClick = useCallback(
     (breadcrumb: DrillByBreadcrumb, index: number) => {
-      const newGroupbyCol =
-        index === 0 ? undefined : (breadcrumb.groupby as Column);
-      setCurrentColumn(newGroupbyCol);
-      setCurrentFilters(filters => filters.slice(0, index));
+      setDrillByConfigs(prevConfigs => prevConfigs.slice(0, index));
       setBreadcrumbsData(prevBreadcrumbs => {
         const newBreadcrumbs = prevBreadcrumbs.slice(0, index + 1);
         delete newBreadcrumbs[newBreadcrumbs.length - 1].filters;
@@ -195,52 +232,61 @@ export default function DrillByModal({
       setUsedGroupbyColumns(prevUsedGroupbyColumns =>
         prevUsedGroupbyColumns.slice(0, index),
       );
-      setCurrentFormData(prevFormData => ({
-        ...prevFormData,
-        [groupbyFieldName]: newGroupbyCol
-          ? getNewGroupby(newGroupbyCol)
-          : formData[groupbyFieldName],
-        [adhocFilterFieldName]: [
-          ...formData[adhocFilterFieldName],
-          ...prevFormData[adhocFilterFieldName].slice(
-            formData[adhocFilterFieldName].length,
-            formData[adhocFilterFieldName].length + index,
-          ),
-        ],
-      }));
+      setCurrentFormData(() => {
+        if (index === 0) {
+          return formData;
+        }
+        const { formData: overrideFormData, overridenAdhocFilterFields } =
+          getFormDataChangesFromConfigs(drillByConfigs.slice(0, index));
+
+        const newFormData = {
+          ...formData,
+          ...overrideFormData,
+        };
+        overridenAdhocFilterFields.forEach(adhocFilterField => ({
+          ...newFormData,
+          [adhocFilterField]: [
+            ...formData[adhocFilterField],
+            ...overrideFormData[adhocFilterField],
+          ],
+        }));
+        return newFormData;
+      });
     },
-    [adhocFilterFieldName, formData, getNewGroupby, groupbyFieldName],
+    [drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
 
   const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
 
   const drilledFormData = useMemo(() => {
-    let updatedFormData = { ...formData };
-    if (currentColumn) {
+    let updatedFormData = { ...currentFormData };
+    if (currentColumn && groupbyFieldName) {
       updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    const adhocFilters = currentFilters.map(filter =>
-      simpleFilterToAdhoc(filter),
-    );
-    updatedFormData = {
-      ...updatedFormData,
-      [adhocFilterFieldName]: [
-        ...ensureIsArray(formData[adhocFilterFieldName]),
-        ...adhocFilters,
-      ],
-    };
+    if (adhocFilterFieldName && Array.isArray(filters)) {
+      const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
+      updatedFormData = {
+        ...updatedFormData,
+        [adhocFilterFieldName]: [
+          ...ensureIsArray(formData[adhocFilterFieldName]),
+          ...adhocFilters,
+        ],
+      };
+    }
+
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
     return updatedFormData;
   }, [
-    formData,
+    currentFormData,
     currentColumn,
-    currentFilters,
+    filters,
+    adhocFilterFieldName,
+    formData,
     groupbyFieldName,
     getNewGroupby,
-    adhocFilterFieldName,
   ]);
 
   useEffect(() => {
@@ -255,13 +301,19 @@ export default function DrillByModal({
   }, [currentColumn]);
 
   const onSelection = useCallback(
-    (newColumn: Column, filters: BinaryQueryObjectFilterClause[]) => {
-      setCurrentColumn(newColumn);
+    (
+      newColumn: Column,
+      drillByConfig: Required<ContextMenuFilters>['drillBy'],
+    ) => {
       setCurrentFormData(drilledFormData);
-      setCurrentFilters(prevFilters => [...prevFilters, ...filters]);
+      setDrillByConfigs(prevConfigs => [
+        ...prevConfigs,
+        { ...drillByConfig, column: newColumn },
+      ]);
       setBreadcrumbsData(prevBreadcrumbs => {
         const newBreadcrumbs = [...prevBreadcrumbs, { groupby: newColumn }];
-        newBreadcrumbs[newBreadcrumbs.length - 2].filters = filters;
+        newBreadcrumbs[newBreadcrumbs.length - 2].filters =
+          drillByConfig.filters;
         return newBreadcrumbs;
       });
     },
