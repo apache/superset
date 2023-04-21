@@ -98,22 +98,20 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
-    }
+      if (!sharedColor) {
+        // make sure we don't overwrite the origin colors
+        const updatedRange = [...this.originColors];
+        // remove the color option from shared color
+        sharedColorMap.forEach((value, key) => {
+          if (key !== cleanedValue) {
+            const index = updatedRange.indexOf(value);
+            updatedRange.splice(index, 1);
+          }
+        });
 
-    if (sharedColorMap.size > 0 && !sharedColor) {
-      // make sure we don't overwrite the origin colors
-      const updatedRange = [...this.originColors];
-
-      // remove the color option from shared color
-      sharedColorMap.forEach((value, key) => {
-        if (key !== cleanedValue) {
-          const index = updatedRange.indexOf(value);
-          updatedRange.splice(index, 1);
-        }
-      });
-
-      this.range(updatedRange);
-      color = this.scale(cleanedValue);
+        this.range(updatedRange.length > 0 ? updatedRange : this.originColors);
+        color = this.scale(cleanedValue);
+      }
     }
 
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
