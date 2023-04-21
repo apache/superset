@@ -46,7 +46,6 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { noOp } from 'src/utils/common';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Alert from 'src/components/Alert';
 import { Dataset, DrillByType } from '../types';
@@ -59,8 +58,7 @@ import {
   DrillByBreadcrumb,
   useDrillByBreadcrumbs,
 } from './useDrillByBreadcrumbs';
-
-const DATA_SIZE = 15;
+import { useResultsTableView } from './useResultsTableView';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
@@ -167,9 +165,10 @@ export default function DrillByModal({
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-  const [datasourceId] = useMemo(
-    () => formData.datasource.split('__'),
-    [formData.datasource],
+
+  const resultsTable = useResultsTableView(
+    chartDataResult,
+    formData.datasource,
   );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
@@ -414,24 +413,9 @@ export default function DrillByModal({
             inContextMenu={inContextMenu}
           />
         )}
-        {drillByDisplayMode === DrillByType.Table && chartDataResult && (
-          <div
-            css={css`
-              .pagination-container {
-                bottom: ${-theme.gridUnit * 4}px;
-              }
-            `}
-          >
-            <SingleQueryResultPane
-              colnames={chartDataResult[0].colnames}
-              coltypes={chartDataResult[0].coltypes}
-              data={chartDataResult[0].data}
-              dataSize={DATA_SIZE}
-              datasourceId={datasourceId}
-              isVisible
-            />
-          </div>
-        )}
+        {drillByDisplayMode === DrillByType.Table &&
+          chartDataResult &&
+          resultsTable}
         {contextMenu}
       </div>
     </Modal>
