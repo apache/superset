@@ -19,7 +19,7 @@ import json
 import unittest
 from io import BytesIO
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -347,6 +347,28 @@ class TestDatasetApi(SupersetTestCase):
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
+            "uid": "2__table",
+            "datasource_name": "energy_usage",
+            "name": f"{get_example_default_schema()}.energy_usage",
+            "column_formats": {},
+            "granularity_sqla": [],
+            "time_grain_sqla": ANY,
+            "order_by_choices": [
+                ['["source", true]', "source [asc]"],
+                ['["source", false]', "source [desc]"],
+                ['["target", true]', "target [asc]"],
+                ['["target", false]', "target [desc]"],
+                ['["value", true]', "value [asc]"],
+                ['["value", false]', "value [desc]"],
+            ],
+            "verbose_map": {
+                "__timestamp": "Time",
+                "count": "COUNT(*)",
+                "source": "source",
+                "sum__value": "sum__value",
+                "target": "target",
+                "value": "value",
+            },
         }
         if response["result"]["database"]["backend"] not in ("presto", "hive"):
             assert {
@@ -1348,6 +1370,32 @@ class TestDatasetApi(SupersetTestCase):
         assert data == expected_response
         db.session.delete(dataset)
         db.session.delete(ab_user)
+        db.session.commit()
+
+    def test_update_dataset_unsafe_default_endpoint(self):
+        """
+        Dataset API: Test unsafe default endpoint
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}"
+        table_data = {"default_endpoint": "http://www.google.com"}
+        rv = self.client.put(uri, json=table_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        expected_response = {
+            "message": {
+                "default_endpoint": [
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                ]
+            }
+        }
+        assert data == expected_response
+        db.session.delete(dataset)
         db.session.commit()
 
     @patch("superset.datasets.dao.DatasetDAO.update")

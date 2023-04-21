@@ -248,7 +248,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
-        this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
+        this.dragStartHeight + (e.clientY - this.dragStartY),
         POPOVER_INITIAL_HEIGHT,
       ),
     });

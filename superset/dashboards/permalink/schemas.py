@@ -21,30 +21,34 @@ class DashboardPermalinkPostSchema(Schema):
     dataMask = fields.Dict(
         required=False,
         allow_none=True,
-        description="Data mask used for native filter state",
+        metadata={"description": "Data mask used for native filter state"},
     )
     activeTabs = fields.List(
         fields.String(),
         required=False,
         allow_none=True,
-        description="Current active dashboard tabs",
+        metadata={"description": "Current active dashboard tabs"},
     )
     urlParams = fields.List(
         fields.Tuple(
             (
-                fields.String(required=True, allow_none=True, description="Key"),
-                fields.String(required=True, allow_none=True, description="Value"),
+                fields.String(
+                    required=True, allow_none=True, metadata={"description": "Key"}
+                ),
+                fields.String(
+                    required=True, allow_none=True, metadata={"description": "Value"}
+                ),
             ),
             required=False,
             allow_none=True,
-            description="URL Parameter key-value pair",
+            metadata={"description": "URL Parameter key-value pair"},
         ),
         required=False,
         allow_none=True,
-        description="URL Parameters",
+        metadata={"description": "URL Parameters"},
     )
     anchor = fields.String(
         required=False,
         allow_none=True,
-        description="Optional anchor link added to url hash",
+        metadata={"description": "Optional anchor link added to url hash"},
     )

@@ -899,6 +899,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 if word.upper() in cls.select_keywords
             ]
             first_select = selects[0]
+            if tokens[first_select + 1].upper() == "DISTINCT":
+                first_select += 1
+
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))
 
@@ -1859,20 +1862,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class BasicParametersSchema(Schema):
-    username = fields.String(required=True, allow_none=True, description=__("Username"))
-    password = fields.String(allow_none=True, description=__("Password"))
-    host = fields.String(required=True, description=__("Hostname or IP address"))
+    username = fields.String(
+        required=True, allow_none=True, metadata={"description": __("Username")}
+    )
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
     port = fields.Integer(
         required=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
-    database = fields.String(required=True, description=__("Database name"))
+    database = fields.String(
+        required=True, metadata={"description": __("Database name")}
+    )
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
     )
     encryption = fields.Boolean(
-        required=False, description=__("Use an encrypted connection to the database")
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
 
 

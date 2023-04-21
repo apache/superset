@@ -80,7 +80,6 @@ const SaveQuery = ({
     'schema',
     'selectedText',
     'sql',
-    'tableOptions',
     'templateParams',
   ]);
   const query = useMemo(

@@ -82,6 +82,7 @@ const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
             formData={formData}
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
+            drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
             {...modalProps}
           />
         )}
@@ -104,7 +105,7 @@ beforeEach(() => {
     .post(CHART_DATA_ENDPOINT, { body: {} }, {})
     .post(FORM_DATA_KEY_ENDPOINT, { key: '123' });
 });
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 test('should render the title', async () => {
   await renderModal();
@@ -127,16 +128,31 @@ test('should close the modal', async () => {
 });
 
 test('should render loading indicator', async () => {
-  await renderModal();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
+  fetchMock.post(
+    CHART_DATA_ENDPOINT,
+    { body: {} },
+    // delay is missing in fetch-mock types
+    // @ts-ignore
+    { overwriteRoutes: true, delay: 1000 },
   );
+  await renderModal();
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+});
+
+test('should render alert banner when results fail to load', async () => {
+  await renderModal();
+  expect(
+    await screen.findByText('There was an error loading the chart data'),
+  ).toBeInTheDocument();
 });
 
 test('should generate Explore url', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
   await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
@@ -196,7 +212,10 @@ test('should render radio buttons', async () => {
 test('render breadcrumbs', async () => {
   await renderModal({
     column: { column_name: 'name' },
-    filters: [{ col: 'gender', op: '==', val: 'boy' }],
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
   });
 
   const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');

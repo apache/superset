@@ -97,7 +97,6 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
-  onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
@@ -158,7 +157,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   isDatabaseSelectEnabled = true,
   onDbChange,
   onSchemaChange,
-  onTablesLoad,
   readOnly = false,
   onEmptyResults,
   schema,
@@ -198,14 +196,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       });
     },
   });
-
-  useEffect(() => {
-    // Set the tableOptions in the queryEditor so autocomplete
-    // works on new tabs
-    if (data && isFetched) {
-      onTablesLoad?.(data.options);
-    }
-  }, [data, isFetched, onTablesLoad]);
 
   const tableOptions = useMemo<TableOption[]>(
     () =>

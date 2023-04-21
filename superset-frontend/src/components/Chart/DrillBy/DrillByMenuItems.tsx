@@ -29,8 +29,8 @@ import { Menu } from 'src/components/Menu';
 import {
   BaseFormData,
   Behavior,
-  BinaryQueryObjectFilterClause,
   Column,
+  ContextMenuFilters,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
@@ -39,6 +39,7 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -54,12 +55,10 @@ const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
 const SEARCH_INPUT_HEIGHT = 48;
 
 export interface DrillByMenuItemsProps {
-  filters?: BinaryQueryObjectFilterClause[];
+  drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   contextMenuY?: number;
   submenuIndex?: number;
-  groupbyFieldName?: string;
-  adhocFilterFieldName?: string;
   onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
   openNewModal?: boolean;
@@ -67,9 +66,7 @@ export interface DrillByMenuItemsProps {
 }
 
 export const DrillByMenuItems = ({
-  filters,
-  groupbyFieldName,
-  adhocFilterFieldName,
+  drillByConfig,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
@@ -80,22 +77,22 @@ export const DrillByMenuItems = ({
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
+  const { addDangerToast } = useToasts();
   const [searchInput, setSearchInput] = useState('');
   const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
-
   const handleSelection = useCallback(
     (event, column) => {
       onClick(event);
-      onSelection(column, filters);
+      onSelection(column, drillByConfig);
       setCurrentColumn(column);
       if (openNewModal) {
         setShowModal(true);
       }
     },
-    [filters, onClick, onSelection, openNewModal],
+    [drillByConfig, onClick, onSelection, openNewModal],
   );
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -107,7 +104,9 @@ export const DrillByMenuItems = ({
     setSearchInput('');
   }, [columns.length]);
 
-  const hasDrillBy = ensureIsArray(filters).length && groupbyFieldName;
+  const hasDrillBy =
+    ensureIsArray(drillByConfig?.filters).length &&
+    drillByConfig?.groupbyFieldName;
 
   const handlesDimensionContextMenu = useMemo(
     () =>
@@ -130,9 +129,9 @@ export const DrillByMenuItems = ({
               .filter(column => column.groupby)
               .filter(
                 column =>
-                  !ensureIsArray(formData[groupbyFieldName]).includes(
-                    column.column_name,
-                  ) &&
+                  !ensureIsArray(
+                    formData[drillByConfig.groupbyFieldName ?? ''],
+                  ).includes(column.column_name) &&
                   column.column_name !== formData.x_axis &&
                   ensureIsArray(excludedColumns)?.every(
                     excludedCol =>
@@ -143,12 +142,14 @@ export const DrillByMenuItems = ({
         })
         .catch(() => {
           supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
+          addDangerToast(t('Failed to load dimensions for drill by'));
         });
     }
   }, [
+    addDangerToast,
     excludedColumns,
     formData,
-    groupbyFieldName,
+    drillByConfig?.groupbyFieldName,
     handlesDimensionContextMenu,
     hasDrillBy,
   ]);
@@ -266,10 +267,8 @@ export const DrillByMenuItems = ({
       {showModal && (
         <DrillByModal
           column={currentColumn}
-          filters={filters}
+          drillByConfig={drillByConfig}
           formData={formData}
-          groupbyFieldName={groupbyFieldName}
-          adhocFilterFieldName={adhocFilterFieldName}
           onHideModal={closeModal}
           dataset={dataset!}
         />

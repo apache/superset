@@ -21,7 +21,6 @@ import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { queryClient } from 'src/views/QueryProvider';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
 import TableSelector, { TableSelectorMultiple } from '.';
 
@@ -35,11 +34,6 @@ const createProps = (props = {}) => ({
   handleError: jest.fn(),
   ...props,
 });
-
-const getSchemaMockFunction = () =>
-  ({
-    result: ['schema_a', 'schema_b'],
-  } as any);
 
 const getTableMockFunction = () =>
   ({
@@ -121,47 +115,6 @@ test('renders disabled without schema', async () => {
   });
   await waitFor(() => {
     expect(tableSelect).toBeDisabled();
-  });
-});
-
-test('table options are notified after schema selection', async () => {
-  fetchMock.get(schemaApiRoute, getSchemaMockFunction());
-
-  const callback = jest.fn();
-  const props = createProps({
-    onTablesLoad: callback,
-    schema: undefined,
-  });
-  render(<TableSelector {...props} />, { useRedux: true });
-
-  const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
-  });
-  expect(schemaSelect).toBeInTheDocument();
-  expect(callback).not.toHaveBeenCalled();
-
-  userEvent.click(schemaSelect);
-
-  expect(
-    await screen.findByRole('option', { name: 'schema_a' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'schema_b' }),
-  ).toBeInTheDocument();
-
-  fetchMock.get(tablesApiRoute, getTableMockFunction());
-
-  act(() => {
-    userEvent.click(screen.getAllByText('schema_a')[1]);
-  });
-
-  await waitFor(() => {
-    expect(callback).toHaveBeenCalledWith([
-      { label: 'table_a', value: 'table_a' },
-      { label: 'table_b', value: 'table_b' },
-      { label: 'table_c', value: 'table_c' },
-      { label: 'table_d', value: 'table_d' },
-    ]);
   });
 });
 

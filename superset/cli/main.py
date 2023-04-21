@@ -50,8 +50,11 @@ for load, module_name, is_pkg in pkgutil.walk_packages(
 ):
     module = importlib.import_module(module_name)
     for attribute in module.__dict__.values():
-        if isinstance(attribute, click.core.Command):
+        if isinstance(attribute, (click.core.Command, click.core.Group)):
             superset.add_command(attribute)
+
+            if isinstance(attribute, click.core.Group):
+                break
 
 
 @superset.command()
