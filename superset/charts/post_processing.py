@@ -247,42 +247,6 @@ def pivot_table_v2(
     )
 
 
-def pivot_table(
-    df: pd.DataFrame,
-    form_data: dict[str, Any],
-    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
-) -> pd.DataFrame:
-    """
-    Pivot table (v1).
-    """
-    verbose_map = datasource.data["verbose_map"] if datasource else None
-    if form_data.get("granularity") == "all" and DTTM_ALIAS in df:
-        del df[DTTM_ALIAS]
-
-    # v1 func names => v2 func names
-    func_map = {
-        "sum": "Sum",
-        "mean": "Average",
-        "min": "Minimum",
-        "max": "Maximum",
-        "std": "Sample Standard Deviation",
-        "var": "Sample Variance",
-    }
-
-    return pivot_df(
-        df,
-        rows=get_column_names(form_data.get("groupby"), verbose_map),
-        columns=get_column_names(form_data.get("columns"), verbose_map),
-        metrics=get_metric_names(form_data["metrics"], verbose_map),
-        aggfunc=func_map.get(form_data.get("pandas_aggfunc", "sum"), "Sum"),
-        transpose_pivot=bool(form_data.get("transpose_pivot")),
-        combine_metrics=bool(form_data.get("combine_metric")),
-        show_rows_total=bool(form_data.get("pivot_margins")),
-        show_columns_total=bool(form_data.get("pivot_margins")),
-        apply_metrics_on_rows=False,
-    )
-
-
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -308,7 +272,6 @@ def table(
 
 
 post_processors = {
-    "pivot_table": pivot_table,
     "pivot_table_v2": pivot_table_v2,
     "table": table,
 }
