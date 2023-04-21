@@ -62,7 +62,6 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
-    SqllabVizSchema,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetGenericErrorException
@@ -256,7 +255,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
-        SqllabVizSchema,
     )
 
     list_outer_default_load = True

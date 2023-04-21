@@ -35,6 +35,16 @@ export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
 
+export function changeDatasource(newDatasource: Dataset) {
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
+    dispatch(setDatasource(newDatasource));
+    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+  };
+}
+
 export function saveDataset({
   schema,
   sql,
@@ -69,16 +79,6 @@ export function saveDataset({
       });
       throw error;
     }
-  };
-}
-
-export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
-    const {
-      explore: { datasource: prevDatasource },
-    } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
   };
 }
 
