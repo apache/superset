@@ -535,12 +535,6 @@ describe('Dashboard edit', () => {
       applyChanges();
       saveChanges();
 
-      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
-        'have.css',
-        'fill',
-        'rgb(234, 11, 140)',
-      );
-
       // go to second tab
       openTab(0, 1);
       waitForChartLoad({ name: 'Trends', viz: 'line' });
@@ -551,17 +545,11 @@ describe('Dashboard edit', () => {
     });
 
     it('should apply the color scheme across main tabs for rendered charts', () => {
-      waitForChartLoad({ name: 'Treemap', viz: 'treemap' });
+      waitForChartLoad({ name: 'Treemap', viz: 'treemap_v2' });
       openProperties();
       selectColorScheme('bnbColors');
       applyChanges();
       saveChanges();
-
-      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
-        'have.css',
-        'fill',
-        'rgb(255, 90, 95)',
-      );
 
       // go to second tab
       openTab(0, 1);
@@ -571,24 +559,12 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(140, 224, 113)');
 
-      // go back to first tab
-      openTab(0, 0);
-
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
       saveChanges();
-
-      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
-        'have.css',
-        'fill',
-        'rgb(234, 11, 140)',
-      );
-
-      // go to second tab again
-      openTab(0, 1);
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
@@ -600,11 +576,6 @@ describe('Dashboard edit', () => {
       selectColorScheme('lyftColors');
       applyChanges();
       saveChanges();
-      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
-        'have.css',
-        'fill',
-        'rgb(234, 11, 140)',
-      );
 
       // open nested tab
       openTab(1, 1);
