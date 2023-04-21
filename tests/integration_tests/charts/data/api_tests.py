@@ -482,6 +482,33 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assertEqual(result["rowcount"], 47)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_invalid_post_processing(self):
+        """
+        Chart data API: Ensure incorrect post processing returns correct response
+        """
+        query_context = self.query_context_payload
+        query = query_context["queries"][0]
+        query["columns"] = ["name", "gender"]
+        query["post_processing"] = [
+            {
+                "operation": "pivot",
+                "options": {
+                    "drop_missing_columns": False,
+                    "columns": ["gender"],
+                    "index": ["name"],
+                    "aggregates": {},
+                },
+            },
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, query_context, "data")
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert (
+            data["message"]
+            == "Error: Pivot operation must include at least one aggregate"
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_query_result_type_and_non_existent_filter__filter_omitted(self):
         self.query_context_payload["queries"][0]["filters"] = [
             {"col": "non_existent_filter", "op": "==", "val": "foo"},

@@ -423,24 +423,30 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
+    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         cls,
         table_name: str,
+        schema: Optional[str],
+        indexes: List[Dict[str, Any]],
         database: Database,
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
     ) -> str:
-        """Returns a partition query
+        """
+        Return a partition query.
+
+        Note the unused arguments are exposed for sub-classing purposes where custom
+        integrations may require the schema, indexes, etc. to build the partition query.
 
         :param table_name: the name of the table to get partitions from
-        :type table_name: str
+        :param schema: the schema name
+        :param indexes: the indexes associated with the table
+        :param database: the database the query will be run against
         :param limit: the number of partitions to be returned
-        :type limit: int
         :param order_by: a list of tuples of field name and a boolean
             that determines if that field should be sorted in descending
             order
-        :type order_by: list of (str, bool) tuples
         :param filters: dict of field name and filter value combinations
         """
         limit_clause = "LIMIT {}".format(limit) if limit else ""
@@ -566,6 +572,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             df=database.get_df(
                 sql=cls._partition_query(
                     table_name,
+                    schema,
+                    indexes,
                     database,
                     limit=1,
                     order_by=[(column_name, True) for column_name in column_names],
@@ -620,7 +628,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 field_to_return = field
 
         sql = cls._partition_query(
-            table_name, database, 1, [(field_to_return, True)], kwargs
+            table_name,
+            schema,
+            indexes,
+            database,
+            limit=1,
+            order_by=[(field_to_return, True)],
+            filters=kwargs,
         )
         df = database.get_df(sql, schema)
         if df.empty:
@@ -1214,6 +1228,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         if schema_name and "." not in table_name
                         else table_name
                     ),
+                    schema=schema_name,
+                    indexes=indexes,
                     database=database,
                 ),
             }

@@ -229,6 +229,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/override_role_permissions/", methods=["POST"])
+    @deprecated()
     def override_role_permissions(self) -> FlaskResponse:
         """Updates the role with the give datasource permissions.
 
@@ -583,7 +584,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             form_data = cached.get("form_data")
             response_type = cached.get("response_type")
-
+            # Set form_data in Flask Global as it is used as a fallback
+            # for async queries with jinja context
+            setattr(g, "form_data", form_data)
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
             viz_obj = get_viz(

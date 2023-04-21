@@ -61,15 +61,14 @@ const defaultFilters = [
 
 const renderMenu = ({
   formData = defaultFormData,
-  filters = defaultFilters,
+  drillByConfig = { filters: defaultFilters, groupbyFieldName: 'groupby' },
   ...rest
 }: Partial<DrillByMenuItemsProps>) =>
   render(
     <Menu>
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
-        filters={filters}
-        groupbyFieldName="groupby"
+        drillByConfig={drillByConfig}
         {...rest}
       />
     </Menu>,
@@ -133,7 +132,7 @@ test('render disabled menu item for unsupported chart', async () => {
 });
 
 test('render disabled menu item for supported chart, no filters', async () => {
-  renderMenu({ filters: [] });
+  renderMenu({ drillByConfig: { filters: [], groupbyFieldName: 'groupby' } });
   await expectDrillByDisabled('Drill by is not available for this data point');
 });
 
@@ -237,6 +236,6 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
       column_name: 'col1',
       groupby: true,
     },
-    defaultFilters,
+    { filters: defaultFilters, groupbyFieldName: 'groupby' },
   );
 });

@@ -40,12 +40,15 @@ click==8.0.4
     #   apache-superset
     #   celery
     #   click-didyoumean
+    #   click-option-group
     #   click-plugins
     #   click-repl
     #   flask
     #   flask-appbuilder
 click-didyoumean==0.3.0
     # via celery
+click-option-group==0.5.5
+    # via apache-superset
 click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
@@ -133,10 +136,8 @@ humanize==3.11.0
     # via apache-superset
 idna==3.2
     # via email-validator
-importlib-metadata==6.5.0
+importlib-metadata==6.0.0
     # via flask
-importlib-resources==5.12.0
-    # via limits
 isodate==0.6.0
     # via apache-superset
 itsdangerous==2.1.1
@@ -153,7 +154,7 @@ kombu==5.2.4
     # via celery
 korean-lunar-calendar==0.2.1
     # via holidays
-limits==3.4.0
+limits==3.2.0
     # via flask-limiter
 mako==1.1.4
     # via alembic
@@ -209,7 +210,7 @@ pyarrow==10.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
-pygments==2.15.1
+pygments==2.14.0
     # via rich
 pyjwt==2.4.0
     # via
@@ -252,9 +253,11 @@ pyyaml==5.4.1
     #   apispec
 redis==3.5.3
     # via apache-superset
-rich==13.3.4
+rich==13.3.1
     # via flask-limiter
 selenium==3.141.0
+    # via apache-superset
+shortid==0.1.2
     # via apache-superset
 simplejson==3.17.3
     # via apache-superset
@@ -311,7 +314,7 @@ werkzeug==2.1.2
     #   flask
     #   flask-jwt-extended
     #   flask-login
-wrapt==1.15.0
+wrapt==1.12.1
     # via deprecated
 wtforms==2.3.3
     # via
@@ -324,9 +327,7 @@ wtforms-json==0.3.3
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

@@ -207,7 +207,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_override_role_permissions",
         "can_sync_druid_source",
         "can_override_role_permissions",
         "can_approve",

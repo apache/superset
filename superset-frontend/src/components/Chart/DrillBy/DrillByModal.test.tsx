@@ -21,12 +21,12 @@ import React, { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, isUndefined, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
+import { waitFor, within } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import DrillByModal from './DrillByModal';
+import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
@@ -60,9 +60,15 @@ const dataset = {
       last_name: 'Connor',
     },
   ],
+  columns: [
+    {
+      column_name: 'gender',
+    },
+    { column_name: 'name' },
+  ],
 };
 
-const renderModal = async () => {
+const renderModal = async (modalProps: Partial<DrillByModalProps> = {}) => {
   const DrillByModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
 
@@ -76,6 +82,8 @@ const renderModal = async () => {
             formData={formData}
             onHideModal={() => setShowModal(false)}
             dataset={dataset}
+            drillByConfig={{ groupbyFieldName: 'groupby', filters: [] }}
+            {...modalProps}
           />
         )}
       </DashboardPageIdContext.Provider>
@@ -97,7 +105,7 @@ beforeEach(() => {
     .post(CHART_DATA_ENDPOINT, { body: {} }, {})
     .post(FORM_DATA_KEY_ENDPOINT, { key: '123' });
 });
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 test('should render the title', async () => {
   await renderModal();
@@ -120,14 +128,32 @@ test('should close the modal', async () => {
 });
 
 test('should render loading indicator', async () => {
-  await renderModal();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
+  fetchMock.post(
+    CHART_DATA_ENDPOINT,
+    { body: {} },
+    // delay is missing in fetch-mock types
+    // @ts-ignore
+    { overwriteRoutes: true, delay: 1000 },
   );
+  await renderModal();
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+});
+
+test('should render alert banner when results fail to load', async () => {
+  await renderModal();
+  expect(
+    await screen.findByText('There was an error loading the chart data'),
+  ).toBeInTheDocument();
 });
 
 test('should generate Explore url', async () => {
-  await renderModal();
+  await renderModal({
+    column: { column_name: 'name' },
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
   await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
     form_data: {
@@ -135,6 +161,18 @@ test('should generate Explore url', async () => {
         omit(formData, ['slice_id', 'slice_name', 'dashboards']),
         isUndefined,
       ),
+      groupby: ['name'],
+      adhoc_filters: [
+        ...formData.adhoc_filters,
+        {
+          clause: 'WHERE',
+          comparator: 'boy',
+          expressionType: 'SIMPLE',
+          operator: '==',
+          operatorId: 'EQUALS',
+          subject: 'gender',
+        },
+      ],
       slice_id: 0,
       result_format: 'json',
       result_type: 'full',
@@ -169,4 +207,29 @@ test('should render radio buttons', async () => {
   userEvent.click(tableRadio);
   expect(chartRadio).not.toBeChecked();
   expect(tableRadio).toBeChecked();
+});
+
+test('render breadcrumbs', async () => {
+  await renderModal({
+    column: { column_name: 'name' },
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  expect(breadcrumbItems).toHaveLength(2);
+  expect(
+    within(breadcrumbItems[0]).getByText('gender (boy)'),
+  ).toBeInTheDocument();
+  expect(within(breadcrumbItems[1]).getByText('name')).toBeInTheDocument();
+
+  userEvent.click(screen.getByText('gender (boy)'));
+
+  const newBreadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  // we need to assert that there is only 1 element now
+  // eslint-disable-next-line jest-dom/prefer-in-document
+  expect(newBreadcrumbItems).toHaveLength(1);
+  expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
 });

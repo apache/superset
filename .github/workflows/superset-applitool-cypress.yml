@@ -5,7 +5,22 @@ on:
     - cron: "0 1 * * *"
 
 jobs:
+  config:
+    runs-on: "ubuntu-latest"
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.APPLITOOLS_API_KEY != '' && secrets.APPLITOOLS_API_KEY != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
   cypress-applitools:
+    needs: config
+    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -18,7 +33,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
       APPLITOOLS_APP_NAME: Superset
       APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
       APPLITOOLS_BATCH_ID: ${{ github.sha }}

@@ -67,7 +67,7 @@ export interface Dataset {
   type: DatasourceType;
   columns: ColumnMeta[];
   metrics: Metric[];
-  column_format: Record<string, string>;
+  column_formats: Record<string, string>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']

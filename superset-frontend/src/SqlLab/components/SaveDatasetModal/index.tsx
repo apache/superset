@@ -174,6 +174,7 @@ export const SaveDatasetModal = ({
   const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
     SelectValue | undefined
   >(undefined);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const user = useSelector<SqlLabExploreRootState, User>(user =>
     getInitialState(user),
@@ -197,6 +198,7 @@ export const SaveDatasetModal = ({
       setShouldOverwriteDataset(true);
       return;
     }
+    setLoading(true);
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
@@ -220,6 +222,7 @@ export const SaveDatasetModal = ({
         }),
       }),
     ]);
+    setLoading(false);
 
     const url = mountExploreUrl(null, {
       [URL_PARAMS.formDataKey.name]: key,
@@ -269,6 +272,7 @@ export const SaveDatasetModal = ({
   );
 
   const handleSaveInDataset = () => {
+    setLoading(true);
     const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
@@ -306,6 +310,7 @@ export const SaveDatasetModal = ({
         }),
       )
       .then((key: string) => {
+        setLoading(false);
         const url = mountExploreUrl(null, {
           [URL_PARAMS.formDataKey.name]: key,
         });
@@ -314,6 +319,7 @@ export const SaveDatasetModal = ({
         onHide();
       })
       .catch(() => {
+        setLoading(false);
         addDangerToast(t('An error occurred saving dataset'));
       });
   };
@@ -356,6 +362,7 @@ export const SaveDatasetModal = ({
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
               onClick={handleSaveInDataset}
+              loading={loading}
             >
               {buttonTextOnSave}
             </Button>
@@ -370,6 +377,7 @@ export const SaveDatasetModal = ({
                 buttonStyle="primary"
                 onClick={handleOverwriteDataset}
                 disabled={disableSaveAndExploreBtn}
+                loading={loading}
               >
                 {buttonTextOnOverwrite}
               </Button>
