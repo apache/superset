@@ -28,7 +28,7 @@ from superset.migrations.shared.migrate_viz import MigrateTreeMap
 
 # revision identifiers, used by Alembic.
 revision = "4c5da39be729"
-down_revision = "07f9a902af1b"
+down_revision = "7e67aecbf3f1"
 
 
 def upgrade():
