@@ -351,19 +351,33 @@ export const unknownSmkt = unknown_smkt.createCircle().img;
 export const unknownSmktP = unknown_smktP.createCircle(...PROPOSED).img;
 
 // Liquor
-export const liquorLand = (new LiqMarker(OTHER_SIZE, 2, 'black', '#e31a1c').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const bws = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff6e00').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const igaLiquor = (new LiqMarker(OTHER_SIZE, 2, 'black', '#f9d729').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const aldiLiquor = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const vintageCellars = (new LiqMarker(OTHER_SIZE, 2, 'black', '#d346d1').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const otherLiquor = (new LiqMarker(OTHER_SIZE, 2, 'black', '#0000ff').createCircle().img);
+const liquor_land = new LiqMarker(OTHER_SIZE, 1, 'black', '#e31a1c');
+const liquor_landP = new LiqMarker(OTHER_SIZE, 1, 'black', '#e31a1c');
+const bws_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const bws_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const iga_liquor = new LiqMarker(OTHER_SIZE, 1, 'black', '#f9d729');
+const iga_liquorP = new LiqMarker(OTHER_SIZE, 1, 'black', '#f9d729');
+const aldi_liquor = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const aldi_liquorP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const vintage_cellars = new LiqMarker(OTHER_SIZE, 1, 'black', '#d346d1');
+const vintage_cellarsP = new LiqMarker(OTHER_SIZE, 1, 'black', '#d346d1');
+const other_liquor = new LiqMarker(OTHER_SIZE, 1, 'black', '#0000ff');
+const other_liquorP = new LiqMarker(OTHER_SIZE, 1, 'black', '#0000ff');
+
+export const liquorLand = liquor_land.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const liquorLandP = liquor_landP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const bws = bws_c.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const bwsP = bws_cP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const igaLiquor = iga_liquor.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const igaLiquorP = iga_liquorP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const aldiLiquor = aldi_liquor.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const aldiLiquorP = aldi_liquorP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const vintageCellars = vintage_cellars.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const vintageCellarsP = vintage_cellarsP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const otherLiquor = other_liquor.createCircle().img;
+export const otherLiquorP = other_liquorP.createCircle(...PROPOSED).img;
