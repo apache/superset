@@ -17,9 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
 import { Link } from 'react-router-dom';
 import {
   render,
@@ -32,15 +30,24 @@ import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
+import { JsonObject } from '@superset-ui/core';
 
 import ChartPage from '.';
 
-jest.mock('src/explore/components/ExploreViewContainer', () => () => (
-  <div data-test="mock-explore-view-container" />
-));
+jest.mock('re-resizable', () => ({
+  Resizable: () => <div data-test="mock-re-resizable" />,
+}));
+jest.mock(
+  'src/explore/components/ExploreChartPanel',
+  () =>
+    ({ exploreState }: { exploreState: JsonObject }) =>
+      (
+        <div data-test="mock-explore-chart-panel">
+          {JSON.stringify(exploreState)}
+        </div>
+      ),
+);
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
-
-const mockStore = configureStore([thunk]);
 
 describe('ChartPage', () => {
   afterEach(() => {
@@ -48,9 +55,6 @@ describe('ChartPage', () => {
   });
 
   test('fetches metadata on mount', async () => {
-    const store = mockStore({
-      explore: {},
-    });
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const exploreFormData = getExploreFormData({
       viz_type: 'table',
@@ -62,22 +66,14 @@ describe('ChartPage', () => {
     const { getByTestId } = render(<ChartPage />, {
       useRouter: true,
       useRedux: true,
-      store,
     });
     await waitFor(() =>
       expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
     );
-    expect(getByTestId('mock-explore-view-container')).toBeInTheDocument();
-    expect(store.getActions()).toContainEqual({
-      type: 'HYDRATE_EXPLORE',
-      data: expect.objectContaining({
-        explore: expect.objectContaining({
-          form_data: expect.objectContaining({
-            show_cell_bars: true,
-          }),
-        }),
-      }),
-    });
+    expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
+    expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+      JSON.stringify({ show_cell_bars: true }).slice(1, -1),
+    );
   });
 
   describe('with dashboardContextFormData', () => {
@@ -98,9 +94,6 @@ describe('ChartPage', () => {
     });
 
     test('overrides the form_data with dashboardContextFormData', async () => {
-      const store = mockStore({
-        explore: {},
-      });
       const dashboardFormData = getDashboardFormData();
       (getFormDataWithExtraFilters as jest.Mock).mockReturnValue(
         dashboardFormData,
@@ -115,30 +108,22 @@ describe('ChartPage', () => {
         '',
         `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
-      render(<ChartPage />, {
+      const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
         useRedux: true,
-        store,
       });
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
       );
-      expect(store.getActions()).toContainEqual({
-        type: 'HYDRATE_EXPLORE',
-        data: expect.objectContaining({
-          explore: expect.objectContaining({
-            form_data: expect.objectContaining({
-              color_scheme: dashboardFormData.color_scheme,
-            }),
-          }),
-        }),
-      });
+      expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({ color_scheme: dashboardFormData.color_scheme }).slice(
+          1,
+          -1,
+        ),
+      );
     });
 
     test('overrides the form_data with exploreFormData when location is updated', async () => {
-      const store = mockStore({
-        explore: {},
-      });
       const dashboardFormData = {
         ...getDashboardFormData(),
         viz_type: 'table',
@@ -160,7 +145,7 @@ describe('ChartPage', () => {
         '',
         `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
-      render(
+      const { getByTestId } = render(
         <>
           <Link
             to={`/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}&${URL_PARAMS.saveAction.name}=overwrite`}
@@ -172,22 +157,16 @@ describe('ChartPage', () => {
         {
           useRouter: true,
           useRedux: true,
-          store,
         },
       );
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
       );
-      expect(store.getActions()).toContainEqual({
-        type: 'HYDRATE_EXPLORE',
-        data: expect.objectContaining({
-          explore: expect.objectContaining({
-            form_data: expect.objectContaining({
-              show_cell_bars: dashboardFormData.show_cell_bars,
-            }),
-          }),
-        }),
-      });
+      expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({
+          show_cell_bars: dashboardFormData.show_cell_bars,
+        }).slice(1, -1),
+      );
       const updatedExploreFormData = {
         ...exploreFormData,
         show_cell_bars: false,
@@ -200,16 +179,11 @@ describe('ChartPage', () => {
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
       );
-      expect(store.getActions()).toContainEqual({
-        type: 'HYDRATE_EXPLORE',
-        data: expect.objectContaining({
-          explore: expect.objectContaining({
-            form_data: expect.objectContaining({
-              show_cell_bars: updatedExploreFormData.show_cell_bars,
-            }),
-          }),
-        }),
-      });
+      expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+        JSON.stringify({
+          show_cell_bars: updatedExploreFormData.show_cell_bars,
+        }).slice(1, -1),
+      );
     });
   });
 });
