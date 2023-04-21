@@ -31,6 +31,7 @@ import {
   Behavior,
   BinaryQueryObjectFilterClause,
   Column,
+  Metric,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
@@ -116,7 +117,16 @@ export const DrillByMenuItems = ({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then(({ json: { result } }) => {
-          setDataset(result);
+          const verbose_map = {};
+          result.columns.forEach((column: Column) => {
+            verbose_map[column.column_name] =
+              column.verbose_name || column.column_name;
+          });
+          result.metrics.forEach((metric: Metric) => {
+            verbose_map[metric.metric_name] =
+              metric.verbose_name || metric.metric_name;
+          });
+          setDataset({ ...result, verbose_map });
           setColumns(
             ensureIsArray(result.columns)
               .filter(column => column.groupby)

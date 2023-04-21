@@ -228,7 +228,11 @@ export default function DrillByModal({
         </div>
         {!chartDataResult && <Loading />}
         {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
-          <DrillByChart formData={updatedFormData} result={chartDataResult} />
+          <DrillByChart
+            dataset={dataset}
+            formData={updatedFormData}
+            result={chartDataResult}
+          />
         )}
         {drillByDisplayMode === DrillByType.Table && chartDataResult && (
           <div

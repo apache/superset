@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -60,12 +59,10 @@ from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
-    DatasetResponse,
     get_delete_ids_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
 )
-from superset.exceptions import SupersetException
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
@@ -198,6 +195,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.backend",
         "columns.advanced_data_type",
         "is_managed_externally",
+        "uid",
+        "datasource_name",
+        "name",
+        "column_formats",
+        "granularity_sqla",
+        "time_grain_sqla",
+        "order_by_choices",
+        "verbose_map",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -243,73 +248,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_component_schemas = (
-        DatasetDuplicateSchema,
         DatasetRelatedObjectsResponse,
-        DatasetResponse,
+        DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
     )
 
     list_outer_default_load = True
     show_outer_default_load = True
-
-    @expose("/<int:pk>", methods=["GET"])
-    @protect()
-    @safe
-    def get(self, pk: int, **kwargs: Any) -> Response:
-        """Get a dataset
-        ---
-        get:
-          description: >-
-            Get a dataset
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            description: The dataset id
-            name: pk
-          responses:
-            200:
-              description: dataset
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      result:
-                        items:
-                          $ref: '#/components/schemas/DatasetResponse'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        data = self.get_headless(pk, **kwargs)
-        try:
-            verbose_map = {}
-            payload = data.json
-            verbose_map = {"__timestamp": "Time"}
-            verbose_map.update(
-                {
-                    o["metric_name"]: o["verbose_name"] or o["metric_name"]
-                    for o in payload["result"]["metrics"]
-                }
-            )
-            verbose_map.update(
-                {
-                    o["column_name"]: o["verbose_name"] or o["column_name"]
-                    for o in payload["result"]["columns"]
-                }
-            )
-            payload["result"]["verbose_map"] = verbose_map
-            return payload
-        except SupersetException as ex:
-            return self.response(ex.status, message=ex.message)
 
     @expose("/", methods=["POST"])
     @protect()
