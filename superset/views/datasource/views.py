@@ -44,6 +44,7 @@ from superset.utils.urls import is_safe_url
 from superset.views.base import (
     api,
     BaseSupersetView,
+    deprecated,
     handle_api_exception,
     json_error_response,
 )
@@ -69,6 +70,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def save(self) -> FlaskResponse:
         data = request.form.get("data")
         if not isinstance(data, str):
@@ -133,6 +135,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
+    @deprecated(new_target="/api/v1/dataset/<int:pk>")
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id

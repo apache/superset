@@ -17,10 +17,7 @@
  * under the License.
  */
 
-import {
-  interceptGet as interceptDashboardGet,
-  interceptDashboardasync,
-} from '../dashboard/utils';
+import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 export function interceptFiltering() {
   cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');
@@ -61,12 +58,10 @@ export function setFilter(filter: string, option: string) {
 
 export function saveChartToDashboard(dashboardName: string) {
   interceptDashboardGet();
-  interceptDashboardasync();
   interceptUpdate();
   interceptExploreGet();
 
   cy.getBySel('query-save-button').click();
-  cy.wait('@getDashboardasync');
   cy.getBySelLike('chart-modal').should('be.visible');
   cy.get(
     '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',

@@ -763,6 +763,13 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
+    def test_get_or_create_db_existing_invalid_uri(self):
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        database.sqlalchemy_uri = "None"
+        db.session.commit()
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        assert database.sqlalchemy_uri == "sqlite:///superset.db"
+
     def test_get_iterable(self):
         self.assertListEqual(get_iterable(123), [123])
         self.assertListEqual(get_iterable([123]), [123])

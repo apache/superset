@@ -25,7 +25,6 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
-  SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
@@ -33,6 +32,8 @@ import {
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import { setupStore } from 'src/views/store';
+import { reducers } from 'src/SqlLab/reducers';
 import QueryProvider from 'src/views/QueryProvider';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import {
@@ -41,6 +42,7 @@ import {
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
+import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
@@ -54,9 +56,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     </textarea>
   ),
 }));
-jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => () => (
-  <div data-test="mock-sql-editor-left-bar" />
-));
+jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -66,7 +66,7 @@ fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore({
+const mockInitialState = {
   ...initialState,
   sqlLab: {
     ...initialState.sqlLab,
@@ -89,7 +89,8 @@ const store = mockStore({
       dbId: 'dbid1',
     },
   },
-});
+};
+const store = mockStore(mockInitialState);
 
 const setup = (props = {}, store) =>
   render(<SqlEditor {...props} />, {
@@ -109,6 +110,13 @@ describe('SqlEditor', () => {
     maxRow: 100000,
     displayLimit: 100,
   };
+
+  beforeEach(() => {
+    SqlEditorLeftBar.mockClear();
+    SqlEditorLeftBar.mockImplementation(() => (
+      <div data-test="mock-sql-editor-left-bar" />
+    ));
+  });
 
   const buildWrapper = (props = {}) =>
     mount(
@@ -143,6 +151,21 @@ describe('SqlEditor', () => {
     expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
+  it('avoids rerendering EditorLeftBar while typing', async () => {
+    const sqlLabStore = setupStore({
+      initialState: mockInitialState,
+      rootReducers: reducers,
+    });
+    const { findByTestId } = setup(mockedProps, sqlLabStore);
+    const editor = await findByTestId('react-ace');
+    const sql = 'select *';
+    const renderCount = SqlEditorLeftBar.mock.calls.length;
+    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+    fireEvent.change(editor, { target: { value: sql } });
+    // Verify the rendering regression
+    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
+  });
+
   it('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const { findByTestId } = setup(
@@ -173,6 +196,7 @@ describe('SqlEditor', () => {
         },
       }),
     );
+
     const editor = await findByTestId('react-ace');
     expect(editor).toHaveValue(expectedSql);
   });
@@ -182,28 +206,6 @@ describe('SqlEditor', () => {
     expect(
       await findByText(/run a query to display results/i),
     ).toBeInTheDocument();
-  });
-
-  it('triggers setQueryEditorAndSaveSql with debounced call to avoid performance regression', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    const editor = await findByTestId('react-ace');
-    const sql = 'select *';
-    fireEvent.change(editor, { target: { value: sql } });
-    // Verify no immediate sql update triggered
-    expect(
-      store.getActions().filter(({ type }) => type === 'QUERY_EDITOR_SET_SQL'),
-    ).toHaveLength(0);
-    await waitFor(
-      () =>
-        expect(
-          store
-            .getActions()
-            .filter(({ type }) => type === 'QUERY_EDITOR_SET_SQL'),
-        ).toHaveLength(1),
-      {
-        timeout: SET_QUERY_EDITOR_SQL_DEBOUNCE_MS + 100,
-      },
-    );
   });
 
   it('runs query action with ctas false', async () => {

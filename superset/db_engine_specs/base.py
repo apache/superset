@@ -43,6 +43,7 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from deprecation import deprecated
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -356,6 +357,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     top_keywords: Set[str] = {"TOP"}
     # A set of disallowed connection query parameters
     disallow_uri_query_params: Set[str] = set()
+    # A Dict of query parameters that will always be used on every connection
+    enforce_uri_query_params: Dict[str, Any] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -797,6 +800,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Normalizes indexes for more consistency across db engines
@@ -895,6 +899,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 if word.upper() in cls.select_keywords
             ]
             first_select = selects[0]
+            if tokens[first_select + 1].upper() == "DISTINCT":
+                first_select += 1
+
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))
 
@@ -1087,11 +1094,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ``supports_dynamic_schema`` set to true, so that Superset knows in which schema a
         given query is running in order to enforce permissions (see #23385 and #23401).
 
-        Currently, changing the catalog is not supported. The method acceps a catalog so
-        that when catalog support is added to Superse the interface remains the same. This
-        is important because DB engine specs can be installed from 3rd party packages.
+        Currently, changing the catalog is not supported. The method accepts a catalog so
+        that when catalog support is added to Superset the interface remains the same.
+        This is important because DB engine specs can be installed from 3rd party
+        packages.
         """
-        return uri, connect_args
+        return uri, {**connect_args, **cls.enforce_uri_query_params}
 
     @classmethod
     def patch(cls) -> None:
@@ -1178,6 +1186,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema and cls.try_remove_schema_from_table_name:
             views = {re.sub(f"^{schema}\\.", "", view) for view in views}
         return views
+
+    @classmethod
+    def get_indexes(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+        inspector: Inspector,
+        table_name: str,
+        schema: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Get the indexes associated with the specified schema/table.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param table_name: The table to inspect
+        :param schema: The schema to inspect
+        :returns: The indexes
+        """
+
+        return inspector.get_indexes(table_name, schema)
 
     @classmethod
     def get_table_comment(
@@ -1834,20 +1862,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class BasicParametersSchema(Schema):
-    username = fields.String(required=True, allow_none=True, description=__("Username"))
-    password = fields.String(allow_none=True, description=__("Password"))
-    host = fields.String(required=True, description=__("Hostname or IP address"))
+    username = fields.String(
+        required=True, allow_none=True, metadata={"description": __("Username")}
+    )
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
     port = fields.Integer(
         required=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
-    database = fields.String(required=True, description=__("Database name"))
+    database = fields.String(
+        required=True, metadata={"description": __("Database name")}
+    )
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
     )
     encryption = fields.Boolean(
-        required=False, description=__("Use an encrypted connection to the database")
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
 
 

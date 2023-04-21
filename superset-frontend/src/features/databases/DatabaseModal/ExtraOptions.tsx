@@ -457,7 +457,7 @@ const ExtraOptions = ({
               }
               width="100%"
               height="160px"
-              defaultValue={
+              value={
                 !Object.keys(extraJson?.metadata_params || {}).length
                   ? ''
                   : extraJson?.metadata_params
@@ -483,7 +483,7 @@ const ExtraOptions = ({
               }
               width="100%"
               height="160px"
-              defaultValue={
+              value={
                 !Object.keys(extraJson?.engine_params || {}).length
                   ? ''
                   : extraJson?.engine_params

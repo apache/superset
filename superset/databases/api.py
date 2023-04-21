@@ -554,7 +554,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
-                cache_timeout=database.schema_cache_timeout,
+                cache_timeout=database.schema_cache_timeout or None,
                 force=kwargs["rison"].get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(database, schemas)

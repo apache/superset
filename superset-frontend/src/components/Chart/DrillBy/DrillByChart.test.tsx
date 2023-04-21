@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import fetchMock from 'fetch-mock';
+import { noOp } from 'src/utils/common';
 import DrillByChart from './DrillByChart';
 
 const chart = chartQueries[sliceId];
@@ -28,6 +28,8 @@ const setup = (overrides: Record<string, any> = {}, result?: any) =>
   render(
     <DrillByChart
       formData={{ ...chart.form_data, ...overrides }}
+      onContextMenu={noOp}
+      inContextMenu={false}
       result={result}
     />,
     {
@@ -37,8 +39,6 @@ const setup = (overrides: Record<string, any> = {}, result?: any) =>
 
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
-
-afterEach(fetchMock.restore);
 
 test('should render', async () => {
   const { container } = await waitForRender();
