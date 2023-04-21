@@ -100,7 +100,7 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
 
 class ValidatorConfigJSONSchema(Schema):
     op = fields.String(  # pylint: disable=invalid-name
-        description=validator_config_json_op_description,
+        metadata={"description": validator_config_json_op_description},
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
     threshold = fields.Float()
@@ -113,7 +113,7 @@ class ReportRecipientConfigJSONSchema(Schema):
 
 class ReportRecipientSchema(Schema):
     type = fields.String(
-        description="The recipient type, check spec for valid options",
+        metadata={"description": "The recipient type, check spec for valid options"},
         allow_none=False,
         required=True,
         validate=validate.OneOf(
@@ -125,88 +125,90 @@ class ReportRecipientSchema(Schema):
 
 class ReportSchedulePostSchema(Schema):
     type = fields.String(
-        description=type_description,
+        metadata={"description": type_description},
         allow_none=False,
         required=True,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
     name = fields.String(
-        description=name_description,
+        metadata={"description": name_description, "example": "Daily dashboard email"},
         allow_none=False,
         required=True,
         validate=[Length(1, 150)],
-        example="Daily dashboard email",
     )
     description = fields.String(
-        description=description_description,
+        metadata={
+            "description": description_description,
+            "example": "Daily sales dashboard to marketing",
+        },
         allow_none=True,
         required=False,
-        example="Daily sales dashboard to marketing",
     )
     context_markdown = fields.String(
-        description=context_markdown_description, allow_none=True, required=False
+        metadata={"description": context_markdown_description},
+        allow_none=True,
+        required=False,
     )
     active = fields.Boolean()
     crontab = fields.String(
-        description=crontab_description,
+        metadata={"description": crontab_description, "example": "*/5 * * * *"},
         validate=[validate_crontab, Length(1, 1000)],
-        example="*/5 * * * *",
         allow_none=False,
         required=True,
     )
     timezone = fields.String(
-        description=timezone_description,
-        default="UTC",
+        metadata={"description": timezone_description},
+        dump_default="UTC",
         validate=validate.OneOf(choices=tuple(all_timezones)),
     )
     sql = fields.String(
-        description=sql_description, example="SELECT value FROM time_series_table"
+        metadata={
+            "description": sql_description,
+            "example": "SELECT value FROM time_series_table",
+        }
     )
     chart = fields.Integer(required=False, allow_none=True)
     creation_method = EnumField(
         ReportCreationMethod,
         by_value=True,
         required=False,
-        description=creation_method_description,
+        metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
-    owners = fields.List(fields.Integer(description=owners_description))
+    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     validator_type = fields.String(
-        description=validator_type_description,
+        metadata={"description": validator_type_description},
         validate=validate.OneOf(
             choices=tuple(key.value for key in ReportScheduleValidatorType)
         ),
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
     log_retention = fields.Integer(
-        description=log_retention_description,
-        example=90,
+        metadata={"description": log_retention_description, "example": 90},
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        description=grace_period_description,
-        example=60 * 60 * 4,
-        default=60 * 60 * 4,
+        metadata={"description": grace_period_description, "example": 60 * 60 * 4},
+        dump_default=60 * 60 * 4,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
-        description=working_timeout_description,
-        example=60 * 60 * 1,
-        default=60 * 60 * 1,
+        metadata={"description": working_timeout_description, "example": 60 * 60 * 1},
+        dump_default=60 * 60 * 1,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
     report_format = fields.String(
-        default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(
-        default=None,
+        dump_default=None,
     )
-    force_screenshot = fields.Boolean(default=False)
+    force_screenshot = fields.Boolean(dump_default=False)
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
@@ -221,36 +223,44 @@ class ReportSchedulePostSchema(Schema):
 
 class ReportSchedulePutSchema(Schema):
     type = fields.String(
-        description=type_description,
+        metadata={"description": type_description},
         required=False,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportScheduleType)),
     )
     name = fields.String(
-        description=name_description, required=False, validate=[Length(1, 150)]
+        metadata={"description": name_description},
+        required=False,
+        validate=[Length(1, 150)],
     )
     description = fields.String(
-        description=description_description,
+        metadata={
+            "description": description_description,
+            "example": "Daily sales dashboard to marketing",
+        },
         allow_none=True,
         required=False,
-        example="Daily sales dashboard to marketing",
     )
     context_markdown = fields.String(
-        description=context_markdown_description, allow_none=True, required=False
+        metadata={"description": context_markdown_description},
+        allow_none=True,
+        required=False,
     )
     active = fields.Boolean(required=False)
     crontab = fields.String(
-        description=crontab_description,
+        metadata={"description": crontab_description},
         validate=[validate_crontab, Length(1, 1000)],
         required=False,
     )
     timezone = fields.String(
-        description=timezone_description,
-        default="UTC",
+        metadata={"description": timezone_description},
+        dump_default="UTC",
         validate=validate.OneOf(choices=tuple(all_timezones)),
     )
     sql = fields.String(
-        description=sql_description,
-        example="SELECT value FROM time_series_table",
+        metadata={
+            "description": sql_description,
+            "example": "SELECT value FROM time_series_table",
+        },
         required=False,
         allow_none=True,
     )
@@ -259,13 +269,15 @@ class ReportSchedulePutSchema(Schema):
         ReportCreationMethod,
         by_value=True,
         allow_none=True,
-        description=creation_method_description,
+        metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
-    owners = fields.List(fields.Integer(description=owners_description), required=False)
+    owners = fields.List(
+        fields.Integer(metadata={"description": owners_description}), required=False
+    )
     validator_type = fields.String(
-        description=validator_type_description,
+        metadata={"description": validator_type_description},
         validate=validate.OneOf(
             choices=tuple(key.value for key in ReportScheduleValidatorType)
         ),
@@ -274,28 +286,25 @@ class ReportSchedulePutSchema(Schema):
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema, required=False)
     log_retention = fields.Integer(
-        description=log_retention_description,
-        example=90,
+        metadata={"description": log_retention_description, "example": 90},
         required=False,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        description=grace_period_description,
-        example=60 * 60 * 4,
+        metadata={"description": grace_period_description, "example": 60 * 60 * 4},
         required=False,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
-        description=working_timeout_description,
-        example=60 * 60 * 1,
+        metadata={"description": working_timeout_description, "example": 60 * 60 * 1},
         allow_none=True,
         required=False,
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
-        default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
-    extra = fields.Dict(default=None)
-    force_screenshot = fields.Boolean(default=False)
+    extra = fields.Dict(dump_default=None)
+    force_screenshot = fields.Boolean(dump_default=False)
