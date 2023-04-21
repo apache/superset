@@ -21,18 +21,17 @@ from superset.migrations.shared.migrate_viz import MigratePivotTable
 SOURCE_FORM_DATA = {
     "adhoc_filters": [],
     "any_other_key": "untouched",
-    "groupbyColumns": ["state"],
-    "combineMetric": True,
+    "columns": ["state"],
+    "combine_metric": True,
     "granularity_sqla": "ds",
-    "groupbyRows": ["name"],
-    "valueFormat": "SMART_NUMBER",
-    "aggregateFunction": "sum",
-    "rowTotals": True,
-    "colTotals": True,
+    "groupby": ["name"],
+    "number_format": "SMART_NUMBER",
+    "pandas_aggfunc": "sum",
+    "pivot_margins": True,
     "time_range": "100 years ago : now",
-    "series_limit_metric": "count",
-    "transposePivot": True,
-    "viz_type": "pivot_table_v2",
+    "timeseries_limit_metric": "count",
+    "transpose_pivot": True,
+    "viz_type": "pivot_table",
 }
 
 TARGET_FORM_DATA = {
