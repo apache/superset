@@ -1520,7 +1520,6 @@ export function createDatasource(vizOptions) {
         schema: schema,
         table_name: datasourceName,
         sql: sql,
-        owners: [1],
         is_managed_externally: false,
         external_url: null,
       }),
