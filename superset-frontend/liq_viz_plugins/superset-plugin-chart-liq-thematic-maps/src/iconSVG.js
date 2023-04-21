@@ -294,17 +294,61 @@ export const zara = zara_c.createCircle().img;
 export const zaraP = zara_cP.createCircle(...PROPOSED).img;
 
 // Supermarkets
-export const woolworths = (new LiqMarker(OTHER_SIZE, 2, 'black', '#01b208').createCircle().img);
-export const coles = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createCircle().img);
-export const aldi = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createCircle().img);
-export const iga = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createCircle().img);
-export const foodWorks = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff6e00').createCircle().img);
-export const costco = (new LiqMarker(OTHER_SIZE, 2, 'black', '#b74fc9').createCircle().img);
-export const drakes = (new LiqMarker(OTHER_SIZE, 2, 'black', '#a9a9a9').createCircle().img);
-export const spar = (new LiqMarker(OTHER_SIZE, 2, 'black', '#700184').createCircle().img);
-export const igaExpress = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createCircle().img);
-export const otherSmkt = (new LiqMarker(OTHER_SIZE, 2, 'black', '#1111af').createCircle().img);
-export const unknownSmkt = (new LiqMarker(OTHER_SIZE, 2, 'black', '#252525').createCircle().img);
+const woolworths_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#01b208');
+const woolworths_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#01b208');
+const coles_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const coles_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const aldi_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const aldi_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const iga_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const iga_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const food_works = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const food_worksP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const costco_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9');
+const costco_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9');
+const drakes_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#a9a9a9');
+const drakes_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#a9a9a9');
+const spar_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#700184');
+const spar_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#700184');
+const iga_express = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const iga_expressP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const other_smkt = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const other_smktP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const unknown_smkt = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
+const unknown_smktP = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
+
+export const woolworths = woolworths_c.createCircle().img;
+export const woolworthsP = woolworths_cP.createCircle(...PROPOSED).img;
+
+export const coles = coles_c.createCircle().img;
+export const colesP = coles_cP.createCircle(...PROPOSED).img;
+
+export const aldi = aldi_c.createCircle().img;
+export const aldiP = aldi_cP.createCircle(...PROPOSED).img;
+
+export const iga = iga_c.createCircle().img;
+export const igaP = iga_cP.createCircle(...PROPOSED).img;
+
+export const foodWorks = food_works.createCircle().img;
+export const foodWorksP = food_worksP.createCircle(...PROPOSED).img;
+
+export const costco = costco_c.createCircle().img;
+export const costcoP = costco_cP.createCircle(...PROPOSED).img;
+
+export const drakes = drakes_c.createCircle().img;
+export const drakesP = drakes_cP.createCircle(...PROPOSED).img;
+
+export const spar = spar_c.createCircle().img;
+export const sparP = spar_cP.createCircle(...PROPOSED).img;
+
+export const igaExpress = iga_express.createCircle().img;
+export const igaExpressP = iga_expressP.createCircle(...PROPOSED).img;
+
+export const otherSmkt = other_smkt.createCircle().img;
+export const otherSmktP = other_smktP.createCircle(...PROPOSED).img;
+
+export const unknownSmkt = unknown_smkt.createCircle().img;
+export const unknownSmktP = unknown_smktP.createCircle(...PROPOSED).img;
 
 // Liquor
 export const liquorLand = (new LiqMarker(OTHER_SIZE, 2, 'black', '#e31a1c').createPolygon(
