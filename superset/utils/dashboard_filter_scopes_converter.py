@@ -268,13 +268,13 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
                         if not default:
                             default = config.get("defaultValue")
 
-                            if default:
-                                if config["multiple"]:
-                                    default = default.split(";")
-                                else:
-                                    default = [default]
+                            if default and config["multiple"]:
+                                default = default.split(";")
 
                         if default:
+                            if not isinstance(default, list):
+                                default = [default]
+
                             fltr["defaultDataMask"] = {
                                 "extraFormData": {
                                     "filters": [
