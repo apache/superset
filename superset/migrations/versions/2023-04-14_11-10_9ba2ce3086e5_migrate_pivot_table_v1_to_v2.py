@@ -25,10 +25,7 @@ from superset.migrations.shared.migrate_viz import MigratePivotTable
 
 # revision identifiers, used by Alembic.
 revision = "9ba2ce3086e5"
-down_revision = "07f9a902af1b"
-
-import sqlalchemy as sa
-from alembic import op
+down_revision = "7e67aecbf3f1"
 
 
 def upgrade():
