@@ -57,97 +57,241 @@ export const marketSCP = marketP.createCircle(...PROPOSED).img;
 
 // Department stores
 const david_jones = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const david_jonesP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff')
 const myer_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
-const harris_scarfe = new LiqMarker(OTHER_SIZE, 2, 'black', '#1111af');
-const unknown_ds = new LiqMarker(OTHER_SIZE, 2, 'black', '#252525');
+const myer_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const harris_scarfe = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const harris_scarfeP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const unknown_ds = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
+const unknown_dsP = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
 
 export const davidJones = david_jones.createStar().img;
-export const davidJonesP = david_jones.createStar(...PROPOSED).img;
+export const davidJonesP = david_jonesP.createStar(...PROPOSED).img;
 
 export const myer = myer_c.createStar().img;
-export const myerP = myer_c.createStar(...PROPOSED).img;
+export const myerP = myer_cP.createStar(...PROPOSED).img;
 
 export const harrisScarfe = harris_scarfe.createSquare().img;
-export const harrisScarfeP = harris_scarfe.createSquare(...PROPOSED).img;
+export const harrisScarfeP = harris_scarfeP.createSquare(...PROPOSED).img;
 
 export const unknownDS = unknown_ds.createStar().img;
-export const unknownDSP = unknown_ds.createStar(...PROPOSED).img;
+export const unknownDSP = unknown_dsP.createStar(...PROPOSED).img;
 
 // Discount department stores
-export const kmart = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createTriangle().img);
-export const kmartHub = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img)
-export const target = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createTriangle().img);
-export const targetCountry = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const bigW = (new LiqMarker(OTHER_SIZE, 2, 'black', '#1111af').createTriangle().img);
-export const unknownDDS = (new LiqMarker(OTHER_SIZE, 2, 'black', '#252525').createTriangle().img);
+const kmart_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const kmart_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const kmart_hub = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const kmart_hubP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const target_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const target_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const target_country = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const target_countryP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const big_w = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const big_wP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const unknown_dds = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
+const unknown_ddsP = new LiqMarker(OTHER_SIZE, 1, 'black', '#252525');
+
+export const kmart = kmart_c.createTriangle().img;
+export const kmartP = kmart_cP.createTriangle(...PROPOSED).img;
+
+export const kmartHub = kmart_hub.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const kmartHubP = kmart_hubP.createPolygon(reverseTrianglePoints(OTHER_SC_SIZE), ...PROPOSED).img;
+
+export const target = target_c.createTriangle().img;
+export const targetP = target_cP.createTriangle(...PROPOSED).img;
+
+export const targetCountry = target_country.createPolygon(reverseTrianglePoints(OTHER_SC_SIZE)).img;
+export const targetCountryP = target_countryP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img
+
+export const bigW = big_w.createTriangle().img;
+export const bigWP = big_wP.createTriangle(...PROPOSED).img;
+
+export const unknownDDS = unknown_dds.createTriangle().img;
+export const unknownDDSP = unknown_ddsP.createTriangle(...PROPOSED).img;
 
 // LFR
-export const amart = (new LiqMarker(OTHER_SIZE, 2, 'black', 'gray').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const anaconda = (new LiqMarker(OTHER_SIZE, 2, 'black', 'orange').createTriangle().img);
-export const bunnings = (new LiqMarker(OTHER_SIZE, 2, 'black', '#008080').createSquare().img);
-export const domayne = (new LiqMarker(OTHER_SIZE, 2, 'black', 'green').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const fantasticFurniture = (new LiqMarker(OTHER_SIZE, 2, 'black', 'red').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const fortyWinks = (new LiqMarker(OTHER_SIZE, 2, 'black', 'blue').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const harveyNorman = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ADD8E6').createStar().img);
-export const ikea = (new LiqMarker(OTHER_SIZE, 2, 'black', 'yellow').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const lincraft = (new LiqMarker(OTHER_SIZE, 2, 'black', 'purple').createCircle().img);
-export const snooze = (new LiqMarker(OTHER_SIZE, 2, 'black', 'brown').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const spotlight = (new LiqMarker(OTHER_SIZE, 2, 'black', 'red').createCircle().img);
-export const theGoodGuys = (new LiqMarker(OTHER_SIZE, 2, 'black', 'purple').createStar().img);
+const amart_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'gray');
+const amart_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'gray');
+const anaconda_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'orange');
+const anaconda_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'orange');
+const bunnings_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#008080');
+const bunnings_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#008080');
+const domayne_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'green');
+const domayne_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'green');
+const fantastic_furniture = new LiqMarker(OTHER_SIZE, 1, 'black', 'red');
+const fantastic_furnitureP = new LiqMarker(OTHER_SIZE, 1, 'black', 'red');
+const forty_winks = new LiqMarker(OTHER_SIZE, 1, 'black', 'blue');
+const forty_winksP = new LiqMarker(OTHER_SIZE, 1, 'black', 'blue');
+const harvey_norman = new LiqMarker(OTHER_SIZE, 1, 'black', '#ADD8E6');
+const harvey_normanP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ADD8E6');
+const ikea_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'yellow');
+const ikea_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'yellow');
+const lincraft_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'purple');
+const lincraft_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'purple');
+const snooze_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'brown');
+const snooze_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'brown');
+const spotlight_c = new LiqMarker(OTHER_SIZE, 1, 'black', 'red');
+const spotlight_cP = new LiqMarker(OTHER_SIZE, 1, 'black', 'red');
+const the_good_guys = new LiqMarker(OTHER_SIZE, 2, 'black', 'purple');
+const the_good_guysP = new LiqMarker(OTHER_SIZE, 2, 'black', 'purple');
+
+export const amart = amart_c.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const amartP = amart_cP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const anaconda = anaconda_c.createTriangle().img;
+export const anacondaP = anaconda_cP.createTriangle(...PROPOSED).img;
+
+export const bunnings = bunnings_c.createSquare().img;
+export const bunningsP = bunnings_cP.createSquare(...PROPOSED).img;
+
+export const domayne = domayne_c.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const domayneP = domayne_cP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const fantasticFurniture = fantastic_furniture.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const fantasticFurnitureP = fantastic_furnitureP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED);
+
+export const fortyWinks = forty_winks.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const fortyWinksP = forty_winksP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const harveyNorman = harvey_norman.createStar().img;
+export const harveyNormanP = harvey_normanP.createStar(...PROPOSED).img;
+
+export const ikea = ikea_c.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const ikeaP = ikea_cP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const lincraft = lincraft_c.createCircle().img;
+export const lincraftP = lincraft_cP.createCircle(...PROPOSED).img;
+
+export const snooze = snooze_c.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const snoozeP = snooze_cP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const spotlight = spotlight_c.createCircle().img;
+export const spotlightP = spotlight_cP.createCircle(...PROPOSED).img;
+
+export const theGoodGuys = the_good_guys.createStar().img;
+export const theGoodGuysP = the_good_guysP.createStar(...PROPOSED).img;
 
 // Mini majors
-export const appleStore = (new LiqMarker(OTHER_SIZE, 2, 'black', '#85cc14').createStar().img);
-export const bestAndLess = (new LiqMarker(OTHER_SIZE, 2, 'black', '#b74fc9').createCircle().img);
-export const chemistWarehouse = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const cottonOn = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createCircle().img);
-export const countryRoad = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createCircle().img);
-export const daiso = (new LiqMarker(OTHER_SIZE, 2, 'black', '#b74fc9').createSquare().img);
-export const danMurphys = (new LiqMarker(OTHER_SIZE, 2, 'black', '#015c00').createPentagon().img);
-export const firstChoiceLiquor = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createPentagon().img);
-export const glueStore = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff6e00').createCircle().img);
-export const hAndM = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createCircle().img);
-export const harrisFarmMarkets = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createPentagon().img);
-export const hsHome = (new LiqMarker(OTHER_SIZE, 2, 'black', '#1111af').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const jbhifi = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff6e00').createStar().img);
-export const kathmandu = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff6e00').createTriangle().img);
-export const meccaCosmetica = (new LiqMarker(OTHER_SIZE, 2, 'black', '#7fc314').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const pricelinePharmacy = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const rebelSports = (new LiqMarker(OTHER_SIZE, 2, 'black', '#6bc1ff').createTriangle().img);
-export const rivers = (new LiqMarker(OTHER_SIZE, 2, 'black', '#1198a4').createCircle().img);
-export const sephora = (new LiqMarker(OTHER_SIZE, 2, 'black', '#bb1431').createPolygon(
-  reverseTrianglePoints(OTHER_SIZE)
-).img);
-export const terryWhiteChemmart = (new LiqMarker(OTHER_SIZE, 2, 'black', '#7fc314').createPolygon(
-  diamondPoints(OTHER_SIZE)
-).img);
-export const theRejectShop = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ffc527').createSquare().img);
-export const tkMaxx = (new LiqMarker(OTHER_SIZE, 2, 'black', '#1111af').createCircle().img);
-export const uniqlo = (new LiqMarker(OTHER_SIZE, 2, 'black', '#ff77c2').createCircle().img);
-export const zara = (new LiqMarker(OTHER_SIZE, 2, 'black', '#85cc14').createCircle().img);
+const apple_store = new LiqMarker(OTHER_SIZE, 1, 'black', '#85cc14'); //star
+const apple_storeP = new LiqMarker(OTHER_SIZE, 1, 'black', '#85cc14'); 
+const best_and_less = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9'); //circle
+const best_and_lessP = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9');
+const chemist_warehouse = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431'); //poly diamond
+const chemist_warehouseP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const cotton_on = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431'); //circle
+const cotton_onP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const country_road = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff'); // cricle
+const country_roadP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const daiso_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9'); //square
+const daiso_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#b74fc9');
+const dan_murphys = new LiqMarker(OTHER_SIZE, 1, 'black', '#015c00'); //pentagon
+const dan_murphysP = new LiqMarker(OTHER_SIZE, 1, 'black', '#015c00');
+const first_choice_liquor = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431'); //pentagon
+const first_choice_liquorP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const glue_store = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00'); //circle
+const glue_storeP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const h_and_m = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527'); //circle
+const h_and_mP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const harris_farm_markets = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff'); // pentagon
+const harris_farm_marketsP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const hs_home = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af'); //poly rev triangle
+const hs_homeP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const jb_hi_fi = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00'); //star
+const jb_hi_fiP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const kathmandu_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00'); //triangle
+const kathmandu_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff6e00');
+const mecca_cosmetica = new LiqMarker(OTHER_SIZE, 1, 'black', '#7fc314'); //poly rev triangle
+const mecca_cosmeticaP = new LiqMarker(OTHER_SIZE, 1, 'black', '#7fc314');
+const priceline_pharmacy = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527'); //poly diamond
+const priceline_pharmacyP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const rebel_sports = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff'); //triangle
+const rebel_sportsP = new LiqMarker(OTHER_SIZE, 1, 'black', '#6bc1ff');
+const rivers_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#1198a4'); // circle
+const rivers_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1198a4');
+const sephora_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431'); //poly rev triangle
+const sephora_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#bb1431');
+const terry_white_chemmart = new LiqMarker(OTHER_SIZE, 1, 'black', '#7fc314'); //poly diamond
+const terry_white_chemmartP = new LiqMarker(OTHER_SIZE, 1, 'black', '#7fc314');
+const the_reject_shop = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527'); //square
+const the_reject_shopP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ffc527');
+const tk_maxx = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af'); //circle;
+const tk_maxxP = new LiqMarker(OTHER_SIZE, 1, 'black', '#1111af');
+const uniqlo_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff77c2'); //circle
+const uniqlo_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#ff77c2');
+const zara_c = new LiqMarker(OTHER_SIZE, 1, 'black', '#85cc14'); //circle
+const zara_cP = new LiqMarker(OTHER_SIZE, 1, 'black', '#85cc14');
+
+export const appleStore = apple_store.createStar().img;
+export const appleStoreP = apple_storeP.createStar(...PROPOSED).img;
+
+export const bestAndLess = best_and_less.createCircle().img;
+export const bestAndLessP = best_and_lessP.createCircle(...PROPOSED).img;
+
+export const chemistWarehouse = chemist_warehouse.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const chemistWarehouseP = chemist_warehouseP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const cottonOn = cotton_on.createCircle().img;
+export const cottonOnP = cotton_onP.createCircle(...PROPOSED).img;
+
+export const countryRoad = country_road.createCircle().img;
+export const countryRoadP = country_roadP.createCircle(...PROPOSED).img;
+
+export const daiso = daiso_c.createSquare().img;
+export const daisoP = daiso_cP.createSquare(...PROPOSED).img;
+
+export const danMurphys = dan_murphys.createPentagon().img;
+export const danMurphysP = dan_murphysP.createPentagon(...PROPOSED).img;
+
+export const firstChoiceLiquor = first_choice_liquor.createPentagon().img;
+export const firstChoiceLiquorP = first_choice_liquorP.createPentagon(...PROPOSED).img;
+
+export const glueStore = glue_store.createCircle().img;
+export const glueStoreP = glue_storeP.createCircle(...PROPOSED).img;
+
+export const hAndM = h_and_m.createCircle().img;
+export const hAndMP = h_and_mP.createCircle(...PROPOSED).img;
+
+export const harrisFarmMarkets = harris_farm_markets.createPentagon().img;
+export const harrisFarmMarketsP = harris_farm_marketsP.createPentagon(...PROPOSED).img;
+
+export const hsHome = hs_home.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const hsHomeP = hs_homeP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const jbhifi = jb_hi_fi.createStar().img;
+export const jbhifiP = jb_hi_fiP.createStar(...PROPOSED).img;
+
+export const kathmandu = kathmandu_c.createTriangle().img;
+export const kathmanduP = kathmandu_cP.createTriangle(...PROPOSED).img;
+
+export const meccaCosmetica = mecca_cosmetica.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const meccaCosmeticaP = mecca_cosmeticaP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const pricelinePharmacy = priceline_pharmacy.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const pricelinePharmacyP = priceline_pharmacyP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const rebelSports = rebel_sports.createTriangle().img;
+export const rebelSportsP = rebel_sportsP.createTriangle(...PROPOSED).img;
+
+export const rivers = rivers_c.createCircle().img;
+export const riversP = rivers_cP.createCircle(...PROPOSED).img;
+
+export const sephora = sephora_c.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
+export const sephoraP = sephora_cP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const terryWhiteChemmart = terry_white_chemmart.createPolygon(diamondPoints(OTHER_SIZE)).img;
+export const terryWhiteChemmartP = terry_white_chemmartP.createPolygon(diamondPoints(OTHER_SIZE), ...PROPOSED).img;
+
+export const theRejectShop = the_reject_shop.createSquare().img;
+export const theRejectShopP = the_reject_shopP.createSquare(...PROPOSED).img;
+
+export const tkMaxx = tk_maxx.createCircle().img;
+export const tkMaxxP = tk_maxxP.createCircle(...PROPOSED).img;
+
+export const uniqlo = uniqlo_c.createCircle().img;
+export const uniqloP = uniqlo_cP.createCircle(...PROPOSED).img;
+
+export const zara = zara_c.createCircle().img;
+export const zaraP = zara_cP.createCircle(...PROPOSED).img;
 
 // Supermarkets
 export const woolworths = (new LiqMarker(OTHER_SIZE, 2, 'black', '#01b208').createCircle().img);

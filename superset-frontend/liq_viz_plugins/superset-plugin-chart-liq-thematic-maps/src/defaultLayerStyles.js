@@ -1,4 +1,5 @@
 const PROPOSED_CHECK = ['==', ['get', 'proposed'], true];
+const PROPOSED_CHECK_F = ['==', ['get', 'proposed'], false];
 
 const gen_proposed = (val, attr, img) => {
   
@@ -10,7 +11,7 @@ const gen_proposed = (val, attr, img) => {
     val.map(v => {
       const check = ['==', ['get', attr], v];
       p_expr.push(['all', PROPOSED_CHECK, check]);
-      c_expr.push(check);
+      c_expr.push(['all', PROPOSED_CHECK_F, check]);
     })
 
     return [[...p_expr], `${img}P`, [...c_expr], img];
@@ -19,7 +20,7 @@ const gen_proposed = (val, attr, img) => {
 
   const check = ['==', ['get', attr], val];
   
-  return [['all', PROPOSED_CHECK, check], `${img}P`, check, img]
+  return [['all', PROPOSED_CHECK, check], `${img}P`, ['all', PROPOSED_CHECK_F, check], img]
 
 }
 
@@ -163,44 +164,29 @@ const iconExprs = {
   ],
   'discount_department_stores': [
     'case',
-    ['==', ['get', 'tenant_id'], 9595],
-    'kmart',
-    ['==', ['get', 'tenant_id'], 92073],
-    'kmartHub',
-    ['==', ['get', 'tenant_id'], 1759],
-    'bigW',
-    ['==', ['get', 'tenant_id'], 16842],
-    'target',
-    ['==', ['get', 'tenant_id'], 16844],
-    'targetCountry',
+    ...gen_proposed(9595, 'tenant_id', 'kmart'),
+    ...gen_proposed(92073, 'tenant_id', 'kmartHub'),
+    ...gen_proposed(1759, 'tenant_id', 'bigW'),
+    ...gen_proposed(16842, 'tenant_id', 'target'),
+    ...gen_proposed(16844, 'tenant_id', 'targetCountry'),
+    PROPOSED_CHECK,
+    'unknownDDSP',
     'unknownDDS'
   ],
   'large_format_retail': [
     'case',
-    ['==', ['get', 'tenant_id'], 16550],
-    'amart',
-    ['==', ['get', 'tenant_id'], 525],
-    'anaconda',
-    ['==', ['get', 'tenant_id'], 2431],
-    'bunnings',
-    ['==', ['get', 'tenant_id'], 4992],
-    'domayne',
-    ['==', ['get', 'tenant_id'], 5881],
-    'fantasticFurniture',
-    ['==', ['get', 'tenant_id'], 6334],
-    'fortyWinks',
-    ['==', ['get', 'tenant_id'], 7656],
-    'harveyNorman',
-    ['==', ['get', 'tenant_id'], 8299],
-    'ikea',
-    ['==', ['get', 'tenant_id'], 10112],
-    'lincraft',
-    ['==', ['get', 'tenant_id'], 2893],
-    'snooze',
-    ['==', ['get', 'tenant_id'], 15974],
-    'spotlight',
-    ['==', ['get', 'tenant_id'], 17321],
-    'theGoodGuys',
+    ...gen_proposed(16550, 'tenant_id', 'amart'),
+    ...gen_proposed(525, 'tenant_id', 'anaconda'),
+    ...gen_proposed(2431, 'tenant_id', 'bunnings'),
+    ...gen_proposed(4992, 'tenant_id', 'domayne'),
+    ...gen_proposed(5881, 'tenant_id', 'fantasticFurniture'),
+    ...gen_proposed(6334, 'tenant_id', 'fortWinks'),
+    ...gen_proposed(7656, 'tenant_id', 'harveyNorman'),
+    ...gen_proposed(8299, 'tenant_id', 'ikea'),  
+    ...gen_proposed(10112, 'tenant_id', 'lincraft'),
+    ...gen_proposed(2893, 'tenant_id', 'snooze'),
+    ...gen_proposed(15974, 'tenant_id', 'spotlight'),
+    ...gen_proposed(17321, 'tenant_id', 'theGoodGuys'),
     ''
   ],
   'supermarkets': [
@@ -237,56 +223,30 @@ const iconExprs = {
   ],
   'mini_majors': [
     'case',
-    ['==', ['get', 'tenant_id'], 20105],
-    'appleStore',
-    ['==', ['get', 'tenant_id'], 20105],
-    'appleStore',
-    ['==', ['get', 'tenant_id'], 1655],
-    'bestAndLess',
-    ['==', ['get', 'tenant_id'], 3342],
-    'chemistWarehouse',
-    ['==', ['get', 'tenant_id'], 4167],
-    'cottonOn',
-    ['==', ['get', 'tenant_id'], 4171],
-    'countryRoad',
-    ['==', ['get', 'tenant_id'], 22164],
-    'daiso',
-    ['==', ['get', 'tenant_id'], 4492],
-    'danMurphys',
-    ['==', ['get', 'tenant_id'], 6058],
-    'firstChoiceLiquor',
-    ['==', ['get', 'tenant_id'], 20461],
-    'glueStore',
-    ['==', ['get', 'tenant_id'], 24715],
-    'hAndM',
-    ['==', ['get', 'tenant_id'], 7650],
-    'harrisFarmMarkets',
-    ['==', ['get', 'tenant_id'], 24930],
-    'hsHome',
-    ['==', ['get', 'tenant_id'], 8725],
-    'jbhifi',
-    ['==', ['get', 'tenant_id'], 9218],
-    'kathmandu',
-    ['==', ['get', 'tenant_id'], 11041],
-    'meccaCosmetica',
-    ['==', ['get', 'tenant_id'], 13827],
-    'pricelinePharmacy',
-    ['==', ['get', 'tenant_id'], 14218],
-    'rebelSports',
-    ['==', ['get', 'tenant_id'], 14519],
-    'rivers',
-    ['==', ['get', 'tenant_id'], 25346],
-    'sephora',
-    ['==', ['get', 'tenant_id'], 17006],
-    'terryWhiteChemmart',
-    ['==', ['get', 'tenant_id'], 17494],
-    'theRejectShop',
-    ['==', ['get', 'tenant_id'], 17925],
-    'tkMaxx',
-    ['==', ['get', 'tenant_id'], 24586],
-    'uniqlo',
-    ['==', ['get', 'tenant_id'], 22168],
-    'zara',
+    ...gen_proposed(20105, 'tenant_id', 'appleStore'),
+    ...gen_proposed(1655, 'tenant_id', 'bestAndLess'),
+    ...gen_proposed(3342, 'tenant_id', 'chemistWarehouse'),
+    ...gen_proposed(4167, 'tenant_id', 'cottonOn'),
+    ...gen_proposed(4171, 'tenant_id', 'countryRoad'),
+    ...gen_proposed(22164, 'tenant_id', 'daiso'),
+    ...gen_proposed(4492, 'tenant_id', 'danMurphys'),
+    ...gen_proposed(6058, 'tenant_id', 'firstChoiceLiquor'),
+    ...gen_proposed(20461, 'tenant_id', 'glueStore'),
+    ...gen_proposed(24715, 'tenant_id', 'hAndM'),
+    ...gen_proposed(7650, 'tenant_id', 'harrisFarmMarkets'),
+    ...gen_proposed(24930, 'tenant_id', 'hsHome'),
+    ...gen_proposed(8725, 'tenant_id', 'jbhifi'),
+    ...gen_proposed(9218, 'tenant_id', 'kathmandu'),
+    ...gen_proposed(11041, 'tenant_id', 'meccaCosmetica'),
+    ...gen_proposed(13827, 'tenant_id', 'pricelinePharmacy'),
+    ...gen_proposed(14218, 'tenant_id', 'rebelSports'),
+    ...gen_proposed(14519, 'tenant_id', 'rivers'),
+    ...gen_proposed(25346, 'tenant_id', 'sephora'),
+    ...gen_proposed(17006, 'tenant_id', 'terryWhiteChemmart'),
+    ...gen_proposed(17494, 'tenant_id', 'theRejectShop'),
+    ...gen_proposed(17925, 'tenant_id', 'tkMaxx'),
+    ...gen_proposed(24586, 'tenant_id', 'uniqlo'),
+    ...gen_proposed(22168, 'tenant_id', 'zara'),
     ''
   ],
   'liquor': [

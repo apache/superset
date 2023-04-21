@@ -72,14 +72,9 @@ export default class LiqMarker {
     circle.setAttribute("cx", size / 2);
     circle.setAttribute("cy", size / 2);
     circle.setAttribute("r", size / 2 - strokeWidth);
-    circle.setAttribute("stroke", strokeColor);
-    circle.setAttribute("stroke-width", strokeWidth);
-    circle.setAttribute("fill", fill);
-
-    if (proposed) {
-      circle.setAttribute('stroke-dasharray', '2 2');
-      circle.setAttribute('stroke-dashoffset', '0');
-    }
+    circle.setAttribute("fill", proposed ? 'none' : fill);
+    circle.setAttribute("stroke", proposed ? fill : strokeColor);
+    circle.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(circle);
     return this;
@@ -98,14 +93,9 @@ export default class LiqMarker {
     rect.setAttribute("y", "0");
     rect.setAttribute("width", size);
     rect.setAttribute("height", size);
-    rect.setAttribute("fill", fill);
-    rect.setAttribute("stroke", strokeColor);
-    rect.setAttribute("stroke-width", strokeWidth);
-
-    if (proposed) {
-      rect.setAttribute('stroke-dasharray', '2 2');
-      rect.setAttribute('stroke-dashoffset', '0');
-    }
+    rect.setAttribute("fill", proposed ? 'none' : fill);
+    rect.setAttribute("stroke", proposed ? fill : strokeColor);
+    rect.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(rect);
     return this;
@@ -122,14 +112,9 @@ export default class LiqMarker {
     const star = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateStarPolygon(size, size);
     star.setAttribute("points", points);
-    star.setAttribute("fill", fill);
-    star.setAttribute("stroke", strokeColor);
-    star.setAttribute("stroke-width", strokeWidth);
-
-    if (proposed) {
-      star.setAttribute('stroke-dasharray', '2 2');
-      star.setAttribute('stroke-dashoffset', '0');
-    }
+    star.setAttribute("fill", proposed ? 'none' : fill);
+    star.setAttribute("stroke", proposed ? fill : strokeColor);
+    star.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(star);
     return this;
@@ -146,14 +131,9 @@ export default class LiqMarker {
     const pentagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generatePentagonPolygon(size, size);
     pentagon.setAttribute("points", points);
-    pentagon.setAttribute("fill", fill);
-    pentagon.setAttribute("stroke", strokeColor);
-    pentagon.setAttribute("stroke-width", strokeWidth);
-
-    if (proposed) {
-      pentagon.setAttribute('stroke-dasharray', '2 2');
-      pentagon.setAttribute('stroke-dashoffset', '0');
-    }
+    pentagon.setAttribute("fill", proposed ? 'none' : fill);
+    pentagon.setAttribute("stroke", proposed ? fill : strokeColor);
+    pentagon.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(pentagon);
     return this;
@@ -170,26 +150,28 @@ export default class LiqMarker {
     const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateTrianglePolygon(size, size);
     triangle.setAttribute("points", points);
-    triangle.setAttribute("fill", fill);
-    triangle.setAttribute("stroke", strokeColor);
-    triangle.setAttribute("stroke-width", strokeWidth);
-
-    if (proposed) {
-      triangle.setAttribute('stroke-dasharray', '2 2');
-      triangle.setAttribute('stroke-dashoffset', '0');
-    }
+    triangle.setAttribute("fill", proposed ? 'none' : fill);
+    triangle.setAttribute("stroke", proposed ? fill : strokeColor);
+    triangle.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(triangle);
     return this;
   }
 
-  createPolygon(points) {
+  createPolygon(
+    points,
+    size = this.size, 
+    strokeWidth = this.strokeWidth, 
+    strokeColor = this.strokeColor, 
+    fill = this.fill,
+    proposed = false
+  ) {
 
     const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     poly.setAttribute("points", points);
-    poly.setAttribute("fill", this.fill);
-    poly.setAttribute("stroke", this.strokeColor);
-    poly.setAttribute("stroke-width", this.strokeWidth);
+    poly.setAttribute("fill", proposed ? 'none' : fill);
+    poly.setAttribute("stroke", proposed ? fill : strokeColor);
+    poly.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
 
     this.svg.appendChild(poly);
     return this;
