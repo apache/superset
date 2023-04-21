@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 sqlparse.keywords.SQL_REGEX.insert(
     0,
     (
-        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
+        re.compile(r"'(''|\\\\|\\|[^'])*'", (re.IGNORECASE | re.UNICODE)).match,
         sqlparse.tokens.String.Single,
     ),
 )
