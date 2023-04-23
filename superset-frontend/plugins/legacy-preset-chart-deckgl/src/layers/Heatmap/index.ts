@@ -17,9 +17,9 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
+import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
   category: t('Map'),

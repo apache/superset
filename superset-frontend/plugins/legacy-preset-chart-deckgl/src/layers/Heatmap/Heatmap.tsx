@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: implement typescript fix for legacy versions of deck.gl
+// https://github.com/visgl/deck.gl/blob/master/docs/get-started/using-with-typescript.md#alternative-solution-for-legacy-versions
 import { HeatmapLayer } from 'deck.gl';
 import React from 'react';
 import { t, getSequentialSchemeRegistry } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent } from '../../factory';
+import { createDeckGLComponent, getLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
-function setTooltipContent(o) {
+function setTooltipContent(o: any) {
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
@@ -35,8 +37,12 @@ function setTooltipContent(o) {
     </div>
   );
 }
-
-export function getLayer(formData, payload, onAddFilter, setTooltip) {
+export const getLayer: getLayerType<unknown> = (
+  formData,
+  payload,
+  onAddFilter,
+  setTooltip,
+) => {
   const fd = formData;
   const {
     intensity = 1,
@@ -54,28 +60,28 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   }
 
   const colorScale = getSequentialSchemeRegistry()
-    .get(colorScheme)
-    .createLinearScale([0, 6]);
+    ?.get(colorScheme)
+    ?.createLinearScale([0, 6]);
   const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color))
-    .reverse();
+    ?.range()
+    ?.map(color => hexToRGB(color))
+    ?.reverse();
 
   return new HeatmapLayer({
     id: `heatmp-layer-${fd.slice_id}`,
     data,
-    pickable: false,
     intensity,
     radiusPixels,
     colorRange,
     aggregation: aggregation.toUpperCase(),
-    getPosition: d => d.position,
-    getWeight: d => (d.weight ? d.weight : 1),
+    getPosition: (d: { position: number[]; weight: number }) => d.position,
+    getWeight: (d: { position: number[]; weight: number }) =>
+      d.weight ? d.weight : 1,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
-}
+};
 
-function getPoints(data) {
+function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
