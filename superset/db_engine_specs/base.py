@@ -354,10 +354,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
-    # A set of disallowed connection query parameters
-    disallow_uri_query_params: Set[str] = set()
+    # A set of disallowed connection query parameters by driver name
+    disallow_uri_query_params: Dict[str, Set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
-    enforce_uri_query_params: Dict[str, Any] = {}
+    # by driver name
+    enforce_uri_query_params: Dict[str, Dict[str, Any]] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -999,6 +1000,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def adjust_database_uri(  # pylint: disable=unused-argument
         cls,
         uri: URL,
+        connect_args: Dict[str, Any],
         selected_schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
         """
@@ -1024,7 +1026,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         This is important because DB engine specs can be installed from 3rd party
         packages.
         """
-        return uri, {**cls.enforce_uri_query_params}
+        return uri, {
+            **connect_args,
+            **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),
+        }
 
     @classmethod
     def patch(cls) -> None:
@@ -1744,9 +1749,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if existing_disallowed := cls.disallow_uri_query_params.intersection(
-            sqlalchemy_uri.query
-        ):
+        if existing_disallowed := cls.disallow_uri_query_params.get(
+            sqlalchemy_uri.get_driver_name(), set()
+        ).intersection(sqlalchemy_uri.query):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 

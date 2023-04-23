@@ -173,8 +173,14 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
-    disallow_uri_query_params = {"local_infile"}
-    enforce_uri_query_params = {"local_infile": 0}
+    disallow_uri_query_params = {
+        "mysqldb": {"local_infile"},
+        "mysqlconnector": {"allow_local_infile"},
+    }
+    enforce_uri_query_params = {
+        "mysqldb": {"local_infile": 0},
+        "mysqlconnector": {"allow_local_infile": 0},
+    }
 
     @classmethod
     def convert_dttm(
@@ -191,11 +197,14 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        selected_schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
         uri, new_connect_args = super(
             MySQLEngineSpec, MySQLEngineSpec
-        ).adjust_database_uri(uri)
+        ).adjust_database_uri(uri, connect_args)
         if selected_schema:
             uri = uri.set(database=parse.quote(selected_schema, safe=""))
 
