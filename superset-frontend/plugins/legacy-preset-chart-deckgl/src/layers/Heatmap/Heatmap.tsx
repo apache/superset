@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: implement typescript fix for legacy versions of deck.gl
-// https://github.com/visgl/deck.gl/blob/master/docs/get-started/using-with-typescript.md#alternative-solution-for-legacy-versions
 import { HeatmapLayer } from 'deck.gl';
 import React from 'react';
 import { t, getSequentialSchemeRegistry } from '@superset-ui/core';
