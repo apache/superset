@@ -164,6 +164,10 @@ setup(
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mssql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
+        "ocient": [
+            "sqlalchemy-ocient>=1.0.0",
+            "pyocient>=1.0.15",
+        ],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.9.5"],
