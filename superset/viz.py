@@ -50,6 +50,7 @@ import pandas as pd
 import polyline
 import simplejson as json
 from dateutil import relativedelta as rdelta
+from deprecation import deprecated
 from flask import request
 from flask_babel import gettext as __, lazy_gettext as _
 from geopy.point import Point
@@ -2134,6 +2135,7 @@ class WorldMapViz(BaseViz):
         return data
 
 
+@deprecated(deprecated_in="3.0")
 class FilterBoxViz(BaseViz):
 
     """A multi filter, multi-choice filter box to make dashboards interactive"""
