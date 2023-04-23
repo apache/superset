@@ -104,8 +104,11 @@ def test_convert_dttm(
     "sqlalchemy_uri,error",
     [
         ("mysql://user:password@host/db1?local_infile=1", True),
+        ("mysql+mysqlconnector://user:password@host/db1?allow_local_infile=1", True),
         ("mysql://user:password@host/db1?local_infile=0", True),
+        ("mysql+mysqlconnector://user:password@host/db1?allow_local_infile=0", True),
         ("mysql://user:password@host/db1", False),
+        ("mysql+mysqlconnector://user:password@host/db1", False),
     ],
 )
 def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
@@ -123,17 +126,42 @@ def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
     "sqlalchemy_uri,connect_args,returns",
     [
         ("mysql://user:password@host/db1", {"local_infile": 1}, {"local_infile": 0}),
+        (
+            "mysql+mysqlconnector://user:password@host/db1",
+            {"allow_local_infile": 1},
+            {"allow_local_infile": 0},
+        ),
         ("mysql://user:password@host/db1", {"local_infile": -1}, {"local_infile": 0}),
+        (
+            "mysql+mysqlconnector://user:password@host/db1",
+            {"allow_local_infile": -1},
+            {"allow_local_infile": 0},
+        ),
         ("mysql://user:password@host/db1", {"local_infile": 0}, {"local_infile": 0}),
+        (
+            "mysql+mysqlconnector://user:password@host/db1",
+            {"allow_local_infile": 0},
+            {"allow_local_infile": 0},
+        ),
         (
             "mysql://user:password@host/db1",
             {"param1": "some_value"},
             {"local_infile": 0, "param1": "some_value"},
         ),
         (
+            "mysql+mysqlconnector://user:password@host/db1",
+            {"param1": "some_value"},
+            {"allow_local_infile": 0, "param1": "some_value"},
+        ),
+        (
             "mysql://user:password@host/db1",
             {"local_infile": 1, "param1": "some_value"},
             {"local_infile": 0, "param1": "some_value"},
+        ),
+        (
+            "mysql+mysqlconnector://user:password@host/db1",
+            {"allow_local_infile": 1, "param1": "some_value"},
+            {"allow_local_infile": 0, "param1": "some_value"},
         ),
     ],
 )
@@ -143,7 +171,9 @@ def test_adjust_database_uri(
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     url = make_url(sqlalchemy_uri)
-    returned_url, returned_connect_args = MySQLEngineSpec.adjust_database_uri(url)
+    returned_url, returned_connect_args = MySQLEngineSpec.adjust_database_uri(
+        url, connect_args
+    )
     assert returned_connect_args == returns
 
 

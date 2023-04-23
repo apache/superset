@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib import parse
 
 from sqlalchemy import types
@@ -69,11 +69,16 @@ class DrillEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> URL:
+    def adjust_database_uri(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        selected_schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         if selected_schema:
             uri = uri.set(database=parse.quote(selected_schema, safe=""))
 
-        return uri
+        return uri, connect_args
 
     @classmethod
     def get_url_for_impersonation(

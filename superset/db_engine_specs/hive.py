@@ -191,7 +191,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             raise SupersetException("Append operation not currently supported")
 
         if to_sql_kwargs["if_exists"] == "fail":
-
             # Ensure table doesn't already exist.
             if table.schema:
                 table_exists = not database.get_df(
@@ -260,12 +259,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        selected_schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         if selected_schema:
             uri = uri.set(database=parse.quote(selected_schema, safe=""))
 
-        return uri
+        return uri, connect_args
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:

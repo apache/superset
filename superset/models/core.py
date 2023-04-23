@@ -426,7 +426,15 @@ class Database(
         )
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        params = extra.get("engine_params", {})
+        if nullpool:
+            params["poolclass"] = NullPool
+
+        connect_args = params.get("connect_args", {})
+
+        sqlalchemy_url, connect_args = self.db_engine_spec.adjust_database_uri(
+            sqlalchemy_url, connect_args, schema
+        )
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
@@ -438,11 +446,6 @@ class Database(
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        params = extra.get("engine_params", {})
-        if nullpool:
-            params["poolclass"] = NullPool
-
-        connect_args = params.get("connect_args", {})
         if self.impersonate_user:
             self.db_engine_spec.update_impersonation_config(
                 connect_args, str(sqlalchemy_url), effective_username
