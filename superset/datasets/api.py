@@ -95,7 +95,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "related_objects",
         "duplicate",
         "get_or_create_dataset",
-        "sqllab_viz",
     }
     list_columns = [
         "id",
