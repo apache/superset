@@ -76,7 +76,6 @@ These features flags are **safe for production**. They have been tested and will
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
-- DASHBOARD_NATIVE_FILTERS
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
 - DRUID_JOINS
@@ -98,4 +97,5 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- DASHBOARD_NATIVE_FILTERS
 - GENERIC_CHART_AXES

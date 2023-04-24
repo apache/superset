@@ -25,7 +25,7 @@ import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Tools'),
-  name: t('Filter box'),
+  name: t('Filter box (deprecated)'),
   description:
     t(`Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.
 
@@ -33,8 +33,12 @@ const metadata = new ChartMetadata({
   exampleGallery: [{ url: example1 }, { url: example2 }],
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Legacy'), t('Deprecated')],
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class FilterBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({
