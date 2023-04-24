@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
@@ -36,7 +30,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { isFeatureEnabled } from 'src/featureFlags';
@@ -48,11 +41,12 @@ import {
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { DataTablesPane } from './DataTablesPane';
-import { buildV1ChartDataPayload } from '../exploreUtils';
-import { ChartPills } from './ChartPills';
-import { ExploreAlert } from './ExploreAlert';
-import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
+import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
+import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import { DataTablesPane } from '../DataTablesPane';
+import { ChartPills } from '../ChartPills';
+import { ExploreAlert } from '../ExploreAlert';
+import useChartPanelResize from './useResizeDectorByObserver';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -147,25 +141,12 @@ const ExploreChartPanel = ({
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const chartPanelRef = useRef();
-  const [{ chartPanelWidth, chartPanelHeight }, setChartPanelSize] = useState(
-    {},
-  );
-  const onResize = useCallback(() => {
-    if (chartPanelRef.current) {
-      const { width, height } =
-        chartPanelRef.current.getBoundingClientRect?.() || {};
-      setChartPanelSize({
-        chartPanelWidth: width,
-        chartPanelHeight: height,
-      });
-    }
-  }, []);
-  const { ref: resizeObserverRef } = useResizeDetector({
-    refreshMode: 'debounce',
-    refreshRate: 300,
-    onResize,
-  });
+  const {
+    ref: chartPanelRef,
+    observerRef: resizeObserverRef,
+    width: chartPanelWidth,
+    height: chartPanelHeight,
+  } = useChartPanelResize();
   const [splitSizes, setSplitSizes] = useState(
     isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
       ? INITIAL_SIZES
@@ -393,6 +374,7 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
+      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,
