@@ -81,6 +81,8 @@ const tableApi = api.injectEndpoints({
   }),
 });
 
+export const { useLazyTablesQuery, useTablesQuery } = tableApi;
+
 export function useTables(options: Params) {
   const isMountedRef = useRef(false);
   const { data: schemaOptions, isFetching } = useSchemas({
@@ -90,7 +92,6 @@ export function useTables(options: Params) {
     () => new Set(schemaOptions?.map(({ value }) => value)),
     [schemaOptions],
   );
-  const { useLazyTablesQuery, useTablesQuery } = tableApi;
   const { dbId, schema, onSuccess, onError } = options || {};
 
   const enabled = Boolean(
