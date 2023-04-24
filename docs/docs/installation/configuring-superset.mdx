@@ -71,10 +71,11 @@ WTF_CSRF_EXEMPT_LIST = [‘’]
 
 ### Using a production metastore
 
-By default Superset is configured to use SQLite, it's a simple and fast way to get you started
-(no installation needed). But for production environments this is highly discouraged for security,
-scalability and data integrity reasons. Use only the recommend database engines.
-Also use a different database engine on a separate host or container.
+By default, Superset is configured to use SQLite, which is a simple and fast way to get started
+(without requiring any installation). However, for production environments,
+using SQLite is highly discouraged due to security, scalability, and data integrity reasons.
+It's important to use only the supported database engines and consider using a different
+database engine on a separate host or container.
 
 Superset supports the following database engines/versions:
 
