@@ -194,3 +194,14 @@ class BaseDAO:
             db.session.rollback()
             raise DAODeleteFailedError(exception=ex) from ex
         return model
+
+    @classmethod
+    def bulk_delete(cls, models: List[Model], commit: bool = True) -> None:
+        try:
+            for model in models:
+                cls.delete(model, False)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=ex) from ex
