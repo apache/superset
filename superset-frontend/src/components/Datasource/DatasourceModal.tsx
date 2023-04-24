@@ -139,7 +139,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         ),
         columns: currentDatasource?.columns?.map(
           (column: Record<string, unknown>) => ({
-            id: column.id,
+            id: typeof column.id === 'number' ? column.id : undefined,
             column_name: column.column_name,
             type: column.type,
             advanced_data_type: column.advanced_data_type,
