@@ -1517,9 +1517,9 @@ export function createDatasource(vizOptions) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         database: dbId,
-        schema: schema,
+        schema,
+        sql,
         table_name: datasourceName,
-        sql: sql,
         is_managed_externally: false,
         external_url: null,
       }),
