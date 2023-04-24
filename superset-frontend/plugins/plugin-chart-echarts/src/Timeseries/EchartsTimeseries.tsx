@@ -205,7 +205,7 @@ export default function EchartsTimeseries({
         const pointerEvent = eventParams.event.event;
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...labelMap[seriesName],
+          ...(labelMap[seriesName] ?? []),
         ];
         if (data && xAxis.type === AxisType.time) {
           drillToDetailFilters.push({
