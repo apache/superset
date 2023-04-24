@@ -54,6 +54,7 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_EDIT_CHART_IN_NEW_TAB
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_VIRTUALIZATION
+- DRILL_BY
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - ENABLE_JAVASCRIPT_CONTROLS
