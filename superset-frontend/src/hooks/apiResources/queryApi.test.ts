@@ -76,16 +76,16 @@ describe('queryApi', () => {
   });
 
   test('supersetClientQuery should return error when unsuccessful', async () => {
-    const expectedError = new Error('Request failed');
+    const expectedError = 'Request failed';
     const expectedUrl = '/api/v1/get-endpoint/';
     const endpoint = `glob:*${expectedUrl}`;
-    fetchMock.get(endpoint, { throws: expectedError });
+    fetchMock.get(endpoint, { throws: new Error(expectedError) });
     const result = await supersetClientQuery(
       { endpoint },
       getBaseQueryApiMock(store),
       {},
     );
-    expect(result.error).toEqual(expectedError);
+    expect(result.error).toEqual({ error: expectedError });
   });
 
   test('supersetClientQuery should return parsed response by parseMethod', async () => {

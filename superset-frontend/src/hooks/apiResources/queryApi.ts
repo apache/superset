@@ -17,6 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import {
   SupersetClient,
@@ -56,9 +57,11 @@ export const supersetClientQuery: BaseQueryFn<
     .then(data => ({
       data: transformResponse?.(data) ?? data,
     }))
-    .catch(error => ({
-      error,
-    }));
+    .catch(response =>
+      getClientErrorObject(response).then(errorObj => ({
+        error: errorObj,
+      })),
+    );
 
 export const api = createApi({
   reducerPath: 'queryApi',
