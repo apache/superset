@@ -215,9 +215,7 @@ psql: error: could not connect to server: Operation timed out
 
         with app.app_context():
             RedshiftEngineSpec.df_to_sql(
-                mock_database,
-                Table(table=table_name),
-                df,
+                mock_database, Table(table=table_name), df, to_sql_kwargs={}
             )
 
         assert df.to_sql.call_args[1]["dtype"] == {}
@@ -239,9 +237,7 @@ psql: error: could not connect to server: Operation timed out
 
         with app.app_context():
             RedshiftEngineSpec.df_to_sql(
-                mock_database,
-                Table(table=table_name),
-                df,
+                mock_database, Table(table=table_name), df, to_sql_kwargs={}
             )
 
         # varchar string length should be 65535
