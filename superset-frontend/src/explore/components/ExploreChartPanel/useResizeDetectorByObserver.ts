@@ -19,7 +19,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 
-export default function useResizeDetectorByTarget() {
+export default function useResizeDetectorByObserver() {
   const ref = useRef<HTMLDivElement>();
   const [{ width, height }, setChartPanelSize] = useState<{
     width?: number;

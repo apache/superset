@@ -46,7 +46,7 @@ import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequired
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
-import useChartPanelResize from './useResizeDectorByObserver';
+import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -146,7 +146,7 @@ const ExploreChartPanel = ({
     observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
-  } = useChartPanelResize();
+  } = useResizeDetectorByObserver();
   const [splitSizes, setSplitSizes] = useState(
     isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
       ? INITIAL_SIZES
