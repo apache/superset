@@ -122,6 +122,9 @@ const StyledFilterContainer = styled.div`
   `}
 `;
 
+/**
+ * @deprecated in version 3.0.
+ */
 class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
