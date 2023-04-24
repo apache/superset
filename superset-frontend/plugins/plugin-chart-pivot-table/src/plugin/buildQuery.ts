@@ -45,7 +45,8 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
       /* Charts created before `GENERIC_CHART_AXES` is enabled have a different
        * form data, with `granularity_sqla` set instead.
        */
-      (formData?.temporal_columns_lookup?.[col] || formData.granularity_sqla)
+      (formData?.temporal_columns_lookup?.[col] ||
+        formData.granularity_sqla === col)
     ) {
       return {
         timeGrain: formData.time_grain_sqla,

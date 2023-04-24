@@ -18,9 +18,9 @@
  */
 
 import { TimeGranularity } from '@superset-ui/core';
+import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
-import * as buildQueryModule from '../../src/plugin/buildQuery';
 
 describe('PivotTableChart buildQuery', () => {
   const formData: PivotTableQueryFormData = {
@@ -59,7 +59,7 @@ describe('PivotTableChart buildQuery', () => {
   });
 
   it('should work with old charts after GENERIC_CHART_AXES is enabled', () => {
-    Object.defineProperty(buildQueryModule, 'hasGenericChartAxes', {
+    Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
       value: true,
     });
     const modifiedFormData = {
