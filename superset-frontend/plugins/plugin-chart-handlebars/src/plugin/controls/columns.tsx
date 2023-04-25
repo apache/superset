@@ -68,7 +68,7 @@ const dndAllColumns: typeof sharedControls.groupby = {
       if (datasource?.columns[0]?.hasOwnProperty('filterable')) {
         newState.options = (datasource as Dataset)?.columns?.filter(
           (c: ColumnMeta) => c.filterable,
-        ); 
+        );
       } else newState.options = datasource.columns;
     }
     newState.queryMode = getQueryMode(controls);
