@@ -669,7 +669,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                           height: filterBarHeight,
                           offset: filterBarOffset,
                         }}
-                        hidden={isReport}
                       />
                     </ErrorBoundary>
                   </StickyPanel>
