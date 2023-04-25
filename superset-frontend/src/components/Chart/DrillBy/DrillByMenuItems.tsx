@@ -31,7 +31,6 @@ import {
   Behavior,
   Column,
   ContextMenuFilters,
-  Metric,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
@@ -45,6 +44,7 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
+import { useVerboseMap } from 'src/hooks/apiResources/datasets';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
@@ -116,6 +116,7 @@ export const DrillByMenuItems = ({
         ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
     [formData.viz_type],
   );
+  const verboseMap = useVerboseMap(dataset);
 
   useEffect(() => {
     if (handlesDimensionContextMenu && hasDrillBy) {
@@ -124,16 +125,7 @@ export const DrillByMenuItems = ({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then(({ json: { result } }) => {
-          const verbose_map = {};
-          ensureIsArray(result.columns).forEach((column: Column) => {
-            verbose_map[column.column_name] =
-              column.verbose_name || column.column_name;
-          });
-          ensureIsArray(result.metrics).forEach((metric: Metric) => {
-            verbose_map[metric.metric_name] =
-              metric.verbose_name || metric.metric_name;
-          });
-          setDataset({ ...result, verbose_map });
+          setDataset(result);
           setColumns(
             ensureIsArray(result.columns)
               .filter(column => column.groupby)
@@ -280,7 +272,7 @@ export const DrillByMenuItems = ({
           drillByConfig={drillByConfig}
           formData={formData}
           onHideModal={closeModal}
-          dataset={dataset!}
+          dataset={{ ...dataset!, verbose_map: verboseMap }}
         />
       )}
     </>
