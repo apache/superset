@@ -95,7 +95,7 @@ describe('useTables hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useApi: true,
+          useRedux: true,
         }),
       },
     );
@@ -143,7 +143,7 @@ describe('useTables hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useApi: true,
+          useRedux: true,
         }),
       },
     );
@@ -175,7 +175,7 @@ describe('useTables hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useApi: true,
+          useRedux: true,
         }),
       },
     );
@@ -199,7 +199,7 @@ describe('useTables hook', () => {
         }),
       {
         wrapper: createWrapper({
-          useApi: true,
+          useRedux: true,
         }),
       },
     );
@@ -228,7 +228,7 @@ describe('useTables hook', () => {
       {
         initialProps: { schema: expectedSchema },
         wrapper: createWrapper({
-          useApi: true,
+          useRedux: true,
         }),
       },
     );

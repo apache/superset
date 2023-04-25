@@ -34,7 +34,6 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
-  useApi?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
@@ -54,7 +53,6 @@ export function createWrapper(options?: Options) {
     useDnd,
     useRedux,
     useQueryParams,
-    useApi = true,
     useRouter,
     initialState,
     reducers,
@@ -73,16 +71,18 @@ export function createWrapper(options?: Options) {
     if (useRedux) {
       const mockStore =
         store ??
-        configureStore({
-          preloadedState: initialState || {},
-          devTools: false,
-          reducer: {
-            ...(reducers || reducerIndex),
-            [api.reducerPath]: api.reducer,
-          },
-          middleware: getDefaultMiddleware =>
-            getDefaultMiddleware().concat(api.middleware),
-        });
+        (!initialState
+          ? storeWithApi
+          : configureStore({
+              preloadedState: initialState,
+              devTools: false,
+              reducer: {
+                ...(reducers || reducerIndex),
+                [api.reducerPath]: api.reducer,
+              },
+              middleware: getDefaultMiddleware =>
+                getDefaultMiddleware().concat(api.middleware),
+            }));
 
       result = <Provider store={mockStore}>{result}</Provider>;
     }
@@ -93,10 +93,6 @@ export function createWrapper(options?: Options) {
 
     if (useRouter) {
       result = <BrowserRouter>{result}</BrowserRouter>;
-    }
-
-    if (useApi && !useRedux) {
-      result = <Provider store={storeWithApi}>{result}</Provider>;
     }
 
     return result;
