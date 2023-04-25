@@ -135,9 +135,9 @@ export default function EchartsTreemap({
               col: groupby[i],
               op: '==',
               val,
-              formattedVal: formatSeriesName(String(val), {
-                timeFormatter: getTimeFormatter(val),
-                numberFormatter: getNumberFormatter(val),
+              formattedVal: formatSeriesName(val, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
                 coltype: coltypeMapping?.[getColumnLabel(groupby[i])],
               }),
             });

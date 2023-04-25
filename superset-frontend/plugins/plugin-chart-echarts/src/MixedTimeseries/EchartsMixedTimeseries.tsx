@@ -171,9 +171,9 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: formatSeriesName(String(values[i]), {
-                timeFormatter: getTimeFormatter(values[i]),
-                numberFormatter: getNumberFormatter(values[i]),
+              formattedVal: formatSeriesName(values[i], {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
                 coltype: coltypeMapping?.[getColumnLabel(dimension)],
               }),
             }),

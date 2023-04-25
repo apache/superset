@@ -132,9 +132,9 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             col: columns[treePath.length - 1],
             op: '==',
             val,
-            formattedVal: formatSeriesName(String(val), {
-              timeFormatter: getTimeFormatter(val),
-              numberFormatter: getNumberFormatter(val),
+            formattedVal: formatSeriesName(val, {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
               coltype:
                 coltypeMapping?.[getColumnLabel(columns[treePath.length - 1])],
             }),

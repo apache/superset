@@ -241,9 +241,9 @@ export default function EchartsTimeseries({
             col: dimension,
             op: '==',
             val,
-            formattedVal: formatSeriesName(String(values[i]), {
-              timeFormatter: getTimeFormatter(values[i]),
-              numberFormatter: getNumberFormatter(values[i]),
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
               coltype: coltypeMapping?.[getColumnLabel(dimension)],
             }),
           });

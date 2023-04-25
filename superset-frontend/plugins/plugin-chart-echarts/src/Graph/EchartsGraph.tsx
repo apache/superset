@@ -156,8 +156,8 @@ export default function EchartsGraph({
                 op: '==',
                 val: node.name,
                 formattedVal: formatSeriesName(node.name, {
-                  timeFormatter: getTimeFormatter(node.name),
-                  numberFormatter: getNumberFormatter(node.name),
+                  timeFormatter: getTimeFormatter(formData.dateFormat),
+                  numberFormatter: getNumberFormatter(formData.numberFormat),
                   coltype: coltypeMapping?.[getColumnLabel(node.col)],
                 }),
               },

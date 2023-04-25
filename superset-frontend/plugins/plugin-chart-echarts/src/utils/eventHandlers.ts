@@ -111,6 +111,7 @@ export const contextMenuEventHandler =
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
+    formData: ,
     coltypeMapping?: Record<string, number>,
   ) =>
   (e: Event) => {
@@ -125,9 +126,9 @@ export const contextMenuEventHandler =
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: formatSeriesName(String(values[i]), {
-              timeFormatter: getTimeFormatter(values[i]),
-              numberFormatter: getNumberFormatter(values[i]),
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
               coltype: coltypeMapping?.[getColumnLabel(dimension)],
             }),
           });
@@ -152,6 +153,7 @@ export const allEventHandlers = (
     emitCrossFilters,
     selectedValues,
     coltypeMapping,
+    formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(
@@ -164,6 +166,7 @@ export const allEventHandlers = (
       onContextMenu,
       labelMap,
       getCrossFilterDataMask(selectedValues, groupby, labelMap),
+      formData,
       coltypeMapping,
     ),
   };
