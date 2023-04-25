@@ -75,6 +75,8 @@ export default function transformProps(chartProps) {
     drivetimeBorderColor,
     drivetimeBorderWidth,
     drivetimeLinkedCharts,
+    intersectSa1Color,
+    intersectSa1Width,
     customName,
     customType,
     customTileset,
@@ -165,6 +167,7 @@ export default function transformProps(chartProps) {
   const newCustomColor = toRgbaStr(customColor);
   const newRadiusBorderColor = toRgbaStr(radiusBorderColor);
   const newDrivetimeBorderColor = toRgbaStr(drivetimeBorderColor);
+  const newIntersectSa1Color = toRgbaStr(intersectSa1Color);
 
   const newRadiusLinkedCharts = radiusLinkedCharts ? radiusLinkedCharts.split(',').map(Number) : [];
   const newDrivetimeLinkedCharts = drivetimeLinkedCharts ? drivetimeLinkedCharts.split(',').map(Number) : [];
@@ -205,6 +208,8 @@ export default function transformProps(chartProps) {
     newDrivetimeBorderColor,
     drivetimeBorderWidth,
     newDrivetimeLinkedCharts,
+    newIntersectSa1Color,
+    intersectSa1Width,
     customName,
     customType,
     customTileset,

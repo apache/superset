@@ -24,7 +24,13 @@ import {
   getSequentialSchemeRegistry,
   SequentialScheme 
 } from '@superset-ui/core';
-import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
+import { 
+  ControlPanelConfig, 
+  sections, 
+  sharedControls, 
+  ControlPanelState,
+  ControlState
+} from '@superset-ui/chart-controls';
 
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
@@ -266,7 +272,7 @@ const config: ControlPanelConfig = {
               // ^ this makes it apply instantaneously, without triggering a "run query" button
               label: t('Boundary'),
               description: t('ABS boundaries'),
-              visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.map_type.value.includes('thematic'))
             },
           },
         ],
@@ -286,7 +292,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Mode'),
               description: t('Method used for color styling in thematic.'),
-              visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.map_type.value.includes('thematic'))
             }
           }
         ],
@@ -299,7 +305,7 @@ const config: ControlPanelConfig = {
               default: '',
               label: t('Custom Mode'),
               description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
-              visibility: ({ controls }) => Boolean(controls.breaks_mode.value === 'custom') && Boolean(controls.map_type.value.includes('thematic'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.breaks_mode.value === 'custom') && Boolean(controls.map_type.value.includes('thematic'))
             }
           }
         ],
@@ -314,7 +320,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Classes'),
               description: t('The number of breaks for the thematic'),
-              visibility: ({ controls }) => Boolean(!(controls.breaks_mode.value === 'categorized')) && Boolean(controls.map_type.value.includes('thematic'))
+              visibility: ({ controls } : ControlState) => Boolean(!(controls.breaks_mode.value === 'categorized')) && Boolean(controls.map_type.value.includes('thematic'))
             },
           },
           {
@@ -390,7 +396,7 @@ const config: ControlPanelConfig = {
                 b: 201,
                 a: 100
               },
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('radius'))
             }
           },
           {
@@ -404,7 +410,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Threshold'),
               description: t('Threshold for ratio of SA1 intersection with radius, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the radius.'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ],
@@ -421,19 +427,18 @@ const config: ControlPanelConfig = {
                 b: 201,
                 a: 100
               },
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('radius'))
             }
           },
           {
             name: 'radius_border_width',
             config: {
               type: 'TextControl',
-              min: 0,
               validators: [validateNumber],
               renderTrigger: true,
-              default: 0,
+              default: '0',
               label: t('Border Width'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ],
@@ -445,7 +450,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Chart IDs'),
               description: t('Comma separated list of chart IDs whose charts we want to update when radius updates.'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('radius'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('radius'))
             }
           }
         ]
@@ -468,7 +473,7 @@ const config: ControlPanelConfig = {
                 b: 201,
                 a: 100
               },
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('drivetime'))
             }
           },
           {
@@ -482,7 +487,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Threshold'),
               description: t('Threshold for ratio of SA1 intersection with drivetime, i.e. a ratio of 0.5 excludes SA1s where less than 50% of their area intersect with the drivetime.'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('drivetime'))
             }
           }
         ],
@@ -499,19 +504,18 @@ const config: ControlPanelConfig = {
                 b: 201,
                 a: 100
               },
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('drivetime'))
             }
           },
           {
             name: 'drivetime_border_width',
             config: {
               type: 'TextControl',
-              min: 0,
               validators: [validateNumber],
               renderTrigger: true,
-              default: 0,
+              default: '0',
               label: t('Border Width'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('drivetime'))
             }
           }
         ],
@@ -523,7 +527,47 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Chart IDs'),
               description: t('Comma separated list of chart IDs whose charts we want to update when drivetime updates.'),
-              visibility: ({ controls }) => Boolean(controls.features.value.includes('drivetime'))
+              visibility: ({ controls } : ControlState) => Boolean(controls.features.value.includes('drivetime'))
+            }
+          }
+        ]
+      ]
+    },
+    {
+      label: t('Intersecting SA1s'),
+      expanded: false,
+      controlSetRows: [
+        [
+          {
+            name: 'intersect_sa1_color',
+            config: {
+              label: t('Line Color'),
+              type: 'ColorPickerControl',
+              renderTrigger: true,
+              default: {
+                r: 31,
+                g: 168,
+                b: 201,
+                a: 100
+              },
+              visibility: ({ controls } : ControlState) => Boolean(
+                controls.features.value.includes('drivetime') ||
+                controls.features.value.includes('radius')
+              )
+            }
+          },
+          {
+            name: 'intersect_sa1_width',
+            config: {
+              type: 'TextControl',
+              renderTrigger: true,
+              label: 'Line Width',
+              validators: [validateNumber],
+              default: '1',
+              visibility: ({ controls } : ControlState) => Boolean(
+                controls.features.value.includes('drivetime') ||
+                controls.features.value.includes('radius')
+              )
             }
           }
         ]
@@ -567,7 +611,7 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               renderTrigger: false,
               label: t('Mapbox Tileset URL'),
-              visibility: ({ controls }) => Boolean(controls?.custom_type.value === 'tileset')
+              visibility: ({ controls } : ControlState) => Boolean(controls?.custom_type.value === 'tileset')
             }
           }
         ],
@@ -591,7 +635,7 @@ const config: ControlPanelConfig = {
                   label: o.database_name,
                 }));
               },
-              visibility: ({ controls }) => Boolean(controls.custom_type.value === 'table')
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_type.value === 'table')
             },
           },
         ],
@@ -604,13 +648,14 @@ const config: ControlPanelConfig = {
               label: t('Schema'),
               placeholder: t('Select schema'),
               onAsyncErrorMessage: t('Error while fetching schemas'),
-              mapStateToProps(state) {
+              mapStateToProps(state : ControlPanelState) {
                 const db = state.controls.custom_database.value;
                 if (typeof db === 'number') {
                   return {
                     dataEndpoint: `/api/v1/database/${db}/schemas`
                   }
                 }
+                return;
               },
               shouldMapStateToProps() {
                 return true
@@ -624,7 +669,7 @@ const config: ControlPanelConfig = {
                   label: o,
                 }));
               },
-              visibility: ({ controls }) => Boolean(typeof controls.custom_database.value === 'number')
+              visibility: ({ controls } : ControlState) => Boolean(typeof controls.custom_database.value === 'number')
             },
           },
         ],
@@ -637,7 +682,7 @@ const config: ControlPanelConfig = {
               label: t('Table'),
               placeholder: t('Select table'),
               onAsyncErrorMessage: t('Error while fetching tables'),
-              mapStateToProps(state) {
+              mapStateToProps(state : ControlPanelState) {
                 const db = state.controls.custom_database.value;
                 const schema = state.controls.custom_schema.value;
                 if ((typeof db === 'number') && (typeof schema === 'string')) {
@@ -645,6 +690,7 @@ const config: ControlPanelConfig = {
                     dataEndpoint: `/api/v1/database/${db}/tables/?q=(schema_name:${schema})`
                   }
                 }
+                return;
               },
               shouldMapStateToProps() {
                 return true
@@ -658,7 +704,7 @@ const config: ControlPanelConfig = {
                   label: o.value,
                 }));
               },
-              visibility: ({ controls }) => Boolean(typeof controls.custom_schema.value === 'string')
+              visibility: ({ controls } : ControlState) => Boolean(typeof controls.custom_schema.value === 'string')
             },
           },
         ],
@@ -700,7 +746,7 @@ const config: ControlPanelConfig = {
                 ['pentagon', 'Pentagon'],
                 ['triangle', 'Triangle']
               ],
-              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point')
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_geom.value === 'point')
             },
           }
         ],
@@ -722,7 +768,7 @@ const config: ControlPanelConfig = {
               label: t('Color Attribute'),
               type: 'TextControl',
               renderTrigger: false,
-              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_color_attribute_check === true)
             }
           }
         ],
@@ -739,7 +785,7 @@ const config: ControlPanelConfig = {
                 b: 201,
                 a: 100
               },
-              visibility: ({ controls }) => Boolean(!(controls.custom_color_attribute_check.value === true))
+              visibility: ({ controls } : ControlState) => Boolean(!(controls.custom_color_attribute_check.value === true))
             }
           },
           {
@@ -758,10 +804,10 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               schemes: () => sequentialSchemeRegistry.getMap(),
               isLinear: true,
-              mapStateToProps: state => ({
+              mapStateToProps: (state : ControlPanelState) => ({
                 dashboardId: state?.form_data?.dashboardId,
               }),
-              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_color_attribute_check.value === true)
             }
           }
         ],
@@ -780,7 +826,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Mode'),
               description: t('Method used for color styling in thematic.'),
-              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_color_attribute_check.value === true)
             }
           }
         ],
@@ -793,7 +839,7 @@ const config: ControlPanelConfig = {
               default: '',
               label: t('Custom Mode'),
               description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
-              visibility: ({ controls }) => Boolean(controls.custom_color_breaks_mode.value === 'custom') 
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_color_breaks_mode.value === 'custom') 
                 && Boolean(controls.custom_color_attribute_check.value === true)
             }
           }
@@ -809,7 +855,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Classes'),
               description: t('The number of breaks for the thematic'),
-              visibility: ({ controls }) => Boolean(!(controls.custom_color_breaks_mode.value === 'categorized')) 
+              visibility: ({ controls } : ControlState) => Boolean(!(controls.custom_color_breaks_mode.value === 'categorized')) 
                 && Boolean(controls.custom_color_attribute_check.value === true)
             },
           },
@@ -824,7 +870,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Opacity'),
               description: t('Opacity of thematic'),
-              visibility: ({ controls }) => Boolean(controls.custom_color_attribute_check.value === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_color_attribute_check.value === true)
             }
           }
         ],
@@ -836,7 +882,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               default: false,
               label: t('Size based on attribute?'),
-              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point')
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_geom.value === 'point')
             }
           }
         ],
@@ -847,7 +893,7 @@ const config: ControlPanelConfig = {
               label: t('Size Attribute'),
               type: 'TextControl',
               renderTrigger: false,
-              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_size_attribute_check === true)
             }
           }
         ],
@@ -860,16 +906,17 @@ const config: ControlPanelConfig = {
               validators: [legacyValidateInteger],
               default: 25,
               renderTrigger: false,
-              visibility: ({ controls }) => Boolean(controls.custom_geom.value === 'point'),
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_geom.value === 'point'),
               shouldMapStateToProps() {
                 return true;
               },
-              mapStateToProps(state) {
+              mapStateToProps(state : ControlPanelState) {
                 if (state.controls.custom_size_attribute_check.value === true) {
                   return {
                     label: t('Min Size (px)')
                   }
                 }
+                return;
               }
             }
           },
@@ -882,7 +929,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               validators: [validateNumber],
               default: 2,
-              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check.value === true),
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_size_attribute_check.value === true),
             }
           }
         ],
@@ -901,7 +948,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Mode'),
               description: t('Method used for color styling in thematic.'),
-              visibility: ({ controls }) => Boolean(controls.custom_size_attribute_check.value === true)
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_size_attribute_check.value === true)
             }
           }
         ],
@@ -914,7 +961,7 @@ const config: ControlPanelConfig = {
               default: '',
               label: t('Custom Mode'),
               description: t('Specify a custom mode here for the number of classes, e.g. for 5 classes in custom mode would look something like 0,5,10,15,20,25 for breaks of 0-4, 5-9, 10-14, 15-19, 20+. Leave blank if specifying a mode above.'),
-              visibility: ({ controls }) => Boolean(controls.custom_size_breaks_mode.value === 'custom') 
+              visibility: ({ controls } : ControlState) => Boolean(controls.custom_size_breaks_mode.value === 'custom') 
                 && Boolean(controls.custom_size_attribute_check.value === true)
             }
           }
@@ -930,7 +977,7 @@ const config: ControlPanelConfig = {
               renderTrigger: false,
               label: t('Classes'),
               description: t('The number of breaks for the thematic'),
-              visibility: ({ controls }) => Boolean(!(controls.custom_size_breaks_mode.value === 'categorized')) 
+              visibility: ({ controls } : ControlState) => Boolean(!(controls.custom_size_breaks_mode.value === 'categorized')) 
                 && Boolean(controls.custom_size_attribute_check.value === true)
             },
           },
@@ -941,7 +988,7 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     linear_color_scheme: {
       renderTrigger: false,
-      visibility: ({ controls }) => Boolean(controls.map_type.value.includes('thematic'))
+      visibility: ({ controls } : ControlState) => Boolean(controls.map_type.value.includes('thematic'))
     }
   }
 };

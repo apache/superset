@@ -111,6 +111,8 @@ export default function LiqThematicMaps(props) {
     newDrivetimeBorderColor, // color of drivetime border in rgba
     drivetimeBorderWidth, // stroke width of drivetime border
     newDrivetimeLinkedCharts, // chart ids to update in dashboard when drivetime is updated
+    newIntersectSa1Color,
+    intersectSa1Width,
     customName, // name of custom layer
     customType, // custom layer is either from a tileset or existing table
     customTileset, // url of custom layer tileset
@@ -206,6 +208,8 @@ export default function LiqThematicMaps(props) {
                 borderColor={newRadiusBorderColor}
                 borderWidth={radiusBorderWidth} 
                 radiusLinkedCharts={newRadiusLinkedCharts}
+                sa1Color={newIntersectSa1Color}
+                sa1Width={intersectSa1Width}
               />
             );
             setDrawerOpen(true);
@@ -227,6 +231,8 @@ export default function LiqThematicMaps(props) {
                 borderColor={newDrivetimeBorderColor}
                 borderWidth={drivetimeBorderWidth}
                 drivetimeLinkedCharts={newDrivetimeLinkedCharts}
+                sa1Color={newIntersectSa1Color}
+                sa1Width={intersectSa1Width}
               />
             );
             setDrawerOpen(true);
@@ -731,6 +737,20 @@ export default function LiqThematicMaps(props) {
       map.current.setPaintProperty('drivetime-outline', 'line-width', parseFloat(drivetimeBorderWidth));
     }
   }, [newDrivetimeColor, newDrivetimeBorderColor, drivetimeBorderWidth]);
+
+  // Hooks for applying intersect sa1 style settings in real time
+  useEffect(() => {
+    if (map.current.isStyleLoaded()) {
+      if ('drivetime' in map.current.getStyle().sources) {
+        map.current.setPaintProperty('drivetime_sa1s', 'line-color', newIntersectSa1Color);
+        map.current.setPaintProperty('drivetime_sa1s', 'line-width', parseFloat(intersectSa1Width));
+      }
+      if ('radius' in map.current.getStyle().sources) {
+        map.current.setPaintProperty('radius_sa1s', 'line-color', newIntersectSa1Color);
+        map.current.setPaintProperty('radius_sa1s', 'line-width', parseFloat(intersectSa1Width));
+      }
+    }
+  }, [newIntersectSa1Color, intersectSa1Width])
 
   return (
     <Layout style={{height: height, width: width}} ref={rootElem}>

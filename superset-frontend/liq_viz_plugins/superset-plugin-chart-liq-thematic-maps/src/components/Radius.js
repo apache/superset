@@ -22,7 +22,9 @@ export default function Radius(props) {
     borderColor,
     borderWidth,
     radiusLinkedCharts,
-    map
+    map,
+    sa1Color,
+    sa1Width
   } = props;
 
   const [distance, setDistance] = useState(5);
@@ -91,6 +93,7 @@ export default function Radius(props) {
       'source-layer': boundary,
       'paint': {
         'line-color': 'transparent',
+        'line-width': parseFloat(sa1Width)
       }
     });
     map.current.off('click', drawRadius);
@@ -141,13 +144,13 @@ export default function Radius(props) {
       .then(response => response.json())
       .then(result => {
         const boundaries = ['SA1_CODE21', 'SA2_CODE21', 'SA3_CODE21', 'SA4_CODE21', 'DZN_CODE21']
-        const paint = [
-          'case',
-          ['in', ['get', boundaries.includes(groupCol) ? groupCol : 'SA1_CODE21'], ['literal', result.sa1s]],
-          '#FFFFFF',
-          'transparent'
-        ]
-        map.current.setPaintProperty('radius_sa1s', 'line-color', paint);
+        const filter = [
+          'in', 
+          ['get', boundaries.includes(groupCol) ? groupCol : 'SA1_CODE21'],
+          ['literal', result.sa1s]
+        ];
+        map.current.setFilter('radius_sa1s', filter);
+        map.current.setPaintProperty('radius_sa1s', 'line-color', sa1Color);
         postRkeySA1s(result.sa1s);
       })
   }
