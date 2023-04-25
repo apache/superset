@@ -21,6 +21,7 @@ import {
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
+  QueryFormData,
   getColumnLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -111,7 +112,7 @@ export const contextMenuEventHandler =
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
-    formData: ,
+    formData: QueryFormData,
     coltypeMapping?: Record<string, number>,
   ) =>
   (e: Event) => {
