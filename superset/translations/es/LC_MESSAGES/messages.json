@@ -1549,9 +1549,6 @@
       "Graph layout": [""],
       "Gravity": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "'Group By' y 'Columns' no pueden solaparse"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Agrupar por"],
       "Groupable": ["Agrupable"],
@@ -2200,9 +2197,6 @@
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
-      ],
-      "Please choose at least one metric": [
-        "Por favor elige al menos una métrica"
       ],
       "Please choose different metrics on left and right axis": [
         "Por favor, elige diferentes métricas en el eje izquierdo y derecho"

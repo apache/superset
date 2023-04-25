@@ -1523,9 +1523,6 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "Group By' 와 'Columns' 겹칠 수 없습니다"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group Key": [""],
       "Group by": [""],
@@ -2227,9 +2224,6 @@
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
-      ],
-      "Please choose at least one metric": [
-        "적어도 하나의 메트릭을 선택하세요"
       ],
       "Please choose different metrics on left and right axis": [""],
       "Please confirm": [""],
@@ -3377,7 +3371,6 @@
       "Tooltip time format": [""],
       "Top right": [""],
       "Top to Bottom": [""],
-      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],

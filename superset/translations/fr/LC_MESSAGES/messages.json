@@ -1796,9 +1796,6 @@
       "Gravity": [""],
       "Group By": ["Grouper par"],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "'Grouper par' et 'Colonnes' ne peuvent pas se chevaucher"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Grouper par"],
       "Groupable": ["Groupable"],
@@ -2501,9 +2498,6 @@
       ],
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(server_error)s\". Puis essayez de relancer la requête."
-      ],
-      "Please choose at least one metric": [
-        "Choississez au moins une métrique"
       ],
       "Please choose different metrics on left and right axis": [
         "Choisissez des métriques différentes pour les axes gauches et droits"

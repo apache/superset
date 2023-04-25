@@ -2484,9 +2484,6 @@
       "Grid Size": ["Rastergröße"],
       "Group By": ["Gruppieren nach"],
       "Group By filter plugin": ["Gruppieren nach Filter-Plugin"],
-      "Group By' and 'Columns' can't overlap": [
-        "„Gruppieren nach\" und \"Spalten\" dürfen sich nicht überlappen"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "Group By, Metriken oder Prozentmetriken müssen einen Wert haben"
       ],
@@ -3593,14 +3590,8 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         "Überprüfen Sie Ihre Vorlagenparameter auf Syntaxfehler und stellen Sie sicher, dass sie in Ihrer SQL-Abfrage und in den Parameter-Namen übereinstimmen. Versuchen Sie dann erneut, die Abfrage auszuführen."
       ],
-      "Please choose at least one 'Group by' field": [
-        "Bitte wählen Sie mindestens ein Feld \"Gruppieren nach\" "
-      ],
       "Please choose at least one groupby": [
         "Bitte wählen Sie mindestens ein Gruppierungs-Kriterium"
-      ],
-      "Please choose at least one metric": [
-        "Bitte wählen Sie mindestens eine Metrik"
       ],
       "Please choose different metrics on left and right axis": [
         "Bitte wählen Sie verschiedene Metriken für die linke und rechte Achse"

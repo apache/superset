@@ -2316,9 +2316,6 @@
       "Grid Size": ["Размер сетки"],
       "Group By": ["Группировать по"],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "Измерения и Столбцы не могут повторяться"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "Измерения, Меры или Процентные меры должны иметь значение"
       ],
@@ -3290,10 +3287,6 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         "Пожалуйста, проверьте параметры вашего шаблона на наличие синтаксических ошибок и убедитесь, что они совпадают с вашим SQL-запросом и заданными параметрами. Затем попробуйте выполнить свой запрос еще раз."
       ],
-      "Please choose at least one 'Group by' field": [
-        "Выберите хотя бы одно поле \"Группировать по\""
-      ],
-      "Please choose at least one metric": ["Выберите хотя бы одну меру"],
       "Please choose different metrics on left and right axis": [
         "Выберите разные меры для левой и правой осей"
       ],

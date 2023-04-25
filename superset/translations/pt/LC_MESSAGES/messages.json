@@ -1470,9 +1470,6 @@
       "Grid": [""],
       "Grid Size": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "Os campos 'Agrupar por' e 'Colunas' não se podem sobrepor"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Agrupar por"],
       "Groupable": ["Agrupável"],
@@ -2151,7 +2148,6 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose at least one metric": ["Selecione pelo menos uma métrica"],
       "Please choose different metrics on left and right axis": [
         "Selecione métricas diferentes para o eixo esquerdo e direito"
       ],
@@ -3286,7 +3282,6 @@
       "Top left": [""],
       "Top right": [""],
       "Top to Bottom": [""],
-      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],

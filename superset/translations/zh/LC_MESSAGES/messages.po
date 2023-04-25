@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2023-05-23 16:26-0300\n"
+"POT-Creation-Date: 2023-05-23 16:30-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -124,7 +124,7 @@ msgstr ""
 msgid " to visualize your data."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:116
 msgid "!= (Is not equal)"
 msgstr "!= (不等于)"
 
@@ -318,8 +318,8 @@ msgstr[0] "%s 异常"
 msgid "%s saved metric(s)"
 msgstr "%s 列与计量指标"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:640
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:656
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:639
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:655
 #, fuzzy, python-format
 msgid "%s updated"
 msgstr "上次更新 %s"
@@ -628,7 +628,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:459
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:131
 msgid "30 days"
 msgstr "30天"
 
@@ -708,7 +708,7 @@ msgstr "周一为一周开始"
 msgid "6 hour"
 msgstr "6小时"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:135
 msgid "60 days"
 msgstr "60天"
 
@@ -735,7 +735,7 @@ msgstr ""
 msgid "9/91 percentiles"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:139
 msgid "90 days"
 msgstr "90天"
 
@@ -743,11 +743,11 @@ msgstr "90天"
 msgid ":"
 msgstr ":"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:96
 msgid "< (Smaller than)"
 msgstr "< (小于)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:104
 msgid "<= (Smaller or equal)"
 msgstr "<= (小于等于)"
 
@@ -776,15 +776,15 @@ msgstr "空间"
 msgid "<no type>"
 msgstr "图表类型"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:112
 msgid "== (Is equal)"
 msgstr "== (等于)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:100
 msgid "> (Larger than)"
 msgstr "> (大于)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:108
 msgid ">= (Larger or equal)"
 msgstr ">= (大于等于)"
 
@@ -886,7 +886,7 @@ msgstr "数据集 %(name)s 已存在"
 msgid "A reusable dataset will be saved with your chart."
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:309
+#: superset-frontend/src/components/ReportModal/index.tsx:308
 #, fuzzy
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr "计划的报告将作为PNG发送到您的电子邮件"
@@ -1007,7 +1007,7 @@ msgstr "操作日志"
 msgid "Actions"
 msgstr "操作"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
 #: superset-frontend/src/pages/AlertReportList/index.tsx:355
 msgid "Active"
 msgstr "激活"
@@ -1041,8 +1041,8 @@ msgstr "空值"
 msgid "Adaptive formatting"
 msgstr "自动匹配格式化"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:229
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
+#: superset-frontend/src/components/ReportModal/index.tsx:228
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -1050,7 +1050,7 @@ msgstr "自动匹配格式化"
 msgid "Add"
 msgstr "新增"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 msgid "Add Alert"
 msgstr "添加告警"
 
@@ -1086,7 +1086,7 @@ msgstr "新增日志"
 msgid "Add Metric"
 msgstr "添加指标"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
 msgid "Add Report"
 msgstr "添加报告"
 
@@ -1161,7 +1161,7 @@ msgstr "增加过滤条件"
 msgid "Add custom scoping"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
 msgstr "添加通知方法"
 
@@ -1212,7 +1212,7 @@ msgstr "添加新的颜色"
 msgid "Add new formatter"
 msgstr "新增格式化"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:374
 msgid "Add notification method"
 msgstr "添加注释层"
 
@@ -1450,11 +1450,11 @@ msgstr "警报"
 msgid "Alert Triggered, In Grace Period"
 msgstr "告警已触发，在宽限期内"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
 msgid "Alert condition"
 msgstr "告警条件"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
 msgid "Alert condition schedule"
 msgstr "告警条件计划"
 
@@ -1474,7 +1474,7 @@ msgstr "在宽限期内触发告警。"
 msgid "Alert found an error while executing a query."
 msgstr "告警在执行查询时发现错误。"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
 msgid "Alert name"
 msgstr "告警名称"
 
@@ -1715,7 +1715,7 @@ msgstr "发生了一个错误"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "数据集 %(name)s 已存在"
 
-#: superset/common/query_context_processor.py:326 superset/viz.py:1500
+#: superset/common/query_context_processor.py:326 superset/viz.py:1352
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2271,7 +2271,7 @@ msgstr "应用的条件 (%d)"
 msgid "Applied filters: %s"
 msgstr "应用的条件 (%d)"
 
-#: superset/viz.py:253
+#: superset/viz.py:250
 msgid ""
 "Applied rolling window did not return any data. Please make sure the "
 "source query satisfies the minimum periods defined in the rolling window."
@@ -2564,7 +2564,7 @@ msgstr "条形栏的值"
 msgid "Bad formula."
 msgstr "日期格式化"
 
-#: superset/viz.py:2600 superset/viz.py:2640
+#: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
 msgstr "错误的空间字段"
 
@@ -2655,7 +2655,7 @@ msgid "Before"
 msgstr "之前"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
-#: superset/viz.py:1334
+#: superset/viz.py:1186
 msgid "Big Number"
 msgstr "数字"
 
@@ -2664,7 +2664,7 @@ msgid "Big Number Font Size"
 msgstr "数字的字体大小"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
-#: superset/viz.py:1298
+#: superset/viz.py:1150
 msgid "Big Number with Trendline"
 msgstr "数字和趋势线"
 
@@ -2749,7 +2749,7 @@ msgid "Breakdowns"
 msgstr "分解"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:32
-#: superset/viz.py:1213
+#: superset/viz.py:1065
 msgid "Bubble Chart"
 msgstr "气泡图"
 
@@ -2789,7 +2789,7 @@ msgid "Bulk select"
 msgstr "批量选择"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
-#: superset/viz.py:1266
+#: superset/viz.py:1118
 msgid "Bullet Chart"
 msgstr "子弹图"
 
@@ -2979,7 +2979,7 @@ msgstr "已缓存"
 msgid "Cached %s"
 msgstr "缓存于%s"
 
-#: superset/viz.py:581
+#: superset/viz.py:578
 msgid "Cached value not found"
 msgstr "缓存的值未找到"
 
@@ -3006,7 +3006,7 @@ msgid "Calculation type"
 msgstr "计算类型"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:32
-#: superset/viz.py:1120
+#: superset/viz.py:972
 msgid "Calendar Heatmap"
 msgstr "时间热力图"
 
@@ -3020,7 +3020,7 @@ msgstr "无法将顶级tab页移动到嵌套tab页中"
 msgid "Can select multiple values"
 msgstr "允许选择多个值"
 
-#: superset/viz.py:1875
+#: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
 msgstr "Series 和 Breakdown 之间不能有重叠"
 
@@ -3030,7 +3030,7 @@ msgstr "Series 和 Breakdown 之间不能有重叠"
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:227
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:268
 #: superset-frontend/src/components/Modal/Modal.tsx:269
-#: superset-frontend/src/components/ReportModal/index.tsx:220
+#: superset-frontend/src/components/ReportModal/index.tsx:219
 #: superset-frontend/src/dashboard/components/FilterBoxMigrationModal.tsx:72
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:649
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:151
@@ -3305,7 +3305,7 @@ msgstr "将字符解释为小数点的字符。"
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:69
 #: superset-frontend/src/features/home/ChartTable.tsx:191
 #: superset-frontend/src/features/home/RightMenu.tsx:219
@@ -3598,11 +3598,11 @@ msgstr "选中以包括时间粒度下拉菜单"
 msgid "Child label position"
 msgstr "子标签位置"
 
-#: superset/viz.py:2455
+#: superset/viz.py:2307
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr "[标签] 的选择项必须出现在 [Group By]"
 
-#: superset/viz.py:2463
+#: superset/viz.py:2315
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "[点半径] 的选择项必须出现在 [Group By]"
 
@@ -4112,7 +4112,7 @@ msgstr "显示总计"
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "数据源中缺少列：%(invalid_columns)s"
 
-#: superset/viz.py:596
+#: superset/viz.py:593
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "数据源中缺少列：%(invalid_columns)s"
@@ -4251,7 +4251,7 @@ msgstr ""
 msgid "Compute the contribution to the total"
 msgstr "计算对总数的贡献值"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
 msgid "Condition"
 msgstr "条件"
 
@@ -4575,7 +4575,7 @@ msgid "Country Field Type"
 msgstr "国家字段的类型"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
-#: superset/viz.py:2117
+#: superset/viz.py:1969
 msgid "Country Map"
 msgstr "国家地图"
 
@@ -4859,7 +4859,7 @@ msgstr ""
 msgid "Dark mode"
 msgstr "黑暗模式"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:228
 #: superset-frontend/src/pages/DashboardList/index.tsx:672
@@ -5028,7 +5028,7 @@ msgid "DataFrame must include temporal column"
 msgstr "数据帧（DataFrame）必须包含时间列"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:274
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 #: superset-frontend/src/pages/DatabaseList/index.tsx:278
 #: superset-frontend/src/pages/DatabaseList/index.tsx:307
 #: superset-frontend/src/pages/DatasetList/index.tsx:360
@@ -5388,44 +5388,44 @@ msgstr ""
 msgid "Decimal Character"
 msgstr "十进制字符"
 
-#: superset/viz.py:2848
+#: superset/viz.py:2700
 msgid "Deck.gl - 3D Grid"
 msgstr "Deck.gl - 3D网格"
 
-#: superset/viz.py:2973
+#: superset/viz.py:2825
 msgid "Deck.gl - 3D HEX"
 msgstr "Deck.gl - 3D六角曲面"
 
-#: superset/viz.py:3038
+#: superset/viz.py:2890
 msgid "Deck.gl - Arc"
 msgstr "Deck.gl - 弧度"
 
-#: superset/viz.py:3017
+#: superset/viz.py:2869
 msgid "Deck.gl - GeoJSON"
 msgstr "Deck.gl - 地理json"
 
-#: superset/viz.py:2996
+#: superset/viz.py:2848
 #, fuzzy
 msgid "Deck.gl - Heatmap"
 msgstr "圆弧图"
 
-#: superset/viz.py:2554
+#: superset/viz.py:2406
 msgid "Deck.gl - Multiple Layers"
 msgstr "多图层"
 
-#: superset/viz.py:2883
+#: superset/viz.py:2735
 msgid "Deck.gl - Paths"
 msgstr "Deck.gl - 路径"
 
-#: superset/viz.py:2937
+#: superset/viz.py:2789
 msgid "Deck.gl - Polygon"
 msgstr "Deck.gl - 多角形"
 
-#: superset/viz.py:2760
+#: superset/viz.py:2612
 msgid "Deck.gl - Scatter plot"
 msgstr "Deck.gl - 散点图"
 
-#: superset/viz.py:2816
+#: superset/viz.py:2668
 msgid "Deck.gl - Screen Grid"
 msgstr "Deck.gl - 屏幕网格"
 
@@ -5777,11 +5777,11 @@ msgstr "过时"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:860
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1206
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1210
-#: superset-frontend/src/components/ReportModal/index.tsx:294
+#: superset-frontend/src/components/ReportModal/index.tsx:293
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:51
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1158
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:367
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:465
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
 #: superset-frontend/src/pages/AnnotationList/index.tsx:161
@@ -5869,7 +5869,7 @@ msgstr ""
 msgid "Dimensions"
 msgstr "维度"
 
-#: superset/viz.py:2076
+#: superset/viz.py:1928
 msgid "Directed Force Layout"
 msgstr "有向图"
 
@@ -5957,7 +5957,7 @@ msgstr "基于某列进行分布"
 msgid "Distribution"
 msgstr "分布"
 
-#: superset/viz.py:1865
+#: superset/viz.py:1717
 msgid "Distribution - Bar Chart"
 msgstr "分布 - 柱状图"
 
@@ -6302,7 +6302,7 @@ msgstr "边缘宽度"
 msgid "Edit"
 msgstr "编辑"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
 msgid "Edit Alert"
 msgstr "编辑警报"
 
@@ -6355,7 +6355,7 @@ msgstr "编辑指标"
 msgid "Edit Plugin"
 msgstr "编辑插件"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
 msgid "Edit Report"
 msgstr "编辑报表"
 
@@ -6412,7 +6412,7 @@ msgstr "编辑数据集"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:243
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:264
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 msgid "Edit email report"
 msgstr "编辑邮件报告"
 
@@ -6604,7 +6604,7 @@ msgstr "启用查询成本估算"
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "支持服务器端结果分页(实验功能)"
 
-#: superset/viz.py:2662
+#: superset/viz.py:2514
 msgid ""
 "Encountered invalid NULL spatial entry,"
 "                                        please consider filtering those "
@@ -6819,7 +6819,7 @@ msgstr "事件名称"
 msgid "Event definition"
 msgstr "事件定义"
 
-#: superset/viz.py:3075
+#: superset/viz.py:2927
 msgid "Event flow"
 msgstr "事件流"
 
@@ -7151,7 +7151,7 @@ msgstr "检索结果失败"
 msgid "Failed at stopping query. %s"
 msgstr "停止查询失败。 %s"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:343
+#: superset-frontend/src/components/ReportModal/index.tsx:342
 msgid "Failed to create report"
 msgstr ""
 
@@ -7191,7 +7191,7 @@ msgstr "交叉筛选作用域"
 msgid "Failed to start remote query on a worker."
 msgstr "无法启动远程查询"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:342
+#: superset-frontend/src/components/ReportModal/index.tsx:341
 msgid "Failed to update report"
 msgstr ""
 
@@ -7392,7 +7392,7 @@ msgstr "可过滤"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:109
 #: superset-frontend/src/explore/controls.jsx:446
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:35
-#: superset/viz.py:2219
+#: superset/viz.py:2071
 msgid "Filters"
 msgstr "过滤"
 
@@ -7572,7 +7572,7 @@ msgstr ""
 msgid "Formattable"
 msgstr "格式表"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:255
+#: superset-frontend/src/components/ReportModal/index.tsx:254
 msgid "Formatted CSV attached in email"
 msgstr "在邮件中附件CSV"
 
@@ -7628,7 +7628,7 @@ msgstr "节点之间的摩擦"
 msgid "Friday"
 msgstr "星期五"
 
-#: superset/utils/date_parser.py:267 superset/viz.py:406
+#: superset/utils/date_parser.py:267 superset/viz.py:403
 msgid "From date cannot be larger than to date"
 msgstr "起始时间不可以大于当前时间"
 
@@ -7715,7 +7715,7 @@ msgstr ""
 msgid "Google Sheet Name and URL"
 msgstr "Google Sheet名称和URL"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
 msgid "Grace period"
 msgstr "宽限期"
 
@@ -7759,10 +7759,6 @@ msgstr "分组"
 #: superset-frontend/src/filters/components/GroupBy/index.ts:29
 msgid "Group By filter plugin"
 msgstr "分组过滤插件"
-
-#: superset/viz.py:962
-msgid "Group By' and 'Columns' can't overlap"
-msgstr "“Group by”列和字段不能重叠"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/shared.ts:59
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:84
@@ -7813,7 +7809,7 @@ msgid "Header Row"
 msgstr "标题行"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:38
-#: superset/viz.py:2331
+#: superset/viz.py:2183
 msgid "Heatmap"
 msgstr "热力图"
 
@@ -7868,7 +7864,7 @@ msgid "Hierarchy"
 msgstr "层次"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:37
-#: superset/viz.py:1804
+#: superset/viz.py:1656
 msgid "Histogram"
 msgstr "直方图"
 
@@ -7881,7 +7877,7 @@ msgstr "主页"
 msgid "Horizon Chart"
 msgstr "地平线图"
 
-#: superset/viz.py:2394
+#: superset/viz.py:2246
 msgid "Horizon Charts"
 msgstr "水平图"
 
@@ -8013,7 +8009,7 @@ msgid ""
 " and recreate table) or Append (insert data)."
 msgstr "如果表已存在，执行其中一个：舍弃（什么都不做），替换（删除表并重建），或者追加(插入数据)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
 #, fuzzy
 msgid "Ignore cache when generating screenshot"
 msgstr "生成屏幕截图时报表计划执行失败。"
@@ -8026,7 +8022,7 @@ msgstr ""
 msgid "Ignore time"
 msgstr "忽略时间"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:252
+#: superset-frontend/src/components/ReportModal/index.tsx:251
 msgid "Image (PNG) embedded in email"
 msgstr "使用邮箱发送图片(PNG)"
 
@@ -8119,7 +8115,7 @@ msgstr "在"
 msgid "Include Series"
 msgstr "包含系列"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:295
+#: superset-frontend/src/components/ReportModal/index.tsx:294
 msgid "Include a description that will be sent with your report"
 msgstr ""
 
@@ -8288,7 +8284,7 @@ msgstr "累积运算符无效：%(operator)s"
 msgid "Invalid date/timestamp format"
 msgstr "无效的日期/时间戳格式"
 
-#: superset/viz.py:2239
+#: superset/viz.py:2091
 msgid "Invalid filter configuration, please select a column"
 msgstr "过滤器配置无效，请选择一个列"
 
@@ -8351,7 +8347,7 @@ msgstr "无效的结果类型：%(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "无效的滚动类型：%(type)s"
 
-#: superset/viz.py:2622
+#: superset/viz.py:2474
 #, python-format
 msgid "Invalid spatial point encountered: %s"
 msgstr "遇到无效的空间点：%s"
@@ -9046,7 +9042,7 @@ msgstr "创建新图表"
 msgid "Log Scale"
 msgstr "日志规模"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
 msgid "Log retention"
 msgstr "日志保留"
 
@@ -9222,7 +9218,7 @@ msgstr "地图样式"
 msgid "MapBox"
 msgstr "MapBox地图"
 
-#: superset/viz.py:2406
+#: superset/viz.py:2258
 msgid "Mapbox"
 msgstr "箱图"
 
@@ -9366,8 +9362,8 @@ msgstr "中"
 msgid "Menu actions trigger"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:237
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
+#: superset-frontend/src/components/ReportModal/index.tsx:236
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
 msgid "Message content"
 msgstr "消息内容"
 
@@ -9785,11 +9781,11 @@ msgstr "需要唯一"
 msgid "Must choose either a chart or a dashboard"
 msgstr "选择图表或看板，不能都全部选择"
 
-#: superset/viz.py:2431
+#: superset/viz.py:2283
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr "[Group By] 列必须要有 ‘count’字段作为 [标签]"
 
-#: superset/viz.py:1814
+#: superset/viz.py:1666
 msgid "Must have at least one numeric column specified"
 msgstr "必须至少指明一个数值列"
 
@@ -10273,7 +10269,7 @@ msgstr "节点大小"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:51
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:138
 #: superset-frontend/src/explore/controlPanels/sections.tsx:134
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:128
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:127
 msgid "None"
 msgstr "空"
 
@@ -10325,7 +10321,7 @@ msgstr "!= (不等于)"
 msgid "Not in"
 msgstr "注释"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:121
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:120
 msgid "Not null"
 msgstr "非空"
 
@@ -10342,7 +10338,7 @@ msgstr "不是最新的"
 msgid "Nothing triggered"
 msgstr "无触发"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:411
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
 #: superset-frontend/src/pages/AlertReportList/index.tsx:302
 msgid "Notification method"
 msgstr "通知方式"
@@ -10898,7 +10894,7 @@ msgstr "所有者"
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:527
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:531
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:369
 #: superset-frontend/src/pages/DatasetList/index.tsx:400
@@ -10950,7 +10946,7 @@ msgid "Pandas resample rule"
 msgstr "Pandas 重新采样的规则"
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:33
-#: superset/viz.py:2300
+#: superset/viz.py:2152
 msgid "Parallel Coordinates"
 msgstr "平行坐标"
 
@@ -10993,7 +10989,7 @@ msgstr "占比"
 msgid "Partition Chart"
 msgstr "分区图"
 
-#: superset/viz.py:3217
+#: superset/viz.py:3069
 msgid "Partition Diagram"
 msgstr "分区图"
 
@@ -11139,27 +11135,27 @@ msgstr "物化数据集"
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr ""
 
-#: superset/viz.py:798
+#: superset/viz.py:795
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
 msgstr "在“时间”部分选择一个粒度，或取消选中“包含时间”"
 
-#: superset/viz.py:1662
+#: superset/viz.py:1514
 msgid "Pick a metric for left axis!"
 msgstr "为左轴选择一个指标！"
 
-#: superset/viz.py:1664
+#: superset/viz.py:1516
 msgid "Pick a metric for right axis!"
 msgstr "为右轴选择一个指标！"
 
-#: superset/viz.py:1238
+#: superset/viz.py:1090
 msgid "Pick a metric for x, y and size"
 msgstr "为 x 轴，y 轴和大小选择一个指标"
 
-#: superset/viz.py:1279
+#: superset/viz.py:1131
 msgid "Pick a metric to display"
 msgstr "选择一个指标来显示"
 
-#: superset/viz.py:1307 superset/viz.py:1343
+#: superset/viz.py:1159 superset/viz.py:1195
 msgid "Pick a metric!"
 msgstr "选择一个指标！"
 
@@ -11176,7 +11172,7 @@ msgstr "为这个数据库选择一个昵称以在Superset中显示"
 msgid "Pick a set of deck.gl charts to layer on top of one another"
 msgstr ""
 
-#: superset/viz.py:1442 superset/viz.py:1712
+#: superset/viz.py:1294 superset/viz.py:1564
 msgid "Pick a time granularity for your time series"
 msgstr "为您的时间序列选择一个时间粒度"
 
@@ -11184,15 +11180,15 @@ msgstr "为您的时间序列选择一个时间粒度"
 msgid "Pick a title for you annotation."
 msgstr "为您的注释选择一个标题"
 
-#: superset/viz.py:1880
+#: superset/viz.py:1732
 msgid "Pick at least one field for [Series]"
 msgstr "为 [序列] 选择至少一个字段"
 
-#: superset/viz.py:890 superset/viz.py:1878
+#: superset/viz.py:887 superset/viz.py:1730
 msgid "Pick at least one metric"
 msgstr "选择至少一个指标"
 
-#: superset/viz.py:2011
+#: superset/viz.py:1863
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr "为 [来源 / 目标] 选择两个列"
 
@@ -11220,7 +11216,6 @@ msgid "Pin"
 msgstr "Pin"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:60
-#: superset/viz.py:928
 msgid "Pivot Table"
 msgstr "透视表"
 
@@ -11288,21 +11283,12 @@ msgid ""
 "your query again."
 msgstr "请检查查询中 \"%(syntax_error)s\" 处或附近的语法错误。然后，再次尝试运行查询。“"
 
-#: superset/viz.py:946
-#, fuzzy
-msgid "Please choose at least one 'Group by' field"
-msgstr "请至少选择一个分组字段 "
-
-#: superset/viz.py:3382
+#: superset/viz.py:3234
 #, fuzzy
 msgid "Please choose at least one groupby"
 msgstr "请至少选择一个分组字段 "
 
-#: superset/viz.py:958
-msgid "Please choose at least one metric"
-msgstr "请至少选择一个指标"
-
-#: superset/viz.py:1667
+#: superset/viz.py:1519
 msgid "Please choose different metrics on left and right axis"
 msgstr "请在左右轴上选择不同的指标"
 
@@ -11370,7 +11356,7 @@ msgstr "请先保存您的仪表盘，然后尝试创建一个新的电子邮件
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "请同时选择数据集和图表类型以继续"
 
-#: superset/viz.py:1236
+#: superset/viz.py:1088
 msgid "Please use 3 different metric labels"
 msgstr "请在左右轴上选择不同的指标"
 
@@ -12195,7 +12181,7 @@ msgstr "替换"
 msgid "Report"
 msgstr "报表"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:282
+#: superset-frontend/src/components/ReportModal/index.tsx:281
 #, fuzzy
 msgid "Report Name"
 msgstr "报告名称"
@@ -12264,11 +12250,11 @@ msgstr "报告bug"
 msgid "Report failed"
 msgstr "报告失败"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 msgid "Report name"
 msgstr "报告名称"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
 msgid "Report schedule"
 msgstr "报告时间表"
 
@@ -12728,7 +12714,7 @@ msgid ""
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr "SQL Lab使用浏览器的本地存储来存储查询和结果"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
 #: superset-frontend/src/features/home/SavedQueries.tsx:261
 msgid "SQL Query"
 msgstr "SQL查询"
@@ -12846,7 +12832,7 @@ msgstr "无法创建数据集。"
 msgid "Samples for datasource could not be retrieved."
 msgstr "无法创建数据集。"
 
-#: superset/viz.py:2002
+#: superset/viz.py:1854
 msgid "Sankey"
 msgstr "蛇形图"
 
@@ -12878,7 +12864,7 @@ msgstr "星期六"
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:198
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:213
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:288
-#: superset-frontend/src/components/ReportModal/index.tsx:229
+#: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/dashboard/components/Header/index.jsx:607
 #: superset-frontend/src/dashboard/components/Header/index.jsx:609
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:112
@@ -12900,7 +12886,7 @@ msgstr "星期六"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:521
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger.tsx:250
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:347
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -13076,12 +13062,12 @@ msgid ""
 msgstr "时间序列散点图在水平轴上以线性单位表示时间，点按顺序连接。它显示了两个变量之间的统计关系"
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:239
-#: superset-frontend/src/components/ReportModal/index.tsx:306
+#: superset-frontend/src/components/ReportModal/index.tsx:305
 #: superset-frontend/src/pages/AlertReportList/index.tsx:276
 msgid "Schedule"
 msgstr "调度"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 #, fuzzy
 msgid "Schedule a new email report"
 msgstr "为图表配置电子邮件报告"
@@ -13094,7 +13080,7 @@ msgstr "为图表配置电子邮件报告"
 msgid "Schedule query"
 msgstr "分享查询"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
 msgid "Schedule settings"
 msgstr "计划设置"
 
@@ -13556,15 +13542,15 @@ msgid ""
 "query by clicking on the %s button."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as CSV"
 msgstr "发送为CSV"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
 msgid "Send as PNG"
 msgstr "发送PNG"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as text"
 msgstr "发送文本"
 
@@ -14681,7 +14667,7 @@ msgstr "指定期间内的值总和"
 msgid "Sum values"
 msgstr "空值"
 
-#: superset/viz.py:1953
+#: superset/viz.py:1805
 msgid "Sunburst"
 msgstr "环状层次图"
 
@@ -14845,7 +14831,7 @@ msgstr "表已存在处理"
 msgid "Table Name"
 msgstr "表名"
 
-#: superset/viz.py:725
+#: superset/viz.py:722
 msgid "Table View"
 msgstr "表视图"
 
@@ -15023,7 +15009,7 @@ msgstr "文本"
 msgid "Text align"
 msgstr "文本对齐"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:248
+#: superset-frontend/src/components/ReportModal/index.tsx:247
 msgid "Text embedded in email"
 msgstr "邮件中嵌入的文本"
 
@@ -16000,7 +15986,7 @@ msgstr "预览所选查询时出现问题 %s"
 msgid "There was an issue previewing the selected query. %s"
 msgstr "预览所选查询时出现问题。%s"
 
-#: superset/viz.py:2063
+#: superset/viz.py:1915
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty "
 "link: {}"
@@ -16319,7 +16305,7 @@ msgstr ""
 msgid "Threshold alpha level for determining significance"
 msgstr "确定重要性的阈值α水平"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
 msgid "Threshold value should be double precision number"
 msgstr ""
 
@@ -16395,39 +16381,39 @@ msgstr "时间粒度（grain）"
 msgid "Time Series"
 msgstr "时间序列"
 
-#: superset/viz.py:1729
+#: superset/viz.py:1581
 msgid "Time Series - Bar Chart"
 msgstr "时间序列 - 柱状图"
 
-#: superset/viz.py:1652
+#: superset/viz.py:1504
 msgid "Time Series - Dual Axis Line Chart"
 msgstr "时间序列-双轴线图"
 
-#: superset/viz.py:1357
+#: superset/viz.py:1209
 msgid "Time Series - Line Chart"
 msgstr "时间序列-折线图"
 
-#: superset/viz.py:1572
+#: superset/viz.py:1424
 msgid "Time Series - Multiple Line Charts"
 msgstr "时间序列-多线图"
 
-#: superset/viz.py:3181
+#: superset/viz.py:3033
 msgid "Time Series - Nightingale Rose Chart"
 msgstr "时间序列 - 南丁格尔玫瑰图"
 
-#: superset/viz.py:3109
+#: superset/viz.py:2961
 msgid "Time Series - Paired t-test"
 msgstr "时间序列 - 配对t检验"
 
-#: superset/viz.py:1786
+#: superset/viz.py:1638
 msgid "Time Series - Percent Change"
 msgstr "时间序列 - 百分比变化"
 
-#: superset/viz.py:1738
+#: superset/viz.py:1590
 msgid "Time Series - Period Pivot"
 msgstr "时间序列 - 周期透视表"
 
-#: superset/viz.py:1794
+#: superset/viz.py:1646
 msgid "Time Series - Stacked"
 msgstr "时间序列 - 堆积图"
 
@@ -16442,7 +16428,7 @@ msgstr "时间序列的列"
 msgid "Time Shift"
 msgstr "时间偏移"
 
-#: superset/viz.py:881
+#: superset/viz.py:878
 msgid "Time Table View"
 msgstr "时间表视图"
 
@@ -16516,7 +16502,7 @@ msgstr "时间粒度缺失"
 msgid "Time granularity"
 msgstr "时间粒度（granularity）"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
 msgid "Time in seconds"
 msgstr "时间（秒）"
 
@@ -16662,8 +16648,8 @@ msgstr "超时错误"
 msgid "Timestamp format"
 msgstr "时间戳格式"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:326
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
+#: superset-frontend/src/components/ReportModal/index.tsx:325
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
 msgid "Timezone"
 msgstr "时区"
 
@@ -16748,11 +16734,6 @@ msgstr "高度"
 msgid "Top to Bottom"
 msgstr "点击回顶部"
 
-#: superset/viz.py:1047
-#, fuzzy
-msgid "Total"
-msgstr "显示总计"
-
 #: superset/charts/post_processing.py:73
 #, python-format
 msgid "Total (%(aggfunc)s)"
@@ -16817,7 +16798,7 @@ msgid "Tree orientation"
 msgstr "方向"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:60
-#: superset/viz.py:1073
+#: superset/viz.py:925
 msgid "Treemap"
 msgstr "树状地图"
 
@@ -16841,7 +16822,7 @@ msgstr "趋势"
 msgid "Triangle"
 msgstr "三角形"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
 msgid "Trigger Alert If..."
 msgstr "如果 ... 则触发警报"
 
@@ -17433,7 +17414,7 @@ msgstr "使用圆圈来可视化系统不同阶段的数据流。"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:100
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:143
 msgid "Value"
 msgstr "值"
@@ -17727,7 +17708,7 @@ msgid ""
 "corresponds to higher frequency."
 msgstr "可视化列中出现频率最高的单词。字体越大，出现频率越高。"
 
-#: superset/viz.py:143
+#: superset/viz.py:140
 msgid "Viz is missing a datasource"
 msgstr "Viz 缺少一个数据源"
 
@@ -17845,12 +17826,12 @@ msgstr "周日为一周开始"
 msgid "Week_ending Sunday"
 msgstr "周日为一周结束"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:123
+#: superset-frontend/src/components/ReportModal/index.tsx:122
 #, fuzzy
 msgid "Weekly Report"
 msgstr "报告"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:122
+#: superset-frontend/src/components/ReportModal/index.tsx:121
 #, python-format
 msgid "Weekly Report for %s"
 msgstr ""
@@ -17953,7 +17934,7 @@ msgstr ""
 "当使用 \"自适配过滤条件\" "
 "时，这可以用来提高获取查询数据的性能。使用此选项可将谓词（WHERE子句）应用于从表中进行选择不同值的查询。通常，这样做的目的是通过对分区或索引的相关时间字段配置相对应的过滤时间来限制扫描。"
 
-#: superset/viz.py:894
+#: superset/viz.py:891
 msgid "When using 'Group By' you are limited to use a single metric"
 msgstr "当使用“Group by”时，只限于使用单个度量。"
 
@@ -18275,12 +18256,12 @@ msgstr "单词旋转"
 msgid "Working"
 msgstr "正在执行"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
 msgid "Working timeout"
 msgstr "执行超时"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:33
-#: superset/viz.py:2154
+#: superset/viz.py:2006
 msgid "World Map"
 msgstr "世界地图"
 
@@ -18617,7 +18598,7 @@ msgstr ""
 msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr "不能将45°刻度线布局与时间范围过滤器一起使用"
 
-#: superset/viz.py:751
+#: superset/viz.py:748
 msgid ""
 "You cannot use [Columns] in combination with [Group "
 "By]/[Metrics]/[Percentage Metrics]. Please choose one or the other."
@@ -18830,11 +18811,11 @@ msgstr "地图缩放等级"
 msgid "[ untitled dashboard ]"
 msgstr "编辑仪表盘"
 
-#: superset/viz.py:2471
+#: superset/viz.py:2323
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
 
-#: superset/viz.py:2421
+#: superset/viz.py:2273
 msgid "[Longitude] and [Latitude] must be set"
 msgstr "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
 
@@ -19833,7 +19814,7 @@ msgstr "最近"
 msgid "recents"
 msgstr "最近"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:567
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:566
 #: superset-frontend/src/pages/AlertReportList/index.tsx:110
 msgid "report"
 msgstr "报告"
@@ -19873,7 +19854,7 @@ msgstr "已保存查询"
 msgid "search by tags"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
 #, fuzzy
 msgid "seconds"
 msgstr "30秒钟"

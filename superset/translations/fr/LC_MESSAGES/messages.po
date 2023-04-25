@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-05-23 16:26-0300\n"
+"POT-Creation-Date: 2023-05-23 16:30-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -142,7 +142,7 @@ msgstr ""
 msgid " to visualize your data."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:116
 msgid "!= (Is not equal)"
 msgstr "!= (N'est pas égal)"
 
@@ -339,8 +339,8 @@ msgstr[1] ""
 msgid "%s saved metric(s)"
 msgstr "%s métrique(s) sauvegardée(s)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:640
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:656
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:639
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:655
 #, fuzzy, python-format
 msgid "%s updated"
 msgstr "Dernière mise à jour %s"
@@ -664,7 +664,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:459
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:131
 msgid "30 days"
 msgstr "30 jours"
 
@@ -744,7 +744,7 @@ msgstr "Semaine débutant le lundi"
 msgid "6 hour"
 msgstr "6 heures"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:135
 msgid "60 days"
 msgstr "60 jours"
 
@@ -771,7 +771,7 @@ msgstr ""
 msgid "9/91 percentiles"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:139
 msgid "90 days"
 msgstr "90 jours"
 
@@ -779,11 +779,11 @@ msgstr "90 jours"
 msgid ":"
 msgstr ":"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:96
 msgid "< (Smaller than)"
 msgstr "< (Plus petit que)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:104
 msgid "<= (Smaller or equal)"
 msgstr "<= (Plus petit ou égal)"
 
@@ -812,15 +812,15 @@ msgstr "Spatial"
 msgid "<no type>"
 msgstr "Type de tri"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:112
 msgid "== (Is equal)"
 msgstr "== (Est equal)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:100
 msgid "> (Larger than)"
 msgstr "> (Plus grand que)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:108
 msgid ">= (Larger or equal)"
 msgstr ">= (Plus grand ou égal)"
 
@@ -933,7 +933,7 @@ msgstr "Le jeu de données %(name)s existe déjà"
 msgid "A reusable dataset will be saved with your chart."
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:309
+#: superset-frontend/src/components/ReportModal/index.tsx:308
 #, fuzzy
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr "Les rapports planifiés seront envoyés à votre @ e-mail en PNG"
@@ -1057,7 +1057,7 @@ msgstr "Journaux d'actions"
 msgid "Actions"
 msgstr "Actions"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
 #: superset-frontend/src/pages/AlertReportList/index.tsx:355
 msgid "Active"
 msgstr "Actif"
@@ -1092,8 +1092,8 @@ msgstr "Valeurs NULL"
 msgid "Adaptive formatting"
 msgstr "Formatage adapté"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:229
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
+#: superset-frontend/src/components/ReportModal/index.tsx:228
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -1101,7 +1101,7 @@ msgstr "Formatage adapté"
 msgid "Add"
 msgstr "Ajouter"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 #, fuzzy
 msgid "Add Alert"
 msgstr "alerte"
@@ -1138,7 +1138,7 @@ msgstr "Ajouter un log"
 msgid "Add Metric"
 msgstr "Ajouter une métrique"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
 #, fuzzy
 msgid "Add Report"
 msgstr "rapport"
@@ -1214,7 +1214,7 @@ msgstr "Ajouter un filtre"
 msgid "Add custom scoping"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
 msgstr "Ajouter méthode de livraison"
 
@@ -1265,7 +1265,7 @@ msgstr "Ajouter un nouveau formateur de couleur"
 msgid "Add new formatter"
 msgstr "Ajouter un formateur"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:374
 msgid "Add notification method"
 msgstr "Ajouter une méthode de notification"
 
@@ -1513,11 +1513,11 @@ msgstr "alerte"
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alerte déclenchée, -période de grâce"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
 msgid "Alert condition"
 msgstr "Condition d'alerte"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
 msgid "Alert condition schedule"
 msgstr "Planification de la condition d'alerte"
 
@@ -1537,7 +1537,7 @@ msgstr "Alerte déclenchée pendant la période de grâce."
 msgid "Alert found an error while executing a query."
 msgstr "Une erreur a été rencontrée lors de l'exécution de la requête."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
 msgid "Alert name"
 msgstr "Nom de l'alerte"
 
@@ -1784,7 +1784,7 @@ msgstr "Un erreur s'est produite"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Le jeu de données %(name)s existe déjà"
 
-#: superset/common/query_context_processor.py:326 superset/viz.py:1500
+#: superset/common/query_context_processor.py:326 superset/viz.py:1352
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2411,7 +2411,7 @@ msgstr "Filtres appliqués (%d)"
 msgid "Applied filters: %s"
 msgstr "Filtres appliqués (%d)"
 
-#: superset/viz.py:253
+#: superset/viz.py:250
 msgid ""
 "Applied rolling window did not return any data. Please make sure the "
 "source query satisfies the minimum periods defined in the rolling window."
@@ -2711,7 +2711,7 @@ msgstr "Valeur cible"
 msgid "Bad formula."
 msgstr "Format Date"
 
-#: superset/viz.py:2600 superset/viz.py:2640
+#: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
 msgstr "Mauvaise clef spatiale"
 
@@ -2804,7 +2804,7 @@ msgid "Before"
 msgstr "Avant"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
-#: superset/viz.py:1334
+#: superset/viz.py:1186
 msgid "Big Number"
 msgstr "Gros nombre"
 
@@ -2813,7 +2813,7 @@ msgid "Big Number Font Size"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
-#: superset/viz.py:1298
+#: superset/viz.py:1150
 msgid "Big Number with Trendline"
 msgstr "Gros nombre avec tendance"
 
@@ -2898,7 +2898,7 @@ msgid "Breakdowns"
 msgstr "Créé le"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:32
-#: superset/viz.py:1213
+#: superset/viz.py:1065
 msgid "Bubble Chart"
 msgstr "Bulles"
 
@@ -2940,7 +2940,7 @@ msgid "Bulk select"
 msgstr "Sélectionner plusieurs"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
-#: superset/viz.py:1266
+#: superset/viz.py:1118
 msgid "Bullet Chart"
 msgstr "Points"
 
@@ -3139,7 +3139,7 @@ msgstr "mis en cache"
 msgid "Cached %s"
 msgstr "En cache %s"
 
-#: superset/viz.py:581
+#: superset/viz.py:578
 msgid "Cached value not found"
 msgstr "Valeur en cache non trouvée"
 
@@ -3166,7 +3166,7 @@ msgid "Calculation type"
 msgstr "Choisir un type de calcul"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:32
-#: superset/viz.py:1120
+#: superset/viz.py:972
 msgid "Calendar Heatmap"
 msgstr "Calendrier Carte de chaleur"
 
@@ -3179,7 +3179,7 @@ msgstr "On ne peut déplacer un onglet top level vers des onglets imbriqués"
 msgid "Can select multiple values"
 msgstr "Peut selectionner plusieurs valeurs"
 
-#: superset/viz.py:1875
+#: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
 msgstr "Il ne faut pas avoir d'élement en commun entre Série et Breakdowns"
 
@@ -3189,7 +3189,7 @@ msgstr "Il ne faut pas avoir d'élement en commun entre Série et Breakdowns"
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:227
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:268
 #: superset-frontend/src/components/Modal/Modal.tsx:269
-#: superset-frontend/src/components/ReportModal/index.tsx:220
+#: superset-frontend/src/components/ReportModal/index.tsx:219
 #: superset-frontend/src/dashboard/components/FilterBoxMigrationModal.tsx:72
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:649
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:151
@@ -3479,7 +3479,7 @@ msgstr "Caractère à interpréter comme un point décimal."
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:69
 #: superset-frontend/src/features/home/ChartTable.tsx:191
 #: superset-frontend/src/features/home/RightMenu.tsx:219
@@ -3789,11 +3789,11 @@ msgstr "Cocher pour inclure la liste déroulante de granularité de temps"
 msgid "Child label position"
 msgstr ""
 
-#: superset/viz.py:2455
+#: superset/viz.py:2307
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr "Le [Label] choisi doit être présent dans [Grouper par]"
 
-#: superset/viz.py:2463
+#: superset/viz.py:2315
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "Le [Point Radius] doit être présent dans [Grouper par]"
 
@@ -4333,7 +4333,7 @@ msgstr "Pas de colonne"
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Colonnes absentes de la source de données : %(invalid_columns)s"
 
-#: superset/viz.py:596
+#: superset/viz.py:593
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Colonnes absentes de la source de données : %(invalid_columns)s"
@@ -4476,7 +4476,7 @@ msgstr ""
 msgid "Compute the contribution to the total"
 msgstr "Calculer la contribution au total"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
 msgid "Condition"
 msgstr "Condition"
 
@@ -4813,7 +4813,7 @@ msgid "Country Field Type"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
-#: superset/viz.py:2117
+#: superset/viz.py:1969
 msgid "Country Map"
 msgstr "Carte de pays"
 
@@ -5102,7 +5102,7 @@ msgstr ""
 msgid "Dark mode"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:228
 #: superset-frontend/src/pages/DashboardList/index.tsx:672
@@ -5276,7 +5276,7 @@ msgid "DataFrame must include temporal column"
 msgstr "Dataframe doit inclure une colonne temporelle"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:274
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 #: superset-frontend/src/pages/DatabaseList/index.tsx:278
 #: superset-frontend/src/pages/DatabaseList/index.tsx:307
 #: superset-frontend/src/pages/DatasetList/index.tsx:360
@@ -5651,44 +5651,44 @@ msgstr ""
 msgid "Decimal Character"
 msgstr "Caractère décimal"
 
-#: superset/viz.py:2848
+#: superset/viz.py:2700
 msgid "Deck.gl - 3D Grid"
 msgstr "Deck.gl - Grille 3D"
 
-#: superset/viz.py:2973
+#: superset/viz.py:2825
 msgid "Deck.gl - 3D HEX"
 msgstr "Deck.gl - 3D HEX"
 
-#: superset/viz.py:3038
+#: superset/viz.py:2890
 msgid "Deck.gl - Arc"
 msgstr "Deck.gl - Arc"
 
-#: superset/viz.py:3017
+#: superset/viz.py:2869
 msgid "Deck.gl - GeoJSON"
 msgstr "Deck.gl - GeoJSON"
 
-#: superset/viz.py:2996
+#: superset/viz.py:2848
 #, fuzzy
 msgid "Deck.gl - Heatmap"
 msgstr "Deck.gl - Chemins"
 
-#: superset/viz.py:2554
+#: superset/viz.py:2406
 msgid "Deck.gl - Multiple Layers"
 msgstr "Deck.gl - Couches Multiples"
 
-#: superset/viz.py:2883
+#: superset/viz.py:2735
 msgid "Deck.gl - Paths"
 msgstr "Deck.gl - Chemins"
 
-#: superset/viz.py:2937
+#: superset/viz.py:2789
 msgid "Deck.gl - Polygon"
 msgstr "Deck.gl - Polygone"
 
-#: superset/viz.py:2760
+#: superset/viz.py:2612
 msgid "Deck.gl - Scatter plot"
 msgstr "Deck.gl - Nuage de points"
 
-#: superset/viz.py:2816
+#: superset/viz.py:2668
 msgid "Deck.gl - Screen Grid"
 msgstr "Deck.gl - Grille d'écran"
 
@@ -6059,11 +6059,11 @@ msgstr "Créé le"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:860
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1206
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1210
-#: superset-frontend/src/components/ReportModal/index.tsx:294
+#: superset-frontend/src/components/ReportModal/index.tsx:293
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:51
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1158
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:367
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:465
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
 #: superset-frontend/src/pages/AnnotationList/index.tsx:161
@@ -6155,7 +6155,7 @@ msgstr ""
 msgid "Dimensions"
 msgstr "Est une Dimension"
 
-#: superset/viz.py:2076
+#: superset/viz.py:1928
 msgid "Directed Force Layout"
 msgstr "Graphe orienté"
 
@@ -6248,7 +6248,7 @@ msgstr "Estimer le coût"
 msgid "Distribution"
 msgstr "Contribution"
 
-#: superset/viz.py:1865
+#: superset/viz.py:1717
 msgid "Distribution - Bar Chart"
 msgstr "Distibution - histogramme"
 
@@ -6616,7 +6616,7 @@ msgstr "L'épaisseur de la ligne"
 msgid "Edit"
 msgstr "Éditer"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
 #, fuzzy
 msgid "Edit Alert"
 msgstr "Éditer la table"
@@ -6670,7 +6670,7 @@ msgstr "Éditer la métrique"
 msgid "Edit Plugin"
 msgstr "Éditer le plugin"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
 #, fuzzy
 msgid "Edit Report"
 msgstr "Modifier le rapport par e-mail"
@@ -6728,7 +6728,7 @@ msgstr "Éditer le jeu de données"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:243
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:264
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 msgid "Edit email report"
 msgstr "Modifier le rapport par e-mail"
 
@@ -6924,7 +6924,7 @@ msgstr "Activer l'estimation du coût de la requête"
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 
-#: superset/viz.py:2662
+#: superset/viz.py:2514
 msgid ""
 "Encountered invalid NULL spatial entry,"
 "                                        please consider filtering those "
@@ -7153,7 +7153,7 @@ msgstr "Nom de la feuille"
 msgid "Event definition"
 msgstr ""
 
-#: superset/viz.py:3075
+#: superset/viz.py:2927
 msgid "Event flow"
 msgstr "Flot d'événements"
 
@@ -7493,7 +7493,7 @@ msgstr "Echec lors de la récupération des résultats"
 msgid "Failed at stopping query. %s"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:343
+#: superset-frontend/src/components/ReportModal/index.tsx:342
 msgid "Failed to create report"
 msgstr ""
 
@@ -7533,7 +7533,7 @@ msgstr "Portée du filtre croisé"
 msgid "Failed to start remote query on a worker."
 msgstr "Echec de la requête à distance."
 
-#: superset-frontend/src/components/ReportModal/index.tsx:342
+#: superset-frontend/src/components/ReportModal/index.tsx:341
 msgid "Failed to update report"
 msgstr ""
 
@@ -7738,7 +7738,7 @@ msgstr "Filtrable"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:109
 #: superset-frontend/src/explore/controls.jsx:446
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:35
-#: superset/viz.py:2219
+#: superset/viz.py:2071
 msgid "Filters"
 msgstr "Filtres"
 
@@ -7936,7 +7936,7 @@ msgstr ""
 msgid "Formattable"
 msgstr "Clefs pour la table"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:255
+#: superset-frontend/src/components/ReportModal/index.tsx:254
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatté attaché dans l'e-mail"
 
@@ -7994,7 +7994,7 @@ msgstr ""
 msgid "Friday"
 msgstr "Vendredi"
 
-#: superset/utils/date_parser.py:267 superset/viz.py:406
+#: superset/utils/date_parser.py:267 superset/viz.py:403
 msgid "From date cannot be larger than to date"
 msgstr "La date de début ne peut être postérieure à la date de fin"
 
@@ -8085,7 +8085,7 @@ msgstr ""
 msgid "Google Sheet Name and URL"
 msgstr "Nom et URL de la feuille Google Sheet"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
 msgid "Grace period"
 msgstr "Période de grâce"
 
@@ -8130,10 +8130,6 @@ msgstr "Grouper par"
 #: superset-frontend/src/filters/components/GroupBy/index.ts:29
 msgid "Group By filter plugin"
 msgstr ""
-
-#: superset/viz.py:962
-msgid "Group By' and 'Columns' can't overlap"
-msgstr "'Grouper par' et 'Colonnes' ne peuvent pas se chevaucher"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/shared.ts:59
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:84
@@ -8185,7 +8181,7 @@ msgid "Header Row"
 msgstr "Ligne d'en-tête"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:38
-#: superset/viz.py:2331
+#: superset/viz.py:2183
 msgid "Heatmap"
 msgstr "Carte de chaleur"
 
@@ -8240,7 +8236,7 @@ msgid "Hierarchy"
 msgstr "Recherche"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:37
-#: superset/viz.py:1804
+#: superset/viz.py:1656
 msgid "Histogram"
 msgstr "Histogramme"
 
@@ -8254,7 +8250,7 @@ msgstr "Accueil"
 msgid "Horizon Chart"
 msgstr "Histogrammes horizontaux"
 
-#: superset/viz.py:2394
+#: superset/viz.py:2246
 msgid "Horizon Charts"
 msgstr "Histogrammes horizontaux"
 
@@ -8404,7 +8400,7 @@ msgstr ""
 "d'actions), Remplacer (supprimer et recréer la table) ou Ajouter (insérer"
 " les données)."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
 #, fuzzy
 msgid "Ignore cache when generating screenshot"
 msgstr ""
@@ -8419,7 +8415,7 @@ msgstr ""
 msgid "Ignore time"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:252
+#: superset-frontend/src/components/ReportModal/index.tsx:251
 msgid "Image (PNG) embedded in email"
 msgstr "Image (PNG) encapsulée dans l'e-mail"
 
@@ -8515,7 +8511,7 @@ msgstr "dans"
 msgid "Include Series"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:295
+#: superset-frontend/src/components/ReportModal/index.tsx:294
 msgid "Include a description that will be sent with your report"
 msgstr ""
 
@@ -8695,7 +8691,7 @@ msgstr "Operateur cumulatif invalide: %(operator)s"
 msgid "Invalid date/timestamp format"
 msgstr "Format date/timestamp invalide"
 
-#: superset/viz.py:2239
+#: superset/viz.py:2091
 msgid "Invalid filter configuration, please select a column"
 msgstr "Configuration du filtre invalide, veuillez sélectionner une colonne"
 
@@ -8758,7 +8754,7 @@ msgstr "Type de résultat invalide : %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Le rolling_type invalide: %(type)s"
 
-#: superset/viz.py:2622
+#: superset/viz.py:2474
 #, python-format
 msgid "Invalid spatial point encountered: %s"
 msgstr "Point géographique invalide : %s"
@@ -9485,7 +9481,7 @@ msgstr "Créer un nouveau graphique"
 msgid "Log Scale"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
 msgid "Log retention"
 msgstr "Rétention de log"
 
@@ -9664,7 +9660,7 @@ msgstr "Type de balisage"
 msgid "MapBox"
 msgstr "Mapbox"
 
-#: superset/viz.py:2406
+#: superset/viz.py:2258
 msgid "Mapbox"
 msgstr "Mapbox"
 
@@ -9813,8 +9809,8 @@ msgstr ""
 msgid "Menu actions trigger"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:237
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
+#: superset-frontend/src/components/ReportModal/index.tsx:236
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
 msgid "Message content"
 msgstr "Contenu du message"
 
@@ -10256,11 +10252,11 @@ msgstr "Doit être unique"
 msgid "Must choose either a chart or a dashboard"
 msgstr "Choisissez un graphique ou un tableau de bord, pas les deux"
 
-#: superset/viz.py:2431
+#: superset/viz.py:2283
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr "Il faut une colonne [Grouper par] pour avoir 'count' comme [Label]"
 
-#: superset/viz.py:1814
+#: superset/viz.py:1666
 msgid "Must have at least one numeric column specified"
 msgstr "Au moins une colonne numérique doit être spécifiée"
 
@@ -10759,7 +10755,7 @@ msgstr "Taille de la bulle"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:51
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:138
 #: superset-frontend/src/explore/controlPanels/sections.tsx:134
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:128
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:127
 msgid "None"
 msgstr "Aucun"
 
@@ -10812,7 +10808,7 @@ msgstr "!= (N'est pas égal)"
 msgid "Not in"
 msgstr "annotation"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:121
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:120
 msgid "Not null"
 msgstr "Non Null"
 
@@ -10830,7 +10826,7 @@ msgstr ""
 msgid "Nothing triggered"
 msgstr "Rien déclenché"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:411
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
 #: superset-frontend/src/pages/AlertReportList/index.tsx:302
 msgid "Notification method"
 msgstr "Méthode de notification"
@@ -11417,7 +11413,7 @@ msgstr "Propriétaire"
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:527
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:531
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:369
 #: superset-frontend/src/pages/DatasetList/index.tsx:400
@@ -11473,7 +11469,7 @@ msgid "Pandas resample rule"
 msgstr "Règle de ré-échantillonnage Pandas"
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:33
-#: superset/viz.py:2300
+#: superset/viz.py:2152
 msgid "Parallel Coordinates"
 msgstr "Coordonnées parallèles"
 
@@ -11518,7 +11514,7 @@ msgstr ""
 msgid "Partition Chart"
 msgstr "Diagramme de Partition"
 
-#: superset/viz.py:3217
+#: superset/viz.py:3069
 msgid "Partition Diagram"
 msgstr "Diagramme de Partition"
 
@@ -11671,29 +11667,29 @@ msgstr "Jeu de données physique"
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr ""
 
-#: superset/viz.py:798
+#: superset/viz.py:795
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
 msgstr ""
 "Choississez une granularité dans la section Temps ou décochez 'Inclure le"
 " temps'"
 
-#: superset/viz.py:1662
+#: superset/viz.py:1514
 msgid "Pick a metric for left axis!"
 msgstr "Choisissez une métrique pour l'axe de gauche !"
 
-#: superset/viz.py:1664
+#: superset/viz.py:1516
 msgid "Pick a metric for right axis!"
 msgstr "Choisissez une métrique pour l'axe de droite !"
 
-#: superset/viz.py:1238
+#: superset/viz.py:1090
 msgid "Pick a metric for x, y and size"
 msgstr "Choisissez une métrique pour x, y, taille"
 
-#: superset/viz.py:1279
+#: superset/viz.py:1131
 msgid "Pick a metric to display"
 msgstr "Choisissez une métrique à afficher"
 
-#: superset/viz.py:1307 superset/viz.py:1343
+#: superset/viz.py:1159 superset/viz.py:1195
 msgid "Pick a metric!"
 msgstr "Choisissez une métrique !"
 
@@ -11712,7 +11708,7 @@ msgstr ""
 msgid "Pick a set of deck.gl charts to layer on top of one another"
 msgstr ""
 
-#: superset/viz.py:1442 superset/viz.py:1712
+#: superset/viz.py:1294 superset/viz.py:1564
 msgid "Pick a time granularity for your time series"
 msgstr "Choisissez une granularité pour vos séries temporelles"
 
@@ -11720,15 +11716,15 @@ msgstr "Choisissez une granularité pour vos séries temporelles"
 msgid "Pick a title for you annotation."
 msgstr "Choisissez un titre pour votre annotation."
 
-#: superset/viz.py:1880
+#: superset/viz.py:1732
 msgid "Pick at least one field for [Series]"
 msgstr "Choisissez au moins un champs pour [Séries]"
 
-#: superset/viz.py:890 superset/viz.py:1878
+#: superset/viz.py:887 superset/viz.py:1730
 msgid "Pick at least one metric"
 msgstr "Choisissez au moins une métrique"
 
-#: superset/viz.py:2011
+#: superset/viz.py:1863
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr "Choisissez exactement 2 colonnes pour [Source / Target]"
 
@@ -11762,7 +11758,6 @@ msgid "Pin"
 msgstr "dans"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:60
-#: superset/viz.py:928
 msgid "Pivot Table"
 msgstr "Table pivot"
 
@@ -11840,21 +11835,12 @@ msgstr ""
 "Veuillez corriger une erreur de syntaxe dans la requête près de "
 "\"%(syntax_error)s\". Puis essayez de relancer la requête."
 
-#: superset/viz.py:946
-#, fuzzy
-msgid "Please choose at least one 'Group by' field"
-msgstr "Merci de choisir au moins un champ dans 'Grouper par' "
-
-#: superset/viz.py:3382
+#: superset/viz.py:3234
 #, fuzzy
 msgid "Please choose at least one groupby"
 msgstr "Merci de choisir au moins un champ dans 'Grouper par' "
 
-#: superset/viz.py:958
-msgid "Please choose at least one metric"
-msgstr "Choississez au moins une métrique"
-
-#: superset/viz.py:1667
+#: superset/viz.py:1519
 msgid "Please choose different metrics on left and right axis"
 msgstr "Choisissez des métriques différentes pour les axes gauches et droits"
 
@@ -11929,7 +11915,7 @@ msgstr ""
 "Merci de sélectionner à la fois un Dataset et un type de graphique pour "
 "continuer"
 
-#: superset/viz.py:1236
+#: superset/viz.py:1088
 msgid "Please use 3 different metric labels"
 msgstr "Utilisez 3 libellés de métrique différents"
 
@@ -12787,7 +12773,7 @@ msgstr "Remplacer"
 msgid "Report"
 msgstr "rapport"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:282
+#: superset-frontend/src/components/ReportModal/index.tsx:281
 #, fuzzy
 msgid "Report Name"
 msgstr "Nom du rapport"
@@ -12866,11 +12852,11 @@ msgstr "Rapporter un BUG"
 msgid "Report failed"
 msgstr "Le rapport a échoué"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 msgid "Report name"
 msgstr "Nom du rapport"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
 msgid "Report schedule"
 msgstr "Planification de rapport"
 
@@ -13353,7 +13339,7 @@ msgid ""
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
 #: superset-frontend/src/features/home/SavedQueries.tsx:261
 msgid "SQL Query"
 msgstr "Requête SQL"
@@ -13469,7 +13455,7 @@ msgstr "Le jeu de données n'a pas pu être créé."
 msgid "Samples for datasource could not be retrieved."
 msgstr "Le jeu de données n'a pas pu être créé."
 
-#: superset/viz.py:2002
+#: superset/viz.py:1854
 msgid "Sankey"
 msgstr "Sankey"
 
@@ -13501,7 +13487,7 @@ msgstr "Samedi"
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:198
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:213
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:288
-#: superset-frontend/src/components/ReportModal/index.tsx:229
+#: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/dashboard/components/Header/index.jsx:607
 #: superset-frontend/src/dashboard/components/Header/index.jsx:609
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:112
@@ -13523,7 +13509,7 @@ msgstr "Samedi"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:521
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger.tsx:250
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:347
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -13699,12 +13685,12 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:239
-#: superset-frontend/src/components/ReportModal/index.tsx:306
+#: superset-frontend/src/components/ReportModal/index.tsx:305
 #: superset-frontend/src/pages/AlertReportList/index.tsx:276
 msgid "Schedule"
 msgstr "Plannifeir"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 #, fuzzy
 msgid "Schedule a new email report"
 msgstr "Planifier un rapport par e-mail"
@@ -13717,7 +13703,7 @@ msgstr "Planifier un rapport par e-mail"
 msgid "Schedule query"
 msgstr "Plannifier une requête"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
 msgid "Schedule settings"
 msgstr "Paramètres de planification"
 
@@ -14187,15 +14173,15 @@ msgid ""
 "query by clicking on the %s button."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as CSV"
 msgstr "Envoyer comme CSV"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
 msgid "Send as PNG"
 msgstr "Envoyer comme PNG"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as text"
 msgstr "Envoyer comme texte"
 
@@ -15355,7 +15341,7 @@ msgstr ""
 msgid "Sum values"
 msgstr "Valeurs NULL"
 
-#: superset/viz.py:1953
+#: superset/viz.py:1805
 msgid "Sunburst"
 msgstr "Camembert hiérarchique"
 
@@ -15521,7 +15507,7 @@ msgstr "La table existe"
 msgid "Table Name"
 msgstr "Nom de la table"
 
-#: superset/viz.py:725
+#: superset/viz.py:722
 msgid "Table View"
 msgstr "Vue en table"
 
@@ -15711,7 +15697,7 @@ msgstr "Zone de texte"
 msgid "Text align"
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:248
+#: superset-frontend/src/components/ReportModal/index.tsx:247
 msgid "Text embedded in email"
 msgstr "Text encapsulé dans l'e-mail"
 
@@ -16836,7 +16822,7 @@ msgstr ""
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Il y a eu un problème de prévisualisation de la requête sélectionnée. %s"
 
-#: superset/viz.py:2063
+#: superset/viz.py:1915
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty "
 "link: {}"
@@ -17189,7 +17175,7 @@ msgstr ""
 msgid "Threshold alpha level for determining significance"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
 msgid "Threshold value should be double precision number"
 msgstr ""
 
@@ -17272,39 +17258,39 @@ msgstr "Granularité de Temps"
 msgid "Time Series"
 msgstr "Colonnes des séries temporelles"
 
-#: superset/viz.py:1729
+#: superset/viz.py:1581
 msgid "Time Series - Bar Chart"
 msgstr "Séries temporelles - histogramme"
 
-#: superset/viz.py:1652
+#: superset/viz.py:1504
 msgid "Time Series - Dual Axis Line Chart"
 msgstr "Séries temporelles - double axe"
 
-#: superset/viz.py:1357
+#: superset/viz.py:1209
 msgid "Time Series - Line Chart"
 msgstr "Séries temporelles - ligne"
 
-#: superset/viz.py:1572
+#: superset/viz.py:1424
 msgid "Time Series - Multiple Line Charts"
 msgstr "Séries temporelles - Lignes multiples"
 
-#: superset/viz.py:3181
+#: superset/viz.py:3033
 msgid "Time Series - Nightingale Rose Chart"
 msgstr "Séries temporelles - Graphique Nightingale Rose"
 
-#: superset/viz.py:3109
+#: superset/viz.py:2961
 msgid "Time Series - Paired t-test"
 msgstr "Séries temporelles - Paired t-test"
 
-#: superset/viz.py:1786
+#: superset/viz.py:1638
 msgid "Time Series - Percent Change"
 msgstr "Séries temporelles - pourcentage de changement"
 
-#: superset/viz.py:1738
+#: superset/viz.py:1590
 msgid "Time Series - Period Pivot"
 msgstr "Séries temporelles - Période Pivot"
 
-#: superset/viz.py:1794
+#: superset/viz.py:1646
 msgid "Time Series - Stacked"
 msgstr "Séries temporelles - empilées"
 
@@ -17321,7 +17307,7 @@ msgstr "Colonnes des séries temporelles"
 msgid "Time Shift"
 msgstr "Décalage temporel"
 
-#: superset/viz.py:881
+#: superset/viz.py:878
 msgid "Time Table View"
 msgstr "Vue de la table temporelle"
 
@@ -17400,7 +17386,7 @@ msgstr "Granularité de temps manquante"
 msgid "Time granularity"
 msgstr "Granularité de Temps"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
 msgid "Time in seconds"
 msgstr "Temps en secondes"
 
@@ -17557,8 +17543,8 @@ msgstr "Erreur de timeout"
 msgid "Timestamp format"
 msgstr "Format date/timestamp invalide"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:326
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
+#: superset-frontend/src/components/ReportModal/index.tsx:325
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
 msgid "Timezone"
 msgstr "Fuseau horaire"
 
@@ -17648,11 +17634,6 @@ msgstr "Hauteur"
 msgid "Top to Bottom"
 msgstr ""
 
-#: superset/viz.py:1047
-#, fuzzy
-msgid "Total"
-msgstr "Totaux"
-
 #: superset/charts/post_processing.py:73
 #, python-format
 msgid "Total (%(aggfunc)s)"
@@ -17719,7 +17700,7 @@ msgid "Tree orientation"
 msgstr "Documentation"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:60
-#: superset/viz.py:1073
+#: superset/viz.py:925
 msgid "Treemap"
 msgstr "Carte proportionnelle"
 
@@ -17743,7 +17724,7 @@ msgstr "Tendance"
 msgid "Triangle"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
 msgid "Trigger Alert If..."
 msgstr "Déclencher une alerte si ..."
 
@@ -18364,7 +18345,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:100
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:143
 msgid "Value"
 msgstr "Valeur"
@@ -18663,7 +18644,7 @@ msgid ""
 "corresponds to higher frequency."
 msgstr ""
 
-#: superset/viz.py:143
+#: superset/viz.py:140
 msgid "Viz is missing a datasource"
 msgstr "Viz est une source de données manquante"
 
@@ -18789,12 +18770,12 @@ msgstr "Semaine débutant le dimanche"
 msgid "Week_ending Sunday"
 msgstr "Semaine terminant le dimanche"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:123
+#: superset-frontend/src/components/ReportModal/index.tsx:122
 #, fuzzy
 msgid "Weekly Report"
 msgstr "rapport"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:122
+#: superset-frontend/src/components/ReportModal/index.tsx:121
 #, python-format
 msgid "Weekly Report for %s"
 msgstr ""
@@ -18916,7 +18897,7 @@ msgstr ""
 "parcours en appliquant un filtre temporel sur un champ temporel "
 "partitionné ou indexé."
 
-#: superset/viz.py:894
+#: superset/viz.py:891
 msgid "When using 'Group By' you are limited to use a single metric"
 msgstr "Quand vous utilisez 'Grouper par' vous êtes limité à une seule métrique"
 
@@ -19245,12 +19226,12 @@ msgstr "Ajouter une annotation"
 msgid "Working"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
 msgid "Working timeout"
 msgstr "Timeout d'exécution"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:33
-#: superset/viz.py:2154
+#: superset/viz.py:2006
 msgid "World Map"
 msgstr "Carte du monde"
 
@@ -19611,7 +19592,7 @@ msgstr ""
 msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr ""
 
-#: superset/viz.py:751
+#: superset/viz.py:748
 msgid ""
 "You cannot use [Columns] in combination with [Group "
 "By]/[Metrics]/[Percentage Metrics]. Please choose one or the other."
@@ -19831,13 +19812,13 @@ msgstr ""
 msgid "[ untitled dashboard ]"
 msgstr "Éditer le tableau de bord"
 
-#: superset/viz.py:2471
+#: superset/viz.py:2323
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
 "Les colonnes [Longitude] et [Latitude] doivent êtres présentes dans "
 "[Grouper par]"
 
-#: superset/viz.py:2421
+#: superset/viz.py:2273
 msgid "[Longitude] and [Latitude] must be set"
 msgstr "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
 
@@ -20859,7 +20840,7 @@ msgstr "date"
 msgid "recents"
 msgstr "récents"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:567
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:566
 #: superset-frontend/src/pages/AlertReportList/index.tsx:110
 msgid "report"
 msgstr "rapport"
@@ -20901,7 +20882,7 @@ msgstr "requêtes sauvegardées"
 msgid "search by tags"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
 #, fuzzy
 msgid "seconds"
 msgstr "30 secondes"

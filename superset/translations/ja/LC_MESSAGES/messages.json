@@ -1521,9 +1521,6 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "‘Group by’ と ‘Columns’ は重複できません"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group Key": [""],
       "Group by": [""],
@@ -2199,9 +2196,6 @@
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
-      ],
-      "Please choose at least one metric": [
-        "少なくとも1つの指標を選択してください"
       ],
       "Please choose different metrics on left and right axis": [""],
       "Please confirm": ["確認してください"],
@@ -3370,7 +3364,6 @@
       "Tools": [""],
       "Tooltip": [""],
       "Top to Bottom": [""],
-      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],

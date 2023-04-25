@@ -1906,9 +1906,6 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "‘Group By’ en ‘Kolommen’ kunnen elkaar niet overlappen"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Groep per"],
       "Groupable": ["Groepeerbaar"],
@@ -2733,7 +2730,6 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose at least one metric": ["Kies ten minste één meeteenheid"],
       "Please choose different metrics on left and right axis": [
         "Kies verschillende meeteenheden op de linker- en rechteras"
       ],
@@ -4157,7 +4153,6 @@
       "Top": [""],
       "Top right": [""],
       "Top to Bottom": [""],
-      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],

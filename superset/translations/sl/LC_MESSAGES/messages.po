@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2023-05-23 16:26-0300\n"
+"POT-Creation-Date: 2023-05-23 16:30-0300\n"
 "PO-Revision-Date: 2022-06-19 20:59+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -140,7 +140,7 @@ msgstr ""
 msgid " to visualize your data."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:116
 msgid "!= (Is not equal)"
 msgstr "!= (ni enako)"
 
@@ -351,8 +351,8 @@ msgstr[3] ""
 msgid "%s saved metric(s)"
 msgstr "Shranjene mere: %s"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:640
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:656
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:639
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:655
 #, python-format
 msgid "%s updated"
 msgstr "%s posodobljeni"
@@ -678,7 +678,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:459
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:131
 msgid "30 days"
 msgstr "30 dni"
 
@@ -758,7 +758,7 @@ msgstr "Teden z začetkom v ponedeljek"
 msgid "6 hour"
 msgstr "6 ur"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:135
 msgid "60 days"
 msgstr "60 dni"
 
@@ -785,7 +785,7 @@ msgstr ""
 msgid "9/91 percentiles"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:139
 msgid "90 days"
 msgstr "90 dni"
 
@@ -793,11 +793,11 @@ msgstr "90 dni"
 msgid ":"
 msgstr ":"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:96
 msgid "< (Smaller than)"
 msgstr "< (manjše kot)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:104
 msgid "<= (Smaller or equal)"
 msgstr "<= (manjše ali enako)"
 
@@ -826,15 +826,15 @@ msgstr "Prostorski"
 msgid "<no type>"
 msgstr "Način razvrščanja"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:112
 msgid "== (Is equal)"
 msgstr "== (je enako)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:100
 msgid "> (Larger than)"
 msgstr "> (večje kot)"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:108
 msgid ">= (Larger or equal)"
 msgstr ">= (večje ali enako)"
 
@@ -947,7 +947,7 @@ msgstr "Poročilo poimenovano %(name)s že obstaja"
 msgid "A reusable dataset will be saved with your chart."
 msgstr ""
 
-#: superset-frontend/src/components/ReportModal/index.tsx:309
+#: superset-frontend/src/components/ReportModal/index.tsx:308
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr "Zaslonska slika nadzorne plošče bo poslana na vaš e-naslov ob"
 
@@ -1072,7 +1072,7 @@ msgstr "Dnevnik aktivnosti"
 msgid "Actions"
 msgstr "Aktivnosti"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
 #: superset-frontend/src/pages/AlertReportList/index.tsx:355
 msgid "Active"
 msgstr "Aktiven"
@@ -1106,8 +1106,8 @@ msgstr "Prazne (Null) vrednosti"
 msgid "Adaptive formatting"
 msgstr "Adaptivno oblikovanje"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:229
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
+#: superset-frontend/src/components/ReportModal/index.tsx:228
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -1115,7 +1115,7 @@ msgstr "Adaptivno oblikovanje"
 msgid "Add"
 msgstr "Dodaj"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 msgid "Add Alert"
 msgstr "Dodaj opozorilo"
 
@@ -1151,7 +1151,7 @@ msgstr "Dodaj dnevnik"
 msgid "Add Metric"
 msgstr "Dodaj mero"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
 msgid "Add Report"
 msgstr "Dodaj poročilo"
 
@@ -1226,7 +1226,7 @@ msgstr "Dodaj filter"
 msgid "Add custom scoping"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
 msgstr "Dodajte način dostave"
 
@@ -1277,7 +1277,7 @@ msgstr "Dodaj novo oblikovanje barve"
 msgid "Add new formatter"
 msgstr "Dodaj novo oblikovanje"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:374
 msgid "Add notification method"
 msgstr "Dodajte način obveščanja"
 
@@ -1515,11 +1515,11 @@ msgstr "opozorilo"
 msgid "Alert Triggered, In Grace Period"
 msgstr "Opozorilo sproženo, v obdobju mirovanja"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
 msgid "Alert condition"
 msgstr "Status opozorila"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
 msgid "Alert condition schedule"
 msgstr "Urnik statusov opozoril"
 
@@ -1539,7 +1539,7 @@ msgstr "Opozorilo sproženo med obdobjem mirovanja."
 msgid "Alert found an error while executing a query."
 msgstr "Opozorilo je našlo napako pri izvajanju poizvedbe."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
 msgid "Alert name"
 msgstr "Naslov opozorila"
 
@@ -1794,7 +1794,7 @@ msgstr "Prišlo je do napake"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Opozorilo poimenovano %(name)s že obstaja"
 
-#: superset/common/query_context_processor.py:326 superset/viz.py:1500
+#: superset/common/query_context_processor.py:326 superset/viz.py:1352
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2388,7 +2388,7 @@ msgstr "Uporabljeni filtri (%d)"
 msgid "Applied filters: %s"
 msgstr "Uporabljeni filtri (%d)"
 
-#: superset/viz.py:253
+#: superset/viz.py:250
 msgid ""
 "Applied rolling window did not return any data. Please make sure the "
 "source query satisfies the minimum periods defined in the rolling window."
@@ -2678,7 +2678,7 @@ msgstr "Vrednosti stolpcev"
 msgid "Bad formula."
 msgstr "Oblika zapisa datuma"
 
-#: superset/viz.py:2600 superset/viz.py:2640
+#: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
 msgstr "Neustrezen prostorski ključ"
 
@@ -2767,7 +2767,7 @@ msgid "Before"
 msgstr "PRED"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
-#: superset/viz.py:1334
+#: superset/viz.py:1186
 msgid "Big Number"
 msgstr "Velika številka"
 
@@ -2776,7 +2776,7 @@ msgid "Big Number Font Size"
 msgstr "Velikost pisave Velike številke"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
-#: superset/viz.py:1298
+#: superset/viz.py:1150
 msgid "Big Number with Trendline"
 msgstr "Velika številka s trendno krivuljo"
 
@@ -2872,7 +2872,7 @@ msgid "Breakdowns"
 msgstr "Razčlenitev"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:32
-#: superset/viz.py:1213
+#: superset/viz.py:1065
 msgid "Bubble Chart"
 msgstr "Mehurčkasti grafikon"
 
@@ -2912,7 +2912,7 @@ msgid "Bulk select"
 msgstr "Izberi hkrati"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
-#: superset/viz.py:1266
+#: superset/viz.py:1118
 msgid "Bullet Chart"
 msgstr "'Bullet' grafikon"
 
@@ -3108,7 +3108,7 @@ msgstr "Predpomnjeno"
 msgid "Cached %s"
 msgstr "Predpomnjeno %s"
 
-#: superset/viz.py:581
+#: superset/viz.py:578
 msgid "Cached value not found"
 msgstr "Predpomnjena vrednost ni najdena"
 
@@ -3134,7 +3134,7 @@ msgid "Calculation type"
 msgstr "Tip izračuna"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:32
-#: superset/viz.py:1120
+#: superset/viz.py:972
 msgid "Calendar Heatmap"
 msgstr "Koledarska barvna lestvica"
 
@@ -3147,7 +3147,7 @@ msgstr "Najvišjega zavihka ni mogoče premakniti v gnezdene zavihke"
 msgid "Can select multiple values"
 msgstr "Dovoli izbiro več vrednosti"
 
-#: superset/viz.py:1875
+#: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
 msgstr "Ne sme imeti prekrivanja med podatkovnimi serijami in členitvami"
 
@@ -3157,7 +3157,7 @@ msgstr "Ne sme imeti prekrivanja med podatkovnimi serijami in členitvami"
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:227
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:268
 #: superset-frontend/src/components/Modal/Modal.tsx:269
-#: superset-frontend/src/components/ReportModal/index.tsx:220
+#: superset-frontend/src/components/ReportModal/index.tsx:219
 #: superset-frontend/src/dashboard/components/FilterBoxMigrationModal.tsx:72
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:649
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:151
@@ -3434,7 +3434,7 @@ msgstr "Znak, ki bo prepoznan kot decimalno ločilo."
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:69
 #: superset-frontend/src/features/home/ChartTable.tsx:191
 #: superset-frontend/src/features/home/RightMenu.tsx:219
@@ -3739,11 +3739,11 @@ msgstr "Če želite vključiti časovni filter"
 msgid "Child label position"
 msgstr "Položaj podrejene oznake"
 
-#: superset/viz.py:2455
+#: superset/viz.py:2307
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr "Izbira [Oznaka] mora biti prisotna v [Združevanje]"
 
-#: superset/viz.py:2463
+#: superset/viz.py:2315
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "Izbran [Point Radius] mora biti prisoten v [Združevanje]"
 
@@ -4263,7 +4263,7 @@ msgstr "Prikaži vsoto stolpcev"
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "V podatkovnem viru manjkajo stolpci: %(invalid_columns)s"
 
-#: superset/viz.py:596
+#: superset/viz.py:593
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "V podatkovnem viru manjkajo stolpci: %(invalid_columns)s"
@@ -4416,7 +4416,7 @@ msgstr "Združi več plasti za oblikovanje kompleksnih vizualizacij."
 msgid "Compute the contribution to the total"
 msgstr "Izračunaj prispevek k celoti"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
 msgid "Condition"
 msgstr "Pogoj"
 
@@ -4738,7 +4738,7 @@ msgid "Country Field Type"
 msgstr "Tip polja za države"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
-#: superset/viz.py:2117
+#: superset/viz.py:1969
 msgid "Country Map"
 msgstr "Zemljevid držav"
 
@@ -5021,7 +5021,7 @@ msgstr ""
 msgid "Dark mode"
 msgstr "Temni način"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:228
 #: superset-frontend/src/pages/DashboardList/index.tsx:672
@@ -5191,7 +5191,7 @@ msgid "DataFrame must include temporal column"
 msgstr "DataFrame mora vsebovati časovni stolpec"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:274
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 #: superset-frontend/src/pages/DatabaseList/index.tsx:278
 #: superset-frontend/src/pages/DatabaseList/index.tsx:307
 #: superset-frontend/src/pages/DatasetList/index.tsx:360
@@ -5559,44 +5559,44 @@ msgstr ""
 msgid "Decimal Character"
 msgstr "Decimalno ločilo"
 
-#: superset/viz.py:2848
+#: superset/viz.py:2700
 msgid "Deck.gl - 3D Grid"
 msgstr "Deck.gl - 3D mreža"
 
-#: superset/viz.py:2973
+#: superset/viz.py:2825
 msgid "Deck.gl - 3D HEX"
 msgstr "Deck.gl - 3D HEX"
 
-#: superset/viz.py:3038
+#: superset/viz.py:2890
 msgid "Deck.gl - Arc"
 msgstr "Deck.gl - Arc"
 
-#: superset/viz.py:3017
+#: superset/viz.py:2869
 msgid "Deck.gl - GeoJSON"
 msgstr "Deck.gl - GeoJSON"
 
-#: superset/viz.py:2996
+#: superset/viz.py:2848
 #, fuzzy
 msgid "Deck.gl - Heatmap"
 msgstr "grafikoni deck.gl"
 
-#: superset/viz.py:2554
+#: superset/viz.py:2406
 msgid "Deck.gl - Multiple Layers"
 msgstr "Deck.gl - Večplastni"
 
-#: superset/viz.py:2883
+#: superset/viz.py:2735
 msgid "Deck.gl - Paths"
 msgstr "Deck.gl - Poti"
 
-#: superset/viz.py:2937
+#: superset/viz.py:2789
 msgid "Deck.gl - Polygon"
 msgstr "Deck.gl - Poligon"
 
-#: superset/viz.py:2760
+#: superset/viz.py:2612
 msgid "Deck.gl - Scatter plot"
 msgstr "Deck.gl - Raztreseni graf"
 
-#: superset/viz.py:2816
+#: superset/viz.py:2668
 msgid "Deck.gl - Screen Grid"
 msgstr "Deck.gl - Mreža"
 
@@ -5988,11 +5988,11 @@ msgstr "Zastarelo"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:860
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1206
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1210
-#: superset-frontend/src/components/ReportModal/index.tsx:294
+#: superset-frontend/src/components/ReportModal/index.tsx:293
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:51
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1158
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:367
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:465
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
 #: superset-frontend/src/pages/AnnotationList/index.tsx:161
@@ -6079,7 +6079,7 @@ msgstr "Dimenzija z x-os."
 msgid "Dimensions"
 msgstr "Dimenzije"
 
-#: superset/viz.py:2076
+#: superset/viz.py:1928
 msgid "Directed Force Layout"
 msgstr "Izgled usmerjene sile"
 
@@ -6174,7 +6174,7 @@ msgstr "Porazdeli glede na"
 msgid "Distribution"
 msgstr "Porazdelitev"
 
-#: superset/viz.py:1865
+#: superset/viz.py:1717
 msgid "Distribution - Bar Chart"
 msgstr "Porazdelitev - Stolpčni grafikon"
 
@@ -6542,7 +6542,7 @@ msgstr "Debelina povezave"
 msgid "Edit"
 msgstr "Urejanje"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
 msgid "Edit Alert"
 msgstr "Uredi opozorilo"
 
@@ -6595,7 +6595,7 @@ msgstr "Uredi mero"
 msgid "Edit Plugin"
 msgstr "Uredi vtičnik"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
 msgid "Edit Report"
 msgstr "Uredi poročilo"
 
@@ -6651,7 +6651,7 @@ msgstr "Uredi podatkovni set"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:243
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:264
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 msgid "Edit email report"
 msgstr "Uredi e-poštno poročilo"
 
@@ -6841,7 +6841,7 @@ msgstr ""
 "Omogoči številčenje strani rezultatov na strani strežnika (preizkusna "
 "funkcija)"
 
-#: superset/viz.py:2662
+#: superset/viz.py:2514
 msgid ""
 "Encountered invalid NULL spatial entry,"
 "                                        please consider filtering those "
@@ -7060,7 +7060,7 @@ msgstr "Imena dogodkov"
 msgid "Event definition"
 msgstr "Definicija dogodka"
 
-#: superset/viz.py:3075
+#: superset/viz.py:2927
 msgid "Event flow"
 msgstr "Potek dogodkov"
 
@@ -7390,7 +7390,7 @@ msgstr "Napaka pri pridobivanju rezultatov"
 msgid "Failed at stopping query. %s"
 msgstr "Neuspešno ustavljanje poizvedbe. %s"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:343
+#: superset-frontend/src/components/ReportModal/index.tsx:342
 msgid "Failed to create report"
 msgstr "Ustvarjanje poročila nesupešno"
 
@@ -7429,7 +7429,7 @@ msgstr "Doseg medsebojnega filtra"
 msgid "Failed to start remote query on a worker."
 msgstr "Na delavcu ni bilo mogoče zagnati oddaljene poizvedbe."
 
-#: superset-frontend/src/components/ReportModal/index.tsx:342
+#: superset-frontend/src/components/ReportModal/index.tsx:341
 msgid "Failed to update report"
 msgstr "Posodabljanje poročila neuspešno"
 
@@ -7624,7 +7624,7 @@ msgstr "Filtriranje"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:109
 #: superset-frontend/src/explore/controls.jsx:446
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:35
-#: superset/viz.py:2219
+#: superset/viz.py:2071
 msgid "Filters"
 msgstr "Filtri"
 
@@ -7821,7 +7821,7 @@ msgstr ""
 msgid "Formattable"
 msgstr "Prilagodljiv"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:255
+#: superset-frontend/src/components/ReportModal/index.tsx:254
 msgid "Formatted CSV attached in email"
 msgstr "Oblikovan CSV pripet e-pošti"
 
@@ -7876,7 +7876,7 @@ msgstr "Trenje med vozlišči"
 msgid "Friday"
 msgstr "Petek"
 
-#: superset/utils/date_parser.py:267 superset/viz.py:406
+#: superset/utils/date_parser.py:267 superset/viz.py:403
 msgid "From date cannot be larger than to date"
 msgstr "Začetni datum ne sme biti večji od končnega datuma"
 
@@ -7961,7 +7961,7 @@ msgstr ""
 msgid "Google Sheet Name and URL"
 msgstr "Ime Googlove preglednice in URL"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
 msgid "Grace period"
 msgstr "Obdobje mirovanja"
 
@@ -8003,10 +8003,6 @@ msgstr "Združevanje (Group by)"
 #: superset-frontend/src/filters/components/GroupBy/index.ts:29
 msgid "Group By filter plugin"
 msgstr "Vtičnik za filter za združevanje"
-
-#: superset/viz.py:962
-msgid "Group By' and 'Columns' can't overlap"
-msgstr "'Združevanje' in 'Stolpci' se ne smeta prekrivati"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/shared.ts:59
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:84
@@ -8058,7 +8054,7 @@ msgid "Header Row"
 msgstr "Naslovna vrstica"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:38
-#: superset/viz.py:2331
+#: superset/viz.py:2183
 msgid "Heatmap"
 msgstr "Toplotni prikaz"
 
@@ -8112,7 +8108,7 @@ msgid "Hierarchy"
 msgstr "Hierarhija"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:37
-#: superset/viz.py:1804
+#: superset/viz.py:1656
 msgid "Histogram"
 msgstr "Histogram"
 
@@ -8125,7 +8121,7 @@ msgstr "Domov"
 msgid "Horizon Chart"
 msgstr "Horizontni grafikon"
 
-#: superset/viz.py:2394
+#: superset/viz.py:2246
 msgid "Horizon Charts"
 msgstr "Horizontni grafikon"
 
@@ -8266,7 +8262,7 @@ msgstr ""
 "Če tabela obstaja, naredite nekaj od sledečega: Prekini (ne naredi nič), "
 "Zamenjaj (zbriši in ponovno ustvari tabelo) ali Dodaj (vstavi podatke)."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
 #, fuzzy
 msgid "Ignore cache when generating screenshot"
 msgstr ""
@@ -8281,7 +8277,7 @@ msgstr "Izpusti prazne lokacije"
 msgid "Ignore time"
 msgstr "Ne upoštevaj časa"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:252
+#: superset-frontend/src/components/ReportModal/index.tsx:251
 msgid "Image (PNG) embedded in email"
 msgstr "Slika (PNG) vključena v e-pošto"
 
@@ -8379,7 +8375,7 @@ msgstr "v"
 msgid "Include Series"
 msgstr "Vključi serijo"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:295
+#: superset-frontend/src/components/ReportModal/index.tsx:294
 msgid "Include a description that will be sent with your report"
 msgstr "Vključite opis, ki bo vključen v poročilo"
 
@@ -8553,7 +8549,7 @@ msgstr "Neveljaven kumulativni operand: %(operator)s"
 msgid "Invalid date/timestamp format"
 msgstr "Neveljaven zapis datuma/časa"
 
-#: superset/viz.py:2239
+#: superset/viz.py:2091
 msgid "Invalid filter configuration, please select a column"
 msgstr "Neveljavna nastavitev filtrov, izberite stolpec"
 
@@ -8616,7 +8612,7 @@ msgstr "Neveljaven tip rezultata: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Neveljaven rolling_type: %(type)s"
 
-#: superset/viz.py:2622
+#: superset/viz.py:2474
 #, python-format
 msgid "Invalid spatial point encountered: %s"
 msgstr "Neustrezna prostorska točka: %s"
@@ -9326,7 +9322,7 @@ msgstr "ustvarite nov grafikon"
 msgid "Log Scale"
 msgstr "Logaritemska skala"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
 msgid "Log retention"
 msgstr "Hranjenje dnevnikov"
 
@@ -9502,7 +9498,7 @@ msgstr "Slog zemljevida"
 msgid "MapBox"
 msgstr "MapBox"
 
-#: superset/viz.py:2406
+#: superset/viz.py:2258
 msgid "Mapbox"
 msgstr "Mapbox"
 
@@ -9653,8 +9649,8 @@ msgstr "Srednje"
 msgid "Menu actions trigger"
 msgstr "Preklapljanje funkcionalnosti menijev"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:237
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
+#: superset-frontend/src/components/ReportModal/index.tsx:236
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
 msgid "Message content"
 msgstr "Vsebina sporočila"
 
@@ -10080,11 +10076,11 @@ msgstr "Mora biti unikaten"
 msgid "Must choose either a chart or a dashboard"
 msgstr "Izberite grafikon ali nadzorno ploščo, ne obojega"
 
-#: superset/viz.py:2431
+#: superset/viz.py:2283
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr "Mora imeti stolpec [Združevanje], da ima število (count) kot [Oznaka]"
 
-#: superset/viz.py:1814
+#: superset/viz.py:1666
 msgid "Must have at least one numeric column specified"
 msgstr "Definiran mora biti vsaj en numerični stolpec"
 
@@ -10568,7 +10564,7 @@ msgstr "Velikost vozlišča"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:51
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:138
 #: superset-frontend/src/explore/controlPanels/sections.tsx:134
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:128
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:127
 msgid "None"
 msgstr "Brez"
 
@@ -10620,7 +10616,7 @@ msgstr "!= (ni enako)"
 msgid "Not in"
 msgstr "oznaka"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:121
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:120
 msgid "Not null"
 msgstr "Ni nič (null)"
 
@@ -10637,7 +10633,7 @@ msgstr "Ni posodobljeno"
 msgid "Nothing triggered"
 msgstr "Ni ni sproženo"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:411
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
 #: superset-frontend/src/pages/AlertReportList/index.tsx:302
 msgid "Notification method"
 msgstr "Način obveščanja"
@@ -11214,7 +11210,7 @@ msgstr "Lastnik"
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:527
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:531
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:369
 #: superset-frontend/src/pages/DatasetList/index.tsx:400
@@ -11268,7 +11264,7 @@ msgid "Pandas resample rule"
 msgstr "Pravilo za prevzorčenje v Pandas"
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:33
-#: superset/viz.py:2300
+#: superset/viz.py:2152
 msgid "Parallel Coordinates"
 msgstr "Vzporedne koordinate"
 
@@ -11311,7 +11307,7 @@ msgstr "Del celote"
 msgid "Partition Chart"
 msgstr "Grafikon razdelkov"
 
-#: superset/viz.py:3217
+#: superset/viz.py:3069
 msgid "Partition Diagram"
 msgstr "Grafikon s pravokotniki"
 
@@ -11458,27 +11454,27 @@ msgstr "Fizičen podatkovni set"
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Izberite dimenzijo, ki bo določala kategorične barve"
 
-#: superset/viz.py:798
+#: superset/viz.py:795
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
 msgstr "Izberite granulacijo v razdelku 'Čas' ali odstranite 'Vključi čas'"
 
-#: superset/viz.py:1662
+#: superset/viz.py:1514
 msgid "Pick a metric for left axis!"
 msgstr "Izberite mero za levo os!"
 
-#: superset/viz.py:1664
+#: superset/viz.py:1516
 msgid "Pick a metric for right axis!"
 msgstr "Izberite mero za desno os!"
 
-#: superset/viz.py:1238
+#: superset/viz.py:1090
 msgid "Pick a metric for x, y and size"
 msgstr "Izberite mere za x, y in velikost"
 
-#: superset/viz.py:1279
+#: superset/viz.py:1131
 msgid "Pick a metric to display"
 msgstr "Izberite mero za prikaz"
 
-#: superset/viz.py:1307 superset/viz.py:1343
+#: superset/viz.py:1159 superset/viz.py:1195
 msgid "Pick a metric!"
 msgstr "Izberite mero!"
 
@@ -11495,7 +11491,7 @@ msgstr "Izberite vzdevek za to podatkovno bazo, ki bo prikazan v Supersetu."
 msgid "Pick a set of deck.gl charts to layer on top of one another"
 msgstr "Izberite nabor deck.gl grafikonov, ki bodo nanizani en na drugem"
 
-#: superset/viz.py:1442 superset/viz.py:1712
+#: superset/viz.py:1294 superset/viz.py:1564
 msgid "Pick a time granularity for your time series"
 msgstr "Izberite granulacijo časa za časovno vrsto"
 
@@ -11503,15 +11499,15 @@ msgstr "Izberite granulacijo časa za časovno vrsto"
 msgid "Pick a title for you annotation."
 msgstr "Izberite naslov za oznako."
 
-#: superset/viz.py:1880
+#: superset/viz.py:1732
 msgid "Pick at least one field for [Series]"
 msgstr "Izberite vsaj eno polje za [Serije]"
 
-#: superset/viz.py:890 superset/viz.py:1878
+#: superset/viz.py:887 superset/viz.py:1730
 msgid "Pick at least one metric"
 msgstr "Izberite vsaj eno mero"
 
-#: superset/viz.py:2011
+#: superset/viz.py:1863
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr "Izberite natanko dva stolpca za [Izvor / Cilj]"
 
@@ -11541,7 +11537,6 @@ msgid "Pin"
 msgstr "Žebljiček"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:60
-#: superset/viz.py:928
 msgid "Pivot Table"
 msgstr "Vrtilna tabela"
 
@@ -11617,21 +11612,12 @@ msgstr ""
 "Preverite, če ima vaša poizvedba sintaktične napake pri "
 "\"%(syntax_error)s\". Potem ponovno poženite poizvedbo."
 
-#: superset/viz.py:946
-#, fuzzy
-msgid "Please choose at least one 'Group by' field"
-msgstr "Izberite vsaj eno 'Group by' polje "
-
-#: superset/viz.py:3382
+#: superset/viz.py:3234
 #, fuzzy
 msgid "Please choose at least one groupby"
 msgstr "Izberite vsaj eno 'Group by' polje "
 
-#: superset/viz.py:958
-msgid "Please choose at least one metric"
-msgstr "Izberite vsaj eno mero"
-
-#: superset/viz.py:1667
+#: superset/viz.py:1519
 msgid "Please choose different metrics on left and right axis"
 msgstr "Izberite različni meri za levo in desno os"
 
@@ -11706,7 +11692,7 @@ msgstr ""
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "Za nadaljevanje izberite podatkovni set in tip grafikona"
 
-#: superset/viz.py:1236
+#: superset/viz.py:1088
 msgid "Please use 3 different metric labels"
 msgstr "Uporabite 3 različne oznake mer"
 
@@ -12538,7 +12524,7 @@ msgstr "Zamenjaj"
 msgid "Report"
 msgstr "Poročilo"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:282
+#: superset-frontend/src/components/ReportModal/index.tsx:281
 #, fuzzy
 msgid "Report Name"
 msgstr "Naslov poročila"
@@ -12611,11 +12597,11 @@ msgstr "Sporočite napako"
 msgid "Report failed"
 msgstr "Poročilo ni uspelo"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 msgid "Report name"
 msgstr "Naslov poročila"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
 msgid "Report schedule"
 msgstr "Urnik poročanja"
 
@@ -13089,7 +13075,7 @@ msgstr ""
 "Shrani.\n"
 "Pred tem morate zapreti druga okna SQL laboratorija."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
 #: superset-frontend/src/features/home/SavedQueries.tsx:261
 msgid "SQL Query"
 msgstr "SQL poizvedba"
@@ -13205,7 +13191,7 @@ msgstr "Vzorcev za podatkovni set ni bilo mogoče pridobiti."
 msgid "Samples for datasource could not be retrieved."
 msgstr "Vzorcev za podatkovni set ni bilo mogoče pridobiti."
 
-#: superset/viz.py:2002
+#: superset/viz.py:1854
 msgid "Sankey"
 msgstr "Sankey"
 
@@ -13237,7 +13223,7 @@ msgstr "Sobota"
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:198
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:213
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:288
-#: superset-frontend/src/components/ReportModal/index.tsx:229
+#: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/dashboard/components/Header/index.jsx:607
 #: superset-frontend/src/dashboard/components/Header/index.jsx:609
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:112
@@ -13259,7 +13245,7 @@ msgstr "Sobota"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:521
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger.tsx:250
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:347
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -13432,12 +13418,12 @@ msgstr ""
 "dvema spremenljivkama."
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:239
-#: superset-frontend/src/components/ReportModal/index.tsx:306
+#: superset-frontend/src/components/ReportModal/index.tsx:305
 #: superset-frontend/src/pages/AlertReportList/index.tsx:276
 msgid "Schedule"
 msgstr "Urnik"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:212
+#: superset-frontend/src/components/ReportModal/index.tsx:211
 msgid "Schedule a new email report"
 msgstr "Dodaj novo e-poštno poročilo na urnik"
 
@@ -13449,7 +13435,7 @@ msgstr "Dodaj e-poštno poročilo na urnik"
 msgid "Schedule query"
 msgstr "Urnik poizvedb"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
 msgid "Schedule settings"
 msgstr "Nastavitve urnika"
 
@@ -13913,15 +13899,15 @@ msgstr ""
 "Izberite vrednosti v osvetljenih poljih na levi strani kontrolnika in "
 "zaženite poizvedbo z gumbom %s."
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as CSV"
 msgstr "Pošlji kot CSV"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
 msgid "Send as PNG"
 msgstr "Pošlji kot PNG"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as text"
 msgstr "Pošlji kot besedilo"
 
@@ -15053,7 +15039,7 @@ msgstr "Vsota vrednosti v dani periodi"
 msgid "Sum values"
 msgstr "Prazne (Null) vrednosti"
 
-#: superset/viz.py:1953
+#: superset/viz.py:1805
 msgid "Sunburst"
 msgstr "Sunburst"
 
@@ -15223,7 +15209,7 @@ msgstr "Tabela obstaja"
 msgid "Table Name"
 msgstr "Ime tabele"
 
-#: superset/viz.py:725
+#: superset/viz.py:722
 msgid "Table View"
 msgstr "Tabelarični pogled"
 
@@ -15413,7 +15399,7 @@ msgstr "Besedilo"
 msgid "Text align"
 msgstr "Poravnava besedila"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:248
+#: superset-frontend/src/components/ReportModal/index.tsx:247
 msgid "Text embedded in email"
 msgstr "Besedilo vključeno v e-pošto"
 
@@ -16500,7 +16486,7 @@ msgstr "Do težave je prišlo pri predogledu izbrane poizvedbe %s"
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Pri predogledu izbrane poizvedbe je prišlo do težave. %s"
 
-#: superset/viz.py:2063
+#: superset/viz.py:1915
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty "
 "link: {}"
@@ -16865,7 +16851,7 @@ msgstr "To bo odstranilo trenutno konfiguracijo za vgrajevanje."
 msgid "Threshold alpha level for determining significance"
 msgstr "Mejna vrednost alfa za določanje značilnosti"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
 msgid "Threshold value should be double precision number"
 msgstr "Mejna vrednost naj bo število z dvojno natančnostjo (double)"
 
@@ -16942,39 +16928,39 @@ msgstr "Granulacija časa"
 msgid "Time Series"
 msgstr "Časovna vrsta"
 
-#: superset/viz.py:1729
+#: superset/viz.py:1581
 msgid "Time Series - Bar Chart"
 msgstr "Časovna vrsta - Stolpčni grafikon"
 
-#: superset/viz.py:1652
+#: superset/viz.py:1504
 msgid "Time Series - Dual Axis Line Chart"
 msgstr "Časovna vrsta - Črtni grafikon z dvojno osjo"
 
-#: superset/viz.py:1357
+#: superset/viz.py:1209
 msgid "Time Series - Line Chart"
 msgstr "Časovna vrsta - Črtni grafikon"
 
-#: superset/viz.py:1572
+#: superset/viz.py:1424
 msgid "Time Series - Multiple Line Charts"
 msgstr "Časovna vrsta - Veččrtni grafikon"
 
-#: superset/viz.py:3181
+#: superset/viz.py:3033
 msgid "Time Series - Nightingale Rose Chart"
 msgstr "Časovna vrsta - Nightingale Rose grafikon"
 
-#: superset/viz.py:3109
+#: superset/viz.py:2961
 msgid "Time Series - Paired t-test"
 msgstr "Časovna vrsta - t-test za odvisne vzorce"
 
-#: superset/viz.py:1786
+#: superset/viz.py:1638
 msgid "Time Series - Percent Change"
 msgstr "Časovna vrsta - Procentualna sprememba"
 
-#: superset/viz.py:1738
+#: superset/viz.py:1590
 msgid "Time Series - Period Pivot"
 msgstr "Časovna vrsta - Vrtenje period"
 
-#: superset/viz.py:1794
+#: superset/viz.py:1646
 msgid "Time Series - Stacked"
 msgstr "Časovna vrsta - Naložen graf"
 
@@ -16989,7 +16975,7 @@ msgstr "Možnosti časovne vrste"
 msgid "Time Shift"
 msgstr "Časovni zamik"
 
-#: superset/viz.py:881
+#: superset/viz.py:878
 msgid "Time Table View"
 msgstr "Pogled urnika"
 
@@ -17065,7 +17051,7 @@ msgstr "Časovna granulacija manjka"
 msgid "Time granularity"
 msgstr "Granulacija časa"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
 msgid "Time in seconds"
 msgstr "Čas v sekundah"
 
@@ -17227,8 +17213,8 @@ msgstr "Napaka pretečenega časa"
 msgid "Timestamp format"
 msgstr "Oblika zapisa časovne značke"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:326
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
+#: superset-frontend/src/components/ReportModal/index.tsx:325
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
 msgid "Timezone"
 msgstr "Časovni pas"
 
@@ -17313,11 +17299,6 @@ msgstr "desno"
 msgid "Top to Bottom"
 msgstr "Iz vrha proti dnu"
 
-#: superset/viz.py:1047
-#, fuzzy
-msgid "Total"
-msgstr "Pokaži vsote"
-
 #: superset/charts/post_processing.py:73
 #, python-format
 msgid "Total (%(aggfunc)s)"
@@ -17382,7 +17363,7 @@ msgid "Tree orientation"
 msgstr "Orientacija drevesa"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:60
-#: superset/viz.py:1073
+#: superset/viz.py:925
 msgid "Treemap"
 msgstr "Drevesni grafikon s pravokotniki"
 
@@ -17406,7 +17387,7 @@ msgstr "Trend"
 msgid "Triangle"
 msgstr "Trikotnik"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
 msgid "Trigger Alert If..."
 msgstr "Sproži opozorilo v primeru ..."
 
@@ -18023,7 +18004,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:100
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:143
 msgid "Value"
 msgstr "Vrednost"
@@ -18346,7 +18327,7 @@ msgstr ""
 "Prikaže besede v stolpcu, glede na pogostost pojavljanja. Večja pisava "
 "pomeni večjo frekvenco."
 
-#: superset/viz.py:143
+#: superset/viz.py:140
 msgid "Viz is missing a datasource"
 msgstr "Vizualizaciji manjka podatkovni vir"
 
@@ -18472,11 +18453,11 @@ msgstr "Teden z začetkom v nedeljo"
 msgid "Week_ending Sunday"
 msgstr "Teden s koncem v nedeljo"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:123
+#: superset-frontend/src/components/ReportModal/index.tsx:122
 msgid "Weekly Report"
 msgstr "Tedensko poročilo"
 
-#: superset-frontend/src/components/ReportModal/index.tsx:122
+#: superset-frontend/src/components/ReportModal/index.tsx:121
 #, python-format
 msgid "Weekly Report for %s"
 msgstr "Tedensko poročilo za %s"
@@ -18602,7 +18583,7 @@ msgstr ""
 "tabele. Običajno je namen omejiti poizvedbo z uporabo filtra za relativni"
 " čas na particioniranem ali indeksiranem časovnem polju."
 
-#: superset/viz.py:894
+#: superset/viz.py:891
 msgid "When using 'Group By' you are limited to use a single metric"
 msgstr "Ko uporabljate 'Group By', ste omejeni na uporabo ene mere"
 
@@ -18942,12 +18923,12 @@ msgstr "Vrtenje besed"
 msgid "Working"
 msgstr "Delam"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
 msgid "Working timeout"
 msgstr "Pretek delovanja"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:33
-#: superset/viz.py:2154
+#: superset/viz.py:2006
 msgid "World Map"
 msgstr "Zemljevid sveta"
 
@@ -19298,7 +19279,7 @@ msgstr ""
 "Skupaj s filtriranjem časovnega obdobja ne morete uporabiti oznak pod 45°"
 " kotom"
 
-#: superset/viz.py:751
+#: superset/viz.py:748
 msgid ""
 "You cannot use [Columns] in combination with [Group "
 "By]/[Metrics]/[Percentage Metrics]. Please choose one or the other."
@@ -19516,13 +19497,13 @@ msgstr "Stopnja povečave zemljevida"
 msgid "[ untitled dashboard ]"
 msgstr "[ neimenovana nadzorna plošča ]"
 
-#: superset/viz.py:2471
+#: superset/viz.py:2323
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
 "Stolpca [Zemljepisna dolžina] in [Zemljepisna širina] morata biti "
 "prisotna v [Združevanje]"
 
-#: superset/viz.py:2421
+#: superset/viz.py:2273
 msgid "[Longitude] and [Latitude] must be set"
 msgstr "[Zemljepisna dolžina] in [Zemljepisna širina] morata biti nastavljeni"
 
@@ -20517,7 +20498,7 @@ msgstr "nedavne"
 msgid "recents"
 msgstr "nedavne"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:567
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:566
 #: superset-frontend/src/pages/AlertReportList/index.tsx:110
 msgid "report"
 msgstr "poročilo"
@@ -20557,7 +20538,7 @@ msgstr "shranjene poizvedbe"
 msgid "search by tags"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
 #, fuzzy
 msgid "seconds"
 msgstr "30 sekund"

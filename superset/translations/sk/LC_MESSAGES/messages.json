@@ -1765,7 +1765,6 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [""],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group Key": [""],
       "Group by": [""],
@@ -2560,9 +2559,7 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose at least one 'Group by' field": [""],
       "Please choose at least one groupby": [""],
-      "Please choose at least one metric": [""],
       "Please choose different metrics on left and right axis": [""],
       "Please confirm": [""],
       "Please confirm the overwrite values.": [""],
@@ -3907,7 +3904,6 @@
       "Top left": [""],
       "Top right": [""],
       "Top to Bottom": [""],
-      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],

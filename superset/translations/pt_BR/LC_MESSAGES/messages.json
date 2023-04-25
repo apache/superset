@@ -2308,9 +2308,6 @@
       "Grid Size": ["Tamanho da grade"],
       "Group By": ["Agrupar por"],
       "Group By filter plugin": ["Plugin do filtro Agrupar por"],
-      "Group By' and 'Columns' can't overlap": [
-        "'Agrupar por' e 'Colunas' não podem ser sobrepostos"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "Agrupar por , Métricas ou Métricas de porcentagem devem ter um valor"
       ],
@@ -3393,14 +3390,8 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         "Verifique se existem erros de sintaxe nos parâmetros do modelo e certifique-se de que correspondem à consulta SQL e aos parâmetros de definição. Em seguida, tente executar a consulta novamente."
       ],
-      "Please choose at least one 'Group by' field": [
-        "Escolha pelo menos um campo 'Agrupar por'"
-      ],
       "Please choose at least one groupby": [
         "Escolha pelo menos um agrupar por"
-      ],
-      "Please choose at least one metric": [
-        "Por favor escolher ao menos uma métrica"
       ],
       "Please choose different metrics on left and right axis": [
         "Escolha métricas diferentes no eixo esquerdo e direito"

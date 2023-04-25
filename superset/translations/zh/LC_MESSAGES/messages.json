@@ -1687,7 +1687,6 @@
       "Gravity": ["重力"],
       "Group By": ["分组"],
       "Group By filter plugin": ["分组过滤插件"],
-      "Group By' and 'Columns' can't overlap": ["“Group by”列和字段不能重叠"],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "分组、指标或百分比指标必须具有值"
       ],
@@ -2453,7 +2452,6 @@
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "请检查查询中\"%(server_error)s\"附近的语法错误然后，再次尝试运行查询"
       ],
-      "Please choose at least one metric": ["请至少选择一个指标"],
       "Please choose different metrics on left and right axis": [
         "请在左右轴上选择不同的指标"
       ],

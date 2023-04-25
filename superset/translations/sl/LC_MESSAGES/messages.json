@@ -2144,9 +2144,6 @@
       "Grid Size": ["Velikost mreže"],
       "Group By": ["Združevanje (Group by)"],
       "Group By filter plugin": ["Vtičnik za filter za združevanje"],
-      "Group By' and 'Columns' can't overlap": [
-        "'Združevanje' in 'Stolpci' se ne smeta prekrivati"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "Združevanje, Mera ali Procentualna mera morajo imeti vrednost"
       ],
@@ -3040,7 +3037,6 @@
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "Preverite, če ima vaša poizvedba sintaktične napake pri \"%(server_error)s\". Potem ponovno poženite poizvedbo."
       ],
-      "Please choose at least one metric": ["Izberite vsaj eno mero"],
       "Please choose different metrics on left and right axis": [
         "Izberite različni meri za levo in desno os"
       ],
