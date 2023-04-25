@@ -3993,9 +3993,6 @@
       "Shows or hides markers for the time series": [
         "Показывает или скрывает маркеры для временных рядов"
       ],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        ""
-      ],
       "Significance Level": [""],
       "Simple": ["Столбец"],
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
@@ -4241,7 +4238,6 @@
       ],
       "Target": ["Цель"],
       "Target Color": ["Целевой цвет"],
-      "Target aspect ratio for treemap tiles.": [""],
       "Target category": ["Целевая категория"],
       "Target value": ["Целевое значение"],
       "Template Name": ["Имя шаблона"],
@@ -4966,7 +4962,6 @@
       "Tree layout": ["Оформление дерева"],
       "Tree orientation": ["Ориентация дерева"],
       "Treemap": ["Плоское дерево"],
-      "Treemap (legacy)": ["Плоское дерево (устарело)"],
       "Trend": ["Тенденция"],
       "Triangle": ["Треугольник"],
       "Trigger Alert If...": ["Оповестить, если..."],

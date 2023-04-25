@@ -3688,9 +3688,6 @@
         "Prikaže seznam vseh razpoložljivih podatkovnih serij za istočasno točko"
       ],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        ""
-      ],
       "Significance Level": ["Stopnja značilnosti"],
       "Simple": ["Preprosto"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
@@ -3911,9 +3908,6 @@
       ],
       "Target": ["Cilj"],
       "Target Color": ["Ciljna barva"],
-      "Target aspect ratio for treemap tiles.": [
-        "Ciljno razmerje za razdelke drevesnega grafikona."
-      ],
       "Target category": ["Kategorija cilja"],
       "Target value": ["Ciljna vrednost"],
       "Template Name": ["Ime predloge"],
@@ -4610,7 +4604,6 @@
       "Tree layout": ["Oblika drevesa"],
       "Tree orientation": ["Orientacija drevesa"],
       "Treemap": ["Drevesni grafikon s pravokotniki"],
-      "Treemap (legacy)": [""],
       "Trend": ["Trend"],
       "Triangle": ["Trikotnik"],
       "Trigger Alert If...": ["Sproži opozorilo v primeru ..."],
