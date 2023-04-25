@@ -49,7 +49,7 @@ class DatasetColumnsPutSchema(Schema):
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
     advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
-    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name = fields.String(allow_none=True, validate=Length(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
@@ -71,7 +71,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name = fields.String(allow_none=True, validate=Length(1, 1024))
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
