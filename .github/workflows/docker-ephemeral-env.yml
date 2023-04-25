@@ -17,14 +17,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' &&
-              secrets.AWS_ACCESS_KEY_ID != '' &&
-              secrets.AWS_SECRET_ACCESS_KEY != '' &&
-              secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
-              echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-            fi
+          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' &&
+            secrets.AWS_ACCESS_KEY_ID != '' &&
+            secrets.AWS_SECRET_ACCESS_KEY != '' &&
+            secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
 
   docker_ephemeral_env:
     needs: config
