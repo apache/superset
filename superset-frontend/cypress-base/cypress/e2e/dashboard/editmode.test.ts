@@ -153,7 +153,7 @@ function clearMetadata() {
     cy.wrap($jsonmetadata).find('.ace_content').click();
     cy.wrap($jsonmetadata)
       .find('.ace_text-input')
-      .type('{selectall} {backspace}');
+      .type('{selectall} {backspace}', { force: true });
   });
 }
 
@@ -162,7 +162,7 @@ function writeMetadata(metadata: string) {
     cy
       .wrap($jsonmetadata)
       .find('.ace_text-input')
-      .type(metadata, { parseSpecialCharSequences: false }),
+      .type(metadata, { parseSpecialCharSequences: false, force: true }),
   );
 }
 
