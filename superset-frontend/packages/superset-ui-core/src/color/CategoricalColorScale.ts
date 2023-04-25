@@ -98,8 +98,8 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
-      if (!sharedColor) {
-        // make sure we don't overwrite the origin colors
+      // make sure we don't overwrite the origin colors
+      if (!isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
         const updatedRange = [...this.originColors];
         // remove the color option from shared color
         sharedColorMap.forEach((value, key) => {
