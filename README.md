@@ -67,7 +67,6 @@ Superset provides:
 
 https://user-images.githubusercontent.com/64562059/234179132-73a743e3-d7f0-4385-854e-1de0b007430e.mov
 
-
 <br/>
 
 **Large Gallery of Visualizations**
