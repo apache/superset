@@ -11,7 +11,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-table"
   },
   "keywords": [
     "superset"
@@ -19,9 +20,9 @@
   "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-table#readme",
   "publishConfig": {
     "access": "public"
   },

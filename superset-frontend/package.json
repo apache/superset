@@ -20,7 +20,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend"
   },
   "license": "Apache-2.0",
   "author": {
