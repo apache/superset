@@ -24,7 +24,7 @@ from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
-from superset.extensions import appbuilder, db, security_manager
+from superset.extensions import db
 from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
 from superset.row_level_security.dao import RLSDAO
 
@@ -45,7 +45,7 @@ class UpdateRLSRuleCommand(BaseCommand):
             rule = RLSDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DAOUpdateFailedError
+            raise ex
 
         return rule
 
