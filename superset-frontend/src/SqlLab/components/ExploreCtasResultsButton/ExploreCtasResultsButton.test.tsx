@@ -32,7 +32,7 @@ import ExploreCtasResultsButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-const getOrCreateTableEndpoint = `glob:*/superset/get_or_create_table/`;
+const getOrCreateTableEndpoint = `glob:*/api/v1/dataset/get_or_create/`;
 
 const setup = (props: Partial<ExploreCtasResultsButtonProps>, store?: Store) =>
   render(
@@ -63,7 +63,7 @@ describe('ExploreCtasResultsButton', () => {
 
     postFormSpy.mockClear();
     fetchMock.reset();
-    fetchMock.post(getOrCreateTableEndpoint, { table_id: 1234 });
+    fetchMock.post(getOrCreateTableEndpoint, { result: { table_id: 1234 } });
 
     fireEvent.click(getByText('Explore'));
 
@@ -82,8 +82,7 @@ describe('ExploreCtasResultsButton', () => {
     postFormSpy.mockClear();
     fetchMock.reset();
     fetchMock.post(getOrCreateTableEndpoint, {
-      status: 500,
-      body: { message: 'Unexpected all to v1 API' },
+      throws: new Error('Unexpected all to v1 API'),
     });
 
     fireEvent.click(getByText('Explore'));
