@@ -64,7 +64,7 @@ test('renders the appropriate dropdown in Message Content section', async () => 
 
   expect(await screen.findByRole('radio', { name: /chart/i })).toBeChecked();
   expect(
-    screen.getByRole('radio', {
+    await screen.findByRole('radio', {
       name: /dashboard/i,
     }),
   ).not.toBeChecked();

@@ -163,10 +163,6 @@ export function interceptDatasets() {
   cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
 }
 
-export function interceptDashboardasync() {
-  cy.intercept('GET', `/dashboardasync/api/read*`).as('getDashboardasync');
-}
-
 export function interceptFilterState() {
   cy.intercept('POST', `/api/v1/dashboard/*/filter_state*`).as(
     'postFilterState',

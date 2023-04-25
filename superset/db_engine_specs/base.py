@@ -355,10 +355,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
-    # A set of disallowed connection query parameters
-    disallow_uri_query_params: Set[str] = set()
+    # A set of disallowed connection query parameters by driver name
+    disallow_uri_query_params: Dict[str, Set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
-    enforce_uri_query_params: Dict[str, Any] = {}
+    # by driver name
+    enforce_uri_query_params: Dict[str, Dict[str, Any]] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -899,6 +900,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 if word.upper() in cls.select_keywords
             ]
             first_select = selects[0]
+            if tokens[first_select + 1].upper() == "DISTINCT":
+                first_select += 1
+
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))
 
@@ -1096,7 +1100,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         This is important because DB engine specs can be installed from 3rd party
         packages.
         """
-        return uri, {**connect_args, **cls.enforce_uri_query_params}
+        return uri, {
+            **connect_args,
+            **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),
+        }
 
     @classmethod
     def patch(cls) -> None:
@@ -1850,29 +1857,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if existing_disallowed := cls.disallow_uri_query_params.intersection(
-            sqlalchemy_uri.query
-        ):
+        if existing_disallowed := cls.disallow_uri_query_params.get(
+            sqlalchemy_uri.get_driver_name(), set()
+        ).intersection(sqlalchemy_uri.query):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class BasicParametersSchema(Schema):
-    username = fields.String(required=True, allow_none=True, description=__("Username"))
-    password = fields.String(allow_none=True, description=__("Password"))
-    host = fields.String(required=True, description=__("Hostname or IP address"))
+    username = fields.String(
+        required=True, allow_none=True, metadata={"description": __("Username")}
+    )
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
     port = fields.Integer(
         required=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
-    database = fields.String(required=True, description=__("Database name"))
+    database = fields.String(
+        required=True, metadata={"description": __("Database name")}
+    )
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
     )
     encryption = fields.Boolean(
-        required=False, description=__("Use an encrypted connection to the database")
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
 
 

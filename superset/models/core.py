@@ -47,7 +47,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import ArgumentError, NoSuchModuleError
+from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
@@ -56,6 +56,7 @@ from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -888,7 +889,7 @@ class Database(
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
-        except (ArgumentError, ValueError):
+        except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"

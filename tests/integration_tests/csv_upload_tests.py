@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import shutil
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from unittest import mock
 
@@ -129,7 +129,12 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
+def upload_csv(
+    filename: str,
+    table_name: str,
+    extra: Optional[Dict[str, str]] = None,
+    dtype: Union[str, None] = None,
+):
     csv_upload_db_id = get_upload_db().id
     schema = utils.get_example_default_schema()
     form_data = {
@@ -145,6 +150,8 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
+    if dtype:
+        form_data["dtype"] = dtype
     return get_resp(test_client, "/csvtodatabaseview/form", data=form_data)
 
 
@@ -385,6 +392,39 @@ def test_import_csv(mock_event_logger):
         # make sure that john and empty string are replaced with None
         data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
         assert data == [("john", 1, "x"), ("paul", 2, None)]
+
+    # cleanup
+    with get_upload_db().get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
+
+    # with dtype
+    upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE,
+        dtype='{"a": "string", "b": "float64"}',
+    )
+
+    # you can change the type to something compatible, like an object to string
+    # or an int to a float
+    # file upload should work as normal
+    with test_db.get_sqla_engine_with_context() as engine:
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        assert data == [("john", 1), ("paul", 2)]
+
+    # cleanup
+    with get_upload_db().get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
+
+    # with dtype - wrong type
+    resp = upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE,
+        dtype='{"a": "int"}',
+    )
+
+    # you cannot pass an incompatible dtype
+    fail_msg = f"Unable to upload CSV file {escaped_double_quotes(CSV_FILENAME1)} to table {escaped_double_quotes(CSV_UPLOAD_TABLE)}"
+    assert fail_msg in resp
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
