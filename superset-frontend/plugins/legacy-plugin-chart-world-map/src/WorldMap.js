@@ -21,11 +21,9 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
-  CategoricalColorNamespace,
-  getColumnLabel,
   getNumberFormatter,
-  getTimeFormatter,
   getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
@@ -73,7 +71,6 @@ function WorldMap(element, props) {
     inContextMenu,
     filterState,
     emitCrossFilters,
-    formData,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -174,8 +171,6 @@ function WorldMap(element, props) {
     const key = source.id || source.country;
     const val =
       countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
-    const timestampFormatter = value =>
-      getTimeFormatter(formData.dateFormat)(value);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
@@ -192,10 +187,6 @@ function WorldMap(element, props) {
           col: entity,
           op: '==',
           val,
-          formattedVal:
-            getColumnLabel(entity) === formData.granularitySqla
-              ? String(timestampFormatter(val))
-              : String(val),
         },
       ];
     }
