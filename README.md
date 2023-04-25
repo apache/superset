@@ -65,7 +65,7 @@ Superset provides:
 
 **Video Overview**
 
-https://user-images.githubusercontent.com/64562059/234179132-73a743e3-d7f0-4385-854e-1de0b007430e.mov
+https://user-images.githubusercontent.com/64562059/234390129-321d4f35-cb4b-45e8-89d9-20ae292f34fc.mp4
 
 <br/>
 
