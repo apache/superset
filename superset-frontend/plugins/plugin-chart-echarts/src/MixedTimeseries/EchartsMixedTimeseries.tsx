@@ -23,12 +23,13 @@ import {
   DTTM_ALIAS,
   DataRecordValue,
   getColumnLabel,
+  getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { currentSeries } from '../utils/series';
+import { currentSeries, formatSeriesName } from '../utils/series';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -47,6 +48,7 @@ export default function EchartsMixedTimeseries({
   xValueFormatter,
   xAxis,
   refs,
+  coltypeMapping,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -135,8 +137,6 @@ export default function EchartsMixedTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const isFirst = isFirstQuery(seriesIndex);
-        const timestampFormatter = (value: any) =>
-          getTimeFormatter(formData.dateFormat)(value);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
           ...(isFirst ? labelMap : labelMapB)[eventParams.seriesName],
@@ -171,10 +171,11 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal:
-                DTTM_ALIAS === getColumnLabel(dimension)
-                  ? String(timestampFormatter(values[i]))
-                  : String(values[i]),
+              formattedVal: formatSeriesName(String(values[i]), {
+                timeFormatter: getTimeFormatter(values[i]),
+                numberFormatter: getNumberFormatter(values[i]),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
             }),
         );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

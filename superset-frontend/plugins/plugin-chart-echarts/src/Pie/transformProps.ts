@@ -345,5 +345,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     emitCrossFilters,
+    coltypeMapping,
   };
 }

@@ -20,11 +20,13 @@ import React, { useCallback } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   getColumnLabel,
+  getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
+import { formatSeriesName } from '../utils/series';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -43,6 +45,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     onContextMenu,
     refs,
     emitCrossFilters,
+    coltypeMapping,
   } = props;
   const { columns } = formData;
 
@@ -115,8 +118,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
-        const timestampFormatter = (value: any) =>
-          getTimeFormatter(formData.dateFormat)(value);
         if (columns?.length) {
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
@@ -131,11 +132,12 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             col: columns[treePath.length - 1],
             op: '==',
             val,
-            formattedVal:
-              getColumnLabel(columns[treePath.length - 1]) ===
-              formData.granularitySqla
-                ? String(timestampFormatter(val))
-                : String(val),
+            formattedVal: formatSeriesName(String(val), {
+              timeFormatter: getTimeFormatter(val),
+              numberFormatter: getNumberFormatter(val),
+              coltype:
+                coltypeMapping?.[getColumnLabel(columns[treePath.length - 1])],
+            }),
           });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

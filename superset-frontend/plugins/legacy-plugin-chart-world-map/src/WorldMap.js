@@ -168,7 +168,7 @@ function WorldMap(element, props) {
     }
   };
 
-  const handleContextMenu = async source => {
+  const handleContextMenu = source => {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;

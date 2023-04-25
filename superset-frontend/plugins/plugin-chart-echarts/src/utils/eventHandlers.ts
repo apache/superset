@@ -21,8 +21,9 @@ import {
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
-  getTimeFormatter,
   getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
 } from '@superset-ui/core';
 
 import {
@@ -30,6 +31,7 @@ import {
   CrossFilterTransformedProps,
   EventHandlers,
 } from '../types';
+import { formatSeriesName } from './series';
 
 export type Event = {
   name: string;
@@ -109,28 +111,27 @@ export const contextMenuEventHandler =
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
-    formData: any,
+    coltypeMapping?: Record<string, number>,
   ) =>
-  async (e: Event) => {
+  (e: Event) => {
     if (onContextMenu) {
-      const timestampFormatter = (value: any) =>
-        getTimeFormatter(formData.dateFormat)(value);
       e.event.stop();
       const pointerEvent = e.event.event;
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
-        groupby.forEach((dimension, i) =>
+        groupby.forEach((dimension, i) => {
           drillFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal:
-              getColumnLabel(dimension) === formData.granularitySqla
-                ? String(timestampFormatter(values[i]))
-                : String(values[i]),
-          }),
-        );
+            formattedVal: formatSeriesName(String(values[i]), {
+              timeFormatter: getTimeFormatter(values[i]),
+              numberFormatter: getNumberFormatter(values[i]),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
+          });
+        });
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
@@ -150,7 +151,7 @@ export const allEventHandlers = (
     labelMap,
     emitCrossFilters,
     selectedValues,
-    formData,
+    coltypeMapping,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(
@@ -163,7 +164,7 @@ export const allEventHandlers = (
       onContextMenu,
       labelMap,
       getCrossFilterDataMask(selectedValues, groupby, labelMap),
-      formData,
+      coltypeMapping,
     ),
   };
   return eventHandlers;

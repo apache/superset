@@ -23,6 +23,7 @@ import {
   AxisType,
   getTimeFormatter,
   getColumnLabel,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
@@ -30,7 +31,7 @@ import ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
-import { currentSeries } from '../utils/series';
+import { currentSeries, formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -52,6 +53,7 @@ export default function EchartsTimeseries({
   xAxis,
   refs,
   emitCrossFilters,
+  coltypeMapping,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -205,8 +207,6 @@ export default function EchartsTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
-        const timestampFormatter = (value: any) =>
-          getTimeFormatter(formData.granularitySqla)(value);
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
           ...labelMap[seriesName],
@@ -241,10 +241,11 @@ export default function EchartsTimeseries({
             col: dimension,
             op: '==',
             val,
-            formattedVal:
-              DTTM_ALIAS === getColumnLabel(dimension)
-                ? String(timestampFormatter(val))
-                : String(val),
+            formattedVal: formatSeriesName(String(values[i]), {
+              timeFormatter: getTimeFormatter(values[i]),
+              numberFormatter: getNumberFormatter(values[i]),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
           });
         });
 

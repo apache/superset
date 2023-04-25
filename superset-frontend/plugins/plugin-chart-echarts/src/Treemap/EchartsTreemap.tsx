@@ -21,6 +21,7 @@ import {
   BinaryQueryObjectFilterClause,
   getTimeFormatter,
   getColumnLabel,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
@@ -28,6 +29,7 @@ import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
+import { formatSeriesName } from '../utils/series';
 
 export default function EchartsTreemap({
   echartOptions,
@@ -41,6 +43,7 @@ export default function EchartsTreemap({
   selectedValues,
   width,
   formData,
+  coltypeMapping,
 }: TreemapTransformedProps) {
   const getCrossFilterDataMask = useCallback(
     (data, treePathInfo) => {
@@ -116,8 +119,6 @@ export default function EchartsTreemap({
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
         const { treePath } = extractTreePathInfo(treePathInfo);
-        const timestampFormatter = (value: any) =>
-          getTimeFormatter(formData.dateFormat)(value);
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
@@ -134,10 +135,11 @@ export default function EchartsTreemap({
               col: groupby[i],
               op: '==',
               val,
-              formattedVal:
-                getColumnLabel(groupby[i]) === formData.granularitySqla
-                  ? String(timestampFormatter(val))
-                  : String(val),
+              formattedVal: formatSeriesName(String(val), {
+                timeFormatter: getTimeFormatter(val),
+                numberFormatter: getNumberFormatter(val),
+                coltype: coltypeMapping?.[getColumnLabel(groupby[i])],
+              }),
             });
           });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
