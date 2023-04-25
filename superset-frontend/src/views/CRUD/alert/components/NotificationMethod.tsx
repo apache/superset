@@ -207,9 +207,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="input-container">
             <textarea
               className={
-                invalid?.invalid &&
-                (method === RecipientIconName.Email ||
-                  method === RecipientIconName.VO)
+                (invalid?.emailError && method === RecipientIconName.Email) ||
+                (invalid?.voError && method === RecipientIconName.VO)
                   ? 'prominent-error-input'
                   : ''
               }
@@ -218,12 +217,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
-          {invalid?.invalid && method === RecipientIconName.Email ? (
+          {invalid?.emailError && method === RecipientIconName.Email ? (
             <div className="error-text">
               {t(ERROR_MESSAGES.EMAIL_PATTERN_ERROR)}
             </div>
           ) : null}
-          {invalid?.invalid && method === RecipientIconName.VO ? (
+          {invalid?.voError && method === RecipientIconName.VO ? (
             <div className="error-text">{invalid?.voError}</div>
           ) : null}
           {getMethodHelpText(method)}
