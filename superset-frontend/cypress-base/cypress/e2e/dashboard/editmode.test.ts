@@ -209,7 +209,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(31, 168, 201)');
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
     });
 
     it('should apply same color to same labels with color scheme set', () => {
@@ -230,7 +230,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -239,7 +239,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
     });
 
     it('should apply same color to same labels with no color scheme set', () => {
@@ -260,7 +260,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(31, 168, 201)');
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -269,7 +269,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(31, 168, 201)');
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
     });
 
     it('custom label colors should take the precedence in nested tabs', () => {
@@ -359,17 +359,17 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(108, 131, 142)');
+        .should('have.css', 'fill', 'rgb(157, 172, 185)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(2)
-        .should('have.css', 'fill', 'rgb(41, 171, 226)');
+        .should('have.css', 'fill', 'rgb(45, 85, 132)');
     });
 
     it('should re-apply original color after removing custom label color with no color scheme set', () => {
@@ -383,17 +383,17 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(31, 168, 201)');
-      cy.get(
-        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
-      )
-        .eq(1)
         .should('have.css', 'fill', 'rgb(69, 78, 124)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(224, 67, 85)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .eq(2)
-        .should('have.css', 'fill', 'rgb(90, 193, 137)');
+        .should('have.css', 'fill', 'rgb(168, 104, 183)');
 
       openProperties();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
@@ -463,7 +463,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(108, 131, 142)');
+        .should('have.css', 'fill', 'rgb(157, 172, 185)');
 
       openExplore('Top 10 California Names Timeseries');
 
@@ -495,7 +495,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
 
       // open 2nd main tab
       openTab(0, 1);
@@ -504,7 +504,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
 
       editDashboard();
       openProperties();
@@ -569,7 +569,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(255, 90, 95)');
+        .should('have.css', 'fill', 'rgb(140, 224, 113)');
 
       // go back to first tab
       openTab(0, 0);
@@ -592,7 +592,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(140, 224, 113)');
     });
 
     it('should apply the color scheme in nested tabs', () => {
@@ -616,14 +616,14 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
 
       // open another nested tab
       openTab(2, 1);
       waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
       cy.get('[data-test-chart-name="Growth Rate"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(51, 217, 193)');
     });
 
     it('should apply a valid color scheme for rendered charts in nested tabs', () => {
