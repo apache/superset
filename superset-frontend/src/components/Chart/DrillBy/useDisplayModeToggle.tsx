@@ -36,6 +36,7 @@ export const useDisplayModeToggle = () => {
             box-shadow: none;
           }
         `}
+        data-test="drill-by-display-toggle"
       >
         <Radio.Group
           onChange={({ target: { value } }) => {

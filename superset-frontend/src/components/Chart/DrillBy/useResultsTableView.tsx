@@ -40,7 +40,7 @@ export const useResultsTableView = (
   }
   if (chartDataResult.length === 1) {
     return (
-      <PaginationContainer>
+      <PaginationContainer data-test="drill-by-results-table">
         <SingleQueryResultPane
           colnames={chartDataResult[0].colnames}
           coltypes={chartDataResult[0].coltypes}
@@ -53,7 +53,7 @@ export const useResultsTableView = (
     );
   }
   return (
-    <Tabs fullWidth={false}>
+    <Tabs fullWidth={false} data-test="drill-by-results-tabs">
       {chartDataResult.map((res, index) => (
         <Tabs.TabPane tab={t('Results %s', index + 1)} key={index}>
           <PaginationContainer>
