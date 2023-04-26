@@ -664,7 +664,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
-    safe_markdown_tags = [
+    safe_markdown_tags = {
         "h1",
         "h2",
         "h3",
@@ -690,7 +690,7 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
         "dt",
         "img",
         "a",
-    ]
+    }
     safe_markdown_attrs = {
         "img": ["src", "alt", "title"],
         "a": ["href", "alt", "title"],

@@ -73,7 +73,7 @@ setup(
     },
     install_requires=[
         "backoff>=1.8.0",
-        "bleach>=3.0.2, <4.0.0",
+        "bleach>=6.0.0, <7.0.0",
         "cachelib>=0.4.1,<0.5",
         "celery>=5.2.2, <6.0.0",
         "click>=8.0.3",

@@ -35,10 +35,10 @@ from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
 
-TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
+TABLE_TAGS = {"table", "th", "tr", "td", "thead", "tbody", "tfoot"}
 TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
 
-ALLOWED_TAGS = [
+ALLOWED_TAGS = {
     "a",
     "abbr",
     "acronym",
@@ -54,7 +54,7 @@ ALLOWED_TAGS = [
     "p",
     "strong",
     "ul",
-] + TABLE_TAGS
+} | TABLE_TAGS
 
 ALLOWED_ATTRIBUTES = {
     "a": ["href", "title"],
