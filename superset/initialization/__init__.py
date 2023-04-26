@@ -476,13 +476,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             )
             logger.warning(bottom_banner)
 
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+        if "secret" in self.config["SECRET_KEY"].lower():
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
                 or is_test()
             ):
-                logger.warning("Debug mode identified with default secret key")
+                logger.warning("Debug mode identified with a poor secret key")
                 log_default_secret_key_warning()
                 return
             log_default_secret_key_warning()
