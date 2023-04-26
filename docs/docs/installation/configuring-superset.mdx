@@ -71,9 +71,11 @@ WTF_CSRF_EXEMPT_LIST = [‘’]
 
 ### Using a production metastore
 
-By default Superset is configured to use SQLite, it's a simple and fast way to get you started
-(no installation needed). But for production environments you should use a different database engine on
-a separate host or container.
+By default, Superset is configured to use SQLite, which is a simple and fast way to get started
+(without requiring any installation). However, for production environments,
+using SQLite is highly discouraged due to security, scalability, and data integrity reasons.
+It's important to use only the supported database engines and consider using a different
+database engine on a separate host or container.
 
 Superset supports the following database engines/versions:
 
@@ -89,7 +91,6 @@ Use the following database drivers and connection strings:
 | ----------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
 | [PostgreSQL](https://www.postgresql.org/) | `pip install psycopg2`            | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`   |
 | [MySQL](https://www.mysql.com/)           | `pip install mysqlclient`         | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`        |
-| SQLite                                    | No additional library needed      | `sqlite://`                                                              |
 
 To configure Superset metastore set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
 to the appropriate connection string.
