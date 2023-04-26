@@ -95,12 +95,12 @@ export const kmart = kmart_c.createTriangle().img;
 export const kmartP = kmart_cP.createTriangle(...PROPOSED).img;
 
 export const kmartHub = kmart_hub.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
-export const kmartHubP = kmart_hubP.createPolygon(reverseTrianglePoints(OTHER_SC_SIZE), ...PROPOSED).img;
+export const kmartHubP = kmart_hubP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img;
 
 export const target = target_c.createTriangle().img;
 export const targetP = target_cP.createTriangle(...PROPOSED).img;
 
-export const targetCountry = target_country.createPolygon(reverseTrianglePoints(OTHER_SC_SIZE)).img;
+export const targetCountry = target_country.createPolygon(reverseTrianglePoints(OTHER_SIZE)).img;
 export const targetCountryP = target_countryP.createPolygon(reverseTrianglePoints(OTHER_SIZE), ...PROPOSED).img
 
 export const bigW = big_w.createTriangle().img;
