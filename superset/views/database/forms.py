@@ -43,7 +43,6 @@ config = app.config
 
 
 class UploadToDatabaseForm(DynamicForm):
-    # pylint: disable=E0211
     @staticmethod
     def file_allowed_dbs() -> List[Database]:
         file_enabled_dbs = (

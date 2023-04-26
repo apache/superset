@@ -18,8 +18,8 @@
 import logging
 import re
 
-from flask import current_app, flash, Markup, redirect
-from flask_appbuilder import CompactCRUDMixin, expose
+from flask import flash, Markup, redirect
+from flask_appbuilder import CompactCRUDMixin, expose, permission_name
 from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
