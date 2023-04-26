@@ -153,11 +153,12 @@ const StyledDiv = styled.div`
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
-const FiltersPanel = styled.div<{ width: number }>`
+const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  ${({ hidden }) => hidden && `display: none;`}
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -654,6 +655,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               return (
                 <FiltersPanel
                   width={filterBarWidth}
+                  hidden={isReport}
                   data-test="dashboard-filters-panel"
                 >
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
@@ -667,7 +669,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                           height: filterBarHeight,
                           offset: filterBarOffset,
                         }}
-                        hidden={isReport}
                       />
                     </ErrorBoundary>
                   </StickyPanel>
