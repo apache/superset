@@ -44,6 +44,7 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
+import { useVerboseMap } from 'src/hooks/apiResources/datasets';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
@@ -115,6 +116,7 @@ export const DrillByMenuItems = ({
         ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
     [formData.viz_type],
   );
+  const verboseMap = useVerboseMap(dataset);
 
   useEffect(() => {
     if (handlesDimensionContextMenu && hasDrillBy) {
@@ -270,7 +272,7 @@ export const DrillByMenuItems = ({
           drillByConfig={drillByConfig}
           formData={formData}
           onHideModal={closeModal}
-          dataset={dataset!}
+          dataset={{ ...dataset!, verbose_map: verboseMap }}
         />
       )}
     </>
