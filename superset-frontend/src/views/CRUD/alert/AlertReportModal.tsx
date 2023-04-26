@@ -520,37 +520,78 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
+  const filterInvalidEmailsAndRoutingKeys = (
+    setting: NotificationSetting,
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    if (setting.method === RecipientIconName.Email) {
+      const emailStr = setting.recipients;
+      const emails = ([] as string[])
+        .concat(...emailStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidEmails = emails.filter(
+        email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
+      );
+      invalidEmails.push(..._invalidEmails);
+    } else if (setting.method === RecipientIconName.VO) {
+      const routingKeyStr = setting.recipients;
+      // eslint-disable-next-line no-underscore-dangle
+      const _routingKeys = ([] as string[])
+        .concat(...routingKeyStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidRoutingKeys = _routingKeys.filter(
+        routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
+      );
+
+      routingKeys.push(..._routingKeys);
+      invalidRoutingKeys.push(..._invalidRoutingKeys);
+    }
+
+    console.log('Loop - IE : ', invalidEmails);
+    console.log('Loop - IRK : ', invalidRoutingKeys);
+    console.log('Loop - RK : ', routingKeys);
+  };
+
+  const getEmailAndVOError = (
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    const emailError =
+      invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : '';
+
+    const voError =
+      routingKeys.length > 1
+        ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION
+        : invalidRoutingKeys.length > 0
+        ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
+        : '';
+
+    return { emailError, voError };
+  };
+
   const onSave = async () => {
     // Notification Settings
     setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
-    let invalidEmails: string[] = [];
-    let invalidRoutingKeys: string[] = [];
-    let routingKeys: string[] = [];
+    const invalidEmails: string[] = [];
+    const invalidRoutingKeys: string[] = [];
+    const routingKeys: string[] = [];
 
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        if (setting.method === RecipientIconName.Email) {
-          const emailStr = setting.recipients;
-          const emails = ([] as string[])
-            .concat(...emailStr.split(',').map(item => item.split(';')))
-            .map(item => item.trim())
-            .filter(item => item !== '');
-
-          invalidEmails = emails.filter(
-            email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
-          );
-        } else if (setting.method === RecipientIconName.VO) {
-          const routingKeyStr = setting.recipients;
-          routingKeys = ([] as string[])
-            .concat(...routingKeyStr.split(',').map(item => item.split(';')))
-            .map(item => item.trim())
-            .filter(item => item !== '');
-          invalidRoutingKeys = routingKeys.filter(
-            routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
-          );
-        }
-
+        filterInvalidEmailsAndRoutingKeys(
+          setting,
+          invalidEmails,
+          invalidRoutingKeys,
+          routingKeys,
+        );
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
@@ -560,27 +601,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    if (
-      invalidEmails.length > 0 ||
-      invalidRoutingKeys.length > 0 ||
-      routingKeys.length > 1
-    ) {
-      const emailError =
-        invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : '';
-      let voError =
-        invalidRoutingKeys.length > 0
-          ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
-          : '';
-      voError =
-        routingKeys.length > 1
-          ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION
-          : voError;
+    console.log('IE : ', invalidEmails);
+    console.log('IRK : ', invalidRoutingKeys);
+    console.log('RK : ', routingKeys);
 
-      setInvalidInputs({
-        invalid: true,
-        emailError,
-        voError,
-      });
+    const { emailError, voError } = getEmailAndVOError(
+      invalidEmails,
+      invalidRoutingKeys,
+      routingKeys,
+    );
+
+    if (emailError || voError) {
+      setInvalidInputs({ invalid: true, emailError, voError });
       addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
       return;
     }
