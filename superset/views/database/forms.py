@@ -137,7 +137,7 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         _("Database"),
         description=_("Select a database to upload the file to"),
         query_func=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     dtype = StringField(
@@ -313,8 +313,8 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
 
     database = QuerySelectField(
         _("Database"),
-        qury_func=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        query_func=UploadToDatabaseForm.file_allowed_dbs,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     schema = StringField(
@@ -445,7 +445,7 @@ class ColumnarToDatabaseForm(UploadToDatabaseForm):
     database = QuerySelectField(
         _("Database"),
         query_func=UploadToDatabaseForm.file_allowed_dbs,
-        get_pk=lambda a: a.id,
+        get_pk_func=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     schema = StringField(
