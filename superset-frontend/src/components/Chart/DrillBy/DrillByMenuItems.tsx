@@ -40,6 +40,7 @@ import {
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import Loading from 'src/components/Loading';
 import {
   cachedSupersetGet,
   supersetGetCache,
@@ -79,6 +80,7 @@ export const DrillByMenuItems = ({
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
+  const [isLoadingColumns, setIsLoadingColumns] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
@@ -145,6 +147,9 @@ export const DrillByMenuItems = ({
         .catch(() => {
           supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
           addDangerToast(t('Failed to load dimensions for drill by'));
+        })
+        .finally(() => {
+          setIsLoadingColumns(false);
         });
     }
   }, [
@@ -192,11 +197,9 @@ export const DrillByMenuItems = ({
     tooltip = t('Drill by is not yet supported for this chart type');
   } else if (!hasDrillBy) {
     tooltip = t('Drill by is not available for this data point');
-  } else if (columns.length === 0) {
-    tooltip = t('No dimensions available for drill by');
   }
 
-  if (!handlesDimensionContextMenu || !hasDrillBy || columns.length === 0) {
+  if (!handlesDimensionContextMenu || !hasDrillBy) {
     return (
       <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>
@@ -241,7 +244,15 @@ export const DrillByMenuItems = ({
               `}
             />
           )}
-          {filteredColumns.length ? (
+          {isLoadingColumns ? (
+            <div
+              css={css`
+                padding: ${theme.gridUnit * 3}px 0;
+              `}
+            >
+              <Loading position="inline-centered" />
+            </div>
+          ) : filteredColumns.length ? (
             <div
               css={css`
                 max-height: ${MAX_SUBMENU_HEIGHT}px;
