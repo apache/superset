@@ -70,7 +70,7 @@ export function saveChartToDashboard(dashboardName: string) {
     .click();
   cy.get(
     '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName.slice(0, 3));
+  ).type(dashboardName.slice(0, 3), { force: true });
   cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
   cy.getBySel('btn-modal-save').click();
 
