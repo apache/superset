@@ -1501,7 +1501,7 @@ export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
 export function createDatasourceSuccess(data) {
-  const datasource = `${data.table_id}__table`;
+  const datasource = `${data.id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
 export function createDatasourceFailed(err) {
@@ -1511,9 +1511,18 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
+    const { dbId, schema, datasourceName, sql } = vizOptions;
     return SupersetClient.post({
-      endpoint: '/superset/sqllab_viz/',
-      postPayload: { data: vizOptions },
+      endpoint: '/api/v1/dataset/',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        database: dbId,
+        schema,
+        sql,
+        table_name: datasourceName,
+        is_managed_externally: false,
+        external_url: null,
+      }),
     })
       .then(({ json }) => {
         dispatch(createDatasourceSuccess(json));
