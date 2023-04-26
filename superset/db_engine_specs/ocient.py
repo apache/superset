@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 import re
 import threading
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Pattern, Set, Tuple
