@@ -147,10 +147,7 @@ export default function DrillByModal({
 
   const {
     column: currentColumn,
-    filters,
     groupbyFieldName = drillByConfig.groupbyFieldName,
-    adhocFilterFieldName = drillByConfig.adhocFilterFieldName ||
-      DEFAULT_ADHOC_FILTER_FIELD_NAME,
   } = drillByConfigs[drillByConfigs.length - 1] || {};
 
   const initialGroupbyColumns = useMemo(
@@ -176,7 +173,7 @@ export default function DrillByModal({
     [...initialGroupbyColumns, column].filter(isDefined),
   );
   const [breadcrumbsData, setBreadcrumbsData] = useState<DrillByBreadcrumb[]>([
-    { groupby: initialGroupbyColumns, filters },
+    { groupby: initialGroupbyColumns, filters: drillByConfig.filters },
     { groupby: column || [] },
   ]);
 
@@ -218,6 +215,20 @@ export default function DrillByModal({
         },
       ),
     [getNewGroupby],
+  );
+
+  const getFiltersFromConfigsByFieldName = useCallback(
+    () =>
+      drillByConfigs.reduce((acc, config) => {
+        const adhocFilterFieldName =
+          config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
+        acc[adhocFilterFieldName] = [
+          ...(acc[adhocFilterFieldName] || []),
+          ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
+        ];
+        return acc;
+      }, {}),
+    [drillByConfigs],
   );
 
   const onBreadcrumbClick = useCallback(
@@ -263,16 +274,16 @@ export default function DrillByModal({
       updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    if (adhocFilterFieldName && Array.isArray(filters)) {
-      const adhocFilters = filters.map(filter => simpleFilterToAdhoc(filter));
+    const adhocFilters = getFiltersFromConfigsByFieldName();
+    Object.keys(adhocFilters).forEach(adhocFilterFieldName => {
       updatedFormData = {
         ...updatedFormData,
         [adhocFilterFieldName]: [
           ...ensureIsArray(formData[adhocFilterFieldName]),
-          ...adhocFilters,
+          ...adhocFilters[adhocFilterFieldName],
         ],
       };
-    }
+    });
 
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
@@ -281,11 +292,10 @@ export default function DrillByModal({
   }, [
     currentFormData,
     currentColumn,
-    filters,
-    adhocFilterFieldName,
-    formData,
     groupbyFieldName,
+    getFiltersFromConfigsByFieldName,
     getNewGroupby,
+    formData,
   ]);
 
   useEffect(() => {
