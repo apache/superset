@@ -11,7 +11,7 @@ const REGIONAL_SIZE = 35;
 const SUB_REGIONAL_SIZE = 30;
 const NEIGHBOURHOOD_SIZE = 25;
 const OTHER_SC_SIZE = 20;
-const OTHER_SIZE = 15;
+const OTHER_SIZE = 12;
 
 // Shopping Centres
 const regional = new LiqMarker(REGIONAL_SIZE, 4, '#d02033', 'none');
