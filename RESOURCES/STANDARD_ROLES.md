@@ -263,5 +263,5 @@
 |can export on SavedQuery|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard permalink on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can grant guest token on SecurityRestApi|:heavy_check_mark:|O|O|O|
-|can read on AdvancedDataType|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O| 
+|can read on AdvancedDataType|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can read on EmbeddedDashboard|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
