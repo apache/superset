@@ -19,13 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  styled,
-  t,
-  logging,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
@@ -319,10 +313,7 @@ class Chart extends React.Component {
         [URL_PARAMS.formDataKey.name]: key,
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
-      if (
-        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
-        isOpenInNewTab
-      ) {
+      if (isOpenInNewTab) {
         window.open(url, '_blank', 'noreferrer');
       } else {
         this.props.history.push(url);
