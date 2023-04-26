@@ -17,7 +17,7 @@
  * under the License.
  */
 import { CHART_LIST } from 'cypress/utils/urls';
-import { interceptGet as interceptDashboardGet } from 'cypress/integration/dashboard/utils';
+import { interceptGet as interceptDashboardGet } from 'cypress/e2e/dashboard/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import {
   interceptFiltering,
