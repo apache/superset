@@ -34,13 +34,13 @@ import {
 
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-export type Result = {
+type Result = {
   id: unknown;
   database_name?: string;
   value?: string;
 };
 
-export type Data = {
+type Data = {
   result?: Result[];
 };
 

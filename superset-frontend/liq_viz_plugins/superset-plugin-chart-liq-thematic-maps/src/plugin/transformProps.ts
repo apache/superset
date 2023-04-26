@@ -17,10 +17,13 @@
  * under the License.
  */
 
+import { ChartProps } from '@superset-ui/core';
+import { Feature, GeoJSON, LiqThematicMapsQueryFormData, RGBA, LiqMap, TASectorColour, TASectorCentroid, IntranetSchema, ThematicSchema } from '../types';
+
 const defaults = require('../defaultLayerStyles.js');
 const tradeAreaColors = defaults.tradeAreaColors;
  
-export default function transformProps(chartProps) {
+export default function transformProps(chartProps : ChartProps) {
   /**
    * This function is called after a successful response has been
    * received from the chart data endpoint, and is used to transform
@@ -50,6 +53,7 @@ export default function transformProps(chartProps) {
    * function during development with hot reloading, changes won't
    * be seen until restarting the development server.
    */
+
   const { width, height, formData, queriesData } = chartProps;
   const { 
     mapType,
@@ -100,7 +104,7 @@ export default function transformProps(chartProps) {
     customSizeBreaksMode,
     customSizeMode,
     customSizeNumClasses
-  } = formData;
+  } = formData as LiqThematicMapsQueryFormData;
 
   const data = queriesData[0].data;
   
@@ -110,15 +114,15 @@ export default function transformProps(chartProps) {
   const isTradeArea = mapType.includes('trade_area');
   const isIntranet = mapType.includes('intranet');
 
-  const tradeAreas = isTradeArea ? Array.from(new Set(data.map(d => d.Centre))) : [];
-  let tradeAreaSA1s = {};
-  let taSectorSA1Map = {};
-  let taSectorColorMap = {};
-  let sectorCentroids = {};
+  const tradeAreas = isTradeArea ? Array.from(new Set(data.map((d : any) => d.Centre))) : [];
+  let tradeAreaSA1s = {} as LiqMap<string, TASectorColour>;
+  let taSectorSA1Map = {} as LiqMap<string, string[]>;
+  let taSectorColorMap = {} as LiqMap<string, string>;
+  let sectorCentroids = {} as Record<string, TASectorCentroid>;
 
-  let intranetData = {};
+  let intranetData = {} as LiqMap<number, IntranetSchema>;
 
-  data.map(d => {
+  data.map((d : any) => {
     if (isTradeArea) {
       if (!(d[groupCol] in tradeAreaSA1s)) tradeAreaSA1s[d[groupCol]] = {};
       if (!(d.Centre in tradeAreaSA1s[d[groupCol]])) tradeAreaSA1s[d[groupCol]][d.Centre] = {
@@ -139,8 +143,8 @@ export default function transformProps(chartProps) {
     }
     if (isIntranet) {
       if (!(d['Layer'] in intranetData)) intranetData[d['Layer']] = {};
-      let data = {}
-      Object.keys(d).map(k => {
+      let data = {} as IntranetSchema;
+      Object.keys(d as IntranetSchema).map(k => {
         if (!(k === 'Layer' || k === groupCol || k == metricCol)) data[k] = d[k]
       })
       intranetData[d['Layer']][d[groupCol]] = data;
@@ -150,17 +154,18 @@ export default function transformProps(chartProps) {
   let taSectorCentroids = {
     type: 'FeatureCollection',
     features: []
-  };
+  } as GeoJSON;
 
   for (const k of Object.keys(sectorCentroids)) {
-    taSectorCentroids.features.push({
-      type: 'Feautre',
+    const feat : Feature = {
+      type: 'Feature',
       geometry: {type: 'Point', coordinates: sectorCentroids[k].coordinates},
       properties: {label: k, centre: sectorCentroids[k].centre}
-    });
+    };
+    taSectorCentroids.features?.push(feat);
   };
 
-  const toRgbaStr = color => `rgba(${color.r},${color.g},${color.b},${color.a})`;
+  const toRgbaStr = (color : RGBA) => `rgba(${color.r},${color.g},${color.b},${color.a})`;
 
   const newRadiusColor = toRgbaStr(radiusColor);
   const newDrivetimeColor = toRgbaStr(drivetimeColor);
