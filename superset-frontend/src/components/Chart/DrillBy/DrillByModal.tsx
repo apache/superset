@@ -407,6 +407,7 @@ export default function DrillByModal({
         )}
         {drillByDisplayMode === DrillByType.Chart && chartDataResult && (
           <DrillByChart
+            dataset={dataset}
             formData={drilledFormData}
             result={chartDataResult}
             onContextMenu={onContextMenu}
