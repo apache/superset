@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [23785](https://github.com/apache/superset/pull/23785) Deprecated the following feature flags: `CLIENT_CACHE`, `DASHBOARD_CACHE`, `DASHBOARD_FILTERS_EXPERIMENTAL`, `DASHBOARD_NATIVE_FILTERS`, `DASHBOARD_NATIVE_FILTERS_SET`, `DISABLE_DATASET_SOURCE_EDIT`, `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`, `REMOVE_SLICE_LEVEL_LABEL_COLORS`. It also removed `DASHBOARD_EDIT_CHART_IN_NEW_TAB` as the feature is supported without the need for a feature flag.
 - [23652](https://github.com/apache/superset/pull/23652) Enables GENERIC_CHART_AXES feature flag by default.
 - [23226](https://github.com/apache/superset/pull/23226) Migrated endpoint `/estimate_query_cost/<int:database_id>` to `/api/v1/sqllab/estimate/`. Corresponding permissions are can estimate query cost on SQLLab. Make sure you add/replace the necessary permissions on any custom roles you may have.
 - [22809](https://github.com/apache/superset/pull/22809): Migrated endpoint `/superset/sql_json` and `/superset/results/` to `/api/v1/sqllab/execute/` and `/api/v1/sqllab/results/` respectively. Corresponding permissions are `can sql_json on Superset` to `can execute on SQLLab`, `can results on Superset` to `can results on SQLLab`. Make sure you add/replace the necessary permissions on any custom roles you may have.
@@ -49,9 +50,11 @@ assists people when migrating to a new version.
 ### Breaking Changes
 
 - [23651](https://github.com/apache/superset/pull/23651) Removes UX_BETA feature flag.
+- [23663](https://github.com/apache/superset/pull/23663) Removes deprecated feature flags `ALLOW_DASHBOARD_DOMAIN_SHARDING`, `DISPLAY_MARKDOWN_HTML`, and `FORCE_DATABASE_CONNECTIONS_SSL`.
 - [22798](https://github.com/apache/superset/pull/22798): To make the welcome page more relevant in production environments, the last tab on the welcome page has been changed from to feature all charts/dashboards the user has access to (previously only examples were shown). To keep current behavior unchanged, add the following to your `superset_config.py`: `WELCOME_PAGE_LAST_TAB = "examples"`
 - [22328](https://github.com/apache/superset/pull/22328): For deployments that have enabled the "THUMBNAILS" feature flag, the function that calculates dashboard digests has been updated to consider additional properties to more accurately identify changes in the dashboard metadata. This change will invalidate all currently cached dashboard thumbnails.
 - [21765](https://github.com/apache/superset/pull/21765): For deployments that have enabled the "ALERT_REPORTS" feature flag, Gamma users will no longer have read and write access to Alerts & Reports by default. To give Gamma users the ability to schedule reports from the Dashboard and Explore view like before, create an additional role with "can read on ReportSchedule" and "can write on ReportSchedule" permissions. To further give Gamma users access to the "Alerts & Reports" menu and CRUD view, add "menu access on Manage" and "menu access on Alerts & Report" permissions to the role.
+- [22325](https://github.com/apache/superset/pull/22325): "RLS_FORM_QUERY_REL_FIELDS" is replaced by "RLS_BASE_RELATED_FIELD_FILTERS" feature flag. Its value format stays same.
 
 ### Potential Downtime
 

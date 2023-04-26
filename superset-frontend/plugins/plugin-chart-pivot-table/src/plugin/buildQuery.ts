@@ -42,7 +42,11 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
       isPhysicalColumn(col) &&
       formData.time_grain_sqla &&
       hasGenericChartAxes &&
-      formData?.temporal_columns_lookup?.[col]
+      /* Charts created before `GENERIC_CHART_AXES` is enabled have a different
+       * form data, with `granularity_sqla` set instead.
+       */
+      (formData?.temporal_columns_lookup?.[col] ||
+        formData.granularity_sqla === col)
     ) {
       return {
         timeGrain: formData.time_grain_sqla,

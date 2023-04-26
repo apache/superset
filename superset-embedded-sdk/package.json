@@ -51,7 +51,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-embedded-sdk"
   },
   "homepage": "https://github.com/apache/superset#readme",
   "bugs": {

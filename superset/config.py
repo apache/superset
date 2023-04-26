@@ -53,6 +53,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
@@ -386,13 +387,9 @@ LANGUAGES = {}
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
-    # allow dashboard to use sub-domains to send chart request
-    # you also need ENABLE_CORS and
-    # SUPERSET_WEBSERVER_DOMAINS for list of domains
-    "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
-    "CLIENT_CACHE": False,
-    "DISABLE_DATASET_SOURCE_EDIT": False,
+    "CLIENT_CACHE": False,  # deprecated
+    "DISABLE_DATASET_SOURCE_EDIT": False,  # deprecated
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
@@ -407,7 +404,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
-    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
+    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,  # deprecated
     "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     # Allow for javascript controls components
@@ -422,21 +419,19 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "DASHBOARD_CACHE": False,
-    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
+    "DASHBOARD_CACHE": False,  # deprecated
+    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
-    # When True, this flag allows display of HTML tags in Markdown components
-    "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
     "DASHBOARD_CROSS_FILTERS": False,
     # Feature is under active development and breaking changes are expected
-    "DASHBOARD_NATIVE_FILTERS_SET": False,
-    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
+    "DASHBOARD_NATIVE_FILTERS_SET": False,  # deprecated
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
     "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
@@ -454,15 +449,12 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # for report with type 'report' still send with email and slack message with
     # screenshot and link
     "ALERTS_ATTACH_REPORTS": True,
-    # FORCE_DATABASE_CONNECTIONS_SSL is depreciated.
-    "FORCE_DATABASE_CONNECTIONS_SSL": False,
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
-    "GENERIC_CHART_AXES": True,
+    "GENERIC_CHART_AXES": True,  # deprecated
     "ALLOW_ADHOC_SUBQUERY": False,
     "USE_ANALAGOUS_COLORS": False,
-    "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
@@ -1371,15 +1363,16 @@ TALISMAN_CONFIG = {
 }
 
 # It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
-# `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:
+# dropdown. When set, this dict is assigned to `filter_rel_fields`
+# on `RLSRestApi`. Example:
 #
 # from flask_appbuilder.models.sqla import filters
-# RLS_FORM_QUERY_REL_FIELDS = {
-#     "roles": [["name", filters.FilterStartsWith, "RlsRole"]]
-#     "tables": [["table_name", filters.FilterContains, "rls"]]
+
+# RLS_BASE_RELATED_FIELD_FILTERS = {
+#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
+#     "roles": [["name", filters.FilterContains, "Admin"]]
 # }
-RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
+RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 
 #
 # Flask session cookie options

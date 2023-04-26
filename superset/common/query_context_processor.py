@@ -237,7 +237,7 @@ class QueryContextProcessor:
             try:
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
-                raise QueryObjectValidationError from ex
+                raise QueryObjectValidationError(ex.message) from ex
 
         result.df = df
         result.query = query

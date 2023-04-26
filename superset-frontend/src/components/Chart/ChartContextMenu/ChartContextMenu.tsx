@@ -234,8 +234,7 @@ const ChartContextMenu = (
     }
     menuItems.push(
       <DrillByMenuItems
-        filters={filters?.drillBy?.filters}
-        groupbyFieldName={filters?.drillBy?.groupbyFieldName}
+        drillByConfig={filters?.drillBy}
         onSelection={onSelection}
         formData={formData}
         contextMenuY={clientY}
