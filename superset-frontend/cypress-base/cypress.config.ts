@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from 'cypress';
 
 export default defineConfig({
