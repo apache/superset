@@ -32,7 +32,7 @@ try:
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
-except (ImportError, RuntimeError) as e:
+except (ImportError, RuntimeError):
     pass
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -95,7 +95,7 @@ def _wkt_to_geoJSON(geo_as_wkt: str) -> Any:
     try:
         import geojson
         from shapely import wkt
-    except (ImportError, RuntimeError) as e:
+    except (ImportError, RuntimeError):
         return None
 
     geo = wkt.loads(geo_as_wkt)
