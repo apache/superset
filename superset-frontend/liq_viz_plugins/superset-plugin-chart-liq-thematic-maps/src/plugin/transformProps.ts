@@ -165,6 +165,12 @@ export default function transformProps(chartProps : ChartProps) {
     taSectorCentroids.features?.push(feat);
   };
 
+  let sectorLocs = {} as Record<string, [number, number]>;
+  taSectorCentroids.features?.map(f => {
+    sectorLocs[f.properties?.label] = [f.geometry.coordinates[0] as number, f.geometry.coordinates[1] as number];
+  });
+  const taLoc : [number, number] = sectorLocs[Object.keys(sectorLocs).sort((a, b) => a.localeCompare(b))[0]];
+
   const toRgbaStr = (color : RGBA) => `rgba(${color.r},${color.g},${color.b},${color.a})`;
 
   const newRadiusColor = toRgbaStr(radiusColor);
@@ -203,6 +209,7 @@ export default function transformProps(chartProps : ChartProps) {
     latitude,
     longitude,
     zoom,
+    taLoc,
     newRadiusColor,
     radiusThreshold,
     newRadiusBorderColor,

@@ -101,6 +101,7 @@ export default function LiqThematicMaps(props) {
     latitude, // starting lat
     longitude, // starting lng
     zoom, // starting zoom
+    taLoc, // location of primary sector centroid of first TA
     newRadiusColor, // color of radius in rgba
     radiusThreshold, // intersection area threshold for radius
     newRadiusBorderColor, // color of radius border in rgba
@@ -424,6 +425,12 @@ export default function LiqThematicMaps(props) {
 
     // Load map tiles and their default styles
     map.current.on('load', () => {
+
+      if (tradeAreas && tradeAreas.length > 0) map.current.flyTo({
+        center: taLoc,
+        zoom: 12,
+        essential: true
+      });
 
       map.current.addSource('boundary_tileset', {
         'type': 'vector',

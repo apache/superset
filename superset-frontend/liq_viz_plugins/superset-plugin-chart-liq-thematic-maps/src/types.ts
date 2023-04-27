@@ -141,6 +141,7 @@ export type LiqThematicMapsProps = LiqThematicMapsStylesProps &
     sectorCentroids?: Object;
     intranetData?: Object;
     taSectorCentroids?: GeoJSON;
+    taLoc?: [number, number];
     newRadiusColor?: string;
     newDrivetimeColor?: string;
     newCustomColor?: string;
