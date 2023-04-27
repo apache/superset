@@ -25,7 +25,7 @@ export default function Drivetime(props) {
   } = props;
 
   const [travelMode, setTravelMode] = useState('driving'); // type of travel mode for isochrone
-  const [travelMetric, setTravelMetric] = useState('distance'); // whether metric provided is in meters or min
+  const [travelMetric, setTravelMetric] = useState('time'); // whether metric provided is in meters or min
   const [val, setVal] = useState(0);
   const [message, setMessage] = useState(''); // user prompt
   const [id, setId] = useState(uuid());
@@ -194,8 +194,8 @@ export default function Drivetime(props) {
           buttonStyle='solid'
           size='medium'
         >
-          <Radio.Button value='distance'>Distance (m)</Radio.Button>
           <Radio.Button value='time'>Time (min)</Radio.Button>
+          <Radio.Button value='distance'>Distance (m)</Radio.Button>
         </Radio.Group>
       </Form.Item>
       <Form.Item>
