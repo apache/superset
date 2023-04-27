@@ -79,6 +79,7 @@ class TestCacheWarmUp(SupersetTestCase):
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
+        # todome: update tests in this file w/ api v1 endpoint
         expected = sorted(
             [
                 f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}&dashboard_id={dash.id}"

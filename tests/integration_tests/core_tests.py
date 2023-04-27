@@ -580,6 +580,7 @@ class TestCore(SupersetTestCase):
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
     )
     def test_warm_up_cache(self):
+        # todome: port this test over to api v1 endpoint
         self.login()
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
