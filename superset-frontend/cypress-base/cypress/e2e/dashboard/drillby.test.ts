@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { Interception } from 'cypress/types/net-stubbing';
 import { waitForChartLoad } from 'cypress/utils';
 import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
-import { SUPPORTED_TIER1_CHARTS } from './utils';
+import { SUPPORTED_TIER1_CHARTS, SUPPORTED_TIER2_CHARTS } from './utils';
 
 const interceptV1ChartData = (alias = 'v1Data') => {
   cy.intercept('/api/v1/chart/data*').as(alias);
@@ -48,7 +50,11 @@ const openTableContextMenu = (
   cellContent: string,
   tableSelector = "[data-test-viz-type='table']",
 ) => {
-  cy.get(tableSelector).scrollIntoView().contains(cellContent).rightclick();
+  cy.get(tableSelector)
+    .scrollIntoView()
+    .contains(cellContent)
+    .first()
+    .rightclick();
 };
 
 const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
@@ -72,29 +78,186 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     .click();
 
   if (isLegacy) {
-    cy.wait('@legacyData');
-  } else {
-    cy.wait('@v1Data');
+    return cy.wait('@legacyData');
   }
+  return cy.wait('@v1Data');
+};
+
+const verifyExpectedFormData = (
+  interceptedRequest: Interception,
+  expectedFormData: Record<string, any>,
+) => {
+  const actualFormData = interceptedRequest.request.body?.form_data;
+  Object.entries(expectedFormData).forEach(([key, val]) => {
+    expect(actualFormData?.[key]).to.eql(val);
+  });
+};
+
+const testEchart = (
+  vizType: string,
+  chartName: string,
+  drillClickCoordinates: [[number, number], [number, number]],
+  furtherDrillDimension = 'name',
+) => {
+  cy.get(`[data-test-viz-type='${vizType}'] canvas`).then($canvas => {
+    // click 'boy'
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger(
+        'mousemove',
+        drillClickCoordinates[0][0],
+        drillClickCoordinates[0][1],
+      )
+      .rightclick(drillClickCoordinates[0][0], drillClickCoordinates[0][1]);
+
+    drillBy('state').then(intercepted => {
+      verifyExpectedFormData(intercepted, {
+        groupby: ['state'],
+        adhoc_filters: [
+          {
+            clause: 'WHERE',
+            comparator: 'boy',
+            expressionType: 'SIMPLE',
+            operator: '==',
+            operatorId: 'EQUALS',
+            subject: 'gender',
+          },
+        ],
+      });
+    });
+
+    cy.getBySel(`"Drill by: ${chartName}-modal"`).as('drillByModal');
+
+    cy.get('@drillByModal')
+      .find('.draggable-trigger')
+      .should('contain', chartName);
+
+    cy.get('@drillByModal')
+      .find('.ant-breadcrumb')
+      .should('be.visible')
+      .and('contain', 'gender (boy)')
+      .and('contain', '/')
+      .and('contain', 'state');
+
+    cy.get('@drillByModal')
+      .find('[data-test="drill-by-chart"]')
+      .should('be.visible');
+
+    // further drill
+    cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
+      // click 'other'
+      cy.wrap($canvas)
+        .scrollIntoView()
+        .trigger(
+          'mousemove',
+          drillClickCoordinates[1][0],
+          drillClickCoordinates[1][1],
+        )
+        .rightclick(drillClickCoordinates[1][0], drillClickCoordinates[1][1]);
+
+      drillBy(furtherDrillDimension).then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupby: [furtherDrillDimension],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+            {
+              clause: 'WHERE',
+              comparator: 'other',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'state',
+            },
+          ],
+        });
+      });
+
+      cy.get('@drillByModal')
+        .find('[data-test="drill-by-chart"]')
+        .should('be.visible');
+
+      // undo - back to drill by state
+      interceptV1ChartData('drillByUndo');
+      cy.get('@drillByModal')
+        .find('.ant-breadcrumb')
+        .should('be.visible')
+        .and('contain', 'gender (boy)')
+        .and('contain', '/')
+        .and('contain', 'state (other)')
+        .and('contain', furtherDrillDimension)
+        .contains('state (other)')
+        .click();
+      cy.wait('@drillByUndo').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupby: ['state'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+          ],
+        });
+      });
+
+      cy.get('@drillByModal')
+        .find('.ant-breadcrumb')
+        .should('be.visible')
+        .and('contain', 'gender (boy)')
+        .and('contain', '/')
+        .and('not.contain', 'state (other)')
+        .and('not.contain', furtherDrillDimension)
+        .and('contain', 'state');
+
+      cy.get('@drillByModal')
+        .find('[data-test="drill-by-chart"]')
+        .should('be.visible');
+    });
+  });
 };
 
 describe('Drill by modal', () => {
-  before(() => {
-    cy.visit(SUPPORTED_CHARTS_DASHBOARD);
-  });
   beforeEach(() => {
     closeModal();
   });
+  before(() => {
+    cy.visit(SUPPORTED_CHARTS_DASHBOARD);
+  });
 
-  describe('Modal actions', () => {
+  describe('Modal actions + Table', () => {
     before(() => {
+      closeModal();
       setTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
     it('opens the modal from the context menu', () => {
       openTableContextMenu('boy');
-      drillBy('state');
+      drillBy('state').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupby: ['state'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+          ],
+        });
+      });
 
       cy.getBySel('"Drill by: Table-modal"').as('drillByModal');
 
@@ -121,7 +284,29 @@ describe('Drill by modal', () => {
 
       // further drilling
       openTableContextMenu('CA', '[data-test="drill-by-chart"]');
-      drillBy('name');
+      drillBy('name').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupby: ['name'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+            {
+              clause: 'WHERE',
+              comparator: 'CA',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'state',
+            },
+          ],
+        });
+      });
 
       cy.get('@drillByModal')
         .find('[data-test="drill-by-chart"]')
@@ -142,7 +327,21 @@ describe('Drill by modal', () => {
         .and('contain', 'name')
         .contains('state (CA)')
         .click();
-      cy.wait('@drillByUndo');
+      cy.wait('@drillByUndo').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupby: ['state'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+          ],
+        });
+      });
 
       cy.get('@drillByModal')
         .find('[data-test="drill-by-chart"]')
@@ -185,8 +384,233 @@ describe('Drill by modal', () => {
 
   describe('Tier 1 charts', () => {
     before(() => {
+      closeModal();
       setTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
+    });
+
+    it('Pivot Table', () => {
+      openTableContextMenu('boy', "[data-test-viz-type='pivot_table_v2']");
+      drillBy('name').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupbyRows: ['state'],
+          groupbyColumns: ['name'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+          ],
+        });
+      });
+
+      cy.getBySel('"Drill by: Pivot Table-modal"').as('drillByModal');
+
+      cy.get('@drillByModal')
+        .find('.draggable-trigger')
+        .should('contain', 'Drill by: Pivot Table');
+
+      cy.get('@drillByModal')
+        .find('.ant-breadcrumb')
+        .should('be.visible')
+        .and('contain', 'gender (boy)')
+        .and('contain', '/')
+        .and('contain', 'name');
+
+      cy.get('@drillByModal')
+        .find('[data-test="drill-by-chart"]')
+        .should('be.visible')
+        .and('contain', 'state')
+        .and('contain', 'name')
+        .and('contain', 'sum__num')
+        .and('not.contain', 'Gender');
+
+      openTableContextMenu('CA', '[data-test="drill-by-chart"]');
+      drillBy('ds').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupbyColumns: ['name'],
+          groupbyRows: ['ds'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+            {
+              clause: 'WHERE',
+              comparator: 'CA',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'state',
+            },
+          ],
+        });
+      });
+
+      cy.get('@drillByModal')
+        .find('[data-test="drill-by-chart"]')
+        .should('be.visible')
+        .and('contain', 'name')
+        .and('contain', 'ds')
+        .and('contain', 'sum__num')
+        .and('not.contain', 'state');
+
+      interceptV1ChartData('drillByUndo');
+
+      cy.get('@drillByModal')
+        .find('.ant-breadcrumb')
+        .should('be.visible')
+        .and('contain', 'gender (boy)')
+        .and('contain', '/')
+        .and('contain', 'name (CA)')
+        .and('contain', 'ds')
+        .contains('name (CA)')
+        .click();
+      cy.wait('@drillByUndo').then(intercepted => {
+        verifyExpectedFormData(intercepted, {
+          groupbyRows: ['state'],
+          groupbyColumns: ['name'],
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              comparator: 'boy',
+              expressionType: 'SIMPLE',
+              operator: '==',
+              operatorId: 'EQUALS',
+              subject: 'gender',
+            },
+          ],
+        });
+      });
+
+      cy.get('@drillByModal')
+        .find('[data-test="drill-by-chart"]')
+        .should('be.visible')
+        .and('not.contain', 'ds')
+        .and('contain', 'state')
+        .and('contain', 'name')
+        .and('contain', 'sum__num');
+
+      cy.get('@drillByModal')
+        .find('.ant-breadcrumb')
+        .should('be.visible')
+        .and('contain', 'gender (boy)')
+        .and('contain', '/')
+        .and('not.contain', 'name (CA)')
+        .and('not.contain', 'ds')
+        .and('contain', 'name');
+    });
+
+    it('Line chart', () => {
+      testEchart('echarts_timeseries_line', 'Time-Series Line Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Area Chart', () => {
+      testEchart('echarts_area', 'Time-Series Area Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Time-Series Scatter Chart', () => {
+      testEchart('echarts_timeseries_scatter', 'Time-Series Scatter Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Time-Series Bar Chart V2', () => {
+      testEchart('echarts_timeseries_bar', 'Time-Series Bar Chart V2', [
+        [70, 94],
+        [70, 94],
+      ]);
+    });
+
+    it('Pie Chart', () => {
+      testEchart('pie', 'Pie Chart', [
+        [243, 167],
+        [534, 248],
+      ]);
+    });
+  });
+
+  describe('Tier 2 charts', () => {
+    before(() => {
+      closeModal();
+      setTopLevelTab('Tier 2');
+      SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
+    });
+
+    it('Box Plot Chart', () => {
+      testEchart(
+        'box_plot',
+        'Box Plot Chart',
+        [
+          [139, 277],
+          [787, 441],
+        ],
+        'ds',
+      );
+    });
+
+    it('Time-Series Generic Chart', () => {
+      testEchart('echarts_timeseries', 'Time-Series Generic Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Time-Series Smooth Line Chart', () => {
+      testEchart('echarts_timeseries_smooth', 'Time-Series Smooth Line Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Time-Series Step Line Chart', () => {
+      testEchart('echarts_timeseries_step', 'Time-Series Step Line Chart', [
+        [70, 93],
+        [70, 93],
+      ]);
+    });
+
+    it('Funnel Chart', () => {
+      testEchart('funnel', 'Funnel Chart', [
+        [154, 80],
+        [421, 39],
+      ]);
+    });
+
+    it('Gauge Chart', () => {
+      testEchart('gauge_chart', 'Gauge Chart', [
+        [151, 95],
+        [300, 143],
+      ]);
+    });
+
+    it('Radar Chart', () => {
+      testEchart('radar', 'Radar Chart', [
+        [182, 49],
+        [423, 91],
+      ]);
+    });
+
+    it('Treemap V2 Chart', () => {
+      testEchart('treemap_v2', 'Treemap V2 Chart', [
+        [145, 84],
+        [220, 105],
+      ]);
     });
   });
 });
