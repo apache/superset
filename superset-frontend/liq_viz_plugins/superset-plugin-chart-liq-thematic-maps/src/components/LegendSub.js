@@ -37,17 +37,19 @@ export default function LegendSub(props) {
   const updateMapFilter = (layer, hidden) => {
     if (!map.current) return;
     if (hidden.length === 0) {
-      if ('textLayer' in config) map.current.setFilter(config.textLayer.layer, null);
       map.current.setFilter(layer, null);
+      if ('textLayerFilterExpr' in config) map.current.setFilter(`${layer}_sector_labels`, ['==', ['get', 'centre'], layer]);
+      if (config.outline) map.current.setFilter(`${layer}_outline`, null);
     } else {
       let filterExpr = ['all'];
       let textFilterExpr = ['all'];
       for (const k of hidden) {
         filterExpr.push(config.filterExpr(layer, k));
-        if ('textLayer' in config) textFilterExpr.push(config.textLayer.filterExpr(layer, k));
+        if ('textLayerFilterExpr' in config) textFilterExpr.push(config.textLayerFilterExpr(layer, k));
       }
-      if (textFilterExpr.length > 1) map.current.setFilter(config.textLayer.layer, textFilterExpr);
       map.current.setFilter(layer, filterExpr);
+      if ('textLayerFilterExpr' in config) map.current.setFilter(`${layer}_sector_labels`, textFilterExpr);
+      if (config.outline) map.current.setFilter(`${layer}_outline`, filterExpr);
     }
   }
 

@@ -463,27 +463,42 @@ export default function LiqThematicMaps(props) {
                 ['==', ['feature-state', ta], null],
                 'transparent',
                 ['feature-state', ta]
-              ],
-              'fill-outline-color': [
+              ]
+            }
+          });
+          map.current.addLayer({
+            'id': `${ta}_outline`,
+            'type': 'line',
+            'source': 'boundary_tileset',
+            'source-layer': boundary,
+            'paint': {
+              'line-color': [
                 'case',
                 ['==', ['feature-state', ta], null],
                 'transparent',
-                '#FFFFFF'
+                newIntersectSa1Color
               ],
-            }
+              'line-width': [
+                'case',
+                ['==', ['feature-state', ta], null],
+                0,
+                parseFloat(intersectSa1Width)
+              ]
+            },
+            filter: ['in', ['get', groupCol], ['literal', Object.keys(tradeAreaSA1s)]]
           });
-        })
-  
-        map.current.addLayer({
-          'id': 'trade_area_sector_centroids',
-          'type': 'symbol',
-          'source': 'trade_area_sector_centroids',
-          'layout': {
-            'text-field': ['get', 'label'],
-            'text-anchor': 'left',
-            'text-allow-overlap': true,
-            'text-size': 12
-          }
+          map.current.addLayer({
+            'id': `${ta}_sector_labels`,
+            'type': 'symbol',
+            'source': 'trade_area_sector_centroids',
+            'layout': {
+              'text-field': ['get', 'label'],
+              'text-anchor': 'left',
+              'text-allow-overlap': true,
+              'text-size': 12
+            },
+            'filter': ['==', ['get', 'centre'], ta]
+          });
         })
       }
 
@@ -749,6 +764,10 @@ export default function LiqThematicMaps(props) {
         map.current.setPaintProperty('radius_sa1s', 'line-color', newIntersectSa1Color);
         map.current.setPaintProperty('radius_sa1s', 'line-width', parseFloat(intersectSa1Width));
       }
+      tradeAreas.map(ta => {
+        map.current.setPaintProperty(`${ta}_outline`, 'line-color', newIntersectSa1Color);
+        map.current.setPaintProperty(`${ta}_outline`, 'line-width', parseFloat(intersectSa1Width));
+      });
     }
   }, [newIntersectSa1Color, intersectSa1Width])
 

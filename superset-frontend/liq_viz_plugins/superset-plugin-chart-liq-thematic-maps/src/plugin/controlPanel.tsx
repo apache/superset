@@ -534,7 +534,7 @@ const config: ControlPanelConfig = {
       ]
     },
     {
-      label: t('Intersecting SA1s'),
+      label: t('TA SA1s'),
       expanded: false,
       controlSetRows: [
         [
@@ -552,7 +552,8 @@ const config: ControlPanelConfig = {
               },
               visibility: ({ controls } : ControlState) => Boolean(
                 controls.features.value.includes('drivetime') ||
-                controls.features.value.includes('radius')
+                controls.features.value.includes('radius') ||
+                controls.map_type.value.includes('trade_area')
               )
             }
           },
@@ -566,7 +567,8 @@ const config: ControlPanelConfig = {
               default: '1',
               visibility: ({ controls } : ControlState) => Boolean(
                 controls.features.value.includes('drivetime') ||
-                controls.features.value.includes('radius')
+                controls.features.value.includes('radius') ||
+                controls.map_type.value.includes('trade_area')
               )
             }
           }
