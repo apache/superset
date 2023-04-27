@@ -54,6 +54,7 @@ export const SUPPORTED_TIER2_CHARTS = [
   { name: 'Gauge Chart', viz: 'gauge_chart' },
   { name: 'Radar Chart', viz: 'radar' },
   { name: 'Treemap V2 Chart', viz: 'treemap_v2' },
+  { name: 'Mixed Chart', viz: 'mixed_timeseries' },
 ] as ChartSpec[];
 
 export const testItems = {

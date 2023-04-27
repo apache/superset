@@ -612,5 +612,102 @@ describe('Drill by modal', () => {
         [220, 105],
       ]);
     });
+
+    it.only('Mixed Chart', () => {
+      cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
+        // click 'boy'
+        cy.wrap($canvas)
+          .scrollIntoView()
+          .trigger('mousemove', 70, 93)
+          .rightclick(70, 93);
+
+        drillBy('name').then(intercepted => {
+          const { queries } = intercepted.request.body;
+          expect(queries[0].columns).to.eql(['name']);
+          expect(queries[0].filters).to.eql([
+            { col: 'gender', op: '==', val: 'boy' },
+          ]);
+          expect(queries[1].columns).to.eql(['state']);
+          expect(queries[1].filters).to.eql([]);
+        });
+
+        cy.getBySel('"Drill by: Mixed Chart-modal"').as('drillByModal');
+
+        cy.get('@drillByModal')
+          .find('.draggable-trigger')
+          .should('contain', 'Mixed Chart');
+
+        cy.get('@drillByModal')
+          .find('.ant-breadcrumb')
+          .should('be.visible')
+          .and('contain', 'gender (boy)')
+          .and('contain', '/')
+          .and('contain', 'name');
+
+        cy.get('@drillByModal')
+          .find('[data-test="drill-by-chart"]')
+          .should('be.visible');
+
+        // further drill
+        cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
+          // click second query
+          cy.wrap($canvas)
+            .scrollIntoView()
+            .trigger('mousemove', 71, 476)
+            .rightclick(71, 476);
+
+          drillBy('ds').then(intercepted => {
+            const { queries } = intercepted.request.body;
+            expect(queries[0].columns).to.eql(['name']);
+            expect(queries[0].filters).to.eql([
+              { col: 'gender', op: '==', val: 'boy' },
+            ]);
+            expect(queries[1].columns).to.eql(['ds']);
+            expect(queries[1].filters).to.eql([
+              { col: 'state', op: '==', val: 'CA' },
+            ]);
+          });
+
+          cy.get('@drillByModal')
+            .find('[data-test="drill-by-chart"]')
+            .should('be.visible');
+
+          // undo - back to drill by state
+          interceptV1ChartData('drillByUndo');
+          cy.get('@drillByModal')
+            .find('.ant-breadcrumb')
+            .should('be.visible')
+            .and('contain', 'gender (boy)')
+            .and('contain', '/')
+            .and('contain', 'name (CA)')
+            .and('contain', 'ds')
+            .contains('name (CA)')
+            .click();
+
+          cy.wait('@drillByUndo').then(intercepted => {
+            const { queries } = intercepted.request.body;
+            expect(queries[0].columns).to.eql(['name']);
+            expect(queries[0].filters).to.eql([
+              { col: 'gender', op: '==', val: 'boy' },
+            ]);
+            expect(queries[1].columns).to.eql(['state']);
+            expect(queries[1].filters).to.eql([]);
+          });
+
+          cy.get('@drillByModal')
+            .find('.ant-breadcrumb')
+            .should('be.visible')
+            .and('contain', 'gender (boy)')
+            .and('contain', '/')
+            .and('not.contain', 'name (CA)')
+            .and('not.contain', 'ds')
+            .and('contain', 'name');
+
+          cy.get('@drillByModal')
+            .find('[data-test="drill-by-chart"]')
+            .should('be.visible');
+        });
+      });
+    });
   });
 });
