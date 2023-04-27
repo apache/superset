@@ -52,6 +52,7 @@ class WarmUpCacheCommand(BaseCommand):
         self._slices: List[Slice] = []
 
     def run(self) -> List[Dict[str, Any]]:
+        self.validate()
         result: List[Dict[str, Any]] = []
         for slc in self._slices:
             try:
