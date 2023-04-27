@@ -29,6 +29,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 from urllib3.exceptions import NewConnectionError
 
+from superset import app  
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -46,6 +47,7 @@ from superset.utils.network import is_hostname_valid, is_port_open
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+config = app.config
 logger = logging.getLogger(__name__)
 
 
@@ -53,7 +55,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_secondary_columns = True
-    time_groupby_inline = True
+    time_groupby_inline = config['TIME_GROUPBY_INLINE']
 
     _time_grain_expressions = {
         None: "{col}",
