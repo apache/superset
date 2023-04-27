@@ -480,7 +480,9 @@ def test_import_excel(mock_event_logger):
     )
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b").fetchall()
+        data = engine.execute(
+            f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [(0, "john", 1), (1, "paul", 2)]
 
 
@@ -544,7 +546,9 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f1 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b").fetchall()
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
     # replace table with zip file
@@ -555,5 +559,7 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f2 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b").fetchall()
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
