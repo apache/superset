@@ -69,7 +69,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     .first()
     .find("[role='menu'] [role='menuitem'] [title='Drill by']")
     .trigger('mouseover');
-  cy.getBySel('loading-indicator').should('not.exist').wait(1000);
+  cy.getBySel('loading-indicator').should('not.exist').wait(600);
   cy.get('[data-test="drill-by-submenu"]')
     .not('.ant-dropdown-menu-hidden [data-test="drill-by-submenu"]')
     .find('[role="menuitem"]')
