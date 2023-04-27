@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { api, JsonResponse } from './queryApi';
 
 export type SchemaOption = {
@@ -63,6 +63,7 @@ export const { useLazySchemasQuery, useSchemasQuery } = schemaApi;
 const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
+  const isMountedRef = useRef(false);
   const { dbId, onSuccess, onError } = options || {};
   const [trigger, refetchResult] = useLazySchemasQuery();
   const result = useSchemasQuery(
@@ -88,15 +89,19 @@ export function useSchemas(options: Params) {
   }, [dbId]);
 
   useEffect(() => {
-    const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
-      result;
-    if (!originalArgs?.forceRefresh && requestId && !isFetching) {
-      if (isSuccess) {
-        onSuccess?.(data || EMPTY_SCHEMAS, false);
+    if (isMountedRef.current) {
+      const { requestId, isSuccess, isError, isFetching, data, originalArgs } =
+        result;
+      if (!originalArgs?.forceRefresh && requestId && !isFetching) {
+        if (isSuccess) {
+          onSuccess?.(data || EMPTY_SCHEMAS, false);
+        }
+        if (isError) {
+          onError?.();
+        }
       }
-      if (isError) {
-        onError?.();
-      }
+    } else {
+      isMountedRef.current = true;
     }
   }, [result]);
 
