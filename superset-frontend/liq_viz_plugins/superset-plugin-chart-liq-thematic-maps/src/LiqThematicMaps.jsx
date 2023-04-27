@@ -493,9 +493,17 @@ export default function LiqThematicMaps(props) {
             'source': 'trade_area_sector_centroids',
             'layout': {
               'text-field': ['get', 'label'],
-              'text-anchor': 'left',
+              'text-variable-anchor': ['right', 'left', 'top', 'bottom'],
+              'text-radial-offset': 1,
+              'text-justify': 'auto',
               'text-allow-overlap': true,
               'text-size': 12
+            },
+            'paint': {
+              'text-color': '#000000',
+              'text-halo-color': '#FFFFFF',
+              'text-halo-width': 1,
+              'text-halo-blur': 0
             },
             'filter': ['==', ['get', 'centre'], ta]
           });
