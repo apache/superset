@@ -105,7 +105,10 @@ export default function transformProps(
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
-
+  const coltypeMapping = {
+    ...getColtypesMapping(queriesData[0]),
+    ...getColtypesMapping(queriesData[1]),
+  };
   const {
     area,
     areaB,
@@ -523,5 +526,6 @@ export default function transformProps(
       type: xAxisType,
     },
     refs,
+    coltypeMapping,
   };
 }

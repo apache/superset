@@ -19,14 +19,17 @@
 import React, { useCallback } from 'react';
 import {
   AxisType,
-  DataRecordValue,
-  DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
+  DataRecordValue,
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
 } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { currentSeries } from '../utils/series';
+import { currentSeries, formatSeriesName } from '../utils/series';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -45,6 +48,7 @@ export default function EchartsMixedTimeseries({
   xValueFormatter,
   xAxis,
   refs,
+  coltypeMapping,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -125,7 +129,7 @@ export default function EchartsMixedTimeseries({
     mouseover: params => {
       currentSeries.name = params.seriesName;
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName, seriesIndex } = eventParams;
@@ -167,6 +171,11 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
+              formattedVal: formatSeriesName(values[i], {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
             }),
         );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
