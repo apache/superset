@@ -120,7 +120,7 @@ def create_columnar_files():
     os.mkdir(ZIP_DIRNAME)
     pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME1)
     pd.DataFrame({"a": ["max", "bob"], "b": [3, 4]}).to_parquet(PARQUET_FILENAME2)
-    
+
     with zipfile.ZipFile(ZIP_FILENAME, "w") as archive:
         archive.write(PARQUET_FILENAME1)
         archive.write(PARQUET_FILENAME2)
