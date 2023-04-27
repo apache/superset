@@ -200,7 +200,7 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
-polyline==1.4.0
+polyline==2.0.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
@@ -268,7 +268,6 @@ six==1.16.0
     #   isodate
     #   jsonschema
     #   paramiko
-    #   polyline
     #   prison
     #   pyrsistent
     #   python-dateutil
