@@ -385,12 +385,12 @@ def test_import_csv(mock_event_logger):
     )
     # make sure that john and empty string are replaced with None
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY b").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [(None, 1, "x"), ("paul", 2, None)]
         # default null values
         upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
         # make sure that john and empty string are replaced with None
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY b").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [("john", 1, "x"), ("paul", 2, None)]
 
     # cleanup
