@@ -592,7 +592,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(140, 224, 113)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
     it('should apply the color scheme in nested tabs', () => {
