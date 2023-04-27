@@ -653,8 +653,8 @@ describe('Drill by modal', () => {
           // click second query
           cy.wrap($canvas)
             .scrollIntoView()
-            .trigger('mousemove', 71, 476)
-            .rightclick(71, 476);
+            .trigger('mousemove', 543, 476)
+            .rightclick(543, 476);
 
           drillBy('ds').then(intercepted => {
             const { queries } = intercepted.request.body;
