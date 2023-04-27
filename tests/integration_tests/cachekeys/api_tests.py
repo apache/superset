@@ -16,7 +16,9 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+import json
 from typing import Dict, Any
+from urllib.parse import quote
 
 import pytest
 
@@ -26,6 +28,14 @@ from superset.utils.core import get_example_default_schema
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
+)
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
 )
 
 
@@ -165,3 +175,32 @@ def test_invalidate_existing_caches(invalidate):
         .datasource_uid
         == "X__table"
     )
+
+
+class TestWarmUpCache(SupersetTestCase):
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
+    def test_warm_up_cache(self):
+        self.login()
+        slc = self.get_slice("Girls", db.session)
+        data = self.get_json_resp("/api/v1/cachekey/warm_up_cache?slice_id={}".format(slc.id))
+        self.assertEqual(
+            data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )
+
+        data = self.get_json_resp(
+            "/api/v1/cachekey/warm_up_cache?table_name=energy_usage&db_name=main"
+        )
+        assert len(data) > 0
+
+        dashboard = self.get_dash_by_slug("births")
+
+        assert self.get_json_resp(
+            f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}"
+        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+
+        assert self.get_json_resp(
+            f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
+            + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
+        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]

@@ -40,8 +40,7 @@ def get_url(chart: Slice, dashboard: Optional[Dashboard] = None) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
         baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
-        #todome update with api v1 endpoint
-        url = f"{baseurl}superset/warm_up_cache/?slice_id={chart.id}"
+        url = f"{baseurl}api/v1/cachekey/warm_up_cache/?slice_id={chart.id}"
         if dashboard:
             url += f"&dashboard_id={dashboard.id}"
         return url
@@ -52,8 +51,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     A cache warm up strategy.
 
     Each strategy defines a `get_urls` method that returns a list of URLs to
-    # todome update with api v1 endpoint
-    be fetched from the `/superset/warm_up_cache/` endpoint.
+    be fetched from the `/api/v1/cachekey/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
 

@@ -79,10 +79,9 @@ class TestCacheWarmUp(SupersetTestCase):
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        # todome: update tests in this file w/ api v1 endpoint
         expected = sorted(
             [
-                f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}&dashboard_id={dash.id}"
+                f"{get_url_host()}api/v1/cachekey/warm_up_cache/?slice_id={slc.id}&dashboard_id={dash.id}"
                 for slc in dash.slices
             ]
         )
@@ -113,7 +112,7 @@ class TestCacheWarmUp(SupersetTestCase):
         dash = self.get_dash_by_slug("births")
         tag1_urls = sorted(
             [
-                f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}"
+                f"{get_url_host()}api/v1/cachekey/warm_up_cache/?slice_id={slc.id}"
                 for slc in dash.slices
             ]
         )
@@ -136,7 +135,7 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
         slc = dash.slices[0]
-        tag2_urls = [f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}"]
+        tag2_urls = [f"{get_url_host()}api/v1/cachekey/warm_up_cache/?slice_id={slc.id}"]
         object_id = slc.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
