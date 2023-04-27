@@ -60,6 +60,20 @@ export default class LiqMarker {
     return points.join(' ');
   }
 
+  addShadow() {
+    // create a filter element for the shadow effect
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute("id", "shadow");
+    const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+    feDropShadow.setAttribute("dx", "0");
+    feDropShadow.setAttribute("dy", "0");
+    feDropShadow.setAttribute("stdDeviation", "1");
+    feDropShadow.setAttribute("flood-color", "#FDFEFF");
+    feDropShadow.setAttribute("flood-opacity", "1");
+    filter.appendChild(feDropShadow);
+    this.svg.appendChild(filter);
+  }
+
   createCircle(
     size = this.size,
     strokeWidth = this.strokeWidth,
@@ -72,11 +86,19 @@ export default class LiqMarker {
     circle.setAttribute("cx", size / 2);
     circle.setAttribute("cy", size / 2);
     circle.setAttribute("r", size / 2 - strokeWidth);
-    circle.setAttribute("fill", proposed ? 'none' : fill);
-    circle.setAttribute("stroke", proposed ? fill : strokeColor);
-    circle.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    circle.setAttribute("fill", fill);
+    circle.setAttribute("stroke", strokeColor);
+    circle.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(circle);
+    if (proposed) {
+      this.addShadow();
+      circle.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(circle);
+      this.createCircle(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(circle);
+    }
+
     return this;
   }
 
@@ -93,11 +115,19 @@ export default class LiqMarker {
     rect.setAttribute("y", "0");
     rect.setAttribute("width", size);
     rect.setAttribute("height", size);
-    rect.setAttribute("fill", proposed ? 'none' : fill);
-    rect.setAttribute("stroke", proposed ? fill : strokeColor);
-    rect.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    rect.setAttribute("fill", fill);
+    rect.setAttribute("stroke", strokeColor);
+    rect.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(rect);
+    if (proposed) {
+      this.addShadow();
+      rect.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(rect);
+      this.createSquare(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(rect);
+    }
+
     return this;
   }
 
@@ -112,11 +142,19 @@ export default class LiqMarker {
     const star = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateStarPolygon(size, size);
     star.setAttribute("points", points);
-    star.setAttribute("fill", proposed ? 'none' : fill);
-    star.setAttribute("stroke", proposed ? fill : strokeColor);
-    star.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    star.setAttribute("fill", fill);
+    star.setAttribute("stroke", strokeColor);
+    star.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(star);
+    if (proposed) {
+      this.addShadow();
+      star.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(star);
+      this.createStar(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(star);
+    }
+
     return this;
   }
 
@@ -131,11 +169,19 @@ export default class LiqMarker {
     const pentagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generatePentagonPolygon(size, size);
     pentagon.setAttribute("points", points);
-    pentagon.setAttribute("fill", proposed ? 'none' : fill);
-    pentagon.setAttribute("stroke", proposed ? fill : strokeColor);
-    pentagon.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    pentagon.setAttribute("fill", fill);
+    pentagon.setAttribute("stroke", strokeColor);
+    pentagon.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(pentagon);
+    if (proposed) {
+      this.addShadow();
+      pentagon.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(pentagon);
+      this.createStar(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(pentagon);
+    }
+
     return this;
   }
 
@@ -150,11 +196,19 @@ export default class LiqMarker {
     const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     const points = this.constructor.generateTrianglePolygon(size, size);
     triangle.setAttribute("points", points);
-    triangle.setAttribute("fill", proposed ? 'none' : fill);
-    triangle.setAttribute("stroke", proposed ? fill : strokeColor);
-    triangle.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    triangle.setAttribute("fill", fill);
+    triangle.setAttribute("stroke", strokeColor);
+    triangle.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(triangle);
+    if (proposed) {
+      this.addShadow();
+      triangle.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(triangle);
+      this.createStar(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(triangle);
+    }
+
     return this;
   }
 
@@ -169,11 +223,19 @@ export default class LiqMarker {
 
     const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     poly.setAttribute("points", points);
-    poly.setAttribute("fill", proposed ? 'none' : fill);
-    poly.setAttribute("stroke", proposed ? fill : strokeColor);
-    poly.setAttribute("stroke-width", proposed ? 2 : strokeWidth);
+    poly.setAttribute("fill", fill);
+    poly.setAttribute("stroke", strokeColor);
+    poly.setAttribute("stroke-width", strokeWidth);
 
-    this.svg.appendChild(poly);
+    if (proposed) {
+      this.addShadow();
+      poly.setAttribute('filter', 'url(#shadow)');
+      this.svg.appendChild(poly);
+      this.createStar(this.size, 1, '#FFFFFF', 'none');
+    } else {
+      this.svg.appendChild(poly);
+    }
+
     return this;
   }
 
