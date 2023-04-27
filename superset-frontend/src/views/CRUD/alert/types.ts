@@ -41,7 +41,7 @@ export type DatabaseObject = {
   id: number;
 };
 
-export type NotificationMethodOption = 'Email' | 'Slack';
+export type NotificationMethodOption = 'Email' | 'Slack' | 'VictorOps';
 
 export type Recipient = {
   recipient_config_json: {
@@ -117,4 +117,5 @@ export enum AlertState {
 export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
+  VO = 'VictorOps',
 }

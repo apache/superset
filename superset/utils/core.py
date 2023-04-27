@@ -92,6 +92,8 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
+from superset import app
+import requests
 
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -104,6 +106,8 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+
+# from superset.reports.models import ReportRecipientType
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -118,6 +122,7 @@ from superset.superset_typing import (
 from superset.utils.database import get_example_database
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.urls import modify_url_query
 
 try:
     from pydruid.utils.having import Having
@@ -2013,3 +2018,48 @@ def gen_query_hash(sql: str):
     if type(sql) == str:
         return hashlib.md5(sql.encode("utf-8")).hexdigest()
     return None
+
+
+def get_alert_link(conf, report_schedule) -> str:
+    baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+    return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
+
+def get_vo_payload(conf, report_schedule,message_type,exception = ""):
+    ex = (" Error occured for" + str(exception)) if str(exception) else ""
+    payload = {
+        "message_type": message_type,
+        "entity_id": str(report_schedule.id)
+        + "_"
+        + re.sub("[^A-Za-z0-9]+", "_", report_schedule.name)
+        or "",
+        "entity_display_name": report_schedule.description or "" + ex ,  # display text
+        "state_message": report_schedule.msg_content or "",
+        "vo_annotate.u.AlertLink":  modify_url_query(get_alert_link(conf, report_schedule), standalone="0")
+    }
+    return payload
+
+def raise_incident(conf, report_schedule, message_type, exception = "") -> None:
+    routing_key = None
+    for recipient in report_schedule.recipients:
+        if recipient.type == "VictorOps":
+            recipient_config = json.loads(recipient.recipient_config_json)
+            routing_key = recipient_config["target"]
+    if routing_key:
+        WEBHOOK_URL = "https://" + conf["VO_URL"] + "/" + routing_key.strip()
+        victor_ops_data = get_vo_payload(conf, report_schedule, message_type,exception)
+        try:
+            logger.info("VO PAYLOAD", str(victor_ops_data))
+            response = requests.post(
+                WEBHOOK_URL,
+                data=json.dumps(victor_ops_data),
+                headers={"Content-Type": "application/json"},
+                verify=False
+            )
+        except requests.exceptions.HTTPError as e:
+            raise Exception(str(e))
+        if response.status_code != 200:
+            raise ValueError(
+                "Request to victor_ops returned an error %s, the response is:\n%s"
+                % (response.status_code, response.text)
+            )
+

@@ -1536,8 +1536,16 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Alert/Reports] "
 
 # Slack API token for the superset reports, either string or callable
-SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
+SLACK_API_TOKEN: Optional[
+    Union[Callable[[], str], str]
+] = ""
 SLACK_PROXY = None
+
+# victorops integration
+VO_URL = ""
+VO_VALIDATE_ROUTING_KEY = "https://api.victorops.com/api-public/v1/org/routing-keys"
+X_VO_API_ID = ""
+X_VO_API_KEY = ""
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox

@@ -54,10 +54,12 @@ import {
   MetaObject,
   Operator,
   Recipient,
+  RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { ERROR_MESSAGES } from './constants';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -395,6 +397,11 @@ type NotificationSetting = {
   options: NotificationMethodOption[];
 };
 
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
+
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -404,12 +411,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const frontendConfig = bootstrapData?.common?.conf;
+
   const conf = useCommonConf();
+  const currentNotification = JSON.parse(
+    JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
+  );
+  const reportNotificationsAllowed = currentNotification.filter(
+    (item: any) => item !== RecipientIconName.VO,
+  );
   const allowedNotificationMethods: NotificationMethodOption[] =
-    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
+    (isReport
+      ? reportNotificationsAllowed
+      : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) ||
+    DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [invalidEmail, setInvalidEmail] = useState<boolean>(false);
+  const [invalidInput, setInvalidInputs] = useState<any>({
+    invalid: false,
+    emailError: '',
+    voError: '',
+  });
 
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
@@ -463,7 +485,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setting: NotificationSetting,
   ) => {
     const settings = notificationSettings.slice();
-
     settings[index] = setting;
     setNotificationSettings(settings);
 
@@ -499,25 +520,78 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-  const onSave = () => {
+  const filterInvalidEmailsAndRoutingKeys = (
+    setting: NotificationSetting,
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    if (setting.method === RecipientIconName.Email) {
+      const emailStr = setting.recipients;
+      const emails = ([] as string[])
+        .concat(...emailStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidEmails = emails.filter(
+        email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
+      );
+      invalidEmails.push(..._invalidEmails);
+    } else if (setting.method === RecipientIconName.VO) {
+      const routingKeyStr = setting.recipients;
+      // eslint-disable-next-line no-underscore-dangle
+      const _routingKeys = ([] as string[])
+        .concat(...routingKeyStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidRoutingKeys = _routingKeys.filter(
+        routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
+      );
+
+      routingKeys.push(..._routingKeys);
+      invalidRoutingKeys.push(..._invalidRoutingKeys);
+    }
+
+    console.log('Loop - IE : ', invalidEmails);
+    console.log('Loop - IRK : ', invalidRoutingKeys);
+    console.log('Loop - RK : ', routingKeys);
+  };
+
+  const getEmailAndVOError = (
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    const emailError =
+      invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : '';
+
+    const voError =
+      routingKeys.length > 1
+        ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION
+        : invalidRoutingKeys.length > 0
+        ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
+        : '';
+
+    return { emailError, voError };
+  };
+
+  const onSave = async () => {
     // Notification Settings
-    setInvalidEmail(false);
+    setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
-    let invalidEmails = [];
+    const invalidEmails: string[] = [];
+    const invalidRoutingKeys: string[] = [];
+    const routingKeys: string[] = [];
+
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        if (setting.method === 'Email') {
-          const emailStr = setting.recipients;
-          const emails = ([] as string[])
-            .concat(...emailStr.split(',').map(item => item.split(';')))
-            .map(item => item.trim())
-            .filter(item => item !== '');
-
-          invalidEmails = emails.filter(
-            email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
-          );
-        }
-
+        filterInvalidEmailsAndRoutingKeys(
+          setting,
+          invalidEmails,
+          invalidRoutingKeys,
+          routingKeys,
+        );
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
@@ -527,14 +601,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    if (invalidEmails.length > 0) {
-      setInvalidEmail(true);
-      addDangerToast(
-        t(
-          'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
-        ),
-      );
+    console.log('IE : ', invalidEmails);
+    console.log('IRK : ', invalidRoutingKeys);
+    console.log('RK : ', routingKeys);
+
+    const { emailError, voError } = getEmailAndVOError(
+      invalidEmails,
+      invalidRoutingKeys,
+      routingKeys,
+    );
+
+    if (emailError || voError) {
+      setInvalidInputs({ invalid: true, emailError, voError });
+      addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
       return;
+    }
+
+    // VO routing key validation
+    if (routingKeys && routingKeys.length > 0) {
+      const isInValid = await validateRoutingKey(recipients);
+      if (isInValid) {
+        return;
+      }
     }
 
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
@@ -608,6 +696,41 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         hide();
       });
     }
+  };
+
+  const validateRoutingKey = async (recipients: any) => {
+    let response: any = null;
+    let invalid = true;
+    let voRoutingKey = '';
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < recipients.length; i++) {
+      if (recipients[i].type === RecipientIconName.VO) {
+        if (recipients[i].recipient_config_json.target) {
+          voRoutingKey = recipients[i].recipient_config_json.target;
+          const options = {
+            headers: {
+              'X-VO-Api-Id': frontendConfig.X_VO_API_ID,
+              'X-VO-Api-Key': frontendConfig.X_VO_API_KEY,
+            },
+          };
+          // eslint-disable-next-line no-await-in-loop
+          response = await // eslint-disable-next-line no-await-in-loop
+          (await fetch(frontendConfig.VO_VALIDATE_ROUTING_KEY, options)).json();
+        }
+      }
+    }
+
+    if (response) {
+      response?.routingKeys.forEach((key: any) => {
+        if (key.routingKey === voRoutingKey) {
+          invalid = false;
+        }
+      });
+    }
+    if (invalid) {
+      addDangerToast(t(ERROR_MESSAGES.VO_ROUTING_KEY_ERROR));
+    }
+    return invalid;
   };
 
   // Fetch data to populate form dropdowns
@@ -1481,7 +1604,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
-                invalid={invalidEmail}
+                invalidInput={invalidInput}
               />
             ))}
             <NotificationMethodAdd

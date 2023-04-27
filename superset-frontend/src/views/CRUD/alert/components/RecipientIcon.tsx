@@ -41,6 +41,10 @@ export default function RecipientIcon({ type }: { type: string }) {
       recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
       recipientIconConfig.label = RecipientIconName.Slack;
       break;
+    case RecipientIconName.VO:
+      recipientIconConfig.icon = <Icons.Victorops css={StyledIcon} />;
+      recipientIconConfig.label = RecipientIconName.VO;
+      break;
     default:
       recipientIconConfig.icon = null;
       recipientIconConfig.label = '';

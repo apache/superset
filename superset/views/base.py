@@ -109,6 +109,10 @@ FRONTEND_CONF_KEYS = (
     "FLASH_OWNERSHIP",
     "FLASH_SCHEDULE",
     "FLASH_URL",
+    "X_VO_API_ID",
+    "X_VO_API_KEY",
+    "VO_VALIDATE_ROUTING_KEY",
+    "VO_URL",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
     "CSV_MAX_SIZES",
@@ -378,16 +382,15 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
         for k in FRONTEND_CONF_KEYS
     }
 
+    frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [ ReportRecipientType.EMAIL]
     if conf.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-        ]
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-        ]
-
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+                ReportRecipientType.SLACK
+        )
+    if conf.get("VO_URL"):
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+                ReportRecipientType.VO
+        )
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
