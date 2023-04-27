@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import shutil
+import zipfile
 from typing import Dict, Optional, Union
 
 from unittest import mock
@@ -119,7 +120,10 @@ def create_columnar_files():
     os.mkdir(ZIP_DIRNAME)
     pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME1)
     pd.DataFrame({"a": ["max", "bob"], "b": [3, 4]}).to_parquet(PARQUET_FILENAME2)
-    shutil.make_archive(ZIP_DIRNAME, "zip", ZIP_DIRNAME)
+    
+    with zipfile.ZipFile(ZIP_FILENAME, "w") as archive:
+        for filename in [PARQUET_FILENAME1, PARQUET_FILENAME2]:
+            archive.write(filename, filename)
     yield
     os.remove(ZIP_FILENAME)
     shutil.rmtree(ZIP_DIRNAME)
@@ -556,4 +560,4 @@ def test_import_parquet(mock_event_logger):
 
     with test_db.get_sqla_engine_with_context() as engine:
         data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
-        assert data == [("max", 3), ("bob", 4), ("john", 1), ("paul", 2)]
+        assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
