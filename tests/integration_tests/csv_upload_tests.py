@@ -122,8 +122,9 @@ def create_columnar_files():
     pd.DataFrame({"a": ["max", "bob"], "b": [3, 4]}).to_parquet(PARQUET_FILENAME2)
     
     with zipfile.ZipFile(ZIP_FILENAME, "w") as archive:
-        for filename in [PARQUET_FILENAME1, PARQUET_FILENAME2]:
-            archive.write(filename, filename)
+        archive.write(PARQUET_FILENAME1)
+        archive.write(PARQUET_FILENAME2)
+
     yield
     os.remove(ZIP_FILENAME)
     shutil.rmtree(ZIP_DIRNAME)
