@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Type
 
-from . import base, postgres, presto_db, trino
-from .base import SQLValidationAnnotation
+from typing import Type
+
+from superset.sql_validators.presto_db import PrestoDBSQLValidator
 
 
-def get_validator_by_name(name: str) -> Optional[Type[base.BaseSQLValidator]]:
-    return {
-        "PrestoDBSQLValidator": presto_db.PrestoDBSQLValidator,
-        "PostgreSQLValidator": postgres.PostgreSQLValidator,
-        "TrinoSQLValidator": trino.TrinoSQLValidator,
-    }.get(name)
+class TrinoSQLValidator(PrestoDBSQLValidator):
+    name = "TrinoSQLValidator"
+
+    @classmethod
+    def _get_database_error_type(cls) -> Type[Exception]:
+        # pylint: disable=import-outside-toplevel
+        from trino.exceptions import DatabaseError
+
+        return DatabaseError

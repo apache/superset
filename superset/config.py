@@ -1331,6 +1331,7 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    "trino": "TrinoSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be

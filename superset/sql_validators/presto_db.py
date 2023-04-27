@@ -18,7 +18,7 @@
 import logging
 import time
 from contextlib import closing
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from superset import app, security_manager
 from superset.models.core import Database
@@ -88,7 +88,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
-        except DatabaseError as db_error:
+        except cls._get_database_error_type() as db_error:
             # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
             # as though they were normal queries. In other words, it doesn't
             # know that errors here are not exceptional. To map this back to
@@ -179,3 +179,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations
+
+    @classmethod
+    def _get_database_error_type(cls) -> Type[Exception]:
+        # pylint: disable=import-outside-toplevel
+        from pyhive.exc import DatabaseError
+
+        return DatabaseError
