@@ -274,7 +274,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
 
     with get_upload_db().get_sqla_engine_with_context() as engine:
         data = engine.execute(
-            f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA}"
+            f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA} ORDER BY b"
         ).fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
@@ -385,12 +385,12 @@ def test_import_csv(mock_event_logger):
     )
     # make sure that john and empty string are replaced with None
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [(None, 1, "x"), ("paul", 2, None)]
         # default null values
         upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
         # make sure that john and empty string are replaced with None
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [("john", 1, "x"), ("paul", 2, None)]
 
     # cleanup
@@ -408,7 +408,7 @@ def test_import_csv(mock_event_logger):
     # or an int to a float
     # file upload should work as normal
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY b").fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
     # cleanup
@@ -480,7 +480,9 @@ def test_import_excel(mock_event_logger):
     )
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {EXCEL_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(
+            f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [(0, "john", 1), (1, "paul", 2)]
 
 
@@ -544,7 +546,9 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f1 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
     # replace table with zip file
@@ -555,5 +559,7 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f2 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
-        assert data == [("max", 3), ("bob", 4), ("john", 1), ("paul", 2)]
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
+        assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
