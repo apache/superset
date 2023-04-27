@@ -12,9 +12,9 @@
 
 # Notify some committers of changes in the components
 
-/superset-frontend/src/components/Select/ @michael-s-molina @geido @ktmud
-/superset-frontend/src/components/MetadataBar/ @michael-s-molina
-/superset-frontend/src/components/DropdownContainer/ @michael-s-molina
+/superset-frontend/src/components/Select/ @michael-s-molina @geido @kgabryje
+/superset-frontend/src/components/MetadataBar/ @michael-s-molina @geido @kgabryje
+/superset-frontend/src/components/DropdownContainer/ @michael-s-molina @geido @kgabryje
 
 # Notify Helm Chart maintainers about changes in it
 
@@ -26,4 +26,4 @@
 
 # Notify PMC members of changes to Github Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje

@@ -16,21 +16,267 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
+import { SortSeriesType } from '@superset-ui/chart-controls';
+import {
+  DataRecord,
+  getNumberFormatter,
+  getTimeFormatter,
+  supersetTheme as theme,
+} from '@superset-ui/core';
 import {
   dedupSeries,
   extractGroupbyLabel,
   extractSeries,
+  extractShowValueIndexes,
   formatSeriesName,
   getChartPadding,
   getLegendProps,
-  sanitizeHtml,
-  extractShowValueIndexes,
   getOverMaxHiddenFormatter,
+  sanitizeHtml,
+  sortAndFilterSeries,
+  sortRows,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
+
+const expectedThemeProps = {
+  selector: ['all', 'inverse'],
+  selectorLabel: {
+    fontFamily: theme.typography.families.sansSerif,
+    fontSize: theme.typography.sizes.s,
+    color: theme.colors.grayscale.base,
+    borderColor: theme.colors.grayscale.base,
+  },
+};
+
+const sortData: DataRecord[] = [
+  { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+  { my_x_axis: null, x: 4, y: 3, z: 7 },
+];
+
+const totalStackedValues = [3, 15, 14];
+
+test('sortRows by name ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Name,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+  ]);
+});
+
+test('sortRows by name descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Name,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by sum ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Sum,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by sum descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Sum,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by avg ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Avg,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by avg descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Avg,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by min ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by min descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by max ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by max descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      SortSeriesType.Min,
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortAndFilterSeries by min ascending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
+  ).toEqual(['y', 'x', 'z']);
+});
+
+test('sortAndFilterSeries by min descending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, false),
+  ).toEqual(['z', 'x', 'y']);
+});
+
+test('sortAndFilterSeries by max ascending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, true),
+  ).toEqual(['x', 'z', 'y']);
+});
+
+test('sortAndFilterSeries by max descending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, false),
+  ).toEqual(['y', 'z', 'x']);
+});
+
+test('sortAndFilterSeries by avg ascending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, true),
+  ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by avg descending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, false),
+  ).toEqual(['z', 'y', 'x']);
+});
+
+test('sortAndFilterSeries by sum ascending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, true),
+  ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by sum descending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, false),
+  ).toEqual(['z', 'y', 'x']);
+});
+
+test('sortAndFilterSeries by name ascending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, true),
+  ).toEqual(['x', 'y', 'z']);
+});
+
+test('sortAndFilterSeries by name descending', () => {
+  expect(
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, false),
+  ).toEqual(['z', 'y', 'x']);
+});
 
 describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -51,25 +297,29 @@ describe('extractSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractSeries(data)).toEqual([
-      {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [
-          ['2000-01-01', null],
-          ['2000-02-01', 2],
-          ['2000-03-01', 1],
-        ],
-      },
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          ['2000-01-01', 2],
-          ['2000-02-01', 10],
-          ['2000-03-01', 5],
-        ],
-      },
+    const totalStackedValues = [2, 12, 6];
+    expect(extractSeries(data, { totalStackedValues })).toEqual([
+      [
+        {
+          id: 'Hulk',
+          name: 'Hulk',
+          data: [
+            ['2000-01-01', null],
+            ['2000-02-01', 2],
+            ['2000-03-01', 1],
+          ],
+        },
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            ['2000-01-01', 2],
+            ['2000-02-01', 10],
+            ['2000-03-01', 5],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 
@@ -91,20 +341,30 @@ describe('extractSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
-      {
-        id: 'Hulk',
-        name: 'Hulk',
-        data: [[2, 1]],
-      },
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          [1, 2],
-          [2, 5],
-        ],
-      },
+    const totalStackedValues = [3, 12, 8];
+    expect(
+      extractSeries(data, {
+        totalStackedValues,
+        xAxis: 'x',
+        removeNulls: true,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'Hulk',
+          name: 'Hulk',
+          data: [[2, 1]],
+        },
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            [1, 2],
+            [2, 5],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 
@@ -151,23 +411,29 @@ describe('extractSeries', () => {
         abc: null,
       },
     ];
-    expect(extractSeries(data, { fillNeighborValue: 0 })).toEqual([
-      {
-        id: 'abc',
-        name: 'abc',
-        data: [
-          ['2000-01-01', null],
-          ['2000-02-01', 0],
-          ['2000-03-01', 1],
-          ['2000-04-01', 0],
-          ['2000-05-01', null],
-          ['2000-06-01', 0],
-          ['2000-07-01', 2],
-          ['2000-08-01', 3],
-          ['2000-09-01', 0],
-          ['2000-10-01', null],
-        ],
-      },
+    const totalStackedValues = [0, 0, 1, 0, 0, 0, 2, 3, 0, 0];
+    expect(
+      extractSeries(data, { totalStackedValues, fillNeighborValue: 0 }),
+    ).toEqual([
+      [
+        {
+          id: 'abc',
+          name: 'abc',
+          data: [
+            ['2000-01-01', null],
+            ['2000-02-01', 0],
+            ['2000-03-01', 1],
+            ['2000-04-01', 0],
+            ['2000-05-01', null],
+            ['2000-06-01', 0],
+            ['2000-07-01', 2],
+            ['2000-08-01', 3],
+            ['2000-09-01', 0],
+            ['2000-10-01', null],
+          ],
+        },
+      ],
+      totalStackedValues,
     ]);
   });
 });
@@ -365,71 +631,106 @@ describe('formatSeriesName', () => {
   describe('getLegendProps', () => {
     it('should return the correct props for scroll type with top orientation without zoom', () => {
       expect(
-        getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, false),
+        getLegendProps(
+          LegendType.Scroll,
+          LegendOrientation.Top,
+          true,
+          theme,
+          false,
+        ),
       ).toEqual({
         show: true,
         top: 0,
         right: 0,
         orient: 'horizontal',
         type: 'scroll',
+        ...expectedThemeProps,
       });
     });
 
     it('should return the correct props for scroll type with top orientation with zoom', () => {
       expect(
-        getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, true),
+        getLegendProps(
+          LegendType.Scroll,
+          LegendOrientation.Top,
+          true,
+          theme,
+          true,
+        ),
       ).toEqual({
         show: true,
         top: 0,
         right: 55,
         orient: 'horizontal',
         type: 'scroll',
+        ...expectedThemeProps,
       });
     });
 
     it('should return the correct props for plain type with left orientation', () => {
       expect(
-        getLegendProps(LegendType.Plain, LegendOrientation.Left, true),
+        getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
       ).toEqual({
         show: true,
         left: 0,
         orient: 'vertical',
         type: 'plain',
+        ...expectedThemeProps,
       });
     });
 
     it('should return the correct props for plain type with right orientation without zoom', () => {
       expect(
-        getLegendProps(LegendType.Plain, LegendOrientation.Right, false, false),
+        getLegendProps(
+          LegendType.Plain,
+          LegendOrientation.Right,
+          false,
+          theme,
+          false,
+        ),
       ).toEqual({
         show: false,
         right: 0,
         top: 0,
         orient: 'vertical',
         type: 'plain',
+        ...expectedThemeProps,
       });
     });
 
     it('should return the correct props for plain type with right orientation with zoom', () => {
       expect(
-        getLegendProps(LegendType.Plain, LegendOrientation.Right, false, true),
+        getLegendProps(
+          LegendType.Plain,
+          LegendOrientation.Right,
+          false,
+          theme,
+          true,
+        ),
       ).toEqual({
         show: false,
         right: 0,
         top: 30,
         orient: 'vertical',
         type: 'plain',
+        ...expectedThemeProps,
       });
     });
 
     it('should return the correct props for plain type with bottom orientation', () => {
       expect(
-        getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false),
+        getLegendProps(
+          LegendType.Plain,
+          LegendOrientation.Bottom,
+          false,
+          theme,
+        ),
       ).toEqual({
         show: false,
         bottom: 0,
         orient: 'horizontal',
         type: 'plain',
+        ...expectedThemeProps,
       });
     });
   });

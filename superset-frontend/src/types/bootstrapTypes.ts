@@ -7,8 +7,8 @@ import {
   SequentialSchemeConfig,
 } from '@superset-ui/core';
 import { isPlainObject } from 'lodash';
+import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
-import { Languages } from '../views/components/LanguagePicker';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

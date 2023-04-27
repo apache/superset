@@ -207,7 +207,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_override_role_permissions",
         "can_sync_druid_source",
         "can_override_role_permissions",
         "can_approve",
@@ -250,6 +249,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_export_csv", "Query"),
         ("can_get_results", "SQLLab"),
         ("can_execute_sql_query", "SQLLab"),
+        ("can_estimate_query_cost", "SQL Lab"),
         ("can_export_csv", "SQLLab"),
         ("can_sql_json", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab_history", "Superset"),
@@ -1787,7 +1787,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments, too-many-locals
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -1823,8 +1823,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
+                default_schema = database.get_default_schema_for_query(query)
                 tables = {
-                    Table(table_.table, table_.schema or query.schema)
+                    Table(table_.table, table_.schema or default_schema)
                     for table_ in sql_parse.ParsedQuery(query.sql).tables
                 }
             elif table:
@@ -2044,7 +2045,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
         def has_rbac_access() -> bool:
-            return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
+            if not is_feature_enabled("DASHBOARD_RBAC") or not dashboard.roles:
+                return True
+
+            return any(
                 dashboard_role.id
                 in [user_role.id for user_role in self.get_user_roles()]
                 for dashboard_role in dashboard.roles
@@ -2071,15 +2075,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
+        dashboard_ids = db.session.query(Dashboard.id)
+        dashboard_ids = DashboardAccessFilter(
+            "id", SQLAInterface(Dashboard, db.session)
+        ).apply(dashboard_ids, None)
+
         datasource_class = type(datasource)
         query = (
-            db.session.query(datasource_class)
+            db.session.query(Dashboard.id)
+            .join(Slice, Dashboard.slices)
             .join(Slice.table)
             .filter(datasource_class.id == datasource.id)
-        )
-
-        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
-            query, None
+            .filter(Dashboard.id.in_(dashboard_ids))
         )
 
         exists = db.session.query(query.exists()).scalar()
@@ -2205,7 +2212,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-
         if self.is_guest_user():
             return g.user
         return None

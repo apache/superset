@@ -25,7 +25,7 @@ import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -35,8 +35,8 @@ import ListView, {
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
-import CssTemplateModal from 'src/views/CRUD/csstemplates/CssTemplateModal';
-import { TemplateObject } from 'src/views/CRUD/csstemplates/types';
+import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
+import { TemplateObject } from 'src/features/cssTemplates/types';
 
 const PAGE_SIZE = 25;
 

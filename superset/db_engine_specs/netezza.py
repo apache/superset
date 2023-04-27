@@ -18,7 +18,6 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 
 class NetezzaEngineSpec(PostgresBaseEngineSpec):
-
     engine = "netezza"
     default_driver = "nzpy"
     engine_name = "IBM Netezza Performance Server"

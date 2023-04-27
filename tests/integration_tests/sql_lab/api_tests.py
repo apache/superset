@@ -42,6 +42,73 @@ QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSqlLabApi(SupersetTestCase):
+    def test_estimate_required_params(self):
+        self.login()
+
+        rv = self.client.post(
+            "/api/v1/sqllab/estimate/",
+            json={},
+        )
+        failed_resp = {
+            "message": {
+                "sql": ["Missing data for required field."],
+                "database_id": ["Missing data for required field."],
+            }
+        }
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"sql": "SELECT 1"}
+        rv = self.client.post(
+            "/api/v1/sqllab/estimate/",
+            json=data,
+        )
+        failed_resp = {"message": {"database_id": ["Missing data for required field."]}}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"database_id": 1}
+        rv = self.client.post(
+            "/api/v1/sqllab/estimate/",
+            json=data,
+        )
+        failed_resp = {"message": {"sql": ["Missing data for required field."]}}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+    def test_estimate_valid_request(self):
+        self.login()
+
+        formatter_response = [
+            {
+                "value": 100,
+            }
+        ]
+
+        db_mock = mock.Mock()
+        db_mock.db_engine_spec = mock.Mock()
+        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
+        db_mock.db_engine_spec.query_cost_formatter = mock.Mock(
+            return_value=formatter_response
+        )
+
+        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+            mock_superset_db.session.query().get.return_value = db_mock
+
+            data = {"database_id": 1, "sql": "SELECT 1"}
+            rv = self.client.post(
+                "/api/v1/sqllab/estimate/",
+                json=data,
+            )
+
+        success_resp = {"result": formatter_response}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, success_resp)
+        self.assertEqual(rv.status_code, 200)
+
     @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()

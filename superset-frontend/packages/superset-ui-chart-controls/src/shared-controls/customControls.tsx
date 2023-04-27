@@ -34,6 +34,10 @@ import {
   isDataset,
 } from '../types';
 import { isTemporalColumn } from '../utils';
+import {
+  DEFAULT_XAXIS_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
+} from '../constants';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -50,14 +54,29 @@ export const contributionModeControl = {
   },
 };
 
+function isTemporal(controls: ControlStateMapping): boolean {
+  return !(
+    isDefined(controls?.x_axis?.value) &&
+    !isTemporalColumn(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+    )
+  );
+}
+
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  isDefined(controls?.x_axis?.value) &&
-  !isTemporalColumn(
-    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-    controls?.datasource?.datasource,
-  ) &&
-  Array.isArray(controls?.groupby?.value) &&
-  controls.groupby.value.length === 0;
+  !isTemporal(controls) &&
+  ensureIsArray(controls?.groupby?.value).length === 0 &&
+  ensureIsArray(controls?.metrics?.value).length === 1;
+
+const xAxisMultiSortVisibility = ({
+  controls,
+}: {
+  controls: ControlStateMapping;
+}) =>
+  !isTemporal(controls) &&
+  (!!ensureIsArray(controls?.groupby?.value).length ||
+    ensureIsArray(controls?.metrics?.value).length > 1);
 
 export const xAxisSortControl = {
   name: 'x_axis_sort',
@@ -79,6 +98,7 @@ export const xAxisSortControl = {
         ...ensureIsArray(controls?.metrics?.value as QueryFormMetric),
         controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
+      const metricLabels = [...new Set(metrics.map(getMetricLabel))];
       const options = [
         ...columns.map(column => {
           const value = getColumnLabel(column);
@@ -87,13 +107,10 @@ export const xAxisSortControl = {
             label: dataset?.verbose_map?.[value] || value,
           };
         }),
-        ...metrics.map(metric => {
-          const value = getMetricLabel(metric);
-          return {
-            value,
-            label: dataset?.verbose_map?.[value] || value,
-          };
-        }),
+        ...metricLabels.map(value => ({
+          value,
+          label: dataset?.verbose_map?.[value] || value,
+        })),
       ];
 
       const shouldReset = !(
@@ -125,5 +142,37 @@ export const xAxisSortAscControl = {
     default: true,
     description: t('Whether to sort ascending or descending on the base Axis.'),
     visibility: xAxisSortVisibility,
+  },
+};
+
+export const xAxisSortSeriesControl = {
+  name: 'x_axis_sort_series',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort By')
+        : t('X-Axis Sort By'),
+    choices: SORT_SERIES_CHOICES,
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_type,
+    renderTrigger: true,
+    description: t('Decides which measure to sort the base axis by.'),
+    visibility: xAxisMultiSortVisibility,
+  },
+};
+
+export const xAxisSortSeriesAscendingControl = {
+  name: 'x_axis_sort_series_ascending',
+  config: {
+    type: 'CheckboxControl',
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort Ascending')
+        : t('X-Axis Sort Ascending'),
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
+    description: t('Whether to sort ascending or descending on the base Axis.'),
+    renderTrigger: true,
+    visibility: xAxisMultiSortVisibility,
   },
 };

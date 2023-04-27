@@ -165,6 +165,8 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    supports_dynamic_schema = True
+
     column_type_mappings = (
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
@@ -299,19 +301,44 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
         database = uri.database
-        if selected_schema and database:
-            selected_schema = parse.quote(selected_schema, safe="")
+        if schema and database:
+            schema = parse.quote(schema, safe="")
             if "/" in database:
-                database = database.split("/")[0] + "/" + selected_schema
+                database = database.split("/")[0] + "/" + schema
             else:
-                database += "/" + selected_schema
+                database += "/" + schema
             uri = uri.set(database=database)
 
-        return uri
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        For Presto the SQLAlchemy URI looks like this:
+
+            presto://localhost:8080/hive[/default]
+
+        """
+        database = sqlalchemy_uri.database.strip("/")
+
+        if "/" not in database:
+            return None
+
+        return parse.unquote(database.split("/")[1])
 
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
@@ -396,24 +423,30 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
+    def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         cls,
         table_name: str,
+        schema: Optional[str],
+        indexes: List[Dict[str, Any]],
         database: Database,
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
     ) -> str:
-        """Returns a partition query
+        """
+        Return a partition query.
+
+        Note the unused arguments are exposed for sub-classing purposes where custom
+        integrations may require the schema, indexes, etc. to build the partition query.
 
         :param table_name: the name of the table to get partitions from
-        :type table_name: str
+        :param schema: the schema name
+        :param indexes: the indexes associated with the table
+        :param database: the database the query will be run against
         :param limit: the number of partitions to be returned
-        :type limit: int
         :param order_by: a list of tuples of field name and a boolean
             that determines if that field should be sorted in descending
             order
-        :type order_by: list of (str, bool) tuples
         :param filters: dict of field name and filter value combinations
         """
         limit_clause = "LIMIT {}".format(limit) if limit else ""
@@ -534,10 +567,20 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             )
 
         column_names = indexes[0]["column_names"]
-        part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, database, 1, part_fields)
-        df = database.get_df(sql, schema)
-        return column_names, cls._latest_partition_from_df(df)
+
+        return column_names, cls._latest_partition_from_df(
+            df=database.get_df(
+                sql=cls._partition_query(
+                    table_name,
+                    schema,
+                    indexes,
+                    database,
+                    limit=1,
+                    order_by=[(column_name, True) for column_name in column_names],
+                ),
+                schema=schema,
+            )
+        )
 
     @classmethod
     def latest_sub_partition(
@@ -585,7 +628,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 field_to_return = field
 
         sql = cls._partition_query(
-            table_name, database, 1, [(field_to_return, True)], kwargs
+            table_name,
+            schema,
+            indexes,
+            database,
+            limit=1,
+            order_by=[(field_to_return, True)],
+            filters=kwargs,
         )
         df = database.get_df(sql, schema)
         if df.empty:
@@ -757,6 +806,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor.execute(sql, params)
             results = cursor.fetchall()
             return {row[0] for row in results}
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> List[str]:
+        """
+        Get all catalogs.
+        """
+        return [catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")]
 
     @classmethod
     def _create_column_info(
@@ -1168,6 +1228,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         if schema_name and "." not in table_name
                         else table_name
                     ),
+                    schema=schema_name,
+                    indexes=indexes,
                     database=database,
                 ),
             }
@@ -1267,10 +1329,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     def _extract_error_message(cls, ex: Exception) -> str:
         if (
             hasattr(ex, "orig")
-            and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
-            and isinstance(ex.orig[0], dict)  # type: ignore
+            and type(ex.orig).__name__ == "DatabaseError"
+            and isinstance(ex.orig[0], dict)
         ):
-            error_dict = ex.orig[0]  # type: ignore
+            error_dict = ex.orig[0]
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),

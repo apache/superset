@@ -75,10 +75,8 @@ from tests.integration_tests.fixtures.importexport import (
 
 
 class TestCreateDatabaseCommand(SupersetTestCase):
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_create_duplicate_error(self, mock_g, mock_logger):
         example_db = get_example_database()
         mock_g.user = security_manager.find_user("admin")
@@ -96,10 +94,8 @@ class TestCreateDatabaseCommand(SupersetTestCase):
             "DatabaseRequiredFieldValidationError"
         )
 
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_multiple_error_logging(self, mock_g, mock_logger):
         mock_g.user = security_manager.find_user("admin")
         command = CreateDatabaseCommand({})
@@ -401,8 +397,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
 
 class TestImportDatabasesCommand(SupersetTestCase):
-    def test_import_v1_database(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_database(self, mock_g):
         """Test that a database can be imported"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -427,7 +426,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_database_broken_csv_fields(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_database_broken_csv_fields(self, mock_g):
         """
         Test that a database can be imported with broken schema.
 
@@ -435,6 +435,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         the V1 schema. This test ensures that we can import databases that were
         exported with the broken schema.
         """
+        mock_g.user = security_manager.find_user("admin")
+
         broken_config = database_config.copy()
         broken_config["allow_file_upload"] = broken_config.pop("allow_csv_upload")
         broken_config["extra"] = {"schemas_allowed_for_file_upload": ["upload"]}
@@ -463,8 +465,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_database_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_database_multiple(self, mock_g):
         """Test that a database can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         num_databases = db.session.query(Database).count()
 
         contents = {
@@ -504,8 +509,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_database_with_dataset(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_database_with_dataset(self, mock_g):
         """Test that a database can be imported with datasets"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
@@ -524,8 +532,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_database_with_dataset_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_database_with_dataset_multiple(self, mock_g):
         """Test that a database can be imported multiple times w/o changing datasets"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
@@ -629,7 +640,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
     def test_import_v1_database_masked_ssh_tunnel_password(
         self, mock_schema_is_feature_enabled
     ):
@@ -650,7 +661,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
     def test_import_v1_database_masked_ssh_tunnel_private_key_and_password(
         self, mock_schema_is_feature_enabled
     ):
@@ -674,11 +685,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.security.manager.g")
     def test_import_v1_database_with_ssh_tunnel_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_g,
+        mock_schema_is_feature_enabled,
     ):
         """Test that a database with ssh_tunnel password can be imported"""
+        mock_g.user = security_manager.find_user("admin")
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
         masked_database_config["ssh_tunnel"]["password"] = "TEST"
@@ -713,11 +728,16 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.security.manager.g")
     def test_import_v1_database_with_ssh_tunnel_private_key_and_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_g,
+        mock_schema_is_feature_enabled,
     ):
         """Test that a database with ssh_tunnel private_key and private_key_password can be imported"""
+        mock_g.user = security_manager.find_user("admin")
+
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
         masked_database_config["ssh_tunnel"]["private_key"] = "TestPrivateKey"
@@ -754,7 +774,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
     def test_import_v1_database_masked_ssh_tunnel_no_credentials(
         self, mock_schema_is_feature_enabled
     ):
@@ -770,7 +790,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             command.run()
         assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
     def test_import_v1_database_masked_ssh_tunnel_multiple_credentials(
         self, mock_schema_is_feature_enabled
     ):
@@ -788,7 +808,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             str(excinfo.value) == "Cannot have multiple credentials for the SSH Tunnel"
         )
 
-    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.databases.schemas.is_feature_enabled")
     def test_import_v1_database_masked_ssh_tunnel_only_priv_key_psswd(
         self, mock_schema_is_feature_enabled
     ):
@@ -839,11 +859,9 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_connection_db_exception(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
@@ -862,11 +880,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
@@ -887,11 +903,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
 
-    @mock.patch("superset.databases.commands.test_connection.func_timeout")
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.commands.test_connection.func_timeout")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_connection_do_ping_timeout(
         self, mock_g, mock_event_logger, mock_func_timeout
     ):
@@ -911,11 +925,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
@@ -936,11 +948,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
-    @mock.patch(
-        "superset.databases.commands.test_connection.event_logger.log_with_context"
-    )
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.Database._get_sqla_engine")
+    @patch("superset.databases.commands.test_connection.event_logger.log_with_context")
+    @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
         self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
@@ -963,9 +973,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
 
-@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
-@mock.patch("superset.db_engine_specs.base.is_port_open")
-@mock.patch("superset.databases.commands.validate.DatabaseDAO")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_port_open")
+@patch("superset.databases.commands.validate.DatabaseDAO")
 def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation.
@@ -988,8 +998,8 @@ def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
     command.run()
 
 
-@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
-@mock.patch("superset.db_engine_specs.base.is_port_open")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_port_open")
 def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
@@ -1029,7 +1039,7 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     ]
 
 
-@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
@@ -1083,7 +1093,7 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
 
 
 class TestTablesDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
     def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
         mock_find_by_id.return_value = None
         command = TablesDatabaseCommand(1, "test", False)
@@ -1092,9 +1102,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
             assert str(excinfo.value) == ("Database not found.")
 
-    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
-    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
     def test_database_tables_superset_exception(
         self, mock_g, mock_can_access_database, mock_find_by_id
     ):
@@ -1111,9 +1121,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
             assert str(excinfo.value) == "Test Error"
 
-    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
-    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
     def test_database_tables_exception(
         self, mock_g, mock_can_access_database, mock_find_by_id
     ):
@@ -1130,9 +1140,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 == "Unexpected error occurred, please check your logs for details"
             )
 
-    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
-    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.utils.core.g")
+    @patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
     def test_database_tables_list_tables(
         self, mock_g, mock_can_access_database, mock_find_by_id
     ):

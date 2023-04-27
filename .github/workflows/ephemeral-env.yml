@@ -5,10 +5,27 @@ on:
     types: [created]
 
 jobs:
-  ephemeral_env_comment:
+  config:
+    runs-on: "ubuntu-latest"
     if: github.event.issue.pull_request
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  ephemeral_env_comment:
+    needs: config
+    if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     outputs:
       slash-command: ${{ steps.eval-body.outputs.result }}
       feature-flags: ${{ steps.eval-feature-flags.outputs.result }}
@@ -51,7 +68,7 @@ jobs:
         github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
           github.issues.createComment({
@@ -67,9 +84,12 @@ jobs:
     if: needs.ephemeral_env_comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         persist-credentials: false
 
@@ -97,7 +117,7 @@ jobs:
       if: steps.check-image.outcome == 'failure'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
           github.issues.createComment({
@@ -171,7 +191,7 @@ jobs:
       if: ${{ success() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
@@ -184,7 +204,7 @@ jobs:
       if: ${{ failure() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},

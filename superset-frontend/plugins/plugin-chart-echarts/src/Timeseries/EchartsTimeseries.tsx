@@ -21,6 +21,9 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  getTimeFormatter,
+  getColumnLabel,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
@@ -28,7 +31,7 @@ import ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
-import { currentSeries } from '../utils/series';
+import { currentSeries, formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -50,6 +53,7 @@ export default function EchartsTimeseries({
   xAxis,
   refs,
   emitCrossFilters,
+  coltypeMapping,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -196,45 +200,59 @@ export default function EchartsTimeseries({
         handleDoubleClickChange();
       }
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName } = eventParams;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...labelMap[eventParams.seriesName],
+          ...(labelMap[seriesName] ?? []),
         ];
-        if (data) {
-          if (xAxis.type === AxisType.time) {
-            drillToDetailFilters.push({
-              col:
-                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-                xAxis.label === DTTM_ALIAS
-                  ? formData.granularitySqla
-                  : xAxis.label,
-              grain: formData.timeGrainSqla,
-              op: '==',
-              val: data[0],
-              formattedVal: xValueFormatter(data[0]),
-            });
-          }
-          [
-            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
-            ...formData.groupby,
-          ].forEach((dimension, i) =>
-            drillToDetailFilters.push({
-              col: dimension,
-              op: '==',
-              val: values[i],
-              formattedVal: String(values[i]),
-            }),
-          );
+        if (data && xAxis.type === AxisType.time) {
+          drillToDetailFilters.push({
+            col:
+              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+              xAxis.label === DTTM_ALIAS
+                ? formData.granularitySqla
+                : xAxis.label,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
         }
+        [
+          ...(xAxis.type === AxisType.category && data ? [xAxis.label] : []),
+          ...formData.groupby,
+        ].forEach((dimension, i) =>
+          drillToDetailFilters.push({
+            col: dimension,
+            op: '==',
+            val: values[i],
+            formattedVal: String(values[i]),
+          }),
+        );
+        formData.groupby.forEach((dimension, i) => {
+          const val = labelMap[seriesName][i];
+          drillByFilters.push({
+            col: dimension,
+            op: '==',
+            val,
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
+          });
+        });
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(seriesName),
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
         });
       }
     },

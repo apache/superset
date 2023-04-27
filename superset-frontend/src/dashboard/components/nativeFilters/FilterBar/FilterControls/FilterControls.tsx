@@ -62,6 +62,7 @@ import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
+import { useChartsVerboseMaps } from '../utils';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -93,6 +94,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
+  const verboseMaps = useChartsVerboseMaps();
+
   const isCrossFiltersEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
@@ -103,6 +106,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             dataMask,
             chartConfiguration,
             dashboardLayout,
+            verboseMaps,
           })
         : [],
     [chartConfiguration, dashboardLayout, dataMask, isCrossFiltersEnabled],
@@ -226,13 +230,11 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const renderHorizontalContent = () => (
     <div
-      css={(theme: SupersetTheme) =>
-        css`
-          padding: 0 ${theme.gridUnit * 4}px;
-          min-width: 0;
-          flex: 1;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        padding: 0 ${theme.gridUnit * 4}px;
+        min-width: 0;
+        flex: 1;
+      `}
     >
       <DropdownContainer
         items={items}

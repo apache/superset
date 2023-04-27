@@ -25,9 +25,9 @@ import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/pages/DatabaseList';
-import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
+import DatabaseModal from 'src/features/databases/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/views/components/SubMenu';
+import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

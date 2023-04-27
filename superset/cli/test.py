@@ -45,7 +45,6 @@ def load_test_users_run() -> None:
     Syncs permissions for those users/roles
     """
     if app.config["TESTING"]:
-
         sm = security_manager
 
         examples_db = database_utils.get_example_database()

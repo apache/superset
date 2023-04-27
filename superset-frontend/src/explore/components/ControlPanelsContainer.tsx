@@ -39,6 +39,7 @@ import {
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
+  usePrevious,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -59,7 +60,6 @@ import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import Modal from 'src/components/Modal';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
@@ -495,7 +495,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ) => {
         const isTemporalRange = (filter: Record<string, any>) =>
           filter.operator === Operators.TEMPORAL_RANGE;
-        if (isTemporalRange(valueToBeDeleted)) {
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
             return t(

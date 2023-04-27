@@ -22,21 +22,9 @@ import React from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
+import { FILTER_SUPPORTED_TYPES } from './constants';
 
 const FILTERS_FIELD_NAME = 'filters';
-
-export const FILTER_SUPPORTED_TYPES = {
-  filter_time: [GenericDataType.TEMPORAL],
-  filter_timegrain: [GenericDataType.TEMPORAL],
-  filter_timecolumn: [GenericDataType.TEMPORAL],
-  filter_select: [
-    GenericDataType.BOOLEAN,
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
-  ],
-  filter_range: [GenericDataType.NUMERIC],
-};
 
 export const useForceUpdate = (isActive = true) => {
   const [, updateState] = React.useState({});

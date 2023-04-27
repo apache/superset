@@ -332,11 +332,12 @@ def test_is_readonly():
 
 def test_time_grain_denylist():
     config = app.config.copy()
-    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
+    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M", "SQLITE_NONEXISTENT_GRAIN"]
 
     with app.app_context():
         time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
         assert not "PT1M" in time_grain_functions
+        assert not "SQLITE_NONEXISTENT_GRAIN" in time_grain_functions
 
     app.config = config
 
@@ -520,3 +521,26 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
             },
         )
     ]
+
+
+def test_get_indexes():
+    indexes = [
+        {
+            "name": "partition",
+            "column_names": ["a", "b"],
+            "unique": False,
+        },
+    ]
+
+    inspector = mock.Mock()
+    inspector.get_indexes = mock.Mock(return_value=indexes)
+
+    assert (
+        BaseEngineSpec.get_indexes(
+            database=mock.Mock(),
+            inspector=inspector,
+            table_name="bar",
+            schema="foo",
+        )
+        == indexes
+    )

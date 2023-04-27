@@ -80,6 +80,8 @@ interface PivotTableCustomizeProps {
     filters?: ContextMenuFilters,
   ) => void;
   timeGrainSqla?: TimeGranularity;
+  time_grain_sqla?: TimeGranularity;
+  granularity_sqla?: string;
 }
 
 export type PivotTableQueryFormData = QueryFormData &

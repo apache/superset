@@ -542,11 +542,6 @@ export function useImportResource(
   return { state, importResource };
 }
 
-enum FavStarClassName {
-  CHART = 'slice',
-  DASHBOARD = 'Dashboard',
-}
-
 type FavoriteStatusResponse = {
   result: Array<{
     id: string;
@@ -599,15 +594,17 @@ export function useFavoriteStatus(
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
-      const urlSuffix = isStarred ? 'unselect' : 'select';
-      SupersetClient.get({
-        endpoint: `/superset/favstar/${
-          type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
-        }/${id}/${urlSuffix}/`,
-      }).then(
-        ({ json }) => {
+      const endpoint = `/api/v1/${type}/${id}/favorites/`;
+      const apiCall = isStarred
+        ? SupersetClient.delete({
+            endpoint,
+          })
+        : SupersetClient.post({ endpoint });
+
+      apiCall.then(
+        () => {
           updateFavoriteStatus({
-            [id]: (json as { count: number })?.count > 0,
+            [id]: !isStarred,
           });
         },
         createErrorHandler(errMsg =>
@@ -870,5 +867,5 @@ export const reportSelector = (
   if (resourceId) {
     return state.reports[resourceType]?.[resourceId];
   }
-  return {};
+  return null;
 };

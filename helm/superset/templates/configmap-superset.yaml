@@ -19,15 +19,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ template "superset.fullname" . }}-extra-config
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "superset.name" . }}
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-  namespace: {{ .Release.Namespace }}
 data:
-{{- range $path, $config := .Values.extraConfigs }}
+  {{- range $path, $config := .Values.extraConfigs }}
   {{ $path }}: |
-{{- tpl $config $ | nindent 4 -}}
-{{- end -}}
+    {{- tpl $config $ | nindent 4 -}}
+  {{- end -}}
 {{- end -}}

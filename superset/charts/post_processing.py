@@ -27,7 +27,7 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import pandas as pd
 from flask_babel import gettext as __
@@ -42,6 +42,7 @@ from superset.utils.core import (
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
+    from superset.models.sql_lab import Query
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -223,7 +224,7 @@ pivot_v2_aggfunc_map = {
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
@@ -249,7 +250,7 @@ def pivot_table_v2(
 def pivot_table(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
     Pivot table (v1).
@@ -285,7 +286,9 @@ def pivot_table(
 def table(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,  # pylint: disable=unused-argument
+    datasource: Optional[  # pylint: disable=unused-argument
+        Union["BaseDatasource", "Query"]
+    ] = None,
 ) -> pd.DataFrame:
     """
     Table.
@@ -314,7 +317,7 @@ post_processors = {
 def apply_post_process(
     result: Dict[Any, Any],
     form_data: Optional[Dict[str, Any]] = None,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
@@ -328,14 +331,19 @@ def apply_post_process(
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
             raise Exception(f"Result format {query['result_format']} not supported")
 
-        if not query["data"]:
+        data = query["data"]
+
+        if isinstance(data, str):
+            data = data.strip()
+
+        if not data:
             # do not try to process empty data
             continue
 
         if query["result_format"] == ChartDataResultFormat.JSON:
-            df = pd.DataFrame.from_dict(query["data"])
+            df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(query["data"]))
+            df = pd.read_csv(StringIO(data))
 
         # convert all columns to verbose (label) name
         if datasource:

@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
+    allows_alias_to_source_column = False
 
     @classmethod
     def extra_table_metadata(
@@ -83,6 +84,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         if schema_name and "." not in table_name
                         else table_name
                     ),
+                    schema=schema_name,
+                    indexes=indexes,
                     database=database,
                 ),
             }

@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
-import { AreaChartExtraControlsValue } from './constants';
+import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
@@ -131,6 +131,7 @@ export interface BaseTransformedProps<F> {
   refs: Refs;
   width: number;
   emitCrossFilters?: boolean;
+  coltypeMapping?: Record<string, number>;
 }
 
 export type CrossFilterTransformedProps = {
@@ -159,7 +160,7 @@ export interface TitleFormData {
   yAxisTitlePosition: string;
 }
 
-export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
+export type StackType = boolean | null | Partial<StackControlsValue>;
 
 export interface TreePathInfo {
   name: string;

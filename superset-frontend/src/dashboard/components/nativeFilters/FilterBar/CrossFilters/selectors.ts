@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { DataMaskStateWithId, isDefined, JsonObject } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  getColumnLabel,
+  isDefined,
+  JsonObject,
+} from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CrossFilterIndicator, getCrossFilterIndicator } from '../../selectors';
 
@@ -25,8 +30,9 @@ export const crossFiltersSelector = (props: {
   dataMask: DataMaskStateWithId;
   chartConfiguration: JsonObject;
   dashboardLayout: DashboardLayout;
+  verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
-  const { dataMask, chartConfiguration, dashboardLayout } = props;
+  const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
   const chartsIds = Object.keys(chartConfiguration);
 
   return chartsIds
@@ -41,7 +47,10 @@ export const crossFiltersSelector = (props: {
         isDefined(filterIndicator.column) &&
         isDefined(filterIndicator.value)
       ) {
-        return { ...filterIndicator, emitterId: id };
+        const verboseColName =
+          verboseMaps[id]?.[getColumnLabel(filterIndicator.column)] ||
+          filterIndicator.column;
+        return { ...filterIndicator, column: verboseColName, emitterId: id };
       }
       return null;
     })

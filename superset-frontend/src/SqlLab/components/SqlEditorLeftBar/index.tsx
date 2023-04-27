@@ -35,8 +35,6 @@ import {
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
-  queryEditorSetSchemaOptions,
   setDatabases,
   addDangerToast,
   resetState,
@@ -219,24 +217,6 @@ const SqlEditorLeftBar = ({
     [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetTableOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleSchemasLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetSchemaOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
       dispatch(setDatabases(result));
@@ -265,9 +245,7 @@ const SqlEditorLeftBar = ({
         handleError={handleError}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode

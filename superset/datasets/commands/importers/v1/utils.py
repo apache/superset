@@ -28,6 +28,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
+from superset import security_manager
+from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetForbiddenDataURI
 from superset.models.core import Database
@@ -103,12 +105,21 @@ def import_dataset(
     config: Dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
+    ignore_permissions: bool = False,
 ) -> SqlaTable:
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write",
+        "Dataset",
+    )
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if not overwrite:
+        if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+    elif not can_write:
+        raise ImportFailedError(
+            "Dataset doesn't exist and user doesn't have permission to create datasets"
+        )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

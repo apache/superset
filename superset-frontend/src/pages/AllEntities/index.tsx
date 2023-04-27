@@ -24,7 +24,7 @@ import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { SelectValue } from 'antd/lib/select';
 import { loadTags } from 'src/components/Tags/utils';
 import { getValue } from 'src/components/Select/utils';
-import AllEntitiesTable from 'src/views/CRUD/allentities/AllEntitiesTable';
+import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `

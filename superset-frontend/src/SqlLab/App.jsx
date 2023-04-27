@@ -17,24 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { createStore, compose, applyMiddleware } from 'redux';
+import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
-import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from '@superset-ui/core';
+import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
 import QueryProvider from 'src/views/QueryProvider';
-import {
-  initFeatureFlags,
-  isFeatureEnabled,
-  FeatureFlag,
-} from 'src/featureFlags';
+import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
+import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import logger from 'src/middleware/loggerMiddleware';
 import getInitialState from './reducers/getInitialState';
-import rootReducer from './reducers/index';
-import { initEnhancer } from '../reduxUtils';
+import { reducers } from './reducers/index';
 import App from './components/App';
 import {
   emptyQueryResults,
@@ -113,17 +107,18 @@ const sqlLabPersistStateConfig = {
   },
 };
 
-const store = createStore(
-  rootReducer,
+export const store = setupStore({
   initialState,
-  compose(
-    applyMiddleware(thunkMiddleware, logger),
-    initEnhancer(
-      !isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE),
-      sqlLabPersistStateConfig,
-    ),
-  ),
-);
+  rootReducers: reducers,
+  ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
+    enhancers: [
+      persistState(
+        sqlLabPersistStateConfig.paths,
+        sqlLabPersistStateConfig.config,
+      ),
+    ],
+  }),
+});
 
 // Highlight the navbar menu
 const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');

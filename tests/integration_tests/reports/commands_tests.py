@@ -466,7 +466,6 @@ def create_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -549,7 +548,6 @@ def create_no_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -584,7 +582,6 @@ def create_mul_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -619,7 +616,6 @@ def create_invalid_sql_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -1072,7 +1068,6 @@ def test_email_dashboard_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
             ).run()
@@ -1143,7 +1138,6 @@ def test_slack_chart_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1192,7 +1186,6 @@ def test_slack_chart_report_schedule_with_errors(
         web_client_mock.side_effect = er
 
         with pytest.raises(ReportScheduleClientErrorsException):
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1349,7 +1342,6 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart_working.id, datetime.utcnow()
@@ -2020,7 +2012,6 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
 @patch("superset.reports.commands.execute.logger")
 @patch("superset.reports.commands.execute.create_notification")
 def test__send_with_server_errors(notification_mock, logger_mock):
-
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
     notification_mock.return_value.send.side_effect = NotificationError()

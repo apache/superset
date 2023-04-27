@@ -50,8 +50,9 @@ import pandas as pd
 import polyline
 import simplejson as json
 from dateutil import relativedelta as rdelta
+from deprecation import deprecated
 from flask import request
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
@@ -526,7 +527,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         is_loaded = False
         stacktrace = None
         df = None
-        if cache_key and cache_manager.data_cache and not self.force:
+        cache_timeout = self.cache_timeout
+        force = self.force or cache_timeout == -1
+        if cache_key and cache_manager.data_cache and not force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
@@ -609,16 +612,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_manager.data_cache,
-                    cache_key,
-                    {"df": df, "query": self.query},
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache_instance=cache_manager.data_cache,
+                    cache_key=cache_key,
+                    cache_value={"df": df, "query": self.query},
+                    cache_timeout=cache_timeout,
+                    datasource_uid=self.datasource.uid,
                 )
         return {
             "cache_key": cache_key,
             "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
-            "cache_timeout": self.cache_timeout,
+            "cache_timeout": cache_timeout,
             "df": df,
             "errors": self.errors,
             "form_data": self.form_data,
@@ -1005,6 +1008,7 @@ class PivotTableViz(BaseViz):
             values=metrics,
             aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
+            margins_name=__("Total"),
         )
 
         # Re-order the columns adhering to the metric ordering.
@@ -2131,6 +2135,7 @@ class WorldMapViz(BaseViz):
         return data
 
 
+@deprecated(deprecated_in="3.0")
 class FilterBoxViz(BaseViz):
 
     """A multi filter, multi-choice filter box to make dashboards interactive"""
@@ -3030,7 +3035,6 @@ class PairedTTestViz(BaseViz):
 
 
 class RoseViz(NVD3TimeSeriesViz):
-
     viz_type = "rose"
     verbose_name = _("Time Series - Nightingale Rose Chart")
     sort_series = False

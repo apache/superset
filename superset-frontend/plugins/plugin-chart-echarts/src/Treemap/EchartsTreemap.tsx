@@ -19,6 +19,9 @@
 import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
+  getTimeFormatter,
+  getColumnLabel,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
@@ -26,6 +29,7 @@ import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
+import { formatSeriesName } from '../utils/series';
 
 export default function EchartsTreemap({
   echartOptions,
@@ -38,6 +42,8 @@ export default function EchartsTreemap({
   setDataMask,
   selectedValues,
   width,
+  formData,
+  coltypeMapping,
 }: TreemapTransformedProps) {
   const getCrossFilterDataMask = useCallback(
     (data, treePathInfo) => {
@@ -108,7 +114,7 @@ export default function EchartsTreemap({
       const { data, treePathInfo } = props;
       handleChange(data, treePathInfo);
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
@@ -116,17 +122,30 @@ export default function EchartsTreemap({
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-          treePath.forEach((path, i) =>
+          const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+          treePath.forEach((path, i) => {
+            const val = path === 'null' ? NULL_STRING : path;
             drillToDetailFilters.push({
               col: groupby[i],
               op: '==',
-              val: path === 'null' ? NULL_STRING : path,
+              val,
               formattedVal: path,
-            }),
-          );
+            });
+            drillByFilters.push({
+              col: groupby[i],
+              op: '==',
+              val,
+              formattedVal: formatSeriesName(val, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(groupby[i])],
+              }),
+            });
+          });
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
             drillToDetail: drillToDetailFilters,
             crossFilter: getCrossFilterDataMask(data, treePathInfo),
+            drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
           });
         }
       }

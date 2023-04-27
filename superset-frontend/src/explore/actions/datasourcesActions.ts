@@ -35,6 +35,16 @@ export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
 
+export function changeDatasource(newDatasource: Dataset) {
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
+    dispatch(setDatasource(newDatasource));
+    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+  };
+}
+
 export function saveDataset({
   schema,
   sql,
@@ -49,18 +59,16 @@ export function saveDataset({
       const {
         json: { data },
       } = await SupersetClient.post({
-        endpoint: '/superset/sqllab_viz/',
-        postPayload: {
-          data: {
-            schema,
-            sql,
-            dbId: database?.id,
-            templateParams,
-            datasourceName,
-            metrics: [],
-            columns,
-          },
-        },
+        endpoint: '/api/v1/dataset/',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          database: database?.id,
+          table_name: datasourceName,
+          schema,
+          sql,
+          template_params: templateParams,
+          columns,
+        }),
       });
       // Update form_data to point to new dataset
       dispatch(changeDatasource(data));
@@ -71,16 +79,6 @@ export function saveDataset({
       });
       throw error;
     }
-  };
-}
-
-export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
-    const {
-      explore: { datasource: prevDatasource },
-    } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
   };
 }
 

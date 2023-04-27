@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -30,7 +30,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
+import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { DatasourceModal } from 'src/components/Datasource';
@@ -42,10 +42,7 @@ import ListView, {
   FilterOperator,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
-import SubMenu, {
-  SubMenuProps,
-  ButtonProps,
-} from 'src/views/components/SubMenu';
+import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
@@ -54,7 +51,7 @@ import FacePile from 'src/components/FacePile';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
@@ -64,8 +61,8 @@ import {
   SORT_BY,
   PASSWORDS_NEEDED_MESSAGE,
   CONFIRM_OVERWRITE_MESSAGE,
-} from 'src/views/CRUD/data/dataset/constants';
-import DuplicateDatasetModal from 'src/views/CRUD/data/dataset/DuplicateDatasetModal';
+} from 'src/features/datasets/constants';
+import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;

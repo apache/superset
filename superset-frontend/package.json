@@ -20,7 +20,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend"
   },
   "license": "Apache-2.0",
   "author": {
@@ -84,6 +85,7 @@
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
+    "@reduxjs/toolkit": "^1.9.3",
     "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
     "@superset-ui/core": "file:./packages/superset-ui-core",
     "@superset-ui/legacy-plugin-chart-calendar": "file:./plugins/legacy-plugin-chart-calendar",
@@ -197,7 +199,7 @@
     "react-virtualized": "9.19.1",
     "react-virtualized-auto-sizer": "^1.0.7",
     "react-window": "^1.8.8",
-    "redux": "^4.0.5",
+    "redux": "^4.2.1",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
@@ -339,7 +341,7 @@
     "ts-loader": "^9.2.5",
     "typescript": "^4.5.4",
     "vm-browserify": "^1.1.2",
-    "webpack": "^5.52.1",
+    "webpack": "^5.76.0",
     "webpack-bundle-analyzer": "^4.4.2",
     "webpack-cli": "^4.8.0",
     "webpack-dev-server": "^4.10.1",

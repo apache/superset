@@ -67,7 +67,7 @@ export interface Dataset {
   type: DatasourceType;
   columns: ColumnMeta[];
   metrics: Metric[];
-  column_format: Record<string, string>;
+  column_formats: Record<string, string>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
@@ -481,3 +481,16 @@ export function isQueryResponse(
 ): datasource is QueryResponse {
   return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
+
+export enum SortSeriesType {
+  Name = 'name',
+  Max = 'max',
+  Min = 'min',
+  Sum = 'sum',
+  Avg = 'avg',
+}
+
+export type SortSeriesData = {
+  sort_series_type: SortSeriesType;
+  sort_series_ascending: boolean;
+};
