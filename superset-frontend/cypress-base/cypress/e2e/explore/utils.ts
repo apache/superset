@@ -44,7 +44,10 @@ export function interceptExploreJson() {
 }
 
 export function interceptExploreGet() {
-  cy.intercept('GET', `/api/v1/explore/?slice_id=**`).as('getExplore');
+  cy.intercept({
+    method: 'GET',
+    url: /api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
+  }).as('getExplore');
 }
 
 export function setFilter(filter: string, option: string) {
