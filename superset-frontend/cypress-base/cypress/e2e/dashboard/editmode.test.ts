@@ -623,7 +623,7 @@ describe('Dashboard edit', () => {
       waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
       cy.get('[data-test-chart-name="Growth Rate"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(51, 217, 193)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
     it('should apply a valid color scheme for rendered charts in nested tabs', () => {
