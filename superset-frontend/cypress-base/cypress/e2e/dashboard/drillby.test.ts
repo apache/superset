@@ -64,14 +64,13 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     interceptV1ChartData();
   }
 
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
+  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
     .first()
     .find("[role='menu'] [role='menuitem'] [title='Drill by']")
     .trigger('mouseover');
-  cy.getBySel('loading-indicator').should('not.exist').wait(600);
-  cy.get('[data-test="drill-by-submenu"]')
-    .not('.ant-dropdown-menu-hidden [data-test="drill-by-submenu"]')
+  cy.get(
+    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-hidden) [data-test="drill-by-submenu"]',
+  )
     .find('[role="menuitem"]')
     .contains(new RegExp(`^${targetDrillByColumn}$`))
     .first()
