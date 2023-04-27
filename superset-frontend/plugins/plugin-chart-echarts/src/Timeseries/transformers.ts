@@ -33,6 +33,7 @@ import {
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  AxisType,
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
@@ -92,6 +93,7 @@ export function transformSeries(
     sliceId?: number;
     isHorizontal?: boolean;
     lineStyle?: LineStyleOption;
+    queryIndex?: number;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -115,6 +117,7 @@ export function transformSeries(
     seriesKey,
     sliceId,
     isHorizontal = false,
+    queryIndex = 0,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -192,6 +195,7 @@ export function transformSeries(
     : { ...opts.lineStyle, opacity };
   return {
     ...series,
+    queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
@@ -204,6 +208,7 @@ export function transformSeries(
       ? seriesType
       : undefined,
     stack: stackId,
+    stackStrategy: isConfidenceBand ? 'all' : 'samesign',
     lineStyle,
     areaStyle:
       area || forecastSeries.type === ForecastSeriesEnum.ForecastUpper
@@ -253,6 +258,8 @@ export function transformSeries(
 export function transformFormulaAnnotation(
   layer: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
+  xAxisCol: string,
+  xAxisType: AxisType,
   colorScale: CategoricalColorScale,
   sliceId?: number,
 ): SeriesOption {
@@ -270,7 +277,7 @@ export function transformFormulaAnnotation(
     },
     type: 'line',
     smooth: true,
-    data: evalFormula(layer, data),
+    data: evalFormula(layer, data, xAxisCol, xAxisType),
     symbolSize: 0,
   };
 }

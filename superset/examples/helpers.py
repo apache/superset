@@ -17,13 +17,10 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-import zlib
-from io import BytesIO
 from typing import Any, Dict, List, Set
-from urllib import request
 
 from superset import app, db
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
@@ -32,7 +29,7 @@ misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
-    return ConnectorRegistry.sources["table"]
+    return SqlaTable
 
 
 def get_examples_folder() -> str:
@@ -73,14 +70,5 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_data(
-    filepath: str, is_gzip: bool = True, make_bytes: bool = False
-) -> BytesIO:
-    content = request.urlopen(  # pylint: disable=consider-using-with
-        f"{BASE_URL}{filepath}?raw=true"
-    ).read()
-    if is_gzip:
-        content = zlib.decompress(content, zlib.MAX_WBITS | 16)
-    if make_bytes:
-        content = BytesIO(content)
-    return content
+def get_example_url(filepath: str) -> str:
+    return f"{BASE_URL}{filepath}?raw=true"

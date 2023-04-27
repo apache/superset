@@ -16,8 +16,8 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from ...dashboards.filters import DashboardAccessFilter
-from ..base import check_ownership
+from superset import security_manager
+from superset.dashboards.filters import DashboardAccessFilter
 
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods
@@ -66,7 +66,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "roles": _(
             "Roles is a list which defines access to the dashboard. "
             "Granting a role access to a dashboard will bypass dataset level checks."
-            "If no roles defined then the dashboard is available to all roles."
+            "If no roles are defined then the dashboard is available to all roles."
         ),
         "published": _(
             "Determines whether or not this dashboard is "
@@ -90,4 +90,4 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
     }
 
     def pre_delete(self, item: "DashboardMixin") -> None:  # pylint: disable=no-self-use
-        check_ownership(item)
+        security_manager.raise_for_ownership(item)

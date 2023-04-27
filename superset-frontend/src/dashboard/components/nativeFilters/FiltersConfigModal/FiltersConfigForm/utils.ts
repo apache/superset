@@ -44,9 +44,13 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_range: [GenericDataType.NUMERIC],
 };
 
-export const useForceUpdate = () => {
+export const useForceUpdate = (isActive = true) => {
   const [, updateState] = React.useState({});
-  return React.useCallback(() => updateState({}), []);
+  return React.useCallback(() => {
+    if (isActive) {
+      updateState({});
+    }
+  }, [isActive]);
 };
 
 export const setNativeFilterFieldValues = (
@@ -117,7 +121,7 @@ export const mostUsedDataset = (
   let maxCount = 0;
 
   Object.values(charts).forEach(chart => {
-    const { formData } = chart;
+    const { form_data: formData } = chart;
     if (formData) {
       const { datasource } = formData;
       const count = (map.get(datasource) || 0) + 1;

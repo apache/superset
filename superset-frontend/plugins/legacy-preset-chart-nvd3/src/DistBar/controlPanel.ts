@@ -22,6 +22,7 @@ import {
   ControlPanelConfig,
   sections,
   sharedControls,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -133,14 +134,18 @@ const config: ControlPanelConfig = {
       rerender: ['groupby'],
     },
   },
-  denormalizeFormData: formData => {
-    const columns =
-      formData.standardizedFormData.standardizedState.columns.filter(
-        col => !ensureIsArray(formData.groupby).includes(col),
+  formDataOverrides: formData => {
+    const columns = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupby).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !columns.includes(col),
       );
+
     return {
       ...formData,
-      metrics: formData.standardizedFormData.standardizedState.metrics,
+      metrics: getStandardizedControls().popAllMetrics(),
       columns,
     };
   },

@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import React, {
+  FC,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,6 +37,8 @@ import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -54,13 +64,76 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
   width: 22px;
 `;
 
+const ChartHeaderStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.l}px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-bottom: ${theme.gridUnit}px;
+    display: flex;
+    max-width: 100%;
+    align-items: flex-start;
+    min-height: 0;
+
+    & > .header-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+
+      & > span.ant-tooltip-open {
+        display: inline;
+      }
+    }
+
+    & > .header-controls {
+      display: flex;
+
+      & > * {
+        margin-left: ${theme.gridUnit * 2}px;
+      }
+    }
+
+    .dropdown.btn-group {
+      pointer-events: none;
+      vertical-align: top;
+      & > * {
+        pointer-events: auto;
+      }
+    }
+
+    .dropdown-toggle.btn.btn-default {
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .dropdown-menu.dropdown-menu-right {
+      top: ${theme.gridUnit * 5}px;
+    }
+
+    .divider {
+      margin: ${theme.gridUnit}px 0;
+    }
+
+    .refresh-tooltip {
+      display: block;
+      height: ${theme.gridUnit * 4}px;
+      margin: ${theme.gridUnit}px 0;
+      color: ${theme.colors.text.label};
+    }
+  `}
+`;
+
 const SliceHeader: FC<SliceHeaderProps> = ({
   innerRef = null,
   forceRefresh = () => ({}),
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
-  onExploreChart,
+  logEvent,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -89,11 +162,15 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
-  const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
+  const dashboardPageId = useContext(DashboardPageIdContext);
+  const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
+  );
+  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
 
   const indicator = useMemo(
@@ -104,17 +181,12 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
-  const handleClickTitle =
-    !editMode && supersetCanExplore ? onExploreChart : undefined;
+  const canExplore = !editMode && supersetCanExplore;
 
   useEffect(() => {
     const headerElement = headerRef.current;
-    if (handleClickTitle) {
-      setHeaderTooltip(
-        sliceName
-          ? t('Click to edit %s in a new tab', sliceName)
-          : t('Click to edit chart in a new tab'),
-      );
+    if (canExplore) {
+      setHeaderTooltip(getSliceHeaderTooltip(sliceName));
     } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
@@ -124,10 +196,12 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height, handleClickTitle]);
+  }, [sliceName, width, height, canExplore]);
+
+  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
-    <div className="chart-header" data-test="slice-header" ref={innerRef}>
+    <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
         <Tooltip title={headerTooltip}>
           <EditableTitle
@@ -138,10 +212,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 : '')
             }
             canEdit={editMode}
-            emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            onClickTitle={handleClickTitle}
+            url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -159,7 +232,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         )}
         {!!Object.values(annotationError).length && (
           <Tooltip
-            id="annoation-errors-tooltip"
+            id="annotation-errors-tooltip"
             placement="top"
             title={annotationsError}
           >
@@ -202,7 +275,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
-                onExploreChart={onExploreChart}
+                logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
@@ -218,12 +291,14 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
+                exploreUrl={exploreUrl}
+                crossFiltersEnabled={isCrossFiltersEnabled}
               />
             )}
           </>
         )}
       </div>
-    </div>
+    </ChartHeaderStyles>
   );
 };
 

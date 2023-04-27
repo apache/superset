@@ -22,6 +22,7 @@ from numpy.distutils.misc_util import is_sequence
 
 from superset.utils.pandas_postprocessing.utils import (
     _is_multi_index_on_columns,
+    escape_separator,
     FLAT_COLUMN_SEPARATOR,
 )
 
@@ -84,10 +85,10 @@ def flatten(
         _columns = []
         for series in df.columns.to_flat_index():
             _cells = []
-            for cell in series if is_sequence(series) else [series]:
+            for cell in series if is_sequence(series) else [series]:  # type: ignore
                 if pd.notnull(cell):
-                    # every cell should be converted to string
-                    _cells.append(str(cell))
+                    # every cell should be converted to string and escape comma
+                    _cells.append(escape_separator(str(cell)))
             _columns.append(FLAT_COLUMN_SEPARATOR.join(_cells))
 
         df.columns = _columns

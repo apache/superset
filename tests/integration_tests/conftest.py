@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -44,8 +44,75 @@ ADMIN_SCHEMA_NAME = "admin_database"
 
 @pytest.fixture
 def app_context():
-    with app.app_context():
-        yield
+    with app.app_context() as ctx:
+        yield ctx
+
+
+@pytest.fixture
+def test_client(app_context: AppContext):
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def login_as(test_client: "FlaskClient[Any]"):
+    """Fixture with app context and logged in admin user."""
+
+    def _login_as(username: str, password: str = "general"):
+        login(test_client, username=username, password=password)
+
+    yield _login_as
+    # no need to log out as both app_context and test_client are
+    # function level fixtures anyway
+
+
+@pytest.fixture
+def login_as_admin(login_as: Callable[..., None]):
+    yield login_as("admin")
+
+
+@pytest.fixture
+def create_user(app_context: AppContext):
+    def _create_user(username: str, role: str = "Admin", password: str = "general"):
+        security_manager.add_user(
+            username,
+            "firstname",
+            "lastname",
+            "email@exaple.com",
+            security_manager.find_role(role),
+            password,
+        )
+        return security_manager.find_user(username)
+
+    return _create_user
+
+
+@pytest.fixture
+def get_user(app_context: AppContext):
+    def _get_user(username: str) -> ab_models.User:
+        return (
+            db.session.query(security_manager.user_model)
+            .filter_by(username=username)
+            .one_or_none()
+        )
+
+    return _get_user
+
+
+@pytest.fixture
+def get_or_create_user(get_user, create_user) -> ab_models.User:
+    @contextlib.contextmanager
+    def _get_user(username: str) -> ab_models.User:
+        user = get_user(username)
+        if not user:
+            # if user is created by test, remove it after done
+            user = create_user(username)
+            yield user
+            db.session.delete(user)
+        else:
+            yield user
+
+    return _get_user
 
 
 @pytest.fixture
@@ -171,7 +238,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
                 return self._db
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
-            self._db.get_sqla_engine()  # type: ignore
+            self._db._get_sqla_engine()  # type: ignore
             self._db.backend  # type: ignore
 
         def remove(self) -> None:
@@ -188,7 +255,11 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
 
 def setup_presto_if_needed():
-    backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    db_uri = (
+        app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or app.config["SQLALCHEMY_DATABASE_URI"]
+    )
+    backend = db_uri.split("://")[0]
     database = get_example_database()
     extra = database.get_extra()
 
@@ -208,14 +279,14 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        drop_from_schema(engine, CTAS_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
+        with database.get_sqla_engine_with_context() as engine:
+            drop_from_schema(engine, CTAS_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
 
-        drop_from_schema(engine, ADMIN_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+            drop_from_schema(engine, ADMIN_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
 
 
 def with_feature_flags(**mock_feature_flags):
@@ -251,6 +322,83 @@ def with_feature_flags(**mock_feature_flags):
         return functools.update_wrapper(wrapper, test_fn)
 
     return decorate
+
+
+def with_config(override_config: Dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            from flask import current_app
+
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate
+
+
+@pytest.fixture
+def virtual_dataset():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset",
+        sql=(
+            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5 "
+            "UNION ALL "
+            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00' "
+            "UNION ALL "
+            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00' "
+            "UNION ALL "
+            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00' "
+            "UNION ALL "
+            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00' "
+            "UNION ALL "
+            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00' "
+            "UNION ALL "
+            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00' "
+            "UNION ALL "
+            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00' "
+            "UNION ALL "
+            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00' "
+            "UNION ALL "
+            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00' "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="INTEGER", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
 
 
 @pytest.fixture
@@ -323,3 +471,46 @@ def physical_dataset():
     for ds in dataset:
         db.session.delete(ds)
     db.session.commit()
+
+
+@pytest.fixture
+def virtual_dataset_comma_in_column_value():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset",
+        sql=(
+            "SELECT 'col1,row1' as col1, 'col2, row1' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row2' as col1, 'col2, row2' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row3' as col1, 'col2, row3' as col2 "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
+
+
+only_postgresql = pytest.mark.skipif(
+    "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in Postgresql",
+)
+
+only_sqlite = pytest.mark.skipif(
+    "sqlite" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in SQLite",
+)
+
+only_mysql = pytest.mark.skipif(
+    "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in MySQL",
+)

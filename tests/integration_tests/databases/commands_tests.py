@@ -31,18 +31,20 @@ from superset.databases.commands.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
+    DatabaseTablesUnexpectedError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
+from superset.databases.commands.tables import TablesDatabaseCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorsException,
+    SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -70,10 +72,11 @@ class TestCreateDatabaseCommand(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_create_duplicate_error(self, mock_logger):
+    @mock.patch("superset.utils.core.g")
+    def test_create_duplicate_error(self, mock_g, mock_logger):
         example_db = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         command = CreateDatabaseCommand(
-            security_manager.find_user("admin"),
             {"database_name": example_db.database_name},
         )
         with pytest.raises(DatabaseInvalidError) as excinfo:
@@ -90,8 +93,10 @@ class TestCreateDatabaseCommand(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_multiple_error_logging(self, mock_logger):
-        command = CreateDatabaseCommand(security_manager.find_user("admin"), {})
+    @mock.patch("superset.utils.core.g")
+    def test_multiple_error_logging(self, mock_g, mock_logger):
+        mock_g.user = security_manager.find_user("admin")
+        command = CreateDatabaseCommand({})
         with pytest.raises(DatabaseInvalidError) as excinfo:
             command.run()
         assert str(excinfo.value) == ("Database parameters are invalid.")
@@ -157,6 +162,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 "allow_csv_upload": True,
                 "allow_ctas": True,
                 "allow_cvas": True,
+                "allow_dml": True,
                 "allow_run_async": False,
                 "cache_timeout": None,
                 "database_name": "examples",
@@ -360,6 +366,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_run_async",
             "allow_ctas",
             "allow_cvas",
+            "allow_dml",
             "allow_csv_upload",
             "extra",
             "uuid",
@@ -403,6 +410,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
+        assert database.allow_dml
         assert not database.allow_run_async
         assert database.cache_timeout is None
         assert database.database_name == "imported_database"
@@ -438,6 +446,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
+        assert database.allow_dml
         assert not database.allow_run_async
         assert database.cache_timeout is None
         assert database.database_name == "imported_database"
@@ -639,19 +648,21 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_connection_db_exception(self, mock_event_logger, mock_get_sqla_engine):
+    @mock.patch("superset.utils.core.g")
+    def test_connection_db_exception(
+        self, mock_g, mock_event_logger, mock_get_sqla_engine
+    ):
         """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
-        )
+        command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
         with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
             command_without_db_name.run()
@@ -660,25 +671,25 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
+    @mock.patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
-        self, mock_event_logger, mock_get_sqla_engine
+        self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         mock_get_sqla_engine.return_value.dialect.do_ping.side_effect = Exception(
             "An error has occurred!"
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
-        )
+        command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
         assert (
             excinfo.value.errors[0].error_type
@@ -689,15 +700,17 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_connection_do_ping_timeout(self, mock_event_logger, mock_func_timeout):
+    @mock.patch("superset.utils.core.g")
+    def test_connection_do_ping_timeout(
+        self, mock_g, mock_event_logger, mock_func_timeout
+    ):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         mock_func_timeout.side_effect = FunctionTimedOut("Time out")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
-        )
+        command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
         with pytest.raises(SupersetTimeoutException) as excinfo:
             command_without_db_name.run()
@@ -707,24 +720,24 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
+    @mock.patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
-        self, mock_event_logger, mock_get_sqla_engine
+        self, mock_g, mock_event_logger, mock_get_sqla_engine
     ):
         """Test to make sure event_logger is called when security
         connection exc is raised"""
         database = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         mock_get_sqla_engine.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info")
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
-        )
+        command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
         with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:
             command_without_db_name.run()
@@ -732,23 +745,25 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_connection_db_api_exc(self, mock_event_logger, mock_get_sqla_engine):
+    @mock.patch("superset.utils.core.g")
+    def test_connection_db_api_exc(
+        self, mock_g, mock_event_logger, mock_get_sqla_engine
+    ):
         """Test to make sure event_logger is called when DBAPIError is raised"""
         database = get_example_database()
+        mock_g.user = security_manager.find_user("admin")
         mock_get_sqla_engine.side_effect = DBAPIError(
             statement="error", params={}, orig={}
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
-        )
+        command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
             assert str(excinfo.value) == (
                 "Connection failed, please check your connection settings"
@@ -778,7 +793,7 @@ def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
             "query": {},
         },
     }
-    command = ValidateDatabaseParametersCommand(None, payload)
+    command = ValidateDatabaseParametersCommand(payload)
     command.run()
 
 
@@ -802,7 +817,7 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
             "query": {},
         },
     }
-    command = ValidateDatabaseParametersCommand(None, payload)
+    command = ValidateDatabaseParametersCommand(payload)
     with pytest.raises(SupersetErrorsException) as excinfo:
         command.run()
     assert excinfo.value.errors == [
@@ -841,7 +856,7 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
             "query": {},
         },
     }
-    command = ValidateDatabaseParametersCommand(None, payload)
+    command = ValidateDatabaseParametersCommand(payload)
     with pytest.raises(SupersetErrorsException) as excinfo:
         command.run()
     assert excinfo.value.errors == [
@@ -874,3 +889,74 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
             },
         ),
     ]
+
+
+class TestTablesDatabaseCommand(SupersetTestCase):
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
+        mock_find_by_id.return_value = None
+        command = TablesDatabaseCommand(1, "test", False)
+
+        with pytest.raises(DatabaseNotFoundError) as excinfo:
+            command.run()
+            assert str(excinfo.value) == ("Database not found.")
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_superset_exception(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        if database.backend == "mysql":
+            return
+
+        mock_find_by_id.return_value = database
+        mock_can_access_database.side_effect = SupersetException("Test Error")
+        mock_g.user = security_manager.find_user("admin")
+
+        command = TablesDatabaseCommand(database.id, "main", False)
+        with pytest.raises(SupersetException) as excinfo:
+            command.run()
+            assert str(excinfo.value) == "Test Error"
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_exception(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.side_effect = Exception("Test Error")
+        mock_g.user = security_manager.find_user("admin")
+
+        command = TablesDatabaseCommand(database.id, "main", False)
+        with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:
+            command.run()
+            assert (
+                str(excinfo.value)
+                == "Unexpected error occurred, please check your logs for details"
+            )
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.find_by_id")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.utils.core.g")
+    def test_database_tables_list_tables(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        schema_name = self.default_schema_backend_map[database.backend]
+        if database.backend == "postgresql" or database.backend == "mysql":
+            return
+
+        command = TablesDatabaseCommand(database.id, schema_name, False)
+        result = command.run()
+
+        assert result["count"] > 0
+        assert len(result["result"]) > 0
+        assert len(result["result"]) == result["count"]

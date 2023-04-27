@@ -14,13 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Blueprint, g, request, Response
-from flask_appbuilder import AppBuilder, Model, ModelRestApi
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask import request, Response
+from flask_appbuilder import Model, ModelRestApi
+from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -30,15 +32,14 @@ from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
 from superset.exceptions import InvalidPayloadFormatError
-from superset.extensions import db, event_logger, security_manager
+from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
-from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import time_function
+from superset.utils.core import get_user_id, time_function
 from superset.views.base import handle_api_exception
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ get_related_schema = {
 class RelatedResultResponseSchema(Schema):
     value = fields.Integer(description="The related item identifier")
     text = fields.String(description="The related item string representation")
+    extra = fields.Dict(description="The extra metadata for related item")
 
 
 class RelatedResponseSchema(Schema):
@@ -90,7 +92,7 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     Require 'multipart/form-data' as request MIME type
     """
 
-    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
         if not request.mimetype == "multipart/form-data":
             raise InvalidPayloadFormatError(
                 message="Request MIME type is not 'multipart/form-data'"
@@ -105,14 +107,21 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     Handle sending all statsd metrics from the REST API
     """
 
-    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
+        func_name = f.__name__
         try:
             duration, response = time_function(f, self, *args, **kwargs)
         except Exception as ex:
-            self.incr_stats("error", f.__name__)
+            if (
+                hasattr(ex, "status")
+                and ex.status < 500  # type: ignore # pylint: disable=no-member
+            ):
+                self.incr_stats("warning", func_name)
+            else:
+                self.incr_stats("error", func_name)
             raise ex
 
-        self.send_stats_metrics(response, f.__name__, duration)
+        self.send_stats_metrics(response, func_name, duration)
         return response
 
     return functools.update_wrapper(wraps, f)
@@ -145,7 +154,7 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
         users_favorite_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == g.user.get_id(),
+                FavStar.user_id == get_user_id(),
                 FavStar.class_name == self.class_name,
             )
         )
@@ -154,12 +163,71 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query.filter(and_(~self.model.id.in_(users_favorite_query)))
 
 
-class BaseSupersetModelRestApi(ModelRestApi):
+class BaseSupersetApiMixin:
+    csrf_exempt = False
+
+    responses = {
+        "400": {"description": "Bad request", "content": error_payload_content},
+        "401": {"description": "Unauthorized", "content": error_payload_content},
+        "403": {"description": "Forbidden", "content": error_payload_content},
+        "404": {"description": "Not found", "content": error_payload_content},
+        "410": {"description": "Gone", "content": error_payload_content},
+        "422": {
+            "description": "Could not process entity",
+            "content": error_payload_content,
+        },
+        "500": {"description": "Fatal error", "content": error_payload_content},
+    }
+
+    def incr_stats(self, action: str, func_name: str) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        """
+        stats_logger_manager.instance.incr(
+            f"{self.__class__.__name__}.{func_name}.{action}"
+        )
+
+    def timing_stats(self, action: str, func_name: str, value: float) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        :param value: A float with the time it took for the endpoint to execute
+        """
+        stats_logger_manager.instance.timing(
+            f"{self.__class__.__name__}.{func_name}.{action}", value
+        )
+
+    def send_stats_metrics(
+        self, response: Response, key: str, time_delta: Optional[float] = None
+    ) -> None:
+        """
+        Helper function to handle sending statsd metrics
+        :param response: flask response object, will evaluate if it was an error
+        :param key: The function name
+        :param time_delta: Optional time it took for the endpoint to execute
+        """
+        if 200 <= response.status_code < 400:
+            self.incr_stats("success", key)
+        elif 400 <= response.status_code < 500:
+            self.incr_stats("warning", key)
+        else:
+            self.incr_stats("error", key)
+        if time_delta:
+            self.timing_stats("time", key, time_delta)
+
+
+class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
+    ...
+
+
+class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
 
-    csrf_exempt = False
     method_permission_name = {
         "bulk_delete": "delete",
         "data": "list",
@@ -194,21 +262,27 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
-    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
+    base_related_field_filters: Dict[str, BaseFilter] = {}
     """
-    Declare the filters for related fields::
+    This is used to specify a base filter for related fields
+    when they are accessed through the '/related/<column_name>' endpoint.
+    When combined with the `related_field_filters` attribute,
+    this filter will be applied in addition to the latest::
 
-        related_fields = {
-            "<RELATED_FIELD>": <RelatedFieldFilter>)
+        base_related_field_filters = {
+            "<RELATED_FIELD>": "<FILTER>")
         }
     """
 
-    filter_rel_fields: Dict[str, BaseFilter] = {}
+    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the related field base filter::
+    Specify a filter for related fields when they are accessed
+    through the '/related/<column_name>' endpoint.
+    When combined with the `base_related_field_filters` attribute,
+    this filter will be applied in prior to the latest::
 
-        filter_rel_fields_field = {
-            "<RELATED_FIELD>": "<FILTER>")
+        related_fields = {
+            "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
     """
     allowed_rel_fields: Set[str] = set()
@@ -223,6 +297,15 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
+    extra_fields_rel_fields: Dict[str, List[str]] = {"owners": ["email", "active"]}
+    """
+    Declare extra fields for the representation of the Model object::
+
+        extra_fields_rel_fields = {
+            "<RELATED_FIELD>": "[<RELATED_OBJECT_FIELD_1>, <RELATED_OBJECT_FIELD_2>]"
+        }
+    """
+
     allowed_distinct_fields: Set[str] = set()
 
     add_columns: List[str]
@@ -230,22 +313,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
     list_columns: List[str]
     show_columns: List[str]
 
-    responses = {
-        "400": {"description": "Bad request", "content": error_payload_content},
-        "401": {"description": "Unauthorized", "content": error_payload_content},
-        "403": {"description": "Forbidden", "content": error_payload_content},
-        "404": {"description": "Not found", "content": error_payload_content},
-        "422": {
-            "description": "Could not process entity",
-            "content": error_payload_content,
-        },
-        "500": {"description": "Fatal error", "content": error_payload_content},
-    }
-
     def __init__(self) -> None:
         super().__init__()
-        # Setup statsd
-        self.stats_logger = BaseStatsLogger()
         # Add base API spec base query parameter schemas
         if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
@@ -256,12 +325,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
             RelatedResponseSchema,
             DistincResponseSchema,
         )
-
-    def create_blueprint(
-        self, appbuilder: AppBuilder, *args: Any, **kwargs: Any
-    ) -> Blueprint:
-        self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
-        return super().create_blueprint(appbuilder, *args, **kwargs)
 
     def _init_properties(self) -> None:
         """
@@ -289,7 +352,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
-        base_filters = self.filter_rel_fields.get(column_name)
+        base_filters = self.base_related_field_filters.get(column_name)
         if base_filters:
             filters.add_filter_list(base_filters)
         if value and filter_field:
@@ -317,6 +380,17 @@ class BaseSupersetModelRestApi(ModelRestApi):
                 return getattr(model, model_column_name)
         return str(model)
 
+    def _get_extra_field_for_model(
+        self, model: Model, column_name: str
+    ) -> Dict[str, str]:
+        ret = {}
+        if column_name in self.extra_fields_rel_fields:
+            model_column_names = self.extra_fields_rel_fields.get(column_name)
+            if model_column_names:
+                for key in model_column_names:
+                    ret[key] = getattr(model, key)
+        return ret
+
     def _get_result_from_rows(
         self, datamodel: SQLAInterface, rows: List[Model], column_name: str
     ) -> List[Dict[str, Any]]:
@@ -324,6 +398,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
             {
                 "value": datamodel.get_pk_value(row),
                 "text": self._get_text_for_model(row, column_name),
+                "extra": self._get_extra_field_for_model(row, column_name),
             }
             for row in rows
         ]
@@ -343,44 +418,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
             # Fetch requested values from ids
             extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
-
-    def incr_stats(self, action: str, func_name: str) -> None:
-        """
-        Proxy function for statsd.incr to impose a key structure for REST API's
-
-        :param action: String with an action name eg: error, success
-        :param func_name: The function name
-        """
-        self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
-
-    def timing_stats(self, action: str, func_name: str, value: float) -> None:
-        """
-        Proxy function for statsd.incr to impose a key structure for REST API's
-
-        :param action: String with an action name eg: error, success
-        :param func_name: The function name
-        :param value: A float with the time it took for the endpoint to execute
-        """
-        self.stats_logger.timing(
-            f"{self.__class__.__name__}.{func_name}.{action}", value
-        )
-
-    def send_stats_metrics(
-        self, response: Response, key: str, time_delta: Optional[float] = None
-    ) -> None:
-        """
-        Helper function to handle sending statsd metrics
-
-        :param response: flask response object, will evaluate if it was an error
-        :param key: The function name
-        :param time_delta: Optional time it took for the endpoint to execute
-        """
-        if 200 <= response.status_code < 400:
-            self.incr_stats("success", key)
-        else:
-            self.incr_stats("error", key)
-        if time_delta:
-            self.timing_stats("time", key, time_delta)
 
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.info",

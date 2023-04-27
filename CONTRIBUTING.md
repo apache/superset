@@ -52,7 +52,9 @@ little bit helps, and credit will always be given.
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
-      - [Images](#images)
+      - [Local Development](#local-development)
+      - [Build](#build)
+      - [Deployment](#deployment)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Dependencies](#dependencies)
@@ -124,7 +126,7 @@ Here's a list of repositories that contain Superset-related packages:
 
 ## Types of Contributions
 
-### Report Bug
+### Report a Bug
 
 The best way to report a bug is to file an issue on GitHub. Please include:
 
@@ -136,15 +138,17 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+_Please note that feature requests opened as Github Issues will be moved to Discussions._
+
 ### Submit Ideas or Feature Requests
 
-The best way is to file an issue on GitHub:
+The best way is to start an ["Ideas" Discussion thread](https://github.com/apache/superset/discussions/categories/ideas) on GitHub:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+- Remember that this is a volunteer-driven project, and that your contributions are as welcome as anyone's :)
 
-For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
+To propose large features or major changes to codebase, and help usher in those changes, please create a **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
 ### Fix Bugs
 
@@ -160,7 +164,7 @@ Look through the GitHub issues. Issues tagged with
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
-in docstrings, `docs/*.rst` or even on the web as blog posts or
+in docstrings, or even on the web as blog posts or
 articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
@@ -388,23 +392,30 @@ cd superset
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The site is written using the Gatsby framework and docz for the
-documentation subsection. Find out more about it in `docs/README.md`
+The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator, the source for which resides in `./docs`.
 
-#### Images
+#### Local Development
 
-If you're adding new images to the documentation, you'll notice that the images
-referenced in the rst, e.g.
+To set up a local development environment with hot reloading for the documentation site:
 
-    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
+```shell
+cd docs
+yarn install  # Installs NPM dependencies
+yarn start  # Starts development server at http://localhost:3000
+```
 
-aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
-When the docs are deployed to https://superset.apache.org/, images
-are copied from there to the `_static/images` directory, just like they're referenced
-in the docs.
+#### Build
 
-For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+To create and serve a production build of the documentation site:
+
+```shell
+yarn build
+yarn serve
+```
+
+#### Deployment
+
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documentation with the `docs:` prefix.
 
 ### Flask server
 
@@ -413,7 +424,7 @@ For example, the image referenced above actually lives in `superset-frontend/src
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.7 or 3.8, then proceed with:
+Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -1021,7 +1032,7 @@ When contributing new React components to Superset, please try to add a Story al
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we import the magic `_` function using:
 
 ```python
@@ -1064,6 +1075,7 @@ LANGUAGES = {
 ```
 
 This script will
+
 1. update the template file `superset/translations/messages.pot` with current application strings.
 2. update language files with the new extracted strings.
 
@@ -1285,7 +1297,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery --app=superset.tasks.celery_app:app worker -Ofair
+  celery --app=superset.tasks.celery_app:app worker -O fair
   ```
 
 Note that:
@@ -1315,6 +1327,7 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE` - JWT cookie same site option
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
 - `GLOBAL_ASYNC_QUERIES_TRANSPORT` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)

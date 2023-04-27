@@ -26,6 +26,7 @@ import { ParentSize } from '@vx/responsive';
 import { createSelector } from 'reselect';
 import { withTheme } from '@emotion/react';
 import { parseLength, Dimension } from '../../dimension';
+import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
@@ -60,7 +61,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
     /** Event listener for unexpected errors from chart */
     onErrorBoundary?: ErrorBoundaryProps['onError'];
-    /** Prop for form plugins uisng superchart */
+    /** Prop for form plugins using superchart */
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;
@@ -140,6 +141,9 @@ class SuperChart extends React.PureComponent<Props, {}> {
     this.core = core;
   };
 
+  private getQueryCount = () =>
+    getChartMetadataRegistry().get(this.props.chartType)?.queryObjectCount ?? 1;
+
   renderChart(width: number, height: number) {
     const {
       id,
@@ -174,9 +178,11 @@ class SuperChart extends React.PureComponent<Props, {}> {
     const noResultQueries =
       enableNoResults &&
       (!queriesData ||
-        queriesData.every(
-          ({ data }) => !data || (Array.isArray(data) && data.length === 0),
-        ));
+        queriesData
+          .slice(0, this.getQueryCount())
+          .every(
+            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+          ));
     if (noResultQueries) {
       chart = noResults || (
         <NoResultsComponent

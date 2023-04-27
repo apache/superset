@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
@@ -462,7 +463,7 @@ export class TableRenderer extends React.Component {
               true,
             )}
           >
-            Subtotal
+            {t('Subtotal')}
           </th>,
         );
       }
@@ -486,7 +487,9 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {`Total (${this.props.aggregatorName})`}
+          {t('Total (%(aggregatorName)s)', {
+            aggregatorName: t(this.props.aggregatorName),
+          })}
         </th>
       ) : null;
 
@@ -549,7 +552,9 @@ export class TableRenderer extends React.Component {
           )}
         >
           {colAttrs.length === 0
-            ? `Total (${this.props.aggregatorName})`
+            ? t('Total (%(aggregatorName)s)', {
+                aggregatorName: t(this.props.aggregatorName),
+              })
             : null}
         </th>
       </tr>
@@ -658,7 +663,7 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          Subtotal
+          {t('Subtotal')}
         </th>
       ) : null;
 
@@ -700,6 +705,7 @@ export class TableRenderer extends React.Component {
           className="pvtVal"
           key={`pvtVal-${flatColKey}`}
           onClick={rowClickHandlers[flatColKey]}
+          onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
           {agg.format(aggValue)}
@@ -717,6 +723,7 @@ export class TableRenderer extends React.Component {
           key="total"
           className="pvtTotal"
           onClick={rowTotalCallbacks[flatRowKey]}
+          onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
           {agg.format(aggValue)}
         </td>
@@ -761,7 +768,9 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {`Total (${this.props.aggregatorName})`}
+        {t('Total (%(aggregatorName)s)', {
+          aggregatorName: t(this.props.aggregatorName),
+        })}
       </th>
     );
 
@@ -776,6 +785,7 @@ export class TableRenderer extends React.Component {
           className="pvtTotal pvtRowTotal"
           key={`total-${flatColKey}`}
           onClick={colTotalCallbacks[flatColKey]}
+          onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
           {agg.format(aggValue)}
@@ -793,6 +803,7 @@ export class TableRenderer extends React.Component {
           key="total"
           className="pvtGrandTotal pvtRowTotal"
           onClick={grandTotalCallback}
+          onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
           {agg.format(aggValue)}
         </td>
@@ -820,6 +831,10 @@ export class TableRenderer extends React.Component {
           // Don't hide totals.
           !subtotalDisplay.hideOnExpand),
     );
+  }
+
+  isDashboardEditMode() {
+    return document.contains(document.querySelector('.dashboard--editing'));
   }
 
   render() {
@@ -863,7 +878,7 @@ export class TableRenderer extends React.Component {
     };
 
     return (
-      <Styles>
+      <Styles isDashboardEditMode={this.isDashboardEditMode()}>
         <table className="pvtTable" role="grid">
           <thead>
             {colAttrs.map((c, j) =>
@@ -886,5 +901,6 @@ export class TableRenderer extends React.Component {
 TableRenderer.propTypes = {
   ...PivotData.propTypes,
   tableOptions: PropTypes.object,
+  onContextMenu: PropTypes.func,
 };
 TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };

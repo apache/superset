@@ -17,32 +17,27 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
-  emitFilterControl,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import {
-  DEFAULT_FORM_DATA,
-  EchartsTimeseriesContributionType,
-  EchartsTimeseriesSeriesType,
-} from '../types';
+import { EchartsTimeseriesSeriesType } from '../types';
+import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   onlyTotalControl,
   showValueControl,
   richTooltipSection,
-  xAxisControl,
 } from '../../controls';
 import { AreaChartExtraControlsOptions } from '../../constants';
 
 const {
-  contributionMode,
   logAxis,
   markerEnabled,
   markerSize,
@@ -57,39 +52,8 @@ const {
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
-        ['metrics'],
-        ['groupby'],
-        [
-          {
-            name: 'contributionMode',
-            config: {
-              type: 'SelectControl',
-              label: t('Contribution Mode'),
-              default: contributionMode,
-              choices: [
-                [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Row'],
-                [EchartsTimeseriesContributionType.Column, 'Series'],
-              ],
-              description: t('Calculate contribution per series or row'),
-            },
-          },
-        ],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-        ['truncate_metric'],
-      ],
-    },
+    sections.genericTime,
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -108,11 +72,11 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: seriesType,
               choices: [
-                [EchartsTimeseriesSeriesType.Line, 'Line'],
-                [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-                [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-                [EchartsTimeseriesSeriesType.End, 'Step - end'],
+                [EchartsTimeseriesSeriesType.Line, t('Line')],
+                [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
+                [EchartsTimeseriesSeriesType.Start, t('Step - start')],
+                [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
+                [EchartsTimeseriesSeriesType.End, t('Step - end')],
               ],
               description: t('Series chart type (line, bar etc)'),
             },
@@ -218,9 +182,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
-              description: `${D3_TIME_FORMAT_DOCS}. ${t(
-                'When using other than adaptive formatting, labels may overlap.',
-              )}`,
+              description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },
         ],
@@ -313,10 +275,10 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeseriesDataRecord, } from '@superset-ui/core';
+import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -51,25 +51,26 @@ export default function transformProps(chartProps: ChartProps) {
   const formData = chartProps.formData;
   const queriesData = chartProps.queriesData;
 
-  const { url, parameterName, parameterPrefix, groupby } = formData
+  const { url, parameterName, parameterPrefix, groupby } = formData;
 
   const data = queriesData[0]?.data as TimeseriesDataRecord[];
 
-  let value: string | number | true | Date = ""
-  let errorMessage = "";
+  let value: string | number | true | Date = '';
+  let errorMessage = '';
 
-  if(Array.isArray(data) && data.length > 1) {
-    errorMessage = "The query returned too many rows when only one was expected."
-  }
-  
-  if(Array.isArray(data) && data.length === 0) {
-    errorMessage = "The query returned no rows."
+  if (Array.isArray(data) && data.length > 1) {
+    errorMessage =
+      'The query returned too many rows when only one was expected.';
   }
 
-  if(Array.isArray(data) && data.length === 1) {
-    value = data[0][groupby] || ""
+  if (Array.isArray(data) && data.length === 0) {
+    errorMessage = 'The query returned no rows.';
   }
-  
+
+  if (Array.isArray(data) && data.length === 1) {
+    value = data[0][groupby] || '';
+  }
+
   return {
     url_parameter_value: value,
     parameter_name: parameterName,

@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, Response
+from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -91,7 +91,7 @@ class DatasetMetricRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetMetricCommand(g.user, pk, metric_id).run()
+            DeleteDatasetMetricCommand(pk, metric_id).run()
             return self.response(200, message="OK")
         except DatasetMetricNotFoundError:
             return self.response_404()

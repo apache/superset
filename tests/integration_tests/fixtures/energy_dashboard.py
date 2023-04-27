@@ -39,17 +39,18 @@ ENERGY_USAGE_TBL_NAME = "energy_usage"
 def load_energy_table_data():
     with app.app_context():
         database = get_example_database()
-        df = _get_dataframe()
-        df.to_sql(
-            ENERGY_USAGE_TBL_NAME,
-            database.get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            index=False,
-            dtype={"source": String(255), "target": String(255), "value": Float()},
-            method="multi",
-            schema=get_example_default_schema(),
-        )
+        with database.get_sqla_engine_with_context() as engine:
+            df = _get_dataframe()
+            df.to_sql(
+                ENERGY_USAGE_TBL_NAME,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                index=False,
+                dtype={"source": String(255), "target": String(255), "value": Float()},
+                method="multi",
+                schema=get_example_default_schema(),
+            )
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine_with_context() as engine:
@@ -82,7 +83,6 @@ def _create_energy_table() -> List[Slice]:
         table.metrics.append(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
-
     db.session.merge(table)
     db.session.commit()
     table.fetch_metadata()

@@ -96,6 +96,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
+        '@typescript-eslint/prefer-optional-chain': 2,
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
@@ -115,6 +116,7 @@ module.exports = {
         'jsx-a11y/anchor-is-valid': 1,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+        'max-classes-per-file': 0,
         'new-cap': 0,
         'no-bitwise': 0,
         'no-continue': 0,

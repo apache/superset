@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -320,13 +321,9 @@ const controlPanel: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.standardizedState.metrics[0],
-  }),
-  updateStandardizedState: (prevState, currState) => ({
-    ...currState,
-    metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
+    metric: getStandardizedControls().popAllMetrics(),
   }),
 };
 

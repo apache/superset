@@ -25,16 +25,15 @@ on Explore.
 In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
-
 import logging
 from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from flask_babel import gettext as __
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat
-from superset.common.query_context import QueryContext
 from superset.utils.core import (
     DTTM_ALIAS,
     extract_dataframe_dtypes,
@@ -45,8 +44,8 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
-config = app.config
 logger = logging.getLogger(__name__)
+config = app.config
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -74,7 +73,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
 ) -> pd.DataFrame:
-    metric_name = f"Total ({aggfunc})"
+    metric_name = __("Total (%(aggfunc)s)", aggfunc=aggfunc)
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -162,7 +161,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 slice_ = df.columns.get_loc(subgroup)
                 subtotal = pivot_v2_aggfunc_map[aggfunc](df.iloc[:, slice_], axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else "Subtotal"
+                total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
@@ -179,7 +178,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     df.iloc[slice_, :].apply(pd.to_numeric), axis=0
                 )
                 depth = df.index.nlevels - len(subgroup) - 1
-                total = metric_name if level == 0 else "Subtotal"
+                total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])
                 # insert row after subgroup
                 df = pd.concat(
@@ -362,14 +361,7 @@ def apply_post_process(
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
-    viz_type = form_data.get("viz_type", "")
-    if not viz_type:
-        viz_type = (
-            result.get("query_context", QueryContext).viz_type
-            if result.get("query_context", QueryContext).viz_type
-            else ""
-        )
-
+    viz_type = form_data.get("viz_type")
     if viz_type not in post_processors:
         return result
 
@@ -394,12 +386,21 @@ def apply_post_process(
         result = post_processor(result, form_data)  # type: ignore
     else:
         for query in result["queries"]:
+            if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
+                raise Exception(f"Result format {query['result_format']} not supported")
+
+            if not query["data"]:
+                # do not try to process empty data
+                continue
+
             if query["result_format"] == ChartDataResultFormat.JSON:
                 df = pd.DataFrame.from_dict(query["data"])
             elif query["result_format"] == ChartDataResultFormat.CSV:
                 df = pd.read_csv(StringIO(query["data"]))
-            else:
-                raise Exception(f"Result format {query['result_format']} not supported")
+
+            # convert all columns to verbose (label) name
+            if datasource:
+                df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
             processed_df = post_processor(df, form_data, datasource)  # type: ignore
 

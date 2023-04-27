@@ -143,7 +143,7 @@ Date:   {date_str}
     "--include-last/--skip-last",
     default=False,
     show_default=True,
-    help="Whether to also cancel the lastest run.",
+    help="Whether to also cancel the latest run.",
 )
 @click.option(
     "--include-running/--skip-running",

@@ -18,7 +18,14 @@
 # pylint: disable=import-outside-toplevel, unused-argument
 
 
-def test_column_names_as_bytes(app_context: None) -> None:
+import numpy as np
+import pandas as pd
+from numpy.core.multiarray import array
+
+from superset.result_set import stringify_values
+
+
+def test_column_names_as_bytes() -> None:
     """
     Test that we can handle column names as bytes.
     """
@@ -65,3 +72,71 @@ def test_column_names_as_bytes(app_context: None) -> None:
 |  1 | 2016-01-27 | 392.444 | 396.843 | 391.782 | 394.972 |     394.972 | 47424400 |
     """.strip()
     )
+
+
+def test_stringify_with_null_integers():
+    """
+    Test that we can safely handle type errors when an integer column has a null value
+    """
+
+    data = [
+        ("foo", "bar", pd.NA, None),
+        ("foo", "bar", pd.NA, True),
+        ("foo", "bar", pd.NA, None),
+    ]
+    numpy_dtype = [
+        ("id", "object"),
+        ("value", "object"),
+        ("num", "object"),
+        ("bool", "object"),
+    ]
+
+    array2 = np.array(data, dtype=numpy_dtype)
+    column_names = ["id", "value", "num", "bool"]
+
+    result_set = np.array([stringify_values(array2[column]) for column in column_names])
+
+    expected = np.array(
+        [
+            array(["foo", "foo", "foo"], dtype=object),
+            array(["bar", "bar", "bar"], dtype=object),
+            array([None, None, None], dtype=object),
+            array([None, "True", None], dtype=object),
+        ]
+    )
+
+    assert np.array_equal(result_set, expected)
+
+
+def test_stringify_with_null_timestamps():
+    """
+    Test that we can safely handle type errors when a timestamp column has a null value
+    """
+
+    data = [
+        ("foo", "bar", pd.NaT, None),
+        ("foo", "bar", pd.NaT, True),
+        ("foo", "bar", pd.NaT, None),
+    ]
+    numpy_dtype = [
+        ("id", "object"),
+        ("value", "object"),
+        ("num", "object"),
+        ("bool", "object"),
+    ]
+
+    array2 = np.array(data, dtype=numpy_dtype)
+    column_names = ["id", "value", "num", "bool"]
+
+    result_set = np.array([stringify_values(array2[column]) for column in column_names])
+
+    expected = np.array(
+        [
+            array(["foo", "foo", "foo"], dtype=object),
+            array(["bar", "bar", "bar"], dtype=object),
+            array([None, None, None], dtype=object),
+            array([None, "True", None], dtype=object),
+        ]
+    )
+
+    assert np.array_equal(result_set, expected)

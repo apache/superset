@@ -19,13 +19,14 @@ from datetime import datetime
 from distutils.version import StrictVersion
 from typing import Any, Dict, Optional, Type
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.utils import core as utils
 
 logger = logging.getLogger()
 
@@ -68,7 +69,10 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     ) -> Optional[str]:
 
         db_extra = db_extra or {}
-        if target_type.upper() == utils.TemporalType.DATETIME:
+
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.DateTime):
             es_version = db_extra.get("version")
             # The elasticsearch CAST function does not take effect for the time zone
             # setting. In elasticsearch7.8 and above, we can use the DATETIME_PARSE
@@ -119,7 +123,9 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() == utils.TemporalType.DATETIME:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.DateTime):
             return f"""'{dttm.isoformat(timespec="seconds")}'"""
         return None
 

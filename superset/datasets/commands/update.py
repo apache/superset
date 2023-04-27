@@ -19,9 +19,9 @@ from collections import Counter
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
@@ -41,7 +41,6 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -49,16 +48,15 @@ logger = logging.getLogger(__name__)
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def __init__(
         self,
-        user: User,
         model_id: int,
         data: Dict[str, Any],
-        override_columns: bool = False,
+        override_columns: Optional[bool] = False,
     ):
-        self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
         self.override_columns = override_columns
+        self._properties["override_columns"] = override_columns
 
     def run(self) -> Model:
         self.validate()
@@ -83,7 +81,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             raise DatasetNotFoundError()
         # Check ownership
         try:
-            check_ownership(self._model)
+            security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
@@ -99,7 +97,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = self.populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

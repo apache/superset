@@ -19,10 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from '../../dnd/DragDroppable';
-import { NEW_COMPONENTS_SOURCE_ID } from '../../../util/constants';
-import { NEW_COMPONENT_SOURCE_TYPE } from '../../../util/componentTypes';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
+import { NEW_COMPONENT_SOURCE_TYPE } from 'src/dashboard/util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -34,6 +35,53 @@ const propTypes = {
 const defaultProps = {
   className: null,
 };
+
+const NewComponent = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: ${theme.gridUnit * 4}px;
+    background: ${theme.colors.grayscale.light5};
+    cursor: move;
+
+    &:not(.static):hover {
+      background: ${theme.colors.grayscale.light4};
+    }
+  `}
+`;
+
+const NewComponentPlaceholder = styled.div`
+  ${({ theme }) => css`
+    position: relative;
+    background: ${theme.colors.grayscale.light4};
+    width: ${theme.gridUnit * 10}px;
+    height: ${theme.gridUnit * 10}px;
+    margin-right: ${theme.gridUnit * 4}px;
+    border: 1px solid ${theme.colors.grayscale.light5};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${theme.colors.text.label};
+    font-size: ${theme.typography.sizes.xxl}px;
+
+    &.fa-window-restore {
+      font-size: ${theme.typography.sizes.l}px;
+    }
+
+    &.fa-area-chart {
+      font-size: ${theme.typography.sizes.xl}px;
+    }
+
+    &.divider-placeholder:after {
+      content: '';
+      height: 2px;
+      width: 100%;
+      background-color: ${theme.colors.grayscale.light2};
+    }
+  `}
+`;
 
 export default class DraggableNewComponent extends React.PureComponent {
   render() {
@@ -50,14 +98,12 @@ export default class DraggableNewComponent extends React.PureComponent {
         editMode
       >
         {({ dragSourceRef }) => (
-          <div
-            ref={dragSourceRef}
-            className="new-component"
-            data-test="new-component"
-          >
-            <div className={cx('new-component-placeholder', className)} />
+          <NewComponent ref={dragSourceRef} data-test="new-component">
+            <NewComponentPlaceholder
+              className={cx('new-component-placeholder', className)}
+            />
             {label}
-          </div>
+          </NewComponent>
         )}
       </DragDroppable>
     );

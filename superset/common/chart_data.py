@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from enum import Enum
+from typing import Set
 
 
 class ChartDataResultFormat(str, Enum):
@@ -24,6 +25,11 @@ class ChartDataResultFormat(str, Enum):
 
     CSV = "csv"
     JSON = "json"
+    XLSX = "xlsx"
+
+    @classmethod
+    def table_like(cls) -> Set["ChartDataResultFormat"]:
+        return {cls.CSV} | {cls.XLSX}
 
 
 class ChartDataResultType(str, Enum):
@@ -38,3 +44,4 @@ class ChartDataResultType(str, Enum):
     SAMPLES = "samples"
     TIMEGRAINS = "timegrains"
     POST_PROCESSED = "post_processed"
+    DRILL_DETAIL = "drill_detail"

@@ -16,34 +16,33 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
-from superset.utils.core import apply_max_row_limit, DatasourceDict
-from superset.utils.date_parser import get_since_until
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset import ConnectorRegistry
     from superset.connectors.base.models import BaseDatasource
+    from superset.datasource.dao import DatasourceDAO
 
 
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: Dict[str, Any]
-    _connector_registry: ConnectorRegistry
+    _datasource_dao: DatasourceDAO
     _session_maker: sessionmaker
 
     def __init__(
         self,
         app_configurations: Dict[str, Any],
-        connector_registry: ConnectorRegistry,
+        _datasource_dao: DatasourceDAO,
         session_maker: sessionmaker,
     ):
         self._config = app_configurations
-        self._connector_registry = connector_registry
+        self._datasource_dao = _datasource_dao
         self._session_maker = session_maker
 
     def create(  # pylint: disable=too-many-arguments
@@ -62,7 +61,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
-        from_dttm, to_dttm = self._get_dttms(time_range, time_shift, processed_extras)
+        from_dttm, to_dttm = get_since_until_from_time_range(
+            time_range, time_shift, processed_extras
+        )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
         return QueryObject(
@@ -75,8 +76,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
 
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
-        return self._connector_registry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), self._session_maker()
+        return self._datasource_dao.get_datasource(
+            datasource_type=DatasourceType(datasource["type"]),
+            datasource_id=int(datasource["id"]),
+            session=self._session_maker(),
         )
 
     def _process_extras(  # pylint: disable=no-self-use
@@ -95,23 +98,6 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             else self._config["ROW_LIMIT"]
         )
         return apply_max_row_limit(row_limit or default_row_limit)
-
-    def _get_dttms(
-        self,
-        time_range: Optional[str],
-        time_shift: Optional[str],
-        extras: Dict[str, Any],
-    ) -> Tuple[Optional[datetime], Optional[datetime]]:
-        return get_since_until(
-            relative_start=extras.get(
-                "relative_start", self._config["DEFAULT_RELATIVE_START_TIME"]
-            ),
-            relative_end=extras.get(
-                "relative_end", self._config["DEFAULT_RELATIVE_END_TIME"]
-            ),
-            time_range=time_range,
-            time_shift=time_shift,
-        )
 
     # light version of the view.utils.core
     # import view.utils require application context

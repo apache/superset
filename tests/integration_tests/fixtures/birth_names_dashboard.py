@@ -18,7 +18,7 @@ from typing import Callable, List, Optional
 
 import pytest
 
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -68,7 +68,7 @@ def _create_dashboards():
 
     from superset.examples.birth_names import create_dashboard, create_slices
 
-    slices, _ = create_slices(table, admin_owner=False)
+    slices, _ = create_slices(table)
     dash = create_dashboard(slices)
     slices_ids_to_delete = [slice.id for slice in slices]
     dash_id_to_delete = dash.id
@@ -93,27 +93,16 @@ def _create_table(
     return table
 
 
-def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
+def _cleanup(dash_id: int, slice_ids: List[int]) -> None:
     schema = get_example_default_schema()
+    for datasource in db.session.query(SqlaTable).filter_by(
+        table_name="birth_names", schema=schema
+    ):
+        for col in datasource.columns + datasource.metrics:
+            db.session.delete(col)
 
-    table_id = (
-        db.session.query(SqlaTable)
-        .filter_by(table_name="birth_names", schema=schema)
-        .one()
-        .id
-    )
-    datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
-    columns = [column for column in datasource.columns]
-    metrics = [metric for metric in datasource.metrics]
-
-    for column in columns:
-        db.session.delete(column)
-    for metric in metrics:
-        db.session.delete(metric)
-
-    dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
-
-    db.session.delete(dash)
-    for slice_id in slices_ids:
-        db.session.query(Slice).filter_by(id=slice_id).delete()
+    for dash in db.session.query(Dashboard).filter_by(id=dash_id):
+        db.session.delete(dash)
+    for slc in db.session.query(Slice).filter(Slice.id.in_(slice_ids)):
+        db.session.delete(slc)
     db.session.commit()

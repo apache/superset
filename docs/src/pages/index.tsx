@@ -249,6 +249,15 @@ const CarouselSection = styled('div')`
   }
 `;
 
+const StyledCredits = styled.div`
+  width: 100%;
+  height: 60px;
+  padding: 18px;
+  background-color: #282E4A;
+  text-align: center;
+  color: #FFFFFF;
+`;
+
 const StyledDatabaseImg = styled.img`
   width: ${(props) => props.width};
   height: ${(props) => props.height};
@@ -427,13 +436,13 @@ export default function Home(): JSX.Element {
               </div>
               <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
                 <div className="imageContainer">
-                  <img src="img/explorer5.jpg" alt="" />
+                  <img src="img/explore.jpg" alt="Explore (chart buider) UI" />
                 </div>
                 <div className="imageContainer">
-                  <img src="img/dashboard3.png" alt="" />
+                  <img src="img/dashboard.jpg" alt="Superset Dashboard" />
                 </div>
                 <div className="imageContainer">
-                  <img src="img/sqllab5.jpg" alt="" />
+                  <img src="img/sql_lab.jpg" alt="SQL Lab" />
                 </div>
               </Carousel>
             </div>
@@ -461,8 +470,13 @@ export default function Home(): JSX.Element {
               </span>
             </StyledIntegrations>
         </CarouselSection>
-
       </StyledMain>
+      <StyledCredits>
+        We use{' '}
+        <a href="https://applitools.com/" target="_blank" rel="nofollow">
+          <img src="img/applitools.png" title="Applitools" />
+        </a>
+      </StyledCredits>
     </Layout>
   );
 }

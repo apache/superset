@@ -20,6 +20,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
@@ -40,10 +41,10 @@ const config: ControlPanelConfig = {
               label: t('Country Field Type'),
               default: 'cca2',
               choices: [
-                ['name', 'Full name'],
-                ['cioc', 'code International Olympic Committee (cioc)'],
-                ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-                ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
+                ['name', t('Full name')],
+                ['cioc', t('code International Olympic Committee (cioc)')],
+                ['cca2', t('code ISO 3166-1 alpha-2 (cca2)')],
+                ['cca3', t('code ISO 3166-1 alpha-3 (cca3)')],
               ],
               description: t(
                 'The country code standard that Superset should expect ' +
@@ -152,9 +153,10 @@ const config: ControlPanelConfig = {
         Boolean(controls?.color_by.value === ColorBy.country),
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

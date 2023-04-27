@@ -24,17 +24,16 @@ from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
-import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.ext.declarative.api import DeclarativeMeta
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
@@ -50,11 +49,6 @@ from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
 test_client = app.test_client()
-
-
-def login(client: Any, username: str = "admin", password: str = "general"):
-    resp = get_resp(client, "/login/", data=dict(username=username, password=password))
-    assert "User confirmation needed" not in resp
 
 
 def get_resp(
@@ -96,18 +90,11 @@ def post_assert_metric(
         rv = client.post(uri, json=data)
     if 200 <= rv.status_code < 400:
         mock_method.assert_called_once_with("success", func_name)
+    elif 400 <= rv.status_code < 500:
+        mock_method.assert_called_once_with("warning", func_name)
     else:
         mock_method.assert_called_once_with("error", func_name)
     return rv
-
-
-@pytest.fixture
-def logged_in_admin():
-    """Fixture with app context and logged in admin user."""
-    with app.app_context():
-        login(test_client, username="admin")
-        yield
-        test_client.get("/logout/", follow_redirects=True)
 
 
 class SupersetTestCase(TestCase):
@@ -362,7 +349,7 @@ class SupersetTestCase(TestCase):
             json_payload["schema"] = schema
 
         resp = self.get_json_resp(
-            "/superset/sql_json/", raise_on_error=False, json_=json_payload
+            "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
@@ -470,6 +457,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.get(uri)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
@@ -489,6 +478,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.delete(uri)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
@@ -516,6 +507,8 @@ class SupersetTestCase(TestCase):
             rv = self.client.put(uri, json=data)
         if 200 <= rv.status_code < 400:
             mock_method.assert_called_once_with("success", func_name)
+        elif 400 <= rv.status_code < 500:
+            mock_method.assert_called_once_with("warning", func_name)
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv

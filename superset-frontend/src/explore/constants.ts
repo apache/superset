@@ -45,6 +45,7 @@ export enum Operators {
   LATEST_PARTITION = 'LATEST_PARTITION',
   IS_TRUE = 'IS_TRUE',
   IS_FALSE = 'IS_FALSE',
+  TEMPORAL_RANGE = 'TEMPORAL_RANGE',
 }
 
 export interface OperatorType {
@@ -55,37 +56,46 @@ export interface OperatorType {
 export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   [key in Operators]: OperatorType;
 } = {
-  [Operators.EQUALS]: { display: 'Equal to (=)', operation: '==' },
-  [Operators.NOT_EQUALS]: { display: 'Not equal to (≠)', operation: '!=' },
-  [Operators.LESS_THAN]: { display: 'Less than (<)', operation: '<' },
+  [Operators.EQUALS]: { display: t('Equal to (=)'), operation: '==' },
+  [Operators.NOT_EQUALS]: { display: t('Not equal to (≠)'), operation: '!=' },
+  [Operators.LESS_THAN]: { display: t('Less than (<)'), operation: '<' },
   [Operators.LESS_THAN_OR_EQUAL]: {
-    display: 'Less or equal (<=)',
+    display: t('Less or equal (<=)'),
     operation: '<=',
   },
-  [Operators.GREATER_THAN]: { display: 'Greater than (>)', operation: '>' },
+  [Operators.GREATER_THAN]: { display: t('Greater than (>)'), operation: '>' },
   [Operators.GREATER_THAN_OR_EQUAL]: {
-    display: 'Greater or equal (>=)',
+    display: t('Greater or equal (>=)'),
     operation: '>=',
   },
-  [Operators.IN]: { display: 'In', operation: 'IN' },
-  [Operators.NOT_IN]: { display: 'Not in', operation: 'NOT IN' },
-  [Operators.LIKE]: { display: 'Like', operation: 'LIKE' },
-  [Operators.ILIKE]: { display: 'Like (case insensitive)', operation: 'ILIKE' },
-  [Operators.REGEX]: { display: 'Regex', operation: 'REGEX' },
-  [Operators.IS_NOT_NULL]: { display: 'Is not null', operation: 'IS NOT NULL' },
-  [Operators.IS_NULL]: { display: 'Is null', operation: 'IS NULL' },
+  [Operators.IN]: { display: t('In'), operation: 'IN' },
+  [Operators.NOT_IN]: { display: t('Not in'), operation: 'NOT IN' },
+  [Operators.LIKE]: { display: t('Like'), operation: 'LIKE' },
+  [Operators.ILIKE]: {
+    display: t('Like (case insensitive)'),
+    operation: 'ILIKE',
+  },
+  [Operators.REGEX]: { display: t('Regex'), operation: 'REGEX' },
+  [Operators.IS_NOT_NULL]: {
+    display: t('Is not null'),
+    operation: 'IS NOT NULL',
+  },
+  [Operators.IS_NULL]: { display: t('Is null'), operation: 'IS NULL' },
   [Operators.LATEST_PARTITION]: {
-    display: 'use latest_partition template',
+    display: t('use latest_partition template'),
     operation: 'LATEST PARTITION',
   },
-  [Operators.IS_TRUE]: { display: 'Is true', operation: '==' },
-  [Operators.IS_FALSE]: { display: 'Is false', operation: '==' },
+  [Operators.IS_TRUE]: { display: t('Is true'), operation: '==' },
+  [Operators.IS_FALSE]: { display: t('Is false'), operation: '==' },
+  [Operators.TEMPORAL_RANGE]: {
+    display: t('TEMPORAL_RANGE'),
+    operation: 'TEMPORAL_RANGE',
+  },
 };
 
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
 
 export const TABLE_ONLY_OPERATORS = [Operators.LIKE, Operators.ILIKE];
-export const DRUID_ONLY_OPERATORS = [Operators.REGEX];
 export const HAVING_OPERATORS = [
   Operators.EQUALS,
   Operators.NOT_EQUALS,
@@ -97,7 +107,10 @@ export const HAVING_OPERATORS = [
 export const MULTI_OPERATORS = new Set([Operators.IN, Operators.NOT_IN]);
 // CUSTOM_OPERATORS will show operator in simple mode,
 // but will generate customized sqlExpression
-export const CUSTOM_OPERATORS = new Set([Operators.LATEST_PARTITION]);
+export const CUSTOM_OPERATORS = new Set([
+  Operators.LATEST_PARTITION,
+  Operators.TEMPORAL_RANGE,
+]);
 // DISABLE_INPUT_OPERATORS will disable filter value input
 // in adhocFilter control
 export const DISABLE_INPUT_OPERATORS = [
@@ -119,7 +132,6 @@ export const TIME_FILTER_LABELS = {
   time_range: t('Time range'),
   granularity_sqla: t('Time column'),
   time_grain_sqla: t('Time grain'),
-  druid_time_origin: t('Origin'),
   granularity: t('Time granularity'),
 };
 
@@ -141,13 +153,8 @@ export const TIME_FILTER_MAP = {
   time_range: '__time_range',
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
-  druid_time_origin: '__time_origin',
   granularity: '__granularity',
 };
-
-// TODO: make this configurable per Superset installation
-export const DEFAULT_TIME_RANGE = 'No filter';
-export const NO_TIME_RANGE = 'No filter';
 
 export enum FILTER_BOX_MIGRATION_STATES {
   CONVERTED = 'CONVERTED',
@@ -162,3 +169,5 @@ export const FILTER_BOX_TRANSITION_SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
 export const UNRESIZABLE_POPOVER_WIDTH = 296;
+
+export const UNSAVED_CHART_ID = 0;

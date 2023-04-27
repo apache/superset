@@ -1,28 +1,8 @@
+import { GroupCellRenderer } from '@ag-grid-enterprise/all-modules';
 import React, { Component } from 'react';
-import ModalTrigger from 'src/components/ModalTrigger';
-import JSONTree from 'react-json-tree';
-import Button from 'src/components/Button';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { JSONTree } from 'react-json-tree';
 
-const JSON_TREE_THEME = {
-  scheme: 'monokai',
-  base00: '#272822',
-  base01: '#383830',
-  base02: '#49483e',
-  base03: '#75715e',
-  base04: '#a59f85',
-  base05: '#f8f8f2',
-  base06: '#f5f4f1',
-  base07: '#f9f8f5',
-  base08: '#f92672',
-  base09: '#fd971f',
-  base0A: '#f4bf75',
-  base0B: '#a6e22e',
-  base0C: '#a1efe4',
-  base0D: '#66d9ef',
-  base0E: '#ae81ff',
-  base0F: '#cc6633',
-};
+import './Buttons.css';
 
 function safeJsonObjectParse(
   data: unknown,
@@ -48,34 +28,60 @@ function safeJsonObjectParse(
   }
 }
 
-function addJsonModal(
-  node: React.ReactNode,
-  jsonObject: Record<string, unknown> | unknown[],
-  jsonString: String,
-) {
+// JSX which shows the JSON tree inline, and a button to collapse it
+function collapseJSON(this: any, reverseState: any, jsonObject: any) {
   return (
-    <ModalTrigger
-      modalBody={<JSONTree data={jsonObject} theme={JSON_TREE_THEME} />}
-      modalFooter={
-        <Button>
-          <CopyToClipboard shouldShowText={false} text={jsonString} />
-        </Button>
-      }
-      modalTitle="Cell content as JSON"
-      triggerNode={node}
-    />
+    <>
+      <div style={{ float: 'left' }}>
+        <button
+          className="Button Collapse"
+          type="button"
+          title="Collapse"
+          onClick={reverseState}
+        >
+          {' '}
+        </button>
+      </div>
+      <div style={{ float: 'left' }}>
+        <JSONTree
+          data={jsonObject}
+          theme="default"
+          shouldExpandNode={() => true}
+        />
+      </div>
+    </>
+  );
+}
+
+// JSX which shows the JSON data on one line, and a button to open the JSON tree
+function expandJSON(this: any, reverseState: any, cellData: any) {
+  return (
+    <>
+      <button
+        className="Button Expand"
+        type="button"
+        title="Expand"
+        onClick={reverseState}
+      >
+        {' '}
+      </button>
+      {cellData}
+    </>
   );
 }
 
 export default class JsonValueRenderer extends Component<
   {},
-  { cellValue: any }
+  { api: any; cellValue: any; expanded: boolean; rowIndex: number }
 > {
   constructor(props: any) {
     super(props);
 
     this.state = {
+      api: props.api,
       cellValue: JsonValueRenderer.getValueToDisplay(props),
+      expanded: false,
+      rowIndex: props.rowIndex,
     };
   }
 
@@ -86,14 +92,56 @@ export default class JsonValueRenderer extends Component<
     };
   }
 
+  // Set the current `expanded` field to the opposite of what it currently is
+  // and trigger the 'checkState` function in the expand all button for the row
+  reverseState = () => {
+    this.setState(
+      prevState => ({ ...prevState, expanded: !prevState.expanded }),
+      () => {
+        const instances = this.state.api.getCellRendererInstances();
+
+        // Make sure row grouping is not enabled, but if it is, don't
+        // trigger the 'checkState` function in the expand all button for the row
+        if (
+          instances.filter(
+            (instance: any) => instance instanceof GroupCellRenderer,
+          ).length === 0
+        ) {
+          instances
+            .filter(
+              (instance: any) =>
+                instance.params.rowIndex === this.state.rowIndex &&
+                instance.params.column.colDef.cellRenderer ===
+                  'expandAllValueRenderer',
+            )
+            .map((instance: any) => instance.componentInstance.checkState());
+        }
+      },
+    );
+  };
+
+  // Take the boolean value passed in and set the `expanded` field equal to it
+  updateState = (newFlag: any) => {
+    this.setState(prevState => ({ ...prevState, expanded: newFlag }));
+  };
+
+  // Return whether 'expanded' is set to true or false
+  getExpandedValue = () => this.state.expanded;
+
   render() {
     const cellData = this.state.cellValue;
     const jsonObject = safeJsonObjectParse(this.state.cellValue);
-    const cellNode = <div>{cellData}</div>;
+
+    // If there is a JSON object, either show it expanded or collapsed based
+    // on the value which the `expanded` field is set to
     if (jsonObject) {
-      return addJsonModal(cellNode, jsonObject, cellData);
+      if (this.state.expanded === false) {
+        return expandJSON(this.reverseState, cellData);
+      }
+      return collapseJSON(this.reverseState, jsonObject);
     }
-    return cellData ?? null;
+    // If the cellData is set to 'null' or undefined, return null
+    return cellData !== 'null' && cellData !== undefined ? cellData : null;
   }
 
   static getValueToDisplay(params: { valueFormatted: any; value: any }) {

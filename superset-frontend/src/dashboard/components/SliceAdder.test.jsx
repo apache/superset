@@ -20,10 +20,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import { List } from 'react-virtualized';
-
-import SliceAdder from 'src/dashboard/components/SliceAdder';
+import SliceAdder, { ChartList } from 'src/dashboard/components/SliceAdder';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { styledShallow } from 'spec/helpers/theming';
 
 describe('SliceAdder', () => {
   const mockEvent = {
@@ -36,9 +35,9 @@ describe('SliceAdder', () => {
   const props = {
     ...mockSliceEntities,
     fetchAllSlices: () => {},
+    fetchSortedSlices: () => {},
     selectedSliceIds: [127, 128],
     userId: '1',
-    height: 100,
   };
   const errorProps = {
     ...props,
@@ -71,10 +70,10 @@ describe('SliceAdder', () => {
     });
   });
 
-  it('render List', () => {
-    const wrapper = shallow(<SliceAdder {...props} />);
+  it('render chart list', () => {
+    const wrapper = styledShallow(<SliceAdder {...props} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
-    expect(wrapper.find(List)).toExist();
+    expect(wrapper.find(ChartList)).toExist();
   });
 
   it('render error', () => {

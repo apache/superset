@@ -30,7 +30,6 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
   });
 
@@ -74,7 +73,7 @@ describe('Test explore links', () => {
     };
     const newChartName = `Test chart [${shortid.generate()}]`;
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
     cy.url().then(() => {
       cy.get('[data-test="query-save-button"]').click();
@@ -101,8 +100,8 @@ describe('Test explore links', () => {
 
       cy.request(apiURL('/api/v1/chart/', query)).then(response => {
         expect(response.body.count).equals(1);
-        cy.request('DELETE', `/api/v1/chart/${response.body.ids[0]}`);
       });
+      cy.deleteChartByName(newChartName, true);
     });
   });
 
@@ -183,5 +182,6 @@ describe('Test explore links', () => {
     cy.request(apiURL('/api/v1/dashboard/', query)).then(response => {
       expect(response.body.count).equals(1);
     });
+    cy.deleteDashboardByName(dashboardTitle, true);
   });
 });

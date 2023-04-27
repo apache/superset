@@ -88,7 +88,7 @@ export interface CccsGridTransformedProps extends CccsGridStylesProps {
   // add typing here for the props you pass in from transformProps.ts!
   agGridLicenseKey: string;
   datasetColumns: Column[];
-  jumpActionConfigs?: any[]
+  jumpActionConfigs?: any[];
 }
 
 export type EventHandlers = Record<string, { (props: any): void }>;

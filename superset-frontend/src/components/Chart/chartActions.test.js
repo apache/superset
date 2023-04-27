@@ -94,6 +94,25 @@ describe('chart actions', () => {
       );
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     });
+
+    it('should handle the bigint without regression', async () => {
+      getChartDataUriStub.restore();
+      const mockBigIntUrl = '/mock/chart/data/bigint';
+      const expectedBigNumber = '9223372036854775807';
+      fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
+        overwriteRoutes: true,
+      });
+      getChartDataUriStub = sinon
+        .stub(exploreUtils, 'getChartDataUri')
+        .callsFake(() => URI(mockBigIntUrl));
+
+      const { json } = await actions.getChartDataRequest({
+        formData: fakeMetadata,
+      });
+
+      expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
+      expect(json.value.toString()).toEqual(expectedBigNumber);
+    });
   });
 
   describe('legacy API', () => {
@@ -193,6 +212,25 @@ describe('chart actions', () => {
 
         setupDefaultFetchMock();
       });
+    });
+
+    it('should handle the bigint without regression', async () => {
+      getExploreUrlStub.restore();
+      const mockBigIntUrl = '/mock/chart/data/bigint';
+      const expectedBigNumber = '9223372036854775807';
+      fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
+        overwriteRoutes: true,
+      });
+      getExploreUrlStub = sinon
+        .stub(exploreUtils, 'getExploreUrl')
+        .callsFake(() => mockBigIntUrl);
+
+      const { json } = await actions.getChartDataRequest({
+        formData: fakeMetadata,
+      });
+
+      expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
+      expect(json.result[0].value.toString()).toEqual(expectedBigNumber);
     });
   });
 });

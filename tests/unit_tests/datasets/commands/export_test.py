@@ -21,7 +21,7 @@ import json
 from sqlalchemy.orm.session import Session
 
 
-def test_export(app_context: None, session: Session) -> None:
+def test_export(session: Session) -> None:
     """
     Test exporting a dataset.
     """
@@ -194,6 +194,7 @@ expose_in_sqllab: true
 allow_run_async: false
 allow_ctas: false
 allow_cvas: false
+allow_dml: false
 allow_file_upload: false
 extra:
   metadata_params: {{}}

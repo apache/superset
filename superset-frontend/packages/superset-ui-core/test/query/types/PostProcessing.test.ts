@@ -42,7 +42,7 @@ import {
   PostProcessingRolling,
   PostProcessingSort,
 } from '@superset-ui/core';
-import { ComparisionType, RollingType, TimeGranularity } from '../../../src';
+import { ComparisonType, RollingType, TimeGranularity } from '../../../src';
 
 const AGGREGATES_OPTION: Aggregates = {
   bar: {
@@ -74,7 +74,7 @@ const COMPARE_RULE: PostProcessingCompare = {
   options: {
     source_columns: ['foo'],
     compare_columns: ['bar'],
-    compare_type: ComparisionType.Percentage,
+    compare_type: ComparisonType.Percentage,
     drop_original_columns: false,
   },
 };
@@ -110,8 +110,6 @@ const PIVOT_RULE: PostProcessingPivot = {
     index: ['foo'],
     columns: ['bar'],
     aggregates: AGGREGATES_OPTION,
-    flatten_columns: true,
-    reset_index: true,
   },
 };
 
@@ -149,7 +147,7 @@ const ROLLING_RULE: PostProcessingRolling = {
 const SORT_RULE: PostProcessingSort = {
   operation: 'sort',
   options: {
-    columns: { foo: true },
+    by: 'foo',
   },
 };
 

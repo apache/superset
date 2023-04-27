@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from './dashboard_list.helper';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
 
 describe('dashboard list view', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit(DASHBOARD_LIST);
   });
 
@@ -33,7 +32,7 @@ describe('dashboard list view', () => {
     cy.eyesOpen({
       testName: 'Dashboards list-view',
     });
-    cy.eyesCheckWindow('Dashboards loaded');
+    cy.eyesCheckWindow('Dashboards list-view loaded');
   });
 
   it('should load the Dashboards card list', () => {
@@ -41,6 +40,6 @@ describe('dashboard list view', () => {
     cy.eyesOpen({
       testName: 'Dashboards card-view',
     });
-    cy.eyesCheckWindow('Dashboards loaded');
+    cy.eyesCheckWindow('Dashboards card-view loaded');
   });
 });

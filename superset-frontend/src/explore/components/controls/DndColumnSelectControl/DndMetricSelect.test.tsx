@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
+import { FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -66,6 +67,14 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
+
+beforeAll(() => {
+  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
+});
+
+afterAll(() => {
+  window.featureFlags = {};
+});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
@@ -124,6 +133,7 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   );
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
+  expect(screen.queryByText('metric_b')).not.toBeInTheDocument();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
@@ -162,15 +172,6 @@ test('remove selected custom metric when metric gets removed from dataset for si
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedMetric}
-      value={metricValue}
-      onChange={onChange}
-      multi={false}
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedMetric}
@@ -211,15 +212,6 @@ test('remove selected adhoc metric when column gets removed from dataset', async
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedColumn}
-      value={metricValues}
-      onChange={onChange}
-      multi
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedColumn}

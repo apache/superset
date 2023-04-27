@@ -14,13 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+
+from sqlalchemy import types
+from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
@@ -67,12 +74,12 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
+    def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> Dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 
@@ -99,10 +106,11 @@ class DruidEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"
-        if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
+        if isinstance(sqla_type, (types.DateTime, types.TIMESTAMP)):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
 
@@ -119,3 +127,21 @@ class DruidEngineSpec(BaseEngineSpec):
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "MILLIS_TO_TIMESTAMP({col})"
+
+    @classmethod
+    def get_columns(
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Update the Druid type map.
+        """
+        return super().get_columns(inspector, table_name, schema)
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel
+        from requests import exceptions as requests_exceptions
+
+        return {
+            requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
+        }

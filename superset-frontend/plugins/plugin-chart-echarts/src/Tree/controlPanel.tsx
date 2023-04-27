@@ -20,10 +20,11 @@ import React from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 
 const requiredEntity = {
   ...sharedControls.entity,
@@ -160,7 +161,7 @@ const controlPanel: ControlPanelConfig = {
                 ['right', t('right')],
                 ['bottom', t('bottom')],
               ],
-              description: t('Position of intermidiate node label on tree'),
+              description: t('Position of intermediate node label on tree'),
             },
           },
         ],
@@ -285,13 +286,9 @@ const controlPanel: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.standardizedState.metrics[0],
-  }),
-  updateStandardizedState: (prevState, currState) => ({
-    ...currState,
-    metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

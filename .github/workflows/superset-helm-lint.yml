@@ -44,3 +44,4 @@ jobs:
           CT_CHART_DIRS: helm
           CT_LINT_CONF: lintconf.yaml
           CT_SINCE: HEAD
+          CT_CHART_REPOS: bitnami=https://charts.bitnami.com/bitnami

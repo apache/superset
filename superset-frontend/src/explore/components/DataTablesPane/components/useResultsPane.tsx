@@ -17,13 +17,17 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  styled,
+  t,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
-import { getQueryCount } from '../utils';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
@@ -31,7 +35,7 @@ const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
-const cache = new WeakSet();
+const cache = new WeakMap();
 
 export const useResultsPane = ({
   isRequest,
@@ -43,16 +47,26 @@ export const useResultsPane = ({
   isVisible,
   dataSize = 50,
 }: ResultsPaneProps): React.ReactElement[] => {
+  const metadata = getChartMetadataRegistry().get(
+    queryFormData?.viz_type || queryFormData?.vizType,
+  );
+
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
-  const queryCount = getQueryCount(
-    queryFormData?.viz_type || queryFormData?.vizType,
-  );
+  const queryCount = metadata?.queryObjectCount ?? 1;
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
+    if (isRequest && cache.has(queryFormData)) {
+      setResultResp(ensureIsArray(cache.get(queryFormData)));
+      setResponseError('');
+      if (queryForce && actions) {
+        actions.setForceQuery(false);
+      }
+      setIsLoading(false);
+    }
     if (isRequest && !cache.has(queryFormData)) {
       setIsLoading(true);
       getChartDataRequest({
@@ -65,7 +79,7 @@ export const useResultsPane = ({
         .then(({ json }) => {
           setResultResp(ensureIsArray(json.result));
           setResponseError('');
-          cache.add(queryFormData);
+          cache.set(queryFormData, json.result);
           if (queryForce && actions) {
             actions.setForceQuery(false);
           }
@@ -122,15 +136,17 @@ export const useResultsPane = ({
     );
   }
 
-  return resultResp.map((result, idx) => (
-    <SingleQueryResultPane
-      data={result.data}
-      colnames={result.colnames}
-      coltypes={result.coltypes}
-      dataSize={dataSize}
-      datasourceId={queryFormData.datasource}
-      key={idx}
-      isVisible={isVisible}
-    />
-  ));
+  return resultResp
+    .slice(0, queryCount)
+    .map((result, idx) => (
+      <SingleQueryResultPane
+        data={result.data}
+        colnames={result.colnames}
+        coltypes={result.coltypes}
+        dataSize={dataSize}
+        datasourceId={queryFormData.datasource}
+        key={idx}
+        isVisible={isVisible}
+      />
+    ));
 };

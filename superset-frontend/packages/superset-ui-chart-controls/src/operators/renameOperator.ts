@@ -21,7 +21,8 @@ import {
   PostProcessingRename,
   ensureIsArray,
   getMetricLabel,
-  ComparisionType,
+  ComparisonType,
+  getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 import { getMetricOffsetsMap, isTimeComparison } from './utils';
@@ -31,26 +32,29 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   queryObject,
 ) => {
   const metrics = ensureIsArray(queryObject.metrics);
-  const columns = ensureIsArray(queryObject.columns);
-  const { x_axis: xAxis, truncate_metric } = formData;
+  const columns = ensureIsArray(
+    queryObject.series_columns || queryObject.columns,
+  );
+  const { truncate_metric } = formData;
+  const xAxisLabel = getXAxisLabel(formData);
   // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) only 1 metric
-  // 2) exist dimentsion
-  // 3) exist xAxis
-  // 4) exist time comparison, and comparison type is "actual values"
+  // 2) dimension exist
+  // 3) xAxis exist
+  // 4) time comparison exist, and comparison type is "actual values"
   // 5) truncate_metric in form_data and truncate_metric is true
   if (
     metrics.length === 1 &&
     columns.length > 0 &&
-    (xAxis || queryObject.is_timeseries) &&
+    xAxisLabel &&
     !(
       // todo: we should provide an approach to handle derived metrics
       (
         isTimeComparison(formData, queryObject) &&
         [
-          ComparisionType.Difference,
-          ComparisionType.Ratio,
-          ComparisionType.Percentage,
+          ComparisonType.Difference,
+          ComparisonType.Ratio,
+          ComparisonType.Percentage,
         ].includes(formData.comparison_type)
       )
     ) &&
@@ -64,7 +68,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
       // we will rename the "metric" from the metricWithOffset label
       // for example: "count__1 year ago" =>	"1 year ago"
       isTimeComparison(formData, queryObject) &&
-      formData.comparison_type === ComparisionType.Values
+      formData.comparison_type === ComparisonType.Values
     ) {
       const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
       const timeOffsets = ensureIsArray(formData.time_compare);

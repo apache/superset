@@ -71,6 +71,7 @@ get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 #
 # Column schema descriptions
 #
+id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
@@ -153,7 +154,7 @@ class ChartEntityResponseSchema(Schema):
     Schema for a chart object
     """
 
-    slice_id = fields.Integer()
+    id = fields.Integer(description=id_description)
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
@@ -434,7 +435,7 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         example=7,
     )
     rolling_type_options = fields.Dict(
-        desctiption="Optional options to pass to rolling method. Needed for "
+        description="Optional options to pass to rolling method. Needed for "
         "e.g. quantile operation.",
         example={},
     )
@@ -550,7 +551,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         required=True,
     )
     periods = fields.Integer(
-        descrption="Time periods (in units of `time_grain`) to predict into the future",
+        description="Time periods (in units of `time_grain`) to predict into the future",
         min=0,
         example=7,
         required=True,
@@ -819,7 +820,8 @@ class ChartDataFilterSchema(Schema):
     )
     val = fields.Raw(
         description="The value or values to compare against. Can be a string, "
-        "integer, decimal or list, depending on the operator.",
+        "integer, decimal, None or list, depending on the operator.",
+        allow_none=True,
         example=["China", "France", "Japan"],
     )
     grain = fields.String(
@@ -853,7 +855,9 @@ class ChartDataExtrasSchema(Schema):
     )
     having_druid = fields.List(
         fields.Nested(ChartDataFilterSchema),
-        description="HAVING filters to be added to legacy Druid datasource queries.",
+        description="HAVING filters to be added to legacy Druid datasource queries. "
+        "This field is deprecated",
+        deprecated=True,
     )
     time_grain_sqla = fields.String(
         description="To what level of granularity should the temporal column be "
@@ -867,11 +871,6 @@ class ChartDataExtrasSchema(Schema):
             ]
         ),
         example="P1D",
-        allow_none=True,
-    )
-    druid_time_origin = fields.String(
-        description="Starting point for time grain counting on legacy Druid "
-        "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
         allow_none=True,
     )
 
@@ -911,7 +910,7 @@ class AnnotationLayerSchema(Schema):
     )
     overrides = fields.Dict(
         keys=fields.String(
-            desciption="Name of property to be overridden",
+            description="Name of property to be overridden",
             validate=validate.OneOf(
                 choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
             ),
@@ -1175,6 +1174,7 @@ class ChartDataQueryObjectSchema(Schema):
         "This field is deprecated and should be passed to `extras` "
         "as `druid_time_origin`.",
         allow_none=True,
+        deprecated=True,
     )
     url_params = fields.Dict(
         description="Optional query parameters passed to a dashboard or Explore view",
@@ -1205,6 +1205,7 @@ class ChartDataQueryContextSchema(Schema):
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
+        allow_none=True,
     )
 
     result_type = EnumField(ChartDataResultType, by_value=True)
@@ -1298,7 +1299,7 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     stacktrace = fields.String(
-        desciption="Stacktrace if there was an error",
+        description="Stacktrace if there was an error",
         allow_none=True,
     )
     rowcount = fields.Integer(
@@ -1317,10 +1318,10 @@ class ChartDataResponseResult(Schema):
         fields.Dict(), description="A list with rejected filters"
     )
     from_dttm = fields.Integer(
-        desciption="Start timestamp of time range", required=False, allow_none=True
+        description="Start timestamp of time range", required=False, allow_none=True
     )
     to_dttm = fields.Integer(
-        desciption="End timestamp of time range", required=False, allow_none=True
+        description="End timestamp of time range", required=False, allow_none=True
     )
 
 
@@ -1368,6 +1369,9 @@ class GetFavStarIdsSchema(Schema):
 
 class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
     query_context = fields.String(allow_none=True, validate=utils.validate_json)

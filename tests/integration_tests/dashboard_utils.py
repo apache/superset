@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
 
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -35,9 +35,8 @@ def get_table(
     schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
-    table_source = ConnectorRegistry.sources["table"]
     return (
-        db.session.query(table_source)
+        db.session.query(SqlaTable)
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
         .one_or_none()
     )
@@ -54,8 +53,7 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table_source = ConnectorRegistry.sources["table"]
-        table = table_source(schema=schema, table_name=table_name)
+        table = SqlaTable(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
@@ -82,8 +80,9 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-    if not dash:
-        dash = Dashboard()
+    if dash:
+        return dash
+    dash = Dashboard()
     dash.dashboard_title = title
     if position is not None:
         js = position
@@ -92,7 +91,7 @@ def create_dashboard(
     dash.slug = slug
     if slices is not None:
         dash.slices = slices
-    db.session.merge(dash)
+    db.session.add(dash)
     db.session.commit()
 
     return dash

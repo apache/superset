@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from './chart_list.helper';
+import { CHART_LIST } from 'cypress/utils/urls';
 
 describe('charts list view', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit(CHART_LIST);
   });
 
@@ -33,7 +32,7 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts list-view',
     });
-    cy.eyesCheckWindow('Charts loaded');
+    cy.eyesCheckWindow('Charts list-view loaded');
   });
 
   it('should load the Charts card list', () => {
@@ -41,6 +40,6 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts card-view',
     });
-    cy.eyesCheckWindow('Charts loaded');
+    cy.eyesCheckWindow('Charts card-view loaded');
   });
 });

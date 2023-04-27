@@ -33,7 +33,8 @@ from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 
-from superset.models.tags import ObjectTypes, TagTypes
+from superset.tags.models import ObjectTypes, TagTypes
+from superset.utils.core import get_user_id
 
 Base = declarative_base()
 
@@ -54,7 +55,7 @@ class AuditMixinNullable(AuditMixin):
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
-            default=self.get_user_id,
+            default=get_user_id,
             nullable=True,
         )
 
@@ -63,8 +64,8 @@ class AuditMixinNullable(AuditMixin):
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
-            default=self.get_user_id,
-            onupdate=self.get_user_id,
+            default=get_user_id,
+            onupdate=get_user_id,
             nullable=True,
         )
 

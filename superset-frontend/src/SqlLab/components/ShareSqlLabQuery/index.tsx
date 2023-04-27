@@ -25,10 +25,10 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { QueryEditor } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-interface ShareSqlLabQueryPropTypes {
-  queryEditor: QueryEditor;
+interface ShareSqlLabQueryProps {
+  queryEditorId: string;
   addDangerToast: (msg: string) => void;
 }
 
@@ -42,15 +42,25 @@ const StyledIcon = styled(Icons.Link)`
   }
 `;
 
-function ShareSqlLabQuery({
-  queryEditor,
+const ShareSqlLabQuery = ({
+  queryEditorId,
   addDangerToast,
-}: ShareSqlLabQueryPropTypes) {
+}: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
+  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
+    useQueryEditor(queryEditorId, [
+      'dbId',
+      'name',
+      'schema',
+      'autorun',
+      'sql',
+      'remoteId',
+      'templateParams',
+    ]);
+
   const getCopyUrlForKvStore = (callback: Function) => {
-    const { dbId, title, schema, autorun, sql } = queryEditor;
-    const sharedQuery = { dbId, title, schema, autorun, sql };
+    const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
 
     return storeQuery(sharedQuery)
       .then(shortUrl => {
@@ -66,10 +76,10 @@ function ShareSqlLabQuery({
   const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
 
-    if (queryEditor.remoteId) {
+    if (remoteId) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
-      }?savedQueryId=${queryEditor.remoteId}`;
+      }?savedQueryId=${remoteId}`;
       callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
@@ -101,8 +111,7 @@ function ShareSqlLabQuery({
   };
 
   const canShare =
-    !!queryEditor.remoteId ||
-    isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+    !!remoteId || isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
 
   return (
     <>
@@ -117,6 +126,6 @@ function ShareSqlLabQuery({
       )}
     </>
   );
-}
+};
 
 export default withToasts(ShareSqlLabQuery);

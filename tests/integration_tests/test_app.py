@@ -14,11 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-"""
-Here is where we create the app which ends up being shared across all tests.integration_tests. A future
-optimization will be to create a separate app instance for each test class.
-"""
 from typing import TYPE_CHECKING
 
 from superset.app import create_app
@@ -27,7 +22,6 @@ if TYPE_CHECKING:
     from typing import Any
 
     from flask.testing import FlaskClient
-from superset.app import create_app
 
 app = create_app()
 

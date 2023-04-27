@@ -23,7 +23,7 @@ import unittest
 from random import random
 
 import pytest
-from flask import escape, url_for
+from flask import Response, escape, url_for
 from sqlalchemy import func
 
 from tests.integration_tests.test_app import app
@@ -125,13 +125,12 @@ class TestDashboard(SupersetTestCase):
             positions[id] = d
         return positions
 
-    def test_dashboard(self):
+    def test_get_dashboard(self):
         self.login(username="admin")
-        urls = {}
-        for dash in db.session.query(Dashboard).all():
-            urls[dash.dashboard_title] = dash.url
-        for title, url in urls.items():
-            assert escape(title) in self.client.get(url).data.decode("utf-8")
+        for dash in db.session.query(Dashboard):
+            assert escape(dash.dashboard_title) in self.client.get(dash.url).get_data(
+                as_text=True
+            )
 
     def test_superset_dashboard_url(self):
         url_for("Superset.dashboard", dashboard_id_or_slug=1)
@@ -144,7 +143,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
         group = re.match(
-            r"http:\/\/localhost\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
@@ -424,8 +423,9 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("public_role_like_gamma")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "public_role_like_gamma"
+    )
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -437,8 +437,9 @@ class TestDashboard(SupersetTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        # this asserts a non-4xx response
-        self.get_resp("/superset/dashboard/births/")
+        res: Response = self.client.get("/superset/dashboard/births/")
+        assert res.status_code == 200
+
         # Cleanup
         self.revoke_public_access_to_table(table)
 
@@ -486,13 +487,18 @@ class TestDashboard(SupersetTestCase):
         hidden_dash.slices = []
         hidden_dash.owners = []
 
-        db.session.merge(dash)
-        db.session.merge(hidden_dash)
+        db.session.add(dash)
+        db.session.add(hidden_dash)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
         self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
@@ -509,8 +515,8 @@ class TestDashboard(SupersetTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -520,12 +526,18 @@ class TestDashboard(SupersetTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(favorites)
+        db.session.delete(regular_dash)
+        db.session.delete(favorite_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
@@ -540,12 +552,16 @@ class TestDashboard(SupersetTestCase):
         dash.owners = [admin_user]
         dash.slices = []
         dash.published = False
-        db.session.merge(dash)
+        db.session.add(dash)
         db.session.commit()
 
         # list dashboards as a gamma user
         self.login(gamma_user.username)
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.commit()
+
         self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
 
 

@@ -16,26 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  buildQueryContext,
+  ensureIsArray,
+  isPhysicalColumn,
+} from '@superset-ui/core';
 import { boxplotOperator } from '@superset-ui/chart-controls';
 import { BoxPlotQueryFormData } from './types';
 
 export default function buildQuery(formData: BoxPlotQueryFormData) {
-  const { columns = [], granularity_sqla, groupby = [] } = formData;
-  return buildQueryContext(formData, baseQueryObject => {
-    const distributionColumns: string[] = [];
-    // For now default to using the temporal column as distribution column.
-    // In the future this control should be made mandatory.
-    if (!columns.length && granularity_sqla) {
-      distributionColumns.push(granularity_sqla);
-    }
-    return [
-      {
-        ...baseQueryObject,
-        columns: [...distributionColumns, ...columns, ...groupby],
-        series_columns: groupby,
-        post_processing: [boxplotOperator(formData, baseQueryObject)],
-      },
-    ];
-  });
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [
+        ...(ensureIsArray(formData.columns).length === 0 &&
+        formData.granularity_sqla
+          ? [formData.granularity_sqla] // for backwards compatible: if columns control is empty and granularity_sqla was set, the time columns is default distributed column.
+          : ensureIsArray(formData.columns)
+        ).map(col => {
+          if (
+            isPhysicalColumn(col) &&
+            formData.time_grain_sqla &&
+            formData?.temporal_columns_lookup?.[col]
+          ) {
+            return {
+              timeGrain: formData.time_grain_sqla,
+              columnType: 'BASE_AXIS',
+              sqlExpression: col,
+              label: col,
+              expressionType: 'SQL',
+            } as AdhocColumn;
+          }
+          return col;
+        }),
+        ...ensureIsArray(formData.groupby),
+      ],
+      series_columns: formData.groupby,
+      post_processing: [boxplotOperator(formData, baseQueryObject)],
+    },
+  ]);
 }

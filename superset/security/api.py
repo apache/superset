@@ -33,7 +33,11 @@ from superset.embedded_dashboard.commands.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import (
+    BaseSupersetApi,
+    BaseSupersetModelRestApi,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +84,7 @@ class GuestTokenCreateSchema(PermissiveSchema):
 guest_token_create_schema = GuestTokenCreateSchema()
 
 
-class SecurityRestApi(BaseApi):
+class SecurityRestApi(BaseSupersetApi):
     resource_name = "security"
     allow_browser_login = True
     openapi_spec_tag = "Security"
@@ -89,6 +93,7 @@ class SecurityRestApi(BaseApi):
     @event_logger.log_this
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("read")
     def csrf_token(self) -> Response:
         """
@@ -118,6 +123,7 @@ class SecurityRestApi(BaseApi):
     @event_logger.log_this
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("grant_guest_token")
     def guest_token(self) -> Response:
         """Response

@@ -202,7 +202,6 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
             user_ip_string = user_ips[0]
             for index in range(1, len(user_ips)):
                 user_ip_string += "%22%2C%20%22" + user_ips[index]
-
         url = (
             self.ALFRED_URL
             + "/rest/search/cypher?expression=MATCH%20(ip%3AIP_ADDRESS)%20WHERE%20ip.value%20IN%20%5B%22"

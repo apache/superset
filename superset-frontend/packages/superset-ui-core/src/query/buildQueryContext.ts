@@ -23,6 +23,8 @@ import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
 import { QueryContext, QueryObject } from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
+import { normalizeTimeColumn } from './normalizeTimeColumn';
+import { isXAxisSet } from './getXAxis';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
@@ -45,13 +47,19 @@ export default function buildQueryContext(
     typeof options === 'function'
       ? { buildQuery: options, queryFields: {} }
       : options || {};
-  const queries = buildQuery(buildQueryObject(formData, queryFields));
+  let queries = buildQuery(buildQueryObject(formData, queryFields));
+  // --- query mutator begin ---
+  // todo(Yongjie): move the query mutator into buildQueryObject instead of buildQueryContext
   queries.forEach(query => {
     if (Array.isArray(query.post_processing)) {
       // eslint-disable-next-line no-param-reassign
       query.post_processing = query.post_processing.filter(Boolean);
     }
   });
+  if (isXAxisSet(formData)) {
+    queries = queries.map(query => normalizeTimeColumn(formData, query));
+  }
+  // --- query mutator end ---
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,

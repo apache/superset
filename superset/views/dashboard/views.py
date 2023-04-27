@@ -24,7 +24,7 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
-from flask_login import AnonymousUserMixin, LoginManager
+from flask_login import AnonymousUserMixin, login_user
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -33,7 +33,6 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
-    check_ownership,
     common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
@@ -97,12 +96,11 @@ class DashboardModelView(
             item.owners.append(g.user)
         utils.validate_json(item.json_metadata)
         utils.validate_json(item.position_json)
-        owners = list(item.owners)
         for slc in item.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
+            slc.owners = list(set(item.owners) | set(slc.owners))
 
     def pre_update(self, item: "DashboardModelView") -> None:
-        check_ownership(item)
+        security_manager.raise_for_ownership(item)
         self.pre_add(item)
 
 
@@ -151,8 +149,7 @@ class Dashboard(BaseSupersetView):
         # Log in as an anonymous user, just for this view.
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
-        login_manager: LoginManager = security_manager.lm
-        login_manager.reload_user(AnonymousUserMixin())
+        login_user(AnonymousUserMixin(), force=True)
 
         add_extra_log_payload(
             dashboard_id=dashboard_id_or_slug,
@@ -160,7 +157,7 @@ class Dashboard(BaseSupersetView):
         )
 
         bootstrap_data = {
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 

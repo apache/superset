@@ -19,8 +19,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 from flask import Flask
+from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
-from sqlalchemy.engine import Connection, Dialect, RowProxy
+from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
 logger = logging.getLogger(__name__)
@@ -109,18 +110,24 @@ class SecretsMigrator:
             return bytes(value.encode("utf8"))
 
         # Just bail if we haven't seen this type before...
-        raise ValueError(f"DB column {col_name} has unknown type: {type(value)}")
+        raise ValueError(
+            _(
+                "DB column %(col_name)s has unknown type: %(value_type)s",
+                col_name=col_name,
+                value_type=type(value),
+            )
+        )
 
     @staticmethod
     def _select_columns_from_table(
         conn: Connection, column_names: List[str], table_name: str
-    ) -> RowProxy:
+    ) -> Row:
         return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")
 
     def _re_encrypt_row(
         self,
         conn: Connection,
-        row: RowProxy,
+        row: Row,
         table_name: str,
         columns: Dict[str, EncryptedType],
     ) -> None:

@@ -31,7 +31,6 @@ import datasources from 'spec/fixtures/mockDatasource';
 import {
   extraFormData,
   NATIVE_FILTER_ID,
-  layoutForSingleNativeFilter,
   singleNativeFiltersState,
   dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
@@ -157,7 +156,7 @@ describe('Dashboard', () => {
           ...getAllActiveFilters({
             dataMask: dataMaskWith1Filter,
             nativeFilters: singleNativeFiltersState.filters,
-            layout: layoutForSingleNativeFilter,
+            allSliceIds: [227, 229, 230],
           }),
         },
       });

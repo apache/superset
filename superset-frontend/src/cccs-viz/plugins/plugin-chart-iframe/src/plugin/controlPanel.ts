@@ -25,7 +25,6 @@ import {
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
-
   /**
    * The control panel is split into two tabs: "Query" and
    * "Chart Options". The controls that define the inputs to
@@ -99,7 +98,7 @@ const config: ControlPanelConfig = {
    * - validateInteger: must be an integer value
    * - validateNumber: must be an intger or decimal value
    */
-  
+
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
     {
@@ -121,7 +120,9 @@ const config: ControlPanelConfig = {
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors =  controlState.value ? [] : ["Please add a value for URL."]
+                newState.externalValidationErrors = controlState.value
+                  ? []
+                  : ['Please add a value for URL.'];
                 return newState;
               },
               renderTrigger: true,
@@ -135,7 +136,8 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             override: {
               label: t('Parameter Column Name'),
-              description: "The name of the column that will populate the url parameter value.",
+              description:
+                'The name of the column that will populate the url parameter value.',
               multi: false,
               allowAll: false,
               default: [],
@@ -148,7 +150,10 @@ const config: ControlPanelConfig = {
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = ensureIsArray(controlState.value).length > 0 ? [] : ["Please add a value for Parameter Column Name."]
+                newState.externalValidationErrors =
+                  ensureIsArray(controlState.value).length > 0
+                    ? []
+                    : ['Please add a value for Parameter Column Name.'];
                 return newState;
               },
             },
@@ -168,7 +173,9 @@ const config: ControlPanelConfig = {
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors =  controlState.value ? [] : ["Please add a value for Parameter Name."]
+                newState.externalValidationErrors = controlState.value
+                  ? []
+                  : ['Please add a value for Parameter Name.'];
                 return newState;
               },
               default: '',
@@ -183,10 +190,12 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               label: t('Parameter Prefix'),
               default: '',
-              description: t('A value that will be prefix the parameter value.'),
+              description: t(
+                'A value that will be prefix the parameter value.',
+              ),
             },
           },
-        ]
+        ],
       ],
     },
   ],

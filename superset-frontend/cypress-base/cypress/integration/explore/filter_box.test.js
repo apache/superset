@@ -22,12 +22,11 @@ describe('Edit FilterBox Chart', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'filter_box' };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

@@ -32,7 +32,7 @@ import { AnnotationObject } from './types';
 interface AnnotationModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  annnotationLayerId: number;
+  annotationLayerId: number;
   annotation?: AnnotationObject | null;
   onAnnotationAdd?: (annotation?: AnnotationObject) => void;
   onHide: () => void;
@@ -84,7 +84,7 @@ const AnnotationContainer = styled.div`
 const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   addDangerToast,
   addSuccessToast,
-  annnotationLayerId,
+  annotationLayerId,
   annotation = null,
   onAnnotationAdd,
   onHide,
@@ -102,7 +102,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     createResource,
     updateResource,
   } = useSingleViewResource<AnnotationObject>(
-    `annotation_layer/${annnotationLayerId}/annotation`,
+    `annotation_layer/${annotationLayerId}/annotation`,
     t('annotation'),
     addDangerToast,
   );
@@ -130,7 +130,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const onSave = () => {
     if (isEditMode) {
       // Edit
-      if (currentAnnotation && currentAnnotation.id) {
+      if (currentAnnotation?.id) {
         const update_id = currentAnnotation.id;
         delete currentAnnotation.id;
         delete currentAnnotation.created_by;
@@ -217,10 +217,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
 
   const validate = () => {
     if (
-      currentAnnotation &&
-      currentAnnotation.short_descr?.length &&
-      currentAnnotation.start_dttm?.length &&
-      currentAnnotation.end_dttm?.length
+      currentAnnotation?.short_descr?.length &&
+      currentAnnotation?.start_dttm?.length &&
+      currentAnnotation?.end_dttm?.length
     ) {
       setDisableSave(false);
     } else {
@@ -237,7 +236,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         (annotation && annotation.id !== currentAnnotation.id) ||
         show)
     ) {
-      if (annotation && annotation.id !== null && !loading) {
+      if (annotation?.id !== null && !loading) {
         const id = annotation.id || 0;
 
         fetchResource(id);
@@ -274,7 +273,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       show={show}
       width="55%"
       title={
-        <h4 data-test="annotaion-modal-title">
+        <h4 data-test="annotation-modal-title">
           {isEditMode ? (
             <Icons.EditAlt css={StyledIcon} />
           ) : (
@@ -305,6 +304,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           <span className="required">*</span>
         </div>
         <RangePicker
+          placeholder={[t('Start date'), t('End date')]}
           format="YYYY-MM-DD HH:mm"
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
@@ -337,7 +337,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <StyledJsonEditor
           onChange={onJsonChange}
           value={
-            currentAnnotation && currentAnnotation.json_metadata
+            currentAnnotation?.json_metadata
               ? currentAnnotation.json_metadata
               : ''
           }

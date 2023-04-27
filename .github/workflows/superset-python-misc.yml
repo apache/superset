@@ -33,8 +33,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -65,7 +65,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: "pip"
           cache-dependency-path: |
             requirements/base.txt
             requirements/integration.txt
@@ -78,6 +78,15 @@ jobs:
             pip install wheel
             pip install -r requirements/base.txt
             pip install -r requirements/integration.txt
+      # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
+      - name: Enable brew and helm-docs
+        run: |
+          echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
+          brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: pre-commit run --all-files
 
@@ -97,8 +106,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/base.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/base.txt"
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:

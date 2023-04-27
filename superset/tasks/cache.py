@@ -28,7 +28,7 @@ from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.tags import Tag, TaggedObject
+from superset.tags.models import Tag, TaggedObject
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
 
@@ -55,7 +55,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     Strategies can be configured in `superset/config.py`:
 
-        CELERYBEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -82,7 +82,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     This is a dummy strategy that will fetch all charts. Can be configured by:
 
-        CELERYBEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -105,7 +105,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
     """
     Warm up charts in the top-n dashboards.
 
-        CELERYBEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -151,7 +151,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in dashboards with custom tags.
 
-        CELERYBEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly

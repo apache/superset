@@ -84,6 +84,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", SavedQueryFilter, lambda: []]]
 
     show_columns = [
+        "changed_on_delta_humanized",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -95,6 +96,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
+        "template_parameters",
     ]
     list_columns = [
         "changed_on_delta_humanized",
@@ -115,7 +117,14 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
         "extra",
     ]
-    add_columns = ["db_id", "description", "label", "schema", "sql"]
+    add_columns = [
+        "db_id",
+        "description",
+        "label",
+        "schema",
+        "sql",
+        "template_parameters",
+    ]
     edit_columns = add_columns
     order_columns = [
         "schema",
@@ -146,7 +155,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "database": "database_name",
     }
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database"}
     allowed_distinct_fields = {"schema"}
 
@@ -195,7 +204,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteSavedQueryCommand(g.user, item_ids).run()
+            BulkDeleteSavedQueryCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

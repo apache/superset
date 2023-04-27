@@ -22,33 +22,42 @@ import userEvent from '@testing-library/user-event';
 import {
   render,
   waitForElementToBeRemoved,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { exploreActions } from 'src/explore/actions/exploreActions';
-import { promiseTimeout } from '@superset-ui/core';
 import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
 describe('SamplesPane', () => {
-  fetchMock.get('end:/api/v1/dataset/34/samples?force=false', {
-    result: {
-      data: [],
-      colnames: [],
-      coltypes: [],
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34',
+    {
+      result: {
+        data: [],
+        colnames: [],
+        coltypes: [],
+      },
     },
-  });
+  );
 
-  fetchMock.get('end:/api/v1/dataset/35/samples?force=true', {
-    result: {
-      data: [
-        { __timestamp: 1230768000000, genre: 'Action' },
-        { __timestamp: 1230768000010, genre: 'Horror' },
-      ],
-      colnames: ['__timestamp', 'genre'],
-      coltypes: [2, 1],
+  fetchMock.post(
+    'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35',
+    {
+      result: {
+        data: [
+          { __timestamp: 1230768000000, genre: 'Action' },
+          { __timestamp: 1230768000010, genre: 'Horror' },
+        ],
+        colnames: ['__timestamp', 'genre'],
+        coltypes: [2, 1],
+      },
     },
-  });
+  );
 
-  fetchMock.get('end:/api/v1/dataset/36/samples?force=false', 400);
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36',
+    400,
+  );
 
   const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
 
@@ -63,9 +72,9 @@ describe('SamplesPane', () => {
     expect(
       await findByText('No samples were returned for this dataset'),
     ).toBeVisible();
-    await promiseTimeout(() => {
+    await waitFor(() => {
       expect(setForceQuery).toHaveBeenCalledTimes(0);
-    }, 10);
+    });
   });
 
   test('error response', async () => {
@@ -91,9 +100,9 @@ describe('SamplesPane', () => {
       },
     );
 
-    await promiseTimeout(() => {
+    await waitFor(() => {
       expect(setForceQuery).toHaveBeenCalledTimes(1);
-    }, 10);
+    });
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();

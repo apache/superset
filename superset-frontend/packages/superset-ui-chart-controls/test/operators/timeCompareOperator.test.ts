@@ -51,8 +51,6 @@ const queryObject: QueryObject = {
           },
         },
         drop_missing_columns: false,
-        flatten_columns: false,
-        reset_index: false,
       },
     },
     {
@@ -92,8 +90,8 @@ test('should skip CompareOperator', () => {
 });
 
 test('should generate difference/percentage/ratio CompareOperator', () => {
-  const comparisionTypes = ['difference', 'percentage', 'ratio'];
-  comparisionTypes.forEach(cType => {
+  const comparisonTypes = ['difference', 'percentage', 'ratio'];
+  comparisonTypes.forEach(cType => {
     expect(
       timeCompareOperator(
         {

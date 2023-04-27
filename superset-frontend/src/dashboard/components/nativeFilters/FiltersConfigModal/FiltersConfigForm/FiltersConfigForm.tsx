@@ -191,10 +191,6 @@ export const StyledLabel = styled.span`
   text-transform: uppercase;
 `;
 
-export const StyledCheckboxFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
-
 const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
@@ -260,6 +256,19 @@ const StyledAsterisk = styled.span`
   &:before {
     content: '*';
   }
+`;
+
+const FilterTypeInfo = styled.div`
+  ${({ theme }) => `
+    width: 49%;
+    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.light1};
+    margin:
+      ${-theme.gridUnit * 2}px
+      0px
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 4}px;
+  `}
 `;
 
 const FilterTabs = {
@@ -337,6 +346,7 @@ const FiltersConfigForm = (
     setErroredFilters,
     validateDependencies,
     getDependencySuggestion,
+    isActive,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -351,7 +361,7 @@ const FiltersConfigForm = (
     string,
     any
   > | null>(null);
-  const forceUpdate = useForceUpdate();
+  const forceUpdate = useForceUpdate(isActive);
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
@@ -693,7 +703,7 @@ const FiltersConfigForm = (
     }
 
     Object.values(charts).forEach((chart: Chart) => {
-      const chartDatasetUid = chart.formData?.datasource;
+      const chartDatasetUid = chart.form_data?.datasource;
       if (chartDatasetUid === undefined) {
         return;
       }
@@ -799,6 +809,13 @@ const FiltersConfigForm = (
             />
           </StyledFormItem>
         </StyledContainer>
+        {formFilter?.filterType === 'filter_time' && (
+          <FilterTypeInfo>
+            {t(`Dashboard time range filters apply to temporal columns defined in
+          the filter section of each chart. Add temporal columns to the chart
+          filters to have this dashboard filter impact those charts.`)}
+          </FilterTypeInfo>
+        )}
         {hasDataset && (
           <StyledRowContainer>
             {showDataset ? (
@@ -844,7 +861,7 @@ const FiltersConfigForm = (
           </StyledRowContainer>
         )}
         <StyledCollapse
-          activeKey={activeFilterPanelKeys}
+          defaultActiveKey={activeFilterPanelKeys}
           onChange={key => {
             handleActiveFilterPanelChange(key);
           }}
@@ -1248,6 +1265,8 @@ const FiltersConfigForm = (
   );
 };
 
-export default forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
-  FiltersConfigForm,
+export default React.memo(
+  forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
+    FiltersConfigForm,
+  ),
 );

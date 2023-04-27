@@ -19,21 +19,23 @@
 import React, { useCallback } from 'react';
 import { GaugeChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsGauge({
-  height,
-  width,
-  echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
-  formData: { emitFilter },
-}: GaugeChartTransformedProps) {
+export default function EchartsGauge(props: GaugeChartTransformedProps) {
+  const {
+    height,
+    width,
+    echartOptions,
+    setDataMask,
+    labelMap,
+    groupby,
+    selectedValues,
+    emitCrossFilters,
+    refs,
+  } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -67,20 +69,11 @@ export default function EchartsGauge({
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers: EventHandlers = {
-    click: props => {
-      const { name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
-      }
-    },
-  };
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

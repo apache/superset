@@ -1380,7 +1380,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "Impossible de récupérer les données depuis le backend. Rejouez la requête originale."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "La requête associée à ces résultats n'a pu être trouvée. Rejouez la requête originale."
       ],
       "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
@@ -1923,8 +1923,8 @@
       "Write a description for your query": [
         "Ecrire une description à votre requête"
       ],
-      "Schedule query": ["Plannifier une requête"],
-      "Schedule": ["Plannifeir"],
+      "Schedule query": ["Planifier une requête"],
+      "Schedule": ["Planifier"],
       "There was an error with your request": [
         "Il y avait une erreur avec vore requête"
       ],
@@ -2280,7 +2280,7 @@
       "OK": ["OK"],
       "Search all dashboards": ["Chercher tous les tableaux de bord"],
       "Edit Email Report": ["Modifier le rapport e-mail"],
-      "New Email Report": ["Nouveau rapoprt e-mail"],
+      "New Email Report": ["Nouveau rapport e-mail"],
       "Add": ["Ajouter"],
       "Message Content": ["Contenu du message"],
       "Text embedded in email": ["Text encapsulé dans l'e-mail"],
@@ -2289,7 +2289,7 @@
       "REPORT NAME ERROR": ["Erreur dans le nom du rapport"],
       "DESCRIPTION ERROR": ["Erreur de description"],
       "Scheduled reports will be sent to your email as a PNG": [
-        "Les rapports planifiés seront envoyés à votre @ e-mail en PNG"
+        "Les rapports planifiés vous seront envoyés par e-mail en PNG"
       ],
       "Timezone": ["Fuseau horaire"],
       "Email reports active": ["Rapports par e-mail actifs"],
@@ -3225,7 +3225,7 @@
       "log": ["log"],
       "State": ["Etat"],
       "Execution ID": ["ID d'exécution"],
-      "Scheduled at (UTC)": ["Plannifié à (UTC)"],
+      "Scheduled at (UTC)": ["Planifié à (UTC)"],
       "Start at (UTC)": ["Début à (UTC)"],
       "Duration": ["Durée"],
       "Error message": ["Message d'erreur"],
@@ -3419,7 +3419,7 @@
       "Enable query cost estimation": [
         "Activer l'estimation du coût de la requête"
       ],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Pour Presto et Postgres, affiche un bouton pour calculer le coût avant d'exécuter une requête."
       ],
       "Allow this database to be explored": [

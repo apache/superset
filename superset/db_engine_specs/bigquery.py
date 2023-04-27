@@ -26,15 +26,17 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy import column
+from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
+from superset import sql_parse
+from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -45,8 +47,8 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "Access Denied: Project User does not have bigquery.jobs.create "
-    + "permission in project (?P<project>.+?)"
+    "Access Denied: Project (?P<project_name>.+?): User does not have "
+    + "bigquery.jobs.create permission in project (?P<project>.+?)"
 )
 
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
@@ -91,6 +93,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+    disable_ssh_tunneling = True
 
     parameters_schema = BigQueryParametersSchema()
     default_driver = "bigquery"
@@ -104,13 +107,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
-    raw_connections bypass the pybigquery query execution context and deal with
+    raw_connections bypass the sqlalchemy-bigquery query execution context and deal with
     raw dbapi connection directly.
     If this value is not set, the default value is set to 1, as described here,
     https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
 
-    The default value of 5000 is derived from the pybigquery.
-    https://github.com/mxmzdlv/pybigquery/blob/d214bb089ca0807ca9aaa6ce4d5a01172d40264e/pybigquery/sqlalchemy_bigquery.py#L102
+    The default value of 5000 is derived from the sqlalchemy-bigquery.
+    https://github.com/googleapis/python-bigquery-sqlalchemy/blob/4e17259088f89eac155adc19e0985278a29ecf9c/sqlalchemy_bigquery/base.py#L762
     """
     arraysize = 5000
 
@@ -153,9 +156,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please "
-                "confirm that your service account has the Viewer "
-                "and Job User roles on the project."
+                "Unable to connect. Verify that the following roles are set "
+                'on the service account: "BigQuery Data Viewer", '
+                '"BigQuery Metadata Viewer", "BigQuery Job User" '
+                "and the following permissions are set "
+                '"bigquery.readsessions.create", '
+                '"bigquery.readsessions.getData"'
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
@@ -195,15 +201,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.DATETIME:
-            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIME:
-            return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if isinstance(sqla_type, types.Time):
+            return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
         return None
 
     @classmethod
@@ -336,8 +342,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if not table.schema:
             raise Exception("The table schema must be defined")
 
-        engine = cls.get_engine(database)
-        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
+        to_gbq_kwargs = {}
+        with cls.get_engine(database) as engine:
+            to_gbq_kwargs = {
+                "destination_table": str(table),
+                "project_id": engine.url.host,
+            }
 
         # Add credentials if they are set on the SQLAlchemy dialect.
         creds = engine.dialect.credentials_info
@@ -355,6 +365,97 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 to_gbq_kwargs[key] = to_sql_kwargs[key]
 
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
+
+    @classmethod
+    def estimate_query_cost(
+        cls,
+        database: "Database",
+        schema: str,
+        sql: str,
+        source: Optional[utils.QuerySource] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Estimate the cost of a multiple statement SQL query.
+
+        :param database: Database instance
+        :param schema: Database schema
+        :param sql: SQL query with possibly multiple statements
+        :param source: Source of the query (eg, "sql_lab")
+        """
+        extra = database.get_extra() or {}
+        if not cls.get_allow_cost_estimate(extra):
+            raise Exception("Database does not support cost estimation")
+
+        parsed_query = sql_parse.ParsedQuery(sql)
+        statements = parsed_query.get_statements()
+        costs = []
+        for statement in statements:
+            processed_statement = cls.process_statement(statement, database)
+
+            costs.append(cls.estimate_statement_cost(processed_statement, database))
+        return costs
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+        return True
+
+    @classmethod
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+        try:
+            # pylint: disable=import-outside-toplevel
+            # It's the only way to perfom a dry-run estimate cost
+            from google.cloud import bigquery
+            from google.oauth2 import service_account
+        except ImportError as ex:
+            raise Exception(
+                "Could not import libraries `pygibquery` or `google.oauth2`, which are "
+                "required to be installed in your environment in order "
+                "to upload data to BigQuery"
+            ) from ex
+
+        with cls.get_engine(cursor) as engine:
+            creds = engine.dialect.credentials_info
+
+        creds = service_account.Credentials.from_service_account_info(creds)
+        client = bigquery.Client(credentials=creds)
+        job_config = bigquery.QueryJobConfig(dry_run=True)
+
+        query_job = client.query(
+            statement,
+            job_config=job_config,
+        )  # Make an API request.
+
+        # Format Bytes.
+        # TODO: Humanize in case more db engine specs need to be added,
+        # this should be made a function outside this scope.
+        byte_division = 1024
+        if hasattr(query_job, "total_bytes_processed"):
+            query_bytes_processed = query_job.total_bytes_processed
+            if query_bytes_processed // byte_division == 0:
+                byte_type = "B"
+                total_bytes_processed = query_bytes_processed
+            elif query_bytes_processed // (byte_division**2) == 0:
+                byte_type = "KB"
+                total_bytes_processed = round(query_bytes_processed / byte_division, 2)
+            elif query_bytes_processed // (byte_division**3) == 0:
+                byte_type = "MB"
+                total_bytes_processed = round(
+                    query_bytes_processed / (byte_division**2), 2
+                )
+            else:
+                byte_type = "GB"
+                total_bytes_processed = round(
+                    query_bytes_processed / (byte_division**3), 2
+                )
+
+            return {f"{byte_type} Processed": total_bytes_processed}
+        return {}
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        return [{k: str(v) for k, v in row.items()} for row in raw_cost]
 
     @classmethod
     def build_sqlalchemy_uri(
@@ -380,26 +481,77 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls,
+        uri: str,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> Any:
         value = make_url_safe(uri)
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            return {**encrypted_extra, "query": value.query}
+            # ``value.query`` needs to be explicitly converted into a dict (from an
+            # ``immutabledict``) so that it can be JSON serialized
+            return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
+        try:
+            config = json.loads(encrypted_extra)
+        except (json.JSONDecodeError, TypeError):
+            return encrypted_extra
+
+        try:
+            config["credentials_info"]["private_key"] = PASSWORD_MASK
+        except KeyError:
+            pass
+
+        return json.dumps(config)
+
+    @classmethod
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
+        """
+        Reuse ``private_key`` if available and unchanged.
+        """
+        if old is None or new is None:
+            return new
+
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except (TypeError, json.JSONDecodeError):
+            return new
+
+        if "credentials_info" not in new_config:
+            return new
+
+        if "private_key" not in new_config["credentials_info"]:
+            return new
+
+        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
+            new_config["credentials_info"]["private_key"] = old_config[
+                "credentials_info"
+            ]["private_key"]
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
-        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
+        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+        cls,
+        properties: BasicPropertiesType,  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
         return []
 
@@ -523,3 +675,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "author__name" and "author__email", respectively.
         """
         return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]
+
+    @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        try:
+            return Exception(str(exception).splitlines()[0].strip())
+        except Exception:  # pylint: disable=broad-except
+            # If for some reason we get an exception, for example, no new line
+            # We will return the original exception
+            return exception

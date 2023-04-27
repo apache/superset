@@ -19,7 +19,7 @@
 import React, { useCallback, useMemo } from 'react';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { AsyncSelect } from 'src/components';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import {
   ClientErrorObject,
@@ -85,11 +85,12 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
   };
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Dataset')}
       value={value}
       options={loadDatasetOptions}
       onChange={onChange}
+      notFoundContent={t('No compatible datasets found')}
     />
   );
 };

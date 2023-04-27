@@ -82,7 +82,6 @@ export type Filter = {
   adhoc_filters?: AdhocFilter[];
   granularity_sqla?: string;
   granularity?: string;
-  druid_time_origin?: string;
   time_grain_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
@@ -91,6 +90,8 @@ export type Filter = {
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
 };
+
+export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
 
 export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
@@ -105,6 +106,15 @@ export function isNativeFilter(
   return filterElement.type === NativeFilterType.NATIVE_FILTER;
 }
 
+export function isNativeFilterWithDataMask(
+  filterElement: Filter | Divider,
+): filterElement is FilterWithDataMask {
+  return (
+    isNativeFilter(filterElement) &&
+    (filterElement as FilterWithDataMask).dataMask?.filterState?.value
+  );
+}
+
 export function isFilterDivider(
   filterElement: Filter | Divider,
 ): filterElement is Divider {
@@ -117,10 +127,15 @@ export type Filters = {
   [filterId: string]: Filter | Divider;
 };
 
+export type PartialFilters = {
+  [filterId: string]: Partial<Filters[keyof Filters]>;
+};
+
 export type NativeFiltersState = {
   filters: Filters;
   filterSets: FilterSets;
   focusedFilterId?: string;
+  hoveredFilterId?: string;
 };
 
 export type DashboardComponentMetadata = {

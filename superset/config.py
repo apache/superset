@@ -21,6 +21,8 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -30,6 +32,7 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import timedelta
+from email.mime.multipart import MIMEMultipart
 from typing import (
     Any,
     Callable,
@@ -37,8 +40,11 @@ from typing import (
     List,
     Literal,
     Optional,
+    Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
+    TypedDict,
     Union,
 )
 
@@ -49,6 +55,7 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -57,7 +64,8 @@ from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
-from superset.utils.core import is_test, parse_boolean_string
+from superset.tasks.types import ExecutorType
+from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -69,6 +77,8 @@ if TYPE_CHECKING:
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -142,7 +152,7 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
-# default viz used in chart explorer
+# default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
 # default row limit when requesting chart data
@@ -151,6 +161,9 @@ ROW_LIMIT = 50000
 SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+# default time filter in explore
+# values may be "Last day", "Last week", "<ISO date> : now", etc.
+DEFAULT_TIME_FILTER = NO_TIME_RANGE
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
@@ -201,8 +214,31 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # to the DB.
 #
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
-#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#  to AesEngine that uses AES-128 under the covers using the app's SECRET_KEY
+#  as key material. Do note that AesEngine allows for queryability over the
+#  encrypted fields.
 #
+#  To change the default engine you need to define your own adapter:
+#
+# e.g.:
+#
+# class AesGcmEncryptedAdapter(
+#     AbstractEncryptedFieldAdapter
+# ):
+#     def create(
+#         self,
+#         app_config: Optional[Dict[str, Any]],
+#         *args: List[Any],
+#         **kwargs: Optional[Dict[str, Any]],
+#     ) -> TypeDecorator:
+#         if app_config:
+#             return EncryptedType(
+#                 *args, app_config["SECRET_KEY"], engine=AesGcmEngine, **kwargs
+#             )
+#         raise Exception("Missing app_config kwarg")
+#
+#
+#  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
@@ -236,6 +272,9 @@ SHOW_STACKTRACE = True
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+
+# Configuration for scheduling queries from SQL Lab.
+SCHEDULED_QUERIES: Dict[str, Any] = {}
 
 # ------------------------------
 # GLOBALS FOR APP Builder
@@ -397,6 +436,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
+    "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
     "EMBEDDED_SUPERSET": False,
@@ -425,14 +465,47 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
     "ALLOW_ADHOC_SUBQUERY": False,
-    "USE_ANALAGOUS_COLORS": True,
+    "USE_ANALAGOUS_COLORS": False,
+    "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
+    # Enable sharing charts with embedding
+    "EMBEDDABLE_CHARTS": True,
+    "DRILL_TO_DETAIL": False,
+    "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    "HORIZONTAL_FILTER_BAR": False,
+    # The feature is off by default, and currently only supported in Presto and Postgres,
+    # and Bigquery.
+    # It also needs to be enabled on a per-database basis, by adding the key/value pair
+    # `cost_estimate_enabled: true` to the database `extra` attribute.
+    "ESTIMATE_QUERY_COST": False,
+    # Allow users to enable ssh tunneling when creating a DB.
+    # Users must check whether the DB engine supports SSH Tunnels
+    # otherwise enabling this flag won't have any effect on the DB.
+    "SSH_TUNNELING": False,
 }
+
+# ------------------------------
+# SSH Tunnel
+# ------------------------------
+# Allow users to set the host used when connecting to the SSH Tunnel
+# as localhost and any other alias (0.0.0.0)
+# ----------------------------------------------------------------------
+#                             |
+# -------------+              |    +----------+
+#     LOCAL    |              |    |  REMOTE  | :22 SSH
+#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+# -------------+              |    +----------+
+#                             |
+#                          FIREWALL (only port 22 is open)
+
+# ----------------------------------------------------------------------
+SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
+SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -536,9 +609,33 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
-# Also used by Alerts & Reports
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "admin"
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
+THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
+
+# To be able to have different thumbnails for different users, use these configs to
+# define which user to execute the thumbnails and potentially custom functions for
+# calculating thumbnail digests. To have unique thumbnails for all users, use the
+# following config:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+
+# By default, thumbnail digests are calculated based on various parameters in the
+# chart/dashboard metadata, and in the case of user-specific thumbnails, the
+# username. To specify a custom digest function, use the following config parameters
+# to define callbacks that receive
+# 1. the model (dashboard or chart)
+# 2. the executor type (e.g. ExecutorType.SELENIUM)
+# 3. the executor's username (note, this is the executor as defined by
+# `THUMBNAIL_EXECUTE_AS`; the executor is only equal to the currently logged in
+# user if the executor type is equal to `ExecutorType.CURRENT_USER`)
+# and return the final digest string:
+THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
+    Callable[[Dashboard, ExecutorType, str], str]
+] = None
+THUMBNAIL_CHART_DIGEST_FUNC: Optional[Callable[[Slice, ExecutorType, str], str]] = None
+
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
@@ -556,6 +653,12 @@ SCREENSHOT_SELENIUM_RETRIES = 5
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
+# Replace unexpected errors in screenshots with real error messages
+SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
+# Max time to wait for error message modal to show up, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
+# Max time to wait for error message modal to close, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -645,17 +748,22 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
 
+# Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
+# method.
+# note: index option should not be overridden
+EXCEL_EXPORT = {"encoding": "utf-8"}
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
-# time grains in superset/db_engine_specs.builtin_time_grains).
+# time grains in superset/db_engine_specs/base.py).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_DENYLIST = ['PT1S']
 TIME_GRAIN_DENYLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
-# superset/db_engine_specs.builtin_time_grains.
+# superset/db_engine_specs/base.py.
 # For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
 TIME_GRAIN_ADDONS: Dict[str, str] = {}
@@ -748,16 +856,25 @@ DISPLAY_MAX_ROW = 10000
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
-# Maximum number of tables/views displayed in the dropdown window in SQL Lab.
-MAX_TABLE_NAMES = 3000
-
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
-
+# Dashboard auto refresh intervals
+DASHBOARD_AUTO_REFRESH_INTERVALS = [
+    [0, "Don't refresh"],
+    [10, "10 seconds"],
+    [30, "30 seconds"],
+    [60, "1 minute"],
+    [300, "5 minutes"],
+    [1800, "30 minutes"],
+    [3600, "1 hour"],
+    [21600, "6 hours"],
+    [43200, "12 hours"],
+    [86400, "24 hours"],
+]
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -768,7 +885,6 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = ("superset.sql_lab",)
     result_backend = "db+sqlite:///celery_results.sqlite"
-    worker_log_level = "DEBUG"
     worker_prefetch_multiplier = 1
     task_acks_late = False
     task_annotations = {
@@ -831,16 +947,14 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
-# The feature is off by default, and currently only supported in Presto and Postgres.
-# It also need to be enabled on a per-database basis, by adding the key/value pair
-# `cost_estimate_enabled: true` to the database `extra` attribute.
-ESTIMATE_QUERY_COST = False
+
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
 # your specific infrastructure. For example, you could analyze queries a posteriori by
 # running EXPLAIN on them, and compute a histogram of relative costs to present the
-# cost as a percentile:
-#
+# cost as a percentile, this step is optional as every db engine spec has its own
+# query cost formatter, but it you wanna customize it you can define it inside the config:
+
 # def postgres_query_cost_formatter(
 #     result: List[Dict[str, Any]]
 # ) -> List[Dict[str, str]]:
@@ -858,9 +972,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-#  Then on define the formatter on the config:
-#
-# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# QUERY_COST_FORMATTERS_BY_ENGINE: {"postgresql": postgres_query_cost_formatter}
 QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
     str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
 ] = {}
@@ -888,7 +1000,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
 SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
-    Callable[["Database", "models.User", str, str], str]
+    Callable[[Database, models.User, str, str], str]
 ] = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -913,8 +1025,8 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
-    database: "Database",
-    user: "models.User",  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,  # pylint: disable=unused-argument
     schema: Optional[str],
 ) -> str:
     # Note the final empty path enforces a trailing slash.
@@ -932,7 +1044,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], List[str]] = (
     lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
     if UPLOADED_CSV_HIVE_NAMESPACE
     else []
@@ -1019,11 +1131,17 @@ BLUEPRINTS: List[Blueprint] = []
 # into a proxied one
 
 
-TRACKING_URL_TRANSFORMER = lambda x: x
+# Transform SQL query tracking url for Hive and Presto engines. You may also
+# access information about the query itself by adding a second parameter
+# to your transformer function, e.g.:
+#   TRACKING_URL_TRANSFORMER = (
+#       lambda url, query: url if is_fresh(query) else None
+#   )
+TRACKING_URL_TRANSFORMER = lambda url: url
 
 
-# Interval between consecutive polls when using Hive Engine
-HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
+# customize the polling time of each engine
+DB_POLL_INTERVAL_SECONDS: Dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
 # See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
@@ -1084,6 +1202,36 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
+# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
+# It allows for using the SQL_QUERY_MUTATOR function for more than comments
+# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True
+# An example use case is if data has role based access controls, and you want to apply
+# a SET ROLE statement alongside every user query. Changing this variable maintains
+# functionality for both the SQL_Lab and Charts.
+MUTATE_AFTER_SPLIT = False
+
+# This allows for a user to add header data to any outgoing emails. For example,
+# if you need to include metadata in the header or you want to change the specifications
+# of the email title, header, or sender.
+def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    msg: MIMEMultipart, **kwargs: Any
+) -> MIMEMultipart:
+    return msg
+
+
+# Define a list of usernames to be excluded from all dropdown lists of users
+# Owners, filters for created_by, etc.
+# The users can also be excluded by overriding the get_exclude_users_from_lists method
+# in security manager
+EXCLUDE_USERS_FROM_LISTS: Optional[List[str]] = None
+
+# For database connections, this dictionary will remove engines from the available
+# list/dropdown if you do not want these dbs to show as available.
+# The available list is generated by driver installed, and some engines have multiple
+# drivers.
+# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}
+DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {}
+
 # This auth provider is used by background (offline) tasks that need to access
 # protected resources. Can be overridden by end users in order to support
 # custom auth mechanisms
@@ -1096,6 +1244,22 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# Which user to attempt to execute Alerts/Reports as. By default,
+# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
+# To first try to execute as the creator in the owners list (if present), then fall
+# back to the creator, then the last modifier in the owners list (if present), then the
+# last modifier, then an owner (giving priority to the last modifier and then the
+# creator if either is contained within the list of owners, otherwise the first owner
+# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# ALERT_REPORTS_EXECUTE_AS = [
+#     ScheduledTaskExecutor.CREATOR_OWNER,
+#     ScheduledTaskExecutor.CREATOR,
+#     ScheduledTaskExecutor.MODIFIER_OWNER,
+#     ScheduledTaskExecutor.MODIFIER,
+#     ScheduledTaskExecutor.OWNER,
+#     ScheduledTaskExecutor.SELENIUM,
+# ]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1111,6 +1275,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
+
+# The text for call-to-action link in Alerts & Reports emails
+EMAIL_REPORTS_CTA = "Explore in Superset"
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
@@ -1153,6 +1320,8 @@ EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+BUG_REPORT_TEXT = "Report a bug"
+BUG_REPORT_ICON = None  # Recommended size: 16x16
 
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
@@ -1223,7 +1392,7 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 #
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE: Optional[Literal["None", "Lax", "Strict"]] = "Lax"
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
@@ -1242,6 +1411,13 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 
 # Prevents unsafe default endpoints to be registered on datasets.
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
+# Define a list of allowed URLs for dataset data imports (v1).
+# Simple example to only allow URLs that belong to certain domains:
+# ALLOWED_IMPORT_URL_DOMAINS = [
+#     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
+# ]
+DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -1271,6 +1447,9 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: Optional[
+    Literal["None", "Lax", "Strict"]
+] = None
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
@@ -1332,23 +1511,58 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
-DATAHUB_URL = "https://localhost:9002/"
-
+# By default, the Welcome page features all charts and dashboards the user has access
+# to. This can be changed to show only examples, or a custom view
+# by providing the title and a FAB filter:
+# WELCOME_PAGE_LAST_TAB = (
+#     "Xyz",
+#     [{"col": 'created_by', "opr": 'rel_o_m', "value": 10}],
+# )
+WELCOME_PAGE_LAST_TAB: Union[
+    Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
+] = "all"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "FLASK_ENV",
     "values": {
         "development": {
-            "color": "#c73d2e",
+            "color": "error.base",
             "text": "Development",
         },
         "production": {
-            "color": "#039dfc",
-            "text": "Production",
+            "color": "",
+            "text": "",
         },
     },
 }
+
+
+# Extra related query filters make it possible to limit which objects are shown
+# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
+# the "Owners" dropdowns, you could add the following in your config:
+# def user_filter(query: Query, *args, *kwargs):
+#     from superset import security_manager
+#
+#     user_model = security_manager.user_model
+#     filters = [
+#         user_model.username == "admin",
+#         user_model.username.ilike("b%"),
+#     ]
+#     return query.filter(or_(*filters))
+#
+#  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
+#
+# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
+# filter callback for the "role" key.
+class ExtraRelatedQueryFilters(TypedDict, total=False):
+    role: Callable[[Query], Query]
+    user: Callable[[Query], Query]
+
+
+EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
@@ -1376,7 +1590,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *  # type: ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

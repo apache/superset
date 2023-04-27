@@ -22,6 +22,7 @@ import type {
   AdhocColumn,
   Column,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
   QueryFormColumn,
@@ -29,8 +30,7 @@ import type {
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import { sharedControls } from './shared-controls';
-import sharedControlComponents from './shared-controls/components';
+import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlFormItemSpec } from './components/ControlForm';
@@ -50,6 +50,14 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
+export interface Owner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+  email?: string;
+}
+
 export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
@@ -67,17 +75,24 @@ export interface Dataset {
   time_grain_sqla?: string;
   granularity_sqla?: string;
   datasource_name: string | null;
+  name?: string;
   description: string | null;
+  uid?: string;
+  owners?: Owner[];
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**
- * The action dispather will call Redux `dispatch` internally and return what's
+ * The action dispatcher will call Redux `dispatch` internally and return what's
  * returned from `dispatch`, which by default is the original or another action.
  */
 export interface ActionDispatcher<
@@ -185,7 +200,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
@@ -193,9 +208,24 @@ export interface BaseControlConfig<
   V = JsonValue,
 > extends AnyDict {
   type: T;
-  label?: ReactNode;
-  description?: ReactNode;
+  label?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
+  description?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
   default?: V;
+  initialValue?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
@@ -336,37 +366,43 @@ export type ControlSetRow = ControlSetItem[];
 //  - superset-frontend/src/explore/components/ControlPanelsContainer.jsx
 //  - superset-frontend/src/explore/components/ControlPanelSection.jsx
 export interface ControlPanelSectionConfig {
-  label: ReactNode;
+  label?: ReactNode;
   description?: ReactNode;
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
 }
 
-export interface StandardizedState {
+export interface StandardizedControls {
   metrics: QueryFormMetric[];
   columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {
-  standardizedState: StandardizedState;
+  // Controls not used in the current viz
+  controls: StandardizedControls;
+  // Transformation history
   memorizedFormData: Map<string, QueryFormData>;
 }
+
+export type QueryStandardizedFormData = QueryFormData & {
+  standardizedFormData: StandardizedFormDataInterface;
+};
+
+export const isStandardizedFormData = (
+  formData: QueryFormData,
+): formData is QueryStandardizedFormData =>
+  formData?.standardizedFormData?.controls &&
+  formData?.standardizedFormData?.memorizedFormData &&
+  Array.isArray(formData.standardizedFormData.controls.metrics) &&
+  Array.isArray(formData.standardizedFormData.controls.columns);
 
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
-  denormalizeFormData?: (
-    formData: QueryFormData & {
-      standardizedFormData: StandardizedFormDataInterface;
-    },
-  ) => QueryFormData;
-  updateStandardizedState?: (
-    prevState: StandardizedState,
-    currState: StandardizedState,
-  ) => StandardizedState;
+  formDataOverrides?: (formData: QueryFormData) => QueryFormData;
 }
 
 export type ControlOverrides = {
@@ -416,10 +452,8 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta,
-): column is ColumnMeta {
-  return 'column_name' in column;
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
+  return !!column && 'column_name' in column;
 }
 
 export function isSavedExpression(
@@ -428,12 +462,6 @@ export function isSavedExpression(
   return (
     'column_name' in column && 'expression' in column && !!column.expression
   );
-}
-
-export function isAdhocColumn(
-  column: AdhocColumn | ColumnMeta,
-): column is AdhocColumn {
-  return 'label' in column && 'sqlExpression' in column;
 }
 
 export function isControlPanelSectionConfig(
@@ -451,9 +479,5 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return (
-    !!datasource &&
-    ('results' in datasource ||
-      datasource?.type === ('query' as DatasourceType.Query))
-  );
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }

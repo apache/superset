@@ -33,72 +33,64 @@ const createProps = () => ({
 });
 
 const stateWithOnlyUser = {
-  explore: {
-    user: {
-      email: 'admin@test.com',
-      firstName: 'admin',
-      isActive: true,
-      lastName: 'admin',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: { Admin: [['menu_access', 'Manage']] },
-      userId: 1,
-      username: 'admin',
-    },
+  user: {
+    email: 'admin@test.com',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
+    userId: 1,
+    username: 'admin',
   },
   reports: {},
 };
 
 const stateWithNonAdminUser = {
-  explore: {
-    user: {
-      email: 'nonadmin@test.com',
-      firstName: 'nonadmin',
-      isActive: true,
-      lastName: 'nonadmin',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: {
-        Gamme: [['no_menu_access', 'Manage']],
-        OtherRole: [['menu_access', 'Manage']],
-      },
-      userId: 1,
-      username: 'nonadmin',
+  user: {
+    email: 'nonadmin@test.com',
+    firstName: 'nonadmin',
+    isActive: true,
+    lastName: 'nonadmin',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: {
+      Gamme: [['no_menu_access', 'Manage']],
+      OtherRole: [['menu_access', 'Manage']],
     },
+    userId: 1,
+    username: 'nonadmin',
   },
   reports: {},
 };
 
 const stateWithNonMenuAccessOnManage = {
-  explore: {
-    user: {
-      email: 'nonaccess@test.com',
-      firstName: 'nonaccess',
-      isActive: true,
-      lastName: 'nonaccess',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: { Gamma: [['no_menu_access', 'Manage']] },
-      userId: 1,
-      username: 'nonaccess',
-    },
+  user: {
+    email: 'nonaccess@test.com',
+    firstName: 'nonaccess',
+    isActive: true,
+    lastName: 'nonaccess',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Gamma: [['no_menu_access', 'Manage']] },
+    userId: 1,
+    username: 'nonaccess',
   },
   reports: {},
 };
 
 const stateWithUserAndReport = {
-  explore: {
-    user: {
-      email: 'admin@test.com',
-      firstName: 'admin',
-      isActive: true,
-      lastName: 'admin',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: { Admin: [['menu_access', 'Manage']] },
-      userId: 1,
-      username: 'admin',
-    },
+  user: {
+    email: 'admin@test.com',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
+    userId: 1,
+    username: 'admin',
   },
   reports: {
     dashboards: {

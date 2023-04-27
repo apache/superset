@@ -19,7 +19,6 @@
 /* eslint camelcase: 0 */
 import { ensureIsArray } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
-import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
@@ -28,6 +27,7 @@ import {
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
+import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -49,65 +49,46 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SET_DATASOURCE]() {
+    [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
-      if (action.datasource.type !== state.datasource.type) {
-        if (action.datasource.type === 'table') {
-          newFormData.granularity_sqla = action.datasource.granularity_sqla;
-          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
-          delete newFormData.druid_time_origin;
-          delete newFormData.granularity;
-        } else {
-          newFormData.druid_time_origin = action.datasource.druid_time_origin;
-          newFormData.granularity = action.datasource.granularity;
-          delete newFormData.granularity_sqla;
-          delete newFormData.time_grain_sqla;
-        }
-      }
-
+      const { prevDatasource, newDatasource } = action;
       const controls = { ...state.controls };
       const controlsTransferred = [];
-      if (
-        action.datasource.id !== state.datasource.id ||
-        action.datasource.type !== state.datasource.type
-      ) {
-        // reset time range filter to default
-        newFormData.time_range = DEFAULT_TIME_RANGE;
 
-        // reset control values for column/metric related controls
-        Object.entries(controls).forEach(([controlName, controlState]) => {
-          if (
-            // for direct column select controls
-            controlState.valueKey === 'column_name' ||
-            // for all other controls
-            'savedMetrics' in controlState ||
-            'columns' in controlState ||
-            ('options' in controlState && !Array.isArray(controlState.options))
-          ) {
-            controls[controlName] = {
-              ...controlState,
-            };
-            newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              action.datasource,
-              controlState,
-              controlState.value,
-            );
-            if (
-              ensureIsArray(newFormData[controlName]).length > 0 &&
-              newFormData[controlName] !== controls[controlName].default
-            ) {
-              controlsTransferred.push(controlName);
-            }
-          }
-        });
+      if (
+        prevDatasource.id !== newDatasource.id ||
+        prevDatasource.type !== newDatasource.type
+      ) {
+        newFormData.datasource = newDatasource.uid;
       }
+      // reset control values for column/metric related controls
+      Object.entries(controls).forEach(([controlName, controlState]) => {
+        if (
+          // for direct column select controls
+          controlState.valueKey === 'column_name' ||
+          // for all other controls
+          'savedMetrics' in controlState ||
+          'columns' in controlState ||
+          ('options' in controlState && !Array.isArray(controlState.options))
+        ) {
+          newFormData[controlName] = getControlValuesCompatibleWithDatasource(
+            newDatasource,
+            controlState,
+            controlState.value,
+          );
+          if (
+            ensureIsArray(newFormData[controlName]).length > 0 &&
+            newFormData[controlName] !== controls[controlName].default
+          ) {
+            controlsTransferred.push(controlName);
+          }
+        }
+      });
 
       const newState = {
         ...state,
         controls,
-        datasource: action.datasource,
-        datasource_id: action.datasource.id,
-        datasource_type: action.datasource.type,
+        datasource: action.newDatasource,
       };
       return {
         ...newState,
@@ -120,12 +101,6 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         isDatasourcesLoading: true,
-      };
-    },
-    [actions.SET_DATASOURCES]() {
-      return {
-        ...state,
-        datasources: action.datasources,
       };
     },
     [actions.SET_FIELD_VALUE]() {
@@ -235,10 +210,22 @@ export default function exploreReducer(state = {}, action) {
         controls: getControlsState(state, action.formData),
       };
     },
+    [actions.SET_FORM_DATA]() {
+      return {
+        ...state,
+        form_data: action.formData,
+      };
+    },
     [actions.UPDATE_CHART_TITLE]() {
       return {
         ...state,
         sliceName: action.sliceName,
+      };
+    },
+    [actions.SET_SAVE_ACTION]() {
+      return {
+        ...state,
+        saveAction: action.saveAction,
       };
     },
     [actions.CREATE_NEW_SLICE]() {
@@ -257,9 +244,17 @@ export default function exploreReducer(state = {}, action) {
         slice: {
           ...state.slice,
           ...action.slice,
-          owners: action.slice.owners ?? null,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.value)
+            : null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
+        metadata: {
+          ...state.metadata,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.label)
+            : null,
+        },
       };
     },
     [actions.SET_FORCE_QUERY]() {
@@ -268,8 +263,12 @@ export default function exploreReducer(state = {}, action) {
         force: action.force,
       };
     },
+    [HYDRATE_EXPLORE]() {
+      return {
+        ...action.data.explore,
+      };
+    },
   };
-
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }

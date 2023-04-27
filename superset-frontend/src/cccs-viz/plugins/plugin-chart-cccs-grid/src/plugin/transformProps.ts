@@ -83,7 +83,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     enable_grouping,
     column_state,
     enable_row_numbers,
+    enable_json_expand,
     jump_action_configs,
+    default_group_by,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -232,6 +234,12 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const isSortable = true;
       const enableRowGroup = true;
       const columnDescription = columnDescriptionMap[column];
+      const autoHeight = true;
+      const rowGroupIndex = default_group_by.findIndex((element: any) => {
+        return element === column;
+      });
+      const rowGroup = rowGroupIndex >= 0;
+      const hide = rowGroup;
       return {
         field: column,
         headerName: columnHeader,
@@ -240,8 +248,12 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         sort: sortDirection,
         sortIndex,
         enableRowGroup,
+        rowGroup,
+        hide,
+        rowGroupIndex,
         getQuickFilterText: (params: any) => valueFormatter(params),
         headerTooltip: columnDescription,
+        autoHeight,
       };
     });
   } else {
@@ -261,14 +273,26 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         const isSortable = true;
         const enableRowGroup = true;
         const columnDescription = columnDescriptionMap[column];
+        const autoHeight = true;
+        const rowGroupIndex = default_group_by.findIndex(
+          (element: any) => element === column,
+        );
+        const initialRowGroupIndex = rowGroupIndex;
+        const rowGroup = rowGroupIndex >= 0;
+        const hide = rowGroup;
         return {
           field: column,
           headerName: columnHeader,
           cellRenderer,
           sortable: isSortable,
           enableRowGroup,
+          rowGroup,
+          rowGroupIndex,
+          initialRowGroupIndex,
+          hide,
           getQuickFilterText: (params: any) => valueFormatter(params),
           headerTooltip: columnDescription,
+          autoHeight,
         };
       });
       columnDefs = columnDefs.concat(groupByColumnDefs);
@@ -314,28 +338,44 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       headerName: '#',
       colId: 'rowNum',
       pinned: 'left',
+      lockVisible: true,
       valueGetter: (params: any) =>
         params.node ? params.node.rowIndex + 1 : null,
     } as any);
   }
-  let parsed_jump_action_configs = {}
-  jump_action_configs?.forEach( (e: any) =>
-  {
+  const parsed_jump_action_configs = {};
+  jump_action_configs?.forEach((e: any) => {
     if (e.dashboardID in parsed_jump_action_configs) {
-      parsed_jump_action_configs[e.dashboardID] = parsed_jump_action_configs[e.dashboardID].concat({
+      parsed_jump_action_configs[e.dashboardID] = parsed_jump_action_configs[
+        e.dashboardID
+      ].concat({
         advancedDataType: e.advancedDataType,
         nativefilters: e.filters,
-        name: e.dashBoardName
-      })
-    }
-    else {
-      parsed_jump_action_configs[e.dashboardID] = [{
-        advancedDataType: e.advancedDataType,
-        nativefilters: e.filters,
-        name: e.dashBoardName
-      }]
+        name: e.dashBoardName,
+      });
+    } else {
+      parsed_jump_action_configs[e.dashboardID] = [
+        {
+          advancedDataType: e.advancedDataType,
+          nativefilters: e.filters,
+          name: e.dashBoardName,
+        },
+      ];
     }
   });
+
+  // If the flag is set to true, add a column which will contain
+  // a button to expand all JSON blobs in the row
+  if (enable_json_expand) {
+    columnDefs.splice(1, 0, {
+      colId: 'jsonExpand',
+      pinned: 'left',
+      cellRenderer: 'expandAllValueRenderer',
+      autoHeight: true,
+      minWidth: 105,
+      lockVisible: true,
+    } as any);
+  }
 
   return {
     formData,
@@ -357,6 +397,6 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     column_state,
     agGridLicenseKey,
     datasetColumns: columns,
-    jumpActionConfigs: parsed_jump_action_configs
+    jumpActionConfigs: parsed_jump_action_configs,
   };
 }

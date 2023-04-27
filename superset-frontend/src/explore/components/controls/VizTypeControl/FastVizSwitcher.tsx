@@ -29,7 +29,8 @@ import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
+import { getChartKey } from 'src/explore/exploreUtils';
+import { ExplorePageState } from 'src/explore/types';
 
 export interface VizMeta {
   icon: ReactElement;
@@ -52,18 +53,28 @@ const FEATURED_CHARTS: VizMeta[] = [
     name: 'echarts_timeseries_line',
     icon: <Icons.LineChartTile />,
   },
+  {
+    name: 'echarts_timeseries_bar',
+    icon: <Icons.BarChartTile />,
+  },
+  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
   { name: 'table', icon: <Icons.TableChartTile /> },
   {
     name: 'big_number_total',
     icon: <Icons.BigNumberChartTile />,
   },
   { name: 'pie', icon: <Icons.PieChartTile /> },
-  {
-    name: 'echarts_timeseries_bar',
-    icon: <Icons.BarChartTile />,
-  },
-  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
 ];
+
+const antdIconProps = {
+  iconSize: 'l' as const,
+  css: (theme: SupersetTheme) => css`
+    padding: ${theme.gridUnit}px;
+    & > * {
+      line-height: 0;
+    }
+  `,
+};
 
 const VizTile = ({
   isActive,
@@ -188,8 +199,8 @@ export const FastVizSwitcher = React.memo(
   ({ currentSelection, onChange }: FastVizSwitcherProps) => {
     const currentViz = useSelector<ExplorePageState, string | undefined>(
       state =>
-        state.charts &&
-        Object.values(state.charts)[0]?.latestQueryFormData?.viz_type,
+        state.charts?.[getChartKey(state.explore)]?.latestQueryFormData
+          ?.viz_type,
     );
     const vizTiles = useMemo(() => {
       const vizTiles = [...FEATURED_CHARTS];
@@ -203,15 +214,7 @@ export const FastVizSwitcher = React.memo(
         vizTiles.unshift({
           name: currentSelection,
           icon: (
-            <Icons.MonitorOutlined
-              iconSize="l"
-              css={(theme: SupersetTheme) => css`
-                padding: ${theme.gridUnit}px;
-                & > * {
-                  line-height: 0;
-                }
-              `}
-            />
+            <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
           ),
         });
       }
@@ -223,7 +226,12 @@ export const FastVizSwitcher = React.memo(
       ) {
         vizTiles.unshift({
           name: currentViz,
-          icon: <Icons.CurrentRenderedTile />,
+          icon: (
+            <Icons.CheckSquareOutlined
+              {...antdIconProps}
+              aria-label="check-square"
+            />
+          ),
         });
       }
       return vizTiles;

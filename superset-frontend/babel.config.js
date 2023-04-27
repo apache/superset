@@ -90,17 +90,16 @@ module.exports = {
       ],
     },
     production: {
-      plugins: [
-        [
-          'babel-plugin-jsx-remove-data-test-id',
-          {
-            attributes: 'data-test',
-          },
-        ],
-      ],
+      plugins: [],
     },
     testableProduction: {
       plugins: [],
     },
   },
+  overrides: [
+    {
+      test: './plugins/plugin-chart-handlebars/node_modules/just-handlebars-helpers/*',
+      sourceType: 'unambiguous',
+    },
+  ],
 };

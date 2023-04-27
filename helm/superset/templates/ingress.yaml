@@ -25,10 +25,11 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- with .Values.ingress.annotations }}
+  {{- with .Values.ingress.annotations }}
   annotations:
-{{ toYaml . | indent 4 }}
-{{- end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
 {{- if .Values.ingress.ingressClassName }}
   ingressClassName: {{ .Values.ingress.ingressClassName }}
@@ -55,5 +56,14 @@ spec:
                 name: {{ $fullName }}
                 port:
                   name: http
+          {{- if $.Values.supersetWebsockets.enabled }}
+          - path: {{ $.Values.supersetWebsockets.ingress.path }}
+            pathType: {{ $.Values.supersetWebsockets.ingress.pathType }}
+            backend:
+              service:
+                name: "{{ template "superset.fullname" $ }}-ws"
+                port:
+                  name: ws
+          {{- end }}
   {{- end }}
 {{- end }}

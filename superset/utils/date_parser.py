@@ -25,8 +25,9 @@ import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
+from flask import current_app as app
 from flask_babel import lazy_gettext as _
-from holidays import CountryHoliday
+from holidays import country_holidays
 from pyparsing import (
     CaselessKeyword,
     Forward,
@@ -40,13 +41,12 @@ from pyparsing import (
     Suppress,
 )
 
-from superset import app
 from superset.charts.commands.exceptions import (
     TimeDeltaAmbiguousError,
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.utils.core import NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE
 from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
@@ -175,7 +175,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         - Next X seconds/minutes/hours/days/weeks/months/years
 
     """
-    config = app.config  # type: ignore
+    config = app.config
     default_relative_start = config["DEFAULT_RELATIVE_START_TIME"]
     default_relative_end = config["DEFAULT_RELATIVE_END_TIME"]
 
@@ -183,7 +183,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     _relative_start = relative_start if relative_start else default_relative_start
     _relative_end = relative_end if relative_end else default_relative_end
 
-    if time_range == NO_TIME_RANGE:
+    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -390,7 +390,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
         country = country.eval() if country else "US"
 
-        holiday_lookup = CountryHoliday(country, years=[holiday_year], observed=False)
+        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
         searched_result = holiday_lookup.get_named(holiday)
         if len(searched_result) == 1:
             return dttm_from_timetuple(searched_result[0].timetuple())

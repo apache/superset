@@ -37,6 +37,12 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { areObjectsEqual } from 'src/reduxUtils';
+import * as logActions from 'src/logger/actions';
+import {
+  LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
+} from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -44,21 +50,17 @@ import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
+import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
-import { mountExploreUrl } from '../../exploreUtils';
-import { areObjectsEqual } from '../../../reduxUtils';
-import { getFormDataFromControls } from '../../controlUtils';
-import * as exploreActions from '../../actions/exploreActions';
-import * as saveModalActions from '../../actions/saveModalActions';
-import * as logActions from '../../../logger/actions';
-import {
-  LOG_ACTIONS_MOUNT_EXPLORER,
-  LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
-} from '../../../logger/LogUtils';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 const propTypes = {
@@ -73,17 +75,20 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.number.isRequired,
+  standalone: PropTypes.bool.isRequired,
   force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
+  saveAction: PropTypes.string,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const ExploreContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 `;
 
 const ExplorePanelContainer = styled.div`
@@ -126,10 +131,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.typography.sizes.m}px;
       }
     }
     .no-show {
@@ -145,7 +150,7 @@ const ExplorePanelContainer = styled.div`
       padding: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 8}px;
     }
-    .callpase-icon > svg {
+    .collapse-icon > svg {
       color: ${theme.colors.primary.base};
     }
   `};
@@ -164,7 +169,9 @@ const updateHistory = debounce(
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
-    const additionalParam = {};
+    const params = new URLSearchParams(window.location.search);
+    const additionalParam = Object.fromEntries(params);
+
     if (chartId) {
       additionalParam[URL_PARAMS.sliceId.name] = chartId;
     } else {
@@ -203,15 +210,18 @@ const updateHistory = debounce(
         );
         stateModifier = 'pushState';
       }
-      const url = mountExploreUrl(
-        standalone ? URL_PARAMS.standalone.name : null,
-        {
-          [URL_PARAMS.formDataKey.name]: key,
-          ...additionalParam,
-        },
-        force,
-      );
-      window.history[stateModifier](payload, title, url);
+      // avoid race condition in case user changes route before explore updates the url
+      if (window.location.pathname.startsWith('/explore')) {
+        const url = mountExploreUrl(
+          standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+            ...additionalParam,
+          },
+          force,
+        );
+        window.history[stateModifier](payload, title, url);
+      }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
     }
@@ -232,7 +242,6 @@ function ExploreViewContainer(props) {
     props.controls,
   );
 
-  const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
   const tabId = useTabId();
@@ -328,10 +337,6 @@ function ExploreViewContainer(props) {
     if (props.chart && props.chart.queryController) {
       props.chart.queryController.abort();
     }
-  }
-
-  function toggleModal() {
-    setShowingModal(!showingModal);
   }
 
   function toggleCollapse() {
@@ -450,6 +455,7 @@ function ExploreViewContainer(props) {
           !areObjectsEqual(
             props.controls[key].value,
             lastQueriedControls[key].value,
+            { ignoreFields: ['datasourceWarning'] },
           ),
       );
 
@@ -461,6 +467,14 @@ function ExploreViewContainer(props) {
     }
     return false;
   }, [lastQueriedControls, props.controls]);
+
+  useChangeEffect(props.saveAction, () => {
+    if (['saveas', 'overwrite'].includes(props.saveAction)) {
+      onQuery();
+      addHistory({ isReplace: true });
+      props.actions.setSaveAction(null);
+    }
+  });
 
   useEffect(() => {
     if (props.ownState !== undefined) {
@@ -549,8 +563,8 @@ function ExploreViewContainer(props) {
         ownState={props.ownState}
         user={props.user}
         reports={props.reports}
-        onSaveChart={toggleModal}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+        metadata={props.metadata}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -577,15 +591,6 @@ function ExploreViewContainer(props) {
             }
           `}
         />
-        {showingModal && (
-          <SaveModal
-            onHide={toggleModal}
-            actions={props.actions}
-            form_data={props.form_data}
-            sliceName={props.sliceName}
-            dashboardId={props.dashboardId}
-          />
-        )}
         <Resizable
           onResizeStop={(evt, direction, ref, d) => {
             setShouldForceUpdate(d?.width);
@@ -603,7 +608,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizontal-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Chart Source')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -618,6 +623,7 @@ function ExploreViewContainer(props) {
             </span>
           </div>
           <DataSourcePanel
+            formData={props.form_data}
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}
@@ -642,11 +648,6 @@ function ExploreViewContainer(props) {
                 />
               </Tooltip>
             </span>
-            <Icons.DatasetPhysical
-              css={{ marginTop: theme.gridUnit * 2 }}
-              iconSize="l"
-              iconColor={theme.colors.grayscale.base}
-            />
           </div>
         ) : null}
         <Resizable
@@ -686,6 +687,15 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
+      {props.isSaveModalVisible && (
+        <SaveModal
+          addDangerToast={props.addDangerToast}
+          actions={props.actions}
+          form_data={props.form_data}
+          sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
+        />
+      )}
     </ExploreContainer>
   );
 }
@@ -693,16 +703,26 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId, dataMask, reports } = state;
-  const form_data = getFormDataFromControls(explore.controls);
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    user,
+    saveModal,
+  } = state;
+  const { controls, slice, datasource, metadata } = explore;
+  const form_data = getFormDataFromControls(controls);
+  const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
+      ...dataMask[slice_id]?.ownState,
     },
   );
-  const chartKey = Object.keys(charts)[0];
-  const chart = charts[chartKey];
+  const chart = charts[slice_id];
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
@@ -711,43 +731,44 @@ function mapStateToProps(state) {
 
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
-    datasource: explore.datasource,
-    datasource_type: explore.datasource.type,
-    datasourceId: explore.datasource_id,
+    datasource,
+    datasource_type: datasource.type,
+    datasourceId: datasource.datasource_id,
     dashboardId,
     controls: explore.controls,
-    can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,
     can_download: !!explore.can_download,
-    column_formats: explore.datasource
-      ? explore.datasource.column_formats
-      : null,
-    containerId: explore.slice
-      ? `slice-container-${explore.slice.slice_id}`
+    can_overwrite: !!explore.can_overwrite,
+    column_formats: datasource?.column_formats ?? null,
+    containerId: slice
+      ? `slice-container-${slice.slice_id}`
       : 'slice-container',
     isStarred: explore.isStarred,
-    slice: explore.slice,
-    sliceName: explore.sliceName,
+    slice,
+    sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
     form_data,
-    table_name: form_data.datasource_name,
+    table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: explore.standalone,
-    force: explore.force,
-    forcedHeight: explore.forced_height,
+    standalone: !!explore.standalone,
+    force: !!explore.force,
     chart,
-    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
+    timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    ownState: dataMask[slice_id]?.ownState,
     impressionId,
-    user: explore.user,
+    user,
     exploreState: explore,
     reports,
+    metadata,
+    saveAction: explore.saveAction,
+    isSaveModalVisible: saveModal.isVisible,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   const actions = {
     ...exploreActions,
+    ...datasourcesActions,
     ...saveModalActions,
     ...chartActions,
     ...logActions,
@@ -760,4 +781,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreViewContainer);
+)(withToasts(React.memo(ExploreViewContainer)));

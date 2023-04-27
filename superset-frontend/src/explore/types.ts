@@ -25,15 +25,14 @@ import {
 } from '@superset-ui/core';
 import {
   ColumnMeta,
-  Dataset,
   ControlStateMapping,
+  Dataset,
 } from '@superset-ui/chart-controls';
 import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { toastState } from 'src/SqlLab/types';
 import { Slice } from 'src/types/Chart';
 
-export { Slice, Chart } from 'src/types/Chart';
+export type SaveActionType = 'overwrite' | 'saveas';
 
 export type ChartStatus =
   | 'loading'
@@ -71,36 +70,18 @@ export type Datasource = Dataset & {
   is_sqllab_view?: boolean;
 };
 
-export type ExploreRootState = {
-  explore: {
-    can_add: boolean;
-    can_download: boolean;
-    common: object;
-    controls: object;
-    controlsTransferred: object;
-    datasource: object;
-    datasource_id: number;
-    datasource_type: string;
-    force: boolean;
-    forced_height: object;
-    form_data: object;
-    isDatasourceMetaLoading: boolean;
-    isStarred: boolean;
-    slice: object;
-    sliceName: string;
-    standalone: boolean;
-    timeFormattedColumns: object;
-    user: UserWithPermissionsAndRoles;
-  };
-  localStorageUsageInKilobytes: number;
-  messageToasts: toastState[];
-  common: {};
-};
-
 export interface ExplorePageInitialData {
   dataset: Dataset;
   form_data: QueryFormData;
   slice: Slice | null;
+  metadata?: {
+    created_on_humanized: string;
+    changed_on_humanized: string;
+    owners: string[];
+    created_by?: string;
+    changed_by?: string;
+  };
+  saveAction?: SaveActionType | null;
 }
 
 export interface ExploreResponsePayload {
@@ -131,6 +112,7 @@ export interface ExplorePageState {
     controlsTransferred: string[];
     standalone: boolean;
     force: boolean;
+    common: JsonObject;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

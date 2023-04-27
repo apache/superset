@@ -21,19 +21,18 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
-import buildQuery from '../../buildQuery';
-import controlPanel from '../controlPanel';
-import transformProps from '../../transformProps';
-import thumbnail from './images/thumbnail.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../types';
+import buildQuery from '../../buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from '../../transformProps';
+import thumbnail from './images/thumbnail.png';
 import example1 from './images/Line1.png';
 import example2 from './images/Line2.png';
 
@@ -56,10 +55,10 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
             )
@@ -73,7 +72,7 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        name: hasGenericChartAxes
           ? t('Line Chart')
           : t('Time-series Line Chart'),
         tags: [

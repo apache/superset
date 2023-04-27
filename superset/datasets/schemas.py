@@ -80,6 +80,7 @@ class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
+    sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
@@ -105,6 +106,11 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+
+
+class DatasetDuplicateSchema(Schema):
+    base_model_id = fields.Integer(required=True)
+    table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
 
 
 class DatasetRelatedChart(Schema):
@@ -144,7 +150,7 @@ class ImportV1ColumnSchema(Schema):
     @pre_load
     def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """
-        Fix for extra initially beeing exported as a string.
+        Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
@@ -170,7 +176,7 @@ class ImportV1MetricSchema(Schema):
     @pre_load
     def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """
-        Fix for extra initially beeing exported as a string.
+        Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
@@ -192,7 +198,7 @@ class ImportV1DatasetSchema(Schema):
     @pre_load
     def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """
-        Fix for extra initially beeing exported as a string.
+        Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
@@ -220,6 +226,17 @@ class ImportV1DatasetSchema(Schema):
     data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+
+
+class GetOrCreateDatasetSchema(Schema):
+    table_name = fields.String(required=True, description="Name of table")
+    database_id = fields.Integer(
+        required=True, description="ID of database table belongs to"
+    )
+    schema = fields.String(
+        description="The schema the table belongs to", allow_none=True
+    )
+    template_params = fields.String(description="Template params for the table")
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

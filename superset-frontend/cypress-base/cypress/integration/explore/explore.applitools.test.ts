@@ -20,7 +20,6 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('explore view', () => {
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
@@ -31,7 +30,7 @@ describe('explore view', () => {
   it('should load Explore', () => {
     const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.eyesOpen({
       testName: 'Explore page',
