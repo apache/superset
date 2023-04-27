@@ -613,7 +613,7 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it.only('Mixed Chart', () => {
+    it('Mixed Chart', () => {
       cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
         // click 'boy'
         cy.wrap($canvas)
@@ -653,8 +653,8 @@ describe('Drill by modal', () => {
           // click second query
           cy.wrap($canvas)
             .scrollIntoView()
-            .trigger('mousemove', 543, 476)
-            .rightclick(543, 476);
+            .trigger('mousemove', 510, 356)
+            .rightclick(510, 356);
 
           drillBy('ds').then(intercepted => {
             const { queries } = intercepted.request.body;
