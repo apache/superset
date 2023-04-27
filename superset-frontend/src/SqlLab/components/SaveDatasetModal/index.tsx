@@ -300,10 +300,10 @@ export const SaveDatasetModal = ({
         columns: selectedColumns,
       }),
     )
-      .then((data: { table_id: number }) =>
-        postFormData(data.table_id, 'table', {
+      .then((data: { id: number }) =>
+        postFormData(data.id, 'table', {
           ...formDataWithDefaults,
-          datasource: `${data.table_id}__table`,
+          datasource: `${data.id}__table`,
           ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),

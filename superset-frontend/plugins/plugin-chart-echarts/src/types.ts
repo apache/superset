@@ -131,6 +131,7 @@ export interface BaseTransformedProps<F> {
   refs: Refs;
   width: number;
   emitCrossFilters?: boolean;
+  coltypeMapping?: Record<string, number>;
 }
 
 export type CrossFilterTransformedProps = {

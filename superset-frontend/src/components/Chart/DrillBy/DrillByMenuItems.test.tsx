@@ -140,7 +140,8 @@ test('render disabled menu item for supported chart, no columns', async () => {
   fetchMock.get(DATASET_ENDPOINT, { result: { columns: [] } });
   renderMenu({});
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
-  await expectDrillByDisabled('No dimensions available for drill by');
+  await expectDrillByEnabled();
+  screen.getByText('No columns found');
 });
 
 test('render menu item with submenu without searchbox', async () => {

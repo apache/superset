@@ -24,7 +24,7 @@ from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.extensions import appbuilder, db, security_manager
+from superset.extensions import db
 from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class CreateRLSRuleCommand(BaseCommand):
             rule = RLSDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise DAOCreateFailedError
+            raise ex
 
         return rule
 

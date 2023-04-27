@@ -52,6 +52,8 @@ import ActionButtons from './ActionButtons';
 import Horizontal from './Horizontal';
 import Vertical from './Vertical';
 
+// FilterBar is just being hidden as it must still
+// render fully due to encapsulated logics
 const HiddenFilterBar = styled.div`
   display: none;
 `;
