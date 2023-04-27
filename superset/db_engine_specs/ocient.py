@@ -91,8 +91,12 @@ def _wkt_to_geoJSON(geo_as_wkt: Any) -> Any:
     :param geo_as_wkt: the GIS object in WKT format
     :returns: the geoJSON encoding of `geo`
     """
-    import geojson
-    from shapely import wkt
+    # Need to try-catch here because these deps may not be installed
+    try:
+        import geojson
+        from shapely import wkt
+    except (ImportError, RuntimeError) as e:
+        return None
 
     geo = wkt.loads(geo_as_wkt)
     return geojson.Feature(geometry=geo, properties={})

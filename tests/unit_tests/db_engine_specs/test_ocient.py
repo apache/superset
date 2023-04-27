@@ -17,9 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 
-from collections import namedtuple
-from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pytest
 
@@ -225,7 +223,9 @@ def test_connection_errors(msg: str, expected: SupersetError) -> None:
     assert result == [expected]
 
 
-def _generate_gis_type_sanitization_test_cases() -> List[Tuple[str, Any, Any]]:
+def _generate_gis_type_sanitization_test_cases() -> (
+    List[Tuple[str, int, Any, Dict[str, Any]]]
+):
     if not ocient_is_installed():
         return []
 
@@ -388,8 +388,13 @@ def _generate_gis_type_sanitization_test_cases() -> List[Tuple[str, Any, Any]]:
 def test_gis_type_sanitization(
     name: str, type_code: int, geo: Any, expected: Any
 ) -> None:
-    converter = _sanitized_ocient_type_codes.get(type_code)
-    actual = converter(geo)
+    # Hack to silence erroneous mypy errors
+    def die(any: Any) -> Callable[[Any], Any]:
+        pytest.fail(f"no sanitizer for type code {type_code}")
+        raise AssertionError()
+
+    type_sanitizer = _sanitized_ocient_type_codes.get(type_code, die)
+    actual = type_sanitizer(geo)
     assert expected == actual
 
 
