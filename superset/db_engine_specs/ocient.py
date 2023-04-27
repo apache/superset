@@ -26,7 +26,9 @@ from sqlalchemy.orm import Session
 # Need to try-catch here because pyocient may not be installed
 try:
     # Ensure pyocient inherits Superset's logging level
+    import geojson
     import pyocient
+    from shapely import wkt
 
     from superset import app
 
@@ -84,7 +86,7 @@ def _to_hex(data: bytes) -> str:
     return data.hex()
 
 
-def _wkt_to_geoJSON(geo_as_wkt: str) -> Any:
+def _wkt_to_geo_json(geo_as_wkt: str) -> Any:
     """
     Converts pyocient geometry objects to their geoJSON representation.
 
@@ -92,12 +94,6 @@ def _wkt_to_geoJSON(geo_as_wkt: str) -> Any:
     :returns: the geoJSON encoding of `geo`
     """
     # Need to try-catch here because these deps may not be installed
-    try:
-        import geojson
-        from shapely import wkt
-    except (ImportError, RuntimeError):
-        return None
-
     geo = wkt.loads(geo_as_wkt)
     return geojson.Feature(geometry=geo, properties={})
 
@@ -115,7 +111,7 @@ def _point_list_to_wkt(
     return f"LINESTRING({', '.join(coords)})"
 
 
-def _point_to_geoJSON(
+def _point_to_geo_json(
     point,  # type: pyocient._STPoint
 ) -> Any:
     """
@@ -125,10 +121,10 @@ def _point_to_geoJSON(
     :returns: the geoJSON encoding of this point
     """
     wkt_point = str(point)
-    return _wkt_to_geoJSON(wkt_point)
+    return _wkt_to_geo_json(wkt_point)
 
 
-def _linestring_to_geoJSON(
+def _linestring_to_geo_json(
     linestring,  # type: pyocient._STLinestring
 ) -> Any:
     """
@@ -147,13 +143,13 @@ def _linestring_to_geoJSON(
         # element in the collection (i.e. ST_LINESTRING[] or
         # ST_POLYGON[]).
         point = linestring.points[0]
-        return _point_to_geoJSON(point)
+        return _point_to_geo_json(point)
 
     wkt_linestring = str(linestring)
-    return _wkt_to_geoJSON(wkt_linestring)
+    return _wkt_to_geo_json(wkt_linestring)
 
 
-def _polygon_to_geoJSON(
+def _polygon_to_geo_json(
     polygon,  # type: pyocient._STPolygon
 ) -> Any:
     """
@@ -168,15 +164,15 @@ def _polygon_to_geoJSON(
         if len(polygon.exterior) == 1:
             # The exterior ring contains a single ST_POINT
             point = polygon.exterior[0]
-            return _point_to_geoJSON(point)
+            return _point_to_geo_json(point)
         if polygon.exterior[0] != polygon.exterior[-1]:
             # The exterior ring contains an open ST_LINESTRING
             wkt_linestring = _point_list_to_wkt(polygon.exterior)
-            return _wkt_to_geoJSON(wkt_linestring)
+            return _wkt_to_geo_json(wkt_linestring)
     # else
     # This is a valid ST_POLYGON
     wkt_polygon = str(polygon)
-    return _wkt_to_geoJSON(wkt_polygon)
+    return _wkt_to_geo_json(wkt_polygon)
 
 
 # Sanitization function for column values
@@ -205,11 +201,11 @@ try:
 
     _sanitized_ocient_type_codes: Dict[int, SanitizeFunc] = {
         TypeCodes.BINARY: _to_hex,
-        TypeCodes.ST_POINT: _point_to_geoJSON,
+        TypeCodes.ST_POINT: _point_to_geo_json,
         TypeCodes.IP: str,
         TypeCodes.IPV4: str,
-        TypeCodes.ST_LINESTRING: _linestring_to_geoJSON,
-        TypeCodes.ST_POLYGON: _polygon_to_geoJSON,
+        TypeCodes.ST_LINESTRING: _linestring_to_geo_json,
+        TypeCodes.ST_POLYGON: _polygon_to_geo_json,
     }
 except ImportError as e:
     _sanitized_ocient_type_codes = {}
