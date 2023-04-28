@@ -21,8 +21,15 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import AlertReportModal from './AlertReportModal';
 
+jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
+  TextAreaEditor: () => <div data-test="react-ace" />,
+}));
+
+const onHide = jest.fn();
+
 test('allows change to None in log retention', async () => {
-  render(<AlertReportModal show />, { useRedux: true });
+  render(<AlertReportModal show onHide={onHide} />, { useRedux: true });
   // open the log retention select
   userEvent.click(screen.getByText('90 days'));
   // change it to 30 days
@@ -42,7 +49,7 @@ test('allows change to None in log retention', async () => {
 });
 
 test('renders the appropriate dropdown in Message Content section', async () => {
-  render(<AlertReportModal show />, { useRedux: true });
+  render(<AlertReportModal show onHide={onHide} />, { useRedux: true });
 
   const chartRadio = screen.getByRole('radio', { name: /chart/i });
 
@@ -62,7 +69,8 @@ test('renders the appropriate dropdown in Message Content section', async () => 
   // Click the chart radio option
   userEvent.click(chartRadio);
 
-  expect(await screen.findByRole('radio', { name: /chart/i })).toBeChecked();
+  await waitFor(() => expect(chartRadio).toBeChecked());
+
   expect(
     await screen.findByRole('radio', {
       name: /dashboard/i,
