@@ -37,10 +37,24 @@ export const SUPPORTED_TIER1_CHARTS = [
   { name: 'Big Number', viz: 'big_number_total' },
   { name: 'Big Number with Trendline', viz: 'big_number' },
   { name: 'Pie Chart', viz: 'pie' },
+  { name: 'Table', viz: 'table' },
+  { name: 'Pivot Table', viz: 'pivot_table_v2' },
+  { name: 'Time-Series Line Chart', viz: 'echarts_timeseries_line' },
+  { name: 'Time-Series Area Chart', viz: 'echarts_area' },
+  { name: 'Time-Series Scatter Chart', viz: 'echarts_timeseries_scatter' },
+  { name: 'Time-Series Bar Chart V2', viz: 'echarts_timeseries_bar' },
 ] as ChartSpec[];
 
 export const SUPPORTED_TIER2_CHARTS = [
   { name: 'Box Plot Chart', viz: 'box_plot' },
+  { name: 'Time-Series Generic Chart', viz: 'echarts_timeseries' },
+  { name: 'Time-Series Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
+  { name: 'Time-Series Step Line Chart', viz: 'echarts_timeseries_step' },
+  { name: 'Funnel Chart', viz: 'funnel' },
+  { name: 'Gauge Chart', viz: 'gauge_chart' },
+  { name: 'Radar Chart', viz: 'radar' },
+  { name: 'Treemap V2 Chart', viz: 'treemap_v2' },
+  { name: 'Mixed Chart', viz: 'mixed_timeseries' },
 ] as ChartSpec[];
 
 export const testItems = {
@@ -515,3 +529,7 @@ export function openTab(tabComponentIndex: number, tabIndex: number) {
     .eq(tabIndex)
     .click();
 }
+
+export const openTopLevelTab = (tabName: string) => {
+  cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
+};

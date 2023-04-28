@@ -18,7 +18,11 @@
  */
 import { waitForChartLoad } from 'cypress/utils';
 import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
-import { SUPPORTED_TIER1_CHARTS, SUPPORTED_TIER2_CHARTS } from './utils';
+import {
+  openTopLevelTab,
+  SUPPORTED_TIER1_CHARTS,
+  SUPPORTED_TIER2_CHARTS,
+} from './utils';
 
 function interceptSamples() {
   cy.intercept(`/datasource/samples*`).as('samples');
@@ -75,10 +79,6 @@ function closeModal() {
       cy.getBySel('close-drilltodetail-modal').click({ force: true });
     }
   });
-}
-
-function setTopLevelTab(tabName: string) {
-  cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
 }
 
 function testTimeChart(vizType: string) {
@@ -139,7 +139,7 @@ describe('Drill to detail modal', () => {
   describe('Tier 1 charts', () => {
     before(() => {
       cy.visit(SUPPORTED_CHARTS_DASHBOARD);
-      setTopLevelTab('Tier 1');
+      openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
@@ -438,7 +438,7 @@ describe('Drill to detail modal', () => {
   describe('Tier 2 charts', () => {
     before(() => {
       cy.visit(SUPPORTED_CHARTS_DASHBOARD);
-      setTopLevelTab('Tier 2');
+      openTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
