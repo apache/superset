@@ -136,8 +136,10 @@ humanize==3.11.0
     # via apache-superset
 idna==3.2
     # via email-validator
-importlib-metadata==6.0.0
+importlib-metadata==6.3.0
     # via flask
+importlib-resources==5.12.0
+    # via limits
 isodate==0.6.0
     # via apache-superset
 itsdangerous==2.1.1
@@ -154,7 +156,7 @@ kombu==5.2.4
     # via celery
 korean-lunar-calendar==0.2.1
     # via holidays
-limits==3.2.0
+limits==3.3.1
     # via flask-limiter
 mako==1.1.4
     # via alembic
@@ -211,7 +213,7 @@ pyarrow==10.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
-pygments==2.14.0
+pygments==2.15.0
     # via rich
 pyjwt==2.4.0
     # via
@@ -254,7 +256,7 @@ pyyaml==5.4.1
     #   apispec
 redis==4.5.4
     # via apache-superset
-rich==13.3.1
+rich==13.3.4
     # via flask-limiter
 selenium==3.141.0
     # via apache-superset
@@ -297,6 +299,7 @@ typing-extensions==4.4.0
     #   apache-superset
     #   flask-limiter
     #   limits
+    #   rich
 urllib3==1.26.6
     # via selenium
 vine==5.0.0
@@ -313,18 +316,20 @@ werkzeug==2.1.2
     #   flask-login
 wrapt==1.12.1
     # via deprecated
-wtforms==2.3.3
+wtforms==3.0.1
     # via
     #   apache-superset
     #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json
-wtforms-json==0.3.3
+wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
