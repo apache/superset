@@ -20,16 +20,12 @@ import React, { useEffect, createRef, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import MapboxCompare from 'mapbox-gl-compare';
 import 'mapbox-gl/dist/mapbox-gl.css'
-import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import 'mapbox-gl-compare/dist/mapbox-gl-compare.css';
-import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
 import { SupersetClient } from '@superset-ui/core';
 
-import entity from '../../liq_data/entity.json';
-
-import _, { transform } from 'lodash';
+import _ from 'lodash';
 
 // UI imports
 import {
@@ -191,6 +187,7 @@ export default function LiqThematicMaps(props) {
   */
 
   return (
+    <>
       <div style={{ 
           height: height, 
           width: '100%', 
@@ -241,5 +238,6 @@ export default function LiqThematicMaps(props) {
           width={width}
         />
       </div>
+    </>
   ); 
 }
