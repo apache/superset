@@ -70,7 +70,7 @@ REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 CACHE_CONFIG = {
-    "CACHE_TYPE": "redis",
+    "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": 300,
     "CACHE_KEY_PREFIX": "superset_",
     "CACHE_REDIS_HOST": REDIS_HOST,

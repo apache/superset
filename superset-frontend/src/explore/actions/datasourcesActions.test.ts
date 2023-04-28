@@ -68,7 +68,7 @@ const defaultDatasourcesReducerState = {
   [CURRENT_DATASOURCE.uid]: CURRENT_DATASOURCE,
 };
 
-const saveDatasetEndpoint = `glob:*/superset/sqllab_viz/`;
+const saveDatasetEndpoint = `glob:*/api/v1/dataset/`;
 
 test('sets new datasource', () => {
   const newState = datasourcesReducer(

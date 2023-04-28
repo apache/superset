@@ -46,6 +46,7 @@ import {
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getColtypesMapping } from '../utils/series';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -130,6 +131,7 @@ export default function transformProps(
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const numberFormatter = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
@@ -341,5 +343,6 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

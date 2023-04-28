@@ -44,7 +44,10 @@ export function interceptExploreJson() {
 }
 
 export function interceptExploreGet() {
-  cy.intercept('GET', `/api/v1/explore/?slice_id=**`).as('getExplore');
+  cy.intercept({
+    method: 'GET',
+    url: /api\/v1\/explore\/\?(form_data_key|dashboard_page_id|slice_id)=.*/,
+  }).as('getExplore');
 }
 
 export function setFilter(filter: string, option: string) {
@@ -70,7 +73,7 @@ export function saveChartToDashboard(dashboardName: string) {
     .click();
   cy.get(
     '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName.slice(0, 3));
+  ).type(dashboardName.slice(0, 3), { force: true });
   cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
   cy.getBySel('btn-modal-save').click();
 
