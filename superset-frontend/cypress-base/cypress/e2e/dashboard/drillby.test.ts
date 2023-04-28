@@ -74,7 +74,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     .find('[role="menuitem"]')
     .contains(new RegExp(`^${targetDrillByColumn}$`))
     .first()
-    .click();
+    .click({ force: true });
 
   if (isLegacy) {
     return cy.wait('@legacyData');
@@ -103,7 +103,7 @@ const testEchart = (
     cy.wrap($canvas)
       .scrollIntoView()
       .trigger(
-        'mousemove',
+        'mouseover',
         drillClickCoordinates[0][0],
         drillClickCoordinates[0][1],
       )
@@ -148,7 +148,7 @@ const testEchart = (
       cy.wrap($canvas)
         .scrollIntoView()
         .trigger(
-          'mousemove',
+          'mouseover',
           drillClickCoordinates[1][0],
           drillClickCoordinates[1][1],
         )
@@ -617,7 +617,7 @@ describe('Drill by modal', () => {
         // click 'boy'
         cy.wrap($canvas)
           .scrollIntoView()
-          .trigger('mousemove', 70, 93)
+          .trigger('mouseover', 70, 93)
           .rightclick(70, 93);
 
         drillBy('name').then(intercepted => {
@@ -652,7 +652,7 @@ describe('Drill by modal', () => {
           // click second query
           cy.wrap($canvas)
             .scrollIntoView()
-            .trigger('mousemove', 510, 356)
+            .trigger('mouseover', 510, 356)
             .rightclick(510, 356);
 
           drillBy('ds').then(intercepted => {
