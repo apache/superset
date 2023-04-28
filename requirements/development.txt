@@ -70,7 +70,7 @@ pillow==9.3.0
     # via apache-superset
 progress==1.6
     # via -r requirements/development.in
-psycopg2-binary==2.9.5
+psycopg2-binary==2.9.6
     # via apache-superset
 ptyprocess==0.7.0
     # via pexpect

@@ -13,6 +13,8 @@ amqp==5.1.0
     # via kombu
 apispec[yaml]==3.3.2
     # via flask-appbuilder
+async-timeout==4.0.2
+    # via redis
 attrs==21.2.0
     # via jsonschema
 babel==2.9.1
@@ -251,7 +253,7 @@ pyyaml==5.4.1
     # via
     #   apache-superset
     #   apispec
-redis==3.5.3
+redis==4.5.4
     # via apache-superset
 rich==13.3.1
     # via flask-limiter

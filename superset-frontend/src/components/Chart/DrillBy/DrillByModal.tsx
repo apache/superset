@@ -35,7 +35,7 @@ import {
   useTheme,
   ContextMenuFilters,
 } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Modal from 'src/components/Modal';
 import Loading from 'src/components/Loading';
@@ -43,11 +43,17 @@ import Button from 'src/components/Button';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import { noOp } from 'src/utils/common';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Alert from 'src/components/Alert';
+import { logEvent } from 'src/logger/actions';
+import {
+  LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED,
+  LOG_ACTIONS_DRILL_BY_EDIT_CHART,
+  LOG_ACTIONS_DRILL_BY_MODAL_OPENED,
+  LOG_ACTIONS_FURTHER_DRILL_BY,
+} from 'src/logger/LogUtils';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -67,9 +73,18 @@ interface ModalFooterProps {
 }
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
+  const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
+  const onEditChartClick = useCallback(() => {
+    dispatch(
+      logEvent(LOG_ACTIONS_DRILL_BY_EDIT_CHART, {
+        slice_id: formData.slice_id,
+      }),
+    );
+  }, [dispatch, formData.slice_id]);
+
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
     postFormData(Number(datasource_id), datasource_type, formData, 0)
@@ -93,7 +108,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
       <Button
         buttonStyle="secondary"
         buttonSize="small"
-        onClick={noOp}
+        onClick={onEditChartClick}
         disabled={!url}
       >
         <Link
@@ -137,6 +152,7 @@ export default function DrillByModal({
   formData,
   onHideModal,
 }: DrillByModalProps) {
+  const dispatch = useDispatch();
   const theme = useTheme();
   const { addDangerToast } = useToasts();
   const [isChartDataLoading, setIsChartDataLoading] = useState(true);
@@ -144,6 +160,14 @@ export default function DrillByModal({
   const [drillByConfigs, setDrillByConfigs] = useState<DrillByConfigs>([
     { ...drillByConfig, column },
   ]);
+
+  useEffect(() => {
+    dispatch(
+      logEvent(LOG_ACTIONS_DRILL_BY_MODAL_OPENED, {
+        slice_id: formData.slice_id,
+      }),
+    );
+  }, [dispatch, formData.slice_id]);
 
   const {
     column: currentColumn,
@@ -233,6 +257,11 @@ export default function DrillByModal({
 
   const onBreadcrumbClick = useCallback(
     (breadcrumb: DrillByBreadcrumb, index: number) => {
+      dispatch(
+        logEvent(LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED, {
+          slice_id: formData.slice_id,
+        }),
+      );
       setDrillByConfigs(prevConfigs => prevConfigs.slice(0, index));
       setBreadcrumbsData(prevBreadcrumbs => {
         const newBreadcrumbs = prevBreadcrumbs.slice(0, index + 1);
@@ -263,7 +292,7 @@ export default function DrillByModal({
         return newFormData;
       });
     },
-    [drillByConfigs, formData, getFormDataChangesFromConfigs],
+    [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
 
   const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
@@ -314,6 +343,12 @@ export default function DrillByModal({
       newColumn: Column,
       drillByConfig: Required<ContextMenuFilters>['drillBy'],
     ) => {
+      dispatch(
+        logEvent(LOG_ACTIONS_FURTHER_DRILL_BY, {
+          drill_depth: drillByConfigs.length + 1,
+          slice_id: formData.slice_id,
+        }),
+      );
       setCurrentFormData(drilledFormData);
       setDrillByConfigs(prevConfigs => [
         ...prevConfigs,
@@ -326,7 +361,7 @@ export default function DrillByModal({
         return newBreadcrumbs;
       });
     },
-    [drilledFormData],
+    [dispatch, drillByConfigs.length, drilledFormData, formData.slice_id],
   );
 
   const additionalConfig = useMemo(

@@ -129,12 +129,13 @@ export default function ExplorePage() {
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData = dashboardContextFormData
-            ? getFormDataWithDashboardContext(
-                result.form_data,
-                dashboardContextFormData,
-              )
-            : result.form_data;
+          const formData =
+            !isExploreInitialized.current && dashboardContextFormData
+              ? getFormDataWithDashboardContext(
+                  result.form_data,
+                  dashboardContextFormData,
+                )
+              : result.form_data;
           dispatch(
             hydrateExplore({
               ...result,

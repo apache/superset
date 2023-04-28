@@ -21,6 +21,9 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  getTimeFormatter,
+  getColumnLabel,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
@@ -28,7 +31,7 @@ import ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
-import { currentSeries } from '../utils/series';
+import { currentSeries, formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
@@ -50,6 +53,7 @@ export default function EchartsTimeseries({
   xAxis,
   refs,
   emitCrossFilters,
+  coltypeMapping,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -196,7 +200,7 @@ export default function EchartsTimeseries({
         handleDoubleClickChange();
       }
     },
-    contextmenu: eventParams => {
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName } = eventParams;
@@ -232,10 +236,16 @@ export default function EchartsTimeseries({
           }),
         );
         formData.groupby.forEach((dimension, i) => {
+          const val = labelMap[seriesName][i];
           drillByFilters.push({
             col: dimension,
             op: '==',
-            val: labelMap[seriesName][i],
+            val,
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
           });
         });
 
