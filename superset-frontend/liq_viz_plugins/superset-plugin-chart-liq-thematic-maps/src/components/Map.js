@@ -25,6 +25,8 @@ import { getSequentialSchemeRegistry } from '@superset-ui/core';
 
 import entity from '../../../liq_data/entity.json';
 
+import DataDisplay from './DataDisplay';
+
 const defaults = require('../defaultLayerStyles.js');
 
 const iconsSVG = require('../iconSVG.js');
@@ -83,20 +85,14 @@ function Map(props, ref) {
     newIntersectSa1Color,
     intersectSa1Width,
     mapID, // id of map,
-    setDrawerOpen
+    setDrawerOpen,
+    setDrawerContent,
+    setDrawerTitle,
+    load
   } = props;
 
   const map = useRef(null);
   let hovered = useRef({});
-
-  const mapDivStyle = {
-    height: height,
-    width: '100%',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0
-  }
 
   const [currBdryIDs, setCurrBdryIDs] = useState([]); // currently rendered boundary tiles
   const [currTileIDs, setCurrTileIDs] = useState([]); // currently rendered intranet tiles
@@ -190,8 +186,8 @@ function Map(props, ref) {
     map.current = new mapboxgl.Map({
       container: mapID,
       style: mapStyle ? mapStyle : 'mapbox://styles/mapbox/streets-v12',
-      center: [mapPos.lng, mapPos.lat],
-      zoom: mapPos.zoom
+      center: mapPos.lng && mapPos.lat ? [mapPos.lng, mapPos.lat] : [151.2, -33.8],
+      zoom: mapPos.zoom ? mapPos.zoom : 9
     });
 
     // Flat map projection
@@ -261,6 +257,8 @@ function Map(props, ref) {
     Object.keys(iconsSVG).map(k => {
       map.current.addImage(k, iconsSVG[k]);
     })
+
+    if (!load) return;
 
     // Load map tiles and their default styles
     map.current.on('load', () => {
@@ -450,7 +448,7 @@ function Map(props, ref) {
   // When color map settings change, update state and map
   useEffect(() => {
 
-    if (!mapType.includes('thematic')) return;
+    if (!load || !mapType.includes('thematic')) return;
 
     setColorMap({});
 
@@ -546,7 +544,7 @@ function Map(props, ref) {
 
   // Hook for styling rendered tiles via feature state, triggered whenever new tiles are rendered
   useEffect(() => {
-    if (!map.current.isStyleLoaded()) return;
+    if (!load || !map.current.isStyleLoaded()) return;
     for (const i in currBdryIDs) {
       let state = {
         color: colorMap[currBdryIDs[i].val],
@@ -572,7 +570,7 @@ function Map(props, ref) {
   }, [currBdryIDs, colorMap]);
 
   useEffect(() => {
-    if (!map.current.isStyleLoaded()) return;
+    if (!load || !map.current.isStyleLoaded()) return;
     for (const x of currTileIDs) {
       intranetLayers.map(l => {
         if (l in intranetData && x.val in intranetData[l]) map.current.setFeatureState(
@@ -589,7 +587,7 @@ function Map(props, ref) {
 
   // Hook for changing opacity in real time
   useEffect(() => {
-    if (!map.current || !map.current.isStyleLoaded()) return;
+    if (!load || !map.current || !map.current.isStyleLoaded()) return;
     map.current.setPaintProperty('boundary_tileset', 'fill-opacity', opacity);
   }, [opacity])
 
@@ -630,7 +628,17 @@ function Map(props, ref) {
   }, [newIntersectSa1Color, intersectSa1Width])
 
   return (
-    <div id={mapID} style={mapDivStyle} />
+    <div 
+      id={mapID} 
+      style={{
+        height: height,
+        width: width,
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0
+      }} 
+    />
   );
 }
 

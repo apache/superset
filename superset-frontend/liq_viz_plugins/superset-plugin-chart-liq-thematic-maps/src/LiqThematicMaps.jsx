@@ -29,7 +29,7 @@ import { SupersetClient } from '@superset-ui/core';
 
 import entity from '../../liq_data/entity.json';
 
-import _ from 'lodash';
+import _, { transform } from 'lodash';
 
 // UI imports
 import {
@@ -49,7 +49,6 @@ import Drivetime from './components/Drivetime.js';
 import Map from './components/Map.js';
 
 import transformProps from './plugin/transformProps.js';
-
 
 const { Content } = Layout;
 const { SubMenu } = Menu;
@@ -122,7 +121,8 @@ export default function LiqThematicMaps(props) {
   } = props;
 
   const rootElem = createRef();
-  const map = useRef(null);
+  const mapL = useRef(null);
+  const mapR = useRef(null);
   const compareMap = useRef(null);
 
   const [compareProps, setCompareProps] = useState({});
@@ -130,10 +130,16 @@ export default function LiqThematicMaps(props) {
   const [transformedProps, setTransformedProps] = useState({});
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContent, setDrawerContent] = useState(<></>);
+  const [drawerTitle, setDrawerTitle] = useState('');
+
   const [loadSecondMap, setLoadSecondMap] = useState(false);
 
-  useEffect(() => {
+  const [slidePos, setSlidePos] = useState(width);
 
+  // If there is a compare chart, load its initial props and data and store in state
+  useEffect(() => {
+    if (!(compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string'))) return;
     SupersetClient.get({ endpoint: `/api/v1/chart/${compareChart}` })
       .then(res => {
         if ('result' in res.json) {
@@ -146,18 +152,94 @@ export default function LiqThematicMaps(props) {
       });
   }, [compareChart]);
 
+  // Apply transform props to initial right map props when they are received
   useEffect(() => {
     if (Object.keys(compareProps).length > 0 && compareData.length > 0) {
       const propsToCamel = _.mapKeys(compareProps, (v, k) => _.camelCase(k));
       const newProps = transformProps( {width: width, height: height, formData: propsToCamel, queriesData: [{ data: compareData }]})
-      setTransformedProps({...newProps});
+      setTransformedProps({...newProps, width: width, height: height});
       setLoadSecondMap(true);
     }
   }, [compareProps, compareData]);
 
+  // Instantiate compare map only when transformed props are ready for the right map
+  useEffect(() => {
+    if (Object.keys(transformedProps).length > 0) {
+      compareMap.current = new MapboxCompare(mapL.current.getMap(), mapR.current.getMap(), '#comparison-container', {
+        mousemove: false,
+        orientation: 'vertical'
+      });
+      compareMap.current.setSlider(width);
+      compareMap.current.on('slideend', (e) => {
+        setSlidePos(e.currentPosition);
+      });
+    }
+  }, [transformedProps])
+
+  // Check if only one map is visible and if so which one is it or both are visible
+  useEffect(() => {
+    if (slidePos === 0) console.log('Right');
+    if (slidePos === width) console.log('Left');
+  }, [slidePos, width]);
+
+  /*
+    TODO:
+    - Implement legend mechanism:
+      - If comparing and both maps visible then combine legends
+      - If comparing and only one map is visible then only show legend for that map
+      - If not comparing then show legend as per usual
+  */
+
   return (
-    <div style={{height: height, width: width}} ref={rootElem} id='compare-container'>
-      <Map {...{...props, mapID: 'mapID', setDrawerOpen}} ref={map} />
-    </div>
+      <div style={{ 
+          height: height, 
+          width: '100%', 
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0 
+        }} 
+        ref={rootElem} 
+        id={
+          compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string') ?
+            'comparison-container'
+          :
+            'map-container'
+        }
+      >
+        <Map 
+          {...{
+            ...props, 
+            mapID: 'mapIDL', 
+            setDrawerOpen, 
+            setDrawerContent,
+            setDrawerTitle,
+            load: true
+          }} 
+          ref={mapL} 
+        />
+        {compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string') && (
+          <Map 
+            {...{
+              ...transformedProps, 
+              mapID: 'mapIDR', 
+              setDrawerOpen,
+              setDrawerContent, 
+              setDrawerTitle,
+              load: loadSecondMap
+            }} 
+            width={width}
+            height={height}
+            ref={mapR} 
+          />
+        )}
+        <SideDrawer 
+          drawerTitle={drawerTitle}
+          drawerContent={drawerContent}
+          open={drawerOpen}
+          setDrawerOpen={setDrawerOpen}
+          width={width}
+        />
+      </div>
   ); 
 }
