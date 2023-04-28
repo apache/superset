@@ -533,5 +533,6 @@ export default function transformProps(
       type: xAxisType,
     },
     refs,
+    coltypeMapping: dataTypes,
   };
 }
