@@ -25,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app, security_manager, conf
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -440,7 +440,7 @@ class BaseReportState:
         notification_errors = []
         for recipient in recipients:
             if recipient.type == ReportRecipientType.VO and self._report_schedule.type == ReportScheduleType.ALERT:
-                raise_incident(app.config, self._report_schedule,VoIncidentType.CRITICAL)
+                raise_incident(conf, self._report_schedule,VoIncidentType.CRITICAL)
             else:
                 notification = create_notification(recipient, notification_content)
                 try:
@@ -581,7 +581,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
-                    raise_incident(app.config, self._report_schedule,VoIncidentType.CRITICAL,first_ex)
+                    raise_incident(conf, self._report_schedule,VoIncidentType.CRITICAL,first_ex)
                 except CommandException as second_ex:
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)
