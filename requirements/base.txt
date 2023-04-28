@@ -13,6 +13,8 @@ amqp==5.1.0
     # via kombu
 apispec[yaml]==3.3.2
     # via flask-appbuilder
+async-timeout==4.0.2
+    # via redis
 attrs==21.2.0
     # via jsonschema
 babel==2.9.1
@@ -199,7 +201,7 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
-polyline==1.4.0
+polyline==2.0.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
@@ -250,7 +252,7 @@ pyyaml==5.4.1
     # via
     #   apache-superset
     #   apispec
-redis==3.5.3
+redis==4.5.4
     # via apache-superset
 rich==13.3.1
     # via flask-limiter
@@ -266,7 +268,6 @@ six==1.16.0
     #   isodate
     #   jsonschema
     #   paramiko
-    #   polyline
     #   prison
     #   pyrsistent
     #   python-dateutil
