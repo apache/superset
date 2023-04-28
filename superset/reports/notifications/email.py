@@ -109,6 +109,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             }
 
         # Strip any malicious HTML from the description
+        # pylint: disable=no-member
         description = nh3.clean(
             self._content.description or "",
             tags=ALLOWED_TAGS,
@@ -118,6 +119,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
+            # pylint: disable=no-member
             html_table = nh3.clean(
                 df.to_html(na_rep="", index=True, escape=True),
                 # pandas will escape the HTML in cells already, so passing

@@ -703,6 +703,7 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
             "markdown.extensions.codehilite",
         ],
     )
+    # pylint: disable=no-member
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
