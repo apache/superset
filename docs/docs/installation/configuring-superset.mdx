@@ -82,7 +82,8 @@ You can generate a strong secure key with `openssl rand -base64 42`.
 #### Rotating to a newer SECRET_KEY
 
 If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
-`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`.  You can find your current SECRET_KEY with these commands:
+`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`.  You can find your current SECRET_KEY with these
+commands - if running Superset with Docker, execute from within the Superset application container:
 
 ```python
 superset shell
