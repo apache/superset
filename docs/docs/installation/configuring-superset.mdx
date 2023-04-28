@@ -69,6 +69,30 @@ you can add the endpoints to `WTF_CSRF_EXEMPT_LIST`:
 WTF_CSRF_EXEMPT_LIST = [‘’]
 ```
 
+### Specifying a SECRET_KEY
+
+#### Adding an initial SECRET_KEY
+
+Superset requires a user-specified SECRET_KEY to start up.  This requirement was [added in version 2.1.0 to force secure configurations](https://preset.io/blog/superset-security-update-default-secret_key-vulnerability/).  Add a strong SECRET_KEY to your `superset_config.py` file like:
+
+```python
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'`
+```
+
+You can generate a strong secure key with `openssl rand -base64 42`.
+
+#### Rotating to a newer SECRET_KEY
+
+If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
+`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`.  You can find your current SECRET_KEY with these commands:
+
+```python
+superset shell
+from flask import current_app; print(current_app.config["SECRET_KEY"])
+```
+
+Save your `superset_config.py` with these values and then run `superset re-encrypt-secrets`.
+
 ### Using a production metastore
 
 By default, Superset is configured to use SQLite, which is a simple and fast way to get started
@@ -279,18 +303,3 @@ FEATURE_FLAGS = {
 
 A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
 
-### SECRET_KEY Rotation
-
-If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
-
-Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
-
-```python
-PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY'
-# To find out 'CURRENT_SECRET_KEY' follow these steps
-# 1. Got to superset shell : $ superset shell
-# 2. Run the command       : >>> from flask import current_app; print(current_app.config["SECRET_KEY"])
-
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY usng "openssl rand -base64 42"
-```
-Then run `superset re-encrypt-secrets`
