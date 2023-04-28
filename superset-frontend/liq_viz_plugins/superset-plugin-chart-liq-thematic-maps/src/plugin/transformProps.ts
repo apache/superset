@@ -55,6 +55,7 @@ export default function transformProps(chartProps : ChartProps) {
    */
 
   const { width, height, formData, queriesData } = chartProps;
+
   const { 
     mapType,
     mapStyle,
@@ -81,29 +82,7 @@ export default function transformProps(chartProps : ChartProps) {
     drivetimeLinkedCharts,
     intersectSa1Color,
     intersectSa1Width,
-    customName,
-    customType,
-    customTileset,
-    customDatabase,
-    customSchema,
-    customTable,
-    customGeom,
-    customShape,
-    customColorAttributeCheck,
-    customColorAttribute,
-    customColor,
-    customColorScheme,
-    customColorBreaksMode,
-    customColorMode,
-    customColorNumClasses,
-    customColorOpacity,
-    customSizeAttributeCheck,
-    customSizeAttribute,
-    customSize,
-    customSizeMultiplier,
-    customSizeBreaksMode,
-    customSizeMode,
-    customSizeNumClasses
+    compareChart
   } = formData as LiqThematicMapsQueryFormData;
 
   const data = queriesData[0].data;
@@ -175,7 +154,6 @@ export default function transformProps(chartProps : ChartProps) {
 
   const newRadiusColor = toRgbaStr(radiusColor);
   const newDrivetimeColor = toRgbaStr(drivetimeColor);
-  const newCustomColor = toRgbaStr(customColor);
   const newRadiusBorderColor = toRgbaStr(radiusBorderColor);
   const newDrivetimeBorderColor = toRgbaStr(drivetimeBorderColor);
   const newIntersectSa1Color = toRgbaStr(intersectSa1Color);
@@ -222,28 +200,6 @@ export default function transformProps(chartProps : ChartProps) {
     newDrivetimeLinkedCharts,
     newIntersectSa1Color,
     intersectSa1Width,
-    customName,
-    customType,
-    customTileset,
-    customDatabase,
-    customSchema,
-    customTable,
-    customGeom,
-    customShape,
-    customColorAttributeCheck,
-    customColorAttribute,
-    newCustomColor,
-    customColorScheme,
-    customColorBreaksMode,
-    customColorMode,
-    customColorNumClasses,
-    customColorOpacity,
-    customSizeAttributeCheck,
-    customSizeAttribute,
-    customSize,
-    customSizeMultiplier,
-    customSizeBreaksMode,
-    customSizeMode,
-    customSizeNumClasses
+    compareChart
   };
 }

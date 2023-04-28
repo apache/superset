@@ -29,7 +29,8 @@
   },
   "dependencies": {
     "@mapbox/mapbox-gl-geocoder": "^5.0.1",
-    "mapbox-gl": "^2.9.2",
+    "mapbox-gl": "^2.14.1",
+    "mapbox-gl-compare": "^0.4.0",
     "react-colorful": "^5.6.1",
     "zustand": "^4.3.6"
   },
