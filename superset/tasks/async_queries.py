@@ -91,8 +91,10 @@ def load_chart_data_into_cache(
         except Exception as ex:
             # TODO: QueryContext should support SIP-40 style errors
             error = (
-                ex.message if hasattr(ex, "message") else str(ex)
-            )  # pylint: disable=no-member
+                ex.message  # pylint: disable=no-member
+                if hasattr(ex, "message")
+                else str(ex)
+            )
             errors = [{"message": error}]
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -160,8 +162,10 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 errors = ex.errors  # pylint: disable=no-member
             else:
                 error = (
-                    ex.message if hasattr(ex, "message") else str(ex)
-                )  # pylint: disable=no-member
+                    ex.message  # pylint: disable=no-member
+                    if hasattr(ex, "message")
+                    else str(ex)
+                )
                 errors = [error]
 
             async_query_manager.update_job(

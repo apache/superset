@@ -33,7 +33,7 @@ class SqlLabException(SupersetException):
     failed_reason_msg: str
     suggestion_help_msg: Optional[str]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         sql_json_execution_context: SqlJsonExecutionContext,
         error_type: Optional[SupersetErrorType] = None,

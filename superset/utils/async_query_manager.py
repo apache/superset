@@ -192,5 +192,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)  # type: ignore
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)  # type: ignore
