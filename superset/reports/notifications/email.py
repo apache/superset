@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from email.utils import make_msgid, parseaddr
 from typing import Any, Dict, Optional
 
-import bleach
+import nh3
 from flask_babel import gettext as __
 
 from superset import app
@@ -35,10 +35,10 @@ from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
 
-TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
-TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
+TABLE_TAGS = {"table", "th", "tr", "td", "thead", "tbody", "tfoot"}
+TABLE_ATTRIBUTES = {"colspan", "rowspan", "halign", "border", "class"}
 
-ALLOWED_TAGS = [
+ALLOWED_TAGS = {
     "a",
     "abbr",
     "acronym",
@@ -54,13 +54,14 @@ ALLOWED_TAGS = [
     "p",
     "strong",
     "ul",
-] + TABLE_TAGS
+}.union(TABLE_TAGS)
 
+ALLOWED_TABLE_ATTRIBUTES = {tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS}
 ALLOWED_ATTRIBUTES = {
-    "a": ["href", "title"],
-    "abbr": ["title"],
-    "acronym": ["title"],
-    **{tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS},
+    "a": {"href", "title"},
+    "abbr": {"title"},
+    "acronym": {"title"},
+    **ALLOWED_TABLE_ATTRIBUTES,
 }
 
 
@@ -108,7 +109,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             }
 
         # Strip any malicious HTML from the description
-        description = bleach.clean(
+        # pylint: disable=no-member
+        description = nh3.clean(
             self._content.description or "",
             tags=ALLOWED_TAGS,
             attributes=ALLOWED_ATTRIBUTES,
@@ -117,12 +119,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
-            html_table = bleach.clean(
+            # pylint: disable=no-member
+            html_table = nh3.clean(
                 df.to_html(na_rep="", index=True, escape=True),
                 # pandas will escape the HTML in cells already, so passing
                 # more allowed tags here will not work
                 tags=TABLE_TAGS,
-                attributes=TABLE_ATTRIBUTES,
+                attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
         else:
             html_table = ""
