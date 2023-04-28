@@ -23,11 +23,11 @@ Here are a **few different ways you can get started with Superset**:
   [from GitHub](https://github.com/apache/superset/tree/latest)
 - Download the [source from Apache Foundation's website](https://dist.apache.org/repos/dist/release/superset/)
 
-**Video Overview**
+#### Video Overview
 
 https://user-images.githubusercontent.com/64562059/234390129-321d4f35-cb4b-45e8-89d9-20ae292f34fc.mp4
 
-**Features**
+#### Features
 
 Superset provides:
 
@@ -44,6 +44,8 @@ Superset provides:
 - An API for programmatic customization
 - A cloud-native architecture designed from the ground up for scale
 
+#### Backend Technology
+
 Superset is cloud-native and designed to be highly available. It was designed to scale out to large,
 distributed environments and works very well inside containers. While you can easily test drive
 Superset on a modest setup or simply on your laptop, there’s virtually no limit around scaling out
@@ -51,11 +53,11 @@ the platform.
 
 Superset is also cloud-native in the sense that it is flexible and lets you choose the:
 
-- web server (Gunicorn, Nginx, Apache),
-- metadata database engine (MySQL, Postgres, MariaDB, etc),
-- message queue (Redis, RabbitMQ, SQS, etc),
-- results backend (S3, Redis, Memcached, etc),
-- caching layer (Memcached, Redis, etc),
+- Web server (Gunicorn, Nginx, Apache),
+- Metadata database engine (PostgreSQL, MySQL, MariaDB),
+- Message queue (Celery, Redis, RabbitMQ, SQS, etc.),
+- Results backend (Redis, S3, Memcached, etc.),
+- Caching layer (Redis, Memcached, etc.),
 
 Superset also works well with services like NewRelic, StatsD and DataDog, and has the ability to run
 analytic workloads against most popular database technologies.
