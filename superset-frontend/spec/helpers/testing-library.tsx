@@ -41,7 +41,6 @@ type Options = Omit<RenderOptions, 'queries'> & {
 
 export const storeWithApi = configureStore({
   reducer: {
-    ...reducerIndex,
     [api.reducerPath]: api.reducer,
   },
   middleware: getDefaultMiddleware =>
@@ -70,9 +69,9 @@ export function createWrapper(options?: Options) {
     }
 
     if (useRedux) {
-      let storeWithInitialState;
-      if (initialState || reducers) {
-        storeWithInitialState = configureStore({
+      const mockStore =
+        store ??
+        configureStore({
           preloadedState: initialState,
           devTools: false,
           reducer: {
@@ -82,8 +81,6 @@ export function createWrapper(options?: Options) {
           middleware: getDefaultMiddleware =>
             getDefaultMiddleware().concat(api.middleware),
         });
-      }
-      const mockStore = store ?? storeWithInitialState ?? storeWithApi;
       result = <Provider store={mockStore}>{result}</Provider>;
     }
 
