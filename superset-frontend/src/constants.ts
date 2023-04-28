@@ -192,6 +192,8 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
       color: '',
     },
   },
+  datahub_url: '',
+  advanced_data_types: [],
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {

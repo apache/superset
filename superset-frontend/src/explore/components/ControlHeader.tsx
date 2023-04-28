@@ -137,6 +137,36 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       </span>
     );
   };
+  const renderOptionalActionIcons = () => (
+    <span
+      css={() => css`
+        padding-left: ${gridUnit}px;
+      `}
+    >
+      {canSelectAll && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('select-all')}
+            tooltip={t('Select All (ctl+a)')}
+            placement="top"
+            icon="arrow-circle-up"
+            onClick={selectAllOnClick}
+          />{' '}
+        </span>
+      )}
+      {canCopy && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('copy')}
+            tooltip={t('Copy the content of this control')}
+            placement="top"
+            icon="copy"
+            onClick={copyOnClick}
+          />{' '}
+        </span>
+      )}
+    </span>
+  );
 
   return (
     <div

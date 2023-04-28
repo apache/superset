@@ -16,22 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, DEFAULT_METRICS } from '@superset-ui/core';
+import { Preset } from '@superset-ui/core';
+import BigNumberChartPlugin from './BigNumber';
+import BigNumberTotalChartPlugin from './BigNumberTotal';
 
-test('DEFAULT_METRICS', () => {
-  expect(DEFAULT_METRICS).toEqual([
-    {
-      metric_name: 'COUNT(*)',
-      expression: 'COUNT(*)',
-    },
-  ]);
-});
-
-test('DatasourceType', () => {
-  expect(Object.keys(DatasourceType).length).toBe(5);
-  expect(DatasourceType.Table).toBe('table');
-  expect(DatasourceType.Query).toBe('query');
-  expect(DatasourceType.Dataset).toBe('dataset');
-  expect(DatasourceType.SlTable).toBe('sl_table');
-  expect(DatasourceType.SavedQuery).toBe('saved_query');
-});
+export default class BigNumberChartPreset extends Preset {
+  constructor() {
+    super({
+      name: 'BigNumber charts',
+      plugins: [
+        new BigNumberChartPlugin().configure({ key: 'big_number' }),
+        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
+      ],
+    });
+  }
+}

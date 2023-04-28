@@ -16,26 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { useSelector } from 'react-redux';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { DashboardState, RootState } from 'src/dashboard/types';
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps, {
+  BigNumberChartProps,
+  BigNumberFormData,
+} from '../BigNumber/transformProps';
+import thumbnail from './images/thumbnail.png';
 
-const Modal = AsyncEsmComponent(() => import('./OverwriteConfirmModal'));
+const metadata = new ChartMetadata({
+  description: '',
+  name: t('Big Number'),
+  thumbnail,
+  useLegacyApi: true,
+});
 
-const OverrideConfirm = () => {
-  const overwriteConfirmMetadata = useSelector<
-    RootState,
-    DashboardState['overwriteConfirmMetadata']
-  >(({ dashboardState }) => dashboardState.overwriteConfirmMetadata);
-
-  return (
-    <>
-      {overwriteConfirmMetadata && (
-        <Modal overwriteConfirmMetadata={overwriteConfirmMetadata} />
-      )}
-    </>
-  );
-};
-
-export default OverrideConfirm;
+export default class BigNumberTotalChartPlugin extends ChartPlugin<
+  BigNumberFormData,
+  BigNumberChartProps
+> {
+  constructor() {
+    super({
+      loadChart: () => import('../BigNumber/BigNumber'),
+      metadata,
+      transformProps,
+      controlPanel,
+    });
+  }
+}
