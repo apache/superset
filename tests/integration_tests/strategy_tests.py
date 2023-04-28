@@ -135,7 +135,9 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
         slc = dash.slices[0]
-        tag2_urls = [f"{get_url_host()}api/v1/cachekey/warm_up_cache/?slice_id={slc.id}"]
+        tag2_urls = [
+            f"{get_url_host()}api/v1/cachekey/warm_up_cache/?slice_id={slc.id}"
+        ]
         object_id = slc.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart

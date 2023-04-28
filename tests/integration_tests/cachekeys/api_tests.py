@@ -185,9 +185,12 @@ class TestWarmUpCache(SupersetTestCase):
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
-        data = self.get_json_resp("/api/v1/cachekey/warm_up_cache?slice_id={}".format(slc.id))
+        data = self.get_json_resp(
+            "/api/v1/cachekey/warm_up_cache?slice_id={}".format(slc.id)
+        )
         self.assertEqual(
-            data["result"], [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+            data["result"],
+            [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
         data = self.get_json_resp(
@@ -200,9 +203,13 @@ class TestWarmUpCache(SupersetTestCase):
 
         assert self.get_json_resp(
             f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}"
-        )["result"] == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )["result"] == [
+            {"slice_id": slc.id, "viz_error": None, "viz_status": "success"}
+        ]
 
         assert self.get_json_resp(
             f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
             + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
-        )["result"] == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )["result"] == [
+            {"slice_id": slc.id, "viz_error": None, "viz_status": "success"}
+        ]
