@@ -35,13 +35,17 @@ export function interceptUpdate() {
   cy.intercept('PUT', `/api/v1/chart/*`).as('update');
 }
 
-export function interceptPost() {
-  cy.intercept('POST', `/api/v1/chart/`).as('post');
+export const interceptV1ChartData = (alias = 'v1Data') => {
+  cy.intercept('/api/v1/chart/data*').as(alias);
+};
+
+export function interceptExploreJson(alias = 'getJson') {
+  cy.intercept('POST', `/superset/explore_json/**`).as(alias);
 }
 
-export function interceptExploreJson() {
-  cy.intercept('POST', `/superset/explore_json/**`).as('getJson');
-}
+export const interceptFormDataKey = () => {
+  cy.intercept('POST', '/api/v1/explore/form_data').as('formDataKey');
+};
 
 export function interceptExploreGet() {
   cy.intercept({
