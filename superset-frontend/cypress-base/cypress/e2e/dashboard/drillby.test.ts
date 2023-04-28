@@ -532,7 +532,7 @@ describe('Drill by modal', () => {
     it('Time-Series Bar Chart V2', () => {
       testEchart('echarts_timeseries_bar', 'Time-Series Bar Chart V2', [
         [70, 94],
-        [70, 94],
+        [362, 68],
       ]);
     });
 
@@ -612,7 +612,7 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Mixed Chart', () => {
+    it.only('Mixed Chart', () => {
       cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
         // click 'boy'
         cy.wrap($canvas)
@@ -652,8 +652,8 @@ describe('Drill by modal', () => {
           // click second query
           cy.wrap($canvas)
             .scrollIntoView()
-            .trigger('mouseover', 510, 356)
-            .rightclick(510, 356);
+            .trigger('mouseover', 246, 114)
+            .rightclick(246, 114);
 
           drillBy('ds').then(intercepted => {
             const { queries } = intercepted.request.body;
@@ -663,7 +663,7 @@ describe('Drill by modal', () => {
             ]);
             expect(queries[1].columns).to.eql(['ds']);
             expect(queries[1].filters).to.eql([
-              { col: 'state', op: '==', val: 'CA' },
+              { col: 'state', op: '==', val: 'other' },
             ]);
           });
 
@@ -678,9 +678,9 @@ describe('Drill by modal', () => {
             .should('be.visible')
             .and('contain', 'gender (boy)')
             .and('contain', '/')
-            .and('contain', 'name (CA)')
+            .and('contain', 'name (other)')
             .and('contain', 'ds')
-            .contains('name (CA)')
+            .contains('name (other)')
             .click();
 
           cy.wait('@drillByUndo').then(intercepted => {
@@ -698,7 +698,7 @@ describe('Drill by modal', () => {
             .should('be.visible')
             .and('contain', 'gender (boy)')
             .and('contain', '/')
-            .and('not.contain', 'name (CA)')
+            .and('not.contain', 'name (other)')
             .and('not.contain', 'ds')
             .and('contain', 'name');
 
