@@ -207,32 +207,6 @@ class TestEmailSmtp(SupersetTestCase):
 
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")
-    def test_send_mime_ssl_server_auth(self, mock_smtp, mock_smtp_ssl):
-        app.config["SMTP_SSL"] = True
-        app.config["SMTP_SSL_SERVER_AUTH"] = True
-        mock_smtp.return_value = mock.Mock()
-        mock_smtp_ssl.return_value = mock.Mock()
-        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
-        assert not mock_smtp.called
-        mock_smtp_ssl.assert_called_with(
-            app.config["SMTP_HOST"], app.config["SMTP_PORT"], context=mock.ANY
-        )
-        called_context = mock_smtp_ssl.call_args.kwargs["context"]
-        self.assertEqual(called_context.verify_mode, ssl.CERT_REQUIRED)
-
-    @mock.patch("smtplib.SMTP")
-    def test_send_mime_tls_server_auth(self, mock_smtp):
-        app.config["SMTP_STARTTLS"] = True
-        app.config["SMTP_SSL_SERVER_AUTH"] = True
-        mock_smtp.return_value = mock.Mock()
-        mock_smtp.return_value.starttls.return_value = mock.Mock()
-        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
-        mock_smtp.return_value.starttls.assert_called_with(context=mock.ANY)
-        called_context = mock_smtp.return_value.starttls.call_args.kwargs["context"]
-        self.assertEqual(called_context.verify_mode, ssl.CERT_REQUIRED)
-
-    @mock.patch("smtplib.SMTP_SSL")
-    @mock.patch("smtplib.SMTP")
     def test_send_mime_noauth(self, mock_smtp, mock_smtp_ssl):
         smtp_user = app.config["SMTP_USER"]
         smtp_password = app.config["SMTP_PASSWORD"]

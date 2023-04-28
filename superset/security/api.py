@@ -19,7 +19,7 @@ from typing import Any, Dict
 
 from flask import request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import BaseApi, safe
+from flask_appbuilder.api import safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf

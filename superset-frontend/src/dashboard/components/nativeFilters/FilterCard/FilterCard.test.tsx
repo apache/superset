@@ -304,8 +304,8 @@ test('focus filter on filter card dependency click', () => {
 
   userEvent.click(screen.getByText('Native filter 2'));
   expect(dummyDispatch).toHaveBeenCalledWith({
-    type: SET_FOCUSED_NATIVE_FILTER,
-    id: 'NATIVE_FILTER-2',
+    type: SET_DIRECT_PATH,
+    path: ['NATIVE_FILTER-2'],
   });
 });
 

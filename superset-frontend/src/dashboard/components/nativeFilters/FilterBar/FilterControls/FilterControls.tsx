@@ -54,15 +54,14 @@ import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
+import { useFilterOutlined } from '../useFilterOutlined';
 
 type FilterControlsProps = {
-  focusedFilterId?: string;
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
-  focusedFilterId,
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
@@ -73,12 +72,13 @@ const FilterControls: FC<FilterControlsProps> = ({
         : FilterBarOrientation.VERTICAL,
   );
 
+  const { outlinedFilterId, lastUpdated } = useFilterOutlined();
+
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
   const popoverRef = useRef<DropdownContainerRef>(null);
 
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
-    focusedFilterId,
     onFilterSelectionChange,
   );
   const portalNodes = useMemo(() => {
@@ -93,6 +93,11 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
+  const hasRequiredFirst = useMemo(
+    () => filtersWithValues.some(filter => filter.requiredFirst),
+    [filtersWithValues],
+  );
 
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
@@ -119,6 +124,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {showCollapsePanel && (
         <FiltersOutOfScopeCollapsible
           filtersOutOfScope={filtersOutOfScope}
+          forceRender={hasRequiredFirst}
           hasTopMargin={filtersInScope.length > 0}
           renderer={renderer}
         />
@@ -200,6 +206,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                   filtersOutOfScope={filtersOutOfScope}
                   renderer={renderer}
                   showCollapsePanel={showCollapsePanel}
+                  forceRenderOutOfScope={hasRequiredFirst}
                 />
               )
             : undefined
@@ -234,10 +241,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
 
   useEffect(() => {
-    if (focusedFilterId && overflowedIds.includes(focusedFilterId)) {
+    if (outlinedFilterId && overflowedIds.includes(outlinedFilterId)) {
       popoverRef?.current?.open();
     }
-  }, [focusedFilterId, popoverRef, overflowedIds]);
+  }, [outlinedFilterId, lastUpdated, popoverRef, overflowedIds]);
 
   return (
     <>

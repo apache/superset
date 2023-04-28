@@ -115,12 +115,6 @@ def get_or_create_user(get_user, create_user) -> ab_models.User:
     return _get_user
 
 
-@pytest.fixture
-def test_client(app_context: AppContext):
-    with app.test_client() as client:
-        yield client
-
-
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
     # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
@@ -150,67 +144,6 @@ def setup_sample_data() -> Any:
         for table in sqla_base.metadata.sorted_tables:
             table.__table__.drop()
         db.session.commit()
-
-
-@pytest.fixture
-def login_as(test_client: "FlaskClient[Any]"):
-    """Fixture with app context and logged in admin user."""
-
-    def _login_as(username: str, password: str = "general"):
-        login(test_client, username=username, password=password)
-
-    yield _login_as
-    # no need to log out as both app_context and test_client are
-    # function level fixtures anyway
-
-
-@pytest.fixture
-def login_as_admin(login_as: Callable[..., None]):
-    yield login_as("admin")
-
-
-@pytest.fixture
-def create_user(app_context: AppContext):
-    def _create_user(username: str, role: str = "Admin", password: str = "general"):
-        security_manager.add_user(
-            username,
-            "firstname",
-            "lastname",
-            "email@exaple.com",
-            security_manager.find_role(role),
-            password,
-        )
-        return security_manager.find_user(username)
-
-    return _create_user
-
-
-@pytest.fixture
-def get_user(app_context: AppContext):
-    def _get_user(username: str) -> ab_models.User:
-        return (
-            db.session.query(security_manager.user_model)
-            .filter_by(username=username)
-            .one_or_none()
-        )
-
-    return _get_user
-
-
-@pytest.fixture
-def get_or_create_user(get_user, create_user) -> ab_models.User:
-    @contextlib.contextmanager
-    def _get_user(username: str) -> ab_models.User:
-        user = get_user(username)
-        if not user:
-            # if user is created by test, remove it after done
-            user = create_user(username)
-            yield user
-            db.session.delete(user)
-        else:
-            yield user
-
-    return _get_user
 
 
 def drop_from_schema(engine: Engine, schema_name: str):

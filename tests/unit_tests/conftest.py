@@ -127,6 +127,7 @@ def app_context(app: SupersetApp) -> Iterator[None]:
 def full_api_access(mocker: MockFixture) -> Iterator[None]:
     """
     Allow full access to the API.
+
     TODO (betodealmeida): we should replace this with user-fixtures, eg, ``admin`` or
     ``gamma``, so that we have granular access to the APIs.
     """

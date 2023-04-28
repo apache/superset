@@ -14,18 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Type
 
-from sqlalchemy.orm.query import Query
-
-from superset import security_manager
-from superset.utils.filters import get_dataset_access_filters
-from superset.views.base import BaseFilter
+from flask_appbuilder import Model
+from sqlalchemy import or_
+from sqlalchemy.sql.elements import BooleanClauseList
 
 
-class SliceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.can_access_all_datasources():
-            return query
+def get_dataset_access_filters(
+    base_model: Type[Model],
+    *args: Any,
+) -> BooleanClauseList:
+    # pylint: disable=import-outside-toplevel
+    from superset import security_manager
+    from superset.connectors.sqla.models import Database
 
-        return query.filter(get_dataset_access_filters(self.model))
+    database_ids = security_manager.get_accessible_databases()
+    perms = security_manager.user_view_menu_names("datasource_access")
+    schema_perms = security_manager.user_view_menu_names("schema_access")
+
+    return or_(
+        Database.id.in_(database_ids),
+        base_model.perm.in_(perms),
+        base_model.schema_perm.in_(schema_perms),
+        *args,
+    )

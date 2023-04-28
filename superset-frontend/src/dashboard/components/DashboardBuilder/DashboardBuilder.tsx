@@ -580,10 +580,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
-            <FilterBar
-              focusedFilterId={focusedFilterId}
-              orientation={FilterBarOrientation.HORIZONTAL}
-            />
+            <FilterBar orientation={FilterBarOrientation.HORIZONTAL} />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
         {!isReport && topLevelTabs && !uiConfig.hideNav && (
@@ -613,7 +610,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       </div>
     ),
     [
-      focusedFilterId,
       nativeFiltersEnabled,
       filterBarOrientation,
       editMode,
@@ -658,7 +654,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                     <ErrorBoundary>
                       {!isReport && (
                         <FilterBar
-                          focusedFilterId={focusedFilterId}
                           orientation={FilterBarOrientation.VERTICAL}
                           verticalConfig={{
                             filtersOpen: dashboardFiltersOpen,

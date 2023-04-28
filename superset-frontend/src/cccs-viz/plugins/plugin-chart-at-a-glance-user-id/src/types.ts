@@ -16,27 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormData,
-  SetDataMaskHook,
-} from '@superset-ui/core';
+import React from 'react';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { TimeFormats } from '@superset-ui/core';
+import TimeCell from '.';
 
-export type AAGUserIDQueryFormData = QueryFormData & {
-  headerText?: string;
-  setDataMask?: SetDataMaskHook;
-  selectedValues?: Record<number, string>;
-  emitFilter: boolean;
+export default {
+  title: 'Design System/Components/Table/Cell Renderers/TimeCell',
+  component: TimeCell,
+} as ComponentMeta<typeof TimeCell>;
+
+export const Basic: ComponentStory<typeof TimeCell> = args => (
+  <TimeCell {...args} />
+);
+
+Basic.args = {
+  value: Date.now(),
 };
 
-export interface AAGUserIDChartDataResponseResult
-  extends ChartDataResponseResult {
-  agGridLicenseKey: string;
-}
-
-export class AAGUserIDChartProps extends ChartProps {
-  declare formData: AAGUserIDQueryFormData;
-
-  declare queriesData: AAGUserIDChartDataResponseResult[];
-}
+Basic.argTypes = {
+  format: {
+    defaultValue: TimeFormats.DATABASE_DATETIME,
+    control: 'select',
+    options: Object.values(TimeFormats),
+  },
+};

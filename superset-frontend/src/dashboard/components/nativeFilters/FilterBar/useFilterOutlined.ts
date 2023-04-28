@@ -16,26 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+
 import { useSelector } from 'react-redux';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { DashboardState, RootState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
+import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
-const Modal = AsyncEsmComponent(() => import('./OverwriteConfirmModal'));
-
-const OverrideConfirm = () => {
-  const overwriteConfirmMetadata = useSelector<
-    RootState,
-    DashboardState['overwriteConfirmMetadata']
-  >(({ dashboardState }) => dashboardState.overwriteConfirmMetadata);
-
-  return (
-    <>
-      {overwriteConfirmMetadata && (
-        <Modal overwriteConfirmMetadata={overwriteConfirmMetadata} />
-      )}
-    </>
+export const useFilterOutlined = () =>
+  useSelector<RootState, { outlinedFilterId: string; lastUpdated: number }>(
+    state => ({
+      outlinedFilterId: (
+        getChartAndLabelComponentIdFromPath(
+          state.dashboardState.directPathToChild || [],
+        ) as Record<string, string>
+      )?.native_filter,
+      lastUpdated: state.dashboardState.directPathLastUpdated,
+    }),
   );
-};
-
-export default OverrideConfirm;

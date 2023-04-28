@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const queryObjectCount = {
-  mixed_timeseries: 2,
-};
 
-export const getQueryCount = (vizType: string): number =>
-  queryObjectCount?.[vizType] || 1;
+import useTruncation from './useChildElementTruncation';
+import useCSSTextTruncation, { truncationCSS } from './useCSSTextTruncation';
+
+export { useTruncation, useCSSTextTruncation, truncationCSS };

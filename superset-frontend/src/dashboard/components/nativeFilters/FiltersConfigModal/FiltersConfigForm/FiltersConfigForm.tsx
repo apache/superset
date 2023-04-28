@@ -909,39 +909,44 @@ const FiltersConfigForm = (
                         }
                       }}
                     >
-                      <StyledRowSubFormItem
-                        name={['filters', filterId, 'adhoc_filters']}
-                        initialValue={filterToEdit?.adhoc_filters}
-                        required
-                        rules={[
-                          {
-                            validator: preFilterValidator,
-                          },
-                        ]}
-                      >
-                        <AdhocFilterControl
-                          columns={
-                            datasetDetails?.columns?.filter(
-                              (c: ColumnMeta) => c.filterable,
-                            ) || []
+                      {showTimeRangePicker && (
+                        <StyledRowFormItem
+                          name={['filters', filterId, 'time_range']}
+                          label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                          initialValue={
+                            filterToEdit?.time_range || t('No filter')
                           }
-                          savedMetrics={datasetDetails?.metrics || []}
-                          datasource={datasetDetails}
-                          onChange={(filters: AdhocFilter[]) => {
-                            setNativeFilterFieldValues(form, filterId, {
-                              adhoc_filters: filters,
-                            });
-                            forceUpdate();
-                            validatePreFilter();
-                          }}
-                          label={
-                            <span>
-                              <StyledLabel>{t('Pre-filter')}</StyledLabel>
-                              {!hasTimeRange && <StyledAsterisk />}
-                            </span>
-                          }
-                        />
-                      </StyledRowSubFormItem>
+                          required={!hasAdhoc}
+                          rules={[
+                            {
+                              validator: preFilterValidator,
+                            },
+                          ]}
+                        >
+                          <AdhocFilterControl
+                            columns={
+                              datasetDetails?.columns?.filter(
+                                (c: ColumnMeta) => c.filterable,
+                              ) || []
+                            }
+                            savedMetrics={datasetDetails?.metrics || []}
+                            datasource={datasetDetails}
+                            onChange={(filters: AdhocFilter[]) => {
+                              setNativeFilterFieldValues(form, filterId, {
+                                adhoc_filters: filters,
+                              });
+                              forceUpdate();
+                              validatePreFilter();
+                            }}
+                            label={
+                              <span>
+                                <StyledLabel>{t('Pre-filter')}</StyledLabel>
+                                {!hasTimeRange && <StyledAsterisk />}
+                              </span>
+                            }
+                          />
+                        </StyledRowFormItem>
+                      )}
                       {showTimeRangePicker && (
                         <StyledRowFormItem
                           name={['filters', filterId, 'time_range']}

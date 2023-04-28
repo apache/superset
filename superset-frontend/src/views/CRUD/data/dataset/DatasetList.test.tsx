@@ -233,38 +233,6 @@ describe('DatasetList', () => {
   it('renders a SubMenu with no tabs', () => {
     expect(wrapper.find(SubMenu).props().tabs).toBeUndefined();
   });
-
-  it('renders datahub link when urn is defined', async () => {
-    await waitForComponentToPaint(wrapper);
-    expect(
-      wrapper
-        .find('[data-test="cell-text"]')
-        .filterWhere(
-          // @ts-ignore
-          e =>
-            e.childAt(0).props().cell.column.id === 'datahub_link' &&
-            e.childAt(0).props().cell.row.index === 0,
-        )
-        .childAt(0)
-        .children(),
-    ).toHaveLength(1);
-  });
-
-  it('does not render datahub link when urn is undefined', async () => {
-    await waitForComponentToPaint(wrapper);
-    expect(
-      wrapper
-        .find('[data-test="cell-text"]')
-        .filterWhere(
-          // @ts-ignore
-          e =>
-            e.childAt(0).props().cell.column.id === 'datahub_link' &&
-            e.childAt(0).props().cell.row.index === 1,
-        )
-        .childAt(0)
-        .children(),
-    ).toHaveLength(0);
-  });
 });
 
 jest.mock('react-router-dom', () => ({

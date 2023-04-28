@@ -221,7 +221,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
-    col: str
+    col: Column
     op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
@@ -1089,7 +1089,7 @@ def simple_filter_to_adhoc(
         "expressionType": "SIMPLE",
         "comparator": filter_clause.get("val"),
         "operator": filter_clause["op"],
-        "subject": filter_clause["col"],
+        "subject": cast(str, filter_clause["col"]),
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
