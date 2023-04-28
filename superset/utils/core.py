@@ -2055,6 +2055,8 @@ def raise_incident(conf, report_schedule, message_type, exception = "") -> None:
                 headers={"Content-Type": "application/json"},
                 verify=False
             )
+            logger.info("VO_URL", WEBHOOK_URL)
+
         except requests.exceptions.HTTPError as e:
             raise Exception(str(e))
         if response.status_code != 200:
