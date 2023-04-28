@@ -20,19 +20,16 @@
 import { Interception } from 'cypress/types/net-stubbing';
 import { waitForChartLoad } from 'cypress/utils';
 import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
-import { SUPPORTED_TIER1_CHARTS, SUPPORTED_TIER2_CHARTS } from './utils';
-
-const interceptV1ChartData = (alias = 'v1Data') => {
-  cy.intercept('/api/v1/chart/data*').as(alias);
-};
-
-const interceptLegacyChartData = () => {
-  cy.intercept('/superset/explore_json*').as('legacyData');
-};
-
-const interceptFormDataKey = () => {
-  cy.intercept('/api/v1/explore/form_data').as('formDataKey');
-};
+import {
+  openTopLevelTab,
+  SUPPORTED_TIER1_CHARTS,
+  SUPPORTED_TIER2_CHARTS,
+} from './utils';
+import {
+  interceptExploreJson,
+  interceptV1ChartData,
+  interceptFormDataKey,
+} from '../explore/utils';
 
 const closeModal = () => {
   cy.get('body').then($body => {
@@ -40,10 +37,6 @@ const closeModal = () => {
       cy.getBySel('close-drill-by-modal').click({ force: true });
     }
   });
-};
-
-const setTopLevelTab = (tabName: string) => {
-  cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
 };
 
 const openTableContextMenu = (
@@ -59,7 +52,7 @@ const openTableContextMenu = (
 
 const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
   if (isLegacy) {
-    interceptLegacyChartData();
+    interceptExploreJson('legacyData');
   } else {
     interceptV1ChartData();
   }
@@ -236,7 +229,7 @@ describe('Drill by modal', () => {
   describe('Modal actions + Table', () => {
     before(() => {
       closeModal();
-      setTopLevelTab('Tier 1');
+      openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
@@ -384,7 +377,7 @@ describe('Drill by modal', () => {
   describe('Tier 1 charts', () => {
     before(() => {
       closeModal();
-      setTopLevelTab('Tier 1');
+      openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
 
@@ -547,7 +540,7 @@ describe('Drill by modal', () => {
   describe('Tier 2 charts', () => {
     before(() => {
       closeModal();
-      setTopLevelTab('Tier 2');
+      openTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
@@ -612,7 +605,7 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it.only('Mixed Chart', () => {
+    it('Mixed Chart', () => {
       cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
         // click 'boy'
         cy.wrap($canvas)

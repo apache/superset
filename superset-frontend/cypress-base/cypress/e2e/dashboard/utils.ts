@@ -529,3 +529,7 @@ export function openTab(tabComponentIndex: number, tabIndex: number) {
     .eq(tabIndex)
     .click();
 }
+
+export const openTopLevelTab = (tabName: string) => {
+  cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
+};
