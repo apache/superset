@@ -105,7 +105,7 @@ setup(
         "pandas>=1.5.3, <1.6",
         "parsedatetime",
         "pgsanity",
-        "polyline",
+        "polyline>=2.0.0, <3.0",
         "pyparsing>=3.0.6, <4",
         "python-dateutil",
         "python-dotenv",
