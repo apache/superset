@@ -69,7 +69,7 @@ def env(key, default=None):
 
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
-      'CACHE_TYPE': 'redis',
+      'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
       'CACHE_REDIS_HOST': env('REDIS_HOST'),
