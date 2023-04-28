@@ -25,8 +25,6 @@ bcrypt==4.0.1
     # via paramiko
 billiard==3.6.4.0
     # via celery
-bleach==3.3.1
-    # via apache-superset
 brotli==1.0.9
     # via flask-compress
 cachelib==0.4.1
@@ -182,6 +180,8 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.2
     # via apache-superset
+nh3==0.2.11
+    # via apache-superset
 numpy==1.23.5
     # via
     #   apache-superset
@@ -191,7 +191,6 @@ ordered-set==4.1.0
     # via flask-limiter
 packaging==21.3
     # via
-    #   bleach
     #   deprecation
     #   limits
 pandas==1.5.3
@@ -265,7 +264,6 @@ simplejson==3.17.3
     # via apache-superset
 six==1.16.0
     # via
-    #   bleach
     #   click-repl
     #   isodate
     #   jsonschema
@@ -308,8 +306,6 @@ vine==5.0.0
     #   kombu
 wcwidth==0.2.5
     # via prompt-toolkit
-webencodings==0.5.1
-    # via bleach
 werkzeug==2.1.2
     # via
     #   flask
