@@ -88,6 +88,8 @@ function Map(props, ref) {
     setDrawerOpen,
     setDrawerContent,
     setDrawerTitle,
+    setCmapLoaded,
+    setMapLoaded,
     load
   } = props;
 
@@ -105,6 +107,8 @@ function Map(props, ref) {
     currently rendered layers to manage that
   */
   const [renderedIntranetLayers, setRenderedIntranetLayers] = useState([]);
+
+  const [thematicLegend, setThematicLegend] = useState(null);
 
   // Get the tile IDs and data values for all currently rendered boundary tiles
   const getCurrTileIds = (source) => {
@@ -433,10 +437,14 @@ function Map(props, ref) {
       setDrawerContent(<DataDisplay data={data} />);
       setDrawerOpen(true);
     });
+
+    setMapLoaded(true);
   }
 
   useImperativeHandle(ref, () => ({
-    getMap: () => map.current
+    getMap: () => map.current,
+    getCMap: () => colorMap,
+    getThematicLegend: () => thematicLegend
   }));
 
   // Force main map initialization hook to trigger, essentially instigating a reload
@@ -510,6 +518,7 @@ function Map(props, ref) {
         });
         setColorMap({ ...cMap });
         setThematicLegend({ ...result.breaks });
+        setCmapLoaded(true);
       });
   }, [linearColorScheme, breaksMode, customMode, numClasses, data])
 

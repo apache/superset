@@ -19,7 +19,7 @@ export default function Drivetime(props) {
     drivetimeLinkedCharts,
     borderColor,
     borderWidth,
-    map,
+    maps,
     sa1Color,
     sa1Width
   } = props;
@@ -44,57 +44,61 @@ export default function Drivetime(props) {
 
   // Remove drivetime geojson source and layer and delete drivetime key url param
   const removeDrivetime = () => {
-    if ('drivetime' in map.current.getStyle().sources) {
-      map.current.removeLayer('drivetime');
-      map.current.removeLayer('drivetime_sa1s');
-      map.current.removeLayer('drivetime-outline');
-      map.current.removeSource('drivetime');
-      const url = new URL(window.location.href);
-      url.searchParams.delete('drivetime_key');
-      window.history.replaceState(null, null, url);
-      refreshLinkedCharts();
-    }
+    maps.map(map => {
+      if ('drivetime' in map.getStyle().sources) {
+        map.removeLayer('drivetime');
+        map.removeLayer('drivetime_sa1s');
+        map.removeLayer('drivetime-outline');
+        map.removeSource('drivetime');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('drivetime_key');
+        window.history.replaceState(null, null, url);
+        refreshLinkedCharts();
+      };
+    });
   }
 
   // Add drivetime geojson source and layer and update drivetime key url param
   const drawDrivetime = (drivetime) => {
-    // add geojson source
-    map.current.addSource('drivetime', {
-      'type': 'geojson',
-      'data': drivetime
+    maps.map(map => {
+      // add geojson source
+      map.addSource('drivetime', {
+        'type': 'geojson',
+        'data': drivetime
+      });
+      // add fill layer
+      map.addLayer({
+        'id': 'drivetime',
+        'type': 'fill',
+        'source': 'drivetime',
+        'layout': {},
+        'paint': {
+          'fill-color': drivetimeColor,
+        }
+      });
+      // add border layer
+      map.addLayer({
+        'id': 'drivetime-outline',
+        'type': 'line',
+        'source': 'drivetime',
+        'paint': {
+          'line-color': borderColor,
+          'line-width': parseFloat(borderWidth)
+        }
+      })
+      // add intersecting sa1 layer
+      map.addLayer({
+        'id': 'drivetime_sa1s',
+        'type': 'line',
+        'source': 'boundary_tileset',
+        'source-layer': boundary,
+        'paint': {
+          'line-color': 'transparent',
+          'line-width': parseFloat(sa1Width)
+        }
+      });
+      map.off('click', getDrivetime);
     });
-    // add fill layer
-    map.current.addLayer({
-      'id': 'drivetime',
-      'type': 'fill',
-      'source': 'drivetime',
-      'layout': {},
-      'paint': {
-        'fill-color': drivetimeColor,
-      }
-    });
-    // add border layer
-    map.current.addLayer({
-      'id': 'drivetime-outline',
-      'type': 'line',
-      'source': 'drivetime',
-      'paint': {
-        'line-color': borderColor,
-        'line-width': parseFloat(borderWidth)
-      }
-    })
-    // add intersecting sa1 layer
-    map.current.addLayer({
-      'id': 'drivetime_sa1s',
-      'type': 'line',
-      'source': 'boundary_tileset',
-      'source-layer': boundary,
-      'paint': {
-        'line-color': 'transparent',
-        'line-width': parseFloat(sa1Width)
-      }
-    });
-    map.current.off('click', getDrivetime);
     setMessage('');
     addSA1s(drivetime);
     const url = new URL(window.location.href);
@@ -150,8 +154,10 @@ export default function Drivetime(props) {
           ['get', boundaries.includes(groupCol) ? groupCol : 'SA1_CODE21'],
           ['literal', result.sa1s]
         ];
-        map.current.setFilter('drivetime_sa1s', filter);
-        map.current.setPaintProperty('drivetime_sa1s', 'line-color', sa1Color);
+        maps.map(map => {
+          map.setFilter('drivetime_sa1s', filter);
+          map.setPaintProperty('drivetime_sa1s', 'line-color', sa1Color);
+        })
         postRkeySA1s(result.sa1s);
       })
   }
@@ -169,7 +175,7 @@ export default function Drivetime(props) {
 
   const onSettingsSave = () => {
     removeDrivetime();
-    map.current.on('click', getDrivetime);
+    maps.map(map => map.on('click', getDrivetime));
     setMessage('Click anywhere on the map');    
   }
 

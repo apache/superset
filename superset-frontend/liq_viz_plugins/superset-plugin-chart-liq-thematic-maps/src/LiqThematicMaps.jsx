@@ -130,8 +130,134 @@ export default function LiqThematicMaps(props) {
   const [drawerTitle, setDrawerTitle] = useState('');
 
   const [loadSecondMap, setLoadSecondMap] = useState(false);
+  const [cmapLoaded, setCmapLoaded] = useState({ left: false, right: false });
+
+  const [mapsLoaded, setMapsLoaded] = useState({ left: false, right: false });
 
   const [slidePos, setSlidePos] = useState(width);
+
+  const [items, setItems] = useState([]);
+
+  const [mapVis, setMapVis] = useState('left');
+
+  useEffect(() => {
+    console.log(mapVis);
+    const secondMap = compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string');
+    if (secondMap && !mapsLoaded.left && !mapsLoaded.right) return;
+    if (!mapsLoaded.left) return;
+    setItems([
+      {
+        icon: <PlusOutlined />,
+        label: 'Menu',
+        key: 'menu',
+        children: [
+          features.includes('legend') && 
+          {
+            icon: <BarsOutlined />,
+            label: <span>Legend</span>,
+            key: '1',
+            onClick: () => {
+              let legendProps = [];
+              const mapMap = { left: mapL, right: mapR };
+              const maps = secondMap ? 
+                mapVis === 'both' ?
+                  ['left', 'right']
+                :
+                  mapVis === 'left' ?
+                    ['left']
+                  :
+                    ['right']
+              : 
+                ['left'];
+              maps.map(map => {
+                let reverseMap = {};
+                const cmap = mapMap[map].current ? mapMap[map].current.getCMap() : {};
+                Object.keys(cmap).map(x => {
+                  if (cmap[x] in reverseMap) {
+                    reverseMap[cmap[x]].push(x);
+                  } else {
+                    reverseMap[cmap[x]] = [x];
+                  }
+                });
+                const parentProps = map === 'left' ? props : transformedProps;
+                legendProps.push({
+                  intranetLayers: parentProps.intranetLayers,
+                  tradeAreas: parentProps.tradeAreas,
+                  thematicData: mapMap[map].current ? mapMap[map].current.getThematicLegend() : {},
+                  taSectorSA1Map: parentProps.taSectorSA1Map,
+                  taSectorColorMap: parentProps.taSectorColorMap,
+                  colorMap: reverseMap,
+                  thematicCol: parentProps.metricCol,
+                  groupCol: parentProps.groupCol,
+                  map: mapMap[map].current.getMap()
+                });
+              })
+              setDrawerTitle('Map Legend');
+              setDrawerContent(
+                <>
+                  {legendProps.map((props, i) => (
+                    props.map &&
+                    <>
+                      {legendProps.length == 2 && i == 0 && (<h2>Left</h2>)}
+                      {legendProps.length == 2 && i == 1 && (<h2>Right</h2>)}
+                      <Legend key={i} {...props} />
+                    </>
+                  ))}
+                </>
+              );
+              setDrawerOpen(true);
+            }
+          },
+          features.includes('radius') && {
+            icon: <RadiusSettingOutlined />,
+            label: <span>Radius</span>,
+            key: '2',
+            onClick: () => {
+              setDrawerTitle('Radius Settings');
+              setDrawerContent(
+                <Radius 
+                  maps={secondMap ? [mapL.current.getMap(), mapR.current.getMap()] : [mapL.current.getMap()]} 
+                  groupCol={groupCol} 
+                  boundary={boundary}
+                  radiusColor={newRadiusColor}
+                  radiusThreshold={radiusThreshold}
+                  borderColor={newRadiusBorderColor}
+                  borderWidth={radiusBorderWidth} 
+                  radiusLinkedCharts={newRadiusLinkedCharts}
+                  sa1Color={newIntersectSa1Color}
+                  sa1Width={intersectSa1Width}
+                />
+              );
+              setDrawerOpen(true);
+            }
+          },
+          features.includes('drivetime') && {
+            icon: <CarOutlined />,
+            label: <span>Drivetime</span>,
+            key: '3',
+            onClick: () => {
+              setDrawerTitle('Drivetime Settings');
+              setDrawerContent(
+                <Drivetime 
+                maps={secondMap ? [mapL.current.getMap(), mapR.current.getMap()] : [mapL.current.getMap()]}
+                  groupCol={groupCol}
+                  boundary={boundary}
+                  drivetimeColor={newDrivetimeColor}
+                  drivetimeThreshold={drivetimeThreshold}
+                  borderColor={newDrivetimeBorderColor}
+                  borderWidth={drivetimeBorderWidth}
+                  drivetimeLinkedCharts={newDrivetimeLinkedCharts}
+                  sa1Color={newIntersectSa1Color}
+                  sa1Width={intersectSa1Width}
+                />
+              );
+              setDrawerOpen(true);
+            }
+          }
+        ]
+      }
+    ])
+  }, [mapsLoaded, compareChart, mapVis]);
 
   // If there is a compare chart, load its initial props and data and store in state
   useEffect(() => {
@@ -146,48 +272,125 @@ export default function LiqThematicMaps(props) {
             });
         }
       });
-  }, [compareChart]);
+  }, [compareChart, data]);
 
   // Apply transform props to initial right map props when they are received
   useEffect(() => {
     if (Object.keys(compareProps).length > 0 && compareData.length > 0) {
       const propsToCamel = _.mapKeys(compareProps, (v, k) => _.camelCase(k));
       const newProps = transformProps( {width: width, height: height, formData: propsToCamel, queriesData: [{ data: compareData }]})
-      setTransformedProps({...newProps, width: width, height: height});
+      setTransformedProps(
+        // overriding settings below to keep them consistent
+        // discuss whether to keep radius, drivetime and intersecting SA1s consistent for both maps
+        {
+          ...newProps, 
+          width: width, 
+          height: height,
+          newRadiusColor: newRadiusColor,
+          newRadiusBorderColor: newRadiusBorderColor,
+          radiusBorderWidth: radiusBorderWidth,
+          radiusThreshold: radiusThreshold,
+          newRadiusLinkedCharts: newRadiusLinkedCharts,
+          newDrivetimeColor: newDrivetimeColor,
+          newDrivetimeBorderColor: newDrivetimeBorderColor,
+          drivetimeBorderWidth: drivetimeBorderWidth,
+          drivetimeThreshold: drivetimeThreshold,
+          newDrivetimeLinkedCharts: newDrivetimeLinkedCharts,
+          newIntersectSa1Color: newIntersectSa1Color,
+          intersectSa1Width: intersectSa1Width
+        }
+      );
       setLoadSecondMap(true);
     }
   }, [compareProps, compareData]);
 
+  const slideHandler = (e) => {
+    const slidePos = e.currentPosition;
+    const offset = 10
+    if (slidePos <= offset) {
+      setMapVis('right');
+    } else if (slidePos >= width - offset) {
+      setMapVis('left');
+    } else {
+      setMapVis('both');
+    }
+  }
+
   // Instantiate compare map only when transformed props are ready for the right map
   useEffect(() => {
-    if (Object.keys(transformedProps).length > 0) {
+    if (Object.keys(transformedProps).length > 0 && compareData.length > 0) {
       compareMap.current = new MapboxCompare(mapL.current.getMap(), mapR.current.getMap(), '#comparison-container', {
         mousemove: false,
         orientation: 'vertical'
       });
       compareMap.current.setSlider(width);
-      compareMap.current.on('slideend', (e) => {
-        setSlidePos(e.currentPosition);
-      });
+      compareMap.current.on('slideend', slideHandler);
     }
-  }, [transformedProps])
+  }, [transformedProps, compareData]);
+
+  const instigateReload = () => {
+    setLoadSecondMap(false);
+    setTransformedProps({});
+    setCompareProps({});
+    setCompareData([]);
+    compareMap.current.remove();
+    compareMap.current = null;
+  }
+
+  // Destroy maps on data
+  useEffect(() => {
+    if (compareMap.current) instigateReload();
+  }, [data]);
 
   // Check if only one map is visible and if so which one is it or both are visible
   useEffect(() => {
-    if (slidePos === 0) console.log('Right');
-    if (slidePos === width) console.log('Left');
-  }, [slidePos, width]);
-
-  /*
-    TODO:
-    - Implement legend mechanism:
-      - If comparing and both maps visible then combine legends
-      - If comparing and only one map is visible then only show legend for that map
-      - If not comparing then show legend as per usual
-  */
+    if (!compareMap.current) return;
+    compareMap.current.off('slideend', slideHandler);
+    compareMap.current.on('slideend', slideHandler);
+  }, [mapVis]);
 
   return (
     <>
+      <Menu 
+        mode='horizontal' 
+        style={{
+          position: 'absolute',
+          zIndex: 100,
+          top: '5px',
+          left: '5px',
+          opacity: '80%'
+        }}
+      >
+        {items.map(i => (
+          i.children && i.children.length > 0 ?
+            <SubMenu 
+              title={<span>{i.icon}{i.label}</span>} style={{ opacity: '80%' }}
+              key='subMenu'
+            >
+              {i.children.map(c => (
+                c && <Menu.Item
+                  key={c.key} 
+                  onClick={c.onClick ? c.onClick : () => {}} 
+                  //disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}
+                  style={{ opacity: '80%' }}
+                >
+                  {c.icon}
+                  {c.label}
+                </Menu.Item>
+              ))}
+            </SubMenu>
+          :
+            i && <Menu.Item 
+              key={i.key} 
+              onClick={i.onClick ? i.onClick : () => {}} 
+              //disabled={Object.keys(colorMap).length === 0 && mapType.includes('thematic')}
+              style={{ opacity: '80%' }}
+            >
+              {i.icon}
+              {i.label}
+            </Menu.Item>
+        ))}
+      </Menu>
       <div style={{ 
           height: height, 
           width: '100%', 
@@ -207,10 +410,12 @@ export default function LiqThematicMaps(props) {
         <Map 
           {...{
             ...props, 
-            mapID: 'mapIDL', 
+            mapID: 'left', 
             setDrawerOpen, 
             setDrawerContent,
             setDrawerTitle,
+            setCmapLoaded: (v) => {setCmapLoaded({...cmapLoaded, left: v})},
+            setMapLoaded: (v) => {setMapsLoaded({...mapsLoaded, left: v})},
             load: true
           }} 
           ref={mapL} 
@@ -219,10 +424,12 @@ export default function LiqThematicMaps(props) {
           <Map 
             {...{
               ...transformedProps, 
-              mapID: 'mapIDR', 
+              mapID: 'right', 
               setDrawerOpen,
               setDrawerContent, 
               setDrawerTitle,
+              setCmapLoaded: (v) => {setCmapLoaded({...cmapLoaded, right: v})},
+              setMapLoaded: (v) => {setMapsLoaded({...mapsLoaded, right: v})},
               load: loadSecondMap
             }} 
             width={width}

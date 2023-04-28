@@ -35,11 +35,11 @@ export default function LegendSub(props) {
   const updateLegendHiddenIndex = useAppStore(state => state.updateLegendHiddenIndex);
 
   const updateMapFilter = (layer, hidden) => {
-    if (!map.current) return;
+    if (!map) return;
     if (hidden.length === 0) {
-      map.current.setFilter(layer, null);
-      if ('textLayerFilterExpr' in config) map.current.setFilter(`${layer}_sector_labels`, ['==', ['get', 'centre'], layer]);
-      if (config.outline) map.current.setFilter(`${layer}_outline`, null);
+      map.setFilter(layer, null);
+      if ('textLayerFilterExpr' in config) map.setFilter(`${layer}_sector_labels`, ['==', ['get', 'centre'], layer]);
+      if (config.outline) map.setFilter(`${layer}_outline`, null);
     } else {
       let filterExpr = ['all'];
       let textFilterExpr = ['all'];
@@ -47,9 +47,9 @@ export default function LegendSub(props) {
         filterExpr.push(config.filterExpr(layer, k));
         if ('textLayerFilterExpr' in config) textFilterExpr.push(config.textLayerFilterExpr(layer, k));
       }
-      map.current.setFilter(layer, filterExpr);
-      if ('textLayerFilterExpr' in config) map.current.setFilter(`${layer}_sector_labels`, textFilterExpr);
-      if (config.outline) map.current.setFilter(`${layer}_outline`, filterExpr);
+      map.setFilter(layer, filterExpr);
+      if ('textLayerFilterExpr' in config) map.setFilter(`${layer}_sector_labels`, textFilterExpr);
+      if (config.outline) map.setFilter(`${layer}_outline`, filterExpr);
     }
   }
 

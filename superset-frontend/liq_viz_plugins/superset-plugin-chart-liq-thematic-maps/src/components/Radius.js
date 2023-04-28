@@ -3,6 +3,7 @@ import { Form, InputNumber, Button, Typography } from 'antd';
 import { refreshChart } from '../utils/overrides/chartActionOverride';
 import { useDispatch } from 'react-redux';
 import { SupersetClient } from '@superset-ui/core';
+import { mapKeys } from 'lodash';
 
 const liqSecrets = require('../../../liq_secrets.js').liqSecrets;
 
@@ -22,7 +23,7 @@ export default function Radius(props) {
     borderColor,
     borderWidth,
     radiusLinkedCharts,
-    map,
+    maps,
     sa1Color,
     sa1Width
   } = props;
@@ -45,58 +46,62 @@ export default function Radius(props) {
 
   // Remove radius geojson source and layer and delete radius key url param
   const removeRadius = () => {
-    if ('radius' in map.current.getStyle().sources) {
-      map.current.removeLayer('radius');
-      map.current.removeLayer('radius_sa1s');
-      map.current.removeLayer('radius-outline');
-      map.current.removeSource('radius');
-      const url = new URL(window.location.href);
-      url.searchParams.delete('radius_key');
-      window.history.replaceState(null, null, url);
-      refreshLinkedCharts();
-    }
+    maps.map(map => {
+      if ('radius' in map.getStyle().sources) {
+        map.removeLayer('radius');
+        map.removeLayer('radius_sa1s');
+        map.removeLayer('radius-outline');
+        map.removeSource('radius');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('radius_key');
+        window.history.replaceState(null, null, url);
+        refreshLinkedCharts();
+      }
+    })
   }
 
   // Add radius geojson source and layer and update radius key url param
   const drawRadius = (e) => {
     const radius = getRadius([e.lngLat.lng, e.lngLat.lat], distance, 256);
     // add geojson source
-    map.current.addSource('radius', {
-      'type': 'geojson',
-      'data': radius
-    });
-    // add fill layer
-    map.current.addLayer({
-      'id': 'radius',
-      'type': 'fill',
-      'source': 'radius',
-      'layout': {},
-      'paint': {
-        'fill-color': radiusColor,
-      }
-    });
-    // add border layer
-    map.current.addLayer({
-      'id': 'radius-outline',
-      'type': 'line',
-      'source': 'radius',
-      'paint': {
-        'line-color': borderColor,
-        'line-width': parseFloat(borderWidth)
-      }
+    maps.map(map => {
+      map.addSource('radius', {
+        'type': 'geojson',
+        'data': radius
+      });
+      // add fill layer
+      map.addLayer({
+        'id': 'radius',
+        'type': 'fill',
+        'source': 'radius',
+        'layout': {},
+        'paint': {
+          'fill-color': radiusColor,
+        }
+      });
+      // add border layer
+      map.addLayer({
+        'id': 'radius-outline',
+        'type': 'line',
+        'source': 'radius',
+        'paint': {
+          'line-color': borderColor,
+          'line-width': parseFloat(borderWidth)
+        }
+      })
+      // add sa1 intersection layer
+      map.addLayer({
+        'id': 'radius_sa1s',
+        'type': 'line',
+        'source': 'boundary_tileset',
+        'source-layer': boundary,
+        'paint': {
+          'line-color': 'transparent',
+          'line-width': parseFloat(sa1Width)
+        }
+      });
+      map.off('click', drawRadius);
     })
-    // add sa1 intersection layer
-    map.current.addLayer({
-      'id': 'radius_sa1s',
-      'type': 'line',
-      'source': 'boundary_tileset',
-      'source-layer': boundary,
-      'paint': {
-        'line-color': 'transparent',
-        'line-width': parseFloat(sa1Width)
-      }
-    });
-    map.current.off('click', drawRadius);
     setMessage('');
     addSA1s(radius);
     const url = new URL(window.location.href);
@@ -106,7 +111,7 @@ export default function Radius(props) {
 
   const onSettingsSave = () => {
     removeRadius();
-    map.current.on('click', drawRadius);
+    maps.map(map => map.on('click', drawRadius));
     setMessage('Click anywhere on the map');    
   }
 
@@ -149,17 +154,21 @@ export default function Radius(props) {
           ['get', boundaries.includes(groupCol) ? groupCol : 'SA1_CODE21'],
           ['literal', result.sa1s]
         ];
-        map.current.setFilter('radius_sa1s', filter);
-        map.current.setPaintProperty('radius_sa1s', 'line-color', sa1Color);
+        maps.map(map => {
+          map.setFilter('radius_sa1s', filter);
+          map.setPaintProperty('radius_sa1s', 'line-color', sa1Color);
+        });
         postRkeySA1s(result.sa1s);
       })
   }
 
   // Hook for styling radius color in real time
   useEffect(() => {
-    if ('radius' in map.current.getStyle().sources) {
-      map.current.setPaintProperty('radius', 'fill-color', radiusColor);
-    }
+    maps.map(map => {
+      if ('radius' in map.getStyle().sources) {
+        map.setPaintProperty('radius', 'fill-color', radiusColor);
+      }
+    });
   }, [radiusColor])
 
   return (
