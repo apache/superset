@@ -35,6 +35,11 @@ class MigrateAreaChart(MigrateViz):
     source_viz_type = "area"
     target_viz_type = "echarts_area"
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
+    rename_keys = {
+        "x_axis_format": "x_axis_time_format",
+        "bottom_margin": "x_axis_title_margin",
+        "y_log_scale": "logAxis",
+    }
 
     def _pre_action(self) -> None:
         if self.data.get("contribution"):
@@ -50,4 +55,9 @@ class MigrateAreaChart(MigrateViz):
 
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label
-            self.data["x_axis_title_margin"] = 30
+
+        x_ticks_layout = self.data.get("x_ticks_layout")
+        if x_ticks_layout:
+            self.data["xAxisLabelRotation"] = 45 if x_ticks_layout == "45°" else 0
+
+        self.data["opacity"] = 0.7

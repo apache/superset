@@ -33,6 +33,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  NumberFormats,
   t,
   TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
@@ -227,7 +228,10 @@ export default function transformProps(
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(
-    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
+    (contributionMode || isAreaExpand) &&
+      yAxisFormat === NumberFormats.SMART_NUMBER
+      ? ',.0%'
+      : yAxisFormat,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
