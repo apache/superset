@@ -18,8 +18,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from flask import g
 import simplejson as json
+from flask import g
 
 from superset.cachekeys.commands.exceptions import (
     WarmUpCacheChartNotFoundError,
