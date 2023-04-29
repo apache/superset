@@ -586,9 +586,13 @@ There are three types of assets you can build:
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
 If this type of error come while building assets(i.e using above commands):
-`Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize`
+```bash
+Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
+```
 Then put this:
-`export NODE_OPTIONS=--no-experimental-fetch`
+```bash
+export NODE_OPTIONS=--no-experimental-fetch`
+```
 
 #### Webpack dev server
 
