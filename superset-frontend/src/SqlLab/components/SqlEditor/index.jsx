@@ -25,7 +25,7 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
-import useEffectEvent from 'src/hooks/useEffectEvent';
+import useEffectEvent from 'use-event-callback';
 import { CSSTransition } from 'react-transition-group';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
