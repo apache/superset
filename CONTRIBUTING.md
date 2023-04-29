@@ -585,7 +585,7 @@ There are three types of assets you can build:
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
-If this type of error come while building assets(i.e using above commands):
+If this type of error comes while building assets(i.e using above commands):
 ```bash
 Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
 ```
