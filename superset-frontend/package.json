@@ -47,7 +47,7 @@
     "core:cover": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
-    "dev-server": "cross-env NODE_OPTIONS=--no-experimental-fetch NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
+    "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
     "format": "npm run _prettier -- --write",
     "lint": "npm run _lint && npm run type",
     "lint-fix": "npm run _lint -- --fix && npm run type",
