@@ -187,7 +187,7 @@ def upgrade(
                         </a> filter-box chart has been migrated to a native filter.
 
                         This placeholder markdown element can be safely removed after
-                        verifying that the native filter have been correctly applied,
+                        verifying that the native filter(s) have been correctly applied,
                         otherwise ask an admin to revert the migration.
                         """
                     )
