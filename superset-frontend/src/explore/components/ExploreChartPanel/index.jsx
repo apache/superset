@@ -30,7 +30,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { isFeatureEnabled } from 'src/featureFlags';
@@ -42,11 +41,12 @@ import {
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { DataTablesPane } from './DataTablesPane';
-import { buildV1ChartDataPayload } from '../exploreUtils';
-import { ChartPills } from './ChartPills';
-import { ExploreAlert } from './ExploreAlert';
-import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
+import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
+import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
+import { DataTablesPane } from '../DataTablesPane';
+import { ChartPills } from '../ChartPills';
+import { ExploreAlert } from '../ExploreAlert';
+import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -142,13 +142,11 @@ const ExploreChartPanel = ({
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const {
+    ref: chartPanelRef,
+    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
-    ref: chartPanelRef,
-  } = useResizeDetector({
-    refreshMode: 'debounce',
-    refreshRate: 300,
-  });
+  } = useResizeDetectorByObserver();
   const [splitSizes, setSplitSizes] = useState(
     isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
       ? INITIAL_SIZES
@@ -309,6 +307,7 @@ const ExploreChartPanel = ({
           display: flex;
           flex-direction: column;
         `}
+        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
@@ -375,6 +374,7 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
+      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,

@@ -78,10 +78,13 @@ const reduxState = {
 const KEY = 'aWrs7w29sd';
 const SEARCH = `?form_data_key=${KEY}&dataset_id=1`;
 
-jest.mock('react-resize-detector', () => ({
-  __esModule: true,
-  useResizeDetector: () => ({ height: 100, width: 100 }),
-}));
+jest.mock(
+  'src/explore/components/ExploreChartPanel/useResizeDetectorByObserver',
+  () => ({
+    __esModule: true,
+    default: () => ({ height: 100, width: 100 }),
+  }),
+);
 
 jest.mock('lodash/debounce', () => ({
   __esModule: true,
