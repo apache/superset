@@ -150,6 +150,9 @@
       "A database with the same name already exists.": [
         "Podatkovna baza z enakim imenom že obstaja."
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Celoten URL, ki kaže na lokacijo zgrajenega vtičnika (lahko gostuje npr. na CDN)"
       ],
@@ -188,9 +191,6 @@
       ],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "Nabor parametrov, ki postanejo razpoložljivi za poizvedbo z uporabo sintakse za Jinja predloge"
-      ],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        "Grafikon časovne vrste, ki prikaže kako se povezane mere skupin spreminjajo skozi čas. Vsaka skupina je prikazana s svojo barvo."
       ],
       "A timeout occurred while executing the query.": [
         "Pri izvajanju poizvedbe je potekel čas."
@@ -237,9 +237,6 @@
       "Add Log": ["Dodaj dnevnik"],
       "Add Metric": ["Dodaj mero"],
       "Add Report": ["Dodaj poročilo"],
-      "Add Row level security filter": [
-        "Dodaj filter za varnost na nivoju vrstic"
-      ],
       "Add Saved Query": ["Dodaj shranjeno poizvedbo"],
       "Add a Plugin": ["Dodaj vtičnik"],
       "Add a new tab": ["Dodaj nov zavihek"],
@@ -992,7 +989,6 @@
       "Choose a source": ["Izberite izvor"],
       "Choose a source and a target": ["Izberite izhodišče in cilj"],
       "Choose a target": ["Izberite cilj"],
-      "Choose a unique name": [""],
       "Choose chart type": ["Izberite tip grafikona"],
       "Choose one of the available databases from the panel on the left.": [
         "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
@@ -1049,9 +1045,6 @@
       ],
       "Click to cancel sorting": [""],
       "Click to edit": ["Kliknite za urejanje"],
-      "Click to edit %s in a new tab": [
-        "Kliknite za urejanje %s v novem zavihku"
-      ],
       "Click to edit label": ["Kliknite za urejanje oznake"],
       "Click to favorite/unfavorite": [
         "Kliknite za priljubljeno/nepriljubljeno"
@@ -1198,7 +1191,6 @@
       ],
       "Connection looks good!": ["Povezava izgleda v redu!"],
       "Continue": ["Nadaljuj"],
-      "Continuous": ["Zvezno"],
       "Contribution": ["Prispevek"],
       "Contribution Mode": ["Način deležev"],
       "Control labeled ": ["Nastavitev "],
@@ -1252,6 +1244,7 @@
       "Could not load database driver: {}": [
         "Ni mogoče naložiti gonilnika podatkovne baze: {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1479,6 +1472,7 @@
       "Deactivate": ["Deaktiviraj"],
       "December": ["December"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Decimalno ločilo"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D mreža"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D HEX"],
@@ -1766,9 +1760,6 @@
       "Edit Metric": ["Uredi mero"],
       "Edit Plugin": ["Uredi vtičnik"],
       "Edit Report": ["Uredi poročilo"],
-      "Edit Row level security filter": [
-        "Uredi filter za varnost na nivoju vrstic"
-      ],
       "Edit Saved Query": ["Uredi shranjeno poizvedbo"],
       "Edit Table": ["Uredi tabelo"],
       "Edit annotation": ["Uredi oznako"],
@@ -1977,8 +1968,10 @@
       "Failed at stopping query. %s": ["Neuspešno ustavljanje poizvedbe. %s"],
       "Failed to create report": ["Ustvarjanje poročila nesupešno"],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [
         "Napaka pri pridobivanju naprednega tipa"
       ],
@@ -2015,7 +2008,6 @@
       "Filter List": ["Seznam filtrov"],
       "Filter Settings": ["Nastavitve filtra"],
       "Filter Type": ["Tip filtra"],
-      "Filter box": ["Izbirnik za filtriranje"],
       "Filter configuration": ["Nastavitve filtra"],
       "Filter configuration for the filter box": ["Nastavitve za polje filtra"],
       "Filter has default value": ["Filter ima privzeto vrednost"],
@@ -2317,6 +2309,7 @@
         "Neveljavne možnosti za %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": ["Neveljaven ključ povezave"],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "Neveljaven tip rezultata: %(result_type)s"
       ],
@@ -2710,7 +2703,6 @@
         "Nobena podatkovna baza ne ustreza iskanju"
       ],
       "No description available.": ["Opisa ni na razpolago."],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Priljubljenih grafikonov še ni. Kliknite na zvezdice!"
       ],
@@ -2894,7 +2886,6 @@
       "Optional warning about use of this metric": [
         "Opcijsko opozorilo za uporabo te mere"
       ],
-      "Optionally add a detailed description": [""],
       "Options": ["Možnosti"],
       "Or choose from a list of other databases we support:": [
         "Ali izberite iz seznama drugih podatkovnih baz, ki jih podpiramo:"
@@ -3106,6 +3097,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Vrata %(port)s na gostitelju \"%(hostname)s\" niso sprejela povezave."
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["JSON za postavitev"],
       "Position of child node label on tree": [
         "Položaj oznake podrejenega vozlišča na drevesu"
@@ -3235,9 +3227,6 @@
       "Refresh interval saved": ["Interval osveževanja shranjen"],
       "Refresh the default values": ["Osveži privzete vrednosti"],
       "Refreshing charts": ["Osveževanje grafikonov"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "Navadni filtri dodajo WHERE stavek v poizvedbe, če ima uporabnik vlogo podano v filtru. Osnovni filtri filtrirajo vse poizvedbe, razen vlog, definiranih v filtru, in jih je mogoče uporabiti za nastavitev tega kaj uporabnik vidi, če v skupini filtrov ni RLS-filtrov, ki bi se nanašali nanje."
-      ],
       "Relational": ["Relacijsko"],
       "Relationships between community channels": [
         "Razmerja med skupnostnimi kanali"
@@ -3371,7 +3360,6 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         "Vrstica z naslovi, ki se uporabi za imena stolpcev (0 je prva vrstica podatkov). Pustite prazno, če ni naslovne vrstice."
       ],
-      "Row level security filter": ["Filter za varnost na nivoju vrstic"],
       "Row limit": ["Omejitev števila vrstic"],
       "Rows": ["Vrstice"],
       "Rows per page, 0 means no pagination": [
@@ -3380,6 +3368,7 @@
       "Rows subtotal position": ["Položaj vsot vrstic"],
       "Rows to Read": ["Vrstice za branje"],
       "Rule": ["Pravilo"],
+      "Rule added": [""],
       "Run": ["Zaženi"],
       "Run a query to display query history": [
         "Za prikaz zgodovine poizvedb zaženite poizvedbo"
@@ -3628,9 +3617,6 @@
       "Show Metric": ["Pokaži mero"],
       "Show Metric Names": ["Pokaži imena mer"],
       "Show Range Filter": ["Pokaži filter obdobja"],
-      "Show Row level security filter": [
-        "Prikaži filter za varnost na nivoju vrstic"
-      ],
       "Show Saved Query": ["Prikaži shranjeno poizvedbo"],
       "Show Table": ["Prikaži tabelo"],
       "Show Timestamp": ["Prikaži časovno značko"],
@@ -3796,7 +3782,6 @@
       "Stacked": ["Naložen"],
       "Stacked Bars": ["Naloženi stolpci"],
       "Stacked Style": ["Slog nalaganja"],
-      "Stacked style": ["Naložen slog"],
       "Standard time series": ["Standardna časovna vrsta"],
       "Start": ["Začetek"],
       "Start Longitude & Latitude": ["Začetna Dolž. in Širina"],
@@ -3832,7 +3817,6 @@
       "Strength to pull the graph toward center": [
         "Sila privlačnosti med grafikonom in središčem"
       ],
-      "Stretched style": ["Raztegnjen slog"],
       "Strings used for sheet names (default is the first sheet).": [
         "Znakovni nizi uporabljeni za imena preglednic (privzeto je prva preglednica)."
       ],
@@ -3882,6 +3866,9 @@
       "Symbol size": ["Velikost simbola"],
       "Sync columns from source": ["Sinhroniziraj stolpce z virom"],
       "Syntax": ["Sintaksa"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["TABELE"],
       "THU": ["ČET"],
       "TUE": ["TOR"],
@@ -4240,6 +4227,9 @@
       "The user seems to have been deleted": [
         "Zdi se, da je bil uporabnik izbrisan"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "Uporabniško ime \"%(username)s\" ne obstaja."
       ],
@@ -4370,7 +4360,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "To je lahko bodisi IP naslov (npr. 127.0.0.1) bodisi ime domene (npr. mydatabase.com)."
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -4518,7 +4508,6 @@
         "Časovna vrsta - Procentualna sprememba"
       ],
       "Time Series - Period Pivot": ["Časovna vrsta - Vrtenje period"],
-      "Time Series - Stacked": ["Časovna vrsta - Naložen graf"],
       "Time Series Options": ["Možnosti časovne vrste"],
       "Time Shift": ["Časovni zamik"],
       "Time Table View": ["Pogled urnika"],
@@ -4835,12 +4824,10 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         "Vrednosti izbrane v drugih filtrih bodo vplivale na možnosti filtra"
       ],
-      "Vehicle Types": ["Vrste vozil"],
       "Verbose Name": ["Podrobno ime"],
       "Version": ["Verzija"],
       "Version number": ["Številka verzije"],
       "Vertical": ["Navpično"],
-      "Video game consoles": ["Igralne konzole"],
       "View": ["Pogled"],
       "View All »": ["Poglejte vse »"],
       "View all charts": ["Pokaži vse grafikone"],

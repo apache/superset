@@ -18,7 +18,6 @@
  */
 
 export { default as NVD3ChartPreset } from './preset';
-export { default as AreaChartPlugin } from './Area';
 export { default as BarChartPlugin } from './Bar';
 export { default as BoxPlotChartPlugin } from './BoxPlot';
 export { default as BubbleChartPlugin } from './Bubble';

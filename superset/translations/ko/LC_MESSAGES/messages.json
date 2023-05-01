@@ -136,6 +136,9 @@
       "A comma-separated list of schemas that files are allowed to upload to.": [
         ""
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -168,9 +171,6 @@
         ""
       ],
       "A time column must be specified when using a Time Comparison.": [""],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        ""
-      ],
       "A timeout occurred while executing the query.": [""],
       "A timeout occurred while taking a screenshot.": [""],
       "A valid color scheme is required": [""],
@@ -202,7 +202,6 @@
       "Add Log": ["로그 추가"],
       "Add Metric": ["메트릭 추가"],
       "Add Report": [""],
-      "Add Row level security filter": [""],
       "Add Saved Query": ["저장된 Query 추가"],
       "Add a Plugin": ["플러그인 추가"],
       "Add a new tab to create SQL Query": [""],
@@ -477,6 +476,7 @@
       "Are you sure you want to delete the selected datasets?": [""],
       "Are you sure you want to delete the selected layers?": [""],
       "Are you sure you want to delete the selected queries?": [""],
+      "Are you sure you want to delete the selected rules?": [""],
       "Are you sure you want to delete the selected tags?": [""],
       "Are you sure you want to delete the selected templates?": [""],
       "Are you sure you want to overwrite this dataset?": [""],
@@ -692,7 +692,6 @@
       "Choose a metric for left axis": [""],
       "Choose a metric for right axis": [""],
       "Choose a number format": [""],
-      "Choose a unique name": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose one or more charts for left axis": [""],
       "Choose one or more charts for right axis": [""],
@@ -847,7 +846,6 @@
         "연결하는데 실패했습니다. 커넥션 "
       ],
       "Connection looks good!": [""],
-      "Continuous": [""],
       "Contribution": [""],
       "Control labeled ": [""],
       "Controls labeled ": [""],
@@ -872,6 +870,7 @@
       "Copy to clipboard": ["클립보드에 복사하기"],
       "Correlation": [""],
       "Cost estimate": [""],
+      "Could not connect to database: \"%(database)s\"": [""],
       "Could not determine datasource type": [""],
       "Could not fetch all saved charts": [""],
       "Could not find viz object": [""],
@@ -880,6 +879,7 @@
       ],
       "Could not load database driver: %(driver_name)s": [""],
       "Could not load database driver: {}": [""],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1031,6 +1031,7 @@
       "Deactivate": [""],
       "December": [""],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": [""],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1241,7 +1242,6 @@
       "Edit Metric": ["메트릭 편집"],
       "Edit Plugin": ["플러그인 수정"],
       "Edit Report": [""],
-      "Edit Row level security filter": [""],
       "Edit Saved Query": ["저장된 Query 수정"],
       "Edit Table": ["테이블 수정"],
       "Edit annotation": ["주석"],
@@ -1395,8 +1395,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
@@ -1417,7 +1419,7 @@
       "Filter Configuration": [""],
       "Filter List": ["필터"],
       "Filter Type": [""],
-      "Filter box": ["필터"],
+      "Filter box (deprecated)": [""],
       "Filter configuration": [""],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1515,6 +1517,7 @@
         "Group By' 와 'Columns' 겹칠 수 없습니다"
       ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
+      "Group Key": [""],
       "Group by": [""],
       "Groupable": [""],
       "Handlebars": [""],
@@ -1606,6 +1609,9 @@
       "Interpret Datetime Format Automatically": [""],
       "Interpret the datetime format automatically": [""],
       "Interval colors": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": [""],
@@ -1632,6 +1638,7 @@
       "Invalid numpy function: %(operator)s": [""],
       "Invalid options for %(rolling_type)s: %(options)s": [""],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
       "Invalid spatial point encountered: %s": [""],
@@ -1950,7 +1957,6 @@
       "No data in file": ["파일에 데이터가 없습니다"],
       "No databases match your search": [""],
       "No description available.": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [""],
       "No favorite dashboards yet, go click on stars!": [""],
       "No filter is selected.": [""],
@@ -2092,7 +2098,6 @@
       ],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2253,6 +2258,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": [""],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2349,7 +2355,8 @@
       "Refresh interval": ["새로고침 간격"],
       "Refresh table list": [""],
       "Refresh the default values": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relationships between community channels": [""],
@@ -2451,13 +2458,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": [""],
       "Row limit": [""],
       "Rows": [""],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": [""],
       "Rule": [""],
+      "Rule added": [""],
       "Run": [""],
       "Run a query to display query history": [""],
       "Run a query to display results": [""],
@@ -2641,7 +2648,6 @@
       "Show Log": ["컬럼 보기"],
       "Show Markers": [""],
       "Show Metric": ["메트릭 보기"],
-      "Show Row level security filter": [""],
       "Show Saved Query": ["저장된 Query 보기"],
       "Show Table": ["테이블 보기"],
       "Show Timestamp": [""],
@@ -2765,7 +2771,6 @@
       "Stacked": [""],
       "Stacked Bars": [""],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": ["시작 시간"],
       "Start (Longitude, Latitude): ": [""],
@@ -2793,7 +2798,6 @@
       "Stream": [""],
       "Streets": [""],
       "Strength to pull the graph toward center": [""],
-      "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [""],
       "Stroke Width": [""],
       "Structural": [""],
@@ -2832,6 +2836,9 @@
       "Symbol size": [""],
       "Sync columns from source": [""],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": [""],
       "TEMPORAL X-AXIS": [""],
       "TEMPORAL_RANGE": [""],
@@ -3107,6 +3114,9 @@
       "The type of visualization to display": [""],
       "The unit of measure for the specified point radius": [""],
       "The user seems to have been deleted": [""],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
       "The width of the lines": [""],
@@ -3173,7 +3183,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [""],
@@ -3284,7 +3294,6 @@
       "Time Series - Paired t-test": [""],
       "Time Series - Percent Change": [""],
       "Time Series - Period Pivot": [""],
-      "Time Series - Stacked": [""],
       "Time Shift": [""],
       "Time Table View": ["시간 테이블 뷰"],
       "Time column \"%(col)s\" does not exist in dataset": [""],
@@ -3344,6 +3353,7 @@
       "Tooltip time format": [""],
       "Top right": [""],
       "Top to Bottom": [""],
+      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],
@@ -3499,13 +3509,11 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": [""],
       "Verbose Name": [""],
       "Version": [""],
       "Version number": [""],
       "Vertical": [""],
       "Vertical (Left)": [""],
-      "Video game consoles": [""],
       "View All »": [""],
       "View in SQL Lab": ["SQL Lab"],
       "View keys & indexes (%s)": [""],

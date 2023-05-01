@@ -202,6 +202,9 @@
       "A database with the same name already exists.": [
         "База данных с таким же именем уже существует"
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Полный URL, указывающий на местоположение плагина (например, ссылка на CDN)"
       ],
@@ -245,9 +248,6 @@
       ],
       "A time column must be specified when using a Time Comparison.": [
         "Столбец даты/времени должен быть указан при использовании сравнения по времени"
-      ],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        "Диаграмма временного ряда, которая визуализирует, как связанная метрика из нескольких групп изменяется с течением времени. Для каждой группы используется свой цвет."
       ],
       "A timeout occurred while executing the query.": [
         "Вышло время исполнения запроса."
@@ -794,7 +794,6 @@
         "Вы уверены, что хотите сохранить и применить изменения?"
       ],
       "Area Chart": ["Диаграмма с областями"],
-      "Area Chart (legacy)": ["Диаграмма с областями (устарело)"],
       "Area chart": ["Диаграмма с областями"],
       "Area chart opacity": ["Непрозрачность диаграммы с областями"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -1106,7 +1105,6 @@
       "Choose a source": ["Выберите источник"],
       "Choose a source and a target": ["Выберите источник и цель"],
       "Choose a target": ["Выберите цель"],
-      "Choose a unique name": [""],
       "Choose chart type": ["Выберите тип графика"],
       "Choose one of the available databases from the panel on the left.": [
         "Выберите одну из доступных баз данных из панели слева."
@@ -1164,9 +1162,6 @@
       ],
       "Click to cancel sorting": ["Нажмите для отмены сортировки"],
       "Click to edit": ["Нажмите для редактирования"],
-      "Click to edit %s in a new tab": [
-        "Нажмите для редактирования «%s» в новой вкладке"
-      ],
       "Click to edit %s.": ["Нажмите для редактирования %s."],
       "Click to edit chart.": ["Нажмите для редактирования графика."],
       "Click to edit label": ["Нажмите для редактирования метки"],
@@ -1348,7 +1343,6 @@
       ],
       "Connection looks good!": ["Соединение в порядке!"],
       "Continue": ["Продолжить"],
-      "Continuous": ["Непрерывный"],
       "Contribution": ["Режим относительных значений"],
       "Contribution Mode": ["Режим относительных значений"],
       "Control": ["Элемент"],
@@ -1401,6 +1395,7 @@
       "Could not load database driver: {}": [
         "Не удалось загрузить драйвер базы данных: {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count": ["Количество"],
       "Count Unique Values": ["Количество уникальных значений"],
       "Count as Fraction of Columns": ["Количество, как доля от столбцов"],
@@ -1621,6 +1616,7 @@
       "Deactivate": ["Выключить"],
       "December": ["Декабрь"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Десятичный разделитель"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D сетка"],
       "Deck.gl - Arc": ["Deck.gl - Дуга"],
@@ -2152,6 +2148,7 @@
       "Failed to execute %(query)s": [""],
       "Failed to load chart data": ["Не удалось загрузить данные графика"],
       "Failed to load chart data.": ["Не удалось загрузить данные графика."],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [
         "Не удалось получить расширенный тип"
       ],
@@ -2188,7 +2185,6 @@
       "Filter List": ["Список фильтров"],
       "Filter Settings": ["Настройки фильтра"],
       "Filter Type": ["Тип фильтра"],
-      "Filter box": ["Фильтр-виджет"],
       "Filter configuration": ["Настройки фильтра"],
       "Filter configuration for the filter box": [
         "Настройки фильтра для \"Фильтр-виджета\""
@@ -2508,6 +2504,7 @@
         "Недопустимые настройки для %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "Недопустимый тип ответа: %(result_type)s"
       ],
@@ -2932,7 +2929,6 @@
         "Нет баз данных, удовлетворяющих вашему поиску"
       ],
       "No description available.": ["Описание отсутствует."],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Пока нет избранных графиков, для добавления в избранное нажмите на звездочку рядом с графиком"
       ],
@@ -3146,7 +3142,6 @@
       "Optional warning about use of this metric": [
         "Необязательное предупреждение об использовании этой меры"
       ],
-      "Optionally add a detailed description": [""],
       "Options": ["Опции"],
       "Or choose from a list of other databases we support:": [
         "Или выберите из списка других поддерживаемых баз данных:"
@@ -3362,6 +3357,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Порт %(port)s хоста \"%(hostname)s\" отказал в подключении."
       ],
+      "Port out of range 0-65535": [""],
       "Position of child node label on tree": [
         "Расположение метки дочерней вершины на дереве"
       ],
@@ -3648,6 +3644,7 @@
       "Rows subtotal position": ["Расположение строк подытогов"],
       "Rows to Read": ["Строки для чтения"],
       "Rule": ["Правило"],
+      "Rule added": [""],
       "Run": ["Выполнить"],
       "Run a query to display query history": [
         "Выполните запрос для отображения истории"
@@ -4126,7 +4123,6 @@
       "Stacked": ["С наполнением"],
       "Stacked Bars": ["Столбцы с накоплением"],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": ["Начало"],
       "Start (Longitude, Latitude): ": ["Старт (Долгота, Широта): "],
@@ -4159,7 +4155,6 @@
       "Strength to pull the graph toward center": [
         "Сила притяжения вершин к центру"
       ],
-      "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [
         "Имя листа (по умолчанию первый лист)"
       ],
@@ -4217,6 +4212,9 @@
       "Symbol of two ends of edge line": [""],
       "Sync columns from source": ["Синхронизировать столбцы из источника"],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["ТАБЛИЦЫ"],
       "THU": ["ЧТ"],
       "TUE": ["ВТ"],
@@ -4569,6 +4567,9 @@
       "The user seems to have been deleted": [
         "Пользователь, похоже, был удален"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "Пользователь \"%(username)s\" не существует."
       ],
@@ -4717,7 +4718,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "Это может быть как IP адрес (например, 127.0.0.1), так и доменное имя (например, моябазаданных.рф)."
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -4872,7 +4873,6 @@
       ],
       "Time Series - Paired t-test": ["Парный t-test (временные ряды)"],
       "Time Series - Percent Change": ["Процентное изменение (временные ряды)"],
-      "Time Series - Stacked": ["Диаграмма с накоплением (временные ряды)"],
       "Time Series Options": ["Настройки временных рядов"],
       "Time Shift": ["Временной сдвиг"],
       "Time column": ["Столбец даты/времени"],
@@ -5195,13 +5195,11 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": [""],
       "Verbose Name": ["Удобочитаемое имя"],
       "Version": ["Версия"],
       "Version number": ["Номер версии"],
       "Vertical": ["Вертикально"],
       "Vertical (Left)": ["Вертикально (слева)"],
-      "Video game consoles": ["Игровые приставки"],
       "View": ["Показать"],
       "View All »": ["Смотреть все »"],
       "View Dataset": ["Посмотреть датасет"],

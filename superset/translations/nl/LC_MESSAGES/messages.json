@@ -137,6 +137,9 @@
         "Een door komma’s gescheiden lijst van kolommen die als datums moeten worden geparseerd."
       ],
       "A database with the same name already exists.": [""],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -171,9 +174,6 @@
         "Een set parameters die beschikbaar worden in de query met behulp van Jinja templating syntax"
       ],
       "A time column must be specified when using a Time Comparison.": [""],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        ""
-      ],
       "A timeout occurred while executing the query.": [
         "Er is een time-out opgetreden tijdens het uitvoeren van de query."
       ],
@@ -216,9 +216,7 @@
       "Add Log": ["Voeg Log toe"],
       "Add Metric": ["Voeg meeteenheid toe"],
       "Add Report": [""],
-      "Add Row level security filter": [
-        "Voeg beveiligingsfilter op rijniveau toe"
-      ],
+      "Add Rule": [""],
       "Add Saved Query": ["Voeg Opgeslagen Query toe"],
       "Add a Plugin": ["Voeg een Plugin toe"],
       "Add a new tab to create SQL Query": [""],
@@ -622,7 +620,6 @@
         "Weet u zeker dat u de wijzigingen wilt opslaan en toepassen?"
       ],
       "Area Chart": [""],
-      "Area Chart (legacy)": [""],
       "Area chart": [""],
       "Area chart opacity": [""],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -885,7 +882,6 @@
       "Choose a source": [""],
       "Choose a source and a target": [""],
       "Choose a target": [""],
-      "Choose a unique name": [""],
       "Choose chart type": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose one or more charts for left axis": [""],
@@ -932,7 +928,6 @@
       ],
       "Click to cancel sorting": [""],
       "Click to edit": ["Klik om te bewerken"],
-      "Click to edit %s in a new tab": [""],
       "Click to edit label": [""],
       "Click to favorite/unfavorite": [
         "Klik om voorkeur aan te geven/voorkeur te verwijderen"
@@ -1070,7 +1065,6 @@
       ],
       "Connection looks good!": [""],
       "Continue": [""],
-      "Continuous": [""],
       "Contribution": ["Bijdrage"],
       "Contribution Mode": [""],
       "Control": [""],
@@ -1115,6 +1109,7 @@
       "Could not load database driver: {}": [
         "Kon het database driver niet laden: {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count Unique Values": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
@@ -1316,6 +1311,7 @@
       ],
       "December": ["December"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Decimaal teken"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D Grid"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D HEX"],
@@ -1566,9 +1562,6 @@
       "Edit Metric": ["Bewerk meeteenheid"],
       "Edit Plugin": ["Bewerk Plugin"],
       "Edit Report": [""],
-      "Edit Row level security filter": [
-        "Bewerk Rij niveau beveiligingsfilter"
-      ],
       "Edit Saved Query": ["Bewerk Opgeslagen Query"],
       "Edit Table": ["Bewerk tabel"],
       "Edit annotation": ["Bewerk aantekening"],
@@ -1758,8 +1751,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
       "Failed to verify select options: %s": [
@@ -1787,7 +1782,6 @@
       "Filter List": ["Filter Lijst"],
       "Filter Settings": [""],
       "Filter Type": ["Filter Type"],
-      "Filter box": ["Filter box"],
       "Filter configuration": ["Filter configuratie"],
       "Filter configuration for the filter box": [
         "Filterconfiguratie voor de filterbox"
@@ -2013,6 +2007,9 @@
       "Interval colors": [""],
       "Interval start column": [""],
       "Intervals": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": ["Ongeldige JSON"],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": ["Ongeldig certificaat"],
@@ -2051,6 +2048,7 @@
         "Ongeldige opties voor %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": ["Ongeldig rolling_type: %(type)s"],
       "Invalid spatial point encountered: %s": [
@@ -2403,7 +2401,6 @@
       "No data in file": ["Geen gegevens in het bestand"],
       "No databases match your search": [""],
       "No description available.": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Nog geen favoriete grafieken, klik op sterren!"
       ],
@@ -2573,7 +2570,6 @@
       "Optional warning about use of this metric": [
         "Optionele waarschuwing voor het gebruik van deze meeteenheid"
       ],
-      "Optionally add a detailed description": [""],
       "Options": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
@@ -2776,6 +2772,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Poort %(port)s op hostnaam “%(hostname)s” weigerde de verbinding."
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["Positie JSON"],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2893,7 +2890,8 @@
       "Refresh interval saved": [""],
       "Refresh the default values": [""],
       "Regex": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relational": [""],
@@ -3023,13 +3021,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": ["Beveiligingsfilter op rijniveau"],
       "Row limit": ["Rij limiet"],
       "Rows": ["Rijen"],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": ["Te lezen rijen"],
       "Rule": ["Regel"],
+      "Rule added": [""],
       "Run": ["Uitvoeren"],
       "Run a query to display results": [""],
       "Run in SQL Lab": ["Uitvoeren in SQL Lab"],
@@ -3241,9 +3239,6 @@
       "Show Metric": ["Toon meeteenheid"],
       "Show Metric Names": [""],
       "Show Range Filter": [""],
-      "Show Row level security filter": [
-        "Toon beveiligingsfilter op rijniveau"
-      ],
       "Show Saved Query": ["Toon Opgeslagen Query"],
       "Show Table": ["Toon tabel"],
       "Show Timestamp": [""],
@@ -3392,7 +3387,6 @@
       "Stacked": [""],
       "Stacked Bars": [""],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": ["Start"],
       "Start Longitude & Latitude": [""],
@@ -3426,7 +3420,6 @@
       ],
       "Streets": [""],
       "Strength to pull the graph toward center": [""],
-      "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [
         "Strings gebruikt voor bladnamen (standaard is het eerste blad)."
       ],
@@ -3476,6 +3469,9 @@
       "Symbol size": [""],
       "Sync columns from source": ["Synchroniseer kolommen van bron"],
       "Syntax": ["Syntax"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["TABLES"],
       "THU": ["DO"],
       "TUE": ["DI"],
@@ -3803,6 +3799,9 @@
       "The user seems to have been deleted": [
         "De gebruiker lijkt te zijn verwijderd"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "De gebruikersnaam “%(username)s” bestaat niet."
       ],
@@ -3917,7 +3916,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -4051,7 +4050,6 @@
       "Time Series - Paired t-test": ["Tijdreeks - Paired t-test"],
       "Time Series - Percent Change": ["Tijdreeks - Procentuele verandering"],
       "Time Series - Period Pivot": ["Tijdreeksen - Periode draaitabel"],
-      "Time Series - Stacked": ["Tijdreeksen - Gestapeld"],
       "Time Series Options": [""],
       "Time Shift": [""],
       "Time Table View": ["Tijd tabelweergave"],
@@ -4137,6 +4135,7 @@
       "Top": [""],
       "Top right": [""],
       "Top to Bottom": [""],
+      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],
@@ -4334,13 +4333,11 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": [""],
       "Verbose Name": ["Verklarende naam"],
       "Version": [""],
       "Version number": [""],
       "Vertical": [""],
       "Vertical (Left)": [""],
-      "Video game consoles": [""],
       "View All »": [""],
       "View in SQL Lab": ["Bekijk in SQL Lab"],
       "View keys & indexes (%s)": ["Bekijk sleutels & indexen (%s)"],

@@ -134,6 +134,9 @@
         ""
       ],
       "A database with the same name already exists.": [""],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -169,9 +172,6 @@
         ""
       ],
       "A time column must be specified when using a Time Comparison.": [""],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        ""
-      ],
       "A valid color scheme is required": [""],
       "APPLY": [""],
       "APR": [""],
@@ -198,7 +198,6 @@
       "Add Database": ["Aggiungi Database"],
       "Add Log": [""],
       "Add Metric": ["Aggiungi metrica"],
-      "Add Row level security filter": [""],
       "Add Saved Query": ["Aggiungi query salvata"],
       "Add a Plugin": ["Aggiungi colonna"],
       "Add a new tab to create SQL Query": [""],
@@ -488,6 +487,7 @@
       "Are you sure you want to delete the selected datasets?": [""],
       "Are you sure you want to delete the selected layers?": [""],
       "Are you sure you want to delete the selected queries?": [""],
+      "Are you sure you want to delete the selected rules?": [""],
       "Are you sure you want to delete the selected tags?": [""],
       "Are you sure you want to delete the selected templates?": [""],
       "Are you sure you want to overwrite this dataset?": [""],
@@ -696,7 +696,6 @@
       "Choose a metric for right axis": [
         "Seleziona una metrica per l'asse destro"
       ],
-      "Choose a unique name": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [""],
       "Choose the position of the legend": [""],
@@ -734,7 +733,6 @@
       ],
       "Click to cancel sorting": [""],
       "Click to edit": [""],
-      "Click to edit %s in a new tab": [""],
       "Click to edit %s.": [""],
       "Click to edit chart.": [""],
       "Click to edit label": [""],
@@ -846,7 +844,6 @@
       "Connection": ["Testa la Connessione"],
       "Connection failed, please check your connection settings": [""],
       "Connection looks good!": [""],
-      "Continuous": [""],
       "Contribution": [""],
       "Contribution Mode": [""],
       "Control labeled ": [""],
@@ -868,12 +865,14 @@
       "Copy the name of the database you are trying to connect to.": [""],
       "Copy to clipboard": [""],
       "Cost estimate": [""],
+      "Could not connect to database: \"%(database)s\"": [""],
       "Could not determine datasource type": [""],
       "Could not fetch all saved charts": ["Non posso connettermi al server"],
       "Could not find viz object": [""],
       "Could not load database driver": ["Non posso connettermi al server"],
       "Could not load database driver: %(driver_name)s": [""],
       "Could not load database driver: {}": ["Non posso connettermi al server"],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1020,6 +1019,7 @@
       "Db engine did not return all queried columns": [""],
       "December": [""],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": [""],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1212,7 +1212,6 @@
       "Edit Log": ["Modifica"],
       "Edit Metric": ["Modifica metrica"],
       "Edit Plugin": ["Edita colonna"],
-      "Edit Row level security filter": [""],
       "Edit Saved Query": ["Modifica query salvata"],
       "Edit Table": ["Modifica Tabella"],
       "Edit annotation": ["Azione"],
@@ -1365,8 +1364,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
       "Failed to verify select options: %s": [""],
@@ -1385,7 +1386,7 @@
       "Fill all required fields to enable \"Default Value\"": [""],
       "Fill method": [""],
       "Filter List": ["Filtri"],
-      "Filter box": ["Filtri"],
+      "Filter box (deprecated)": [""],
       "Filter configuration": ["Controlli del filtro"],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1562,6 +1563,9 @@
       "Interpret Datetime Format Automatically": [""],
       "Interpret the datetime format automatically": [""],
       "Interval colors": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": [""],
@@ -1588,6 +1592,7 @@
       "Invalid numpy function: %(operator)s": [""],
       "Invalid options for %(rolling_type)s: %(options)s": [""],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
       "Invalid spatial point encountered: %s": [""],
@@ -1888,7 +1893,6 @@
       ],
       "No data in file": [""],
       "No databases match your search": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [""],
       "No favorite dashboards yet, go click on stars!": [""],
       "No filter is selected.": [""],
@@ -2010,7 +2014,6 @@
       ],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2183,6 +2186,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["Posizione del JSON"],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2276,7 +2280,8 @@
       "Refresh table list": [""],
       "Refresh the default values": [""],
       "Regex": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relationships between community channels": [""],
@@ -2374,13 +2379,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": [""],
       "Row limit": [""],
       "Rows": [""],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": [""],
       "Rule": [""],
+      "Rule added": [""],
       "Run": [""],
       "Run a query to display query history": [""],
       "Run a query to display results": [""],
@@ -2569,7 +2574,6 @@
       "Show Log": ["Mostra colonna"],
       "Show Markers": [""],
       "Show Metric": ["Mostra metrica"],
-      "Show Row level security filter": [""],
       "Show Saved Query": ["Mostra query salvate"],
       "Show Table": ["Mostra Tabelle"],
       "Show Timestamp": [""],
@@ -2691,7 +2695,6 @@
       "Stacked": [""],
       "Stacked Bars": [""],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": [""],
       "Start (Longitude, Latitude): ": [""],
@@ -2720,7 +2723,6 @@
       "Stopped an unsafe database connection": [""],
       "Streets": [""],
       "Strength to pull the graph toward center": [""],
-      "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [""],
       "Structural": [""],
       "Style": [""],
@@ -2757,6 +2759,9 @@
       "Symbol of two ends of edge line": [""],
       "Sync columns from source": [""],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": [""],
       "THU": [""],
       "TUE": [""],
@@ -3032,6 +3037,9 @@
       ],
       "The unit of measure for the specified point radius": [""],
       "The user seems to have been deleted": [""],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [""],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
@@ -3099,7 +3107,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [""],
@@ -3218,7 +3226,6 @@
         "Serie Temporali - Cambiamento Percentuale"
       ],
       "Time Series - Period Pivot": [""],
-      "Time Series - Stacked": ["Serie Temporali - Stacked"],
       "Time Table View": [""],
       "Time column": ["Colonna del Tempo"],
       "Time column \"%(col)s\" does not exist in dataset": [""],
@@ -3280,6 +3287,7 @@
       "Tooltip": [""],
       "Top": [""],
       "Top to Bottom": [""],
+      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],
@@ -3437,13 +3445,11 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": [""],
       "Verbose Name": ["Nome Completo"],
       "Version": [""],
       "Version number": [""],
       "Vertical": [""],
       "Vertical (Left)": [""],
-      "Video game consoles": [""],
       "View": [""],
       "View All »": [""],
       "View as table": [""],
@@ -3969,6 +3975,7 @@
       "report": ["Importa"],
       "reports": ["Importa"],
       "restore zoom": [""],
+      "rowlevelsecurity": [""],
       "search by tags": [""],
       "seconds": [""],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [

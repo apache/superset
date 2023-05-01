@@ -23,7 +23,7 @@ describe('Visualization > Area', () => {
 
   const AREA_FORM_DATA = {
     datasource: '2__table',
-    viz_type: 'area',
+    viz_type: 'echarts_area',
     slice_id: 48,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',

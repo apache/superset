@@ -135,6 +135,9 @@
       "A database with the same name already exists.": [
         "Une base de données avec le même nom existe déjà."
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Une URL complète désignant le lieu du plugin (pourrait être hébergé sur un CDN par exemple)"
       ],
@@ -165,9 +168,6 @@
       "A reusable dataset will be saved with your chart.": [""],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "Un ensemble de paramètre qui seront disponible dans la requête utilisant la syntaxe du template Jinja"
-      ],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        ""
       ],
       "A timeout occurred while executing the query.": [
         "Un timeout s'est produit lors de l'exécution de la requête."
@@ -209,9 +209,6 @@
       "Add Database": ["Ajouter une base de données"],
       "Add Log": ["Ajouter un log"],
       "Add Metric": ["Ajouter une métrique"],
-      "Add Row level security filter": [
-        "Ajouter un filtre de sécurité au niveau de la ligne"
-      ],
       "Add Saved Query": ["Ajouter une requête sauvegardée"],
       "Add a Plugin": ["Ajouter un plugin"],
       "Add a new tab to create SQL Query": [""],
@@ -835,7 +832,6 @@
       "Choose a metric for right axis": [
         "Choisir une mesure pour l'axe de droite"
       ],
-      "Choose a unique name": [""],
       "Choose chart type": ["Choisissez un type de graphique"],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [
@@ -1007,7 +1003,6 @@
         "La connexion a échoué, veuillez vérifier vos paramètres de connexion"
       ],
       "Connection looks good!": [""],
-      "Continuous": [""],
       "Contribution": ["Contribution"],
       "Control labeled ": ["Contrôle libellé "],
       "Controls labeled ": ["Contrôles libellés "],
@@ -1056,6 +1051,7 @@
       "Could not load database driver: {}": [
         "Ce driver de la base de données n'a pas pu être chargé : {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1256,6 +1252,7 @@
       ],
       "December": ["Décembre"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Caractère décimal"],
       "Deck.gl - 3D Grid": ["Deck.gl - Grille 3D"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D HEX"],
@@ -1488,9 +1485,6 @@
       "Edit Log": ["Éditer le log"],
       "Edit Metric": ["Éditer la métrique"],
       "Edit Plugin": ["Éditer le plugin"],
-      "Edit Row level security filter": [
-        "Editer le filtre de sécurité au niveau de la ligne"
-      ],
       "Edit Saved Query": ["Éditer la requête sauvegardée"],
       "Edit Table": ["Éditer la table"],
       "Edit annotation": ["Modifier annotation"],
@@ -1664,8 +1658,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": [
         "Echec de la requête à distance."
       ],
@@ -1692,7 +1688,6 @@
       "Filter List": ["Filtres"],
       "Filter Settings": ["Paramètres des filtres"],
       "Filter Type": ["Type du filtre"],
-      "Filter box": ["Boite de filtrage"],
       "Filter configuration": ["Configuration du filtre"],
       "Filter configuration for the filter box": [
         "Configuration du filtre pour la boîte de filtrage"
@@ -1928,6 +1923,7 @@
         "Options invalides pour %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "Type de résultat invalide : %(result_type)s"
       ],
@@ -2221,7 +2217,6 @@
       "No data in file": ["Pas de données dans le fichier"],
       "No databases match your search": [""],
       "No description available.": ["Pas de description disponible."],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Aucun graphique favori pour le moment, cliquer sur les étoiles !"
       ],
@@ -2374,7 +2369,6 @@
       "Optional warning about use of this metric": [
         "Avertissement optionnel à propos de l'utilisation de cette métrique"
       ],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2549,6 +2543,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Le port %(port)s sur l'hôte \"%(hostname)s\" a refusé la connexion."
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["JSON des positions"],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2652,9 +2647,7 @@
       "Refresh frequency": ["Fréquence de rafraichissement"],
       "Refresh interval": ["Intervalle d'actualisation"],
       "Refresh the default values": ["Rafraichir les valeurs par défaut"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "Les filtres réguliers ajoutent des clauses WHERE aux requêtes si un utilisateur appartient à un profil référencé dans le filtre. Les filtres de base appliquent les filtres à toutes les requêtes sauf pour les profils définis dans le filtre, et peuvent être utilisés pour définir ce que les utilisateurs peuvent voir si aucun filtre RLS au sein d'un groupe de filtres ne s'appliquent à eux."
-      ],
+      "Regular": [""],
       "Relationships between community channels": [""],
       "Relative period": ["Période relative"],
       "Relative quantity": ["Quantité relative"],
@@ -2766,13 +2759,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         "Ligne contenant l'en-tête à utiliser en nom de colonne (0 est la première ligne de données). Laissez à vide s'il n'y a pas de ligne d'en-tête."
       ],
-      "Row level security filter": ["Filtre de sécurité au niveau de la ligne"],
       "Row limit": ["Nombre de lignes max"],
       "Rows": ["Lignes"],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": ["Lignes à lire"],
       "Rule": ["Règle"],
+      "Rule added": [""],
       "Run": ["Exécuter"],
       "Run a query to display results": [
         "Lancer une requête pour afficher les résultats"
@@ -2981,9 +2974,6 @@
       "Show Log": ["Afficher le log"],
       "Show Markers": [""],
       "Show Metric": ["Afficher la métrique"],
-      "Show Row level security filter": [
-        "Afficher le filtre de sécurité au niveau de la ligne"
-      ],
       "Show Saved Query": ["Montrer les requêtes sauvegardées"],
       "Show Table": ["Afficher les tables"],
       "Show Trend Line": [""],
@@ -3109,7 +3099,6 @@
       "Stack series on top of each other": [""],
       "Stacked Bars": [""],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": ["Date de début"],
       "Start Review": ["Démarrer la Vérification"],
@@ -3179,6 +3168,9 @@
       "Symbol of two ends of edge line": [""],
       "Sync columns from source": ["Synchroniser les colonnes de la source"],
       "Syntax": ["Syntaxe"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["TABLES"],
       "THU": ["JEU"],
       "TUE": ["MAR"],
@@ -3505,6 +3497,9 @@
       "The user seems to have been deleted": [
         "L'utilisateur semble avoir été effacé"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "L'utilisateur \"%(username)s\" n'existe pas."
       ],
@@ -3630,7 +3625,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "Cela peut être soit une adresse IP (ex 127.0.0.1)  ou un nom de domaine (ex mydatabase.com)."
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -3760,7 +3755,6 @@
         "Séries temporelles - pourcentage de changement"
       ],
       "Time Series - Period Pivot": ["Séries temporelles - Période Pivot"],
-      "Time Series - Stacked": ["Séries temporelles - empilées"],
       "Time Table View": ["Vue de la table temporelle"],
       "Time column": ["Colonne de temps"],
       "Time column \"%(col)s\" does not exist in dataset": [
@@ -4025,7 +4019,6 @@
       "Verbose Name": ["Nom explicite"],
       "Version": ["Version"],
       "Version number": ["Numéro de version"],
-      "Video game consoles": [""],
       "View All »": ["Tout voir »"],
       "View in SQL Lab": ["Voir dans SQL Lab"],
       "View keys & indexes (%s)": ["Vue des clefs et index (%s)"],

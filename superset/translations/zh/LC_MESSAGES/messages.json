@@ -137,6 +137,9 @@
         "应作为日期解析的列的逗号分隔列表。"
       ],
       "A database with the same name already exists.": ["已存在同名的数据库。"],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "指向内置插件位置的完整URL（例如，可以托管在CDN上）"
       ],
@@ -165,9 +168,6 @@
       "A reusable dataset will be saved with your chart.": [""],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "在查询中可用的一组参数使用JINJA模板语法"
-      ],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
-        "时间序列图表，直观显示多个组中的相关指标随时间的变化情况。每组使用不同的颜色进行可视化"
       ],
       "A timeout occurred while executing the query.": ["查询超时。"],
       "A timeout occurred while generating a csv.": ["生成CSV时超时。"],
@@ -201,7 +201,6 @@
       "Add Log": ["新增日志"],
       "Add Metric": ["添加指标"],
       "Add Report": ["添加报告"],
-      "Add Row level security filter": ["添加行级安全过滤"],
       "Add Saved Query": ["添加保存的查询"],
       "Add a Plugin": ["添加插件"],
       "Add a new tab": ["添加新的标签页"],
@@ -789,7 +788,6 @@
       "Choose a source": ["选择一个源"],
       "Choose a source and a target": ["选择一个源和一个目标"],
       "Choose a target": ["选择一个目标"],
-      "Choose a unique name": [""],
       "Choose chart type": ["选择图表类型"],
       "Choose one of the available databases from the panel on the left.": [
         "从左侧的面板中选择一个可用的数据库"
@@ -961,7 +959,6 @@
         "连接失败，请检查您的连接配置"
       ],
       "Connection looks good!": ["连接测试成功！"],
-      "Continuous": ["连续式"],
       "Contribution": ["贡献"],
       "Contribution Mode": ["贡献模式"],
       "Control labeled ": ["控件已标记 "],
@@ -996,6 +993,7 @@
         "无法加载数据库驱动程序：%(driver_name)s"
       ],
       "Could not load database driver: {}": ["无法加载数据库驱动程序：{}"],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1168,6 +1166,7 @@
       ],
       "December": ["十二月"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["十进制字符"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D网格"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D六角曲面"],
@@ -1381,7 +1380,6 @@
       "Edit Metric": ["编辑指标"],
       "Edit Plugin": ["编辑插件"],
       "Edit Report": ["编辑报表"],
-      "Edit Row level security filter": ["编辑行级安全过滤"],
       "Edit Saved Query": ["编辑保存的查询"],
       "Edit Table": ["编辑表"],
       "Edit annotation": ["编辑注释"],
@@ -1561,8 +1559,10 @@
       "Failed at stopping query. %s": ["停止查询失败。 %s"],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": ["无法启动远程查询"],
       "Failed to update report": [""],
       "Failed to verify select options: %s": ["验证选择选项失败：%s"],
@@ -1587,7 +1587,6 @@
       "Filter": ["过滤器"],
       "Filter List": ["过滤"],
       "Filter Type": ["过滤类型"],
-      "Filter box": ["过滤器"],
       "Filter configuration": ["过滤配置"],
       "Filter configuration for the filter box": ["过滤条件的过滤配置"],
       "Filter has default value": ["过滤器默认值"],
@@ -1829,6 +1828,7 @@
         "%(rolling_type)s 的选项无效：%(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "无效的结果类型：%(result_type)s"
       ],
@@ -2162,7 +2162,6 @@
       "No data in file": ["文件中无数据"],
       "No databases match your search": ["没有与您的搜索匹配的数据库"],
       "No description available.": ["没有可用的描述"],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "暂无收藏的图表，去点击星星吧！"
       ],
@@ -2315,7 +2314,6 @@
       ],
       "Optional name of the data column.": ["数据列的可选名称"],
       "Optional warning about use of this metric": ["关于使用此指标的可选警告"],
-      "Optionally add a detailed description": [""],
       "Options": ["设置"],
       "Or choose from a list of other databases we support:": [
         "或者从我们支持的其他数据库列表中选择："
@@ -2497,6 +2495,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "主机名 \"%(hostname)s\" 上的端口 %(port)s 拒绝连接。"
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["位置JSON"],
       "Position of child node label on tree": ["子节点标签在树上的位置"],
       "Position of column level subtotal": ["列级小计的位置"],
@@ -2612,9 +2611,6 @@
       "Refresh frequency": ["刷新频率"],
       "Refresh interval": ["刷新间隔"],
       "Refresh the default values": ["刷新默认值"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "常规过滤将where子句添加到查询中，以确定用户是否属于过滤中引用的角色。基本过滤将应用于除过滤中定义的角色之外的所有查询，并且可以用于定义在没有应用RLS过滤组的情况下，哪些用户可以看到内容。"
-      ],
       "Relational": ["执行时间"],
       "Relationships between community channels": ["社区渠道之间的关系"],
       "Relative Date/Time": ["相对日期/时间"],
@@ -2716,13 +2712,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         "作为列名的带有标题的行（０是第一行数据）。如果没有标题行则留空。"
       ],
-      "Row level security filter": ["行级安全过滤"],
       "Row limit": ["行限制"],
       "Rows": ["行"],
       "Rows per page, 0 means no pagination": ["每页行数，0 表示没有分页"],
       "Rows subtotal position": ["行小计的位置"],
       "Rows to Read": ["读取的行"],
       "Rule": ["规则"],
+      "Rule added": [""],
       "Run": ["执行"],
       "Run in SQL Lab": ["在 SQL 工具箱中执行"],
       "Run query": ["运行查询"],
@@ -2923,7 +2919,6 @@
       "Show Metric": ["显示指标"],
       "Show Metric Names": ["显示指标名"],
       "Show Range Filter": ["显示范围过滤器"],
-      "Show Row level security filter": ["显示行级安全过滤"],
       "Show Saved Query": ["显示保存的查询"],
       "Show Table": ["显示表"],
       "Show Timestamp": ["显示时间戳"],
@@ -3073,7 +3068,6 @@
       "Stacked": ["堆叠"],
       "Stacked Bars": ["堆叠条形图"],
       "Stacked Style": ["堆积样式"],
-      "Stacked style": ["堆积样式"],
       "Standard time series": ["时间序列"],
       "Start": ["开始"],
       "Start Review": ["数据预览"],
@@ -3097,7 +3091,6 @@
       "Stop running (Ctrl + x)": ["停止运行 (Ctrl + x)"],
       "Stopped an unsafe database connection": ["已停止不安全的数据库连接"],
       "Strength to pull the graph toward center": ["将图形拉向中心"],
-      "Stretched style": ["堆积样式"],
       "Strings used for sheet names (default is the first sheet).": [
         "用于sheet名称的字符串（默认为第一个sheet）。"
       ],
@@ -3140,6 +3133,9 @@
       "Symbol size": ["符号的大小"],
       "Sync columns from source": ["从源同步列"],
       "Syntax": ["语法"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["表"],
       "THU": ["星期四"],
       "TUE": ["星期二"],
@@ -3457,6 +3453,9 @@
         "指定点半径的度量单位"
       ],
       "The user seems to have been deleted": ["用户已经被删除"],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "指标 '%(username)s' 不存在"
       ],
@@ -3567,7 +3566,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如127.0.0.1)"
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -3689,7 +3688,6 @@
       "Time Series - Paired t-test": ["时间序列 - 配对t检验"],
       "Time Series - Percent Change": ["时间序列 - 百分比变化"],
       "Time Series - Period Pivot": ["时间序列 - 周期透视表"],
-      "Time Series - Stacked": ["时间序列 - 堆积图"],
       "Time Series Options": ["时间序列的列"],
       "Time Shift": ["时间偏移"],
       "Time Table View": ["时间表视图"],
@@ -3964,12 +3962,10 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": ["类型"],
       "Verbose Name": ["全称"],
       "Version": ["版本"],
       "Version number": ["版本"],
       "Vertical": ["垂直"],
-      "Video game consoles": ["控制台"],
       "View All »": ["查看所有 »"],
       "View in SQL Lab": ["在 SQL 工具箱中公开"],
       "View keys & indexes (%s)": ["查看键和索引（%s）"],

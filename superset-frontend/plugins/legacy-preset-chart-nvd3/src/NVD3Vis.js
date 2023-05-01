@@ -128,7 +128,6 @@ const TIMESERIES_VIZ_TYPES = [
   'line',
   'dual_line',
   'line_multi',
-  'area',
   'compare',
   'bar',
   'time_pivot',
@@ -147,7 +146,7 @@ const propTypes = {
           key: PropTypes.string,
           values: PropTypes.arrayOf(categoryAndValueXYType),
         }),
-        // area, line, compare, bar
+        // line, compare, bar
         PropTypes.shape({
           key: PropTypes.arrayOf(PropTypes.string),
           values: PropTypes.arrayOf(numericXYType),
@@ -189,7 +188,6 @@ const propTypes = {
   showMarkers: PropTypes.bool,
   useRichTooltip: PropTypes.bool,
   vizType: PropTypes.oneOf([
-    'area',
     'bar',
     'box_plot',
     'bubble',
@@ -221,7 +219,7 @@ const propTypes = {
   showBarValue: PropTypes.bool,
   // 'bar', 'dist-bar' or 'column'
   reduceXTicks: PropTypes.bool,
-  // 'bar', 'dist-bar' or 'area'
+  // 'bar', 'dist-bar'
   showControls: PropTypes.bool,
   // 'line' only
   showBrush: PropTypes.oneOf([true, 'yes', false, 'no', 'auto']),

@@ -79,7 +79,6 @@ const DEFAULT_ORDER = [
   'mixed_timeseries',
   'filter_box',
   'dist_bar',
-  'area',
   'bar',
   'deck_polygon',
   'time_table',

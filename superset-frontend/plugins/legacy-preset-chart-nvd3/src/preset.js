@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import AreaChartPlugin from './Area';
 import BarChartPlugin from './Bar';
 import BoxPlotChartPlugin from './BoxPlot';
 import BubbleChartPlugin from './Bubble';
@@ -35,7 +34,6 @@ export default class NVD3ChartPreset extends Preset {
     super({
       name: 'NVD3 charts',
       plugins: [
-        new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
         new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
         new BubbleChartPlugin().configure({ key: 'bubble' }),

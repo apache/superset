@@ -129,6 +129,9 @@
         ""
       ],
       "A database with the same name already exists.": [""],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -159,9 +162,6 @@
       "A reusable dataset will be saved with your chart.": [""],
       "A screenshot of the dashboard will be sent to your email at": [""],
       "A set of parameters that become available in the query using Jinja templating syntax": [
-        ""
-      ],
-      "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
         ""
       ],
       "A timeout occurred while executing the query.": [
@@ -199,7 +199,6 @@
       "Add Database": ["データベースを追加"],
       "Add Log": ["ログを追加"],
       "Add Metric": ["指標を追加"],
-      "Add Row level security filter": [""],
       "Add Saved Query": ["保存したクエリを追加"],
       "Add a Plugin": [""],
       "Add a new tab to create SQL Query": [""],
@@ -712,7 +711,6 @@
       ],
       "Choose a dataset": ["データセットを選択"],
       "Choose a metric for right axis": ["右軸の指標を選択"],
-      "Choose a unique name": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [
         "注釈レイヤーのタイプを選んでください"
@@ -751,7 +749,6 @@
       ],
       "Click to cancel sorting": [""],
       "Click to edit": [""],
-      "Click to edit %s in a new tab": [""],
       "Click to edit %s.": [""],
       "Click to edit chart.": [""],
       "Click to edit label": [""],
@@ -780,6 +777,7 @@
       "Column \"%(column)s\" is not numeric or does not exists in the query results.": [
         ""
       ],
+      "Column Data Types": [""],
       "Column Label(s)": [""],
       "Column containing ISO 3166-2 codes of region/province/department in your table.": [
         ""
@@ -858,7 +856,6 @@
       "Connect this database with a SQLAlchemy URI string instead": [""],
       "Connection failed, please check your connection settings": [""],
       "Connection looks good!": [""],
-      "Continuous": [""],
       "Contribution": [""],
       "Contribution Mode": [""],
       "Control labeled ": [""],
@@ -896,6 +893,7 @@
         "データベースドライバ: %(driver_name)s 読み込めませんでした"
       ],
       "Could not load database driver: {}": [""],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count Unique Values": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
@@ -1063,6 +1061,7 @@
       "Db engine did not return all queried columns": [""],
       "December": ["12月"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": [""],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1256,7 +1255,6 @@
       "Edit Log": ["ログを編集"],
       "Edit Metric": ["指標を編集"],
       "Edit Plugin": [""],
-      "Edit Row level security filter": [""],
       "Edit Saved Query": ["保存したクエリの編集"],
       "Edit Table": ["テーブルを編集"],
       "Edit annotation": ["注釈を編集する"],
@@ -1402,8 +1400,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
@@ -1422,7 +1422,6 @@
       "Fill method": [""],
       "Filter List": ["フィルタリスト"],
       "Filter Type": ["フィルタタイプ"],
-      "Filter box": ["フィルタボックス"],
       "Filter configuration": ["フィルタ構成"],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1515,6 +1514,7 @@
         "‘Group by’ と ‘Columns’ は重複できません"
       ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
+      "Group Key": [""],
       "Group by": [""],
       "Groupable": ["グループ分け可能"],
       "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
@@ -1612,6 +1612,9 @@
       "Interval End column": [""],
       "Interval bounds": [""],
       "Interval start column": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": ["無効な証明書"],
@@ -1639,6 +1642,7 @@
       "Invalid numpy function: %(operator)s": [""],
       "Invalid options for %(rolling_type)s: %(options)s": [""],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
       "Invalid spatial point encountered: %s": [""],
@@ -1940,7 +1944,6 @@
       "No data in file": ["ファイルにデータがありません"],
       "No databases match your search": [""],
       "No description available.": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "お気に入りのチャートはまだありません。星をクリックしてください！"
       ],
@@ -2071,7 +2074,6 @@
       ],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2227,6 +2229,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": [""],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2321,7 +2324,8 @@
       "Refresh interval": ["更新間隔"],
       "Refresh the default values": [""],
       "Refreshing columns": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relationships between community channels": [""],
@@ -2439,13 +2443,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": [""],
       "Row limit": [""],
       "Rows": [""],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": [""],
       "Rule": [""],
+      "Rule added": [""],
       "Run": ["実行"],
       "Run in SQL Lab": ["SQL Labで実行"],
       "Run query": ["クエリ実行"],
@@ -2629,7 +2633,6 @@
       "Show Log": ["ログを表示"],
       "Show Markers": [""],
       "Show Metric": ["指標を表示"],
-      "Show Row level security filter": [""],
       "Show Saved Query": ["保存したクエリを表示"],
       "Show Table": ["テーブルを表示"],
       "Show Timestamp": [""],
@@ -2749,7 +2752,6 @@
       "Stacked": [""],
       "Stacked Bars": [""],
       "Stacked Style": [""],
-      "Stacked style": [""],
       "Standard time series": [""],
       "Start": ["開始時間"],
       "Start (Longitude, Latitude): ": [""],
@@ -2775,7 +2777,6 @@
       "Stop running (Ctrl + x)": ["実行を停止 (Ctrl + x)"],
       "Stopped an unsafe database connection": [""],
       "Strength to pull the graph toward center": [""],
-      "Stretched style": [""],
       "Strings used for sheet names (default is the first sheet).": [""],
       "Structural": [""],
       "Style": [""],
@@ -2811,6 +2812,9 @@
       "Symbol size": [""],
       "Sync columns from source": [""],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": [""],
       "TEMPORAL X-AXIS": [""],
       "THU": ["木"],
@@ -2833,6 +2837,7 @@
       "Table cache timeout": [""],
       "Table name cannot contain a schema": [""],
       "Table name undefined": [""],
+      "Table or View \"%(table)s\" does not exist.": [""],
       "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
         ""
       ],
@@ -3080,6 +3085,9 @@
       "The type of visualization to display": ["表示する可視化のタイプ"],
       "The unit of measure for the specified point radius": [""],
       "The user seems to have been deleted": [""],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [""],
       "The way the ticks are laid out on the X-axis": [""],
       "There are associated alerts or reports": [
@@ -3165,7 +3173,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -3280,7 +3288,6 @@
       "Time Series - Paired t-test": [""],
       "Time Series - Percent Change": ["時系列 - 変化率"],
       "Time Series - Period Pivot": ["時系列 - 期間ピボット"],
-      "Time Series - Stacked": ["時系列 - 積み上げ"],
       "Time Series Options": [""],
       "Time Table View": [""],
       "Time column \"%(col)s\" does not exist in dataset": [""],
@@ -3338,6 +3345,7 @@
       "Tools": [""],
       "Tooltip": [""],
       "Top to Bottom": [""],
+      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],
@@ -3495,11 +3503,9 @@
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
       ],
-      "Vehicle Types": [""],
       "Verbose Name": [""],
       "Version": [""],
       "Version number": [""],
-      "Video game consoles": [""],
       "View All »": [""],
       "View in SQL Lab": ["SQL Labで表示"],
       "View keys & indexes (%s)": [""],

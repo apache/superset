@@ -36,7 +36,9 @@ class MigrateAreaChart(MigrateViz):
     target_viz_type = "echarts_area"
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
     rename_keys = {
+        "x_axis_label": "x_axis_title",
         "x_axis_format": "x_axis_time_format",
+        "x_ticks_layout": "xAxisLabelRotation",
         "bottom_margin": "x_axis_title_margin",
         "y_log_scale": "logAxis",
     }
@@ -49,15 +51,18 @@ class MigrateAreaChart(MigrateViz):
             stacked_map = {
                 "expand": "Expand",
                 "stack": "Stack",
+                "stream": "Stream",
             }
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
 
-        if x_axis_label := self.data.get("x_axis_label"):
-            self.data["x_axis_title"] = x_axis_label
-
         x_ticks_layout = self.data.get("x_ticks_layout")
         if x_ticks_layout:
-            self.data["xAxisLabelRotation"] = 45 if x_ticks_layout == "45°" else 0
+            self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
+
+        x_axis_label = self.data.get("x_axis_label")
+        bottom_margin = self.data.get("bottom_margin")
+        if x_axis_label and (not bottom_margin or bottom_margin == "auto"):
+            self.data["bottom_margin"] = 30
 
         self.data["opacity"] = 0.7
