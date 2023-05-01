@@ -59,7 +59,7 @@ class KeyValueCodec(ABC):
 
 class JsonKeyValueCodec(KeyValueCodec):
     def encode(self, value: dict[Any, Any]) -> bytes:
-        return bytes(json.dumps(value), encoding="utf8")
+        return bytes(json.dumps(value), encoding="utf-8")
 
     def decode(self, value: bytes) -> dict[Any, Any]:
         return json.loads(value)

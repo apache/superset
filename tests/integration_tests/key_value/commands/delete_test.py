@@ -25,7 +25,11 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
-from tests.integration_tests.key_value.commands.fixtures import admin, RESOURCE, VALUE
+from tests.integration_tests.key_value.commands.fixtures import (
+    admin,
+    JSON_VALUE,
+    RESOURCE,
+)
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
@@ -42,7 +46,7 @@ def key_value_entry() -> KeyValueEntry:
         id=ID_KEY,
         uuid=UUID_KEY,
         resource=RESOURCE,
-        value=bytes(json.dumps(VALUE), encoding="utf8"),
+        value=bytes(json.dumps(JSON_VALUE), encoding="utf-8"),
     )
     db.session.add(entry)
     db.session.commit()

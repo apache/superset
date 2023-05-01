@@ -25,8 +25,8 @@ from flask_appbuilder.security.sqla.models import User
 from superset.extensions import db
 from superset.utils.core import override_user
 from tests.integration_tests.key_value.commands.fixtures import (
-    CODEC,
     ID_KEY,
+    JSON_CODEC,
     RESOURCE,
     UUID_KEY,
 )
@@ -51,7 +51,7 @@ def test_update_id_entry(
             resource=RESOURCE,
             key=ID_KEY,
             value=NEW_VALUE,
-            codec=CODEC,
+            codec=JSON_CODEC,
         ).run()
     assert key is not None
     assert key.id == ID_KEY
@@ -73,7 +73,7 @@ def test_update_uuid_entry(
             resource=RESOURCE,
             key=UUID_KEY,
             value=NEW_VALUE,
-            codec=CODEC,
+            codec=JSON_CODEC,
         ).run()
     assert key is not None
     assert key.uuid == UUID_KEY
@@ -92,6 +92,6 @@ def test_update_missing_entry(app_context: AppContext, admin: User) -> None:
             resource=RESOURCE,
             key=456,
             value=NEW_VALUE,
-            codec=CODEC,
+            codec=JSON_CODEC,
         ).run()
     assert key is None

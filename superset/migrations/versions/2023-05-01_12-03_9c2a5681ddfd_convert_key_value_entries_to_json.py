@@ -23,8 +23,8 @@ Create Date: 2023-05-01 12:03:17.079862
 """
 
 # revision identifiers, used by Alembic.
-revision = '9c2a5681ddfd'
-down_revision = '7e67aecbf3f1'
+revision = "9c2a5681ddfd"
+down_revision = "7e67aecbf3f1"
 
 import json
 import pickle
@@ -40,6 +40,7 @@ from superset.migrations.shared.utils import paginated_update
 Base = declarative_base()
 VALUE_MAX_SIZE = 2**24 - 1
 RESOURCES_TO_MIGRATE = ("app", "dashboard_permalink", "explore_permalink")
+
 
 class KeyValueEntry(Base):
     __tablename__ = "key_value"
@@ -57,7 +58,7 @@ def upgrade():
         )
     ):
         value = pickle.loads(entry.value) or {}
-        entry.value = bytes(json.dumps(value), encoding="utf8")
+        entry.value = bytes(json.dumps(value), encoding="utf-8")
 
 
 def downgrade():

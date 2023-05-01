@@ -79,9 +79,13 @@ class CreateKeyValueCommand(BaseCommand):
         pass
 
     def create(self) -> Key:
+        try:
+            value = self.codec.encode(self.value)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise KeyValueCreateFailedError("Unable to encode value") from ex
         entry = KeyValueEntry(
             resource=self.resource.value,
-            value=self.codec.encode(self.value),
+            value=value,
             created_on=datetime.now(),
             created_by_fk=get_user_id(),
             expires_on=self.expires_on,
