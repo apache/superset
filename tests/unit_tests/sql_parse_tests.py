@@ -1195,6 +1195,14 @@ def test_sqlparse_issue_652():
         ("extract(HOUR from from_unixtime(hour_ts)", False),
         ("(SELECT * FROM table)", True),
         ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
+        (
+            "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
+        (
+            "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:
