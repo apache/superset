@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC
+from typing import Type
 
 from superset.commands.base import BaseCommand
 from superset.key_value.shared_entries import get_permalink_salt
-from superset.key_value.types import KeyValueResource, SharedKey
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource, SharedKey
 
 
 class BaseDashboardPermalinkCommand(BaseCommand, ABC):
     resource = KeyValueResource.DASHBOARD_PERMALINK
+    codec = JsonKeyValueCodec()
 
     @property
     def salt(self) -> str:
