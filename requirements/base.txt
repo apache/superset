@@ -27,8 +27,10 @@ bleach==3.3.1
     # via apache-superset
 brotli==1.0.9
     # via flask-compress
-cachelib==0.4.1
-    # via apache-superset
+cachelib==0.9.0
+    # via
+    #   apache-superset
+    #   flask-caching
 celery==5.2.2
     # via apache-superset
 cffi==1.15.1
@@ -86,7 +88,7 @@ flask-appbuilder==4.2.0
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
-flask-caching==1.10.1
+flask-caching==2.0.2
     # via apache-superset
 flask-compress==1.13
     # via apache-superset
