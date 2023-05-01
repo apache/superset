@@ -95,7 +95,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
-    supports_dynamic_schema = True
     supports_catalog = True
 
     _time_grain_expressions = {
@@ -168,23 +167,55 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def adjust_engine_params(
-        cls,
-        uri: URL,
-        connect_args: Dict[str, Any],
-        catalog: Optional[str] = None,
-        schema: Optional[str] = None,
-    ) -> Tuple[URL, Dict[str, Any]]:
-        if not schema:
-            return uri, connect_args
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
+        if not cursor.description:
+            return []
+        return super().fetch_data(cursor, limit)
 
-        options = parse_options(connect_args)
-        options["search_path"] = schema
-        connect_args["options"] = " ".join(
-            f"-c{key}={value}" for key, value in options.items()
-        )
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "(timestamp 'epoch' + {col} * interval '1 second')"
 
-        return uri, connect_args
+
+class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+    engine = "postgresql"
+    engine_aliases = {"postgres"}
+    supports_dynamic_schema = True
+
+    default_driver = "psycopg2"
+    sqlalchemy_uri_placeholder = (
+        "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+    # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
+    encryption_parameters = {"sslmode": "require"}
+
+    max_column_name_length = 63
+    try_remove_schema_from_table_name = False
+
+    column_type_mappings = (
+        (
+            re.compile(r"^double precision", re.IGNORECASE),
+            DOUBLE_PRECISION(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^array.*", re.IGNORECASE),
+            String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^enum.*", re.IGNORECASE),
+            ENUM(),
+            GenericDataType.STRING,
+        ),
+    )
 
     @classmethod
     def get_schema_from_engine_params(
@@ -219,54 +250,23 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
-    ) -> List[Tuple[Any, ...]]:
-        if not cursor.description:
-            return []
-        return super().fetch_data(cursor, limit)
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
+        if not schema:
+            return uri, connect_args
 
-    @classmethod
-    def epoch_to_dttm(cls) -> str:
-        return "(timestamp 'epoch' + {col} * interval '1 second')"
+        options = parse_options(connect_args)
+        options["search_path"] = schema
+        connect_args["options"] = " ".join(
+            f"-c{key}={value}" for key, value in options.items()
+        )
 
-
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
-    engine = "postgresql"
-    engine_aliases = {"postgres"}
-
-    default_driver = "psycopg2"
-    sqlalchemy_uri_placeholder = (
-        "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
-    )
-    # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
-    encryption_parameters = {"sslmode": "require"}
-
-    max_column_name_length = 63
-    try_remove_schema_from_table_name = False
-
-    column_type_mappings = (
-        (
-            re.compile(r"^double precision", re.IGNORECASE),
-            DOUBLE_PRECISION(),
-            GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^array.*", re.IGNORECASE),
-            String(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^json.*", re.IGNORECASE),
-            JSON(),
-            GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^enum.*", re.IGNORECASE),
-            ENUM(),
-            GenericDataType.STRING,
-        ),
-    )
+        return uri, connect_args
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
