@@ -16,21 +16,14 @@
 # under the License.
 from __future__ import annotations
 
-import pickle
-from uuid import UUID
+import json
 
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
 from superset.utils.core import override_user
-from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
-    ID_KEY,
-    RESOURCE,
-    UUID_KEY,
-    VALUE,
-)
+from tests.integration_tests.key_value.commands.fixtures import CODEC, RESOURCE, VALUE
 
 
 def test_create_id_entry(app_context: AppContext, admin: User) -> None:
@@ -38,11 +31,11 @@ def test_create_id_entry(app_context: AppContext, admin: User) -> None:
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
-        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE).run()
+        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE, codec=CODEC).run()
         entry = (
             db.session.query(KeyValueEntry).filter_by(id=key.id).autoflush(False).one()
         )
-        assert pickle.loads(entry.value) == VALUE
+        assert json.loads(entry.value) == VALUE
         assert entry.created_by_fk == admin.id
         db.session.delete(entry)
         db.session.commit()
@@ -53,11 +46,11 @@ def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:
     from superset.key_value.models import KeyValueEntry
 
     with override_user(admin):
-        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE).run()
+        key = CreateKeyValueCommand(resource=RESOURCE, value=VALUE, codec=CODEC).run()
     entry = (
         db.session.query(KeyValueEntry).filter_by(uuid=key.uuid).autoflush(False).one()
     )
-    assert pickle.loads(entry.value) == VALUE
+    assert json.loads(entry.value) == VALUE
     assert entry.created_by_fk == admin.id
     db.session.delete(entry)
     db.session.commit()
