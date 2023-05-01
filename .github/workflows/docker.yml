@@ -20,6 +20,10 @@ jobs:
         run: |
           if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+            echo "has secrets!"
+          else
+            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
+            echo "no secrets!"
           fi
 
   docker-build:
