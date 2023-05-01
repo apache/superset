@@ -1159,6 +1159,14 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
                     for fltr in append_filters
                     if fltr
                 )
+    if (
+        form_data.get("time_range")
+        and not form_data.get("granularity")
+        and not form_data.get("granularity_sqla")
+    ):
+        for adhoc_filter in form_data.get("adhoc_filters", []):
+            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
+                adhoc_filter["comparator"] = form_data["time_range"]
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:
