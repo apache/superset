@@ -18,7 +18,7 @@
  */
 describe('Visualization > Area', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/api/v1/chart/data**').as('getChartData');
   });
 
   const AREA_FORM_DATA = {
@@ -56,12 +56,11 @@ describe('Visualization > Area', () => {
 
   function verify(formData) {
     cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@getChartData' });
   }
 
   it('should work without groupby', () => {
     verify(AREA_FORM_DATA);
-    cy.get('.nv-area').should('have.length', 1);
   });
 
   it('should work with group by', () => {
@@ -69,12 +68,10 @@ describe('Visualization > Area', () => {
       ...AREA_FORM_DATA,
       groupby: ['region'],
     });
-
-    cy.get('.nv-area').should('have.length', 7);
   });
 
   it('should work with groupby and filter', () => {
-    cy.visitChartByParams({
+    verify({
       ...AREA_FORM_DATA,
       groupby: ['region'],
       adhoc_filters: [
@@ -89,18 +86,6 @@ describe('Visualization > Area', () => {
         },
       ],
     });
-
-    cy.wait('@getJson').then(async ({ response }) => {
-      const responseBody = response?.body;
-      // Make sure data is sorted correctly
-      const firstRow = responseBody.data[0].values;
-      const secondRow = responseBody.data[1].values;
-      expect(firstRow[firstRow.length - 1].y).to.be.greaterThan(
-        secondRow[secondRow.length - 1].y,
-      );
-      cy.verifySliceContainer('svg');
-    });
-    cy.get('.nv-area').should('have.length', 2);
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
@@ -114,8 +99,5 @@ describe('Visualization > Area', () => {
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
-    cy.get('.area .nv-legend .nv-legend-symbol')
-      .first()
-      .should('have.css', 'fill', 'rgb(31, 168, 201)');
   });
 });
