@@ -16,93 +16,106 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
-import Welcome from 'src/views/CRUD/welcome/Welcome';
+import Home from 'src/pages/Home';
 
 const ChartCreation = lazy(
   () =>
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
-const AnnotationLayersList = lazy(
+
+const AnnotationLayerList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AnnotationLayersList" */ 'src/views/CRUD/annotationlayers/AnnotationLayersList'
+      /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
     ),
 );
-const AlertList = lazy(
+
+const AlertReportList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AlertList" */ 'src/views/CRUD/alert/AlertList'
+      /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
     ),
 );
+
 const AnnotationList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "AnnotationList" */ 'src/views/CRUD/annotation/AnnotationList'
-    ),
+    import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
 );
+
 const ChartList = lazy(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
-const CssTemplatesList = lazy(
+
+const CssTemplateList = lazy(
   () =>
     import(
-      /* webpackChunkName: "CssTemplatesList" */ 'src/views/CRUD/csstemplates/CssTemplatesList'
+      /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
     ),
 );
+
 const DashboardList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
-    ),
+    import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
 );
-const DashboardRoute = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DashboardRoute" */ 'src/dashboard/containers/DashboardRoute'
-    ),
+
+const Dashboard = lazy(
+  () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
+
 const DatabaseList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DatabaseList" */ 'src/views/CRUD/data/database/DatabaseList'
-    ),
+  () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
+
 const DatasetList = lazy(
+  () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
+);
+
+const DatasetCreation = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
+      /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
     ),
 );
 
-const AddDataset = lazy(
+const ExecutionLogList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetEditor" */ 'src/views/CRUD/data/dataset/AddDataset/index'
+      /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
     ),
 );
 
-const ExecutionLog = lazy(
+const Chart = lazy(
+  () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
+);
+
+const QueryHistoryList = lazy(
   () =>
     import(
-      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
+      /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
     ),
 );
-const ExplorePage = lazy(
-  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
-);
-const QueryList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "QueryList" */ 'src/views/CRUD/data/query/QueryList'
-    ),
-);
+
 const SavedQueryList = lazy(
   () =>
+    import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
+);
+
+const AllEntities = lazy(
+  () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
+);
+
+const Tags = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
+
+const RowLevelSecurityList = lazy(
+  () =>
     import(
-      /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
+      /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
 );
 
@@ -116,7 +129,7 @@ type Routes = {
 export const routes: Routes = [
   {
     path: '/superset/welcome/',
-    Component: Welcome,
+    Component: Home,
   },
   {
     path: '/dashboard/list/',
@@ -124,7 +137,7 @@ export const routes: Routes = [
   },
   {
     path: '/superset/dashboard/:idOrSlug/',
-    Component: DashboardRoute,
+    Component: Dashboard,
   },
   {
     path: '/chart/add',
@@ -148,11 +161,11 @@ export const routes: Routes = [
   },
   {
     path: '/csstemplatemodelview/list/',
-    Component: CssTemplatesList,
+    Component: CssTemplateList,
   },
   {
     path: '/annotationlayer/list/',
-    Component: AnnotationLayersList,
+    Component: AnnotationLayerList,
   },
   {
     path: '/annotationlayer/:annotationLayerId/annotation/',
@@ -160,47 +173,62 @@ export const routes: Routes = [
   },
   {
     path: '/superset/sqllab/history/',
-    Component: QueryList,
+    Component: QueryHistoryList,
   },
   {
     path: '/alert/list/',
-    Component: AlertList,
+    Component: AlertReportList,
   },
   {
     path: '/report/list/',
-    Component: AlertList,
+    Component: AlertReportList,
     props: {
       isReportEnabled: true,
     },
   },
   {
     path: '/alert/:alertId/log/',
-    Component: ExecutionLog,
+    Component: ExecutionLogList,
   },
   {
     path: '/report/:alertId/log/',
-    Component: ExecutionLog,
+    Component: ExecutionLogList,
     props: {
       isReportEnabled: true,
     },
   },
   {
     path: '/explore/',
-    Component: ExplorePage,
+    Component: Chart,
   },
   {
     path: '/superset/explore/p',
-    Component: ExplorePage,
+    Component: Chart,
   },
   {
     path: '/dataset/add/',
-    Component: AddDataset,
+    Component: DatasetCreation,
   },
   {
     path: '/dataset/:datasetId',
-    Component: AddDataset,
+    Component: DatasetCreation,
+  },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurityList,
   },
 ];
+
+if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+  routes.push({
+    path: '/superset/all_entities/',
+    Component: AllEntities,
+  });
+  routes.push({
+    path: '/superset/tags/',
+    Component: Tags,
+  });
+}
 
 const frontEndRoutes = routes
   .map(r => r.path)

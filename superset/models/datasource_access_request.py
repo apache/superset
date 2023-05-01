@@ -22,7 +22,6 @@ from sqlalchemy import Column, Integer, String
 
 from superset import app, db, security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -57,7 +56,6 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         return self.get_datasource
 
     @datasource.getter  # type: ignore
-    @memoized
     def get_datasource(self) -> "BaseDatasource":
         ds = db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
         return ds

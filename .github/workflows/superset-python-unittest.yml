@@ -19,7 +19,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           submodules: recursive
@@ -50,6 +50,8 @@ jobs:
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
+        env:
+          SUPERSET_TESTENV: true
         run: |
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage

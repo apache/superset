@@ -117,7 +117,7 @@ export enum QueryObjectColumns {
   database_name = 'database.database_name',
   schema = 'schema',
   sql = 'sql',
-  executed_sql = 'exceuted_sql',
+  executed_sql = 'executed_sql',
   sql_tables = 'sql_tables',
   status = 'status',
   tab_name = 'tab_name',
@@ -136,6 +136,13 @@ export type ImportResourceName =
   | 'database'
   | 'dataset'
   | 'saved_query';
+
+export interface Tag {
+  changed_on_delta_humanized: string;
+  name: string;
+  id: number;
+  created_by: object;
+}
 
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;

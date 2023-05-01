@@ -34,7 +34,6 @@ Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO):
-
     sources: Dict[Union[DatasourceType, str], Type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,

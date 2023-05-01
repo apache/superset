@@ -70,7 +70,7 @@ pillow==9.3.0
     # via apache-superset
 progress==1.6
     # via -r requirements/development.in
-psycopg2-binary==2.9.5
+psycopg2-binary==2.9.6
     # via apache-superset
 ptyprocess==0.7.0
     # via pexpect
@@ -80,8 +80,6 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydruid==0.6.5
     # via apache-superset
-pygments==2.12.0
-    # via ipython
 pyhive[hive]==0.6.5
     # via apache-superset
 pyinstrument==4.0.2

@@ -23,12 +23,13 @@ import PropTypes from 'prop-types';
 import {
   styled,
   css,
+  FeatureFlag,
   t,
   getSharedLabelColor,
   getUiOverrideRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -53,7 +54,6 @@ import {
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
 import OverwriteConfirm from '../OverwriteConfirm';
@@ -463,18 +463,13 @@ class Header extends React.PureComponent {
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
-      filterboxMigrationState,
       logEvent,
     } = this.props;
 
     const userCanEdit =
-      dashboardInfo.dash_edit_perm &&
-      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
-      !dashboardInfo.is_managed_externally;
+      dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
     const userCanShare = dashboardInfo.dash_share_perm;
-    const userCanSaveAs =
-      dashboardInfo.dash_save_perm &&
-      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+    const userCanSaveAs = dashboardInfo.dash_save_perm;
     const userCanCurate =
       isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
       findPermission('can_set_embedded', 'Dashboard', user.roles);
@@ -529,15 +524,18 @@ class Header extends React.PureComponent {
             isStarred: this.props.isStarred,
             showTooltip: true,
           }}
-          titlePanelAdditionalItems={
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              isPublished={isPublished}
-              savePublished={this.props.savePublished}
-              canEdit={userCanEdit}
-              canSave={userCanSaveAs}
-            />
-          }
+          titlePanelAdditionalItems={[
+            !editMode && (
+              <PublishedStatus
+                dashboardId={dashboardInfo.id}
+                isPublished={isPublished}
+                savePublished={this.props.savePublished}
+                canEdit={userCanEdit}
+                canSave={userCanSaveAs}
+                visible={!editMode}
+              />
+            ),
+          ]}
           rightPanelAdditionalItems={
             <div className="button-container">
               {userCanSaveAs && (
@@ -677,14 +675,13 @@ class Header extends React.PureComponent {
               refreshLimit={refreshLimit}
               refreshWarning={refreshWarning}
               lastModifiedTime={lastModifiedTime}
-              filterboxMigrationState={filterboxMigrationState}
               isDropdownVisible={this.state.isDropdownVisible}
               setIsDropdownVisible={this.setIsDropdownVisible}
               logEvent={logEvent}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
-          showTitlePanelItems={!editMode}
+          showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
           <PropertiesModal

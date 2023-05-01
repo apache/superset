@@ -13,6 +13,8 @@ amqp==5.1.0
     # via kombu
 apispec[yaml]==3.3.2
     # via flask-appbuilder
+async-timeout==4.0.2
+    # via redis
 attrs==21.2.0
     # via jsonschema
 babel==2.9.1
@@ -23,8 +25,6 @@ bcrypt==4.0.1
     # via paramiko
 billiard==3.6.4.0
     # via celery
-bleach==3.3.1
-    # via apache-superset
 brotli==1.0.9
     # via flask-compress
 cachelib==0.9.0
@@ -42,12 +42,15 @@ click==8.0.4
     #   apache-superset
     #   celery
     #   click-didyoumean
+    #   click-option-group
     #   click-plugins
     #   click-repl
     #   flask
     #   flask-appbuilder
 click-didyoumean==0.3.0
     # via celery
+click-option-group==0.5.5
+    # via apache-superset
 click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
@@ -62,10 +65,12 @@ cron-descriptor==1.2.24
     # via apache-superset
 croniter==1.0.15
     # via apache-superset
-cryptography==39.0.0
+cryptography==39.0.1
     # via
     #   apache-superset
     #   paramiko
+deprecated==1.2.13
+    # via limits
 deprecation==2.1.0
     # via apache-superset
 dnspython==2.1.0
@@ -80,11 +85,12 @@ flask==2.1.3
     #   flask-caching
     #   flask-compress
     #   flask-jwt-extended
+    #   flask-limiter
     #   flask-login
     #   flask-migrate
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.2.0
+flask-appbuilder==4.3.0
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
@@ -93,6 +99,8 @@ flask-caching==2.0.2
 flask-compress==1.13
     # via apache-superset
 flask-jwt-extended==4.3.1
+    # via flask-appbuilder
+flask-limiter==3.3.0
     # via flask-appbuilder
 flask-login==0.6.0
     # via
@@ -124,12 +132,16 @@ hashids==1.3.1
     # via apache-superset
 hijri-converter==2.2.4
     # via holidays
-holidays==0.17.2
+holidays==0.23
     # via apache-superset
 humanize==3.11.0
     # via apache-superset
 idna==3.2
     # via email-validator
+importlib-metadata==6.3.0
+    # via flask
+importlib-resources==5.12.0
+    # via limits
 isodate==0.6.0
     # via apache-superset
 itsdangerous==2.1.1
@@ -146,10 +158,14 @@ kombu==5.2.4
     # via celery
 korean-lunar-calendar==0.2.1
     # via holidays
+limits==3.3.1
+    # via flask-limiter
 mako==1.1.4
     # via alembic
 markdown==3.3.4
     # via apache-superset
+markdown-it-py==2.2.0
+    # via rich
 markupsafe==2.1.1
     # via
     #   jinja2
@@ -164,18 +180,24 @@ marshmallow-enum==1.5.1
     # via flask-appbuilder
 marshmallow-sqlalchemy==0.23.1
     # via flask-appbuilder
+mdurl==0.1.2
+    # via markdown-it-py
 msgpack==1.0.2
+    # via apache-superset
+nh3==0.2.11
     # via apache-superset
 numpy==1.23.5
     # via
     #   apache-superset
     #   pandas
     #   pyarrow
+ordered-set==4.1.0
+    # via flask-limiter
 packaging==21.3
     # via
-    #   bleach
     #   deprecation
-pandas==1.5.2
+    #   limits
+pandas==1.5.3
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel
@@ -183,7 +205,7 @@ parsedatetime==2.6
     # via apache-superset
 pgsanity==0.2.9
     # via apache-superset
-polyline==1.4.0
+polyline==2.0.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
@@ -193,6 +215,8 @@ pyarrow==10.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
+pygments==2.15.0
+    # via rich
 pyjwt==2.4.0
     # via
     #   apache-superset
@@ -232,20 +256,22 @@ pyyaml==5.4.1
     # via
     #   apache-superset
     #   apispec
-redis==3.5.3
+redis==4.5.4
     # via apache-superset
+rich==13.3.4
+    # via flask-limiter
 selenium==3.141.0
+    # via apache-superset
+shortid==0.1.2
     # via apache-superset
 simplejson==3.17.3
     # via apache-superset
 six==1.16.0
     # via
-    #   bleach
     #   click-repl
     #   isodate
     #   jsonschema
     #   paramiko
-    #   polyline
     #   prison
     #   pyrsistent
     #   python-dateutil
@@ -271,7 +297,11 @@ sshtunnel==0.4.0
 tabulate==0.8.9
     # via apache-superset
 typing-extensions==4.4.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   flask-limiter
+    #   limits
+    #   rich
 urllib3==1.26.6
     # via selenium
 vine==5.0.0
@@ -281,23 +311,27 @@ vine==5.0.0
     #   kombu
 wcwidth==0.2.5
     # via prompt-toolkit
-webencodings==0.5.1
-    # via bleach
 werkzeug==2.1.2
     # via
     #   flask
     #   flask-jwt-extended
     #   flask-login
-wtforms==2.3.3
+wrapt==1.12.1
+    # via deprecated
+wtforms==3.0.1
     # via
     #   apache-superset
     #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json
-wtforms-json==0.3.3
+wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.7
     # via apache-superset
+zipp==3.15.0
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

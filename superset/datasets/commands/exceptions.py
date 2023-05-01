@@ -61,6 +61,23 @@ class DatasetExistsValidationError(ValidationError):
         )
 
 
+class DatasetEndpointUnsafeValidationError(ValidationError):
+    """
+    Marshmallow validation error for unsafe dataset default endpoint
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [
+                _(
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                )
+            ],
+            field_name="default_endpoint",
+        )
+
+
 class DatasetColumnNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when dataset column for update does not exist
@@ -191,3 +208,7 @@ class DatasetAccessDeniedError(ForbiddenError):
 
 class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
+
+
+class DatasetForbiddenDataURI(ImportFailedError):
+    message = _("Data URI is not allowed.")

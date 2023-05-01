@@ -27,7 +27,9 @@ import yaml
 from freezegun import freeze_time
 
 import superset.cli.importexport
-from superset import app
+import superset.cli.thumbnails
+from superset import app, db
+from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -495,3 +497,22 @@ def test_failing_import_datasets_versioned_export(
     )
 
     assert_cli_fails_properly(response, caplog)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch("superset.tasks.thumbnails.cache_dashboard_thumbnail")
+def test_compute_thumbnails(thumbnail_mock, app_context, fs):
+    thumbnail_mock.return_value = None
+    runner = app.test_cli_runner()
+    dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
+    response = runner.invoke(
+        superset.cli.thumbnails.compute_thumbnails,
+        ["-d", "-i", dashboard.id],
+    )
+
+    thumbnail_mock.assert_called_with(
+        None,
+        dashboard.id,
+        force=False,
+    )
+    assert response.exit_code == 0

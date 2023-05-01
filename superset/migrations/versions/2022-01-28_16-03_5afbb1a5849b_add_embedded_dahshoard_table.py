@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_embedded_dahshoard_table
+"""add_embedded_dashboard_table
 
 Revision ID: 5afbb1a5849b
 Revises: 5fd49410a97a

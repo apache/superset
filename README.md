@@ -63,6 +63,12 @@ Superset provides:
 
 ## Screenshots & Gifs
 
+**Video Overview**
+
+https://user-images.githubusercontent.com/64562059/234390129-321d4f35-cb4b-45e8-89d9-20ae292f34fc.mp4
+
+<br/>
+
 **Large Gallery of Visualizations**
 
 <kbd><img title="Gallery" src="superset-frontend/src/assets/images/screenshots/gallery.jpg"/></kbd><br/>

@@ -29,10 +29,12 @@ import React, {
 import {
   addAlpha,
   css,
+  FeatureFlag,
   JsonObject,
   styled,
   t,
   useTheme,
+  useElementOnScreen,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -56,8 +58,7 @@ import {
   setDirectPathToChild,
   setEditMode,
 } from 'src/dashboard/actions/dashboardState';
-import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -152,11 +153,12 @@ const StyledDiv = styled.div`
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
-const FiltersPanel = styled.div<{ width: number }>`
+const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
   width: ${({ width }) => width}px;
+  ${({ hidden }) => hidden && `display: none;`}
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -442,10 +444,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardIsSaving = useSelector<RootState, boolean>(
     ({ dashboardState }) => dashboardState.dashboardIsSaving,
   );
-  const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-  const focusedFilterId = nativeFilters?.focusedFilterId;
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
+  );
+  const crossFiltersEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
@@ -525,7 +528,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterSetEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
-  const showFilterBar = nativeFiltersEnabled && !editMode;
+  const showFilterBar =
+    (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -581,8 +585,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
             <FilterBar
-              focusedFilterId={focusedFilterId}
               orientation={FilterBarOrientation.HORIZONTAL}
+              hidden={isReport}
             />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
@@ -613,7 +617,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       </div>
     ),
     [
-      focusedFilterId,
       nativeFiltersEnabled,
       filterBarOrientation,
       editMode,
@@ -652,23 +655,21 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               return (
                 <FiltersPanel
                   width={filterBarWidth}
+                  hidden={isReport}
                   data-test="dashboard-filters-panel"
                 >
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
                     <ErrorBoundary>
-                      {!isReport && (
-                        <FilterBar
-                          focusedFilterId={focusedFilterId}
-                          orientation={FilterBarOrientation.VERTICAL}
-                          verticalConfig={{
-                            filtersOpen: dashboardFiltersOpen,
-                            toggleFiltersBar: toggleDashboardFiltersOpen,
-                            width: filterBarWidth,
-                            height: filterBarHeight,
-                            offset: filterBarOffset,
-                          }}
-                        />
-                      )}
+                      <FilterBar
+                        orientation={FilterBarOrientation.VERTICAL}
+                        verticalConfig={{
+                          filtersOpen: dashboardFiltersOpen,
+                          toggleFiltersBar: toggleDashboardFiltersOpen,
+                          width: filterBarWidth,
+                          height: filterBarHeight,
+                          offset: filterBarOffset,
+                        }}
+                      />
                     </ErrorBoundary>
                   </StickyPanel>
                 </FiltersPanel>

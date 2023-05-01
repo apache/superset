@@ -46,7 +46,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from pkg_resources import resource_filename
-from sqlalchemy import exc, or_
+from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -78,7 +78,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
 
@@ -116,6 +116,9 @@ FRONTEND_CONF_KEYS = (
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
     "WELCOME_PAGE_LAST_TAB",
     "VIZ_TYPE_DENYLIST",
+    "ALERT_REPORTS_DEFAULT_CRON_VALUE",
+    "ALERT_REPORTS_DEFAULT_RETENTION",
+    "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
 )
 
 logger = logging.getLogger(__name__)
@@ -188,6 +191,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "3.0.0",
+    new_target: Optional[str] = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -196,13 +200,19 @@ def deprecated(
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
-            logger.warning(
+            messsage = (
                 "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s",
+                "This API endpoint is deprecated and will be removed in version %s"
+            )
+            logger_args = [
                 self.__class__.__name__,
                 f.__name__,
                 eol_version,
-            )
+            ]
+            if new_target:
+                messsage += " . Use the following API endpoint instead: %s"
+                logger_args.append(new_target)
+            logger.warning(messsage, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -299,12 +309,6 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
         ) from ex
 
 
-def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-    if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
-
-
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
@@ -364,7 +368,7 @@ def menu_data(user: User) -> Dict[str, Any]:
         },
         "environment_tag": environment_tag,
         "navbar_right": {
-            # show the watermark if the default app icon has been overriden
+            # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
             "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
@@ -618,7 +622,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self: BaseView, primary_key: int) -> None:
         """
-        Delete function logic, override to implement diferent logic
+        Delete function logic, override to implement different logic
         deletes the record with primary_key = primary_key
 
         :param primary_key:
@@ -676,20 +680,11 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        query = query.join(
+            models.Database,
+            models.Database.id == self.model.database_id,
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(datasource_perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class CsvResponse(Response):

@@ -18,15 +18,18 @@ from typing import Any
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter
+from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -57,6 +60,16 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     model = Slice
 
 
+class ChartTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards that a user has favored
+    """
+
+    arg_name = "chart_tags"
+    class_name = "slice"
+    model = Slice
+
+
 class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all certified charts
@@ -77,23 +90,13 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+
+        table_alias = aliased(SqlaTable)
+        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
+        query = query.join(
+            models.Database, table_alias.database_id == models.Database.id
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -123,5 +126,45 @@ class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-meth
                 == get_user_id(),
                 Slice.changed_by_fk  # pylint: disable=comparison-with-callable
                 == get_user_id(),
+            )
+        )
+
+
+class ChartOwnedCreatedFavoredByMeFilter(
+    BaseFilter
+):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET chart that filters all charts the user
+    owns, created, changed or favored.
+    """
+
+    name = _("Owned Created or Favored")
+    arg_name = "chart_owned_created_favored_by_me"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        # If anonymous user filter nothing
+        if security_manager.current_user is None:
+            return query
+
+        owner_ids_query = (
+            db.session.query(Slice.id)
+            .join(Slice.owners)
+            .filter(security_manager.user_model.id == get_user_id())
+        )
+
+        return query.join(
+            FavStar,
+            and_(
+                FavStar.user_id == get_user_id(),
+                FavStar.class_name == "slice",
+                Slice.id == FavStar.obj_id,
+            ),
+            isouter=True,
+        ).filter(  # pylint: disable=comparison-with-callable
+            or_(
+                Slice.id.in_(owner_ids_query),
+                Slice.created_by_fk == get_user_id(),
+                Slice.changed_by_fk == get_user_id(),
+                FavStar.user_id == get_user_id(),
             )
         )

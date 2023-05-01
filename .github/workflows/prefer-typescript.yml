@@ -11,9 +11,12 @@ jobs:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
     name: Prefer Typescript
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           submodules: recursive
@@ -21,7 +24,7 @@ jobs:
         id: changed
         uses: ./.github/actions/file-changes-action
         with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          githubToken: ${{ github.token }}
 
       - name: Determine if a .js or .jsx file was added
         id: check
@@ -42,7 +45,7 @@ jobs:
         uses: ./.github/actions/comment-on-pr
         continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           msg: |
             ### WARNING: Prefer TypeScript

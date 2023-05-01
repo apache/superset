@@ -127,3 +127,60 @@ class TestDashboardDAO(SupersetTestCase):
             DashboardDAO.set_dash_metadata(dashboard, original_data)
             db.session.merge(dashboard)
             db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.dao.g")
+    def test_copy_dashboard(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+        metadata = json.loads(original_dash.json_metadata)
+        metadata["positions"] = original_dash.position
+        dash_data = {
+            "dashboard_title": "copied dash",
+            "json_metadata": json.dumps(metadata),
+            "css": "<css>",
+            "duplicate_slices": False,
+        }
+        dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertCountEqual(dash.slices, original_dash.slices)
+
+        db.session.delete(dash)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.dao.g")
+    def test_copy_dashboard_duplicate_slices(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+        metadata = json.loads(original_dash.json_metadata)
+        metadata["positions"] = original_dash.position
+        dash_data = {
+            "dashboard_title": "copied dash",
+            "json_metadata": json.dumps(metadata),
+            "css": "<css>",
+            "duplicate_slices": True,
+        }
+        dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
+        self.assertNotEqual(dash.id, original_dash.id)
+        self.assertEqual(len(dash.position), len(original_dash.position))
+        self.assertEqual(dash.dashboard_title, "copied dash")
+        self.assertEqual(dash.css, "<css>")
+        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
+        self.assertEqual(len(dash.slices), len(original_dash.slices))
+        for original_slc in original_dash.slices:
+            for slc in dash.slices:
+                self.assertNotEqual(slc.id, original_slc.id)
+
+        for slc in dash.slices:
+            db.session.delete(slc)
+        db.session.delete(dash)
+        db.session.commit()
