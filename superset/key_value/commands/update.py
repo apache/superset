@@ -40,7 +40,7 @@ class UpdateKeyValueCommand(BaseCommand):
     key: Union[int, UUID]
     expires_on: Optional[datetime]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         resource: KeyValueResource,
         key: Union[int, UUID],

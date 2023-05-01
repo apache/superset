@@ -38,7 +38,7 @@ class CreateKeyValueCommand(BaseCommand):
     key: Optional[Union[int, UUID]]
     expires_on: Optional[datetime]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         resource: KeyValueResource,
         value: Any,

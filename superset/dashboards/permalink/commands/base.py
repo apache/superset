@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC
-from typing import Type
 
 from superset.commands.base import BaseCommand
 from superset.key_value.shared_entries import get_permalink_salt
