@@ -355,10 +355,6 @@ const SqlEditor = ({
     return base;
   }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
 
-  const handleWindowResize = useEffectEvent(() => {
-    setHeight(getSqlEditorHeight());
-  });
-
   const onBeforeUnload = useEffectEvent(event => {
     if (
       database?.extra_json?.cancel_query_on_windows_unload &&
@@ -374,7 +370,7 @@ const SqlEditor = ({
     // the south pane so it gets rendered properly
     setHeight(getSqlEditorHeight());
     const handleWindowResizeWithThrottle = throttle(
-      handleWindowResize,
+      () => setHeight(getSqlEditorHeight()),
       WINDOW_RESIZE_THROTTLE_MS,
     );
 
@@ -386,7 +382,7 @@ const SqlEditor = ({
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
-  }, [handleWindowResize, onBeforeUnload]);
+  }, [onBeforeUnload]);
 
   useEffect(() => {
     if (!database || isEmpty(database)) {
