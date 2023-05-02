@@ -77,15 +77,11 @@ class TestDBConnections(SupersetTestCase):
             True,
             "shillelagh cannot be used as a data source for security reasons.",
         ),
-        (
-            "shillelagh+:///home/superset/bad.db",
-            True,
-            "shillelagh cannot be used as a data source for security reasons.",
-        ),
+        ("shillelagh+:///home/superset/bad.db", False, None),
         (
             "shillelagh+something:///home/superset/bad.db",
-            True,
-            "shillelagh cannot be used as a data source for security reasons.",
+            False,
+            None,
         ),
     ],
 )

@@ -28,7 +28,8 @@ BLOCKLIST = {
     # sqlite creates a local DB, which allows mapping server's filesystem
     re.compile("sqlite(?:\+[^\s]*)?$"),
     # shillelagh allows opening local files (eg, 'SELECT * FROM "csv:///etc/passwd"')
-    re.compile("shillelagh(?:\+[^\s]*)?$"),
+    re.compile("shillelagh$"),
+    re.compile("shillelagh\+apsw$"),
 }
 
 
