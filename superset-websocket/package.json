@@ -27,7 +27,7 @@
     "@types/cookie": "^0.5.1",
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^27.0.2",
-    "@types/jsonwebtoken": "^9.0.1",
+    "@types/jsonwebtoken": "^9.0.2",
     "@types/node": "^18.16.3",
     "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
