@@ -44,7 +44,7 @@ const buildText = (
   if (shouldShowStopButton) {
     return (
       <>
-        <i className="fa fa-stop" /> {t('Stop')}
+        <i className="fa fa-stop-circle-o" /> {t('Stop')}
       </>
     );
   }
@@ -147,7 +147,7 @@ const RunQueryActionButton = ({
               trigger: 'click',
             }
           : {
-              buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
             })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
