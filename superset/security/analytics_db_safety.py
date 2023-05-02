@@ -26,10 +26,10 @@ from superset.exceptions import SupersetSecurityException
 # list of unsafe SQLAlchemy dialects
 BLOCKLIST = {
     # sqlite creates a local DB, which allows mapping server's filesystem
-    re.compile("sqlite(?:\+[^\s]*)?$"),
+    re.compile(r"sqlite(?:\+[^\s]*)?$"),
     # shillelagh allows opening local files (eg, 'SELECT * FROM "csv:///etc/passwd"')
-    re.compile("shillelagh$"),
-    re.compile("shillelagh\+apsw$"),
+    re.compile(r"shillelagh$"),
+    re.compile(r"shillelagh\+apsw$"),
 }
 
 
