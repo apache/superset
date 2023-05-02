@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import is_feature_enabled
-
 from .base import MigrateViz
 
 
@@ -58,7 +56,6 @@ class MigrateAreaChart(MigrateViz):
 class MigratePivotTable(MigrateViz):
     source_viz_type = "pivot_table"
     target_viz_type = "pivot_table_v2"
-    migrate_generic_chart_axes = is_feature_enabled("GENERIC_CHART_AXES")
     remove_keys = {"pivot_margins"}
     rename_keys = {
         "columns": "groupbyColumns",

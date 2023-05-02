@@ -17,6 +17,7 @@
 import json
 
 from superset.migrations.shared.migrate_viz import MigratePivotTable
+from tests.unit_tests.conftest import with_feature_flags
 
 SOURCE_FORM_DATA = {
     "adhoc_filters": [],
@@ -53,12 +54,14 @@ TARGET_FORM_DATA = {
 }
 
 
+@with_feature_flags(GENERIC_CHART_AXES=False)
 def test_migration_without_generic_chart_axes() -> None:
     source = SOURCE_FORM_DATA.copy()
     target = TARGET_FORM_DATA.copy()
-    upgrade_downgrade(source, target, False)
+    upgrade_downgrade(source, target)
 
 
+@with_feature_flags(GENERIC_CHART_AXES=True)
 def test_migration_with_generic_chart_axes() -> None:
     source = SOURCE_FORM_DATA.copy()
     target = TARGET_FORM_DATA.copy()
@@ -73,9 +76,10 @@ def test_migration_with_generic_chart_axes() -> None:
     ]
     target.pop("granularity_sqla")
     target.pop("time_range")
-    upgrade_downgrade(source, target, True)
+    upgrade_downgrade(source, target)
 
 
+@with_feature_flags(GENERIC_CHART_AXES=True)
 def test_custom_sql_time_column() -> None:
     source = SOURCE_FORM_DATA.copy()
     source["granularity_sqla"] = {
@@ -97,10 +101,10 @@ def test_custom_sql_time_column() -> None:
     target["form_data_bak"] = source
     target.pop("granularity_sqla")
     target.pop("time_range")
-    upgrade_downgrade(source, target, True)
+    upgrade_downgrade(source, target)
 
 
-def upgrade_downgrade(source, target, migrate_generic_chart_axes) -> None:
+def upgrade_downgrade(source, target) -> None:
     from superset.models.slice import Slice
 
     dumped_form_data = json.dumps(source)
@@ -113,7 +117,6 @@ def upgrade_downgrade(source, target, migrate_generic_chart_axes) -> None:
     )
 
     # upgrade
-    MigratePivotTable.migrate_generic_chart_axes = migrate_generic_chart_axes
     slc = MigratePivotTable.upgrade_slice(slc)
 
     # verify form_data
