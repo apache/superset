@@ -357,12 +357,59 @@ export function fetchQueryResults(query, displayLimit) {
   };
 }
 
+const quotes = '\'"`'.split('');
+const quotedBlockHash = shortid.generate();
+const quotedBlockMatch = new RegExp(`${quotedBlockHash}:\\d+:`, 'g');
+
+function splitByQuotedBlock(str) {
+  const chunks = [];
+  let currentQuote = '';
+  let chunkStart = 0;
+
+  str.split('').forEach((currentChar, i) => {
+    if (
+      (currentQuote && currentChar === currentQuote) ||
+      (!currentQuote && quotes.includes(currentChar))
+    ) {
+      if (currentQuote) {
+        chunks.push(str.substring(chunkStart, i + 1));
+        chunkStart = i + 1;
+        currentQuote = '';
+      } else {
+        chunks.push(str.substring(chunkStart, i));
+        chunkStart = i;
+        currentQuote = currentChar;
+      }
+    }
+  });
+
+  if (chunkStart < str.length) {
+    const lastChunk = str.substring(chunkStart);
+    if (lastChunk) {
+      chunks.push(lastChunk);
+    }
+  }
+
+  return chunks;
+}
+
 export function cleanSqlComments(sql) {
   if (!sql) return '';
   // it sanitizes the following comment block groups
   // group 1 -> /* */
   // group 2 -> --
-  return sql.replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n').trim();
+  const chunks = splitByQuotedBlock(sql);
+  return chunks
+    .map((chunk, index) =>
+      quotes.includes(chunk[0]) ? `${quotedBlockHash}:${index}:` : chunk,
+    )
+    .join('')
+    .replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n')
+    .replace(
+      quotedBlockMatch,
+      quotedBlock => chunks[quotedBlock.match(/:\d+/)[0].substring(1)],
+    )
+    .trim();
 }
 
 export function runQuery(query) {
