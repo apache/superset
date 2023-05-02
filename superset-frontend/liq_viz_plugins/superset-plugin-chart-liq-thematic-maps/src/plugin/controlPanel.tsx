@@ -586,7 +586,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectAsyncControl',
               multi: false,
+              renderTrigger: false,
               label: t('Chart'),
+              default: -1,
               dataEndpoint:
                 '/api/v1/chart/?q=(filters:!((col:viz_type,opr:eq,value:ext-liq-maps)))',
               placeholder: t('Select chart'),
@@ -595,10 +597,10 @@ const config: ControlPanelConfig = {
                 if (!data || !data.result) {
                   return [];
                 }
-                return data.result.map(o => ({
+                return [{value: -1, label: 'None'}, ...data.result.map(o => ({
                   value: o.id,
                   label: o.slice_name
-                }));
+                }))];
               }
             },
           }

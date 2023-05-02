@@ -90,7 +90,8 @@ function Map(props, ref) {
     setDrawerTitle,
     setCmapLoaded,
     setMapLoaded,
-    load
+    load,
+    loading
   } = props;
 
   const map = useRef(null);

@@ -22,10 +22,11 @@ import MapboxCompare from 'mapbox-gl-compare';
 import 'mapbox-gl/dist/mapbox-gl.css'
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import 'mapbox-gl-compare/dist/mapbox-gl-compare.css';
+import Loading from 'src/components/Loading';
 
 import { SupersetClient } from '@superset-ui/core';
 
-import _ from 'lodash';
+import _, { transform } from 'lodash';
 
 // UI imports
 import {
@@ -129,28 +130,50 @@ export default function LiqThematicMaps(props) {
   const [drawerContent, setDrawerContent] = useState(<></>);
   const [drawerTitle, setDrawerTitle] = useState('');
 
-  const [isSecondMap, setIsSecondMap] = useState(compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string'));
   const [loadSecondMap, setLoadSecondMap] = useState(false);
   const [cmapLoaded, setCmapLoaded] = useState({ left: false, right: false });
 
   const [mapsLoaded, setMapsLoaded] = useState({ left: false, right: false });
 
+  const [loading, setLoading] = useState(true);
+
   const [items, setItems] = useState([]);
 
   const [mapVis, setMapVis] = useState('left');
 
-  /*
-    Loading Logic:
-    - Wait for all maps color maps to be loaded if they are thematic
-    - If there is a compare map, wait for both compareData and transformedProps to be loaded
-    - If there is a compare map:
-      - We wait for second map compareData and transformedProps to be loaded
-      - If either map 
-  */
+  useEffect(() => {
+
+    const isSecondMap = compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string');
+
+    const rightCheck = () => {
+      if (!('mapType' in transformedProps)) return true;
+      if (transformedProps.mapType.includes('thematic')) return !cmapLoaded.right && !mapsLoaded.right;
+      return !mapsLoaded.right;
+    }
+
+    const leftCheck = () => {
+      if (mapType.includes('thematic')) return !cmapLoaded.left && !mapsLoaded.left;
+      return !mapsLoaded.left;
+    }
+
+    if (isSecondMap) {
+      setLoading(rightCheck() && leftCheck());
+    } else {
+      setLoading(leftCheck());
+    }
+
+  }, [transformedProps, mapsLoaded, cmapLoaded, mapType, loadSecondMap])
 
   useEffect(() => {
-    console.log(mapVis);
-    if (isSecondMap && !mapsLoaded.left && !mapsLoaded.right) return;
+    console.log(loading);
+  }, [loading])
+
+  useEffect(() => {
+    if (
+      (compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string')) && 
+      !mapsLoaded.left && 
+      !mapsLoaded.right
+    ) return;
     if (!mapsLoaded.left) return;
     setItems([
       {
@@ -166,7 +189,7 @@ export default function LiqThematicMaps(props) {
             onClick: () => {
               let legendProps = [];
               const mapMap = { left: mapL, right: mapR };
-              const maps = isSecondMap ? 
+              const maps = compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string') ? 
                 mapVis === 'both' ?
                   ['left', 'right']
                 :
@@ -204,11 +227,11 @@ export default function LiqThematicMaps(props) {
                 <>
                   {legendProps.map((props, i) => (
                     props.map &&
-                    <div key={i}>
-                      {legendProps.length == 2 && i == 0 && (<h3>Left</h3>)}
-                      {legendProps.length == 2 && i == 1 && (<h3>Right</h3>)}
+                    <>
+                      {legendProps.length == 2 && i == 0 && (<h2>Left</h2>)}
+                      {legendProps.length == 2 && i == 1 && (<h2>Right</h2>)}
                       <Legend key={i} {...props} />
-                    </div>
+                    </>
                   ))}
                 </>
               );
@@ -223,7 +246,12 @@ export default function LiqThematicMaps(props) {
               setDrawerTitle('Radius Settings');
               setDrawerContent(
                 <Radius 
-                  maps={isSecondMap ? [mapL.current.getMap(), mapR.current.getMap()] : [mapL.current.getMap()]} 
+                  maps={
+                    compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string') ? 
+                      [mapL.current.getMap(), mapR.current.getMap()] 
+                    : 
+                      [mapL.current.getMap()]
+                  } 
                   groupCol={groupCol} 
                   boundary={boundary}
                   radiusColor={newRadiusColor}
@@ -246,7 +274,12 @@ export default function LiqThematicMaps(props) {
               setDrawerTitle('Drivetime Settings');
               setDrawerContent(
                 <Drivetime 
-                maps={isSecondMap ? [mapL.current.getMap(), mapR.current.getMap()] : [mapL.current.getMap()]}
+                  maps={
+                    compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string') ? 
+                      [mapL.current.getMap(), mapR.current.getMap()] 
+                    : 
+                      [mapL.current.getMap()]
+                  } 
                   groupCol={groupCol}
                   boundary={boundary}
                   drivetimeColor={newDrivetimeColor}
@@ -268,8 +301,7 @@ export default function LiqThematicMaps(props) {
 
   // If there is a compare chart, load its initial props and data and store in state
   useEffect(() => {
-    setIsSecondMap(compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string'));
-    if (!(compareChart && (typeof compareChart === 'number' || typeof compareChart === 'string'))) return;
+    if (!(compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string'))) return;
     SupersetClient.get({ endpoint: `/api/v1/chart/${compareChart}` })
       .then(res => {
         if ('result' in res.json) {
@@ -400,38 +432,36 @@ export default function LiqThematicMaps(props) {
         ))}
       </Menu>
       <div style={{ 
-          height: height, 
-          width: '100%', 
+          height: loading ? 0 : height, 
+          width: loading ? 0 : '100%', 
           position: 'absolute',
           top: 0,
           bottom: 0,
-          left: 0 
+          left: 0
         }} 
         ref={rootElem} 
         id={
-          isSecondMap ?
+          compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string') ?
             'comparison-container'
           :
             'map-container'
         }
       >
-        {(!isSecondMap && (mapType.includes('thematic') ? cmapLoaded.left : mapsLoaded.left)) || 
-        (isSecondMap && loadSecondMap) && (
-          <Map 
-            {...{
-              ...props, 
-              mapID: 'left', 
-              setDrawerOpen, 
-              setDrawerContent,
-              setDrawerTitle,
-              setCmapLoaded: (v) => {setCmapLoaded({...cmapLoaded, left: v})},
-              setMapLoaded: (v) => {setMapsLoaded({...mapsLoaded, left: v})},
-              load: true
-            }} 
-            ref={mapL} 
-          />
-        )}
-        {isSecondMap && loadSecondMap && (
+        <Map 
+          {...{
+            ...props, 
+            mapID: 'left', 
+            setDrawerOpen, 
+            setDrawerContent,
+            setDrawerTitle,
+            setCmapLoaded: (v) => {setCmapLoaded({...cmapLoaded, left: v})},
+            setMapLoaded: (v) => {setMapsLoaded({...mapsLoaded, left: v})},
+            load: true,
+            loading
+          }} 
+          ref={mapL} 
+        />
+        {compareChart && ((typeof compareChart === 'number' && !(compareChart === -1)) || typeof compareChart === 'string') && (
           <Map 
             {...{
               ...transformedProps, 
@@ -441,11 +471,12 @@ export default function LiqThematicMaps(props) {
               setDrawerTitle,
               setCmapLoaded: (v) => {setCmapLoaded({...cmapLoaded, right: v})},
               setMapLoaded: (v) => {setMapsLoaded({...mapsLoaded, right: v})},
-              load: loadSecondMap
+              load: loadSecondMap,
+              loading
             }} 
             width={width}
             height={height}
-            ref={mapR}
+            ref={mapR} 
           />
         )}
         <SideDrawer 
@@ -456,6 +487,7 @@ export default function LiqThematicMaps(props) {
           width={width}
         />
       </div>
+      {loading && <Loading position='floating' />}
     </>
   ); 
 }
