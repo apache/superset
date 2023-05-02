@@ -396,6 +396,7 @@ describe('Horizontal FilterBar', () => {
     setFilterBarOrientation('horizontal');
     enterNativeFilterEditModal();
     inputNativeFilterDefaultValue('Albania');
+    cy.get('.ant-select-selection-search-input').clear({ force: true });
     inputNativeFilterDefaultValue('Algeria', true);
     saveNativeFilterSettings([SAMPLE_CHART]);
     cy.getBySel('filter-bar').within(() => {
