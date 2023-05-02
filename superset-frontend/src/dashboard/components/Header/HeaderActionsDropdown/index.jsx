@@ -25,7 +25,7 @@ import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
-// import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -36,6 +36,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -68,6 +69,7 @@ const propTypes = {
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
+  user: PropTypes.object,
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 };
 
@@ -229,6 +231,8 @@ class HeaderActionsDropdown extends React.PureComponent {
       ...rest
     } = this.props;
 
+    console.log('PROPS IN HEADER ACTIONS', this.props);
+
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
@@ -378,17 +382,19 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu.Item>
           )}
 
-        {/* <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
-          <RefreshIntervalModal
-            addSuccessToast={this.props.addSuccessToast}
-            refreshFrequency={refreshFrequency}
-            refreshLimit={refreshLimit}
-            refreshWarning={refreshWarning}
-            onChange={this.changeRefreshInterval}
-            editMode={editMode}
-            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-          />
-        </Menu.Item> */}
+        {isUserAdmin(this.props?.user) && (
+          <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
+            <RefreshIntervalModal
+              addSuccessToast={this.props.addSuccessToast}
+              refreshFrequency={refreshFrequency}
+              refreshLimit={refreshLimit}
+              refreshWarning={refreshWarning}
+              onChange={this.changeRefreshInterval}
+              editMode={editMode}
+              triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+            />
+          </Menu.Item>
+        )}
       </Menu>
     );
   }
