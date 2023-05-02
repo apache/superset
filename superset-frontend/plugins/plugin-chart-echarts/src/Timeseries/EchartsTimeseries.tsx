@@ -1,22 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import React, { useCallback, useRef } from 'react';
+// DODO was here
+import React, { useCallback, useRef, useState } from 'react';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -197,14 +180,49 @@ export default function EchartsTimeseries({
     },
   };
 
+  const [alteredEchartsOptions, setEchartsOptions] = useState(
+    echartOptions as {
+      series: Array<{ label: { show: boolean; position: string } }>;
+    },
+  );
+
+  const showHideHandler = () => {
+    const { series } = alteredEchartsOptions;
+    const echartsOpts = {
+      ...echartOptions,
+      series: series.map(s => ({
+        ...s,
+        label: {
+          ...s.label,
+          show: !s.label.show,
+        },
+      })),
+    };
+    setEchartsOptions(echartsOpts);
+  };
+
   return (
     <>
       <ExtraControls formData={formData} setControlValue={setControlValue} />
+      <span
+        style={{
+          position: 'absolute',
+          fontSize: '10px',
+          marginTop: '5px',
+          fontStyle: 'italic',
+          zIndex: 1,
+        }}
+        role="button"
+        tabIndex={0}
+        onClick={showHideHandler}
+      >
+        Show/Hide values
+      </span>
       <Echart
         ref={echartRef}
         height={height}
         width={width}
-        echartOptions={echartOptions}
+        echartOptions={alteredEchartsOptions}
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
