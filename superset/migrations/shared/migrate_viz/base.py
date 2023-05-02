@@ -87,7 +87,7 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: Dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", conf.get("DEFAULT_TIME_FILTER"))
+        time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
 
         if not granularity_sqla:
             return
