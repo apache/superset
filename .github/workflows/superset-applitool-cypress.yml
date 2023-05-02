@@ -58,7 +58,7 @@ jobs:
           submodules: recursive
           ref: master
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
       - name: OS dependencies
@@ -80,7 +80,7 @@ jobs:
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - name: Install npm dependencies
