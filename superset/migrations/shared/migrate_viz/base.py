@@ -24,7 +24,7 @@ from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import db, is_feature_enabled
+from superset import conf, db, is_feature_enabled
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
@@ -76,8 +76,7 @@ class MigrateViz:
 
             rv_data[key] = value
 
-        generic_chart_axes = is_feature_enabled("GENERIC_CHART_AXES")
-        if generic_chart_axes:
+        if is_feature_enabled("GENERIC_CHART_AXES"):
             self._migrate_temporal_filter(rv_data)
 
         self.data = rv_data
@@ -88,9 +87,9 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: Dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None)
+        time_range = rv_data.pop("time_range", conf.get("DEFAULT_TIME_FILTER"))
 
-        if not granularity_sqla or not time_range:
+        if not granularity_sqla:
             return
 
         temporal_filter = {
