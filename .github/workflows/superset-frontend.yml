@@ -29,7 +29,7 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh frontend
       - name: Setup Node.js
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       - name: Install dependencies
