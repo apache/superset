@@ -94,23 +94,3 @@ def test_check_sqlalchemy_uri(
             assert str(excinfo.value) == error_message
     else:
         check_sqlalchemy_uri(make_url(sqlalchemy_uri))
-
-
-def test_check_sqlalchemy_uri_ok():
-    check_sqlalchemy_uri(make_url("postgres://user:password@test.com"))
-
-
-def test_check_sqlalchemy_url_sqlite():
-    with pytest.raises(SupersetSecurityException) as excinfo:
-        check_sqlalchemy_uri(make_url("sqlite:///home/superset/bad.db"))
-    assert (
-        str(excinfo.value)
-        == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
-    )
-
-    with pytest.raises(SupersetSecurityException) as excinfo:
-        check_sqlalchemy_uri(make_url("shillelagh:///home/superset/bad.db"))
-    assert (
-        str(excinfo.value)
-        == "shillelagh cannot be used as a data source for security reasons."
-    )
