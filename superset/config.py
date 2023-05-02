@@ -563,7 +563,7 @@ FLASH_TYPE = {
                     "Long Term (Valid upto 90 days)",
                 ],
                 "default": "Please Select",
-            },  
+            },
         },
         "required": [
             "flashType"
@@ -606,10 +606,10 @@ FLASH_TYPE = {
         "teamSlackHandle": {
             "ui:placeholder": "@slack_handle_name",
             "ui:help": "Slack handle for notification",
-        },  
+        },
     },
     "VALIDATION": [],
-   
+
 }
 
 FLASH_SCHEDULE = {
@@ -1042,7 +1042,7 @@ CSV_EXTENSIONS = {"csv", "tsv", "txt"}
 COLUMNAR_EXTENSIONS = {"parquet", "zip"}
 ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 CSV_MAX_SIZES = 1 * 1024 * 1024
-CSV_MAX_ROWS = 500
+CSV_MAX_ROWS = 20000
 CSV_MIN_ROWS = 1
 
 
