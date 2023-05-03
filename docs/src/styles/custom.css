@@ -24,7 +24,7 @@
  */
 
 /* You can override the default Infima variables here. */
-@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
 :root {
   --ifm-color-primary: #20a7c9;
@@ -34,14 +34,16 @@
   --ifm-color-primary-light: #79cade;
   --ifm-color-primary-lighter: #a5dbe9;
   --ifm-color-primary-lightest: #d2edf4;
+  --ifm-font-base-color: #484848;
   --ifm-code-font-size: 95%;
   --ifm-menu-link-padding-vertical: 12px;
   --doc-sidebar-width: 350px !important;
   --ifm-navbar-height: none;
-  --ifm-font-family-base: Inter;
+  --ifm-font-family-base: Roboto;
 }
 body {
-  font-family: Inter !important;
+  font-family: Roboto !important;
+  color: var(--ifm-font-base-color) !important;
 }
 .DocSearch-Button .DocSearch-Button-Key {
   display: none;
@@ -110,4 +112,38 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 }
 a > span > svg {
   display: none;
+}
+
+/* Footer */
+
+.footer {
+  position: relative;
+  padding-top: 90px;
+  font-size: 15px;
+}
+
+.footer--dark {
+  --ifm-footer-background-color: #173036;
+  --ifm-footer-color: #87939a;
+}
+
+.footer__applitools {
+  background-color: #0d3e49;
+  color: #e1e1e1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.footer__divider {
+  margin: 10px auto 25px;
+}
+
+.footer small {
+  font-size: 13px;
+  display: block;
+  margin: 0 auto;
+  max-width: 830px;
 }
