@@ -35,6 +35,7 @@ import { legendSection, richTooltipSection } from '../controls';
 
 const {
   area,
+  independentYAxesBounds,
   logAxis,
   markerEnabled,
   markerSize,
@@ -49,7 +50,6 @@ const {
   yAxisBounds,
   zoomable,
   xAxisLabelRotation,
-  yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
 function createQuerySection(
@@ -235,23 +235,6 @@ function createCustomizeSection(
         },
       },
     ],
-    [
-      {
-        name: `yAxisIndex${controlSuffix}`,
-        config: {
-          type: 'SelectControl',
-          label: t('Y Axis'),
-          choices: [
-            [0, t('Primary')],
-            [1, t('Secondary')],
-          ],
-          default: yAxisIndex,
-          clearable: false,
-          renderTrigger: true,
-          description: t('Primary or secondary y-axis'),
-        },
-      },
-    ],
   ];
 }
 
@@ -367,11 +350,11 @@ const config: ControlPanelConfig = {
             name: 'y_axis_bounds',
             config: {
               type: 'BoundsControl',
-              label: t('Y Axis Bounds'),
+              label: t('Primary y-axis Bounds'),
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                'Bounds for the primary Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
                   "this feature will only expand the axis range. It won't " +
                   "narrow the data's extent.",
@@ -397,6 +380,23 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: logAxis,
               description: t('Logarithmic scale on primary y-axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_bounds_secondary',
+            config: {
+              type: 'BoundsControl',
+              label: t('Secondary y-axis Bounds'),
+              renderTrigger: true,
+              default: yAxisBounds,
+              description: t(
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axes
+                bounds is enabled. When left empty, the bounds are dynamically defined
+                based on the min/max of the data. Note that this feature will only expand
+                the axis range. It won't narrow the data's extent.`,
+              ),
             },
           },
         ],
@@ -430,6 +430,20 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: logAxis,
               description: t('Logarithmic scale on secondary y-axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: `independentYAxesBounds`,
+            config: {
+              type: 'CheckboxControl',
+              label: t('Independent Y-axes bounds'),
+              renderTrigger: true,
+              default: independentYAxesBounds,
+              description: t(
+                'Whether to display Y-axes bounds independently of each other',
+              ),
             },
           },
         ],
