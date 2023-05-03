@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
 export type SchemaOption = {
@@ -73,20 +74,30 @@ export function useSchemas(options: Params) {
     },
   );
 
+  const handleOnSuccess = useEffectEvent(
+    (data: SchemaOption[], isRefetched: boolean) => {
+      onSuccess?.(data, isRefetched);
+    },
+  );
+
+  const handleOnError = useEffectEvent(() => {
+    onError?.();
+  });
+
   const refetch = useCallback(() => {
     if (dbId) {
       trigger({ dbId, forceRefresh: true }).then(
         ({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            onSuccess?.(data || EMPTY_SCHEMAS, true);
+            handleOnSuccess(data || EMPTY_SCHEMAS, true);
           }
           if (isError) {
-            onError?.();
+            handleOnError();
           }
         },
       );
     }
-  }, [dbId]);
+  }, [dbId, handleOnError, handleOnSuccess, trigger]);
 
   useEffect(() => {
     if (isMountedRef.current) {
@@ -94,16 +105,16 @@ export function useSchemas(options: Params) {
         result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
         if (isSuccess) {
-          onSuccess?.(data || EMPTY_SCHEMAS, false);
+          handleOnSuccess(data || EMPTY_SCHEMAS, false);
         }
         if (isError) {
-          onError?.();
+          handleOnError();
         }
       }
     } else {
       isMountedRef.current = true;
     }
-  }, [result]);
+  }, [result, handleOnSuccess, handleOnError]);
 
   return {
     ...(refetchResult.isUninitialized ? result : refetchResult),

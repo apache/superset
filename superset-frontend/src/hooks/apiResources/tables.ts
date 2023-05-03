@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useEffect, useRef } from 'react';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api } from './queryApi';
 
 import { useSchemas } from './schemas';
@@ -106,20 +107,28 @@ export function useTables(options: Params) {
   );
   const [trigger] = useLazyTablesQuery();
 
+  const handleOnSuccess = useEffectEvent((data: Data, isRefetched: boolean) => {
+    onSuccess?.(data, isRefetched);
+  });
+
+  const handleOnError = useEffectEvent((error: Response) => {
+    onError?.(error);
+  });
+
   const refetch = useCallback(() => {
     if (enabled) {
       trigger({ dbId, schema, forceRefresh: true }).then(
         ({ isSuccess, isError, data, error }) => {
           if (isSuccess && data) {
-            onSuccess?.(data, true);
+            handleOnSuccess(data, true);
           }
           if (isError) {
-            onError?.(error as Response);
+            handleOnError(error as Response);
           }
         },
       );
     }
-  }, [dbId, schema, enabled]);
+  }, [dbId, schema, enabled, handleOnSuccess, handleOnError, trigger]);
 
   useEffect(() => {
     if (isMountedRef.current) {
@@ -134,16 +143,16 @@ export function useTables(options: Params) {
       } = result;
       if (!originalArgs?.forceRefresh && requestId && !isFetching) {
         if (isSuccess && data) {
-          onSuccess?.(data, false);
+          handleOnSuccess(data, false);
         }
         if (isError) {
-          onError?.(error as Response);
+          handleOnError(error as Response);
         }
       }
     } else {
       isMountedRef.current = true;
     }
-  }, [result]);
+  }, [result, handleOnSuccess, handleOnError]);
 
   return {
     ...result,
