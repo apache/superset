@@ -74,6 +74,7 @@ const communityLinks = [
 const StyledBlurredSection = styled('section')`
   text-align: center;
   border-bottom: 1px solid #ededed;
+  overflow: hidden;
   .blur {
     max-width: 635px;
     width: 100%;
@@ -89,7 +90,10 @@ const StyledSectionHeader = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 75px;
+  padding-top: 55px;
+  @media (min-width: 768px) {
+    padding-top: 75px;
+  }
   .title {
     font-weight: 700;
     color: var(--ifm-font-base-color);
@@ -98,14 +102,25 @@ const StyledSectionHeader = styled('div')`
 
 const StyledSectionHeaderH1 = styled(StyledSectionHeader)`
   .title {
-    font-size: 96px;
+    font-size: 64px;
+    @media (min-width: 768px) {
+      font-size: 96px;
+    }
   }
   .line {
-    margin-top: -45px;
-    margin-bottom: 15px;
+    margin-top: -20px;
+    margin-bottom: 30px;
+    @media (min-width: 768px) {
+      margin-top: -45px;
+      margin-bottom: 15px;
+    }
   }
   .subtitle {
-    font-size: 30px;
+    font-size: 34px;
+    line-height: 40px;
+    @media (min-width: 768px) {
+      font-size: 30px;
+    }
   }
 `;
 
@@ -118,7 +133,12 @@ const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
     margin-bottom: 15px;
   }
   .subtitle {
-    font-size: 24px;
+    font-size: 27px;
+    line-height: 36px;
+    @media (min-width: 768px) {
+      font-size: 24px;
+      line-height: 32px;
+    }
   }
 `;
 
@@ -128,45 +148,70 @@ const StyledJoinCommunity = styled('section')`
   .list {
     max-width: 540px;
     margin: 0 auto;
-    padding-top: 40px;
-    padding-bottom: 20px;
+    padding: 40px 20px 20px 35px;
   }
   .item {
     padding: 0;
     border: 0;
   }
   .icon {
-    width: 40px;
-    margin-top: 5px;
+    width: 60px;
+    @media (min-width: 768px) {
+      width: 40px;
+      margin-top: 5px;
+    }
   }
   .title {
-    font-size: 20px;
+    font-size: 32px;
+    line-height: 36px;
     font-weight: 700;
     color: var(--ifm-font-base-color);
+    @media (min-width: 768px) {
+      font-size: 20px;
+    }
   }
   .description {
-    font-size: 14px;
-    line-height: 36px;
-    color: #5f5f5f;
-    margin-top: -12px;
+    font-size: 23px;
+    line-height: 30px;
+    color: #484848;
+    margin-bottom: 35px;
+    @media (min-width: 768px) {
+      font-size: 14px;
+      line-height: 20px;
+      color: #5f5f5f;
+      margin-top: -8px;
+      margin-bottom: 23px;
+    }
   }
 `;
 
 const StyledCalendarIframe = styled('iframe')`
   display: block;
   margin: 20px auto 30px;
-  width: 800px;
+  max-width: 800px;
+  width: calc(100% - 40px);
   height: 600px;
   border: 0;
+  @media (min-width: 768px) {
+    width: 100%;
+  }
 `;
 
 const StyledNewsletterIframe = styled('iframe')`
   display: block;
   max-width: 1080px;
-  width: 100%;
-  height: 285px;
-  margin: 15px auto 0;
+  width: calc(100% - 40px);
+  height: 680px;
+  margin: 30px auto 20px;
   border: 0;
+  @media (min-width: 680px) {
+    height: 380px;
+  }
+  @media (min-width: 768px) {
+    width: 100%;
+    height: 285px;
+    margin-top: 15px;
+  }
 `;
 
 interface BlurredSectionProps {
@@ -222,7 +267,7 @@ const Community = () => {
             className="list"
             itemLayout="horizontal"
             dataSource={communityLinks}
-            renderItem={({ url, title, description, image }, index) => (
+            renderItem={({ url, title, description, image }) => (
               <List.Item className="item">
                 <List.Item.Meta
                   avatar={
