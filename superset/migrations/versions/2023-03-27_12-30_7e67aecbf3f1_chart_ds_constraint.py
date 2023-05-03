@@ -27,6 +27,7 @@ revision = "7e67aecbf3f1"
 down_revision = "07f9a902af1b"
 
 import json
+import logging
 
 import sqlalchemy as sa
 from alembic import op
@@ -35,6 +36,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 
 Base = declarative_base()
+
+logger = logging.getLogger()
 
 
 class Slice(Base):  # type: ignore
@@ -69,7 +72,7 @@ def upgrade():
                 session.add(slc)
 
             else:
-                print(
+                logger.info(
                     f"unknown value detected for slc.datasource_type: {slc.datasource_type}"
                 )
 
