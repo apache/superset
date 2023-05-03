@@ -89,7 +89,7 @@ const StyledSectionHeader = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 60px;
+  padding-top: 75px;
   .title {
     font-weight: 700;
     color: var(--ifm-font-base-color);
