@@ -98,22 +98,6 @@ class MigrateDualLine(MigrateViz):
     remove_keys = {"y_axis_2_bounds"}
 
     def _pre_action(self) -> None:
-        # Dual line chart has two Y axis bounds but Mixed chart has only one.
-        min_bounds = []
-        max_bounds = []
-        y_axis_bounds = self.data.get("y_axis_bounds")
-        y_axis_2_bounds = self.data.get("y_axis_2_bounds")
-        if y_axis_bounds:
-            if y_axis_bounds[0] != None:
-                min_bounds.append(y_axis_bounds[0])
-            if y_axis_bounds[1] != None:
-                max_bounds.append(y_axis_bounds[1])
-        if y_axis_2_bounds:
-            if y_axis_2_bounds[0] != None:
-                min_bounds.append(y_axis_2_bounds[0])
-            if y_axis_2_bounds[1] != None:
-                max_bounds.append(y_axis_2_bounds[1])
-        min_bound = min(min_bounds) if len(min_bounds) > 0 else None
-        max_bound = max(max_bounds) if len(max_bounds) > 0 else None
-        self.data["y_axis_bounds"] = [min_bound, max_bound]
+        self.data["yAxisIndex"] = 0
+        self.data["yAxisIndexB"] = 1
         self.data["adhoc_filters_b"] = self.data.get("adhoc_filters")

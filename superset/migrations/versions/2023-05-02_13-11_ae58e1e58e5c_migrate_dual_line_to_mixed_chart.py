@@ -17,14 +17,14 @@
 """migrate_dual_line_to_mixed_chart
 
 Revision ID: ae58e1e58e5c
-Revises: 7e67aecbf3f1
+Revises: 9c2a5681ddfd
 Create Date: 2023-05-02 13:11:36.241939
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "ae58e1e58e5c"
-down_revision = "7e67aecbf3f1"
+down_revision = "9c2a5681ddfd"
 
 from superset.migrations.shared.migrate_viz.processors import MigrateDualLine
 
