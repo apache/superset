@@ -37,8 +37,14 @@ Apache Superset is a modern, enterprise-ready business intelligence web applicat
 
 ```console
 helm repo add superset http://apache.github.io/superset/
-helm install my-superset superset/superset
+helm install --set extraSecretEnv.SUPERSET_SECRET_KEY=CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET my-superset superset/superset
 ```
+
+Make sure you set your own `SECRET_KEY` to something unique and secret. This secret key is used by Flask for
+securely signing the session cookie and will be used to encrypt sensitive data on Superset's metadata database.
+It should be a long random bytes or str.
+
+On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverrides.secrets`
 
 ## Requirements
 
