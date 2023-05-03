@@ -140,7 +140,8 @@ export default function transformProps(
     xAxisTimeFormat,
     yAxisBounds,
     yAxisBoundsSecondary,
-    independentYAxesBounds,
+    yAxisIndex,
+    yAxisIndexB,
     yAxisTitleSecondary,
     zoomable,
     richTooltip,
@@ -159,8 +160,6 @@ export default function transformProps(
     percentageThreshold,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
-  const yAxisIndex = 0;
-  const yAxisIndexB = independentYAxesBounds ? 1 : 0;
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 

@@ -35,7 +35,6 @@ import { legendSection, richTooltipSection } from '../controls';
 
 const {
   area,
-  independentYAxesBounds,
   logAxis,
   markerEnabled,
   markerSize,
@@ -50,6 +49,7 @@ const {
   yAxisBounds,
   zoomable,
   xAxisLabelRotation,
+  yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
 function createQuerySection(
@@ -232,6 +232,23 @@ function createCustomizeSection(
           description: t(
             'Size of marker. Also applies to forecast observations.',
           ),
+        },
+      },
+    ],
+    [
+      {
+        name: `yAxisIndex${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          label: t('Y Axis'),
+          choices: [
+            [0, t('Primary')],
+            [1, t('Secondary')],
+          ],
+          default: yAxisIndex,
+          clearable: false,
+          renderTrigger: true,
+          description: t('Primary or secondary y-axis'),
         },
       },
     ],
@@ -430,20 +447,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: logAxis,
               description: t('Logarithmic scale on secondary y-axis'),
-            },
-          },
-        ],
-        [
-          {
-            name: `independentYAxesBounds`,
-            config: {
-              type: 'CheckboxControl',
-              label: t('Independent Y-axes bounds'),
-              renderTrigger: true,
-              default: independentYAxesBounds,
-              description: t(
-                'Whether to display Y-axes bounds independently of each other',
-              ),
             },
           },
         ],

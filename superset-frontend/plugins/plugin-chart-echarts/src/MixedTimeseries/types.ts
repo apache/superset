@@ -82,7 +82,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   showValueB: boolean;
   stack: StackType;
   stackB: StackType;
-  independentYAxesBounds: boolean;
+  yAxisIndex?: number;
+  yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
 } & LegendFormData &
@@ -122,7 +123,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   showValueB: TIMESERIES_DEFAULTS.showValue,
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
-  independentYAxesBounds: false,
+  yAxisIndex: 0,
+  yAxisIndexB: 0,
   groupby: [],
   groupbyB: [],
   zoomable: TIMESERIES_DEFAULTS.zoomable,
