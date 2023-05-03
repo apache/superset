@@ -222,7 +222,7 @@ const config = {
           {
             href: 'https://github.com/apache/superset',
             position: 'right',
-            class: 'github-logo-container',
+            className: 'github-logo-container',
           },
         ],
       },
