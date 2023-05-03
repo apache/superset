@@ -72,7 +72,7 @@ def upgrade():
                 session.add(slc)
 
             else:
-                logger.info(
+                logger.warn(
                     f"unknown value detected for slc.datasource_type: {slc.datasource_type}"
                 )
 
