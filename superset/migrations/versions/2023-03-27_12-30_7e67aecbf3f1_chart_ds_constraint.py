@@ -72,8 +72,9 @@ def upgrade():
                 session.add(slc)
 
             else:
-                logger.warn(
-                    f"unknown value detected for slc.datasource_type: {slc.datasource_type}"
+                logger.info(
+                    "unknown value detected for slc.datasource_type: %s",
+                    slc.datasource_type,
                 )
 
         batch_op.create_check_constraint(
