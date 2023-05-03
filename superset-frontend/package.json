@@ -211,6 +211,7 @@
     "shortid": "^2.2.6",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
+    "use-event-callback": "^0.1.0",
     "use-immer": "^0.8.1",
     "use-query-params": "^1.1.9",
     "yargs": "^15.4.1"
