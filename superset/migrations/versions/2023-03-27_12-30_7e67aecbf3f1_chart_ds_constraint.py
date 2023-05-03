@@ -65,7 +65,7 @@ def upgrade_slc(slc: Slice) -> None:
         logger.warning("updated slice datasource from %s__%s to %s__table", ds_id, ds_type, ds_id)
     except Exception:
         # skip any malformatted params
-        logger.warning("failed to update slice: %s__%s", ds_id, ds_type)
+        logger.warning("failed to update slice.id = %s w/ datasource = %s__%s to %s__table", slc.id, ds_id, ds_type, ds_id)
         pass
 
 
