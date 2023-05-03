@@ -56,6 +56,10 @@ def upgrade_slc(slc: Slice) -> None:
     try:
         params_dict = json.loads(slc.params)
         ds_id, ds_type = params_dict["datasource"].split("__")
+        # the assumption here is that the query was saved as a dataset
+        # but the type wasn't written properly to the slice
+        # by updating the type here we expect it will either work
+        # or it will 404 when the dataset is looked up.        
         params_dict["datasource"] = f"{ds_id}__table"
         slc.params = json.dumps(params_dict)
     except Exception:
