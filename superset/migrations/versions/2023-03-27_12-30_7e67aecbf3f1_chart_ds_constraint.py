@@ -66,6 +66,7 @@ def upgrade_slc(slc: Slice) -> None:
         # or it will 404 when the dataset is looked up.        
         params_dict["datasource"] = f"{ds_id}__table"
         slc.params = json.dumps(params_dict)
+        logger.warning("updated slice datasource from %s__%s to %s__table", ds_id, ds_type, ds_id)
     except Exception:
         # skip any malformatted params
         logger.warning("failed to update slice: %s__%s", ds_id, ds_type)
