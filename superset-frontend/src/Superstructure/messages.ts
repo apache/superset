@@ -54,26 +54,6 @@ const CSV_TEMP_PROBLEM_RU = {
   ],
 };
 
-const NEW_FEATURES_APRIL_2023_RU = {
-  title: 'Обновления [Апрель 2023]',
-  date: '11.04.2023',
-  subTitle: 'Релиз тестируется',
-  extra: IF_QUESTIONS_RU,
-  listTitle: 'Новая функциональность / исправлены проблемы',
-  messages: [
-    'Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)) необходимо указать CERTIFIED BY и CERTIFICATION DETAILS в Superset Standalone',
-    'Добавлен Change Log фич и фиксов',
-    'Включена поддержка Cross-filters (standalone, plugin)',
-    'Включена поддержка Filter-sets (standalone)',
-    'Включен тип визуализации MapBox',
-  ],
-  listTitleExtra: 'Возможные проблемы',
-  messagesExtra: [
-    'Если вашего дашборда нет в списке дашбордов, проверьте правильность заполнения CERTIFIED BY и CERTIFICATION DETAILS',
-    'Пример верного формата: CERTIFIED BY -> DODOPIZZA, CERTIFICATION DETAILS -> OfficeManager/Analytics',
-  ],
-};
-
 const UPGRADE_2_0_RU = {
   title: 'Успешный переход на версию Superset 2.0',
   date: '17.03.2023',
@@ -95,6 +75,48 @@ const UPGRADE_2_0_RU = {
   ],
 };
 
+const NEW_FEATURES_APRIL_2023_RU = {
+  title: 'Обновления [Апрель 2023]',
+  date: '11.04.2023',
+  subTitle: 'Релиз стабилен',
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  messages: [
+    'Для того, чтобы дашборд появился в DODOIS (Аналитика (Бета)) необходимо указать CERTIFIED BY и CERTIFICATION DETAILS в Superset Standalone',
+    'Добавлен Change Log фич и фиксов',
+    'Включена поддержка Cross-filters (standalone, plugin)',
+    'Включена поддержка Filter-sets (standalone)',
+    'Включен тип визуализации MapBox',
+  ],
+  listTitleExtra: 'Возможные проблемы',
+  messagesExtra: [
+    'Если вашего дашборда нет в списке дашбордов, проверьте правильность заполнения CERTIFIED BY и CERTIFICATION DETAILS',
+    'Пример верного формата: CERTIFIED BY -> DODOPIZZA, CERTIFICATION DETAILS -> OfficeManager/Analytics',
+  ],
+};
+
+const NEW_FEATURES_MAY_2023_RU = {
+  title: 'Обновления [Май 2023]',
+  date: '03.05.2023',
+  subTitle: 'Релиз тестируется',
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  messages: [
+    'Добавили правила по работе с полями CERTIFIED BY и CERTIFICATION DETAILS в Superset Standalone, в модальном окне изменения дашборда',
+    'Зарелизили в Дринкит Superset Dashboard plugin',
+    'Реализовали возможность управления списком дашбордов из Superset: дринкит пицца и донер 42 теперь могут управлять, какие дашборды им показать во вкладке Аналитика',
+    'Добавлена кнопка и модальное окно Changelog в Superset Standalone',
+    'Добавлена кнопка Show/Hide values во всех графиках Time-series для пользовательского управления показа значений на графике',
+    'Добавили цветовую индикацию, если метрика растет или падает в Big Number with Trendline',
+  ],
+  listTitleExtra: 'Что планируем брать в работу?',
+  messagesExtra: [
+    'Доработкой функциональности для Changelog (удобное отображение нового обновления)',
+    'Начинаем груммить введение инструмента для организации списка дашбордов и списка графиков в Standalone Superset',
+    'орабатываем разделение по бизнесам в Superset Dashboard Plugin (визуальное, функциональное)',
+  ],
+};
+
 export {
   RULES_RU,
   GLOBAL_WARNING_DEFAULT_HEADER,
@@ -105,4 +127,5 @@ export {
   CSV_TEMP_PROBLEM_RU,
   UPGRADE_2_0_RU,
   NEW_FEATURES_APRIL_2023_RU,
+  NEW_FEATURES_MAY_2023_RU,
 };

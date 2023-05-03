@@ -20,6 +20,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import { Version } from 'src/Superstructure/components';
 import { APP_VERSION } from 'src/constants';
+import { Changelog } from 'src/Superstructure/components/MainRoute/Changelog';
+import { Modal } from 'antd';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -66,6 +68,20 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const ChangelogBtn = styled.span`
+  ${({ theme }) => `
+    color: ${theme.colors.primary.base};
+    font-size: 10px;
+    margin-right: 20px;
+    transition: color ease-out 0.2s;
+
+    &:hover {
+      color: ${theme.colors.primary.dark2};
+      text-decoration: underline;
+    }
+  `}
+`;
+
 const { SubMenu } = Menu;
 
 const RightMenu = ({
@@ -94,6 +110,7 @@ const RightMenu = ({
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
@@ -242,9 +259,33 @@ const RightMenu = ({
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
+  const showModalChangelog = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleOk = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
+
   return (
     <StyledDiv align={align}>
       <Version appVersion={APP_VERSION} />
+      <Modal
+        title="Обновления от команды DE"
+        width="75%"
+        visible={isModalOpen}
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        <Changelog />
+      </Modal>
+      <ChangelogBtn role="button" tabIndex={0} onClick={showModalChangelog}>
+        Show changelog
+      </ChangelogBtn>
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}

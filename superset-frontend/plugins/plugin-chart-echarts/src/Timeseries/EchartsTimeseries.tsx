@@ -24,7 +24,7 @@ export default function EchartsTimeseries({
   setControlValue,
   legendData = [],
 }: TimeseriesChartTransformedProps) {
-  const { emitFilter, stack } = formData;
+  const { emitFilter, stack, showValue } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
@@ -189,7 +189,7 @@ export default function EchartsTimeseries({
   const showHideHandler = () => {
     const { series } = alteredEchartsOptions;
     const echartsOpts = {
-      ...echartOptions,
+      ...alteredEchartsOptions,
       series: series.map(s => ({
         ...s,
         label: {
@@ -204,20 +204,23 @@ export default function EchartsTimeseries({
   return (
     <>
       <ExtraControls formData={formData} setControlValue={setControlValue} />
-      <span
-        style={{
-          position: 'absolute',
-          fontSize: '10px',
-          marginTop: '5px',
-          fontStyle: 'italic',
-          zIndex: 1,
-        }}
-        role="button"
-        tabIndex={0}
-        onClick={showHideHandler}
-      >
-        Show/Hide values
-      </span>
+      {showValue && (
+        <span
+          style={{
+            position: 'absolute',
+            fontSize: '10px',
+            marginTop: '5px',
+            fontStyle: 'italic',
+            zIndex: 1,
+            bottom: '0',
+          }}
+          role="button"
+          tabIndex={0}
+          onClick={showHideHandler}
+        >
+          Show/Hide values
+        </span>
+      )}
       <Echart
         ref={echartRef}
         height={height}
