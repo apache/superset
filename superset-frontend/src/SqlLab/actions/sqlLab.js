@@ -399,17 +399,22 @@ export function cleanSqlComments(sql) {
   // group 1 -> /* */
   // group 2 -> --
   const chunks = splitByQuotedBlock(sql);
-  return chunks
-    .map((chunk, index) =>
-      quotes.includes(chunk[0]) ? `${quotedBlockHash}:${index}:` : chunk,
-    )
-    .join('')
-    .replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n')
-    .replace(
-      quotedBlockMatch,
-      quotedBlock => chunks[quotedBlock.match(/:\d+/)[0].substring(1)],
-    )
-    .trim();
+  return (
+    chunks
+      // replace quoted blocks in a hash format
+      .map((chunk, index) =>
+        quotes.includes(chunk[0]) ? `${quotedBlockHash}:${index}:` : chunk,
+      )
+      .join('')
+      // Clean out the commented-out blocks
+      .replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n')
+      .trim()
+      // restore quoted block to the original value
+      .replace(
+        quotedBlockMatch,
+        quotedBlock => chunks[quotedBlock.match(/:\d+/)[0].substring(1)],
+      )
+  );
 }
 
 export function runQuery(query) {
