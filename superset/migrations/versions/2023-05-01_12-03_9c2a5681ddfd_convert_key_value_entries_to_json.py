@@ -26,6 +26,7 @@ Create Date: 2023-05-01 12:03:17.079862
 revision = "9c2a5681ddfd"
 down_revision = "7e67aecbf3f1"
 
+import io
 import json
 import pickle
 
@@ -40,6 +41,11 @@ from superset.migrations.shared.utils import paginated_update
 Base = declarative_base()
 VALUE_MAX_SIZE = 2**24 - 1
 RESOURCES_TO_MIGRATE = ("app", "dashboard_permalink", "explore_permalink")
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        raise pickle.UnpicklingError(f"Unpickling of {module}.{name} is forbidden")
 
 
 class KeyValueEntry(Base):
@@ -57,7 +63,7 @@ def upgrade():
             KeyValueEntry.resource.in_(RESOURCES_TO_MIGRATE)
         )
     ):
-        value = pickle.loads(entry.value) or {}
+        value = RestrictedUnpickler(io.BytesIO(entry.value)).load() or {}
         entry.value = bytes(json.dumps(value), encoding="utf-8")
 
 
