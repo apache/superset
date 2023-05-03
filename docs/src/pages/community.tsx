@@ -208,9 +208,11 @@ const StyledNewsletterIframe = styled('iframe')`
     height: 380px;
   }
   @media (min-width: 768px) {
-    width: 100%;
     height: 285px;
     margin-top: 15px;
+  }
+  @media (min-width: 1200px) {
+    width: 100%;
   }
 `;
 
