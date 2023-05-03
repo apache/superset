@@ -44,7 +44,7 @@ const buildText = (
   if (shouldShowStopButton) {
     return (
       <>
-        <i className="fa fa-stop-circle-o" /> {t('Stop')}
+        <i className="fa fa-stop" /> {t('Stop')}
       </>
     );
   }
