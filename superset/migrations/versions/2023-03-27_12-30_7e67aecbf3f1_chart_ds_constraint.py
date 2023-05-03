@@ -51,6 +51,8 @@ class Slice(Base):  # type: ignore
 def upgrade_slc(slc: Slice) -> None:
     # clean up all charts with datasource_type not != table
     slc.datasource_type = "table"
+    ds_id = None
+    ds_type = None
     try:
         params_dict = json.loads(slc.params)
         ds_id, ds_type = params_dict["datasource"].split("__")
@@ -58,6 +60,7 @@ def upgrade_slc(slc: Slice) -> None:
         slc.params = json.dumps(params_dict)
     except Exception:
         # skip any malformatted params
+        logger.warning("failed to update slice: %s__%s", ds_id, ds_type)
         pass
 
 
@@ -72,7 +75,7 @@ def upgrade():
                 session.add(slc)
 
             else:
-                logger.info(
+                logger.warning(
                     "unknown value detected for slc.datasource_type: %s",
                     slc.datasource_type,
                 )
