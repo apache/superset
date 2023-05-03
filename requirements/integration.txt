@@ -30,15 +30,15 @@ packaging==21.3
 pep517==0.11.0
     # via build
 pip-compile-multi==2.6.2
-    # via -r requirements/integration.in
+    # via -r integration.in
 pip-tools==6.8.0
     # via pip-compile-multi
 platformdirs==2.6.2
     # via virtualenv
 pluggy==0.13.1
     # via tox
-pre-commit==3.2.2
-    # via -r requirements/integration.in
+pre-commit==3.3.1
+    # via -r integration.in
 py==1.10.0
     # via tox
 pyparsing==3.0.6
@@ -50,11 +50,11 @@ six==1.16.0
 toml==0.10.2
     # via tox
 tomli==1.2.1
-    # via build
+    # via pep517
 toposort==1.6
     # via pip-compile-multi
 tox==3.25.1
-    # via -r requirements/integration.in
+    # via -r integration.in
 virtualenv==20.17.1
     # via
     #   pre-commit
