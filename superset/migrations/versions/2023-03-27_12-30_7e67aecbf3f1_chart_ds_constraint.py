@@ -63,9 +63,15 @@ def upgrade():
     session = db.Session(bind=bind)
 
     with op.batch_alter_table("slices") as batch_op:
-        for slc in session.query(Slice).filter(Slice.datasource_type == "query").all():
-            upgrade_slc(slc)
-            session.add(slc)
+        for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
+            if slc.datasource_type == "query":
+                upgrade_slc(slc)
+                session.add(slc)
+
+            else:
+                print(
+                    f"unknown value detected for slc.datasource_type: {slc.datasource_type}"
+                )
 
         batch_op.create_check_constraint(
             "ck_chart_datasource", "datasource_type in ('table')"
