@@ -305,6 +305,7 @@ supersetWorker:
       # Install chrome webdriver
       # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
       apt update
+      apt install wget unzip -y
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
       apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
       wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip
