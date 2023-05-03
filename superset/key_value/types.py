@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import pickle
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, TypedDict
@@ -50,11 +50,13 @@ class SharedKey(str, Enum):
 
 
 class KeyValueCodec(ABC):
+    @abstractmethod
     def encode(self, value: Any) -> bytes:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def decode(self, value: bytes) -> Any:
-        raise NotImplementedError()
+        ...
 
 
 class JsonKeyValueCodec(KeyValueCodec):
