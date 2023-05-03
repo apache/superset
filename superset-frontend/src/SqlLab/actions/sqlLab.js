@@ -366,21 +366,28 @@ function splitByQuotedBlock(str) {
   let currentQuote = '';
   let chunkStart = 0;
 
-  str.split('').forEach((currentChar, i) => {
+  let i = 0;
+  while (i < str.length) {
+    const currentChar = str[i];
     if (
       currentQuote ? currentChar === currentQuote : quotes.includes(currentChar)
     ) {
+      let chunk;
       if (currentQuote) {
-        chunks.push(str.substring(chunkStart, i + 1));
+        chunk = str.substring(chunkStart, i + 1);
         chunkStart = i + 1;
         currentQuote = '';
       } else {
-        chunks.push(str.substring(chunkStart, i));
+        chunk = str.substring(chunkStart, i);
         chunkStart = i;
         currentQuote = currentChar;
       }
+      if (chunk) {
+        chunks.push(chunk);
+      }
     }
-  });
+    i += 1;
+  }
 
   if (chunkStart < str.length) {
     const lastChunk = str.substring(chunkStart);
