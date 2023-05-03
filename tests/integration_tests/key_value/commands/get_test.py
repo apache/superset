@@ -28,6 +28,7 @@ from tests.integration_tests.key_value.commands.fixtures import (
     ID_KEY,
     JSON_CODEC,
     JSON_VALUE,
+    key_value_entry,
     RESOURCE,
     UUID_KEY,
 )
