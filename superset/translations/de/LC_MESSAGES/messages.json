@@ -1175,9 +1175,6 @@
       ],
       "Choose a database...": ["Wählen Sie eine Datenbank..."],
       "Choose a dataset": ["Datensatz auswählen"],
-      "Choose a metric for left axis": [
-        "Wählen Sie eine Metrik für die linke Achse"
-      ],
       "Choose a metric for right axis": [
         "Wählen Sie eine Metrik für die rechte Achse"
       ],
@@ -2782,7 +2779,6 @@
       "Least recently modified": ["Zuletzt geändert"],
       "Left": ["Links"],
       "Left Axis Format": ["Format der linken Achse"],
-      "Left Axis Metric": ["Metrik linke Achse"],
       "Left Axis chart(s)": ["Diagramm(e) der linken Achse"],
       "Left Margin": ["Linker Abstand"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -3520,12 +3516,6 @@
       ],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Wählen Sie eine Granularität im Abschnitt Zeit aus oder deaktivieren Sie \"Zeit einschließen\"."
-      ],
-      "Pick a metric for left axis!": [
-        "Wählen Sie eine Metrik für die linke Achse!"
-      ],
-      "Pick a metric for right axis!": [
-        "Wählen Sie eine Metrik für die rechte Achse!"
       ],
       "Pick a metric for x, y and size": [
         "Wählen Sie eine Metrik für x, y und Größe"
@@ -5339,9 +5329,6 @@
       "Time Ratio": ["Zeitverhältnis"],
       "Time Series": ["Zeitreihen"],
       "Time Series - Bar Chart": ["Zeitreihen - Balkendiagramm"],
-      "Time Series - Dual Axis Line Chart": [
-        "Zeitreihen - Zweiachsen-Liniendiagramm"
-      ],
       "Time Series - Line Chart": ["Zeitreihen - Liniendiagramm"],
       "Time Series - Multiple Line Charts": [
         "Zeitreihen - Diagramme mit mehreren Linien"
@@ -5760,9 +5747,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Visualisieren Sie zwei verschiedene Zeitreihen mit derselben x-Achse. Beachten Sie, dass jede Zeitreihe unterschiedlich visualisiert werden kann (z. B. eine mit Balken und die andere mit einer Linie)."
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        "Visualisiert 2 Metriken als Liniendiagramme mit derselben x-Achse. Dieses Diagramm ist nützlich, um Metriken über den gleichen Zeitraum zu vergleichen."
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "Visualisiert eine Metrik über drei Datendimensionen in einem einzelnen Diagramm (X-Achse, Y-Achse und Blasengröße). Blasen aus derselben Gruppe können mit Blasenfarbe präsentiert werden."
       ],
@@ -6078,8 +6062,6 @@
       "Y AXIS TITLE MARGIN": ["Y-ACHSE TITEL RAND"],
       "Y AXIS TITLE POSITION": ["Y-ACHSE TITEL POSITION"],
       "Y Axis": ["Y-Achse"],
-      "Y Axis 1": ["Y-Achse 1"],
-      "Y Axis 2": ["Y-Achse 2"],
       "Y Axis 2 Bounds": ["Grenzen der Y-Achse 2"],
       "Y Axis Bounds": ["Grenzen der Y-Achse"],
       "Y Axis Format": ["Y-Achsenformat"],
