@@ -17007,7 +17007,7 @@ msgstr "Onveilig terugkeertype voor functie %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Onveilige sjabloonwaarde voor sleutel %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
@@ -18676,7 +18676,7 @@ msgstr "[Lengtegraad] en [Breedtegraad] moeten worden ingesteld"
 msgid "[Missing Dataset]"
 msgstr "[Missing Dataset]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] Toegang tot de gegevensbron %(name)s werd verleend"

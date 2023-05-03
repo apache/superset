@@ -17682,7 +17682,7 @@ msgstr "Nevaren tip rezultata, ki ga vrne funkcija %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Nevaren vzorec za ključ %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodprt tip izraza: %(clause)s"
@@ -19462,7 +19462,7 @@ msgstr "[Zemljepisna dolžina] in [Zemljepisna širina] morata biti nastavljeni"
 msgid "[Missing Dataset]"
 msgstr "[Manjka podatkovni set]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] dostop do podatkovnega vira %(name)s je odobren"

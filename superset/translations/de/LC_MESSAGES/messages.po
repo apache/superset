@@ -17744,7 +17744,7 @@ msgstr "Unsicherer Rückgabetyp für %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Unsicherer Vorlagenwert für Schlüssel %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nicht unterstützter Ausdruck-Typ: %(clause)s"
@@ -19587,7 +19587,7 @@ msgstr "[Longitude] und [Latitude] müssen eingestellt sein"
 msgid "[Missing Dataset]"
 msgstr "[Fehlender Datensatz]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] Zugriff auf die Datenquelle %(name)s wurde gewährt"

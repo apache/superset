@@ -17203,7 +17203,7 @@ msgstr "関数 %(func)s の安全でない戻り値の型: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "キー %(key)s の安全でないテンプレート値: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
@@ -18877,7 +18877,7 @@ msgstr ""
 msgid "[Missing Dataset]"
 msgstr "[データセットが見つかりません]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset]　データソース　%(name)s へのアクセスは許可されました"

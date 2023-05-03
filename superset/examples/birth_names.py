@@ -401,6 +401,8 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 metrics_b="sum__num",
                 granularity_sqla="ds",
+                yAxisIndex=0,
+                yAxisIndexB=1,
             ),
         ),
         Slice(

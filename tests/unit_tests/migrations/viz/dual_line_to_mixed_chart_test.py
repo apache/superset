@@ -39,12 +39,14 @@ SOURCE_FORM_DATA = {
     "adhoc_filters": ADHOC_FILTERS,
     "x_axis_format": "smart_date",
     "color_scheme": "bnbColors",
+    "yAxisIndex": 0,
 }
 
 TARGET_FORM_DATA = {
     "metrics": ["num_boys"],
     "y_axis_format": ",d",
-    "y_axis_bounds": [50, 150],
+    "y_axis_bounds": [50, 100],
+    "y_axis_bounds_secondary": [75, 150],
     "metrics_b": ["num_girls"],
     "y_axis_format_secondary": ",d",
     "viz_type": "mixed_timeseries",
@@ -53,6 +55,8 @@ TARGET_FORM_DATA = {
     "x_axis_time_format": "smart_date",
     "color_scheme": "bnbColors",
     "form_data_bak": SOURCE_FORM_DATA,
+    "yAxisIndex": 0,
+    "yAxisIndexB": 1,
 }
 
 

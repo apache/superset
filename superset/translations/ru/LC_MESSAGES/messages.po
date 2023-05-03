@@ -17371,7 +17371,7 @@ msgstr "Небезопасный возвращаемый тип для функ
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Небезопасное значение шаблона для ключа %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Неподдерживаемый оператор: %(clause)s"
@@ -19103,7 +19103,7 @@ msgstr "[Долгота] и [Широта] должны быть заданы"
 msgid "[Missing Dataset]"
 msgstr "[отсутствующий датасет]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Суперсет] Предоставлен доступ к источнику данных %(name)s"

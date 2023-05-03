@@ -17696,7 +17696,7 @@ msgstr "Tipo de retorno inseguro para la función %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Valor de plantilla inseguro para la clave %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
@@ -19413,7 +19413,7 @@ msgstr "Deben especificarse [Longitud] y [Latitud]"
 msgid "[Missing Dataset]"
 msgstr "Cambiar fuente"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "Se ha otorgado Acceso [Superset] a la fuente de datos %(name)"

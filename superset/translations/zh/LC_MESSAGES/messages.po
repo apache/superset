@@ -17105,7 +17105,7 @@ msgstr "函数返回不安全的类型 %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "键的模板值不安全 %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "不支持的条款类型: %(clause)s"
@@ -18776,7 +18776,7 @@ msgstr "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
 msgid "[Missing Dataset]"
 msgstr "丢失数据集"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] 允许访问数据源 %(name)s"

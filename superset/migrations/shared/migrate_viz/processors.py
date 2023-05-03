@@ -92,10 +92,10 @@ class MigrateDualLine(MigrateViz):
     rename_keys = {
         "metric": "metrics",
         "metric_2": "metrics_b",
-        "y_axis_2_format": "y_axis_format_secondary",
         "x_axis_format": "x_axis_time_format",
+        "y_axis_2_format": "y_axis_format_secondary",
+        "y_axis_2_bounds": "y_axis_bounds_secondary",
     }
-    remove_keys = {"y_axis_2_bounds"}
 
     def _pre_action(self) -> None:
         self.data["yAxisIndex"] = 0
