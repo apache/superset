@@ -59,11 +59,7 @@ def upgrade_slc(slc: Slice) -> None:
         # the assumption here is that the query was saved as a dataset
         # but the type wasn't written properly to the slice
         # by updating the type here we expect it will either work
-        # or it will 404 when the dataset is looked up.        
-        # the assumption here is that the query was saved as a dataset
-        # but the type wasn't written properly to the slice
-        # by updating the type here we expect it will either work
-        # or it will 404 when the dataset is looked up.        
+        # or it will 404 when the dataset is looked up.              
         params_dict["datasource"] = f"{ds_id}__table"
         slc.params = json.dumps(params_dict)
         logger.warning("updated slice datasource from %s__%s to %s__table", ds_id, ds_type, ds_id)
