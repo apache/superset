@@ -368,8 +368,7 @@ function splitByQuotedBlock(str) {
 
   str.split('').forEach((currentChar, i) => {
     if (
-      (currentQuote && currentChar === currentQuote) ||
-      (!currentQuote && quotes.includes(currentChar))
+      currentQuote ? currentChar === currentQuote : quotes.includes(currentChar)
     ) {
       if (currentQuote) {
         chunks.push(str.substring(chunkStart, i + 1));
