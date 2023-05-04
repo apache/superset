@@ -87,7 +87,6 @@
     "@superset-ui/legacy-preset-chart-nvd3": "*",
     "@superset-ui/plugin-chart-echarts": "*",
     "@superset-ui/plugin-chart-table": "*",
-    "@superset-ui/plugin-chart-word-cloud": "*",
-    "@superset-ui/preset-chart-xy": "*"
+    "@superset-ui/plugin-chart-word-cloud": "*"
   }
 }
