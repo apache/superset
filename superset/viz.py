@@ -3046,7 +3046,7 @@ class DeckArc(BaseDeckGLViz):
             return None
 
         return {
-            "features": super().get_data(df)["features"],  # type: ignore
+            "features": super().get_data(df)["features"],
             "mapboxApiKey": config["MAPBOX_API_KEY"],
         }
 
@@ -3174,7 +3174,7 @@ class RoseViz(NVD3TimeSeriesViz):
 
         data = super().get_data(df)
         result: Dict[str, List[Dict[str, str]]] = {}
-        for datum in data:  # type: ignore
+        for datum in data:
             key = datum["key"]
             for val in datum["values"]:
                 timestamp = val["x"].value
