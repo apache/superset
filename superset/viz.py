@@ -120,6 +120,7 @@ METRIC_KEYS = [
 ]
 
 
+@deprecated(deprecated_in="3.0")
 class BaseViz:  # pylint: disable=too-many-public-methods
 
     """All visualizations derive this base class"""
@@ -691,6 +692,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         security_manager.raise_for_access(viz=self)
 
 
+@deprecated(deprecated_in="3.0")
 class TableViz(BaseViz):
 
     """A basic html table that is sortable and searchable"""
@@ -842,6 +844,7 @@ class TableViz(BaseViz):
         )
 
 
+@deprecated(deprecated_in="3.0")
 class TimeTableViz(BaseViz):
 
     """A data table with rich time-series related columns"""
@@ -887,6 +890,7 @@ class TimeTableViz(BaseViz):
         )
 
 
+@deprecated(deprecated_in="3.0")
 class PivotTableViz(BaseViz):
 
     """A pivot table view, define your rows, columns and metrics"""
@@ -1029,6 +1033,7 @@ class PivotTableViz(BaseViz):
         )
 
 
+@deprecated(deprecated_in="3.0")
 class TreemapViz(BaseViz):
 
     """Tree map visualisation for hierarchical data."""
@@ -1074,6 +1079,7 @@ class TreemapViz(BaseViz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
@@ -1155,6 +1161,7 @@ class CalHeatmapViz(BaseViz):
         return query_obj
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
@@ -1165,6 +1172,7 @@ class NVD3Viz(BaseViz):
     is_timeseries = False
 
 
+@deprecated(deprecated_in="3.0")
 class BubbleViz(NVD3Viz):
 
     """Based on the NVD3 bubble chart"""
@@ -1216,6 +1224,7 @@ class BubbleViz(NVD3Viz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class BulletViz(NVD3Viz):
 
     """Based on the NVD3 bullet chart"""
@@ -1246,6 +1255,7 @@ class BulletViz(NVD3Viz):
         }
 
 
+@deprecated(deprecated_in="3.0")
 class BigNumberViz(BaseViz):
 
     """Put emphasis on a single metric with this big number viz"""
@@ -1280,6 +1290,7 @@ class BigNumberViz(BaseViz):
         return super().get_data(df)
 
 
+@deprecated(deprecated_in="3.0")
 class BigNumberTotalViz(BaseViz):
 
     """Put emphasis on a single metric with this big number viz"""
@@ -1302,6 +1313,7 @@ class BigNumberTotalViz(BaseViz):
         return query_obj
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3TimeSeriesViz(NVD3Viz):
 
     """A rich line chart component with tons of options"""
@@ -1512,6 +1524,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class MultiLineViz(NVD3Viz):
 
     """Pile on multiple line charts"""
@@ -1590,6 +1603,7 @@ class MultiLineViz(NVD3Viz):
         return data
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3DualLineViz(NVD3Viz):
 
     """A rich line chart with dual axis"""
@@ -1663,6 +1677,7 @@ class NVD3DualLineViz(NVD3Viz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
     """A bar chart where the x axis is time"""
@@ -1672,6 +1687,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     verbose_name = _("Time Series - Bar Chart")
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
     """Time Series - Periodicity Pivot"""
@@ -1719,6 +1735,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
     """A line chart component where you can compare the % change over time"""
@@ -1727,6 +1744,7 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
     verbose_name = _("Time Series - Percent Change")
 
 
+@deprecated(deprecated_in="3.0")
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 
     """A rich stack area chart"""
@@ -1737,6 +1755,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     pivot_fill_value = 0
 
 
+@deprecated(deprecated_in="3.0")
 class HistogramViz(BaseViz):
 
     """Histogram"""
@@ -1795,6 +1814,7 @@ class HistogramViz(BaseViz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class DistributionBarViz(BaseViz):
 
     """A good old bar chart"""
@@ -1882,6 +1902,7 @@ class DistributionBarViz(BaseViz):
         return chart_data
 
 
+@deprecated(deprecated_in="3.0")
 class SunburstViz(BaseViz):
 
     """A multi level sunburst chart"""
@@ -1929,6 +1950,7 @@ class SunburstViz(BaseViz):
         return query_obj
 
 
+@deprecated(deprecated_in="3.0")
 class SankeyViz(BaseViz):
 
     """A Sankey diagram that requires a parent-child dataset"""
@@ -1999,6 +2021,7 @@ class SankeyViz(BaseViz):
         return recs
 
 
+@deprecated(deprecated_in="3.0")
 class ChordViz(BaseViz):
 
     """A Chord diagram"""
@@ -2038,6 +2061,7 @@ class ChordViz(BaseViz):
         }
 
 
+@deprecated(deprecated_in="3.0")
 class CountryMapViz(BaseViz):
 
     """A country centric"""
@@ -2073,6 +2097,7 @@ class CountryMapViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+@deprecated(deprecated_in="3.0")
 class WorldMapViz(BaseViz):
 
     """A country centric world map"""
@@ -2210,6 +2235,7 @@ class FilterBoxViz(BaseViz):
         return self.query_context_factory
 
 
+@deprecated(deprecated_in="3.0")
 class ParallelCoordinatesViz(BaseViz):
 
     """Interactive parallel coordinate implementation
@@ -2244,6 +2270,7 @@ class ParallelCoordinatesViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+@deprecated(deprecated_in="3.0")
 class HeatmapViz(BaseViz):
 
     """A nice heatmap visualization that support high density through canvas"""
@@ -2302,6 +2329,7 @@ class HeatmapViz(BaseViz):
         return {"records": df.to_dict(orient="records"), "extents": [min_, max_]}
 
 
+@deprecated(deprecated_in="3.0")
 class HorizonViz(NVD3TimeSeriesViz):
 
     """Horizon chart
@@ -2317,6 +2345,7 @@ class HorizonViz(NVD3TimeSeriesViz):
     )
 
 
+@deprecated(deprecated_in="3.0")
 class MapboxViz(BaseViz):
 
     """Rich maps made with Mapbox"""
@@ -2463,6 +2492,7 @@ class MapboxViz(BaseViz):
         }
 
 
+@deprecated(deprecated_in="3.0")
 class DeckGLMultiLayer(BaseViz):
 
     """Pile on multiple DeckGL layers"""
@@ -2490,6 +2520,7 @@ class DeckGLMultiLayer(BaseViz):
         }
 
 
+@deprecated(deprecated_in="3.0")
 class BaseDeckGLViz(BaseViz):
 
     """Base class for deck.gl visualizations"""
@@ -2657,6 +2688,7 @@ class BaseDeckGLViz(BaseViz):
         raise NotImplementedError()
 
 
+@deprecated(deprecated_in="3.0")
 class DeckScatterViz(BaseDeckGLViz):
 
     """deck.gl's ScatterLayer"""
@@ -2709,6 +2741,7 @@ class DeckScatterViz(BaseDeckGLViz):
         return super().get_data(df)
 
 
+@deprecated(deprecated_in="3.0")
 class DeckScreengrid(BaseDeckGLViz):
 
     """deck.gl's ScreenGridLayer"""
@@ -2738,6 +2771,7 @@ class DeckScreengrid(BaseDeckGLViz):
         return super().get_data(df)
 
 
+@deprecated(deprecated_in="3.0")
 class DeckGrid(BaseDeckGLViz):
 
     """deck.gl's DeckLayer"""
@@ -2770,6 +2804,7 @@ def geohash_to_json(geohash_code: str) -> List[List[float]]:
     ]
 
 
+@deprecated(deprecated_in="3.0")
 class DeckPathViz(BaseDeckGLViz):
 
     """deck.gl's PathLayer"""
@@ -2820,6 +2855,7 @@ class DeckPathViz(BaseDeckGLViz):
         return super().get_data(df)
 
 
+@deprecated(deprecated_in="3.0")
 class DeckPolygon(DeckPathViz):
 
     """deck.gl's Polygon Layer"""
@@ -2854,6 +2890,7 @@ class DeckPolygon(DeckPathViz):
         return data
 
 
+@deprecated(deprecated_in="3.0")
 class DeckHex(BaseDeckGLViz):
 
     """deck.gl's DeckLayer"""
@@ -2875,6 +2912,7 @@ class DeckHex(BaseDeckGLViz):
         return super().get_data(df)
 
 
+@deprecated(deprecated_in="3.0")
 class DeckGeoJson(BaseDeckGLViz):
 
     """deck.gl's GeoJSONLayer"""
@@ -2894,6 +2932,7 @@ class DeckGeoJson(BaseDeckGLViz):
         return json.loads(geojson)
 
 
+@deprecated(deprecated_in="3.0")
 class DeckArc(BaseDeckGLViz):
 
     """deck.gl's Arc Layer"""
@@ -2928,6 +2967,7 @@ class DeckArc(BaseDeckGLViz):
         }
 
 
+@deprecated(deprecated_in="3.0")
 class EventFlowViz(BaseViz):
 
     """A visualization to explore patterns in event sequences"""
@@ -2960,6 +3000,7 @@ class EventFlowViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+@deprecated(deprecated_in="3.0")
 class PairedTTestViz(BaseViz):
 
     """A table displaying paired t-test values"""
@@ -3034,6 +3075,7 @@ class PairedTTestViz(BaseViz):
         return data
 
 
+@deprecated(deprecated_in="3.0")
 class RoseViz(NVD3TimeSeriesViz):
     viz_type = "rose"
     verbose_name = _("Time Series - Nightingale Rose Chart")
@@ -3064,6 +3106,7 @@ class RoseViz(NVD3TimeSeriesViz):
         return result
 
 
+@deprecated(deprecated_in="3.0")
 class PartitionViz(NVD3TimeSeriesViz):
 
     """
