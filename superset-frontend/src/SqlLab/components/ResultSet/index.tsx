@@ -479,7 +479,7 @@ const ResultSet = ({
     // We need to calculate the height of this.renderRowsReturned()
     // if we want results panel to be proper height because the
     // FilterTable component needs an explicit height to render
-    // antd Table component
+    // the Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
       : height - rowMessageHeight;
