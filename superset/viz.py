@@ -120,7 +120,6 @@ METRIC_KEYS = [
 ]
 
 
-@deprecated(deprecated_in="3.0")
 class BaseViz:  # pylint: disable=too-many-public-methods
 
     """All visualizations derive this base class"""
@@ -1161,7 +1160,6 @@ class CalHeatmapViz(BaseViz):
         return query_obj
 
 
-@deprecated(deprecated_in="3.0")
 class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
@@ -1313,7 +1311,6 @@ class BigNumberTotalViz(BaseViz):
         return query_obj
 
 
-@deprecated(deprecated_in="3.0")
 class NVD3TimeSeriesViz(NVD3Viz):
 
     """A rich line chart component with tons of options"""
@@ -2520,7 +2517,6 @@ class DeckGLMultiLayer(BaseViz):
         }
 
 
-@deprecated(deprecated_in="3.0")
 class BaseDeckGLViz(BaseViz):
 
     """Base class for deck.gl visualizations"""
@@ -2804,7 +2800,6 @@ def geohash_to_json(geohash_code: str) -> List[List[float]]:
     ]
 
 
-@deprecated(deprecated_in="3.0")
 class DeckPathViz(BaseDeckGLViz):
 
     """deck.gl's PathLayer"""
