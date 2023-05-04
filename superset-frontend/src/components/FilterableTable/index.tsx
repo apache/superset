@@ -17,14 +17,16 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { JSONTree } from 'react-json-tree';
 import {
   getMultipleTextDimensions,
   t,
   styled,
   useTheme,
+  FAST_DEBOUNCE,
 } from '@superset-ui/core';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
@@ -74,28 +76,14 @@ const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 const StyledFilterableTable = styled.div`
   ${({ theme }) => `
     height: 100%;
-    overflow-x: auto;
+    overflow: hidden;
     margin-top: ${theme.gridUnit * 2}px;
-    overflow-y: hidden;
 
-    .ReactVirtualized__Grid__innerScrollContainer {
-      border: 1px solid ${theme.colors.grayscale.light2};
-    }
-
-    .ReactVirtualized__Table__headerRow {
+    .ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      background-color: ${theme.colors.grayscale.light5};
     }
 
-    .ReactVirtualized__Table__row {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .ReactVirtualized__Table__headerTruncatedText,
     .grid-header-cell {
       display: inline-block;
       max-width: 100%;
@@ -104,13 +92,10 @@ const StyledFilterableTable = styled.div`
       overflow: hidden;
     }
 
-    .ReactVirtualized__Table__headerColumn,
-    .ReactVirtualized__Table__rowColumn,
-    .grid-cell {
+    .ant-table-cell,
+    .virtual-table-cell {
       min-width: 0px;
-      border-right: 1px solid ${theme.colors.grayscale.light2};
       align-self: center;
-      padding: ${theme.gridUnit * 3}px;
       font-size: ${theme.typography.sizes.s}px;
     }
 
@@ -190,6 +175,7 @@ export interface FilterableTableProps {
   overscanColumnCount?: number;
   overscanRowCount?: number;
   rowHeight?: number;
+  // need antd 5.0 to support striped color pattern
   striped?: boolean;
   expandedColumns?: string[];
 }
@@ -199,11 +185,6 @@ const FilterableTable = ({
   data,
   height,
   filterText = '',
-  headerHeight = 32,
-  overscanColumnCount = 10,
-  overscanRowCount = 10,
-  rowHeight = 32,
-  striped = true,
   expandedColumns = [],
 }: FilterableTableProps) => {
   const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
@@ -223,15 +204,40 @@ const FilterableTable = ({
   const [list] = useState<Datum[]>(() => formatTableData(data));
 
   // columns that have complex type and were expanded into sub columns
-  const [complexColumns] = useState<Record<string, boolean>>(
-    orderedColumnKeys.reduce(
-      (obj, key) => ({
-        ...obj,
-        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
-      }),
-      {},
-    ),
+  const complexColumns = useMemo<Record<string, boolean>>(
+    () =>
+      orderedColumnKeys.reduce(
+        (obj, key) => ({
+          ...obj,
+          [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
+        }),
+        {},
+      ),
+    [expandedColumns, orderedColumnKeys],
   );
+
+  const getCellContent = ({
+    cellData,
+    columnKey,
+  }: {
+    cellData: CellDataType;
+    columnKey: string;
+  }) => {
+    if (cellData === null) {
+      return 'NULL';
+    }
+    const content = String(cellData);
+    const firstCharacter = content.substring(0, 1);
+    let truncated;
+    if (firstCharacter === '[') {
+      truncated = '[…]';
+    } else if (firstCharacter === '{') {
+      truncated = '{…}';
+    } else {
+      truncated = '';
+    }
+    return complexColumns[columnKey] ? truncated : content;
+  };
 
   const theme = useTheme();
   const [jsonTreeTheme, setJsonTreeTheme] = useState<Record<string, string>>();
@@ -291,29 +297,6 @@ const FilterableTable = ({
     return widthsByColumnKey;
   };
 
-  const getCellContent = ({
-    cellData,
-    columnKey,
-  }: {
-    cellData: CellDataType;
-    columnKey: string;
-  }) => {
-    if (cellData === null) {
-      return 'NULL';
-    }
-    const content = String(cellData);
-    const firstCharacter = content.substring(0, 1);
-    let truncated;
-    if (firstCharacter === '[') {
-      truncated = '[…]';
-    } else if (firstCharacter === '{') {
-      truncated = '{…}';
-    } else {
-      truncated = '';
-    }
-    return complexColumns[columnKey] ? truncated : content;
-  };
-
   const [widthsForColumnsByKey] = useState<Record<string, number>>(() =>
     getWidthsForColumns(),
   );
@@ -357,16 +340,7 @@ const FilterableTable = ({
     return values.some(v => v.includes(lowerCaseText));
   };
 
-  // @ts-ignore
-  const rowClassName = ({ index }: { index: number }) => {
-    let className = '';
-    if (striped) {
-      className = index % 2 === 0 ? 'even-row' : 'odd-row';
-    }
-    return className;
-  };
-
-  const addJsonModal = (
+  const renderJsonModal = (
     node: React.ReactNode,
     jsonObject: Record<string, unknown> | unknown[],
     jsonString: CellDataType,
@@ -420,13 +394,13 @@ const FilterableTable = ({
     return aValue < bValue ? -1 : 1;
   };
 
-  let filteredList = list;
-  // filter list
-  if (filterText) {
-    filteredList = filteredList.filter((row: Datum) =>
-      hasMatch(filterText, row),
-    );
-  }
+  const keyword = useDebounceValue(filterText, FAST_DEBOUNCE);
+
+  const filteredList = useMemo(
+    () =>
+      keyword ? list.filter((row: Datum) => hasMatch(keyword, row)) : list,
+    [list, keyword],
+  );
 
   const renderTableCell = (cellData: CellDataType, columnKey: string) => {
     const cellNode = getCellContent({ cellData, columnKey });
@@ -434,7 +408,7 @@ const FilterableTable = ({
       cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
-      return addJsonModal(cellNode, jsonObject, cellData);
+      return renderJsonModal(cellNode, jsonObject, cellData);
     }
     return content;
   };
@@ -463,13 +437,14 @@ const FilterableTable = ({
     >
       {fitted && (
         <Table
-          loading={false}
+          loading={filterText !== keyword}
           size={TableSize.SMALL}
-          height={totalTableHeight + 65}
+          height={totalTableHeight + 42}
           usePagination={false}
           columns={columns}
           data={filteredList}
           virtualize
+          bordered
         />
       )}
     </StyledFilterableTable>

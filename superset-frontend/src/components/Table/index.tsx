@@ -21,7 +21,7 @@ import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
 } from 'antd/lib/table';
-import ConfigProvider from 'antd/lib/config-provider';
+import ConfigProvider, { ConfigProviderProps } from 'antd/lib/config-provider';
 import { PaginationProps } from 'antd/lib/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
@@ -58,6 +58,10 @@ export interface TableProps<RecordType> {
    * Data that will populate the each row and map to the column key.
    */
   data: RecordType[];
+  /**
+   * Whether to show all table borders
+   */
+  bordered?: boolean;
   /**
    * Table column definitions.
    */
@@ -224,6 +228,7 @@ export function Table<RecordType extends object>(
 ) {
   const {
     data,
+    bordered,
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
@@ -376,6 +381,7 @@ export function Table<RecordType extends object>(
     onRow,
     theme,
     height: bodyHeight,
+    bordered,
   };
 
   return (
