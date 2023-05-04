@@ -63,11 +63,11 @@ def upgrade_slc(slc: Slice) -> None:
         params_dict["datasource"] = f"{ds_id}__table"
         slc.params = json.dumps(params_dict)
         logger.warning(
-            "updated slice datasource from %s__%s to %s__table for slice: %s", 
-            ds_id, 
-            ds_type, 
-            ds_id, 
-            slc.id
+            "updated slice datasource from %s__%s to %s__table for slice: %s",
+            ds_id,
+            ds_type,
+            ds_id,
+            slc.id,
         )
     except Exception:
         # skip any malformatted params
