@@ -52,6 +52,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             command = CreateKeyValueCommand(
                 resource=self.resource,
                 value=value,
+                codec=self.codec,
             )
             key = command.run()
             if key.id is None:
