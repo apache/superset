@@ -409,8 +409,8 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                `Bounds for the secondary Y-axis. Only works when Independent Y-axes
-                bounds is enabled. When left empty, the bounds are dynamically defined
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axis
+                bounds are enabled. When left empty, the bounds are dynamically defined
                 based on the min/max of the data. Note that this feature will only expand
                 the axis range. It won't narrow the data's extent.`,
               ),
