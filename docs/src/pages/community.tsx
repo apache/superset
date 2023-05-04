@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import { List } from 'antd';
 import Layout from '@theme/Layout';
+import SectionHeader from '../components/SectionHeader';
+import BlurredSection from '../components/BlurredSection';
 
 const communityLinks = [
   {
@@ -70,77 +72,6 @@ const communityLinks = [
     image: 'writing-symbol.png',
   },
 ];
-
-const StyledBlurredSection = styled('section')`
-  text-align: center;
-  border-bottom: 1px solid #ededed;
-  overflow: hidden;
-  .blur {
-    max-width: 635px;
-    width: 100%;
-    margin-top: -70px;
-    margin-bottom: -35px;
-    position: relative;
-    z-index: -1;
-  }
-`;
-
-const StyledSectionHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding-top: 55px;
-  @media (min-width: 768px) {
-    padding-top: 75px;
-  }
-  .title {
-    font-weight: 700;
-    color: var(--ifm-font-base-color);
-  }
-`;
-
-const StyledSectionHeaderH1 = styled(StyledSectionHeader)`
-  .title {
-    font-size: 64px;
-    @media (min-width: 768px) {
-      font-size: 96px;
-    }
-  }
-  .line {
-    margin-top: -20px;
-    margin-bottom: 30px;
-    @media (min-width: 768px) {
-      margin-top: -45px;
-      margin-bottom: 15px;
-    }
-  }
-  .subtitle {
-    font-size: 34px;
-    line-height: 40px;
-    @media (min-width: 768px) {
-      font-size: 30px;
-    }
-  }
-`;
-
-const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
-  .title {
-    font-size: 48px;
-  }
-  .line {
-    margin-top: -15px;
-    margin-bottom: 15px;
-  }
-  .subtitle {
-    font-size: 27px;
-    line-height: 36px;
-    @media (min-width: 768px) {
-      font-size: 24px;
-      line-height: 32px;
-    }
-  }
-`;
 
 const StyledJoinCommunity = styled('section')`
   background-color: #fbfbfb;
@@ -215,40 +146,6 @@ const StyledNewsletterIframe = styled('iframe')`
     width: 100%;
   }
 `;
-
-interface BlurredSectionProps {
-  children: ReactNode;
-}
-
-const BlurredSection = ({ children }: BlurredSectionProps) => {
-  return (
-    <StyledBlurredSection>
-      {children}
-      <img className="blur" src="img/community/blur.png" alt="Blur" />
-    </StyledBlurredSection>
-  );
-};
-
-interface SectionHeaderProps {
-  level: any;
-  title: string;
-  subtitle?: string;
-}
-
-const SectionHeader = ({ level, title, subtitle }: SectionHeaderProps) => {
-  const Heading = level;
-
-  const StyledRoot =
-    level === 'h1' ? StyledSectionHeaderH1 : StyledSectionHeaderH2;
-
-  return (
-    <StyledRoot>
-      <Heading className="title">{title}</Heading>
-      <img className="line" src="img/community/line.png" alt="Line" />
-      {subtitle && <p className="subtitle">{subtitle}</p>}
-    </StyledRoot>
-  );
-};
 
 const Community = () => {
   return (

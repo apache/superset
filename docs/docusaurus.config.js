@@ -231,7 +231,7 @@ const config = {
         links: [],
         copyright: `
           <div class="footer__applitools">
-            We use <img src="img/applitools.png" alt="applitools" />
+            We use <a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="img/applitools.png" title="Applitools" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},
           The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
