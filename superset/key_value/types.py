@@ -14,9 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import json
+import pickle
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 from uuid import UUID
 
 
@@ -42,3 +47,29 @@ class KeyValueResource(str, Enum):
 class SharedKey(str, Enum):
     DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
     EXPLORE_PERMALINK_SALT = "explore_permalink_salt"
+
+
+class KeyValueCodec(ABC):
+    @abstractmethod
+    def encode(self, value: Any) -> bytes:
+        ...
+
+    @abstractmethod
+    def decode(self, value: bytes) -> Any:
+        ...
+
+
+class JsonKeyValueCodec(KeyValueCodec):
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        return bytes(json.dumps(value), encoding="utf-8")
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        return json.loads(value)
+
+
+class PickleKeyValueCodec(KeyValueCodec):
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        return pickle.dumps(value)
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        return pickle.loads(value)
