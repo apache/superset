@@ -524,7 +524,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=filename,
+                download_name=filename,
             )
             if token:
                 response.set_cookie(token, "done", max_age=600)
