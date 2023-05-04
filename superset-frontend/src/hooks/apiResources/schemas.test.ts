@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import { act, renderHook } from '@testing-library/react-hooks';
 import {
   createWrapper,
-  storeWithApi as store,
+  defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useSchemas } from './schemas';

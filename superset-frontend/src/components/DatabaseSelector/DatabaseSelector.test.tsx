@@ -24,7 +24,7 @@ import {
   render,
   screen,
   waitFor,
-  storeWithApi as store,
+  defaultStore as store,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
