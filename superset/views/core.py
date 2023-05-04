@@ -1403,9 +1403,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "GET",
             "POST",
         ),
-    )
+    )  # pylint: disable=no-self-use
     @deprecated(new_target="/api/v1/database/test_connection/")
-    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def testconn(self) -> FlaskResponse:
         """Tests a sqla connection"""
         db_name = request.json.get("name")
         uri = request.json.get("uri")
