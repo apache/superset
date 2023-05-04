@@ -5336,7 +5336,7 @@ msgstr "Podatkovne baze"
 msgid "Dataframe Index"
 msgstr "Indeks dataframe-a"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:267
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:266
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:81
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:878
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:907
@@ -9907,7 +9907,7 @@ msgstr "Kombinirani grafikon"
 msgid "Mixed Time-Series"
 msgstr "Kombiniran grafikon časovne vrste"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:278
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:277
 #: superset-frontend/src/pages/AlertReportList/index.tsx:335
 #: superset-frontend/src/pages/DashboardList/index.tsx:347
 #: superset-frontend/src/pages/DatasetList/index.tsx:375
@@ -17641,6 +17641,11 @@ msgstr "Neznana napaka"
 msgid "Unknown input format"
 msgstr "Neznana oblika vnosa"
 
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:178
+#, fuzzy
+msgid "Unknown type"
+msgstr "ikona neznanega tipa"
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:43
 msgid "Unknown value"
 msgstr "Neznana vrednost"
@@ -17655,7 +17660,7 @@ msgstr "Nevaren tip rezultata, ki ga vrne funkcija %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Nevaren vzorec za ključ %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodprt tip izraza: %(clause)s"
@@ -18253,7 +18258,7 @@ msgstr ""
 msgid "Viz is missing a datasource"
 msgstr "Vizualizaciji manjka podatkovni vir"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:265
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:264
 #, fuzzy
 msgid "Viz type"
 msgstr "Tip omejitve"
@@ -19416,7 +19421,7 @@ msgstr "[Zemljepisna dolžina] in [Zemljepisna širina] morata biti nastavljeni"
 msgid "[Missing Dataset]"
 msgstr "[Manjka podatkovni set]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] dostop do podatkovnega vira %(name)s je odobren"

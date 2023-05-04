@@ -5419,7 +5419,7 @@ msgstr "Bases de données"
 msgid "Dataframe Index"
 msgstr "Index du tableau de données"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:267
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:266
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:81
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:878
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:907
@@ -10072,7 +10072,7 @@ msgstr "Graphique minimisé"
 msgid "Mixed Time-Series"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:278
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:277
 #: superset-frontend/src/pages/AlertReportList/index.tsx:335
 #: superset-frontend/src/pages/DashboardList/index.tsx:347
 #: superset-frontend/src/pages/DatasetList/index.tsx:375
@@ -17977,6 +17977,11 @@ msgstr "Erreur inconnue"
 msgid "Unknown input format"
 msgstr ""
 
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:178
+#, fuzzy
+msgid "Unknown type"
+msgstr "Erreur inconnue"
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:43
 #, fuzzy
 msgid "Unknown value"
@@ -17992,7 +17997,7 @@ msgstr "Type de retour non sécurisé pour la fonction %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Valeur de template non sécurisée pour la clé %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Type de clause non supportée: %(clause)s"
@@ -18570,7 +18575,7 @@ msgstr ""
 msgid "Viz is missing a datasource"
 msgstr "Viz est une source de données manquante"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:265
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:264
 msgid "Viz type"
 msgstr "Type"
 
@@ -19731,7 +19736,7 @@ msgstr "Les colonnes [Longitude] et [Latitude] doivent êtres définies"
 msgid "[Missing Dataset]"
 msgstr "[jeu de données manquant]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] Accès à la source de données %(name)s accordé"

@@ -4008,6 +4008,7 @@
       "Unknown column used in orderby: %(col)s": [""],
       "Unknown error": [""],
       "Unknown input format": [""],
+      "Unknown type": [""],
       "Unknown value": [""],
       "Unsafe return type for function %(func)s: %(value_type)s": [""],
       "Unsafe template value for key %(key)s: %(value_type)s": [""],

@@ -5182,7 +5182,7 @@ msgstr "Databases"
 msgid "Dataframe Index"
 msgstr "Dataframe Index"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:267
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:266
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:81
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:878
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:907
@@ -9581,7 +9581,7 @@ msgstr "Grafiek verkleinen"
 msgid "Mixed Time-Series"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:278
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:277
 #: superset-frontend/src/pages/AlertReportList/index.tsx:335
 #: superset-frontend/src/pages/DashboardList/index.tsx:347
 #: superset-frontend/src/pages/DatasetList/index.tsx:375
@@ -16966,6 +16966,11 @@ msgstr "Onbekende fout"
 msgid "Unknown input format"
 msgstr ""
 
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:178
+#, fuzzy
+msgid "Unknown type"
+msgstr "Onbekende fout"
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:43
 msgid "Unknown value"
 msgstr ""
@@ -16980,7 +16985,7 @@ msgstr "Onveilig terugkeertype voor functie %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Onveilige sjabloonwaarde voor sleutel %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
@@ -17541,7 +17546,7 @@ msgstr ""
 msgid "Viz is missing a datasource"
 msgstr "Viz mist een gegevensbron"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:265
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:264
 msgid "Viz type"
 msgstr "Viz type"
 
@@ -18633,7 +18638,7 @@ msgstr "[Lengtegraad] en [Breedtegraad] moeten worden ingesteld"
 msgid "[Missing Dataset]"
 msgstr "[Missing Dataset]"
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] Toegang tot de gegevensbron %(name)s werd verleend"

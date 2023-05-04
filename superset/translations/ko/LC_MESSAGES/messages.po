@@ -5152,7 +5152,7 @@ msgstr "데이터베이스"
 msgid "Dataframe Index"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:267
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:266
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:81
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:878
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:907
@@ -9560,7 +9560,7 @@ msgstr "차트 이동"
 msgid "Mixed Time-Series"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:278
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:277
 #: superset-frontend/src/pages/AlertReportList/index.tsx:335
 #: superset-frontend/src/pages/DashboardList/index.tsx:347
 #: superset-frontend/src/pages/DatasetList/index.tsx:375
@@ -16982,6 +16982,11 @@ msgstr "알 수 없는 에러"
 msgid "Unknown input format"
 msgstr ""
 
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:178
+#, fuzzy
+msgid "Unknown type"
+msgstr "알 수 없는 에러"
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:43
 #, fuzzy
 msgid "Unknown value"
@@ -16997,7 +17002,7 @@ msgstr ""
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr ""
 
-#: superset/utils/core.py:1105
+#: superset/utils/core.py:1104
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr ""
@@ -17562,7 +17567,7 @@ msgstr ""
 msgid "Viz is missing a datasource"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:265
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:264
 msgid "Viz type"
 msgstr "시각화 유형"
 
@@ -18627,7 +18632,7 @@ msgstr ""
 msgid "[Missing Dataset]"
 msgstr ""
 
-#: superset/utils/core.py:909
+#: superset/utils/core.py:908
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr ""
