@@ -1114,12 +1114,6 @@
       "Choose one of the available databases from the panel on the left.": [
         "Выберите одну из доступных баз данных из панели слева."
       ],
-      "Choose one or more charts for left axis": [
-        "Выберите один или несколько графиков для левой оси"
-      ],
-      "Choose one or more charts for right axis": [
-        "Выберите один или несколько графиков для правой оси"
-      ],
       "Choose the annotation layer type": ["Выбрать тип слоя аннотации"],
       "Choose the format for legend values": [
         "Выберите формат значений легенды"
@@ -2824,7 +2818,6 @@
       "Multi-Levels": ["Многоуровневый"],
       "Multi-Variables": ["Несколько переменных"],
       "Multiple": ["Несколько"],
-      "Multiple Line Charts": ["Несколько линейных диаграмм"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "Несколько расширений файлов столбчатого формата не разрешены к загрузке. Пожалуйста, убедитесь, что все файлы имеют одинаковое расширение."
       ],
@@ -3359,7 +3352,6 @@
       ],
       "Predictive": ["Прогноз"],
       "Predictive Analytics": ["Предиктивная аналитика"],
-      "Prefix metric name with slice name": [""],
       "Preview": ["Предпросмотр"],
       "Preview: `%s`": ["Предпросмотр «%s»"],
       "Previous": ["Предыдущий"],
@@ -3584,7 +3576,6 @@
       "Right": ["Справа"],
       "Right Axis Format": ["Формат правой оси"],
       "Right Axis Metric": ["Мера для правой оси"],
-      "Right Axis chart(s)": ["График(и) по правой оси"],
       "Right axis metric": ["Мера для правой оси"],
       "Right to Left": ["Справа налево"],
       "Right value": ["Правое значение"],
@@ -5227,9 +5218,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        ""
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
@@ -5522,8 +5510,6 @@
       "Y Axis Bounds": ["Границы оси Y"],
       "Y Axis Format": ["Формат Оси Y"],
       "Y Axis Label": ["Метка оси Y"],
-      "Y Axis Left": ["Ось Y слева"],
-      "Y Axis Right": ["Ось Y справа"],
       "Y Axis Title": ["Название оси Y"],
       "Y Log Scale": ["Логарифмическая ось Y"],
       "Y bounds": ["Показывать границы оси Y"],

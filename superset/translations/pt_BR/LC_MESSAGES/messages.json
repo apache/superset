@@ -168,6 +168,9 @@
       "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
         ""
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Um URL completo apontando para o localização do plug-in construído (poderia ser hospedado em um CDN, por exemplo)"
       ],

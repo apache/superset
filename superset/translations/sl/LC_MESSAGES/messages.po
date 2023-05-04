@@ -3479,7 +3479,6 @@ msgstr "ID grafikona"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:70
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:49
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:54
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:82
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:59
@@ -3791,14 +3790,6 @@ msgstr "Izberite tip grafikona"
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:739
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:100
-msgid "Choose one or more charts for left axis"
-msgstr "Izberite enega ali več grafikonov za levo os"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:135
-msgid "Choose one or more charts for right axis"
-msgstr "Izberite enega ali več grafikonov za desno os"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:812
 msgid "Choose the annotation layer type"
@@ -4376,7 +4367,6 @@ msgstr "Primerja dolžine časovno različnih aktivnosti na skupni časovnici."
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:48
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:37
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:53
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:72
@@ -6994,8 +6984,6 @@ msgid "Error message"
 msgstr "Sporočilo napake"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:46
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:104
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:139
 msgid "Error while fetching charts"
 msgstr "Napaka pri pridobivanju grafikonov"
 
@@ -7069,7 +7057,6 @@ msgstr "Vsak"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:29
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:30
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:25
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:62
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:58
@@ -9050,7 +9037,6 @@ msgstr "Leva vrednost"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:34
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:50
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:42
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:36
@@ -9995,7 +9981,6 @@ msgstr "Večdimenzionalni"
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:37
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:41
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.js:31
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:39
 msgid "Multi-Layers"
 msgstr "Večplastni"
 
@@ -10007,7 +9992,6 @@ msgid "Multi-Levels"
 msgstr "Večplastni"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:42
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:51
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:86
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:65
@@ -11858,10 +11842,6 @@ msgstr "Prediktivno"
 msgid "Predictive Analytics"
 msgstr "Prediktivna analitika"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:64
-msgid "Prefix metric name with slice name"
-msgstr "Imenu mere pripni ime rezine"
-
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.tsx:39
 msgid "Preview"
 msgstr "Predogled"
@@ -12751,10 +12731,6 @@ msgstr "Oblika desne osi"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:181
 msgid "Right Axis Metric"
 msgstr "Mera desne osi"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:132
-msgid "Right Axis chart(s)"
-msgstr "Grafikoni desne osi"
 
 #: superset-frontend/src/explore/controls.jsx:214
 msgid "Right axis metric"
@@ -13721,8 +13697,6 @@ msgid "Select chart"
 msgstr "Izberi grafikone"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:103
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:138
 msgid "Select charts"
 msgstr "Izberi grafikone"
 
@@ -16838,7 +16812,6 @@ msgstr "Četrtek"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:35
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:87
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:82
@@ -17682,7 +17655,7 @@ msgstr "Nevaren tip rezultata, ki ga vrne funkcija %(func)s: %(value_type)s"
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr "Nevaren vzorec za ključ %(key)s: %(value_type)s"
 
-#: superset/utils/core.py:1104
+#: superset/utils/core.py:1105
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodprt tip izraza: %(clause)s"
@@ -18195,16 +18168,6 @@ msgid ""
 msgstr ""
 "Prikaže dva različna niza na isti x-osi. Niza sta lahko prikazana z "
 "različnim tipom grafikona (npr. en s stolpci in drug s črto)."
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:28
-msgid ""
-"Visualize two different time series using the same x-axis time range. "
-"This chart is being deprecated and we recommend using the Mixed "
-"Timeseries Chart instead!"
-msgstr ""
-"Prikaže dve različni časovni vrsti z isto x-osjo oz. časovnim obdobjem. "
-"Grafikon se opušča, zato priporočamo uporabo kombiniranega grafikona "
-"časovne vrste!"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:68
 msgid ""
@@ -18922,7 +18885,6 @@ msgstr "SPODNJA OBROBA NASLOVA X OSI"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:98
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:73
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:77
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:91
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:314
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:182
@@ -19038,14 +19000,6 @@ msgstr "Oblika Y osi"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:353
 msgid "Y Axis Label"
 msgstr "Naslov Y osi"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:88
-msgid "Y Axis Left"
-msgstr "Y-os levo"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:123
-msgid "Y Axis Right"
-msgstr "Y-os desno"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:70
 msgid "Y Axis Title"
@@ -19462,7 +19416,7 @@ msgstr "[Zemljepisna dolžina] in [Zemljepisna širina] morata biti nastavljeni"
 msgid "[Missing Dataset]"
 msgstr "[Manjka podatkovni set]"
 
-#: superset/utils/core.py:908
+#: superset/utils/core.py:909
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] dostop do podatkovnega vira %(name)s je odobren"
@@ -20297,7 +20251,6 @@ msgstr "ikona numeričnega tipa"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:55
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 msgid "nvd3"
 msgstr "nvd3"
