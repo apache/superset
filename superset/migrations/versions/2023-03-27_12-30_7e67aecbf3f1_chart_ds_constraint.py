@@ -84,7 +84,6 @@ def upgrade_slc(slc: Slice) -> None:
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
     with op.batch_alter_table("slices") as batch_op:
         for slc in session.query(Slice).filter(Slice.datasource_type != "table").all():
             if slc.datasource_type == "query":
@@ -97,6 +96,10 @@ def upgrade():
                     slc.datasource_type,
                 )
 
+    # need commit the updated values for Slice.datasource_type before creating constraint
+    session.commit()
+
+    with op.batch_alter_table("slices") as batch_op:
         batch_op.create_check_constraint(
             "ck_chart_datasource", "datasource_type in ('table')"
         )
