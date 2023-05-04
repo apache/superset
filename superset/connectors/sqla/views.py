@@ -434,7 +434,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
-    @expose("/edit/<pk>", methods=["GET", "POST"])
+    @expose(
+        "/edit/<pk>",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @has_access
     def edit(self, pk: str) -> FlaskResponse:
         """Simple hack to redirect to explore view after saving"""
