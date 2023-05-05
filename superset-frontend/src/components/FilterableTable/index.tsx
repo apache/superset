@@ -83,55 +83,11 @@ const StyledFilterableTable = styled.div`
       background-color: ${theme.colors.grayscale.light5};
     }
 
-    .grid-header-cell {
-      display: inline-block;
-      max-width: 100%;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-
     .ant-table-cell,
     .virtual-table-cell {
       min-width: 0px;
       align-self: center;
       font-size: ${theme.typography.sizes.s}px;
-    }
-
-    .grid-header-cell {
-      font-weight: ${theme.typography.weights.bold};
-      cursor: pointer;
-    }
-
-    .ReactVirtualized__Table__headerColumn:last-of-type,
-    .ReactVirtualized__Table__rowColumn:last-of-type {
-      border-right: 0px;
-    }
-
-    .ReactVirtualized__Table__headerColumn:focus,
-    .ReactVirtualized__Table__Grid:focus {
-      outline: none;
-    }
-
-    .ReactVirtualized__Table__rowColumn {
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .ReactVirtualized__Table__sortableHeaderColumn {
-      cursor: pointer;
-    }
-
-    .ReactVirtualized__Table__sortableHeaderIconContainer {
-      display: flex;
-      align-items: center;
-    }
-
-    .ReactVirtualized__Table__sortableHeaderIcon {
-      flex: 0 0 ${theme.gridUnit * 6}px;
-      height: 1em;
-      width: 1em;
-      fill: currentColor;
     }
 
     .even-row {
@@ -140,19 +96,6 @@ const StyledFilterableTable = styled.div`
 
     .odd-row {
       background: ${theme.colors.grayscale.light5};
-    }
-
-    .header-style {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .header-style-disabled {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: ${theme.colors.grayscale.light1};
     }
 
     .cell-text-for-measuring {
