@@ -29,16 +29,10 @@ class WarmUpCacheParametersExpectedError(CommandException):
 
 
 class WarmUpCacheChartNotFoundError(CommandException):
-    def __init__(self, chart_id: int):
-        message = f"Chart {chart_id} not found"
-        super().__init__(message)
-
     status = 404
+    message = _("Chart not found")
 
 
 class WarmUpCacheTableNotFoundError(CommandException):
-    def __init__(self, table_name: str, db_name: str):
-        message = f"Table {table_name} wasn't found in the database {db_name}"
-        super().__init__(message)
-
     status = 404
+    message = _("The provided table was not found in the provided database")

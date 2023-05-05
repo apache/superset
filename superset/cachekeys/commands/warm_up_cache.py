@@ -97,7 +97,7 @@ class WarmUpCacheCommand(BaseCommand):
         if self._chart_id:
             self._charts = db.session.query(Slice).filter_by(id=self._chart_id).all()
             if not self._charts:
-                raise WarmUpCacheChartNotFoundError(self._chart_id)
+                raise WarmUpCacheChartNotFoundError()
         elif self._table_name and self._db_name:
             table = (
                 db.session.query(SqlaTable)
@@ -108,7 +108,7 @@ class WarmUpCacheCommand(BaseCommand):
                 )
             ).one_or_none()
             if not table:
-                raise WarmUpCacheTableNotFoundError(self._table_name, self._db_name)
+                raise WarmUpCacheTableNotFoundError()
             self._charts = (
                 db.session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
