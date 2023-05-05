@@ -19,3 +19,118 @@
 @import '~antd/lib/style/themes/default.less';
 @import '~antd/dist/antd.less'; // Import Ant Design styles by less entry
 @import 'antd-theme.less';
+
+body {
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-base-color);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--ifm-font-base-color);
+  font-weight: var(--ifm-heading-font-weight);
+}
+
+.DocSearch-Button .DocSearch-Button-Key {
+  display: none;
+}
+
+.github-logo-container {
+  background-image: url('/img/github.png');
+  background-size: contain;
+  width: 30px;
+  height: 30px;
+}
+
+.theme-doc-toc-desktop {
+  position: fixed !important;
+}
+
+.docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+}
+
+html[data-theme='dark'] .docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.navbar__logo {
+  height: 40px;
+}
+
+.navbar-sidebar__brand {
+  padding-left: 0;
+}
+
+.menu,
+.navbar {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Hacks to disable Swagger UI's "try it out" interactive mode */
+.try-out,
+.auth-wrapper,
+.information-container {
+  display: none !important;
+}
+
+.swagger-ui table td,
+.swagger-ui table th,
+.swagger-ui table tr {
+  border: none;
+}
+
+.markdown h2:first-child {
+  margin-top: 0.5em;
+}
+
+@media only screen and (min-width: 800px) {
+  .navbar__logo {
+    height: 50px;
+  }
+
+  .navbar {
+    padding-left: 0;
+  }
+}
+
+a > span > svg {
+  display: none;
+}
+
+/* Footer */
+
+.footer {
+  position: relative;
+  padding-top: 90px;
+  font-size: 15px;
+}
+
+.footer__applitools {
+  background-color: #0d3e49;
+  color: #e1e1e1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.footer__divider {
+  margin: 10px auto 25px;
+}
+
+.footer small {
+  font-size: 13px;
+  display: block;
+  margin: 0 auto;
+  max-width: 830px;
+}

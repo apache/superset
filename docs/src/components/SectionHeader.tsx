@@ -19,7 +19,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-const StyledSectionHeader = styled('div')`
+type StyledSectionHeaderProps = {
+  dark: boolean;
+};
+
+const StyledSectionHeader = styled('div')<StyledSectionHeaderProps>`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,9 +34,12 @@ const StyledSectionHeader = styled('div')`
   @media (min-width: 768px) {
     padding-top: 75px;
   }
-  .title {
-    font-weight: 700;
-    color: var(--ifm-font-base-color);
+  .title,
+  .subtitle {
+    color: ${props =>
+      props.dark
+        ? 'var(--ifm-font-base-color-inverse)'
+        : 'var(--ifm-font-base-color)'};
   }
 `;
 
@@ -82,16 +89,22 @@ interface SectionHeaderProps {
   level: any;
   title: string;
   subtitle?: string;
+  dark?: boolean;
 }
 
-const SectionHeader = ({ level, title, subtitle }: SectionHeaderProps) => {
+const SectionHeader = ({
+  level,
+  title,
+  subtitle,
+  dark,
+}: SectionHeaderProps) => {
   const Heading = level;
 
   const StyledRoot =
     level === 'h1' ? StyledSectionHeaderH1 : StyledSectionHeaderH2;
 
   return (
-    <StyledRoot>
+    <StyledRoot dark={!!dark}>
       <Heading className="title">{title}</Heading>
       <img className="line" src="img/community/line.png" alt="line" />
       {subtitle && <p className="subtitle">{subtitle}</p>}
