@@ -139,6 +139,7 @@ export default function transformProps(
     yAxisFormatSecondary,
     xAxisTimeFormat,
     yAxisBounds,
+    yAxisBoundsSecondary,
     yAxisIndex,
     yAxisIndexB,
     yAxisTitleSecondary,
@@ -285,10 +286,13 @@ export default function transformProps(
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
+    parseYAxisBound,
+  );
 
   const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
   const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
-    max,
+    max: maxSecondary,
     formatter: formatterSecondary,
   });
 
@@ -348,6 +352,8 @@ export default function transformProps(
   if (contributionMode === 'row' && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+    if (minSecondary === undefined) minSecondary = 0;
+    if (maxSecondary === undefined) maxSecondary = 1;
   }
 
   const tooltipFormatter =
@@ -415,8 +421,8 @@ export default function transformProps(
       {
         ...defaultYAxis,
         type: logAxisSecondary ? 'log' : 'value',
-        min,
-        max,
+        min: minSecondary,
+        max: maxSecondary,
         minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
