@@ -216,3 +216,31 @@ class TestWarmUpCache(SupersetTestCase):
             data["result"],
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
+
+    def test_warm_up_cache_required_params_missing(self):
+        self.login()
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"dashboard_id": 1})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "Malformed request. slice_id or table_name and db_name arguments are expected"})
+
+    def test_warm_up_cache_chart_not_found(self):
+        self.login()
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": 99999})
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "Chart not found"})
+
+    def test_warm_up_cache_table_not_found(self):
+        self.login()
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"table_name": "not_here", "db_name": "abc"})
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "The provided table was not found in the provided database"})
+
+    def test_warm_up_cache_payload_validation(self):
+        self.login()
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": "id", "table_name": 2, "db_name": 4})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": {"chart_id": ["Not a valid integer."], "db_name": ["Not a valid string."], "table_name": ["Not a valid string."]}})
