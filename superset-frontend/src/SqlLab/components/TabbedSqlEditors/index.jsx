@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import pick from 'lodash/pick';
 import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
@@ -117,6 +118,7 @@ class TabbedSqlEditors extends React.PureComponent {
     // but for some reason this data isn't being passed properly through
     // the reducer.
     const bootstrapData = getBootstrapData();
+    const queryParameters = URI(window.location).search(true);
     const {
       id,
       name,
@@ -132,7 +134,7 @@ class TabbedSqlEditors extends React.PureComponent {
       ...urlParams
     } = {
       ...bootstrapData.requested_query,
-      ...URI(window.location).search(true),
+      ...queryParameters,
     };
 
     // Popping a new tab based on the querystring
@@ -169,7 +171,7 @@ class TabbedSqlEditors extends React.PureComponent {
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab(urlParams);
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
     } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 
