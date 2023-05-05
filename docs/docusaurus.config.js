@@ -227,7 +227,6 @@ const config = {
         ],
       },
       footer: {
-        style: 'dark',
         links: [],
         copyright: `
           <div class="footer__applitools">
