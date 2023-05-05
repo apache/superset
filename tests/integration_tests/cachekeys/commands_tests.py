@@ -17,7 +17,11 @@
 import pytest
 
 from superset.cachekeys.commands.warm_up_cache import WarmUpCacheCommand
-from superset.cachekeys.commands.exceptions import WarmUpCacheChartNotFoundError, WarmUpCacheParametersExpectedError, WarmUpCacheTableNotFoundError
+from superset.cachekeys.commands.exceptions import (
+    WarmUpCacheChartNotFoundError,
+    WarmUpCacheParametersExpectedError,
+    WarmUpCacheTableNotFoundError,
+)
 from superset.extensions import db
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -49,4 +53,6 @@ class TestWarmUpCacheCommand(SupersetTestCase):
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         result = WarmUpCacheCommand(slc.id, None, None, None, None).run()
-        self.assertEqual(result, [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}])
+        self.assertEqual(
+            result, [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )

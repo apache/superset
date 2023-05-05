@@ -25,7 +25,11 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.cachekeys.commands.warm_up_cache import WarmUpCacheCommand
-from superset.cachekeys.schemas import CacheInvalidationRequestSchema, CacheWarmUpRequestSchema, CacheWarmUpResponseSchema
+from superset.cachekeys.schemas import (
+    CacheInvalidationRequestSchema,
+    CacheWarmUpRequestSchema,
+    CacheWarmUpResponseSchema,
+)
 from superset.commands.exceptions import CommandException
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, event_logger, stats_logger_manager
@@ -45,7 +49,11 @@ class CacheRestApi(BaseSupersetModelRestApi):
         "warm_up_cache",
     }
 
-    openapi_spec_component_schemas = (CacheInvalidationRequestSchema, CacheWarmUpRequestSchema, CacheWarmUpResponseSchema)
+    openapi_spec_component_schemas = (
+        CacheInvalidationRequestSchema,
+        CacheWarmUpRequestSchema,
+        CacheWarmUpResponseSchema,
+    )
 
     @expose("/warm_up_cache", methods=["PUT"])
     @protect()
@@ -97,7 +105,11 @@ class CacheRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             payload = WarmUpCacheCommand(
-                body.get("chart_id"), body.get("dashboard_id"), body.get("table_name"), body.get("db_name"), body.get("extra_filters")
+                body.get("chart_id"),
+                body.get("dashboard_id"),
+                body.get("table_name"),
+                body.get("db_name"),
+                body.get("extra_filters"),
             ).run()
             return self.response(200, result=payload)
         except CommandException as ex:

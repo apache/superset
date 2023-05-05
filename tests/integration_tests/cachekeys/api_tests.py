@@ -184,7 +184,9 @@ class TestWarmUpCache(SupersetTestCase):
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id}
+        )
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -193,7 +195,13 @@ class TestWarmUpCache(SupersetTestCase):
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"table_name": "energy_usage", "db_name": get_example_database().database_name})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache",
+            json={
+                "table_name": "energy_usage",
+                "db_name": get_example_database().database_name,
+            },
+        )
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -201,7 +209,10 @@ class TestWarmUpCache(SupersetTestCase):
 
         dashboard = self.get_dash_by_slug("births")
 
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id, "dashboard_id": dashboard.id})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache",
+            json={"chart_id": slc.id, "dashboard_id": dashboard.id},
+        )
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
@@ -209,7 +220,16 @@ class TestWarmUpCache(SupersetTestCase):
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id, "dashboard_id": dashboard.id, "extra_filters": json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}])})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache",
+            json={
+                "chart_id": slc.id,
+                "dashboard_id": dashboard.id,
+                "extra_filters": json.dumps(
+                    [{"col": "name", "op": "in", "val": ["Jennifer"]}]
+                ),
+            },
+        )
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
@@ -222,7 +242,12 @@ class TestWarmUpCache(SupersetTestCase):
         rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"dashboard_id": 1})
         self.assertEqual(rv.status_code, 400)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data, {"message": "Malformed request. slice_id or table_name and db_name arguments are expected"})
+        self.assertEqual(
+            data,
+            {
+                "message": "Malformed request. slice_id or table_name and db_name arguments are expected"
+            },
+        )
 
     def test_warm_up_cache_chart_not_found(self):
         self.login()
@@ -233,14 +258,32 @@ class TestWarmUpCache(SupersetTestCase):
 
     def test_warm_up_cache_table_not_found(self):
         self.login()
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"table_name": "not_here", "db_name": "abc"})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache",
+            json={"table_name": "not_here", "db_name": "abc"},
+        )
         self.assertEqual(rv.status_code, 404)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data, {"message": "The provided table was not found in the provided database"})
+        self.assertEqual(
+            data,
+            {"message": "The provided table was not found in the provided database"},
+        )
 
     def test_warm_up_cache_payload_validation(self):
         self.login()
-        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": "id", "table_name": 2, "db_name": 4})
+        rv = self.client.put(
+            "/api/v1/cachekey/warm_up_cache",
+            json={"chart_id": "id", "table_name": 2, "db_name": 4},
+        )
         self.assertEqual(rv.status_code, 400)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data, {"message": {"chart_id": ["Not a valid integer."], "db_name": ["Not a valid string."], "table_name": ["Not a valid string."]}})
+        self.assertEqual(
+            data,
+            {
+                "message": {
+                    "chart_id": ["Not a valid integer."],
+                    "db_name": ["Not a valid string."],
+                    "table_name": ["Not a valid string."],
+                }
+            },
+        )
