@@ -141,8 +141,7 @@ connect to those datasources in your Superset installation:
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.9.1 \
-    redis==3.2.1 \
+  pip install psycopg2==2.9.6 \
     sqlalchemy-bigquery==1.5.0 \
     elasticsearch-dbapi==0.2.5 &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi

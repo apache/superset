@@ -357,12 +357,70 @@ export function fetchQueryResults(query, displayLimit) {
   };
 }
 
+const quotes = '\'"`'.split('');
+const quotedBlockHash = shortid.generate();
+const quotedBlockMatch = new RegExp(`${quotedBlockHash}:\\d+:`, 'g');
+
+function splitByQuotedBlock(str) {
+  const chunks = [];
+  let currentQuote = '';
+  let chunkStart = 0;
+
+  let i = 0;
+  while (i < str.length) {
+    const currentChar = str[i];
+    if (
+      currentQuote ? currentChar === currentQuote : quotes.includes(currentChar)
+    ) {
+      let chunk;
+      if (currentQuote) {
+        chunk = str.substring(chunkStart, i + 1);
+        chunkStart = i + 1;
+        currentQuote = '';
+      } else {
+        chunk = str.substring(chunkStart, i);
+        chunkStart = i;
+        currentQuote = currentChar;
+      }
+      if (chunk) {
+        chunks.push(chunk);
+      }
+    }
+    i += 1;
+  }
+
+  if (chunkStart < str.length) {
+    const lastChunk = str.substring(chunkStart);
+    if (lastChunk) {
+      chunks.push(lastChunk);
+    }
+  }
+
+  return chunks;
+}
+
 export function cleanSqlComments(sql) {
   if (!sql) return '';
   // it sanitizes the following comment block groups
   // group 1 -> /* */
   // group 2 -> --
-  return sql.replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n').trim();
+  const chunks = splitByQuotedBlock(sql);
+  return (
+    chunks
+      // replace quoted blocks in a hash format
+      .map((chunk, index) =>
+        quotes.includes(chunk[0]) ? `${quotedBlockHash}:${index}:` : chunk,
+      )
+      .join('')
+      // Clean out the commented-out blocks
+      .replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n')
+      .trim()
+      // restore quoted block to the original value
+      .replace(
+        quotedBlockMatch,
+        quotedBlock => chunks[quotedBlock.match(/:\d+/)[0].substring(1)],
+      )
+  );
 }
 
 export function runQuery(query) {

@@ -54,6 +54,7 @@ export default function DrillByChart({
         height: 100%;
         min-height: 0;
       `}
+      data-test="drill-by-chart"
     >
       <SuperChart
         disableErrorBoundary
