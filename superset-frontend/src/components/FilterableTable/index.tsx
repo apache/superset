@@ -24,7 +24,6 @@ import {
   t,
   styled,
   useTheme,
-  FAST_DEBOUNCE,
 } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import Button from '../Button';
@@ -394,7 +393,7 @@ const FilterableTable = ({
     return aValue < bValue ? -1 : 1;
   };
 
-  const keyword = useDebounceValue(filterText, FAST_DEBOUNCE);
+  const keyword = useDebounceValue(filterText);
 
   const filteredList = useMemo(
     () =>
