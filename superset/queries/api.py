@@ -202,7 +202,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/stop", methods=["POST"])
+    @expose("/stop", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics

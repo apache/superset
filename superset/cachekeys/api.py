@@ -115,7 +115,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
         except CommandException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/invalidate", methods=["POST"])
+    @expose("/invalidate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics

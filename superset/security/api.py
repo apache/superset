@@ -82,7 +82,7 @@ class SecurityRestApi(BaseSupersetApi):
     allow_browser_login = True
     openapi_spec_tag = "Security"
 
-    @expose("/csrf_token/", methods=["GET"])
+    @expose("/csrf_token/", methods=("GET",))
     @event_logger.log_this
     @protect()
     @safe
@@ -112,7 +112,7 @@ class SecurityRestApi(BaseSupersetApi):
         """
         return self.response(200, result=generate_csrf())
 
-    @expose("/guest_token/", methods=["POST"])
+    @expose("/guest_token/", methods=("POST",))
     @event_logger.log_this
     @protect()
     @safe

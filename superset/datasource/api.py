@@ -37,7 +37,7 @@ class DatasourceRestApi(BaseSupersetApi):
 
     @expose(
         "/<datasource_type>/<int:datasource_id>/column/<column_name>/values/",
-        methods=["GET"],
+        methods=("GET",),
     )
     @protect()
     @safe

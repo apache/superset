@@ -62,7 +62,7 @@ from superset.views.utils import sanitize_datasource_data
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
-    @expose("/save/", methods=["POST"])
+    @expose("/save/", methods=("POST",))
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.save",
         log_to_statsd=False,
@@ -201,7 +201,7 @@ class Datasource(BaseSupersetView):
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
 
-    @expose("/samples", methods=["POST"])
+    @expose("/samples", methods=("POST",))
     @has_access_api
     @api
     @handle_api_exception
@@ -233,7 +233,7 @@ class DatasetEditor(BaseSupersetView):
     def root(self) -> FlaskResponse:
         return super().render_app_template()
 
-    @expose("/<pk>", methods=["GET"])
+    @expose("/<pk>", methods=("GET",))
     @has_access
     @permission_name("read")
     # pylint: disable=unused-argument
