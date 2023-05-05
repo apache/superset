@@ -72,7 +72,7 @@ class TagView(BaseSupersetView):
             raise NotFound()
 
     @has_access_api
-    @expose("/tags/", methods=["GET"])
+    @expose("/tags/", methods=("GET",))
     def tags(self) -> FlaskResponse:  # pylint: disable=no-self-use
         query = db.session.query(Tag).all()
         results = [

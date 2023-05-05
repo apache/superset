@@ -85,7 +85,7 @@ class SqlLabRestApi(BaseSupersetApi):
         QueryExecutionResponseSchema,
     )
 
-    @expose("/estimate/", methods=["POST"])
+    @expose("/estimate/", methods=("POST",))
     @protect()
     @statsd_metrics
     @requires_json
@@ -250,7 +250,7 @@ class SqlLabRestApi(BaseSupersetApi):
             200,
         )
 
-    @expose("/execute/", methods=["POST"])
+    @expose("/execute/", methods=("POST",))
     @protect()
     @statsd_metrics
     @requires_json

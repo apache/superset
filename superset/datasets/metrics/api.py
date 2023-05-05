@@ -45,7 +45,7 @@ class DatasetMetricRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Datasets"
 
-    @expose("/<int:pk>/metric/<int:metric_id>", methods=["DELETE"])
+    @expose("/<int:pk>/metric/<int:metric_id>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
