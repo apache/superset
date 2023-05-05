@@ -20,66 +20,62 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import { useDebounceValue } from './useDebounceValue';
 
-describe('useDebounceValue', () => {
-  afterEach(() => {
-    jest.clearAllTimers();
-    jest.useRealTimers();
-  });
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
-  it('should return the initial value', () => {
-    const { result } = renderHook(() => useDebounceValue('hello'));
-    expect(result.current).toBe('hello');
-  });
+test('should return the initial value', () => {
+  const { result } = renderHook(() => useDebounceValue('hello'));
+  expect(result.current).toBe('hello');
+});
 
-  it('should update debounced value after delay', async () => {
-    jest.useFakeTimers();
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebounceValue(value, delay),
-      { initialProps: { value: 'hello', delay: 1000 } },
-    );
+test('should update debounced value after delay', async () => {
+  jest.useFakeTimers();
+  const { result, rerender } = renderHook(
+    ({ value, delay }) => useDebounceValue(value, delay),
+    { initialProps: { value: 'hello', delay: 1000 } },
+  );
 
-    expect(result.current).toBe('hello');
-    act(() => {
-      rerender({ value: 'world', delay: 1000 });
-      jest.advanceTimersByTime(500);
-    });
-
-    expect(result.current).toBe('hello');
-
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    expect(result.current).toBe('world');
-  });
-
-  it('should cancel previous timeout when value changes', async () => {
-    jest.useFakeTimers();
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebounceValue(value, delay),
-      { initialProps: { value: 'hello', delay: 1000 } },
-    );
-
-    expect(result.current).toBe('hello');
+  expect(result.current).toBe('hello');
+  act(() => {
     rerender({ value: 'world', delay: 1000 });
-
     jest.advanceTimersByTime(500);
-    rerender({ value: 'foo', delay: 1000 });
-
-    jest.advanceTimersByTime(500);
-    expect(result.current).toBe('hello');
   });
 
-  it('should cancel the timeout when unmounting', async () => {
-    jest.useFakeTimers();
-    const { result, unmount } = renderHook(() =>
-      useDebounceValue('hello', 1000),
-    );
+  expect(result.current).toBe('hello');
 
-    expect(result.current).toBe('hello');
-    unmount();
-
+  act(() => {
     jest.advanceTimersByTime(1000);
-    expect(clearTimeout).toHaveBeenCalled();
   });
+
+  expect(result.current).toBe('world');
+});
+
+it('should cancel previous timeout when value changes', async () => {
+  jest.useFakeTimers();
+  const { result, rerender } = renderHook(
+    ({ value, delay }) => useDebounceValue(value, delay),
+    { initialProps: { value: 'hello', delay: 1000 } },
+  );
+
+  expect(result.current).toBe('hello');
+  rerender({ value: 'world', delay: 1000 });
+
+  jest.advanceTimersByTime(500);
+  rerender({ value: 'foo', delay: 1000 });
+
+  jest.advanceTimersByTime(500);
+  expect(result.current).toBe('hello');
+});
+
+test('should cancel the timeout when unmounting', async () => {
+  jest.useFakeTimers();
+  const { result, unmount } = renderHook(() => useDebounceValue('hello', 1000));
+
+  expect(result.current).toBe('hello');
+  unmount();
+
+  jest.advanceTimersByTime(1000);
+  expect(clearTimeout).toHaveBeenCalled();
 });
