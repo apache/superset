@@ -48,7 +48,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     """
     A cache warm up strategy.
 
-    Each strategy defines a `get_payloads` method that returns a list of URLs to
+    Each strategy defines a `get_payloads` method that returns a list of payloads to
     be fetched from the `/api/v1/cachekey/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
