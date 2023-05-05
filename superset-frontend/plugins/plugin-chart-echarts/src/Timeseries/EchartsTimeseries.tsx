@@ -1,6 +1,6 @@
 // DODO was here
-import React, { useCallback, useRef, useState } from 'react';
-import { ViewRootGroup } from 'echarts/types/src/util/types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ECBasicOption, ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
@@ -180,21 +180,36 @@ export default function EchartsTimeseries({
     },
   };
 
-  const [alteredEchartsOptions, setEchartsOptions] = useState(
-    echartOptions as {
-      series: Array<{ label: { show: boolean; position: string } }>;
-    },
-  );
+  const getCurrentLabelState = (
+    series: Array<{ label: { show: boolean; position: string } }>,
+  ) => series.map(s => s.label.show)[0];
+
+  const [alteredEchartsOptions, setEchartsOptions] = useState(echartOptions);
+  const [isVisibleNow, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setEchartsOptions(echartOptions);
+    const current = getCurrentLabelState(
+      echartOptions.series as Array<{
+        label: { show: boolean; position: string };
+      }>,
+    );
+    setIsVisible(!current);
+  }, [echartOptions]);
 
   const showHideHandler = () => {
-    const { series } = alteredEchartsOptions;
+    const { series } = alteredEchartsOptions as ECBasicOption & {
+      series: Array<{ label: { show: boolean; position: string } }>;
+    };
+    setIsVisible(!isVisibleNow);
+
     const echartsOpts = {
       ...alteredEchartsOptions,
       series: series.map(s => ({
         ...s,
         label: {
           ...s.label,
-          show: !s.label.show,
+          show: isVisibleNow,
         },
       })),
     };
@@ -205,21 +220,27 @@ export default function EchartsTimeseries({
     <>
       <ExtraControls formData={formData} setControlValue={setControlValue} />
       {showValue && (
-        <span
+        <div
           style={{
             position: 'absolute',
-            fontSize: '10px',
             marginTop: '5px',
-            fontStyle: 'italic',
             zIndex: 1,
             bottom: '0',
           }}
-          role="button"
-          tabIndex={0}
-          onClick={showHideHandler}
         >
-          Show/Hide values
-        </span>
+          <span
+            style={{
+              fontSize: '10px',
+              marginTop: '5px',
+              fontStyle: 'italic',
+            }}
+            role="button"
+            tabIndex={0}
+            onClick={showHideHandler}
+          >
+            {isVisibleNow ? 'Show' : 'Hide'} values
+          </span>
+        </div>
       )}
       <Echart
         ref={echartRef}
