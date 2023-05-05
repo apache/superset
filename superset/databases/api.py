@@ -237,7 +237,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLResponse,
     )
 
-    @expose("/<int:pk>", methods=["GET"])
+    @expose("/<int:pk>", methods=("GET",))
     @protect()
     @safe
     def get(self, pk: int, **kwargs: Any) -> Response:
@@ -278,7 +278,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -366,7 +366,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/<int:pk>", methods=["PUT"])
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -450,7 +450,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SSHTunnelingNotEnabledError as ex:
             return self.response_400(message=str(ex))
 
-    @expose("/<int:pk>", methods=["DELETE"])
+    @expose("/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -633,7 +633,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTablesUnexpectedError as ex:
             return self.response_422(ex.message)
 
-    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
+    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -696,7 +696,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=["GET"])
+    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -759,8 +759,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, **payload)
 
-    @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
-    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
+    @expose("/<int:pk>/select_star/<table_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=("GET",))
     @protect()
     @check_datasource_access
     @safe
@@ -821,7 +821,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 
-    @expose("/test_connection/", methods=["POST"])
+    @expose("/test_connection/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -871,7 +871,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SSHTunnelingNotEnabledError as ex:
             return self.response_400(message=str(ex))
 
-    @expose("/<int:pk>/related_objects/", methods=["GET"])
+    @expose("/<int:pk>/related_objects/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -940,7 +940,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/validate_sql/", methods=["POST"])
+    @expose("/<int:pk>/validate_sql/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1000,7 +1000,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseNotFoundError:
             return self.response_404()
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -1064,7 +1064,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1185,7 +1185,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<int:pk>/function_names/", methods=["GET"])
+    @expose("/<int:pk>/function_names/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -1227,7 +1227,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             function_names=database.function_names,
         )
 
-    @expose("/available/", methods=["GET"])
+    @expose("/available/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1338,7 +1338,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, databases=response)
 
-    @expose("/validate_parameters/", methods=["POST"])
+    @expose("/validate_parameters/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1395,7 +1395,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<int:pk>/ssh_tunnel/", methods=["DELETE"])
+    @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

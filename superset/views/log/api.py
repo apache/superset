@@ -82,7 +82,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
             return self.response(403, message=ex.message)
         return None
 
-    @expose("/recent_activity/<int:user_id>/", methods=["GET"])
+    @expose("/recent_activity/<int:user_id>/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
