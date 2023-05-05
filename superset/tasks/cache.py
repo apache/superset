@@ -227,12 +227,19 @@ def fetch_url(data: Dict[str, int], headers: Dict[str, str]) -> Dict[str, str]:
         response = request.urlopen(  # pylint: disable=consider-using-with
             req, timeout=600
         )
-        logger.info("Fetched %s with payload %s, status code: %s", url, str(data), response.code)
+        logger.info(
+            "Fetched %s with payload %s, status code: %s", url, str(data), response.code
+        )
         if response.code == 200:
             result = {"success": str(data), "response": response.read().decode("utf-8")}
         else:
             result = {"error": str(data), "status_code": response.code}
-            logger.error("Error fetching %s with payload %s, status code: %s", url, str(data), response.code)
+            logger.error(
+                "Error fetching %s with payload %s, status code: %s",
+                url,
+                str(data),
+                response.code,
+            )
     except URLError as err:
         logger.exception("Error warming up cache!")
         result = {"error": str(data), "exception": str(err)}
