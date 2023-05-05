@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 import json
 from typing import Dict, Any
-from urllib.parse import quote
 
 import pytest
 
@@ -185,31 +184,35 @@ class TestWarmUpCache(SupersetTestCase):
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
-        data = self.get_json_resp(
-            "/api/v1/cachekey/warm_up_cache?chart_id={}".format(slc.id)
-        )
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
         self.assertEqual(
             data["result"],
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
-        data = self.get_json_resp(
-            "/api/v1/cachekey/warm_up_cache?table_name=energy_usage"
-            f"&db_name={get_example_database().database_name}"
-        )
-        assert len(data) > 0
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"table_name": "energy_usage", "db_name": get_example_database().database_name})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert len(data["result"]) > 0
 
         dashboard = self.get_dash_by_slug("births")
 
-        assert self.get_json_resp(
-            f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&chart_id={slc.id}"
-        )["result"] == [
-            {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        ]
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id, "dashboard_id": dashboard.id})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
 
-        assert self.get_json_resp(
-            f"/api/v1/cachekey/warm_up_cache?dashboard_id={dashboard.id}&chart_id={slc.id}&extra_filters="
-            + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
-        )["result"] == [
-            {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
-        ]
+        rv = self.client.put("/api/v1/cachekey/warm_up_cache", json={"chart_id": slc.id, "dashboard_id": dashboard.id, "extra_filters": json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}])})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
