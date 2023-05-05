@@ -16,12 +16,12 @@
 # under the License.
 import pytest
 
-from superset.cachekeys.commands.warm_up_cache import WarmUpCacheCommand
 from superset.cachekeys.commands.exceptions import (
     WarmUpCacheChartNotFoundError,
     WarmUpCacheParametersExpectedError,
     WarmUpCacheTableNotFoundError,
 )
+from superset.cachekeys.commands.warm_up_cache import WarmUpCacheCommand
 from superset.extensions import db
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -29,8 +29,8 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
     load_energy_table_data,
+    load_energy_table_with_slice,
 )
 
 
