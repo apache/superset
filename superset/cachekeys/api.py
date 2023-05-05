@@ -70,7 +70,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
             Warms up the cache for the slice or table
           parameters:
           - in: query
-            name: slice_id
+            name: chart_id
             schema:
               type: integer
             description: The ID of the chart to warm up cache for
@@ -107,7 +107,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
                         items:
                           type: object
                           properties:
-                            slice_id:
+                            chart_id:
                               type: integer
                             viz_error:
                               type: string
@@ -120,7 +120,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        slice_id = request.args.get("slice_id")
+        chart_id = request.args.get("chart_id")
         dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
@@ -128,7 +128,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
 
         try:
             payload = WarmUpCacheCommand(
-                slice_id, dashboard_id, table_name, db_name, extra_filters
+                chart_id, dashboard_id, table_name, db_name, extra_filters
             ).run()
             return self.response(200, result=payload)
         except CommandException as ex:

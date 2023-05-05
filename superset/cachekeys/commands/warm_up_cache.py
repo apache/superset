@@ -39,38 +39,38 @@ class WarmUpCacheCommand(BaseCommand):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        slice_id: Optional[int],
+        chart_id: Optional[int],
         dashboard_id: Optional[int],
         table_name: Optional[str],
         db_name: Optional[str],
         extra_filters: Optional[str],
     ):
-        self._slice_id = slice_id
+        self._chart_id = chart_id
         self._dashboard_id = dashboard_id
         self._table_name = table_name
         self._db_name = db_name
         self._extra_filters = extra_filters
-        self._slices: List[Slice] = []
+        self._charts: List[Slice] = []
 
     def run(self) -> List[Dict[str, Any]]:
         self.validate()
         result: List[Dict[str, Any]] = []
-        for slc in self._slices:
+        for chart in self._charts:
             try:
-                form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                form_data = get_form_data(chart.id, use_slice_data=True)[0]
                 if self._dashboard_id:
                     form_data["extra_filters"] = (
                         json.loads(self._extra_filters)
                         if self._extra_filters
-                        else get_dashboard_extra_filters(slc.id, self._dashboard_id)
+                        else get_dashboard_extra_filters(chart.id, self._dashboard_id)
                     )
 
-                if not slc.datasource:
+                if not chart.datasource:
                     raise Exception("Slice's datasource does not exist")
 
                 obj = get_viz(
-                    datasource_type=slc.datasource.type,
-                    datasource_id=slc.datasource.id,
+                    datasource_type=chart.datasource.type,
+                    datasource_id=chart.datasource.id,
                     form_data=form_data,
                     force=True,
                 )
@@ -86,18 +86,18 @@ class WarmUpCacheCommand(BaseCommand):
                 status = None
 
             result.append(
-                {"slice_id": slc.id, "viz_error": error, "viz_status": status}
+                {"chart_id": chart.id, "viz_error": error, "viz_status": status}
             )
 
         return result
 
     def validate(self) -> None:
-        if not self._slice_id and not (self._table_name and self._db_name):
+        if not self._chart_id and not (self._table_name and self._db_name):
             raise WarmUpCacheParametersExpectedError()
-        if self._slice_id:
-            self._slices = db.session.query(Slice).filter_by(id=self._slice_id).all()
-            if not self._slices:
-                raise WarmUpCacheChartNotFoundError(self._slice_id)
+        if self._chart_id:
+            self._charts = db.session.query(Slice).filter_by(id=self._chart_id).all()
+            if not self._charts:
+                raise WarmUpCacheChartNotFoundError(self._chart_id)
         elif self._table_name and self._db_name:
             table = (
                 db.session.query(SqlaTable)
@@ -109,7 +109,7 @@ class WarmUpCacheCommand(BaseCommand):
             ).one_or_none()
             if not table:
                 raise WarmUpCacheTableNotFoundError(self._table_name, self._db_name)
-            self._slices = (
+            self._charts = (
                 db.session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
                 .all()
