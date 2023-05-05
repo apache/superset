@@ -57,17 +57,16 @@ class CacheRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def warm_up_cache(self) -> Response:
-        """Warms up the cache for the slice or table.
-
-        Note for slices a force refresh occurs.
-
-        In terms of the `extra_filters` these can be obtained from records in the JSON
-        encoded `logs.json` column associated with the `explore_json` action.
-
+        """
         ---
         get:
-          description: >-
+          summary: >-
             Warms up the cache for the slice or table
+          description: >-
+            Warms up the cache for the slice or table.
+            Note for slices a force refresh occurs.
+            In terms of the `extra_filters` these can be obtained from records in the JSON
+            encoded `logs.json` column associated with the `explore_json` action.
           parameters:
           - in: query
             name: chart_id
