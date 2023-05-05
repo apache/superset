@@ -214,7 +214,7 @@ strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="fetch_url")
-def fetch_url(data: Dict[str, int], headers: Dict[str, str]) -> Dict[str, str]:
+def fetch_url(data: str, headers: Dict[str, str]) -> Dict[str, str]:
     """
     Celery job to fetch url
     """
@@ -222,27 +222,27 @@ def fetch_url(data: Dict[str, int], headers: Dict[str, str]) -> Dict[str, str]:
     try:
         baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
         url = f"{baseurl}api/v1/cachekey/warm_up_cache"
-        logger.info("Fetching %s with payload %s", url, str(data))
+        logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(url, data=data, headers=headers, method="PUT")
         response = request.urlopen(  # pylint: disable=consider-using-with
             req, timeout=600
         )
         logger.info(
-            "Fetched %s with payload %s, status code: %s", url, str(data), response.code
+            "Fetched %s with payload %s, status code: %s", url, data, response.code
         )
         if response.code == 200:
-            result = {"success": str(data), "response": response.read().decode("utf-8")}
+            result = {"success": data, "response": response.read().decode("utf-8")}
         else:
-            result = {"error": str(data), "status_code": response.code}
+            result = {"error": data, "status_code": response.code}
             logger.error(
                 "Error fetching %s with payload %s, status code: %s",
                 url,
-                str(data),
+                data,
                 response.code,
             )
     except URLError as err:
         logger.exception("Error warming up cache!")
-        result = {"error": str(data), "exception": str(err)}
+        result = {"error": data, "exception": str(err)}
     return result
 
 
@@ -277,13 +277,16 @@ def cache_warmup(
 
     user = security_manager.get_user_by_username(app.config["THUMBNAIL_SELENIUM_USER"])
     cookies = MachineAuthProvider.get_auth_cookies(user)
-    headers = {"Cookie": f"session={cookies.get('session', '')}"}
+    headers = {
+        "Cookie": f"session={cookies.get('session', '')}",
+        "Content-Type": "application/json",
+    }
 
     results: Dict[str, List[str]] = {"scheduled": [], "errors": []}
     for payload in strategy.get_payloads():
         try:
             logger.info("Scheduling %s", str(payload))
-            fetch_url.delay(payload, headers)
+            fetch_url.delay(str(payload), headers)
             results["scheduled"].append(str(payload))
         except SchedulingError:
             logger.exception("Error scheduling fetch_url for payload: %s", str(payload))
