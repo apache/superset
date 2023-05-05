@@ -36,21 +36,19 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_url(chart: Slice, dashboard: Optional[Dashboard] = None) -> str:
-    """Return external URL for warming up a given chart/table cache."""
-    with app.test_request_context():
-        baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
-        url = f"{baseurl}api/v1/cachekey/warm_up_cache/?slice_id={chart.id}"
-        if dashboard:
-            url += f"&dashboard_id={dashboard.id}"
-        return url
+def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> Dict[str, int]:
+    """Return payload for warming up a given chart/table cache."""
+    payload = {"chart_id": chart.id}
+    if dashboard:
+        payload["dashboard_id"] = dashboard.id
+    return payload
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
     """
     A cache warm up strategy.
 
-    Each strategy defines a `get_urls` method that returns a list of URLs to
+    Each strategy defines a `get_payloads` method that returns a list of URLs to
     be fetched from the `/api/v1/cachekey/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
@@ -72,8 +70,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         pass
 
-    def get_urls(self) -> List[str]:
-        raise NotImplementedError("Subclasses must implement get_urls!")
+    def get_payloads(self) -> List[str]:
+        raise NotImplementedError("Subclasses must implement get_payloads!")
 
 
 class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -94,11 +92,11 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dummy"
 
-    def get_urls(self) -> List[str]:
+    def get_payloads(self) -> List[str]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
-        return [get_url(chart) for chart in charts]
+        return [get_payload(chart) for chart in charts]
 
 
 class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -126,8 +124,8 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
-    def get_urls(self) -> List[str]:
-        urls = []
+    def get_payloads(self) -> List[str]:
+        payloads = []
         session = db.create_scoped_session()
 
         records = (
@@ -142,9 +140,9 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url(chart, dashboard))
+                payloads.append(get_payload(chart, dashboard))
 
-        return urls
+        return payloads
 
 
 class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -169,8 +167,8 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.tags = tags or []
 
-    def get_urls(self) -> List[str]:
-        urls = []
+    def get_payloads(self) -> List[str]:
+        payloads = []
         session = db.create_scoped_session()
 
         tags = session.query(Tag).filter(Tag.name.in_(self.tags)).all()
@@ -191,7 +189,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url(chart))
+                payloads.append(get_payload(chart))
 
         # add charts that are tagged
         tagged_objects = (
@@ -207,35 +205,37 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
         for chart in tagged_charts:
-            urls.append(get_url(chart))
+            payloads.append(get_payload(chart))
 
-        return urls
+        return payloads
 
 
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="fetch_url")
-def fetch_url(url: str, headers: Dict[str, str]) -> Dict[str, str]:
+def fetch_url(data: Dict[str, int], headers: Dict[str, str]) -> Dict[str, str]:
     """
     Celery job to fetch url
     """
     result = {}
     try:
-        logger.info("Fetching %s", url)
-        req = request.Request(url, headers=headers)
+        baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
+        url = f"{baseurl}api/v1/cachekey/warm_up_cache"
+        logger.info("Fetching %s with payload %s", url, str(data))
+        req = request.Request(url, data=data, headers=headers, method="PUT")
         response = request.urlopen(  # pylint: disable=consider-using-with
             req, timeout=600
         )
-        logger.info("Fetched %s, status code: %s", url, response.code)
+        logger.info("Fetched %s with payload %s, status code: %s", url, str(data), response.code)
         if response.code == 200:
-            result = {"success": url, "response": response.read().decode("utf-8")}
+            result = {"success": str(data), "response": response.read().decode("utf-8")}
         else:
-            result = {"error": url, "status_code": response.code}
-            logger.error("Error fetching %s, status code: %s", url, response.code)
+            result = {"error": str(data), "status_code": response.code}
+            logger.error("Error fetching %s with payload %s, status code: %s", url, str(data), response.code)
     except URLError as err:
         logger.exception("Error warming up cache!")
-        result = {"error": url, "exception": str(err)}
+        result = {"error": str(data), "exception": str(err)}
     return result
 
 
@@ -273,13 +273,13 @@ def cache_warmup(
     headers = {"Cookie": f"session={cookies.get('session', '')}"}
 
     results: Dict[str, List[str]] = {"scheduled": [], "errors": []}
-    for url in strategy.get_urls():
+    for payload in strategy.get_payloads():
         try:
-            logger.info("Scheduling %s", url)
-            fetch_url.delay(url, headers)
-            results["scheduled"].append(url)
+            logger.info("Scheduling %s", str(payload))
+            fetch_url.delay(payload, headers)
+            results["scheduled"].append(str(payload))
         except SchedulingError:
-            logger.exception("Error scheduling fetch_url: %s", url)
-            results["errors"].append(url)
+            logger.exception("Error scheduling fetch_url for payload: %s", str(payload))
+            results["errors"].append(str(payload))
 
     return results
