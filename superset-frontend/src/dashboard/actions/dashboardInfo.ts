@@ -22,11 +22,12 @@ import { isString } from 'lodash';
 import { getErrorText } from 'src/utils/getClientErrorObject';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
+  ChartConfiguration,
   DashboardInfo,
   FilterBarOrientation,
+  GlobalChartCrossFilterConfig,
   RootState,
 } from 'src/dashboard/types';
-import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { onSave } from './dashboardState';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
@@ -67,26 +68,22 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
 export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
-export interface SetChartConfigBegin {
-  type: typeof SET_CHART_CONFIG_BEGIN;
-  chartConfiguration: ChartConfiguration;
-}
 export const SET_CHART_CONFIG_COMPLETE = 'SET_CHART_CONFIG_COMPLETE';
-export interface SetChartConfigComplete {
-  type: typeof SET_CHART_CONFIG_COMPLETE;
-  chartConfiguration: ChartConfiguration;
-}
 export const SET_CHART_CONFIG_FAIL = 'SET_CHART_CONFIG_FAIL';
-export interface SetChartConfigFail {
-  type: typeof SET_CHART_CONFIG_FAIL;
-  chartConfiguration: ChartConfiguration;
-}
+
 export const setChartConfiguration =
-  (chartConfiguration: ChartConfiguration) =>
-  async (dispatch: Dispatch, getState: () => any) => {
+  ({
+    chartConfiguration,
+    globalChartConfiguration,
+  }: {
+    chartConfiguration?: ChartConfiguration;
+    globalChartConfiguration?: GlobalChartCrossFilterConfig;
+  }) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
     dispatch({
       type: SET_CHART_CONFIG_BEGIN,
       chartConfiguration,
+      globalChartConfiguration,
     });
     const { id, metadata } = getState().dashboardInfo;
 
@@ -103,7 +100,10 @@ export const setChartConfiguration =
       const response = await updateDashboard({
         json_metadata: JSON.stringify({
           ...metadata,
-          chart_configuration: chartConfiguration,
+          chart_configuration:
+            chartConfiguration ?? metadata.chart_configuration,
+          global_chart_configuration:
+            globalChartConfiguration ?? metadata.global_chart_configuration,
         }),
       });
       dispatch(
@@ -114,17 +114,19 @@ export const setChartConfiguration =
       dispatch({
         type: SET_CHART_CONFIG_COMPLETE,
         chartConfiguration,
+        globalChartConfiguration,
       });
     } catch (err) {
-      dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
+      dispatch({
+        type: SET_CHART_CONFIG_FAIL,
+        chartConfiguration,
+        globalChartConfiguration,
+      });
     }
   };
 
 export const SET_FILTER_BAR_ORIENTATION = 'SET_FILTER_BAR_ORIENTATION';
-export interface SetFilterBarOrientation {
-  type: typeof SET_FILTER_BAR_ORIENTATION;
-  filterBarOrientation: FilterBarOrientation;
-}
+
 export function setFilterBarOrientation(
   filterBarOrientation: FilterBarOrientation,
 ) {
@@ -132,10 +134,7 @@ export function setFilterBarOrientation(
 }
 
 export const SET_CROSS_FILTERS_ENABLED = 'SET_CROSS_FILTERS_ENABLED';
-export interface SetCrossFiltersEnabled {
-  type: typeof SET_CROSS_FILTERS_ENABLED;
-  crossFiltersEnabled: boolean;
-}
+
 export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
   return { type: SET_CROSS_FILTERS_ENABLED, crossFiltersEnabled };
 }

@@ -23,6 +23,7 @@ import {
   ExtraFormData,
   GenericDataType,
   JsonObject,
+  NativeFilterScope,
   NativeFiltersState,
 } from '@superset-ui/core';
 import { Dataset } from '@superset-ui/chart-controls';
@@ -57,6 +58,27 @@ export enum FilterBarOrientation {
   VERTICAL = 'VERTICAL',
   HORIZONTAL = 'HORIZONTAL',
 }
+
+// chart's cross filter scoping can have its custom value or point to the global configuration
+export type ChartCrossFiltersGlobalScope = 'global';
+export type ChartCrossFiltersConfig = {
+  scope: NativeFilterScope | ChartCrossFiltersGlobalScope;
+  chartsInScope: number[];
+};
+export type GlobalChartCrossFilterConfig = {
+  scope: NativeFilterScope;
+  chartsInScope: number[];
+};
+export const isCrossFilterScopeGlobal = (
+  scope: NativeFilterScope | ChartCrossFiltersGlobalScope,
+): scope is ChartCrossFiltersGlobalScope => scope === 'global';
+
+export type ChartConfiguration = {
+  [chartId: number]: {
+    id: number;
+    crossFilters: ChartCrossFiltersConfig;
+  };
+};
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
@@ -102,7 +124,8 @@ export type DashboardInfo = {
   json_metadata: string;
   metadata: {
     native_filter_configuration: JsonObject;
-    chart_configuration: JsonObject;
+    chart_configuration: ChartConfiguration;
+    global_chart_configuration: GlobalChartCrossFilterConfig;
     color_scheme: string;
     color_namespace: string;
     color_scheme_domain: string[];
