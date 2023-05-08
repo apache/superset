@@ -211,7 +211,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             catalog,
             schema,
         )
-        
+
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
