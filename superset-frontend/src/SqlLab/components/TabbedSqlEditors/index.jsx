@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import pick from 'lodash/pick';
 import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
@@ -117,56 +118,64 @@ class TabbedSqlEditors extends React.PureComponent {
     // but for some reason this data isn't being passed properly through
     // the reducer.
     const bootstrapData = getBootstrapData();
-    const query = {
+    const queryParameters = URI(window.location).search(true);
+    const {
+      id,
+      name,
+      sql,
+      savedQueryId,
+      datasourceKey,
+      queryId,
+      dbid,
+      dbname,
+      schema,
+      autorun,
+      new: isNewQuery,
+      ...urlParams
+    } = {
       ...bootstrapData.requested_query,
-      ...URI(window.location).search(true),
+      ...queryParameters,
     };
 
     // Popping a new tab based on the querystring
-    if (
-      query.id ||
-      query.sql ||
-      query.savedQueryId ||
-      query.datasourceKey ||
-      query.queryId
-    ) {
-      if (query.id) {
-        this.props.actions.popStoredQuery(query.id);
-      } else if (query.savedQueryId) {
-        this.props.actions.popSavedQuery(query.savedQueryId);
-      } else if (query.queryId) {
-        this.props.actions.popQuery(query.queryId);
-      } else if (query.datasourceKey) {
-        this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
-      } else if (query.sql) {
-        let dbId = query.dbid;
-        if (dbId) {
-          dbId = parseInt(dbId, 10);
+    if (id || sql || savedQueryId || datasourceKey || queryId) {
+      if (id) {
+        this.props.actions.popStoredQuery(id);
+      } else if (savedQueryId) {
+        this.props.actions.popSavedQuery(savedQueryId);
+      } else if (queryId) {
+        this.props.actions.popQuery(queryId);
+      } else if (datasourceKey) {
+        this.props.actions.popDatasourceQuery(datasourceKey, sql);
+      } else if (sql) {
+        let databaseId = dbid;
+        if (databaseId) {
+          databaseId = parseInt(databaseId, 10);
         } else {
           const { databases } = this.props;
-          const dbName = query.dbname;
-          if (dbName) {
+          const databaseName = dbname;
+          if (databaseName) {
             Object.keys(databases).forEach(db => {
-              if (databases[db].database_name === dbName) {
-                dbId = databases[db].id;
+              if (databases[db].database_name === databaseName) {
+                databaseId = databases[db].id;
               }
             });
           }
         }
         const newQueryEditor = {
-          name: query.name,
-          dbId,
-          schema: query.schema,
-          autorun: query.autorun,
-          sql: query.sql,
+          name,
+          dbId: databaseId,
+          schema,
+          autorun,
+          sql,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab();
-    } else if (query.new || this.props.queryEditors.length === 0) {
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
+    } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 
-      if (query.new) {
+      if (isNewQuery) {
         window.history.replaceState({}, document.title, this.state.sqlLabUrl);
       }
     } else {
@@ -187,9 +196,10 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  popNewTab() {
+  popNewTab(urlParams) {
     // Clean the url in browser history
-    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
+    const updatedUrl = `${URI(this.state.sqlLabUrl).query(urlParams)}`;
+    window.history.replaceState({}, document.title, updatedUrl);
   }
 
   activeQueryEditor() {
