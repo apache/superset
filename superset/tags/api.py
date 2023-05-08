@@ -127,7 +127,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             f'{self.appbuilder.app.config["VERSION_SHA"]}'
         )
 
-    @expose("/<int:object_type>/<int:object_id>/", methods=["POST"])
+    @expose("/<int:object_type>/<int:object_id>/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -198,7 +198,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=["DELETE"])
+    @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -266,7 +266,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -321,7 +321,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         except TagDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/get_objects/", methods=["GET"])
+    @expose("/get_objects/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

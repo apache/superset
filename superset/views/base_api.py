@@ -531,7 +531,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
-    @expose("/related/<column_name>", methods=["GET"])
+    @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -610,7 +610,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
 
         return self.response(200, count=total_rows, result=result)
 
-    @expose("/distinct/<column_name>", methods=["GET"])
+    @expose("/distinct/<column_name>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

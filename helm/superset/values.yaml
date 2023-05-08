@@ -22,13 +22,19 @@
 # A README is automatically generated from this file to document it, using helm-docs (see https://github.com/norwoodj/helm-docs)
 # To update it, install helm-docs and run helm-docs from the root of this chart
 
+# -- Provide a name to override the name of the chart
+nameOverride: ~
+# -- Provide a name to override the full names of resources
+fullnameOverride: ~
+
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
-# serviceAccountName: superset
+# -- Specify service account name to be used
+serviceAccountName: ~
 serviceAccount:
-  # -- Create custom service account for Superset. If create: true and name is not provided, `superset.fullname` will be used.
+  # -- Create custom service account for Superset. If create: true and serviceAccountName is not provided, `superset.fullname` will be used.
   create: false
   annotations: {}
 
@@ -184,17 +190,16 @@ initImage:
 service:
   type: ClusterIP
   port: 8088
-  annotations:
-    {}
+  annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
-  loadBalancerIP: null
+  loadBalancerIP: ~
   nodePort:
     # -- (int)
     http: nil
 
 ingress:
   enabled: false
-  # ingressClassName: nginx
+  ingressClassName: ~
   annotations: {}
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
@@ -356,6 +361,10 @@ supersetWorker:
   deploymentAnnotations: {}
   # -- Labels to be added to supersetWorker deployment
   deploymentLabels: {}
+  # -- Affinity to be added to supersetWorker deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetWorker deployments
+  topologySpreadConstraints: []
   # -- Annotations to be added to supersetWorker pods
   podAnnotations: {}
   # -- Labels to be added to supersetWorker pods
@@ -454,6 +463,7 @@ supersetCeleryFlower:
   service:
     type: ClusterIP
     annotations: {}
+    loadBalancerIP: ~
     port: 5555
     nodePort:
       # -- (int)
@@ -557,6 +567,7 @@ supersetWebsockets:
   service:
     type: ClusterIP
     annotations: {}
+    loadBalancerIP: ~
     port: 8080
     nodePort:
       # -- (int)

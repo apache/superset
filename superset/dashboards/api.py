@@ -296,7 +296,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             self.appbuilder.app.config["VERSION_SHA"],
         )
 
-    @expose("/<id_or_slug>", methods=["GET"])
+    @expose("/<id_or_slug>", methods=("GET",))
     @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
@@ -354,7 +354,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, result=result)
 
-    @expose("/<id_or_slug>/datasets", methods=["GET"])
+    @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
@@ -423,7 +423,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<id_or_slug>/charts", methods=["GET"])
+    @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
@@ -490,7 +490,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -552,7 +552,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -638,7 +638,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
-    @expose("/<pk>", methods=["DELETE"])
+    @expose("/<pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -694,7 +694,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -755,7 +755,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -841,7 +841,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             resp.set_cookie(token, "done", max_age=600)
         return resp
 
-    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
     @safe
     @rison(thumbnail_query_schema)
@@ -943,7 +943,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    @expose("/favorite_status/", methods=["GET"])
+    @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -994,7 +994,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ]
         return self.response(200, result=res)
 
-    @expose("/<pk>/favorites/", methods=["POST"])
+    @expose("/<pk>/favorites/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -1038,7 +1038,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardDAO.add_favorite(dashboard)
         return self.response(200, result="OK")
 
-    @expose("/<pk>/favorites/", methods=["DELETE"])
+    @expose("/<pk>/favorites/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -1082,7 +1082,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardDAO.remove_favorite(dashboard)
         return self.response(200, result="OK")
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1206,7 +1206,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<id_or_slug>/embedded", methods=["GET"])
+    @expose("/<id_or_slug>/embedded", methods=("GET",))
     @protect()
     @safe
     @permission_name("read")
@@ -1330,7 +1330,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-    @expose("/<id_or_slug>/embedded", methods=["DELETE"])
+    @expose("/<id_or_slug>/embedded", methods=("DELETE",))
     @protect()
     @safe
     @permission_name("set_embedded")
@@ -1372,7 +1372,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             DashboardDAO.delete(embedded)
         return self.response(200, message="OK")
 
-    @expose("/<id_or_slug>/copy/", methods=["POST"])
+    @expose("/<id_or_slug>/copy/", methods=("POST",))
     @protect()
     @safe
     @permission_name("write")
