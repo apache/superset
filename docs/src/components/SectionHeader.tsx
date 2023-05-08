@@ -28,7 +28,7 @@ const StyledSectionHeader = styled('div')<StyledSectionHeaderProps>`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 55px;
+  padding: 55px 20px 0;
   max-width: 720px;
   margin: 0 auto;
   @media (min-width: 768px) {
@@ -76,7 +76,7 @@ const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
     margin-bottom: 15px;
   }
   .subtitle {
-    font-size: 27px;
+    font-size: 25px;
     line-height: 36px;
     @media (min-width: 768px) {
       font-size: 24px;
