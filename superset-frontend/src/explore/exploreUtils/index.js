@@ -297,7 +297,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       .indexOf(operator) >= 0;
   // If returned value is an object after changing dataset
   let expression =
-    typeof subject === 'object' ? subject.column_name ?? '' : subject ?? '';
+    typeof subject === 'object' ? subject?.column_name ?? '' : subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;
     const firstValue =
