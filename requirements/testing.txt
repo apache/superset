@@ -12,8 +12,6 @@
     #   -r requirements/base.in
     #   -r requirements/development.in
     #   -r requirements/testing.in
-astroid==2.6.6
-    # via pylint
 cachetools==5.2.0
     # via google-auth
 coverage==5.5
@@ -45,7 +43,7 @@ google-auth-oauthlib==0.7.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery[bqstorage,pandas]==3.4.0
+google-cloud-bigquery==3.4.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -74,12 +72,6 @@ grpcio-status==1.51.1
     # via google-api-core
 iniconfig==1.1.1
     # via pytest
-isort==5.12.0
-    # via pylint
-lazy-object-proxy==1.6.0
-    # via astroid
-mccabe==0.6.1
-    # via pylint
 oauthlib==3.2.2
     # via requests-oauthlib
 openapi-schema-validator==0.1.5
@@ -112,10 +104,6 @@ pydata-google-auth==1.4.0
     # via pandas-gbq
 pyfakefs==4.5.6
     # via -r requirements/testing.in
-pyhive[presto]==0.6.5
-    # via apache-superset
-pylint==2.9.6
-    # via -r requirements/testing.in
 pytest==6.2.4
     # via
     #   -r requirements/testing.in
@@ -137,8 +125,7 @@ trino==0.319.0
     # via apache-superset
 websocket-client==1.2.0
     # via docker
-wrapt==1.12.1
-    # via astroid
+
 # The following packages are considered to be unsafe in a requirements file:
 # pip
 # setuptools

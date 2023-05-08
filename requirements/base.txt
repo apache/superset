@@ -124,6 +124,8 @@ geopy==2.2.0
     # via apache-superset
 graphlib-backport==1.0.3
     # via apache-superset
+greenlet==2.0.2
+    # via sqlalchemy
 gunicorn==20.1.0
     # via apache-superset
 hashids==1.3.1
@@ -274,7 +276,7 @@ six==1.16.0
     #   pyrsistent
     #   python-dateutil
     #   wtforms-json
-slack-sdk==3.18.3
+slack-sdk==3.21.3
     # via apache-superset
 sqlalchemy==1.4.36
     # via
@@ -299,7 +301,6 @@ typing-extensions==4.4.0
     #   apache-superset
     #   flask-limiter
     #   limits
-    #   rich
 urllib3==1.26.6
     # via selenium
 vine==5.0.0
