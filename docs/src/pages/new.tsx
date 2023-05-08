@@ -97,10 +97,14 @@ const StyledTitleContainer = styled('div')`
   }
   .github-section {
     margin-top: 9px;
+    ${mq[1]} {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
     .github-button {
       margin: 5px;
       ${mq[1]} {
-        display: block;
         transform: scale(1.5);
         margin: 25px;
         &:first-child {
@@ -205,6 +209,10 @@ const StyledFeaturesList = styled('ul')`
   width: 100%;
   max-width: 1170px;
   margin: 15px auto 0;
+  padding: 0 20px;
+  ${mq[1]} {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
   .item {
     text-align: left;
     border: 1px solid #ededed;
@@ -213,6 +221,12 @@ const StyledFeaturesList = styled('ul')`
     display: flex;
     align-items: flex-start;
     padding: 20px;
+    ${mq[1]} {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 35px;
+    }
     .image {
       flex-shrink: 0;
       margin-right: 20px;
@@ -223,12 +237,19 @@ const StyledFeaturesList = styled('ul')`
       font-size: 24px;
       color: #484848;
       margin: 10px 0 0;
+      ${mq[1]} {
+        font-size: 32px;
+        margin-top: 20px;
+      }
     }
     .description {
       font-size: 17px;
       line-height: 23px;
       color: #5f5f5f;
       margin: 5px 0 0;
+      ${mq[1]} {
+        font-size: 23px;
+      }
     }
   }
 `;
