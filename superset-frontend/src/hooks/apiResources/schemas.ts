@@ -66,7 +66,7 @@ const EMPTY_SCHEMAS = [] as SchemaOption[];
 export function useSchemas(options: Params) {
   const isMountedRef = useRef(false);
   const { dbId, onSuccess, onError } = options || {};
-  const [trigger, refetchResult] = useLazySchemasQuery();
+  const [trigger] = useLazySchemasQuery();
   const result = useSchemasQuery(
     { dbId, forceRefresh: false },
     {
@@ -117,7 +117,7 @@ export function useSchemas(options: Params) {
   }, [result, handleOnSuccess, handleOnError]);
 
   return {
-    ...(refetchResult.isUninitialized ? result : refetchResult),
+    ...result,
     refetch,
   };
 }
