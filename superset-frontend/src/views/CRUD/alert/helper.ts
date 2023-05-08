@@ -19,7 +19,7 @@
 
 export const findMinValue = (arr: any) => {
   let minValue = arr[0]; // Assume the first value is the smallest
-   // eslint-disable-next-line no-plusplus
+  // eslint-disable-next-line no-plusplus
   for (let i = 1; i < arr.length; i++) {
     if (arr[i] < minValue) {
       minValue = arr[i];
@@ -39,7 +39,7 @@ export const getRangeTimeout = (minPart: string) => {
   const stepperArray = [];
   const commaSeparatedArray = [];
   let minValue = Math.min();
-   // eslint-disable-next-line no-plusplus
+  // eslint-disable-next-line no-plusplus
   for (let i = 0; i < minArray.length; i++) {
     if (minArray[i].includes('-')) {
       if (minArray[i].includes('/')) {
@@ -54,7 +54,7 @@ export const getRangeTimeout = (minPart: string) => {
     }
   }
   if (commaSeparatedArray.length > 0) {
-     // eslint-disable-next-line no-plusplus
+    // eslint-disable-next-line no-plusplus
     for (let i = 0; i < commaSeparatedArray.length; i++) {
       const currValue = Number(commaSeparatedArray[i]);
       if (currValue !== 0) {
