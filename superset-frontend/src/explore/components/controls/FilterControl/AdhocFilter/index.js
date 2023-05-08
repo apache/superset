@@ -135,10 +135,6 @@ export default class AdhocFilter {
 
   getDefaultLabel() {
     const label = this.translateToSql();
-    // If returned value is an object after changing dataset
-    if (typeof label === 'object') {
-      return label.column_name ?? '';
-    }
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
