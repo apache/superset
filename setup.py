@@ -118,7 +118,7 @@ setup(
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
-        "slack_sdk>=3.1.1, <4",
+        "slack_sdk>=3.19.0, <4",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse>=0.4.3, <0.5",
