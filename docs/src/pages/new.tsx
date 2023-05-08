@@ -257,6 +257,10 @@ const StyledFeaturesList = styled('ul')`
 const StyledSliderSection = styled('div')`
   position: relative;
   padding: 60px 20px 0;
+  ${mq[1]} {
+    padding-top: 0;
+    padding-bottom: 50px;
+  }
   &::before {
     content: '';
     display: block;
@@ -268,6 +272,9 @@ const StyledSliderSection = styled('div')`
     background-image: url('/img/grid-background.jpg');
     background-size: cover;
     z-index: -1;
+    ${mq[1]} {
+      height: 100%;
+    }
   }
   .toggleBtns {
     display: flex;
@@ -276,12 +283,24 @@ const StyledSliderSection = styled('div')`
     max-width: 870px;
     width: 100%;
     margin: 0 auto 20px;
+    padding: 0;
+    ${mq[1]} {
+      flex-direction: column;
+      text-align: left;
+      max-width: 170px;
+      gap: 20px;
+      margin-top: 25px;
+      margin-bottom: 40px;
+    }
     .toggle {
       font-size: 24px;
       color: var(--ifm-font-base-color-inverse);
       position: relative;
       padding-left: 32px;
       cursor: pointer;
+      ${mq[1]} {
+        font-weight: bold;
+      }
       &::before {
         content: '';
         display: block;
@@ -317,17 +336,57 @@ const StyledSliderSection = styled('div')`
 `;
 
 const StyledKeyFeatures = styled('div')`
-  margin-top: 35px;
+  margin-top: 50px;
   & > h3 {
     font-size: 30px;
   }
-  & > ul {
-    font-size: 17px;
-    list-style: none;
-    text-align: center;
-    margin-top: 30px;
-    li {
-      margin-bottom: 15px;
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px;
+    max-width: 960px;
+    margin: 30px auto 0;
+    padding: 0 20px;
+    text-align: left;
+    ${mq[1]} {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    & > .item {
+      display: flex;
+      font-size: 17px;
+      & > img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-right: 12px;
+        margin-top: 4px;
+      }
+    }
+  }
+  .row {
+    display: flex;
+    max-width: 960px;
+    margin: 30px auto 0;
+    & > .column {
+      width: 50%;
+      & > ul {
+        font-size: 17px;
+        list-style: none;
+        padding: 0 20px;
+        text-align: left;
+        margin: 0;
+        & > li {
+          display: flex;
+          margin-bottom: 20px;
+          & > img {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-right: 12px;
+            margin-top: 4px;
+          }
+        }
+      }
     }
   }
 `;
@@ -497,41 +556,68 @@ export default function Home(): JSX.Element {
           </StyledSliderSection>
           <StyledKeyFeatures>
             <h3>Key features</h3>
-            <ul>
-              <li>
-                <strong>40+ pre-installed visualizations</strong>
-              </li>
-              <li>
-                <strong>Drag-and-drop</strong> and/or{' '}
-                <strong>code-based navigation</strong>
-              </li>
-              <li>
-                <strong>Data caching</strong> for the faster load time of charts
-                and dashboards
-              </li>
-              <li>
-                <strong>Jinja templating and dashboard filters</strong> for
-                creating interactive dashboards
-              </li>
-              <li>
-                <strong>CSS templates</strong> to customize charts and
-                dashboards to your brand’s look and feel
-              </li>
-              <li>
-                <strong>Semantic layer</strong> for SQL data transformations
-              </li>
-              <li>
-                <strong>Cross-filters, drill-to-detail, and drill-by</strong>{' '}
-                features for deeper data analysis
-              </li>
-              <li>
-                <strong>Virtual datasets</strong> for ad-hoc data exploration
-              </li>
-              <li>
-                Access to new functionalities through{' '}
-                <strong>feature flags</strong>
-              </li>
-            </ul>
+            <div className="grid">
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>40+ pre-installed visualizations</strong>
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Drag-and-drop</strong> and/or{' '}
+                  <strong>code-based navigation</strong>
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Data caching</strong> for the faster load time of
+                  charts and dashboards
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Jinja templating and dashboard filters</strong> for
+                  creating interactive dashboards
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>CSS templates</strong> to customize charts and
+                  dashboards to your brand’s look and feel
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Semantic layer</strong> for SQL data transformations
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Cross-filters, drill-to-detail, and drill-by</strong>{' '}
+                  features for deeper data analysis
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  <strong>Virtual datasets</strong> for ad-hoc data exploration
+                </div>
+              </div>
+              <div className="item">
+                <img src="/img/check-icon.svg" alt="check-icon" />
+                <div>
+                  Access to new functionalities through{' '}
+                  <strong>feature flags</strong>
+                </div>
+              </div>
+            </div>
           </StyledKeyFeatures>
         </BlurredSection>
       </StyledMain>
