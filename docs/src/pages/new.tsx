@@ -75,17 +75,41 @@ const StyledTitleContainer = styled('div')`
   margin-bottom: 160px;
   background-image: url('img/grid-background.jpg');
   background-size: cover;
+  .infoContainer {
+    position: relative;
+    z-index: 4;
+  }
+  .superset-mark {
+    ${mq[1]} {
+      width: 188px;
+    }
+  }
   .info-text {
     font-size: 30px;
     line-height: 37px;
     max-width: 720px;
     margin: 24px auto 10px;
     color: #f8fdff;
+    ${mq[1]} {
+      font-size: 34px;
+      line-height: 41px;
+    }
   }
   .github-section {
     margin-top: 9px;
     .github-button {
       margin: 5px;
+      ${mq[1]} {
+        display: block;
+        transform: scale(1.5);
+        margin: 25px;
+        &:first-child {
+          margin-top: 20px;
+        }
+        &:last-child {
+          margin-bottom: 10px;
+        }
+      }
     }
   }
 `;
@@ -98,11 +122,16 @@ const StyledButton = styled(Link)`
   font-weight: bold;
   color: #ffffff;
   width: 170px;
-  padding: 10px;
+  padding: 10px 0;
   margin: 15px auto 0;
   transition: all 0.3s;
   &:hover {
     color: #ffffff;
+  }
+  ${mq[1]} {
+    font-size: 24px;
+    width: 200px;
+    padding: 12px 0;
   }
 `;
 
@@ -112,6 +141,9 @@ const StyledScreenshotContainer = styled('div')`
   padding-top: 30px;
   margin-top: 25px;
   margin-bottom: -125px;
+  ${mq[1]} {
+    padding-top: 20px;
+  }
   .screenshot {
     position: relative;
     z-index: 3;
@@ -125,6 +157,13 @@ const StyledScreenshotContainer = styled('div')`
     background-color: #256b7c;
     border-radius: 10px;
     z-index: 2;
+    ${mq[1]} {
+      background-color: #335a64;
+      top: 10px;
+      left: 15px;
+      width: calc(100% - 30px);
+      height: calc(100% - 10px);
+    }
   }
   .screenshot-shadow-2 {
     position: absolute;
@@ -135,6 +174,27 @@ const StyledScreenshotContainer = styled('div')`
     background-color: #0d5262;
     border-radius: 10px;
     z-index: 1;
+    ${mq[1]} {
+      background-color: #1f4048;
+      left: 30px;
+      width: calc(100% - 60px);
+    }
+  }
+  .screenshotBlur {
+    display: none;
+    background-color: #173036;
+    filter: blur(45px);
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 100%;
+    padding-top: 100%;
+    border-radius: 50%;
+    transform: translate3d(-50%, 0, 0);
+    opacity: 0.3;
+    ${mq[1]} {
+      display: block;
+    }
   }
 `;
 
@@ -182,7 +242,7 @@ const StyledSliderSection = styled('div')`
     width: 100%;
     height: calc(100% - 310px);
     position: absolute;
-    too: 0;
+    top: 0;
     left: 0;
     background-image: url('img/grid-background.jpg');
     background-size: cover;
@@ -267,50 +327,52 @@ export default function Home(): JSX.Element {
     >
       <StyledMain>
         <StyledTitleContainer>
-          <img
-            className="superset-mark"
-            src="img/superset-mark-dark.svg"
-            alt="Superset mark"
-          />
-          <div className="info-text">
-            Apache Superset is an open-source modern data exploration and
-            visualization platform.
+          <div className="infoContainer">
+            <img
+              className="superset-mark"
+              src="img/superset-mark-dark.svg"
+              alt="Superset mark"
+            />
+            <div className="info-text">
+              Apache Superset is an open-source modern data exploration and
+              visualization platform.
+            </div>
+            <img src="img/community/line.png" alt="line" />
+            <div className="github-section">
+              <span className="github-button">
+                <GitHubButton
+                  href="https://github.com/apache/superset"
+                  data-size="large"
+                  data-show-count="true"
+                  aria-label="Star apache/superset on GitHub"
+                >
+                  Star
+                </GitHubButton>
+              </span>
+              <span className="github-button">
+                <GitHubButton
+                  href="https://github.com/apache/superset/subscription"
+                  data-size="large"
+                  data-show-count="true"
+                  aria-label="Watch apache/superset on GitHub"
+                >
+                  Watch
+                </GitHubButton>
+              </span>
+              <span className="github-button">
+                <GitHubButton
+                  href="https://github.com/apache/superset/fork"
+                  data-size="large"
+                  data-show-count="true"
+                  aria-label="Fork apache/superset on GitHub"
+                >
+                  Fork
+                </GitHubButton>
+              </span>
+            </div>
+            <img src="img/community/line.png" alt="line" />
+            <StyledButton href="/docs/intro">Get Started</StyledButton>
           </div>
-          <img src="img/community/line.png" alt="line" />
-          <div className="github-section">
-            <span className="github-button">
-              <GitHubButton
-                href="https://github.com/apache/superset"
-                data-size="large"
-                data-show-count="true"
-                aria-label="Star apache/superset on GitHub"
-              >
-                Star
-              </GitHubButton>
-            </span>
-            <span className="github-button">
-              <GitHubButton
-                href="https://github.com/apache/superset/subscription"
-                data-size="large"
-                data-show-count="true"
-                aria-label="Watch apache/superset on GitHub"
-              >
-                Watch
-              </GitHubButton>
-            </span>
-            <span className="github-button">
-              <GitHubButton
-                href="https://github.com/apache/superset/fork"
-                data-size="large"
-                data-show-count="true"
-                aria-label="Fork apache/superset on GitHub"
-              >
-                Fork
-              </GitHubButton>
-            </span>
-          </div>
-          <img src="img/community/line.png" alt="line" />
-          <StyledButton href="/docs/intro">Get Started</StyledButton>
           <StyledScreenshotContainer>
             <img
               className="screenshot"
@@ -319,6 +381,7 @@ export default function Home(): JSX.Element {
             />
             <div className="screenshot-shadow-1"></div>
             <div className="screenshot-shadow-2"></div>
+            <div className="screenshotBlur"></div>
           </StyledScreenshotContainer>
         </StyledTitleContainer>
         <BlurredSection>
