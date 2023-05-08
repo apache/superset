@@ -734,7 +734,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
-    // TODO: Elizabeth - add some error handling or promise/callback here
     let dbConfigExtraExtensionOnSaveError;
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
@@ -836,7 +835,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
-        // TODO: Elizabeth- check to see if we need these extra calls.
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -863,7 +861,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
-        // TODO: Elizabeth- check to see if we need these extra calls.
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
