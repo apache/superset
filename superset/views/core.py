@@ -1377,7 +1377,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/add_slices/<int:dashboard_id>/", methods=["POST"])
+    @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
     @deprecated(new_target="api/v1/chart/<chart_id>")
     def add_slices(  # pylint: disable=no-self-use
         self, dashboard_id: int
