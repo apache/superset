@@ -23,7 +23,6 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -306,7 +305,6 @@ FAB_API_SWAGGER_UI = True
 # other tz can be overridden by providing a local_config
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
-
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -857,6 +855,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
@@ -1119,7 +1118,6 @@ BLUEPRINTS: List[Blueprint] = []
 #       lambda url, query: url if is_fresh(query) else None
 #   )
 TRACKING_URL_TRANSFORMER = lambda url: url
-
 
 # customize the polling time of each engine
 DB_POLL_INTERVAL_SECONDS: Dict[str, int] = {}
@@ -1418,7 +1416,6 @@ SSL_CERT_PATH: Optional[str] = None
 
 SQLA_TABLE_MUTATOR = lambda table: table
 
-
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
@@ -1549,7 +1546,6 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
-
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
@@ -1561,11 +1557,16 @@ if CONFIG_PATH_ENV_VAR in os.environ:
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
-        override_conf = imp.load_source("superset_config", cfg_path)
-        for key in dir(override_conf):
+        spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
+        if spec is None:
+            raise ImportError
+        module_from_spec = importlib.util.module_from_spec(spec)
+        if spec.loader is None:
+            raise ImportError
+        spec.loader.exec_module(module_from_spec)
+        for key in dir(module_from_spec):
             if key.isupper():
-                setattr(module, key, getattr(override_conf, key))
-
+                setattr(module, key, getattr(module_from_spec, key))
         print(f"Loaded your LOCAL configuration at [{cfg_path}]")
     except Exception:
         logger.exception(

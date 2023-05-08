@@ -16,10 +16,10 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from datetime import datetime
-import imp
+import importlib.util
 import json
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch, MagicMock
 
@@ -27,25 +27,25 @@ import pandas as pd
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.dialects.mysql import dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.test_app import app, login
-from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.models.slice import Slice
+from superset.sql_parse import CtasMethod
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
+from tests.integration_tests.test_app import app, login
 
 FAKE_DB_NAME = "fake_db_100"
 test_client = app.test_client()
@@ -183,11 +183,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def is_module_installed(module_name):
-        try:
-            imp.find_module(module_name)
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec(module_name) is not None
 
     def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()
