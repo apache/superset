@@ -19,24 +19,14 @@
 import React, { useRef, useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import { List, Card } from 'antd';
-import { Button, Col, Row, Carousel } from 'antd';
+import { Carousel } from 'antd';
 import styled from '@emotion/styled';
-import { supersetTheme } from '@superset-ui/style';
-import '../styles/main.less';
-import {
-  DeploymentUnitOutlined,
-  FireOutlined,
-  DotChartOutlined,
-  DatabaseOutlined,
-} from '@ant-design/icons';
 import GitHubButton from 'react-github-btn';
 import { mq } from '../utils';
 import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
-
-const { colors } = supersetTheme;
+import '../styles/main.less';
 
 const features = [
   {
@@ -391,6 +381,46 @@ const StyledKeyFeatures = styled('div')`
   }
 `;
 
+const StyledIntegrations = styled('div')`
+  padding: 0 20px;
+  .database-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    max-width: 1160px;
+    margin: 25px auto 0;
+    ${mq[1]} {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    ${mq[0]} {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    & > .item {
+      border: 1px solid #ededed;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 120px;
+      padding: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      & > a {
+        height: 100%;
+        & > img {
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+    }
+  }
+  .database-sub {
+    display: block;
+    text-align: center;
+    font-size: 17px;
+    margin-top: 50px;
+  }
+`;
+
 export default function Home(): JSX.Element {
   const slider = useRef(null);
 
@@ -619,6 +649,30 @@ export default function Home(): JSX.Element {
               </div>
             </div>
           </StyledKeyFeatures>
+        </BlurredSection>
+        <BlurredSection>
+          <StyledIntegrations>
+            <SectionHeader level="h2" title="Supported Databases" />
+            <div className="database-grid">
+              {Databases.map(({ title, href, imgName }) => (
+                <div className="item">
+                  {href ? (
+                    <a href={href}>
+                      <img src={`/img/databases/${imgName}`} title={title} />
+                    </a>
+                  ) : (
+                    <img src={`/img/databases/${imgName}`} title={title} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <span className="database-sub">
+              ...and many other{' '}
+              <a href="/docs/databases/installing-database-drivers">
+                compatible databases
+              </a>
+            </span>
+          </StyledIntegrations>
         </BlurredSection>
       </StyledMain>
     </Layout>

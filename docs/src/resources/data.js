@@ -19,19 +19,9 @@
 
 export const Databases = [
   {
-    title: 'Amazon Redshift',
-    href: 'https://aws.amazon.com/redshift/',
-    imgName: 'aws-redshift.png',
-  },
-  {
-    title: 'Apache Druid',
-    href: 'http://druid.io/',
-    imgName: 'druid.png',
-  },
-  {
-    title: 'Apache Kylin',
-    href: 'http://kylin.apache.org/',
-    imgName: 'apache-kylin.png',
+    title: 'PostgresSQL',
+    href: 'https://www.postgresql.org/',
+    imgName: 'postsql.png',
   },
   {
     title: 'BigQuery',
@@ -39,39 +29,9 @@ export const Databases = [
     imgName: 'googleBQ.png',
   },
   {
-    title: 'ClickHouse',
-    href: 'https://clickhouse.tech/',
-    imgName: 'clickhouse.png',
-  },
-  {
-    title: 'Dremio',
-    href: 'https://dremio.com/',
-    imgName: 'dremio.png',
-  },
-  {
-    title: 'Databricks',
-    href: 'https://www.databricks.com',
-    imgName: 'databricks.png',
-  },
-  {
-    title: 'Exasol',
-    href: 'https://www.exasol.com/en/',
-    imgName: 'exasol.png',
-  },
-  {
-    title: 'FireBirdSql',
-    href: 'https://firebirdsql.org/',
-    imgName: 'firebird.png',
-  },
-  {
-    title: 'Green Plum',
-    href: 'https://greenplum.org/',
-    imgName: 'greenplum.png',
-  },
-  {
-    title: 'IBM Db2',
-    href: 'https://www.ibm.com/analytics/db2',
-    imgName: 'ibmdb2.png',
+    title: 'Snowflake',
+    href: 'https://www.snowflake.com/',
+    imgName: 'snowflake.png',
   },
   {
     title: 'MySQL',
@@ -79,44 +39,38 @@ export const Databases = [
     imgName: 'mysql.png',
   },
   {
-    title: 'Microsoft SqlServer',
-    href: 'https://www.microsoft.com/en-us/sql-server',
-    imgName: 'msql.png',
+    title: 'Amazon Redshift',
+    href: 'https://aws.amazon.com/redshift/',
+    imgName: 'aws-redshift.png',
   },
   {
-    title: 'MonetDB',
-    href: 'https://www.monetdb.org/',
-    imgName: 'monet.png',
+    title: 'Amazon Athena',
+    href: 'https://aws.amazon.com/pt/athena/',
+    imgName: 'aws-athena.png',
   },
   {
-    title: 'Oracle',
-    href: 'https://www.oracle.com/database/',
-    imgName: 'oraclelogo.png',
+    title: 'Apache Druid',
+    href: 'http://druid.io/',
+    imgName: 'druid.png',
   },
   {
-    title: 'PostgresSQL',
-    href: 'https://www.postgresql.org/',
-    imgName: 'postsql.png',
+    title: 'Databricks',
+    href: 'https://www.databricks.com',
+    imgName: 'databricks.png',
   },
   {
-    title: 'Presto',
-    href: 'https://prestodb.io/',
-    imgName: 'presto-og.png',
+    title: 'Google Sheets',
+    href: 'https://www.google.com/sheets/about/',
+    imgName: 'google-sheets.png',
   },
   {
-    title: 'Snowflake',
-    href: 'https://www.snowflake.com/',
-    imgName: 'snowflake.png',
+    title: 'CSV',
+    imgName: 'csv.png',
   },
   {
-    title: 'SQLite',
-    href: 'https://www.sqlite.org/index.html',
-    imgName: 'sqlite.png',
-  },
-  {
-    title: 'Trino',
-    href: 'https://trino.io/',
-    imgName: 'trino2.jpg',
+    title: 'ClickHouse',
+    href: 'https://clickhouse.tech/',
+    imgName: 'clickhouse.png',
   },
   {
     title: 'Rockset',
@@ -124,33 +78,43 @@ export const Databases = [
     imgName: 'rockset.png',
   },
   {
-    title: 'Vertica',
-    href: 'https://www.vertica.com/',
-    imgName: 'vertica.png',
+    title: 'Dremio',
+    href: 'https://dremio.com/',
+    imgName: 'dremio.png',
   },
   {
-    title: 'Hologres',
-    href: 'https://www.alibabacloud.com/product/hologres',
-    imgName: 'hologres.png',
+    title: 'Trino',
+    href: 'https://trino.io/',
+    imgName: 'trino2.jpg',
   },
   {
-    title: 'IBM Netezza Performance Server',
-    href: 'https://www.ibm.com/products/netezza',
-    imgName: 'netezza.png',
+    title: 'Oracle',
+    href: 'https://www.oracle.com/database/',
+    imgName: 'oraclelogo.png',
   },
   {
-    title: 'Teradata',
-    href: "www.teradata.com",
-    imgName: 'teradata.png'
+    title: 'Apache Pinot',
+    href: 'https://pinot.apache.org/',
+    imgName: 'apache-pinot.png',
   },
   {
-    title: 'TimescaleDB',
-    href: "www.timescale.com",
-    imgName: 'timescale.png'
+    title: 'Presto',
+    href: 'https://prestodb.io/',
+    imgName: 'presto-og.png',
   },
   {
-    title: 'YugabyteDB',
-    href: "www.yugabyte.com",
-    imgName: 'yugabyte.png'
-  }
+    title: 'IBM Db2',
+    href: 'https://www.ibm.com/analytics/db2',
+    imgName: 'ibmdb2.png',
+  },
+  {
+    title: 'SAP Hana',
+    href: 'https://www.sap.com/products/technology-platform/hana.html',
+    imgName: 'sap-hana.png',
+  },
+  {
+    title: 'Microsoft SqlServer',
+    href: 'https://www.microsoft.com/en-us/sql-server',
+    imgName: 'msql.png',
+  },
 ];
