@@ -17,32 +17,34 @@
 
 */}}
 
+{{- if .Values.supersetWebsockets.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "superset.fullname" . }}
+  name: "{{ template "superset.fullname" . }}-ws"
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "superset.name" . }}
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-  {{- with .Values.service.annotations }}
+  {{- with .Values.supersetWebsockets.service.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.supersetWebsockets.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.supersetWebsockets.service.port }}
+      targetPort: ws
       protocol: TCP
-      name: http
-      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePort.http)) }}
-      nodePort: {{ .Values.service.nodePort.http }}
+      name: ws
+      {{- if and (or (eq .Values.supersetWebsockets.service.type "NodePort") (eq .Values.supersetWebsockets.service.type "LoadBalancer")) (not (empty .Values.supersetWebsockets.service.nodePort.http)) }}
+      nodePort: {{ .Values.supersetWebsockets.service.nodePort.http }}
       {{- end }}
   selector:
-    app: {{ template "superset.name" . }}
+    app: "{{ template "superset.name" . }}-ws"
     release: {{ .Release.Name }}
-  {{- if .Values.service.loadBalancerIP }}
-  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- if .Values.supersetWebsockets.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.supersetWebsockets.service.loadBalancerIP }}
   {{- end }}
+{{- end }}
