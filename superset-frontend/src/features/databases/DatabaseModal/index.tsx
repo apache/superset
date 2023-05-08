@@ -735,7 +735,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = async () => {
     // TODO: Elizabeth - add some error handling or promise/callback here
-    dbConfigExtraExtension?.onSave(extraExtensionComponentState, db);
+    let dbConfigExtraExtensionOnSaveError;
+    dbConfigExtraExtension
+      ?.onSave(extraExtensionComponentState, db)
+      .then(({ error }: { error: any }) => {
+        if (error) {
+          dbConfigExtraExtensionOnSaveError = error;
+          addDangerToast(error);
+        }
+      });
+    if (dbConfigExtraExtensionOnSaveError) {
+      setLoading(false);
+      return;
+    }
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
@@ -825,7 +837,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
         // TODO: Elizabeth- check to see if we need these extra calls.
-        dbConfigExtraExtension?.onSave(extraExtensionComponentState, db);
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -841,7 +864,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
         // TODO: Elizabeth- check to see if we need these extra calls.
-        dbConfigExtraExtension?.onSave(extraExtensionComponentState, db);
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
+
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save

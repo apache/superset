@@ -98,7 +98,7 @@ export interface DatabaseConnectionExtension {
    * Callback for onsave
    */
   // TODO: we need to move the db types to superset-ui/core in order to import them correctly
-  onSave: (componentState: any, db: any) => void;
+  onSave: (componentState: any, db: any) => any;
 
   /**
    * Used for parent to store data
