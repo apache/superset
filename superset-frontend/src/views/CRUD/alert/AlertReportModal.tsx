@@ -428,7 +428,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [maxWorkingTimeout, setMaxWorkingTimeout] = useState<number>(MAX_WORKING_TIMEOUT);
+  const [maxWorkingTimeout, setMaxWorkingTimeout] =
+    useState<number>(MAX_WORKING_TIMEOUT);
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,
     emailError: '',
@@ -1185,7 +1186,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validate();
-    displayTimeoutValidation(currentAlertSafe?.crontab || DEFAULT_CRON_VALUE)
+    displayTimeoutValidation(currentAlertSafe?.crontab || DEFAULT_CRON_VALUE);
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1207,16 +1208,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(false);
   }
 
-  const displayTimeoutValidation = (cronSchedule:string) => {
+  const displayTimeoutValidation = (cronSchedule: string) => {
     // let cronschedule = "5-25/5,9-10,24,45,48 * * * *"
     // let cronschedule = "1-4/5 * * 1 *"
     // let cronschedule = "* * * * *"
     // let cronschedule = "0 * * * *"
-    let minutePart = cronSchedule.split(" ")[0]
-    let timeout = getLeastTimeout(minutePart,MAX_WORKING_TIMEOUT)
+    const minutePart = cronSchedule.split(' ')[0];
+    const timeout = getLeastTimeout(minutePart, MAX_WORKING_TIMEOUT);
     // console.log("TIMEOUT==",timeout)
-    setMaxWorkingTimeout(timeout)
-  }
+    setMaxWorkingTimeout(timeout);
+  };
 
   return (
     <StyledModal
@@ -1413,7 +1414,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
               onChange={newVal => {
                 updateAlertState('crontab', newVal);
-                displayTimeoutValidation(currentAlert?.crontab || DEFAULT_CRON_VALUE)
+                displayTimeoutValidation(
+                  currentAlert?.crontab || DEFAULT_CRON_VALUE,
+                );
               }}
             />
             <div className="control-label">{t('Timezone')}</div>
