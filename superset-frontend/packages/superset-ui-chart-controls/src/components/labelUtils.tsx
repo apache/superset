@@ -68,7 +68,10 @@ export const getColumnTypeTooltipNode = (
   }
 
   return (
-    <TooltipSection label={t('Column datatype')} text={column.type.toLowerCase()} />
+    <TooltipSection
+      label={t('Column datatype')}
+      text={column.type.toLowerCase()}
+    />
   );
 };
 
