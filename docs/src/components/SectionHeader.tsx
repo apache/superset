@@ -106,7 +106,7 @@ const SectionHeader = ({
   return (
     <StyledRoot dark={!!dark}>
       <Heading className="title">{title}</Heading>
-      <img className="line" src="img/community/line.png" alt="line" />
+      <img className="line" src="/img/community/line.png" alt="line" />
       {subtitle && <p className="subtitle">{subtitle}</p>}
     </StyledRoot>
   );

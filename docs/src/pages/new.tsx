@@ -73,7 +73,7 @@ const StyledTitleContainer = styled('div')`
   position: relative;
   padding: 60px 20px 0;
   margin-bottom: 160px;
-  background-image: url('img/grid-background.jpg');
+  background-image: url('/img/grid-background.jpg');
   background-size: cover;
   .infoContainer {
     position: relative;
@@ -244,7 +244,7 @@ const StyledSliderSection = styled('div')`
     position: absolute;
     top: 0;
     left: 0;
-    background-image: url('img/grid-background.jpg');
+    background-image: url('/img/grid-background.jpg');
     background-size: cover;
     z-index: -1;
   }
@@ -330,14 +330,14 @@ export default function Home(): JSX.Element {
           <div className="infoContainer">
             <img
               className="superset-mark"
-              src="img/superset-mark-dark.svg"
+              src="/img/superset-mark-dark.svg"
               alt="Superset mark"
             />
             <div className="info-text">
               Apache Superset is an open-source modern data exploration and
               visualization platform.
             </div>
-            <img src="img/community/line.png" alt="line" />
+            <img src="/img/community/line.png" alt="line" />
             <div className="github-section">
               <span className="github-button">
                 <GitHubButton
@@ -370,13 +370,13 @@ export default function Home(): JSX.Element {
                 </GitHubButton>
               </span>
             </div>
-            <img src="img/community/line.png" alt="line" />
+            <img src="/img/community/line.png" alt="line" />
             <StyledButton href="/docs/intro">Get Started</StyledButton>
           </div>
           <StyledScreenshotContainer>
             <img
               className="screenshot"
-              src="img/hero-screenshot.png"
+              src="/img/hero-screenshot.png"
               alt="hero-screenshot"
             />
             <div className="screenshot-shadow-1"></div>
@@ -394,7 +394,7 @@ export default function Home(): JSX.Element {
             {features.map(({ image, title, description }) => (
               <li className="item" key={title}>
                 <div className="image">
-                  <img src={`img/features/${image}`} />
+                  <img src={`/img/features/${image}`} />
                 </div>
                 <div className="content">
                   <h4 className="title">{title}</h4>
@@ -454,23 +454,23 @@ export default function Home(): JSX.Element {
                   Build charts and tables through intuitive drag-and-drop
                   navigation
                 </p>
-                <img src="img/explore.jpg" alt="Explore (chart buider) UI" />
+                <img src="/img/explore.jpg" alt="Explore (chart buider) UI" />
               </div>
               <div className="slide">
                 <p>(Dashboard) Text</p>
-                <img src="img/dashboard.jpg" alt="Superset Dashboard" />
+                <img src="/img/dashboard.jpg" alt="Superset Dashboard" />
               </div>
               <div className="slide">
                 <p>(SQL View) Text</p>
-                <img src="img/sql_lab.jpg" alt="SQL Lab" />
+                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
               </div>
               <div className="slide">
                 <p>(SQL Lab) Text</p>
-                <img src="img/sql_lab.jpg" alt="SQL Lab" />
+                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
               </div>
               <div className="slide">
                 <p>(Update) Text</p>
-                <img src="img/sql_lab.jpg" alt="SQL Lab" />
+                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
               </div>
             </Carousel>
           </StyledSliderSection>

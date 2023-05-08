@@ -32,7 +32,7 @@ const config = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
-  favicon: 'img/favicon.ico',
+  favicon: '/img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
   themes: ['@saucelabs/theme-github-codeblock'],
@@ -177,8 +177,8 @@ const config = {
       navbar: {
         logo: {
           alt: 'Superset Logo',
-          src: 'img/superset-logo-horiz.svg',
-          srcDark: 'img/superset-logo-horiz-dark.svg',
+          src: '/img/superset-logo-horiz.svg',
+          srcDark: '/img/superset-logo-horiz-dark.svg',
         },
         items: [
           {
@@ -230,14 +230,14 @@ const config = {
         links: [],
         copyright: `
           <div class="footer__applitools">
-            We use <a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="img/applitools.png" title="Applitools" /></a>
+            We use <a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},
           The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
           Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>.</p>
           <p><small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
           <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small></p>
-          <img class="footer__divider" src="img/community/line.png" alt="Divider" />
+          <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
           <p>
             <small>
               <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;

@@ -41,7 +41,7 @@ const BlurredSection = ({ children }: BlurredSectionProps) => {
   return (
     <StyledBlurredSection>
       {children}
-      <img className="blur" src="img/community/blur.png" alt="Blur" />
+      <img className="blur" src="/img/community/blur.png" alt="Blur" />
     </StyledBlurredSection>
   );
 };
