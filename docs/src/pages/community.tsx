@@ -170,7 +170,7 @@ const Community = () => {
               <List.Item className="item">
                 <List.Item.Meta
                   avatar={
-                    <img className="icon" src={`img/community/${image}`} />
+                    <img className="icon" src={`/img/community/${image}`} />
                   }
                   title={
                     <a className="title" href={url}>
