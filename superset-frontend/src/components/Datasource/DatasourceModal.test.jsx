@@ -18,24 +18,21 @@
  */
 import React from 'react';
 import { act } from 'react-dom/test-utils';
-import configureStore from 'redux-mock-store';
 import { mount } from 'enzyme';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { defaultStore as store } from 'spec/helpers/testing-library';
 import Modal from 'src/components/Modal';
 import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import QueryProvider from 'src/views/QueryProvider';
+import { api } from 'src/hooks/apiResources/queryApi';
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
@@ -55,11 +52,9 @@ const mockedProps = {
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
-    <QueryProvider>
-      <Provider store={store}>
-        <DatasourceModal {...props} />
-      </Provider>
-    </QueryProvider>,
+    <Provider store={store}>
+      <DatasourceModal {...props} />
+    </Provider>,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
@@ -81,6 +76,9 @@ describe('DatasourceModal', () => {
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
+    act(() => {
+      store.dispatch(api.util.resetApiState());
+    });
   });
 
   it('renders', () => {
