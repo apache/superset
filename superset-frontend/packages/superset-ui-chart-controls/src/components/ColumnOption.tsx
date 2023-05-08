@@ -22,7 +22,7 @@ import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
-import { getColumnLabelText, getColumnTooltipNode } from './labelUtils';
+import { getColumnLabelText, getColumnTooltipNode, getColumnTypeTooltipNode } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
 
 export type ColumnOptionProps = {
@@ -48,14 +48,20 @@ export function ColumnOption({
   const hasExpression = expression && expression !== column_name;
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
+  const [columnTypeTooltipText, setcolumnTypeTooltipText] = useState<ReactNode>(column.type);
 
   useLayoutEffect(() => {
     setTooltipText(getColumnTooltipNode(column, labelRef));
+    setcolumnTypeTooltipText(getColumnTypeTooltipNode(column));
   }, [labelRef, column]);
 
   return (
     <StyleOverrides>
-      {showType && type !== undefined && <ColumnTypeLabel type={type} />}
+      <Tooltip id="metric-type-tooltip" title={columnTypeTooltipText} placement="bottomRight">
+        <span>
+          {showType && type !== undefined && <ColumnTypeLabel type={type} />}
+        </span>
+      </Tooltip>
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span
           className="option-label column-option-label"
