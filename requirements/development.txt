@@ -44,7 +44,7 @@ future==0.18.3
     # via pyhive
 ijson==3.2.0.post0
     # via tabulator
-ipython==8.13.2
+ipython==8.12.2
     # via -r requirements/development.in
 isort==5.12.0
     # via pylint
