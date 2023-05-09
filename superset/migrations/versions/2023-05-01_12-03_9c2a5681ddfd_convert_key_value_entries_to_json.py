@@ -61,6 +61,7 @@ class KeyValueEntry(Base):
 def upgrade():
     bind = op.get_bind()
     session: Session = db.Session(bind=bind)
+    truncated_count = 0
     for entry in paginated_update(
         session.query(KeyValueEntry).filter(
             KeyValueEntry.resource.in_(RESOURCES_TO_MIGRATE)
@@ -72,11 +73,15 @@ def upgrade():
             if str(ex) == "pickle data was truncated":
                 # make truncated values that were created prior to #20385 an empty
                 # dict so that downgrading will work properly.
+                truncated_count += 1
                 value = {}
             else:
                 raise
 
         entry.value = bytes(json.dumps(value), encoding="utf-8")
+
+    if truncated_count:
+        print(f"Replaced {truncated_count} corrupted values with an empty value")
 
 
 def downgrade():
