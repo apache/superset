@@ -447,17 +447,19 @@ def test_validate_parameters_missing():
             "query": {},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message=(
-                "One or more parameters are missing: " "database, host, port, username"
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message=(
+                    "One or more parameters are missing: "
+                    "database, host, port, username"
+                ),
+                error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={"missing": ["database", "host", "port", "username"]},
             ),
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={"missing": ["database", "host", "port", "username"]},
-        ),
-    ]
+        ]
 
 
 @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
