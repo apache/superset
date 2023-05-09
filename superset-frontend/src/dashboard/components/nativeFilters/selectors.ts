@@ -310,7 +310,7 @@ export const selectChartCrossFilters = (
       })
       .map(chartConfig => {
         const filterIndicator = getCrossFilterIndicator(
-          chartConfig.id,
+          Number(chartConfig.id),
           dataMask[chartConfig.id],
           dashboardLayout,
         );

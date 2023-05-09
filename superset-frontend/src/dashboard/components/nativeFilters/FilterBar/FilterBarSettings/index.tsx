@@ -38,7 +38,7 @@ import DropdownSelectableIcon, {
 } from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
 import { clearDataMaskState } from 'src/dataMask/actions';
-import { useCrossFiltersScopingModal } from '../CrossFilters/useCrossFiltersScopingModal';
+import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
 type SelectedKey = FilterBarOrientation | string | number;
 

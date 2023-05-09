@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
 import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
@@ -108,4 +108,4 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   );
 };
 
-export default ScopingTree;
+export default memo(ScopingTree);
