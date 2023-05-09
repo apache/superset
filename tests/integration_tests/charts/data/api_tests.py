@@ -622,8 +622,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
-        return
         self.logout()
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login("admin")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -641,7 +641,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query returns results synchronously
         when results are already cached.
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
 
         class QueryContext:
@@ -671,7 +671,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -683,7 +683,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query (async)
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
@@ -999,7 +999,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
@@ -1026,7 +1026,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with run failure
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         rv = self.get_assert_metric(
@@ -1044,7 +1044,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
-        return
+        app._got_first_request = False
         self.logout()
         async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
@@ -1067,7 +1067,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with invalid cache key
         """
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"

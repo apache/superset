@@ -1088,7 +1088,7 @@ class TestCore(SupersetTestCase):
             "groupby": ["gender"],
             "row_limit": 100,
         }
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
@@ -1120,7 +1120,7 @@ class TestCore(SupersetTestCase):
             "groupby": ["gender"],
             "row_limit": 100,
         }
-        return
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(

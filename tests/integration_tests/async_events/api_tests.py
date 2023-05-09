@@ -110,7 +110,8 @@ class TestAsyncEventApi(SupersetTestCase):
         self.assertEqual(response, expected)
 
     def test_events_no_login(self):
-        # async_query_manager.init_app(app)
+        app._got_first_request = False
+        async_query_manager.init_app(app)
         rv = self.fetch_events()
         assert rv.status_code == 401
 
