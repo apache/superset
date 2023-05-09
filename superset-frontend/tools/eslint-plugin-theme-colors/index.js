@@ -71,14 +71,14 @@ module.exports = {
         const warned = [];
         return {
           TemplateElement(node) {
-            const rawValue = node?.value?.raw;
+            const rawValue = node.value.raw;
             const isChildParentTagged =
-              node?.parent?.parent?.type === 'TaggedTemplateExpression';
+              node.parent.parent.type === 'TaggedTemplateExpression';
             const isChildParentArrow =
-              node?.parent?.parent?.type === 'ArrowFunctionExpression';
+              node.parent.parent.type === 'ArrowFunctionExpression';
             const isParentTemplateLiteral =
-              node?.parent?.type === 'TemplateLiteral';
-            const loc = node?.parent?.parent?.loc;
+              node.parent.type === 'TemplateLiteral';
+            const loc = node.parent.parent.loc;
             const locId = loc && JSON.stringify(loc);
             const hasWarned = warned.includes(locId);
             if (
@@ -95,8 +95,8 @@ module.exports = {
             }
           },
           Literal(node) {
-            const value = node?.value;
-            const isParentProperty = node?.parent?.type === 'Property';
+            const value = node.value;
+            const isParentProperty = node.parent.type === 'Property';
             const locId = JSON.stringify(node.loc);
             const hasWarned = warned.includes(locId);
 
