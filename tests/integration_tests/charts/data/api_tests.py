@@ -1045,8 +1045,8 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         Chart data cache API: Test chart data async cache request (no login)
         """
         app._got_first_request = False
-        self.logout()
         async_query_manager.init_app(app)
+        self.logout()
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
 
