@@ -205,9 +205,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
-        uri, new_connect_args = super(
-            MySQLEngineSpec, MySQLEngineSpec
-        ).adjust_engine_params(uri, connect_args, catalog, schema)
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
+
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
