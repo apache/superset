@@ -304,7 +304,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const stepHeuristic = (min: number, max: number) => {
     const maxStepSize = (max - min) / MIN_NUM_STEPS;
     // normalizedStepSize: .06 -> .01, .003 -> .001
-    const normalizedStepSize = '1E' + Math.floor(Math.log10(maxStepSize));
+    const normalizedStepSize = `1E${Math.floor(Math.log10(maxStepSize))}`;
     return Math.min(1, parseFloat(normalizedStepSize));
   };
 
