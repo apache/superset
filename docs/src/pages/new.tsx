@@ -96,7 +96,7 @@ const StyledTitleContainer = styled('div')`
       margin: 5px;
       ${mq[1]} {
         transform: scale(1.5);
-        margin: 25px;
+        margin: 15px;
         &:first-of-type {
           margin-top: 20px;
         }
@@ -446,6 +446,7 @@ export default function Home(): JSX.Element {
 
   useEffect(() => {
     changeToDark();
+
     window.addEventListener('scroll', () => {
       if (window.scrollY > 0) {
         changeToLight();
@@ -453,6 +454,9 @@ export default function Home(): JSX.Element {
         changeToDark();
       }
     });
+
+    const navbarToggle = document.body.querySelector('.navbar__toggle');
+    navbarToggle.addEventListener('click', () => changeToLight());
   }, []);
 
   return (
