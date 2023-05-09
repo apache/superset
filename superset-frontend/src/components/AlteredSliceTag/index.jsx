@@ -104,7 +104,7 @@ export default class AlteredSliceTag extends React.Component {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         return;
       }
-      if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
+      if (['filters', 'having', 'where'].includes(fdKey)) {
         return;
       }
       if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {

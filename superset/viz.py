@@ -361,9 +361,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
 
-        granularity = self.form_data.get("granularity") or self.form_data.get(
-            "granularity_sqla"
-        )
+        granularity = self.form_data.get("granularity_sqla")
         limit = int(self.form_data.get("limit") or 0)
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
 
@@ -774,12 +772,8 @@ class TableViz(BaseViz):
     @deprecated(deprecated_in="3.0")
     def should_be_timeseries(self) -> bool:
         # TODO handle datasource-type-specific code in datasource
-        conditions_met = (
-            self.form_data.get("granularity")
-            and self.form_data.get("granularity") != "all"
-        ) or (
-            self.form_data.get("granularity_sqla")
-            and self.form_data.get("time_grain_sqla")
+        conditions_met = self.form_data.get("granularity_sqla") and self.form_data.get(
+            "time_grain_sqla"
         )
         if self.form_data.get("include_time") and not conditions_met:
             raise QueryObjectValidationError(
@@ -1000,9 +994,6 @@ class PivotTableViz(BaseViz):
         if df.empty:
             return None
 
-        if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
         aggfuncs: dict[str, str | Callable[[Any], Any]] = {}
         for metric in metrics:
@@ -1173,11 +1164,9 @@ class CalHeatmapViz(BaseViz):
             "month": "P1M",
             "year": "P1Y",
         }
-        time_grain = mapping[self.form_data.get("subdomain_granularity", "min")]
-        if self.datasource.type == "druid":
-            query_obj["granularity"] = time_grain
-        else:
-            query_obj["extras"]["time_grain_sqla"] = time_grain
+        query_obj["extras"]["time_grain_sqla"] = mapping[
+            self.form_data.get("subdomain_granularity", "min")
+        ]
         return query_obj
 
 
@@ -1423,11 +1412,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     @deprecated(deprecated_in="3.0")
     def process_data(self, df: pd.DataFrame, aggregate: bool = False) -> VizData:
-        if self.form_data.get("granularity") == "all":
-            raise QueryObjectValidationError(
-                _("Pick a time granularity for your time series")
-            )
-
         if df.empty:
             return df
 
@@ -1688,11 +1672,6 @@ class NVD3DualLineViz(NVD3Viz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-
-        if self.form_data.get("granularity") == "all":
-            raise QueryObjectValidationError(
-                _("Pick a time granularity for your time series")
-            )
 
         metric = utils.get_metric_name(self.form_data["metric"])
         metric_2 = utils.get_metric_name(self.form_data["metric_2"])
@@ -2746,9 +2725,7 @@ class DeckScatterViz(BaseDeckGLViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         self.point_radius_fixed = self.form_data.get("point_radius_fixed") or {
             "type": "fix",
             "value": 500,
@@ -2801,9 +2778,7 @@ class DeckScreengrid(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")
@@ -2874,9 +2849,7 @@ class DeckPathViz(BaseDeckGLViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         query_obj = super().query_obj()
         self.metric = self.form_data.get("metric")
         line_col = self.form_data.get("line_column")
@@ -3023,9 +2996,7 @@ class DeckArc(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")

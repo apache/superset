@@ -22,7 +22,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.utils.core import AnnotationType, DTTM_ALIAS
 
 query_birth_names = {
-    "extras": {"where": "", "time_grain_sqla": "P1D", "having_druid": []},
+    "extras": {"where": "", "time_grain_sqla": "P1D"},
     "columns": ["name"],
     "metrics": [{"label": "sum__num"}],
     "orderby": [("sum__num", False)],
@@ -38,7 +38,6 @@ query_birth_names = {
         {"col": "name", "op": "NOT IN", "val": ["<NULL>", '"abc"']},
     ],
     "having": "",
-    "having_filters": [],
     "where": "",
 }
 

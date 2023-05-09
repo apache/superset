@@ -143,7 +143,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
-    READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -169,7 +169,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
-        "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
         "Row Level Security",
@@ -196,7 +195,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_sync_druid_source",
         "can_override_role_permissions",
         "can_approve",
         "can_update_role",
@@ -375,8 +373,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
-        Note for Druid the database is akin to the Druid cluster.
-
         :param database: The Superset database
         :returns: Whether the user can fully access the Superset database
         """
@@ -391,9 +387,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Return True if the user can fully access the schema associated with the Superset
         datasource, False otherwise.
-
-        Note for Druid datasources the database and schema are akin to the Druid cluster
-        and datasource name prefix respectively, i.e., [schema.]datasource.
 
         :param datasource: The Superset datasource
         :returns: Whether the user can fully access the datasource's schema

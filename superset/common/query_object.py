@@ -77,8 +77,7 @@ DEPRECATED_EXTRAS_FIELDS = (
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
-    The query object's schema matches the interfaces of DB connectors like sqla
-    and druid. The query objects are constructed on the client.
+    The query objects are constructed on the client.
     """
 
     annotation_layers: list[dict[str, Any]]

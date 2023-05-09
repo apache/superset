@@ -238,7 +238,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
            {
             'role_name': '{role_name}',
             'database': [{
-                'datasource_type': '{table|druid}',
+                'datasource_type': '{table}',
                 'name': '{database_name}',
                 'schema': [{
                     'name': '{schema_name}',

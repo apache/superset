@@ -254,7 +254,7 @@ def get_datasource_info(
     This function allows supporting both without duplicating code
 
     :param datasource_id: The datasource ID
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_type: The datasource type
     :param form_data: The URL form data
     :returns: The datasource ID and type
     :raises SupersetException: If the datasource no longer exists
@@ -468,7 +468,7 @@ def check_datasource_perms(
     This function takes `self` since it must have the same signature as the
     the decorated method.
 
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_type: The datasource type
     :param datasource_id: The datasource ID
     :raises SupersetSecurityException: If the user cannot access the resource
     """

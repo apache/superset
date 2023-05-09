@@ -981,14 +981,6 @@ class ChartDataExtrasSchema(Schema):
             "AND operator."
         },
     )
-    having_druid = fields.List(
-        fields.Nested(ChartDataFilterSchema),
-        metadata={
-            "description": "HAVING filters to be added to legacy Druid datasource "
-            "queries. This field is deprecated",
-            "deprecated": True,
-        },
-    )
     time_grain_sqla = fields.String(
         metadata={
             "description": "To what level of granularity should the temporal column be "
@@ -1159,10 +1151,7 @@ class ChartDataQueryObjectSchema(Schema):
     )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
-        metadata={
-            "description": "Name of temporal column used for time filtering. "
-            "For legacy Druid datasources this defines the time grain."
-        },
+        metadata={"description": "Name of temporal column used for time filtering. "},
         allow_none=True,
     )
     granularity_sqla = fields.String(
@@ -1337,26 +1326,6 @@ class ChartDataQueryObjectSchema(Schema):
             "description": "HAVING clause to be added to aggregate queries using "
             "AND operator. This field is deprecated and should be passed "
             "to `extras`.",
-            "deprecated": True,
-        },
-        allow_none=True,
-    )
-    having_filters = fields.List(
-        fields.Nested(ChartDataFilterSchema),
-        metadata={
-            "description": "HAVING filters to be added to legacy Druid datasource "
-            "queries. This field is deprecated and should be passed to `extras` "
-            "as `having_druid`.",
-            "deprecated": True,
-        },
-        allow_none=True,
-    )
-    druid_time_origin = fields.String(
-        metadata={
-            "description": "Starting point for time grain counting on legacy Druid "
-            "datasources. Used to change e.g. Monday/Sunday first-day-of-week. "
-            "This field is deprecated and should be passed to `extras` "
-            "as `druid_time_origin`.",
             "deprecated": True,
         },
         allow_none=True,
