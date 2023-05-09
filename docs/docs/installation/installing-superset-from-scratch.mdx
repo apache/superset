@@ -118,7 +118,11 @@ First, start by installing `apache-superset`:
 ```
 pip install apache-superset
 ```
-
+Then, you need to set two environment variables:
+```
+export FLASK_APP=superset
+export SUPERSET_SECRET_KEY='YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
 Then, you need to initialize the database:
 
 ```
@@ -129,7 +133,7 @@ Finish installing by running through the following commands:
 
 ```
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
+
 superset fab create-admin
 
 # Load some data to play with
