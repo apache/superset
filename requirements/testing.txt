@@ -12,8 +12,6 @@
     #   -r requirements/base.in
     #   -r requirements/development.in
     #   -r requirements/testing.in
-cachetools==5.3.0
-    # via google-auth
 coverage[toml]==7.2.5
     # via pytest-cov
 db-dtypes==1.1.1
@@ -109,8 +107,6 @@ pydata-google-auth==1.7.0
     # via pandas-gbq
 pyfakefs==5.2.2
     # via -r requirements/testing.in
-pyhive[presto]==0.6.5
-    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
@@ -120,6 +116,8 @@ pytest-cov==4.0.0
     # via -r requirements/testing.in
 pytest-mock==3.10.0
     # via -r requirements/testing.in
+pytz-deprecation-shim==0.1.0.post0
+    # via tzlocal
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
@@ -132,6 +130,10 @@ statsd==4.0.1
     # via -r requirements/testing.in
 trino==0.323.0
     # via apache-superset
+tzdata==2023.3
+    # via pytz-deprecation-shim
+tzlocal==4.3
+    # via trino
 websocket-client==1.5.1
     # via docker
 

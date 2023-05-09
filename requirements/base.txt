@@ -53,7 +53,7 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
     # via celery
-colorama==0.4.4
+colorama==0.4.6
     # via
     #   apache-superset
     #   flask-appbuilder
