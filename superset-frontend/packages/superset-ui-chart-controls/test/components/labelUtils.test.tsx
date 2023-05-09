@@ -66,7 +66,6 @@ test('should get null as tooltip', () => {
 });
 
 test('should get null for column datatype tooltip when type is blank', () => {
-  const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
     getColumnTypeTooltipNode({
       id: 123,
@@ -79,7 +78,6 @@ test('should get null for column datatype tooltip when type is blank', () => {
 });
 
 test('should get column datatype rendered as tooltip when column has a type', () => {
-  const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   renderWithTheme(
     <>
       {getColumnTypeTooltipNode({
