@@ -35,17 +35,6 @@ h6 {
   font-weight: var(--ifm-heading-font-weight);
 }
 
-.DocSearch-Button .DocSearch-Button-Key {
-  display: none;
-}
-
-.github-logo-container {
-  background-image: url('/img/github.png');
-  background-size: contain;
-  width: 30px;
-  height: 30px;
-}
-
 .theme-doc-toc-desktop {
   position: fixed !important;
 }
@@ -61,16 +50,7 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
-.navbar__logo {
-  height: 40px;
-}
-
-.navbar-sidebar__brand {
-  padding-left: 0;
-}
-
-.menu,
-.navbar {
+.menu {
   font-size: 14px;
   font-weight: 400;
 }
@@ -92,18 +72,101 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   margin-top: 0.5em;
 }
 
-@media only screen and (min-width: 800px) {
-  .navbar__logo {
-    height: 50px;
+a > span > svg {
+  display: none;
+}
+
+/* Navbar */
+
+.navbar {
+  font-size: 14px;
+  font-weight: 400;
+  background-color: #fff;
+
+  .get-started-button {
+    display: block;
+    background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%);
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    width: 142px;
+    padding: 7px 0;
+    transition: all 0.3s;
+    text-align: center;
+    margin-right: 20px;
+    &:hover {
+      color: #ffffff;
+    }
   }
 
-  .navbar {
-    padding-left: 0;
+  .github-button {
+    background-image: url('/img/github.png');
+    background-size: contain;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
   }
 }
 
-a > span > svg {
-  display: none;
+.navbar--dark {
+  background-color: transparent;
+  border-bottom: 1px solid rgba(24, 115, 132, 0.4);
+
+  .github-button {
+    background-image: url('/img/github-dark.png');
+  }
+}
+
+.navbar--fixed-top {
+  position: fixed;
+  width: 100%;
+}
+
+.navbar__logo {
+  height: 40px;
+}
+
+.navbar-sidebar__brand {
+  padding-left: 0;
+}
+
+@media only screen and (min-width: 800px) {
+  .navbar {
+    padding-left: 0;
+  }
+
+  .navbar__logo {
+    height: 50px;
+  }
+}
+
+/* Search Bar */
+
+.navbar .DocSearch {
+  --docsearch-text-color: #187384;
+  --docsearch-muted-color: #187384;
+  --docsearch-searchbox-background: #fff;
+  border: 1px solid #187384;
+  border-radius: 10px;
+
+  &.DocSearch-Button {
+    width: 225px;
+  }
+
+  .DocSearch-Search-Icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .DocSearch-Button-Key,
+  .DocSearch-Button-Placeholder {
+    display: none;
+  }
+}
+
+.navbar--dark .DocSearch {
+  --docsearch-searchbox-background: #1d3d46;
 }
 
 /* Footer */

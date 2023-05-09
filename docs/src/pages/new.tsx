@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import { Carousel } from 'antd';
@@ -61,7 +61,7 @@ const StyledMain = styled('main')`
 
 const StyledTitleContainer = styled('div')`
   position: relative;
-  padding: 60px 20px 0;
+  padding: 130px 20px 0;
   margin-bottom: 160px;
   background-image: url('/img/grid-background.jpg');
   background-size: cover;
@@ -97,10 +97,10 @@ const StyledTitleContainer = styled('div')`
       ${mq[1]} {
         transform: scale(1.5);
         margin: 25px;
-        &:first-child {
+        &:first-of-type {
           margin-top: 20px;
         }
-        &:last-child {
+        &:last-of-type {
           margin-bottom: 10px;
         }
       }
@@ -430,6 +430,31 @@ export default function Home(): JSX.Element {
     setSlideIndex(index);
   };
 
+  const changeToDark = () => {
+    const navbar = document.body.querySelector('.navbar');
+    const logo = document.body.querySelector('.navbar__logo img');
+    navbar.classList.add('navbar--dark');
+    logo.setAttribute('src', '/img/superset-logo-horiz-dark.svg');
+  };
+
+  const changeToLight = () => {
+    const navbar = document.body.querySelector('.navbar');
+    const logo = document.body.querySelector('.navbar__logo img');
+    navbar.classList.remove('navbar--dark');
+    logo.setAttribute('src', '/img/superset-logo-horiz.svg');
+  };
+
+  useEffect(() => {
+    changeToDark();
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 0) {
+        changeToLight();
+      } else {
+        changeToDark();
+      }
+    });
+  }, []);
+
   return (
     <Layout
       title="Welcome"
@@ -655,7 +680,7 @@ export default function Home(): JSX.Element {
             <SectionHeader level="h2" title="Supported Databases" />
             <div className="database-grid">
               {Databases.map(({ title, href, imgName }) => (
-                <div className="item">
+                <div className="item" key={title}>
                   {href ? (
                     <a href={href}>
                       <img src={`/img/databases/${imgName}`} title={title} />

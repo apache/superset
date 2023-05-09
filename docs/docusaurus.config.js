@@ -220,9 +220,15 @@ const config = {
             ],
           },
           {
+            href: '/docs/intro',
+            position: 'right',
+            className: 'get-started-button',
+            label: 'Get Started',
+          },
+          {
             href: 'https://github.com/apache/superset',
             position: 'right',
-            className: 'github-logo-container',
+            className: 'github-button',
           },
         ],
       },
