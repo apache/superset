@@ -44,7 +44,6 @@ export const getRangeTimeout = (minPart: string) => {
     if (minArray[i].includes('-')) {
       if (minArray[i].includes('/')) {
         const stepper = minArray[i].split('/').pop();
-        console.log('stepper in for loop', stepper);
         stepperArray.push(Number(stepper));
       } else {
         stepperArray.push(1);
@@ -55,13 +54,11 @@ export const getRangeTimeout = (minPart: string) => {
   }
   if (commaSeparatedArray.length > 0) {
     // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < commaSeparatedArray.length; i++) {
+    for (let i = 1; i < commaSeparatedArray.length; i++) {
       const currValue = Number(commaSeparatedArray[i]);
-      if (currValue !== 0) {
-        const currDiff = currValue - Number(commaSeparatedArray[i - 1] || 0);
-        if (currDiff < minValue) {
-          minValue = currDiff;
-        }
+      const currDiff = currValue - Number(commaSeparatedArray[i - 1] || 0);
+      if (currDiff < minValue) {
+        minValue = currDiff;
       }
     }
     stepperArray.push(minValue);
@@ -74,15 +71,14 @@ export const getLeastTimeout = (
   defaultWorkingTimeout: number,
 ) => {
   if (minPart === '*') {
-    return 60;
+    return Math.min(60, defaultWorkingTimeout);
   }
   if (minPart === '0') {
-    return 3600;
+    return Math.min(3600, defaultWorkingTimeout);
   }
   if (minPart.includes(',') || minPart.includes('-')) {
     const timeout = getRangeTimeout(minPart);
-    return timeout * 60;
+    return Math.min(timeout * 60, defaultWorkingTimeout);
   }
-
   return defaultWorkingTimeout;
 };
