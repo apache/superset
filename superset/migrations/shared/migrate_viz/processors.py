@@ -34,6 +34,7 @@ class MigrateTreeMap(MigrateViz):
 class MigrateAreaChart(MigrateViz):
     source_viz_type = "area"
     target_viz_type = "echarts_area"
+    has_x_axis_control = True
     remove_keys = {"contribution", "stacked_style", "x_axis_label"}
     rename_keys = {
         "x_axis_label": "x_axis_title",
@@ -44,8 +45,13 @@ class MigrateAreaChart(MigrateViz):
     }
 
     def _pre_action(self) -> None:
-        if self.data.get("contribution"):
-            self.data["contributionMode"] = "row"
+        contribution = self.data.get("contribution")
+        if contribution:
+            self.data["contributionMode"] = "row" if contribution else None
+
+        show_brush = self.data.get("show_brush")
+        self.data["zoomable"] = False if show_brush == "no" else True
+        self.data["y_axis_showminmax"] = True
 
         if stacked := self.data.get("stacked_style"):
             stacked_map = {
@@ -66,3 +72,17 @@ class MigrateAreaChart(MigrateViz):
             self.data["bottom_margin"] = 30
 
         self.data["opacity"] = 0.7
+
+        rolling_type = self.data.get("rolling_type")
+        if rolling_type:
+            self.data["rolling_type"] = None if rolling_type == "None" else rolling_type
+
+        time_compare = self.data.get("time_compare")
+        if time_compare:
+            self.data["time_compare"] = [value + " ago" for value in time_compare]
+
+        comparison_type = self.data.get("comparison_type")
+        if comparison_type:
+            self.data["comparison_type"] = (
+                "difference" if comparison_type == "absolute" else comparison_type
+            )
