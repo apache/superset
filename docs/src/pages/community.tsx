@@ -20,6 +20,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import { List } from 'antd';
 import Layout from '@theme/Layout';
+import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
 
@@ -86,32 +87,34 @@ const StyledJoinCommunity = styled('section')`
     border: 0;
   }
   .icon {
-    width: 60px;
-    @media (min-width: 768px) {
-      width: 40px;
-      margin-top: 5px;
+    width: 40px;
+    margin-top: 5px;
+    ${mq[1]} {
+      width: 60px;
+      margin-top: 0;
     }
   }
   .title {
-    font-size: 32px;
+    font-size: 20px;
     line-height: 36px;
     font-weight: 700;
     color: var(--ifm-font-base-color);
-    @media (min-width: 768px) {
-      font-size: 20px;
+    ${mq[1]} {
+      font-size: 32px;
     }
   }
   .description {
-    font-size: 23px;
-    line-height: 30px;
-    color: #484848;
-    margin-bottom: 35px;
-    @media (min-width: 768px) {
-      font-size: 14px;
-      line-height: 20px;
-      color: #5f5f5f;
-      margin-top: -8px;
-      margin-bottom: 23px;
+    font-size: 14px;
+    line-height: 20px;
+    color: #5f5f5f;
+    margin-top: -8px;
+    margin-bottom: 23px;
+    ${mq[1]} {
+      font-size: 23px;
+      line-height: 30px;
+      color: #484848;
+      margin-bottom: 35px;
+      margin-top: 0;
     }
   }
 `;
@@ -120,11 +123,11 @@ const StyledCalendarIframe = styled('iframe')`
   display: block;
   margin: 20px auto 30px;
   max-width: 800px;
-  width: calc(100% - 40px);
+  width: 100%;
   height: 600px;
   border: 0;
-  @media (min-width: 768px) {
-    width: 100%;
+  ${mq[1]} {
+    width: calc(100% - 40px);
   }
 `;
 
@@ -132,18 +135,15 @@ const StyledNewsletterIframe = styled('iframe')`
   display: block;
   max-width: 1080px;
   width: calc(100% - 40px);
-  height: 680px;
+  height: 285px;
   margin: 30px auto 20px;
   border: 0;
-  @media (min-width: 680px) {
+  @media (max-width: 1200px) {
     height: 380px;
   }
-  @media (min-width: 768px) {
-    height: 285px;
+  @media (max-width: 679px) {
+    height: 680px;
     margin-top: 15px;
-  }
-  @media (min-width: 1200px) {
-    width: 100%;
   }
 `;
 
