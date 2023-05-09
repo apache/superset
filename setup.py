@@ -117,6 +117,7 @@ setup(
         "selenium>=3.141.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
+        "setuptools>=65.5.1, <66.0.0",
         "simplejson>=3.15.0",
         "slack_sdk>=3.19.0, <4",
         "sqlalchemy>=1.4, <2",
