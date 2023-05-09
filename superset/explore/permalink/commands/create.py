@@ -45,7 +45,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             value = {
                 "chartId": self.chart_id,
                 "datasourceId": datasource_id,
-                "datasourceType": datasource_type,
+                "datasourceType": datasource_type.value,
                 "datasource": self.datasource,
                 "state": self.state,
             }
