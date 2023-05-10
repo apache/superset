@@ -260,6 +260,26 @@ class DashboardDAO(BaseDAO):
             }
             md["default_filters"] = json.dumps(applicable_filters)
 
+            if 'native_filter_configuration' in data:
+                # replace native_filter_id and immune ids
+                # from old slice id to new slice id:
+                for filter_config in data['native_filter_configuration']:
+                    old_scopes = filter_config['chartsInScope']
+                    new_scopes = []
+                    for old_scope in old_scopes:
+                        new_scopes.append(old_to_new_slice_ids[old_scope])
+                    filter_config['chartsInScope'] = new_scopes
+                    scope = filter_config['scope']
+                    if 'excluded' in scope:
+                        excluded_scopes = scope['excluded']
+                        new_excluded_scopes = []
+                        for excluded_scope in excluded_scopes:
+                            new_excluded_scopes.append(
+                                old_to_new_slice_ids[excluded_scope])
+                        scope['excluded'] = new_excluded_scopes
+            md["native_filter_configuration"] = data.get("native_filter_configuration",
+                                                         {})
+
             # positions have its own column, no need to store it in metadata
             md.pop("positions", None)
 
