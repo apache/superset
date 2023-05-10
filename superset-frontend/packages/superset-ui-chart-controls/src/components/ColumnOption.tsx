@@ -67,6 +67,7 @@ export function ColumnOption({
         id="metric-type-tooltip"
         title={columnTypeTooltipText}
         placement="bottomRight"
+        align={{ offset: [8, -2] }}
       >
         <span>
           {showType && type !== undefined && <ColumnTypeLabel type={type} />}
