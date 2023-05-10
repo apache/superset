@@ -568,6 +568,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
+    @deprecated(eol_version="3.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -615,6 +616,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
+    @deprecated(eol_version="3.0")
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
