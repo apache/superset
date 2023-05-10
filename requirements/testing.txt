@@ -12,17 +12,17 @@
     #   -r requirements/base.in
     #   -r requirements/development.in
     #   -r requirements/testing.in
-cachetools==5.2.0
-    # via google-auth
-coverage==5.5
+coverage[toml]==7.2.5
     # via pytest-cov
-db-dtypes==1.0.5
+db-dtypes==1.1.1
     # via pandas-gbq
-docker==5.0.0
+docker==6.1.1
     # via -r requirements/testing.in
+exceptiongroup==1.1.1
+    # via pytest
 flask-testing==0.8.1
     # via -r requirements/testing.in
-freezegun==1.1.0
+freezegun==1.2.2
     # via -r requirements/testing.in
 google-api-core[grpc]==2.11.0
     # via
@@ -31,7 +31,7 @@ google-api-core[grpc]==2.11.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.14.1
+google-auth==2.17.3
     # via
     #   google-api-core
     #   google-auth-oauthlib
@@ -39,54 +39,57 @@ google-auth==2.14.1
     #   pandas-gbq
     #   pydata-google-auth
     #   sqlalchemy-bigquery
-google-auth-oauthlib==0.7.1
+google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.4.0
+google-cloud-bigquery==3.10.0
     # via
     #   apache-superset
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.16.2
+google-cloud-bigquery-storage==2.19.1
     # via
-    #   google-cloud-bigquery
     #   pandas-gbq
     #   sqlalchemy-bigquery
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
     # via google-resumable-media
-google-resumable-media==2.4.0
+google-resumable-media==2.5.0
     # via google-cloud-bigquery
-googleapis-common-protos==1.57.0
+googleapis-common-protos==1.59.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.51.1
+grpcio==1.54.0
     # via
     #   google-api-core
     #   google-cloud-bigquery
     #   grpcio-status
-grpcio-status==1.51.1
+grpcio-status==1.54.0
     # via google-api-core
-iniconfig==1.1.1
+iniconfig==2.0.0
     # via pytest
+jsonschema-spec==0.1.4
+    # via openapi-spec-validator
 oauthlib==3.2.2
     # via requests-oauthlib
-openapi-schema-validator==0.1.5
+openapi-schema-validator==0.4.4
     # via openapi-spec-validator
-openapi-spec-validator==0.3.1
+openapi-spec-validator==0.5.6
     # via -r requirements/testing.in
-pandas-gbq==0.18.1
+pandas-gbq==0.19.1
     # via apache-superset
-parameterized==0.8.1
+parameterized==0.9.0
     # via -r requirements/testing.in
-proto-plus==1.22.1
+pathable==0.4.3
+    # via jsonschema-spec
+proto-plus==1.22.2
     # via
     #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
-protobuf==4.21.10
+protobuf==4.23.0
     # via
     #   google-api-core
     #   google-cloud-bigquery
@@ -94,36 +97,44 @@ protobuf==4.21.10
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
-pyasn1==0.4.8
+pyasn1==0.5.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.2.8
+pyasn1-modules==0.3.0
     # via google-auth
-pydata-google-auth==1.4.0
+pydata-google-auth==1.7.0
     # via pandas-gbq
-pyfakefs==4.5.6
+pyfakefs==5.2.2
     # via -r requirements/testing.in
-pytest==6.2.4
+pytest==7.3.1
     # via
     #   -r requirements/testing.in
     #   pytest-cov
     #   pytest-mock
-pytest-cov==2.12.1
+pytest-cov==4.0.0
     # via -r requirements/testing.in
-pytest-mock==3.6.1
+pytest-mock==3.10.0
     # via -r requirements/testing.in
+pytz-deprecation-shim==0.1.0.post0
+    # via tzlocal
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
+rfc3339-validator==0.1.4
+    # via openapi-schema-validator
 rsa==4.9
     # via google-auth
-sqlalchemy-bigquery==1.5.0
+sqlalchemy-bigquery==1.6.1
     # via apache-superset
-statsd==3.3.0
+statsd==4.0.1
     # via -r requirements/testing.in
-trino==0.319.0
+trino==0.323.0
     # via apache-superset
-websocket-client==1.2.0
+tzdata==2023.3
+    # via pytz-deprecation-shim
+tzlocal==4.3
+    # via trino
+websocket-client==1.5.1
     # via docker
 
 # The following packages are considered to be unsafe in a requirements file:

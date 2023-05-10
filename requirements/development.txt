@@ -14,59 +14,59 @@ appnope==0.1.3
     # via ipython
 astroid==2.6.6
     # via pylint
-asttokens==2.0.5
+asttokens==2.2.1
     # via stack-data
 backcall==0.2.0
     # via ipython
-boto3==1.18.19
+boto3==1.26.130
     # via tabulator
-botocore==1.21.19
+botocore==1.29.130
     # via
     #   boto3
     #   s3transfer
 cached-property==1.5.2
     # via tableschema
-certifi==2021.10.8
+certifi==2023.5.7
     # via requests
-chardet==4.0.0
+chardet==5.1.0
     # via tabulator
-charset-normalizer==2.0.12
+charset-normalizer==3.1.0
     # via requests
 decorator==5.1.1
     # via ipython
 et-xmlfile==1.1.0
     # via openpyxl
-executing==0.8.3
+executing==1.2.0
     # via stack-data
 flask-cors==3.0.10
     # via apache-superset
-future==0.18.2
+future==0.18.3
     # via pyhive
-ijson==3.1.4
+ijson==3.2.0.post0
     # via tabulator
-ipython==8.3.0
+ipython==8.12.2
     # via -r requirements/development.in
 isort==5.12.0
     # via pylint
-jedi==0.18.1
+jedi==0.18.2
     # via ipython
-jmespath==0.10.0
+jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-jsonlines==2.0.0
+jsonlines==3.1.0
     # via tabulator
 lazy-object-proxy==1.9.0
     # via astroid
 linear-tsv==1.1.0
     # via tabulator
-matplotlib-inline==0.1.3
+matplotlib-inline==0.1.6
     # via ipython
 mccabe==0.6.1
     # via pylint
 mysqlclient==2.1.0
     # via apache-superset
-openpyxl==3.0.7
+openpyxl==3.1.2
     # via tabulator
 parso==0.8.3
     # via jedi
@@ -74,7 +74,7 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==9.3.0
+pillow==9.5.0
     # via apache-superset
 progress==1.6
     # via -r requirements/development.in
@@ -90,30 +90,30 @@ pydruid==0.6.5
     # via apache-superset
 pyhive[hive]==0.6.5
     # via apache-superset
-pyinstrument==4.0.2
+pyinstrument==4.4.0
     # via -r requirements/development.in
 pylint==2.9.6
     # via -r requirements/development.in
-requests==2.26.0
+requests==2.30.0
     # via
     #   pydruid
     #   tableschema
     #   tabulator
-rfc3986==1.5.0
+rfc3986==2.0.0
     # via tableschema
-s3transfer==0.5.0
+s3transfer==0.6.1
     # via boto3
 sasl==0.3.1
     # via pyhive
-sqloxide==0.1.30
+sqloxide==0.1.33
     # via -r requirements/development.in
-stack-data==0.2.0
+stack-data==0.6.2
     # via ipython
 tableschema==1.20.2
     # via apache-superset
 tabulator==1.53.5
     # via tableschema
-thrift==0.14.1
+thrift==0.16.0
     # via
     #   apache-superset
     #   pyhive
@@ -122,7 +122,7 @@ thrift-sasl==0.4.3
     # via pyhive
 toml==0.10.2
     # via pylint
-traitlets==5.2.1.post0
+traitlets==5.9.0
     # via
     #   ipython
     #   matplotlib-inline
