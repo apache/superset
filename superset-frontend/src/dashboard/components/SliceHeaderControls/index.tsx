@@ -507,7 +507,7 @@ class SliceHeaderControls extends React.PureComponent<
                 key={MENU_KEYS.EXPORT_XLSX}
                 icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
               >
-                {t('Export to .XLSX')}
+                {t('Export to Excel')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
