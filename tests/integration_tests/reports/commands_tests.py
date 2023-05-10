@@ -1296,7 +1296,7 @@ def test_slack_chart_report_schedule_with_text(
 |  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
         assert (
-            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"
+            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"
             in post_message_mock.call_args[1]["text"]
         )
 
