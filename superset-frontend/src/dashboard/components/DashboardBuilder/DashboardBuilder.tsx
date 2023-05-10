@@ -398,7 +398,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   return (
     <StyledDiv>
-      {nativeFiltersEnabled && !editMode && (
+      {/* {!editMode && (
         <FiltersPanel>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
@@ -413,7 +413,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             </ErrorBoundary>
           </StickyPanel>
         </FiltersPanel>
-      )}
+      )} */}
       <StyledHeader ref={headerRef}>
         {/* @ts-ignore */}
         <DragDroppable
@@ -471,11 +471,33 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ) : (
               <Loading />
             )}
-            {editMode && (
+            {editMode ? (
               <BuilderComponentPane
                 isStandalone={!!standaloneMode}
                 topOffset={barTopOffset}
               />
+            ) : (
+              <FiltersPanel
+                style={{
+                  // eslint-disable-next-line theme-colors/no-literal-colors
+                  borderLeft: '1px solid rgba(0, 0, 0, 0.09)',
+                  // eslint-disable-next-line theme-colors/no-literal-colors
+                  backgroundColor: '#fff',
+                }}
+              >
+                <StickyPanel ref={containerRef} width={filterBarWidth}>
+                  <ErrorBoundary>
+                    <FilterBar
+                      filtersOpen={dashboardFiltersOpen}
+                      toggleFiltersBar={toggleDashboardFiltersOpen}
+                      directPathToChild={directPathToChild}
+                      width={filterBarWidth}
+                      height={filterBarHeight}
+                      offset={filterBarOffset}
+                    />
+                  </ErrorBoundary>
+                </StickyPanel>
+              </FiltersPanel>
             )}
           </StyledDashboardContent>
         </div>

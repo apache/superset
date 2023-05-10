@@ -71,6 +71,21 @@ const AddFiltersButtonContainer = styled.div`
   `}
 `;
 
+// eslint-disable-next-line theme-colors/no-literal-colors
+const StyledCollapseIcon = styled(Icons.CaretRight)`
+  color: #fff;
+  height: 24px;
+  width: 24px;
+  background-color: #824fe0;
+  border-radius: 6px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  left: -20px;
+  position: absolute;
+  top: 111px;
+`;
+
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const theme = useTheme();
   const filters = useFilters();
@@ -84,16 +99,16 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
 
   return (
     <Wrapper>
+      <HeaderButton
+        {...getFilterBarTestId('collapse-button')}
+        buttonStyle="link"
+        buttonSize="xsmall"
+        onClick={() => toggleFiltersBar(false)}
+      >
+        <StyledCollapseIcon iconSize="l" />
+      </HeaderButton>
       <TitleArea>
         <span>{t('Filters')}</span>
-        <HeaderButton
-          {...getFilterBarTestId('collapse-button')}
-          buttonStyle="link"
-          buttonSize="xsmall"
-          onClick={() => toggleFiltersBar(false)}
-        >
-          <Icons.Expand iconColor={theme.colors.grayscale.base} />
-        </HeaderButton>
       </TitleArea>
       {canEdit && (
         <AddFiltersButtonContainer>
