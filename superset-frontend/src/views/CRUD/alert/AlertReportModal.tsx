@@ -1209,13 +1209,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }
 
   const displayTimeoutValidation = (cronSchedule: string) => {
-    // let cronschedule = "5-25/5,9-10,24,45,48 * * * *"
-    // let cronschedule = "1-4/5 * * 1 *"
-    // let cronschedule = "* * * * *"
-    // let cronschedule = "0 * * * *"
     const minutePart = cronSchedule.split(' ')[0];
     const timeout = getLeastTimeout(minutePart, MAX_WORKING_TIMEOUT);
-    // console.log("TIMEOUT==",timeout)
     setMaxWorkingTimeout(timeout);
   };
 
