@@ -193,7 +193,7 @@ numpy==1.23.5
     #   pyarrow
 ordered-set==4.1.0
     # via flask-limiter
-packaging==23.1
+packaging==21.3
     # via
     #   apache-superset
     #   deprecation

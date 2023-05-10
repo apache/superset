@@ -23,7 +23,7 @@ identify==2.2.13
     # via pre-commit
 nodeenv==1.6.0
     # via pre-commit
-packaging==23.1
+packaging==21.3
     # via
     #   build
     #   tox
