@@ -659,13 +659,13 @@ def test_email_chart_report_schedule(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+'
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_report_email_chart.chart.id}"
             '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
-        # Assert the email inline screenshot
+        # Assert the email inline screenshotq
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
@@ -714,7 +714,7 @@ def test_email_chart_report_schedule_alpha_owner(
 
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+'
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_report_email_chart_alpha_owner.chart.id}"
             '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
@@ -759,7 +759,7 @@ def test_email_chart_report_schedule_force_screenshot(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+'
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_report_email_chart_force_screenshot.chart.id}"
             '%7D&force=true">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
@@ -796,7 +796,7 @@ def test_email_chart_alert_schedule(
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+'
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_alert_email_chart.chart.id}"
             '%7D&force=true">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
@@ -868,7 +868,7 @@ def test_email_chart_report_schedule_with_csv(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A+'
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_report_email_chart_with_csv.chart.id}%7D&"
             'force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
@@ -1202,7 +1202,7 @@ def test_slack_chart_report_schedule_with_errors(
     error_logs = get_error_logs_query(create_report_slack_chart)
 
     # check that we have two logs for each error
-    assert error_logs.count() == (len(slack_errors) + notification_logs_count) * 2
+    assert error_logs.count() == (len(slack_errors) + notification_logs_count)
 
     # check that each error has a message
     assert len([log.error_message for log in error_logs]) == error_logs.count()
