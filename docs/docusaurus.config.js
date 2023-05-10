@@ -262,7 +262,7 @@ const config = {
   scripts: [
     '/script/matomo.js',
     {
-      src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+      src: 'https://www.bugherd.com/sidebarv2.js?apikey=ttaxugplulbpsotlultweq',
       async: true,
     },
   ],
