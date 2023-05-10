@@ -42,6 +42,7 @@ import FilterControl from './FilterControl';
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   // 108px padding to make room for buttons with position: absolute
+  padding-left: 24px;
   padding-bottom: ${({ theme }) => theme.gridUnit * 27}px;
 `;
 

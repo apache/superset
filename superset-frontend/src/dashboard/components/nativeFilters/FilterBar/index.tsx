@@ -91,7 +91,7 @@ const Bar = styled.div<{ width: number }>`
     margin-top: 0;
     width: 100%;
   }
-  position: absolute;
+  position: static;
   top: 0;
   left: 0;
   flex-direction: column;
@@ -109,9 +109,8 @@ const Bar = styled.div<{ width: number }>`
 
 const CollapsedBar = styled.div<{ offset: number }>`
   position: absolute;
-  top: ${({ offset }) => offset}px;
+  top: 111px;
   left: 0;
-  height: 100%;
   width: ${({ theme }) => theme.gridUnit * 8}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
@@ -127,13 +126,18 @@ const CollapsedBar = styled.div<{ offset: number }>`
   }
 `;
 
-const StyledCollapseIcon = styled(Icons.Collapse)`
-  color: ${({ theme }) => theme.colors.primary.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-`;
-
-const StyledFilterIcon = styled(Icons.Filter)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+// eslint-disable-next-line theme-colors/no-literal-colors
+const StyledCollapseIcon = styled(Icons.CaretLeft)`
+  color: #fff;
+  height: 24px;
+  width: 24px;
+  background-color: #824fe0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: -13px;
+  position: absolute;
 `;
 
 const StyledTabs = styled(AntdTabs)`
@@ -389,16 +393,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       >
         <CollapsedBar
           {...getFilterBarTestId('collapsable')}
-          className={cx({ open: !filtersOpen })}
+          className={cx({ open: !filtersOpen }, 'resizeBtn')}
           onClick={openFiltersBar}
           offset={offset}
         >
           <StyledCollapseIcon
             {...getFilterBarTestId('expand-button')}
-            iconSize="l"
-          />
-          <StyledFilterIcon
-            {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />
         </CollapsedBar>
