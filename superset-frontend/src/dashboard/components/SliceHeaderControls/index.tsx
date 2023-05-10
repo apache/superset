@@ -59,6 +59,7 @@ const MENU_KEYS = {
   EXPLORE_CHART: 'explore_chart',
   EXPORT_CSV: 'export_csv',
   EXPORT_FULL_CSV: 'export_full_csv',
+  EXPORT_XLSX: 'export_xlsx',
   FORCE_REFRESH: 'force_refresh',
   FULLSCREEN: 'fullscreen',
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
@@ -138,6 +139,7 @@ export interface SliceHeaderControlsProps {
   toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
+  exportXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -300,6 +302,10 @@ class SliceHeaderControls extends React.PureComponent<
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
         this.props.exportFullCSV?.(this.props.slice.slice_id);
+        break;
+      case MENU_KEYS.EXPORT_XLSX:
+        // eslint-disable-next-line no-unused-expressions
+        this.props.exportXLSX?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
@@ -497,6 +503,12 @@ class SliceHeaderControls extends React.PureComponent<
                   </Menu.Item>
                 )}
 
+              <Menu.Item
+                key={MENU_KEYS.EXPORT_XLSX}
+                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+              >
+                {t('Export to .XLSX')}
+              </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
                 icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
