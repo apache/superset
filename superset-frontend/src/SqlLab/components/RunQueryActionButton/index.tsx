@@ -26,7 +26,6 @@ import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { cleanSqlComments } from 'src/SqlLab/actions/sqlLab';
 
 export interface RunQueryActionButtonProps {
   queryEditorId: string;
@@ -106,7 +105,9 @@ const RunQueryActionButton = ({
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled = cleanSqlComments(sqlContent).length === 0;
+  const isDisabled =
+    !sqlContent ||
+    !sqlContent.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '').trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
