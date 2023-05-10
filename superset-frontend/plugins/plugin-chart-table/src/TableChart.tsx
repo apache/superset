@@ -462,7 +462,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
                 const formatterResult =
-                  value !== undefined
+                  value || value === 0
                     ? formatter.getColorFromValue(value as number)
                     : false;
                 if (formatterResult) {
