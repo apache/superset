@@ -1202,7 +1202,7 @@ def test_slack_chart_report_schedule_with_errors(
     error_logs = get_error_logs_query(create_report_slack_chart)
 
     # check that we have two logs for each error
-    assert error_logs.count() == (len(slack_errors) + notification_logs_count)
+    assert error_logs.count() == (len(slack_errors) + notification_logs_count) * 2
 
     # check that each error has a message
     assert len([log.error_message for log in error_logs]) == error_logs.count()
