@@ -27,7 +27,6 @@ These features are considered **unfinished** and should only be used on developm
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- DRILL_BY
 - ENABLE_ADVANCED_DATA_TYPES
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 - KV_STORE

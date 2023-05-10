@@ -175,17 +175,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const {
     data,
     isFetching: loadingTables,
-    isFetched,
     refetch,
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: () => {
+    onSuccess: (data, isFetched) => {
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: (err: Response) => {
+    onError: err => {
       getClientErrorObject(err).then(clientError => {
         handleError(
           getClientErrorMessage(
