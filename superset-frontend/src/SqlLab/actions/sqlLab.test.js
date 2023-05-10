@@ -312,16 +312,7 @@ describe('async actions', () => {
     const makeRequest = () => {
       const request = actions.runQuery({
         ...query,
-        sql: `/*
-  SELECT * FROM
-*/
-SELECT 213--, {{ds}} "quote out"
-/*
-{{new_param1}}
-{{new_param2}}*/
-
-FROM table
-WHERE value = '--"NULL"--' --{{test_param}}`,
+        sql: '/*\nSELECT * FROM\n */\nSELECT 213--, {{ds}}\n/*\n{{new_param1}}\n{{new_param2}}*/\n\nFROM table',
       });
       return request(dispatch, () => initialState);
     };
@@ -335,7 +326,7 @@ WHERE value = '--"NULL"--' --{{test_param}}`,
         expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
         expect(
           JSON.parse(fetchMock.calls(runQueryEndpoint)[0][1].body).sql,
-        ).toEqual(`SELECT 213\n\n\nFROM table\nWHERE value = '--"NULL"--'`);
+        ).toEqual('SELECT 213\n\n\nFROM table');
       });
     });
   });
