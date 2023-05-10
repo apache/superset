@@ -14,7 +14,7 @@
 /*@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');*/
 
 @font-face {
-  font-family: 'Axiforma';
+  font-family: 'Axiforma-Regular';
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -26,7 +26,7 @@
 }
 
 body {
-  font-family: 'Axiforma', sans-serif !important;
+  font-family: 'Axiforma-Regular' !important;
 }
 
 /*!
@@ -856,6 +856,7 @@ td.rdtYear:hover {
 }
 .background--white {
   background-color: #fff;
+  box-shadow: 0px 2px 8px rgba(115, 115, 115, 0.09) !important;
 }
 .dashboard-builder-sidepane {
   flex: 0 0 374px;
@@ -1050,6 +1051,7 @@ body h6 {
   letter-spacing: 0.2px;
   margin-top: 8px;
   margin-bottom: 4px;
+  font-family: 'Axiforma', sans-serif;
 }
 body p {
   margin: 0 0 8px;
@@ -1167,9 +1169,12 @@ i.warning {
 }
 .drop-indicator {
   display: block;
-  background-color: #20a7c9;
+  background-color: #814ef085 !important;
   position: absolute;
   z-index: 10;
+  height: 18px !important;
+  border-radius: 7px;
+  transition: 0.2s;
 }
 .drop-indicator--top {
   top: 0;
@@ -1192,14 +1197,14 @@ i.warning {
   top: 0;
   left: 100%;
   height: 100%;
-  width: 4px;
+  width: 16px;
   min-height: 16px;
 }
 .drop-indicator--left {
   top: 0;
   left: 0;
   height: 100%;
-  width: 4px;
+  width: 16px;
   min-height: 16px;
 }
 .drag-handle {
@@ -1305,7 +1310,7 @@ i.warning {
 .filters-scope-selector .react-checkbox-tree .rct-icon.rct-icon-expand-all {
   font-size: 14px;
   font-family: Inter, Helvetica, Arial;
-  color: #20a7c9;
+  color: #824ef0;
 }
 .filters-scope-selector
   .react-checkbox-tree
@@ -1410,7 +1415,7 @@ i.warning {
   border-radius: 4px;
   margin-top: -9px;
   box-shadow: inset 0 0 0 2px #e0e0e0;
-  background: #f2f2f2;
+  background: #f2f3ff;
 }
 .filters-scope-selector .react-checkbox-tree .filter-scope-type.root {
   font-weight: 700;
@@ -1468,7 +1473,7 @@ i.warning {
   outline: none;
 }
 .filters-scope-selector .scope-search:focus {
-  border: 1px solid #20a7c9;
+  border: 1px solid #824ef0;
 }
 .grid-container > div:first-child {
   height: inherit !important;
@@ -1495,7 +1500,7 @@ i.warning {
   left: 0;
   bottom: 2;
   height: 2;
-  background-color: #20a7c9;
+  background-color: #824ef0;
   z-index: 10;
 }
 .hover-menu {
@@ -1575,7 +1580,7 @@ div:hover > .hover-menu {
   left: 0;
   width: 100%;
   height: 100%;
-  border: 2px solid #20a7c9;
+  border: 2px solid #824ef0;
   pointer-events: none;
 }
 .popover-menu {
@@ -1685,10 +1690,10 @@ div:hover > .hover-menu {
   left: 0;
   width: 100%;
   height: 100%;
-  box-shadow: inset 0 0 0 2px #20a7c9;
+  box-shadow: inset 0 0 0 2px #824ef0;
 }
 .resizable-container--resizing > span .resize-handle {
-  border-color: #20a7c9;
+  border-color: #824ef0;
 }
 .resize-handle {
   opacity: 0;
@@ -1748,6 +1753,7 @@ div:hover > .hover-menu {
   overflow-y: visible;
   transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
   border: 2px solid transparent;
+  box-shadow: 0px 2px 8px rgba(115, 115, 115, 0.09) !important;
 }
 .dashboard-component-chart-holder .missing-chart-container {
   display: flex;
@@ -1763,7 +1769,7 @@ div:hover > .hover-menu {
 }
 .dashboard-component-chart-holder.fade-in {
   border-radius: 4px;
-  box-shadow: inset 0 0 0 2px #20a7c9, 0 0 0 3px rgba(32, 167, 201, 0.1);
+  box-shadow: inset 0 0 0 2px #824ef0, 0 0 0 3px rgba(32, 167, 201, 0.1);
   transition: box-shadow 1s ease-in-out;
 }
 .dashboard-component-chart-holder.fade-out {
@@ -1791,7 +1797,7 @@ div:hover > .hover-menu {
   border: 1px solid transparent;
 }
 .dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1px dashed #20a7c9;
+  border: 1px dashed #824ef0;
   z-index: 2;
 }
 .dashboard--editing
@@ -1800,7 +1806,7 @@ div:hover > .hover-menu {
 .dashboard--editing
   .resizable-container:hover
   > .dashboard-component-chart-holder:after {
-  border: 1px dashed #20a7c9;
+  border: 1px dashed #824ef0;
 }
 .dashboard--editing
   .resizable-container
@@ -1871,7 +1877,7 @@ a[role='menuitem'] .dot {
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-column:after {
-  border: 1px dashed #20a7c9;
+  border: 1px dashed #824ef0;
   z-index: 2;
 }
 .grid-column--empty {
@@ -1896,7 +1902,7 @@ a[role='menuitem'] .dot {
 }
 .dashboard-component-divider:after {
   content: '';
-  height: 1px;
+  height: 2px !important;
   width: 100%;
   background-color: #e0e0e0;
   display: block;
@@ -1909,6 +1915,7 @@ a[role='menuitem'] .dot {
 }
 .dragdroppable .dashboard-component-divider {
   cursor: move;
+  box-shadow: none !important;
 }
 .dashboard-component-header {
   width: 100%;
@@ -1928,7 +1935,7 @@ a[role='menuitem'] .dot {
   pointer-events: none;
 }
 .dashboard--editing .dashboard-grid .dashboard-component-header:hover:after {
-  border: 1px dashed #20a7c9;
+  border: 1px dashed #824ef0;
   z-index: 2;
 }
 .dashboard--editing .dragdroppable-row .dashboard-component-header {
@@ -1941,6 +1948,7 @@ a[role='menuitem'] .dot {
 .dashboard-header .dashboard-component-header {
   font-weight: 200;
   width: auto;
+  box-shadow: none !important;
 }
 .dashboard--editing .header-small {
   font-size: 16px;
@@ -1957,6 +1965,9 @@ a[role='menuitem'] .dot {
 .dashboard-component-tabs .dashboard-component-header {
   padding-left: 16px;
   padding-right: 16px;
+}
+.background--transparent .dashboard-component-header {
+  box-shadow: none !important;
 }
 .grid-column > :not(:only-child):not(:last-child) .dashboard-component-header {
   margin-bottom: -16px;
@@ -2021,7 +2032,7 @@ a[role='menuitem'] .dot {
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-row:after {
-  border: 1px dashed #20a7c9;
+  border: 1px dashed #824ef0;
   z-index: 2;
 }
 .dashboard--editing .dashboard-component-tabs > .hover-menu + div:after,
@@ -2049,6 +2060,7 @@ a[role='menuitem'] .dot {
 }
 .dashboard-markdown {
   overflow: hidden;
+  box-shadow: 0px 2px 8px rgba(115, 115, 115, 0.09) !important;
 }
 .dashboard-markdown h4,
 .dashboard-markdown h5 {
@@ -2084,7 +2096,7 @@ a[role='menuitem'] .dot {
 /* Variables */
 
 :root {
-  --primaryColor: #6560e9;
+  --primaryColor: #824ef0;
   --secondaryColor: #f2f3ff;
   --txtColor: #353538;
   --txtColor2: #989eaa;
@@ -2132,7 +2144,7 @@ a[role='menuitem'] .dot {
 .dashboard {
   background-color: var(--backgroundColor);
   color: var(--txtColor);
-  font-family: 'Axiforma', sans-serif !important;
+  font-family: 'Axiforma-Regular', sans-serif !important;
 }
 
 .dashboard > div > div {
@@ -2458,12 +2470,14 @@ a:hover {
 /* Component */
 
 .dashboard-component {
+  border-radius: 10px !important;
 }
 
 .dashboard-component.dashboard-component-chart-holder {
   padding: 24px;
   border: 1px solid var(--borderColor) !important;
   border-radius: 5px;
+  box-shadow: 0px 2px 8px rgba(115, 115, 115, 0.09) !important;
 }
 
 .dashboard-component-chart-holder.fade-in {
@@ -2494,6 +2508,7 @@ a:hover {
   .dashboard-grid
   .dashboard-component.dashboard-component-tabs {
   background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .ant-tabs .ant-tabs-content-holder {
@@ -2501,6 +2516,7 @@ a:hover {
 }
 
 .ant-tabs {
+  font-family: 'Axiforma-Regular' !important;
 }
 
 .ant-tabs-nav::before {
@@ -2680,7 +2696,7 @@ a:hover {
   content: 'Iki';
   color: #6560e9 !important;
   font-weight: 600;
-  font-family: 'Axiforma', sans-serif !important;
+  font-family: 'Axiforma-Regular' !important;
   font-size: 22px;
   padding-right: 16px;
 }

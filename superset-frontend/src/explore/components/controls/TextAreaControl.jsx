@@ -74,7 +74,7 @@ class TextAreaControl extends React.Component {
         border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
       };
       if (this.props.readOnly) {
-        style.backgroundColor = '#f2f2f2';
+        style.backgroundColor = '#f2f3ff';
       }
       return (
         <TextAreaEditor

@@ -59,7 +59,7 @@ const defaultTheme = {
       help: '#737373',
     },
     primary: {
-      base: '#20A7C9',
+      base: '#824ef0',
       dark1: '#824ef0',
       dark2: '#156378',
       light1: '#79CADE',
