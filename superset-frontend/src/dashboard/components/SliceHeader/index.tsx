@@ -110,11 +110,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   useEffect(() => {
     const headerElement = headerRef.current;
     if (handleClickTitle) {
-      setHeaderTooltip(
-        sliceName
-          ? t('Click to edit %s in a new tab', sliceName)
-          : t('Click to edit chart in a new tab'),
-      );
+      // setHeaderTooltip(
+      //   sliceName
+      //     ? t('Click to edit %s in a new tab', sliceName)
+      //     : t('Click to edit chart in a new tab'),
+      // );
     } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
@@ -129,7 +129,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={headerTooltip}>
+        {/* <Tooltip title={headerTooltip}>
           <EditableTitle
             title={
               sliceName ||
@@ -143,7 +143,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             showTooltip={false}
             onClickTitle={handleClickTitle}
           />
-        </Tooltip>
+        </Tooltip> */}
+        {sliceName}
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"
