@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { CRON_SCHEDULE } from "./constants";
+
 export const findMinValue = (arr: any) => {
   let minValue = arr[0]; // Assume the first value is the smallest
   // eslint-disable-next-line no-plusplus
@@ -29,18 +31,28 @@ export const findMinValue = (arr: any) => {
 };
 
 export const getRangeTimeout = (minPart: string) => {
-  let minArray = [];
-  if (minPart.includes(',')) {
-    minArray = minPart.split(',');
-  } else {
-    minArray.push(minPart);
-    console.log(typeof minArray);
+  let minArray = parseMinPart(minPart);
+  const stepperArray: number[] = [];
+  const commaSeparatedArray:string[] = [];
+  processMinArray(minArray, stepperArray, commaSeparatedArray);
+  if (commaSeparatedArray.length > 0) {
+      let minValue = calculateMinDifference(commaSeparatedArray);
+      stepperArray.push(minValue);
   }
-  const stepperArray = [];
-  const commaSeparatedArray = [];
-  let minValue = Math.min();
-  // eslint-disable-next-line no-plusplus
-  for (let i = 0; i < minArray.length; i++) {
+  return findMinValue(stepperArray);
+};
+
+const parseMinPart = (minPart:string) => {
+  if (minPart.includes(',')) {
+    return minPart.split(',').map(String);
+  } else {
+    return [minPart];
+  }
+};
+
+const processMinArray = (minArray:string[], stepperArray:number[], commaSeparatedArray:string[]) => {
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < minArray.length; i++) {
     if (minArray[i].includes('-')) {
       if (minArray[i].includes('/')) {
         const stepper = minArray[i].split('/').pop();
@@ -52,33 +64,38 @@ export const getRangeTimeout = (minPart: string) => {
       commaSeparatedArray.push(minArray[i]);
     }
   }
-  if (commaSeparatedArray.length > 0) {
-    // eslint-disable-next-line no-plusplus
-    for (let i = 1; i < commaSeparatedArray.length; i++) {
-      const currValue = Number(commaSeparatedArray[i]);
-      const currDiff = currValue - Number(commaSeparatedArray[i - 1] || 0);
-      if (currDiff < minValue) {
-        minValue = currDiff;
-      }
+};
+
+const calculateMinDifference = (commaSeparatedArray:string[]) => {
+  let minValue = Math.min();
+  // eslint-disable-next-line no-plusplus
+  for (let i = 1; i < commaSeparatedArray.length; i++) {
+    const currDiff = Number(commaSeparatedArray[i]) - Number(commaSeparatedArray[i - 1]);
+    if (currDiff < minValue) {
+      minValue = currDiff;
     }
-    stepperArray.push(minValue);
   }
-  return findMinValue(stepperArray);
+  const lastDiff = 60 - Number(commaSeparatedArray[commaSeparatedArray.length - 1]) + Number(commaSeparatedArray[0]);
+  if (lastDiff < minValue) {
+    minValue = lastDiff;
+  }
+  return minValue;
 };
 
 export const getLeastTimeout = (
   minPart: string,
   defaultWorkingTimeout: number,
 ) => {
-  if (minPart === '*') {
-    return Math.min(60, defaultWorkingTimeout);
+  switch (minPart) {
+    case CRON_SCHEDULE.EVERY_HOUR:
+      return Math.min(3600, defaultWorkingTimeout);
+    case CRON_SCHEDULE.EVERY_MIN:
+      return Math.min(60, defaultWorkingTimeout);
+    default:
+      if (minPart.includes(',') || minPart.includes('-')) {
+        const timeout = getRangeTimeout(minPart);
+        return Math.min(timeout * 60, defaultWorkingTimeout);
+      }
+      return defaultWorkingTimeout;
   }
-  if (minPart === '0') {
-    return Math.min(3600, defaultWorkingTimeout);
-  }
-  if (minPart.includes(',') || minPart.includes('-')) {
-    const timeout = getRangeTimeout(minPart);
-    return Math.min(timeout * 60, defaultWorkingTimeout);
-  }
-  return defaultWorkingTimeout;
 };
