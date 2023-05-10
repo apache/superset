@@ -16,7 +16,7 @@
 # under the License.
 
 from collections.abc import Iterable
-from typing import Sequence, Union, Any
+from typing import Any, Sequence, Union
 
 import pandas as pd
 
@@ -92,7 +92,7 @@ def flatten(
         _columns = []
         for series in df.columns.to_flat_index():
             _cells = []
-            for cell in series if is_sequence(series) else [series]:  # type: ignore
+            for cell in series if is_sequence(series) else [series]:
                 if pd.notnull(cell):
                     # every cell should be converted to string and escape comma
                     _cells.append(escape_separator(str(cell)))
