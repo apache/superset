@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { CRON_SCHEDULE } from "./constants";
+import { CRON_SCHEDULE } from './constants';
 
 export const findMinValue = (arr: any) => {
   let minValue = arr[0]; // Assume the first value is the smallest
@@ -31,28 +31,31 @@ export const findMinValue = (arr: any) => {
 };
 
 export const getRangeTimeout = (minPart: string) => {
-  let minArray = parseMinPart(minPart);
+  const minArray = parseMinPart(minPart);
   const stepperArray: number[] = [];
-  const commaSeparatedArray:string[] = [];
+  const commaSeparatedArray: string[] = [];
   processMinArray(minArray, stepperArray, commaSeparatedArray);
   if (commaSeparatedArray.length > 0) {
-      let minValue = calculateMinDifference(commaSeparatedArray);
-      stepperArray.push(minValue);
+    const minValue = calculateMinDifference(commaSeparatedArray);
+    stepperArray.push(minValue);
   }
   return findMinValue(stepperArray);
 };
 
-const parseMinPart = (minPart:string) => {
+const parseMinPart = (minPart: string) => {
   if (minPart.includes(',')) {
     return minPart.split(',').map(String);
-  } else {
-    return [minPart];
   }
+  return [minPart];
 };
 
-const processMinArray = (minArray:string[], stepperArray:number[], commaSeparatedArray:string[]) => {
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < minArray.length; i++) {
+const processMinArray = (
+  minArray: string[],
+  stepperArray: number[],
+  commaSeparatedArray: string[],
+) => {
+  // eslint-disable-next-line no-plusplus
+  for (let i = 0; i < minArray.length; i++) {
     if (minArray[i].includes('-')) {
       if (minArray[i].includes('/')) {
         const stepper = minArray[i].split('/').pop();
@@ -66,16 +69,20 @@ const processMinArray = (minArray:string[], stepperArray:number[], commaSeparate
   }
 };
 
-const calculateMinDifference = (commaSeparatedArray:string[]) => {
+const calculateMinDifference = (commaSeparatedArray: string[]) => {
   let minValue = Math.min();
   // eslint-disable-next-line no-plusplus
   for (let i = 1; i < commaSeparatedArray.length; i++) {
-    const currDiff = Number(commaSeparatedArray[i]) - Number(commaSeparatedArray[i - 1]);
+    const currDiff =
+      Number(commaSeparatedArray[i]) - Number(commaSeparatedArray[i - 1]);
     if (currDiff < minValue) {
       minValue = currDiff;
     }
   }
-  const lastDiff = 60 - Number(commaSeparatedArray[commaSeparatedArray.length - 1]) + Number(commaSeparatedArray[0]);
+  const lastDiff =
+    60 -
+    Number(commaSeparatedArray[commaSeparatedArray.length - 1]) +
+    Number(commaSeparatedArray[0]);
   if (lastDiff < minValue) {
     minValue = lastDiff;
   }

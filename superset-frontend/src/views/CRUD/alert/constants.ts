@@ -31,6 +31,6 @@ export const ERROR_MESSAGES = {
 };
 
 export const CRON_SCHEDULE = {
-  EVERY_MIN :"*",
-  EVERY_HOUR : "0"
-}
+  EVERY_MIN: '*',
+  EVERY_HOUR: '0',
+};
