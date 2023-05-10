@@ -29,7 +29,7 @@ export type PositionOption =
 export interface Props {
   position?: PositionOption;
   className?: string;
-  // image?: string;
+  image?: string;
 }
 
 // eslint-disable-next-line theme-colors/no-literal-colors

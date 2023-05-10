@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -87,7 +87,7 @@ const StyledCollapseIcon = styled(Icons.CaretRight)`
 `;
 
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
-  const theme = useTheme();
+  // const theme = useTheme();
   const filters = useFilters();
   const filterValues = Object.values(filters);
   const canEdit = useSelector<RootState, boolean>(
