@@ -15,7 +15,7 @@ apispec[yaml]==3.3.2
     # via flask-appbuilder
 async-timeout==4.0.2
     # via redis
-attrs==21.2.0
+attrs==23.1.0
     # via jsonschema
 babel==2.9.1
     # via flask-babel
@@ -53,7 +53,7 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.2.0
     # via celery
-colorama==0.4.4
+colorama==0.4.6
     # via
     #   apache-superset
     #   flask-appbuilder
@@ -98,7 +98,7 @@ flask-compress==1.13
     # via apache-superset
 flask-jwt-extended==4.3.1
     # via flask-appbuilder
-flask-limiter==3.3.0
+flask-limiter==3.3.1
     # via flask-appbuilder
 flask-login==0.6.0
     # via
@@ -152,13 +152,13 @@ jinja2==3.0.3
     # via
     #   flask
     #   flask-babel
-jsonschema==3.2.0
+jsonschema==4.17.3
     # via flask-appbuilder
 kombu==5.2.4
     # via celery
 korean-lunar-calendar==0.2.1
     # via holidays
-limits==3.3.1
+limits==3.4.0
     # via flask-limiter
 mako==1.1.4
     # via alembic
@@ -193,7 +193,7 @@ numpy==1.23.5
     #   pyarrow
 ordered-set==4.1.0
     # via flask-limiter
-packaging==21.3
+packaging==23.1
     # via
     #   deprecation
     #   limits
@@ -209,7 +209,7 @@ polyline==2.0.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.28
+prompt-toolkit==3.0.38
     # via click-repl
 pyarrow==10.0.1
     # via apache-superset
@@ -227,10 +227,8 @@ pymeeus==0.5.11
 pynacl==1.5.0
     # via paramiko
 pyparsing==3.0.6
-    # via
-    #   apache-superset
-    #   packaging
-pyrsistent==0.16.1
+    # via apache-superset
+pyrsistent==0.19.3
     # via jsonschema
 python-dateutil==2.8.2
     # via
@@ -270,10 +268,8 @@ six==1.16.0
     # via
     #   click-repl
     #   isodate
-    #   jsonschema
     #   paramiko
     #   prison
-    #   pyrsistent
     #   python-dateutil
     #   wtforms-json
 slack-sdk==3.21.3
