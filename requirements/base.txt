@@ -193,8 +193,9 @@ numpy==1.23.5
     #   pyarrow
 ordered-set==4.1.0
     # via flask-limiter
-packaging==21.3
+packaging==23.1
     # via
+    #   apache-superset
     #   deprecation
     #   limits
 pandas==1.5.3
@@ -227,9 +228,7 @@ pymeeus==0.5.11
 pynacl==1.5.0
     # via paramiko
 pyparsing==3.0.6
-    # via
-    #   apache-superset
-    #   packaging
+    # via apache-superset
 pyrsistent==0.16.1
     # via jsonschema
 python-dateutil==2.8.2
@@ -301,6 +300,7 @@ typing-extensions==4.4.0
     #   apache-superset
     #   flask-limiter
     #   limits
+    #   rich
 urllib3==1.26.6
     # via selenium
 vine==5.0.0

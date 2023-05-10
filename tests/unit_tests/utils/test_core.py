@@ -19,7 +19,11 @@ from typing import Any, Dict
 
 import pytest
 
-from superset.utils.core import QueryObjectFilterClause, remove_extra_adhoc_filters
+from superset.utils.core import (
+    parse_boolean_string,
+    QueryObjectFilterClause,
+    remove_extra_adhoc_filters,
+)
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -84,3 +88,14 @@ def test_remove_extra_adhoc_filters(
 ) -> None:
     remove_extra_adhoc_filters(original)
     assert expected == original
+
+
+def test_parse_boolean_string():
+    true = ("y", "Y", "yes", "True", "t", "true", "True", "On", "on", "1")
+    false = ("n", "no", "f", "false", "off", "0", "Off", "No", "N", "foo")
+
+    for y in true:
+        assert parse_boolean_string(y)
+
+    for n in false:
+        assert not parse_boolean_string(n)
