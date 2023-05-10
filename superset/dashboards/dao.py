@@ -260,7 +260,7 @@ class DashboardDAO(BaseDAO):
             }
             md["default_filters"] = json.dumps(applicable_filters)
 
-            if 'native_filter_configuration' in data:
+            if 'native_filter_configuration' in data and old_to_new_slice_ids:
                 # replace native_filter_id and immune ids
                 # from old slice id to new slice id:
                 for filter_config in data['native_filter_configuration']:
