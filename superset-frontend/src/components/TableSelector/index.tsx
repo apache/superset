@@ -264,8 +264,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
-      const { text } = option;
-      return text.toLowerCase().includes(searchValue);
+      const { value } = option;
+      return value.toLowerCase().includes(searchValue);
     },
     [],
   );
