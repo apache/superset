@@ -1787,25 +1787,8 @@ def indexed(
     return idx
 
 
-def strtobool(val: str) -> bool:
-    """Convert a string representation of truth to true (1) or false (0).
-
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
-
-    Original implementation from deprecated distutils.
-    """
-    val = val.lower()
-    if val in {"y", "yes", "t", "true", "on", "1"}:
-        return True
-    if val in {"n", "no", "f", "false", "off", "0"}:
-        return False
-    raise ValueError("invalid truth value %r" % (val,))
-
-
 def is_test() -> bool:
-    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
+    return parse_boolean_string(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
 def get_time_filter_status(
@@ -1969,10 +1952,7 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
     """
     if bool_str is None:
         return False
-    try:
-        return bool(strtobool(bool_str.lower()))
-    except ValueError:
-        return False
+    return bool_str.lower() in ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
 
 
 def apply_max_row_limit(

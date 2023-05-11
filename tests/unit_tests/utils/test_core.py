@@ -15,11 +15,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 from typing import Any, Dict
 
 import pytest
 
 from superset.utils.core import (
+    is_test,
     parse_boolean_string,
     QueryObjectFilterClause,
     remove_extra_adhoc_filters,
@@ -90,12 +92,24 @@ def test_remove_extra_adhoc_filters(
     assert expected == original
 
 
+def test_is_test():
+    orig_value = os.getenv("SUPERSET_TESTENV")
+
+    os.environ["SUPERSET_TESTENV"] = "true"
+    assert is_test()
+    os.environ["SUPERSET_TESTENV"] = "false"
+    assert not is_test()
+    os.environ["SUPERSET_TESTENV"] = ""
+    assert not is_test()
+
+    if orig_value is not None:
+        os.environ["SUPERSET_TESTENV"] = orig_value
+
+
 def test_parse_boolean_string():
-    true = ("y", "Y", "yes", "True", "t", "true", "True", "On", "on", "1")
-    false = ("n", "no", "f", "false", "off", "0", "Off", "No", "N", "foo")
-
-    for y in true:
-        assert parse_boolean_string(y)
-
-    for n in false:
-        assert not parse_boolean_string(n)
+    true = ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
+    false = ("n", "N", "no", "False", "f", "false", "Off", "off", "0", "foo", "", None)
+    for val in true:
+        assert parse_boolean_string(val)
+    for val in false:
+        assert not parse_boolean_string(val)
