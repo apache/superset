@@ -32,7 +32,6 @@ from typing import (
 )
 from uuid import UUID
 
-import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
@@ -49,7 +48,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
+from superset.sql_parse import ParsedQuery
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
