@@ -166,41 +166,6 @@ def get_columns_description(
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 
 
-def validate_adhoc_subquery(
-    sql: str,
-    database_id: int,
-    default_schema: str,
-) -> str:
-    """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
-
-    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
-    predicates to it.
-
-    :param sql: adhoc sql expression
-    :raise SupersetSecurityException if sql contains sub-queries or
-    nested sub-queries with table
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset import is_feature_enabled
-
-    statements = []
-    for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            statement = insert_rls(statement, database_id, default_schema)
-        statements.append(statement)
-
-    return ";\n".join(str(statement) for statement in statements)
-
-
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_dialect_name(drivername: str) -> str:
     return SqlaURL.create(drivername).get_dialect().name
