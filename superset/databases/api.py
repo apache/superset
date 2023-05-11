@@ -61,6 +61,7 @@ from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilt
 from superset.databases.schemas import (
     database_schemas_query_schema,
     database_tables_query_schema,
+    DatabaseConnectionSchema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
     DatabasePutSchema,
@@ -122,6 +123,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_sql",
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
+        "get_connection",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -144,12 +146,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "driver",
         "force_ctas_schema",
         "impersonate_user",
-        "masked_encrypted_extra",
         "extra",
-        "parameters",
-        "parameters_schema",
         "server_cert",
-        "sqlalchemy_uri",
         "is_managed_externally",
         "engine_information",
     ]
@@ -236,6 +234,24 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLRequest,
         ValidateSQLResponse,
     )
+
+    @expose("/<int:pk>/connection", methods=("GET",))
+    @protect()
+    @safe
+    def get_connection(self, pk: int) -> Response:
+        """Get database connection info."""
+        database = DatabaseDAO.find_by_id(pk)
+        database_connection_schema = DatabaseConnectionSchema()
+        response = {
+            "id": pk,
+            "result": database_connection_schema.dump(database, many=False),
+        }
+        try:
+            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+                response["result"]["ssh_tunnel"] = ssh_tunnel.data
+            return self.response(200, **response)
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>", methods=("GET",))
     @protect()
