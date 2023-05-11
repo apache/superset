@@ -290,6 +290,7 @@ class ChartPutSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.Nested(TagSchema, many=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
