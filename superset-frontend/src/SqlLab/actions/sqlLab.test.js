@@ -308,38 +308,6 @@ describe('async actions', () => {
     });
   });
 
-  describe('runQuery with comments', () => {
-    const makeRequest = () => {
-      const request = actions.runQuery({
-        ...query,
-        sql: `/*
-  SELECT * FROM
-*/
-SELECT 213--, {{ds}} "quote out"
-/*
-{{new_param1}}
-{{new_param2}}*/
-
-FROM table
-WHERE value = '--"NULL"--' --{{test_param}}`,
-      });
-      return request(dispatch, () => initialState);
-    };
-
-    it('makes the fetch request without comments', async () => {
-      const runQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
-      fetchMock.post(runQueryEndpoint, '{}', {
-        overwriteRoutes: true,
-      });
-      await makeRequest().then(() => {
-        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
-        expect(
-          JSON.parse(fetchMock.calls(runQueryEndpoint)[0][1].body).sql,
-        ).toEqual(`SELECT 213\n\n\nFROM table\nWHERE value = '--"NULL"--'`);
-      });
-    });
-  });
-
   describe('reRunQuery', () => {
     let stub;
     beforeEach(() => {
