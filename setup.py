@@ -101,6 +101,7 @@ setup(
         "msgpack>=1.0.0, <1.1",
         "nh3>=0.2.11, <0.3",
         "numpy==1.23.5",
+        "packaging",
         "pandas>=1.5.3, <1.6",
         "parsedatetime",
         "pgsanity",
