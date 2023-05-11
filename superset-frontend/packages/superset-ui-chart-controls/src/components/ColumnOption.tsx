@@ -63,14 +63,16 @@ export function ColumnOption({
 
   return (
     <StyleOverrides>
-      {showType && (
+      {showType && type !== undefined && (
         <Tooltip
           id="metric-type-tooltip"
           title={columnTypeTooltipText}
           placement="bottomRight"
           align={{ offset: [8, -2] }}
         >
-          <span>{type !== undefined && <ColumnTypeLabel type={type} />}</span>
+          <span>
+            <ColumnTypeLabel type={type} />
+          </span>
         </Tooltip>
       )}
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
