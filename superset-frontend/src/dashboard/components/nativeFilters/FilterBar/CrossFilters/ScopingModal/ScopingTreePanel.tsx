@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import {
   css,
   isDefined,
@@ -28,7 +29,6 @@ import {
 import { Select } from 'src/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
-import { useSelector } from 'react-redux';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -40,6 +40,7 @@ import { SelectOptionsType } from 'src/components/Select/types';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import Alert from 'src/components/Alert';
+import { NEW_CHART_SCOPING_ID } from './constants';
 
 interface ScopingTreePanelProps {
   chartId: number | undefined;
@@ -79,14 +80,14 @@ const ChartSelect = ({
       .filter(
         chartConfig =>
           isCrossFilterScopeGlobal(chartConfig.crossFilters.scope) ||
-          (chartConfig.id === value && value !== -1),
+          (chartConfig.id === value && value !== NEW_CHART_SCOPING_ID),
       )
       .map(chartConfig => {
         const chartLayoutItem = chartLayoutItems.find(
-          item => item.meta.chartId === chartConfig.id,
+          item => item.meta.chartId === Number(chartConfig.id),
         );
         return {
-          value: chartConfig.id,
+          value: Number(chartConfig.id),
           label:
             chartLayoutItem?.meta.sliceNameOverride ||
             chartLayoutItem?.meta.sliceName ||
@@ -130,7 +131,7 @@ const ChartSelect = ({
       <Select
         ariaLabel={t('Chart')}
         options={options}
-        value={value && value < 0 ? undefined : value}
+        value={value && value === NEW_CHART_SCOPING_ID ? undefined : value}
         onChange={value => {
           onSelectChange(Number(value));
         }}

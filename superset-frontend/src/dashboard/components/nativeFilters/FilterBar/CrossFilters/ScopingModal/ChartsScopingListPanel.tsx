@@ -29,7 +29,8 @@ import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
-import { FilterTitle } from '../../../FiltersConfigModal/FilterTitleContainer';
+import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
+import { NEW_CHART_SCOPING_ID } from './constants';
 
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
@@ -108,7 +109,8 @@ export const ChartsScopingListPanel = ({
     return Object.values(chartConfigs)
       .filter(
         config =>
-          !isCrossFilterScopeGlobal(config.crossFilters.scope) && config.id > 0,
+          !isCrossFilterScopeGlobal(config.crossFilters.scope) &&
+          config.id !== NEW_CHART_SCOPING_ID,
       )
       .map(config => {
         const chartLayoutItem = chartLayoutItems.find(
@@ -124,9 +126,7 @@ export const ChartsScopingListPanel = ({
       });
   }, [chartConfigs, layout]);
 
-  const newScoping = Object.values(chartConfigs).find(
-    config => config.id === -1,
-  );
+  const newScoping = chartConfigs[NEW_CHART_SCOPING_ID];
   return (
     <>
       <AddButtonContainer>

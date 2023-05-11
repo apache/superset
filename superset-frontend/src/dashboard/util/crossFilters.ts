@@ -29,6 +29,7 @@ import {
   ChartsState,
   DashboardInfo,
   DashboardLayout,
+  GLOBAL_SCOPE_POINTER,
   isCrossFilterScopeGlobal,
 } from '../types';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
@@ -85,7 +86,7 @@ export const getCrossFiltersConfiguration = (
         chartConfiguration[chartId] = {
           id: chartId,
           crossFilters: {
-            scope: 'global' as const,
+            scope: GLOBAL_SCOPE_POINTER,
           },
         };
       }

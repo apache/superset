@@ -71,7 +71,7 @@ export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
 export const SET_CHART_CONFIG_COMPLETE = 'SET_CHART_CONFIG_COMPLETE';
 export const SET_CHART_CONFIG_FAIL = 'SET_CHART_CONFIG_FAIL';
 
-export const setChartConfiguration =
+export const saveChartConfiguration =
   ({
     chartConfiguration,
     globalChartConfiguration,

@@ -60,9 +60,10 @@ export enum FilterBarOrientation {
 }
 
 // chart's cross filter scoping can have its custom value or point to the global configuration
-export type ChartCrossFiltersGlobalScope = 'global';
+export const GLOBAL_SCOPE_POINTER = 'global';
+export type GlobalScopePointer = typeof GLOBAL_SCOPE_POINTER;
 export type ChartCrossFiltersConfig = {
-  scope: NativeFilterScope | ChartCrossFiltersGlobalScope;
+  scope: NativeFilterScope | GlobalScopePointer;
   chartsInScope: number[];
 };
 export type GlobalChartCrossFilterConfig = {
@@ -70,8 +71,8 @@ export type GlobalChartCrossFilterConfig = {
   chartsInScope: number[];
 };
 export const isCrossFilterScopeGlobal = (
-  scope: NativeFilterScope | ChartCrossFiltersGlobalScope,
-): scope is ChartCrossFiltersGlobalScope => scope === 'global';
+  scope: NativeFilterScope | GlobalScopePointer,
+): scope is GlobalScopePointer => scope === GLOBAL_SCOPE_POINTER;
 
 export type ChartConfiguration = {
   [chartId: number]: {

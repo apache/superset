@@ -26,23 +26,25 @@ import {
   RootState,
   isCrossFilterScopeGlobal,
   GlobalChartCrossFilterConfig,
+  GLOBAL_SCOPE_POINTER,
 } from 'src/dashboard/types';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
-import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
+import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
 import { ScopingModalContent } from './ScopingModalContent';
+import { NEW_CHART_SCOPING_ID } from './constants';
 
 const getUpdatedGloballyScopedChartsInScope = (
   configs: ChartConfiguration,
   globalChartsInScope: number[],
 ) =>
   Object.entries(configs).reduce((acc, [id, config]) => {
-    if (config.crossFilters.scope === 'global') {
+    if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
       acc[id] = {
         id,
         crossFilters: {
-          scope: 'global' as const,
+          scope: GLOBAL_SCOPE_POINTER,
           chartsInScope: globalChartsInScope.filter(
             chartId => chartId !== Number(config.id),
           ),
@@ -128,9 +130,13 @@ export const ScopingModal = ({
   );
 
   const saveScoping = useCallback(() => {
+    const savedChartConfigs = { ...chartConfigs };
+    if (savedChartConfigs[NEW_CHART_SCOPING_ID]) {
+      delete savedChartConfigs[NEW_CHART_SCOPING_ID];
+    }
     dispatch(
-      setChartConfiguration({
-        chartConfiguration: chartConfigs,
+      saveChartConfiguration({
+        chartConfiguration: savedChartConfigs,
         globalChartConfiguration: globalChartConfig,
       }),
     );
@@ -175,13 +181,13 @@ export const ScopingModal = ({
     (chartId: number) => {
       setChartConfigs(prevConfigs => {
         const newConfigs = { ...prevConfigs };
-        if (chartId === -1) {
-          delete newConfigs[-1];
+        if (chartId === NEW_CHART_SCOPING_ID) {
+          delete newConfigs[NEW_CHART_SCOPING_ID];
         } else {
           newConfigs[chartId] = {
             id: chartId,
             crossFilters: {
-              scope: 'global',
+              scope: GLOBAL_SCOPE_POINTER,
               chartsInScope: globalChartConfig.chartsInScope.filter(
                 id => id !== chartId,
               ),
@@ -198,12 +204,12 @@ export const ScopingModal = ({
   );
 
   const addNewCustomScope = useCallback(() => {
-    setCurrentChartId(-1);
-    if (!chartConfigs[-1]) {
+    setCurrentChartId(NEW_CHART_SCOPING_ID);
+    if (!chartConfigs[NEW_CHART_SCOPING_ID]) {
       setChartConfigs(prevConfigs => ({
         ...prevConfigs,
-        [-1]: {
-          id: -1,
+        [NEW_CHART_SCOPING_ID]: {
+          id: NEW_CHART_SCOPING_ID,
           crossFilters: {
             scope: globalChartConfig.scope,
             chartsInScope: globalChartConfig.chartsInScope,
@@ -216,11 +222,12 @@ export const ScopingModal = ({
   const handleSelectChange = useCallback(
     (newChartId: number) => {
       if (isDefined(currentChartId)) {
-        const currentScope =
-          chartConfigs[currentChartId]?.crossFilters.scope !== 'global'
-            ? (chartConfigs[currentChartId].crossFilters
-                .scope as NativeFilterScope)
-            : globalChartConfig.scope;
+        const currentScope = !isCrossFilterScopeGlobal(
+          chartConfigs[currentChartId]?.crossFilters.scope,
+        )
+          ? (chartConfigs[currentChartId].crossFilters
+              .scope as NativeFilterScope)
+          : globalChartConfig.scope;
         const newScope = {
           rootPath: currentScope.rootPath,
           excluded: [
@@ -241,13 +248,13 @@ export const ScopingModal = ({
             ...prevConfig,
             [newChartId]: newCrossFiltersConfig,
           };
-          if (currentChartId < 0) {
-            delete newConfig[currentChartId];
+          if (currentChartId === NEW_CHART_SCOPING_ID) {
+            delete newConfig[NEW_CHART_SCOPING_ID];
           } else {
             newConfig[currentChartId] = {
               id: currentChartId,
               crossFilters: {
-                scope: 'global',
+                scope: GLOBAL_SCOPE_POINTER,
                 chartsInScope: globalChartConfig.chartsInScope.filter(
                   id => id !== currentChartId,
                 ),

@@ -56,7 +56,7 @@ import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
-  setChartConfiguration,
+  saveChartConfiguration,
   dashboardInfoChanged,
   SET_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
@@ -303,7 +303,7 @@ export function saveDashboardRequest(data, id, saveType) {
         const { chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration();
         dispatch(
-          setChartConfiguration({
+          saveChartConfiguration({
             chartConfiguration,
             globalChartConfiguration,
           }),
