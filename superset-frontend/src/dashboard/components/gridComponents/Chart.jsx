@@ -339,9 +339,10 @@ class Chart extends React.Component {
   }
 
   exportTable(format, isFullCSV) {
-    const logAction = format === 'csv'
-      ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
-      : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART
+    const logAction =
+      format === 'csv'
+        ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+        : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
     this.props.logEvent(logAction, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
