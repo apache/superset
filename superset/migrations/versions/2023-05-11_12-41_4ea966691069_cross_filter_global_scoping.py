@@ -48,7 +48,6 @@ class Dashboard(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
     for dashboard in session.query(Dashboard).all():
         try:
             json_metadata = json.loads(dashboard.json_metadata)
@@ -56,16 +55,20 @@ def upgrade():
             for config in json_metadata.get("chart_configuration", {}).values():
                 chart_id = int(config.get("id", 0))
                 scope = config.get("crossFilters", {}).get("scope", {})
+                excluded = [
+                    int(excluded_id) for excluded_id in scope.get("excluded", [])
+                ]
                 new_chart_configuration[chart_id] = copy.deepcopy(config)
                 new_chart_configuration[chart_id]["id"] = chart_id
-                if scope.get("rootPath", []) == ["ROOT_ID"] and scope.get(
-                    "excluded", []
-                ) == [chart_id]:
+                new_chart_configuration[chart_id]["crossFilters"]["scope"][
+                    "excluded"
+                ] = excluded
+                if scope.get("rootPath") == ["ROOT_ID"] and excluded == [chart_id]:
                     new_chart_configuration[chart_id]["crossFilters"][
                         "scope"
                     ] = "global"
 
-            json_metadata.chart_configuration = new_chart_configuration
+            json_metadata["chart_configuration"] = new_chart_configuration
             dashboard.json_metadata = json.dumps(json_metadata)
 
         except Exception:
@@ -95,7 +98,8 @@ def downgrade():
                         "excluded": [chart_id],
                     }
 
-            json_metadata.chart_configuration = new_chart_configuration
+            json_metadata["chart_configuration"] = new_chart_configuration
+            del json_metadata["global_chart_configuration"]
             dashboard.json_metadata = json.dumps(json_metadata)
 
         except Exception:
