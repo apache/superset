@@ -50,7 +50,13 @@ class SliceModelView(
     def pre_delete(self, item: "SliceModelView") -> None:
         security_manager.raise_for_ownership(item)
 
-    @expose("/add", methods=["GET", "POST"])
+    @expose(
+        "/add",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @has_access
     def add(self) -> FlaskResponse:
         return super().render_app_template()

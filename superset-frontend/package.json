@@ -115,6 +115,7 @@
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/preset-chart-xy": "file:./plugins/preset-chart-xy",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
+    "@types/d3-format": "^3.0.1",
     "@visx/axis": "^3.0.1",
     "@visx/grid": "^3.0.1",
     "@visx/responsive": "^3.0.0",
@@ -183,7 +184,6 @@
     "react-jsonschema-form": "^1.8.1",
     "react-lines-ellipsis": "^0.15.0",
     "react-loadable": "^5.5.0",
-    "react-query": "^3.39.2",
     "react-redux": "^7.2.8",
     "react-resize-detector": "^7.1.2",
     "react-reverse-portal": "^2.1.1",
@@ -210,6 +210,7 @@
     "shortid": "^2.2.6",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
+    "use-event-callback": "^0.1.0",
     "use-immer": "^0.8.1",
     "use-query-params": "^1.1.9",
     "yargs": "^15.4.1"

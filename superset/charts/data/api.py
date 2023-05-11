@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 class ChartDataRestApi(ChartRestApi):
     include_route_methods = {"get_data", "data", "data_from_cache"}
 
-    @expose("/<int:pk>/data/", methods=["GET"])
+    @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -171,7 +171,7 @@ class ChartDataRestApi(ChartRestApi):
             command=command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data", methods=["POST"])
+    @expose("/data", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -257,7 +257,7 @@ class ChartDataRestApi(ChartRestApi):
             command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data/<cache_key>", methods=["GET"])
+    @expose("/data/<cache_key>", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

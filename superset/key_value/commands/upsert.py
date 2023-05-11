@@ -16,7 +16,6 @@
 # under the License.
 
 import logging
-import pickle
 from datetime import datetime
 from typing import Any, Optional, Union
 from uuid import UUID
@@ -31,7 +30,7 @@ from superset.key_value.exceptions import (
     KeyValueUpsertFailedError,
 )
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key, KeyValueResource
+from superset.key_value.types import Key, KeyValueCodec, KeyValueResource
 from superset.key_value.utils import get_filter
 from superset.utils.core import get_user_id
 
@@ -42,13 +41,15 @@ class UpsertKeyValueCommand(BaseCommand):
     resource: KeyValueResource
     value: Any
     key: Union[int, UUID]
+    codec: KeyValueCodec
     expires_on: Optional[datetime]
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         resource: KeyValueResource,
         key: Union[int, UUID],
         value: Any,
+        codec: KeyValueCodec,
         expires_on: Optional[datetime] = None,
     ):
         """
@@ -57,13 +58,14 @@ class UpsertKeyValueCommand(BaseCommand):
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to update
         :param value: the value to persist in the key-value store
-        :param key_type: the type of the key to update
+        :param codec: codec used to encode the value
         :param expires_on: entry expiration time
         :return: the key associated with the updated value
         """
         self.resource = resource
         self.key = key
         self.value = value
+        self.codec = codec
         self.expires_on = expires_on
 
     def run(self) -> Key:
@@ -85,7 +87,7 @@ class UpsertKeyValueCommand(BaseCommand):
             .first()
         )
         if entry:
-            entry.value = pickle.dumps(self.value)
+            entry.value = self.codec.encode(self.value)
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
             entry.changed_by_fk = get_user_id()
@@ -96,6 +98,7 @@ class UpsertKeyValueCommand(BaseCommand):
         return CreateKeyValueCommand(
             resource=self.resource,
             value=self.value,
+            codec=self.codec,
             key=self.key,
             expires_on=self.expires_on,
         ).run()

@@ -256,7 +256,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -319,7 +319,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -406,7 +406,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
-    @expose("/<pk>", methods=["DELETE"])
+    @expose("/<pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -462,7 +462,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -546,7 +546,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             mimetype="application/text",
         )
 
-    @expose("/duplicate", methods=["POST"])
+    @expose("/duplicate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -617,7 +617,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/refresh", methods=["PUT"])
+    @expose("/<pk>/refresh", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -673,7 +673,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/related_objects", methods=["GET"])
+    @expose("/<pk>/related_objects", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -735,7 +735,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             dashboards={"count": len(dashboards), "result": dashboards},
         )
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -798,7 +798,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -931,7 +931,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/get_or_create/", methods=["POST"])
+    @expose("/get_or_create/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics

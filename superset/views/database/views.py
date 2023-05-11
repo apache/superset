@@ -123,7 +123,7 @@ class CustomFormView(SimpleFormView):
     your form pre-processing and post-processing
     """
 
-    @expose("/form", methods=["GET"])
+    @expose("/form", methods=("GET",))
     @has_access
     def this_form_get(self) -> Any:
         self._init_vars()
@@ -137,7 +137,7 @@ class CustomFormView(SimpleFormView):
             appbuilder=self.appbuilder,
         )
 
-    @expose("/form", methods=["POST"])
+    @expose("/form", methods=("POST",))
     @has_access
     def this_form_post(self) -> Any:
         self._init_vars()

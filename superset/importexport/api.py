@@ -42,7 +42,7 @@ class ImportExportRestApi(BaseSupersetApi):
     openapi_spec_tag = "Import/export"
     allow_browser_login = True
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -91,7 +91,7 @@ class ImportExportRestApi(BaseSupersetApi):
         )
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
