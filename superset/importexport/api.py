@@ -87,7 +87,7 @@ class ImportExportRestApi(BaseSupersetApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            download_name=filename,  # type: ignore[call-arg]
         )
         return response
 

@@ -284,7 +284,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            download_name=filename,  # type: ignore[call-arg]
         )
         if token:
             response.set_cookie(token, "done", max_age=600)

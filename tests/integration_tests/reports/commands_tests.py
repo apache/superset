@@ -665,7 +665,7 @@ def test_email_chart_report_schedule(
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
-        # Assert the email inline screenshotq
+        # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
