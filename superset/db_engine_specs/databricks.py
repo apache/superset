@@ -200,7 +200,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
             query.update(cls.encryption_parameters)
 
         return str(
-            URL(
+            URL.create(
                 f"{cls.engine}+{cls.default_driver}".rstrip("+"),
                 username="token",
                 password=parameters.get("access_token"),

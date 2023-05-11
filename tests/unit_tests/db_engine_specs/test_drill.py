@@ -36,7 +36,7 @@ def test_odbc_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+odbc")
+    url = URL.create("drill+odbc")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["DelegationUID"] == username
@@ -52,7 +52,7 @@ def test_jdbc_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+jdbc")
+    url = URL.create("drill+jdbc")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
@@ -68,7 +68,7 @@ def test_sadrill_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+sadrill")
+    url = URL.create("drill+sadrill")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
@@ -86,7 +86,7 @@ def test_invalid_impersonation() -> None:
     from superset.db_engine_specs.drill import DrillEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
-    url = URL("drill+foobar")
+    url = URL.create("drill+foobar")
     username = "DoAsUser"
 
     with pytest.raises(SupersetDBAPIProgrammingError):

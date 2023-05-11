@@ -265,7 +265,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ] = None,
     ) -> str:
         return str(
-            URL(
+            URL.create(
                 "snowflake",
                 username=parameters.get("username"),
                 password=parameters.get("password"),
