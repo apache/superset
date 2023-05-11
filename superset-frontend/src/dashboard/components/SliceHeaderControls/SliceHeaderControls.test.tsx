@@ -173,12 +173,12 @@ test('Should "export to CSV"', async () => {
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
-test('Should "export to XLSX"', async () => {
+test('Should "export to Excel"', async () => {
   const props = createProps();
   renderWrapper(props);
   expect(props.exportXLSX).toBeCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
-  userEvent.click(await screen.findByText('Export to .XLSX'));
+  userEvent.click(await screen.findByText('Export to Excel'));
   expect(props.exportXLSX).toBeCalledTimes(1);
   expect(props.exportXLSX).toBeCalledWith(371);
 });
