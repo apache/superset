@@ -23,6 +23,7 @@ from urllib import parse
 
 import sqlparse
 from sqlalchemy import and_
+from sqloxide import parse_sql  # pylint: disable=no-name-in-module
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
@@ -51,15 +52,30 @@ from sqlparse.utils import imt
 from superset.exceptions import QueryClauseValidationException
 from superset.utils.backports import StrEnum
 
-try:
-    from sqloxide import parse_sql as sqloxide_parse
-except:  # pylint: disable=bare-except
-    sqloxide_parse = None
-
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
+
+# mapping between sqloxide and SQLAlchemy dialects
+SQLOXIDE_DIALECTS = {
+    "ansi": {"trino", "trinonative", "presto"},
+    "hive": {"hive", "databricks"},
+    "ms": {"mssql"},
+    "mysql": {"mysql"},
+    "postgres": {
+        "cockroachdb",
+        "hana",
+        "netezza",
+        "postgres",
+        "postgresql",
+        "redshift",
+        "vertica",
+    },
+    "snowflake": {"snowflake"},
+    "sqlite": {"sqlite", "gsheets", "shillelagh"},
+    "clickhouse": {"clickhouse"},
+}
 
 logger = logging.getLogger(__name__)
 
@@ -252,16 +268,15 @@ class ParsedQuery:
         for statement in parsed:
             # Check if this is a CTE
             if statement.is_group and statement[0].ttype == Keyword.CTE:
-                if sqloxide_parse is not None:
-                    try:
-                        if not self._check_cte_is_select(
-                            sqloxide_parse(self.strip_comments(), dialect="ansi")
-                        ):
-                            return False
-                    except ValueError:
-                        # sqloxide was not able to parse the query, so let's continue with
-                        # sqlparse
-                        pass
+                try:
+                    if not self._check_cte_is_select(
+                        parse_sql(self.strip_comments(), dialect="ansi")
+                    ):
+                        return False
+                except ValueError:
+                    # sqloxide was not able to parse the query, so let's continue with
+                    # sqlparse
+                    pass
                 inner_cte = self.get_inner_cte_expression(statement.tokens) or []
                 # Check if the inner CTE is a not a SELECT
                 if any(token.ttype == DDL for token in inner_cte) or any(
@@ -549,21 +564,11 @@ def sanitize_clause(clause: str) -> str:
     return clause
 
 
-class InsertRLSState(StrEnum):
+def has_table_query(sql: str, sqla_dialect: Optional[str] = None) -> bool:
     """
-    State machine that scans for WHERE and ON clauses referencing tables.
-    """
+    Return if the sql has a subquery reading from a table.
 
-    SCANNING = "SCANNING"
-    SEEN_SOURCE = "SEEN_SOURCE"
-    FOUND_TABLE = "FOUND_TABLE"
-
-
-def has_table_query(token_list: TokenList) -> bool:
-    """
-    Return if a statement has a query reading from a table.
-
-        >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
+        >>> has_table_query(sqlparse.parse("SELECT COUNT(*)")[0])
         False
         >>> has_table_query(sqlparse.parse("SELECT * FROM table")[0])
         True
@@ -574,31 +579,17 @@ def has_table_query(token_list: TokenList) -> bool:
         False
 
     """
-    state = InsertRLSState.SCANNING
-    for token in token_list.tokens:
-        # Ignore comments
-        if isinstance(token, sqlparse.sql.Comment):
-            continue
+    return bool(extract_table_references(sql, sqla_dialect))
 
-        # Recurse into child token list
-        if isinstance(token, TokenList) and has_table_query(token):
-            return True
 
-        # Found a source keyword (FROM/JOIN)
-        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
-            state = InsertRLSState.SEEN_SOURCE
+class InsertRLSState(StrEnum):
+    """
+    State machine that scans for WHERE and ON clauses referencing tables.
+    """
 
-        # Found identifier/keyword after FROM/JOIN
-        elif state == InsertRLSState.SEEN_SOURCE and (
-            isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
-        ):
-            return True
-
-        # Found nothing, leaving source
-        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
-            state = InsertRLSState.SCANNING
-
-    return False
+    SCANNING = "SCANNING"
+    SEEN_SOURCE = "SEEN_SOURCE"
+    FOUND_TABLE = "FOUND_TABLE"
 
 
 def add_table_name(rls: TokenList, table: str) -> None:
@@ -880,57 +871,34 @@ def insert_rls_in_predicate(
     return token_list
 
 
-# mapping between sqloxide and SQLAlchemy dialects
-SQLOXITE_DIALECTS = {
-    "ansi": {"trino", "trinonative", "presto"},
-    "hive": {"hive", "databricks"},
-    "ms": {"mssql"},
-    "mysql": {"mysql"},
-    "postgres": {
-        "cockroachdb",
-        "hana",
-        "netezza",
-        "postgres",
-        "postgresql",
-        "redshift",
-        "vertica",
-    },
-    "snowflake": {"snowflake"},
-    "sqlite": {"sqlite", "gsheets", "shillelagh"},
-    "clickhouse": {"clickhouse"},
-}
-
 RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
 RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 
 def extract_table_references(
-    sql_text: str, sqla_dialect: str, show_warning: bool = True
+    sql_text: str,
+    sqla_dialect: Optional[str] = None,
+    show_warning: bool = True,
 ) -> set["Table"]:
     """
     Return all the dependencies from a SQL sql_text.
     """
-    dialect = "generic"
-    tree = None
-
-    if sqloxide_parse:
-        for dialect, sqla_dialects in SQLOXITE_DIALECTS.items():
+    sqloxide_dialect = "generic"
+    if sqla_dialect:
+        for sqloxide_dialect, sqla_dialects in SQLOXIDE_DIALECTS.items():
             if sqla_dialect in sqla_dialects:
                 break
-        sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
-        sql_text = RE_JINJA_VAR.sub("abc", sql_text)
-        try:
-            tree = sqloxide_parse(sql_text, dialect=dialect)
-        except Exception as ex:  # pylint: disable=broad-except
-            if show_warning:
-                logger.warning(
-                    "\nUnable to parse query with sqloxide:\n%s\n%s", sql_text, ex
-                )
 
-    # fallback to sqlparse
-    if not tree:
-        parsed = ParsedQuery(sql_text)
-        return parsed.tables
+    sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
+    sql_text = RE_JINJA_VAR.sub("abc", sql_text)
+    try:
+        tree = parse_sql(sql_text, dialect=sqloxide_dialect)
+    except Exception as ex:
+        if show_warning:
+            logger.warning(
+                "\nUnable to parse query with sqloxide:\n%s\n%s", sql_text, ex
+            )
+        raise ex
 
     def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
         """

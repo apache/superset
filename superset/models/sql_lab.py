@@ -52,6 +52,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    process_sql_expression,
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -345,7 +346,7 @@ class Query(
         :rtype: sqlalchemy.sql.column
         """
         label = get_column_name(col)
-        expression = self._process_sql_expression(
+        expression = process_sql_expression(
             expression=col["sqlExpression"],
             database_id=self.database_id,
             schema=self.schema,

@@ -106,8 +106,6 @@ rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
     # via boto3
-sqloxide==0.1.33
-    # via -r requirements/development.in
 stack-data==0.6.2
     # via ipython
 tableschema==1.20.2

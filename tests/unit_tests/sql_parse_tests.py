@@ -1287,16 +1287,16 @@ def test_sqlparse_issue_652():
 @pytest.mark.parametrize(
     "sql,expected",
     [
-        ("SELECT * FROM table", True),
-        ("SELECT a FROM (SELECT 1 AS a) JOIN (SELECT * FROM table)", True),
+        ("SELECT * FROM 'table'", True),
+        ("SELECT a FROM (SELECT 1 AS a) JOIN (SELECT * FROM 'table')", True),
         ("(SELECT COUNT(DISTINCT name) AS foo FROM    birth_names)", True),
-        ("COUNT(*)", False),
+        ("SELECT COUNT(*)", False),
         ("SELECT a FROM (SELECT 1 AS a)", False),
-        ("SELECT a FROM (SELECT 1 AS a) JOIN table", True),
+        ("SELECT a FROM (SELECT 1 AS a) JOIN 'table'", True),
         ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
         ("SELECT * FROM other_table", True),
-        ("extract(HOUR from from_unixtime(hour_ts)", False),
-        ("(SELECT * FROM table)", True),
+        ("SELECT extract(HOUR from from_unixtime(hour_ts))", False),
+        ("(SELECT * FROM 'table')", True),
         ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
         (
             "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
@@ -1304,6 +1304,10 @@ def test_sqlparse_issue_652():
         ),
         (
             "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
+        (
+            "SELECT table_name FROM (information_schema.tables) WHERE table_name LIKE '%user%' LIMIT 1",
             True,
         ),
     ],
@@ -1315,8 +1319,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
     This is used to prevent ad-hoc metrics from querying unauthorized tables, bypassing
     row-level security.
     """
-    statement = sqlparse.parse(sql)[0]
-    assert has_table_query(statement) == expected
+    assert has_table_query(sql) == expected
 
 
 @pytest.mark.parametrize(
@@ -1784,21 +1787,20 @@ def test_extract_table_references(mocker: MockerFixture) -> None:
         Table(table="other_table", schema=None, catalog=None),
     }
 
-    # test falling back to sqlparse
-    logger = mocker.patch("superset.sql_parse.logger")
-    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
+    sql = "SELECT * FROM 'table' UNION ALL SELECT * FROM other_table"
     assert extract_table_references(
         sql,
         "trino",
-    ) == {Table(table="other_table", schema=None, catalog=None)}
-    logger.warning.assert_called_once()
-
-    logger = mocker.patch("superset.migrations.shared.utils.logger")
-    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
-    assert extract_table_references(sql, "trino", show_warning=False) == {
-        Table(table="other_table", schema=None, catalog=None)
+    ) == {
+        Table(table="table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
     }
-    logger.warning.assert_not_called()
+
+    sql = "SELECT * FROM 'table' UNION ALL SELECT * FROM other_table"
+    assert extract_table_references(sql, "trino", show_warning=False) == {
+        Table(table="table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
+    }
 
 
 def test_is_select() -> None:

@@ -43,7 +43,7 @@ from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
-from sqlalchemy import and_, Column, or_, UniqueConstraint
+from sqlalchemy import and_, Column, dialects, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session, validates
@@ -108,9 +108,10 @@ ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def validate_adhoc_subquery(
-    sql: str,
+    expression: str,
     database_id: int,
     default_schema: str,
+    sqla_dialect: Optional[str] = None,
 ) -> str:
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
@@ -123,8 +124,11 @@ def validate_adhoc_subquery(
     nested sub-queries with table
     """
     statements = []
-    for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
+    for statement in sqlparse.parse(expression):
+        # build a proper SQL query from the expression for sqloxide
+        sql = f"SELECT {expression}"
+
+        if has_table_query(sql, sqla_dialect):
             if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
@@ -137,6 +141,32 @@ def validate_adhoc_subquery(
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)
+
+
+def process_sql_expression(
+    expression: Optional[str],
+    database_id: int,
+    schema: str,
+    template_processor: Optional[BaseTemplateProcessor],
+    sqla_dialect: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Apply template and validate ad-hoc expressions.
+    """
+    if template_processor and expression:
+        expression = template_processor.process_template(expression)
+    if expression:
+        expression = validate_adhoc_subquery(
+            expression,
+            database_id,
+            schema,
+            sqla_dialect,
+        )
+        try:
+            expression = sanitize_clause(expression)
+        except (QueryClauseValidationException, SupersetSecurityException) as ex:
+            raise QueryObjectValidationError(ex.message) from ex
+    return expression
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -838,27 +868,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             ) from ex
 
-    def _process_sql_expression(
-        self,
-        expression: Optional[str],
-        database_id: int,
-        schema: str,
-        template_processor: Optional[BaseTemplateProcessor],
-    ) -> Optional[str]:
-        if template_processor and expression:
-            expression = template_processor.process_template(expression)
-        if expression:
-            expression = validate_adhoc_subquery(
-                expression,
-                database_id,
-                schema,
-            )
-            try:
-                expression = sanitize_clause(expression)
-            except QueryClauseValidationException as ex:
-                raise QueryObjectValidationError(ex.message) from ex
-        return expression
-
     def make_sqla_column_compatible(
         self, sqla_col: ColumnElement, label: Optional[str] = None
     ) -> ColumnElement:
@@ -1136,11 +1145,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = self._process_sql_expression(
+            expression = process_sql_expression(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
                 schema=self.schema,
                 template_processor=template_processor,
+                sqla_dialect=self.db_engine_spec.engine,
             )
             sqla_metric = literal_column(expression)
         else:
@@ -1567,11 +1577,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_sql_expression(
+                    col["sqlExpression"] = process_sql_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
                         schema=self.schema,
                         template_processor=template_processor,
+                        sqla_dialect=self.db_engine_spec.engine,
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
@@ -1609,6 +1620,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
         dttm_col = columns_by_name.get(granularity) if granularity else None
 
+        # use quoter for quoting column names
+        dialect = dialects.registry.load(self.db_engine_spec.engine)
+        quoter = dialect().identifier_preparer.quote
+
         if need_groupby:
             # dedup columns while preserving order
             columns = groupby or columns
@@ -1630,9 +1645,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     else:
                         selected = validate_adhoc_subquery(
-                            selected,
+                            quoter(selected),
                             self.database_id,
                             self.schema,
+                            self.db_engine_spec.engine,
                         )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
@@ -1652,13 +1668,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]
                 elif isinstance(selected, str):
-                    _sql = selected
+                    _sql = quoter(selected)
                     _column_label = selected
 
                 selected = validate_adhoc_subquery(
                     _sql,
                     self.database_id,
                     self.schema,
+                    self.db_engine_spec.engine,
                 )
 
                 select_exprs.append(
@@ -1925,11 +1942,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             msg=ex.message,
                         )
                     ) from ex
-                where = self._process_sql_expression(
+                where = process_sql_expression(
                     expression=where,
                     database_id=self.database_id,
                     schema=self.schema,
                     template_processor=template_processor,
+                    sqla_dialect=self.db_engine_spec.engine,
                 )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
@@ -1943,11 +1961,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             msg=ex.message,
                         )
                     ) from ex
-                having = self._process_sql_expression(
+                having = process_sql_expression(
                     expression=having,
                     database_id=self.database_id,
                     schema=self.schema,
                     template_processor=template_processor,
+                    sqla_dialect=self.db_engine_spec.engine,
                 )
                 having_clause_and += [self.text(having)]
 
