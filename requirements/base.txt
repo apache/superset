@@ -296,7 +296,6 @@ typing-extensions==4.4.0
     #   apache-superset
     #   flask-limiter
     #   limits
-    #   rich
 urllib3==1.26.6
     # via selenium
 vine==5.0.0
