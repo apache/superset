@@ -193,6 +193,7 @@ ordered-set==4.1.0
     # via flask-limiter
 packaging==23.1
     # via
+    #   apache-superset
     #   deprecation
     #   limits
 pandas==1.5.3
