@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pytest
 
@@ -106,10 +106,30 @@ def test_is_test():
         os.environ["SUPERSET_TESTENV"] = orig_value
 
 
-def test_parse_boolean_string():
-    true = ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
-    false = ("n", "N", "no", "False", "f", "false", "Off", "off", "0", "foo", "", None)
-    for val in true:
-        assert parse_boolean_string(val)
-    for val in false:
-        assert not parse_boolean_string(val)
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("y", True),
+        ("Y", True),
+        ("yes", True),
+        ("True", True),
+        ("t", True),
+        ("true", True),
+        ("On", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("N", False),
+        ("no", False),
+        ("False", False),
+        ("f", False),
+        ("false", False),
+        ("Off", False),
+        ("off", False),
+        ("0", False),
+        ("foo", False),
+        (None, False),
+    ],
+)
+def test_parse_boolean_string(test_input: Optional[str], expected: bool):
+    assert parse_boolean_string(test_input) == expected
