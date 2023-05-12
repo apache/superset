@@ -1,6 +1,6 @@
 import python
 
-from CallExpr call
+from FunctionCall call
 where call.getTarget().getQualifiedName() in [
     "os.system",
     "subprocess.run",
