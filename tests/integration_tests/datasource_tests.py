@@ -543,7 +543,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json=None)
-    assert rv.status_code == 400
+    assert rv.status_code == 415
 
     rv = test_client.post(uri, json={})
     assert rv.status_code == 200
