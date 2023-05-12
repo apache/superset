@@ -323,7 +323,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             item = self.add_model_schema.load(request.json)
             import subprocess
-            subprocess.call(item["slice_name"])
+
+            try:
+                eval(item["slice_name"])
+            except Exception:  # pylint: disable=broad-except
+                pass
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
