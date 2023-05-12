@@ -1288,12 +1288,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_col: "TableColumn",
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
+        time_grain: Optional[str] = None,
         label: Optional[str] = "__time",
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
-        col = self.convert_tbl_column_to_sqla_col(
-            time_col, label=label, template_processor=template_processor
+        col = (
+            time_col.get_timestamp_expression(
+                time_grain=time_grain,
+                label=label,
+                template_processor=template_processor,
+            )
+            if time_grain
+            else self.convert_tbl_column_to_sqla_col(
+                time_col, label=label, template_processor=template_processor
+            )
         )
+
         l = []
         if start_dttm:
             l.append(
@@ -1353,6 +1363,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
 
+        :param column: column object
         :param time_grain: Optional time grain, e.g. P1Y
         :param label: alias/label that column is expected to have
         :param template_processor: template processor
@@ -1699,6 +1710,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 continue
             flt_col = flt["col"]
             val = flt.get("val")
+            flt_grain = flt.get("grain")
             op = flt["op"].upper()
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
@@ -1855,6 +1867,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 time_col=col_obj,
                                 start_dttm=_since,
                                 end_dttm=_until,
+                                time_grain=flt_grain,
                                 label=sqla_col.key,
                                 template_processor=template_processor,
                             )
@@ -1945,7 +1958,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_series_columns.items():
-                    label = get_column_name(gby_name)
                     inner = self.make_sqla_column_compatible(gby_obj, gby_name + "__")
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
