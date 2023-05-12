@@ -225,13 +225,13 @@ describe('ResultSet', () => {
 
   test('renders if there is no limit in query.results but has queryLimit', async () => {
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('grid')).toBeInTheDocument();
+    expect(getByRole('table')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
     const props = { ...mockedProps, query: queryWithNoQueryLimit };
     const { getByRole } = setup(props, mockStore(initialState));
-    expect(getByRole('grid')).toBeInTheDocument();
+    expect(getByRole('table')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -256,7 +256,7 @@ describe('ResultSet', () => {
 
   test('Async queries - renders on the first call', () => {
     setup(asyncQueryProps, mockStore(initialState));
-    expect(screen.getByRole('grid')).toBeVisible();
+    expect(screen.getByRole('table')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,

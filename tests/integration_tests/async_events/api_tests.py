@@ -33,6 +33,7 @@ class TestAsyncEventApi(SupersetTestCase):
 
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events(self, mock_uuid4):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
@@ -46,6 +47,7 @@ class TestAsyncEventApi(SupersetTestCase):
 
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_last_id(self, mock_uuid4):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
@@ -59,6 +61,7 @@ class TestAsyncEventApi(SupersetTestCase):
 
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_results(self, mock_uuid4):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
@@ -107,6 +110,7 @@ class TestAsyncEventApi(SupersetTestCase):
         self.assertEqual(response, expected)
 
     def test_events_no_login(self):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         rv = self.fetch_events()
         assert rv.status_code == 401

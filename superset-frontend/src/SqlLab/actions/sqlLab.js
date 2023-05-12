@@ -357,14 +357,6 @@ export function fetchQueryResults(query, displayLimit) {
   };
 }
 
-export function cleanSqlComments(sql) {
-  if (!sql) return '';
-  // it sanitizes the following comment block groups
-  // group 1 -> /* */
-  // group 2 -> --
-  return sql.replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n').trim();
-}
-
 export function runQuery(query) {
   return function (dispatch) {
     dispatch(startQuery(query));
@@ -374,7 +366,7 @@ export function runQuery(query) {
       json: true,
       runAsync: query.runAsync,
       schema: query.schema,
-      sql: cleanSqlComments(query.sql),
+      sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,
       tmp_table_name: query.tempTable,

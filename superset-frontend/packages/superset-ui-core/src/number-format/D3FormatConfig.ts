@@ -16,28 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { FormatLocaleDefinition } from 'd3-format';
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: Infinity,
-      retry: false,
-      retryOnMount: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-type Props = {
-  children: React.ReactNode;
+export const DEFAULT_D3_FORMAT: FormatLocaleDefinition = {
+  decimal: '.',
+  thousands: ',',
+  grouping: [3],
+  currency: ['$', ''],
 };
-
-const Queryprovider: React.FC<Props> = ({ children }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
-
-export default Queryprovider;

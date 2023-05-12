@@ -21,4 +21,5 @@
 ipython
 progress>=1.5,<2
 pyinstrument>=4.0.2,<5
+pylint==2.9.6
 sqloxide

@@ -378,6 +378,25 @@ LANGUAGES = {
 # incomplete and not well maintained.
 LANGUAGES = {}
 
+
+# Override the default d3 locale format
+# Default values are equivalent to
+# D3_FORMAT = {
+#     "decimal": ".",           # - decimal place string (e.g., ".").
+#     "thousands": ",",         # - group separator string (e.g., ",").
+#     "grouping": [3],          # - array of group sizes (e.g., [3]), cycled as needed.
+#     "currency": ["$", ""]     # - currency prefix/suffix strings (e.g., ["$", ""])
+# }
+# https://github.com/d3/d3-format/blob/main/README.md#formatLocale
+class D3Format(TypedDict, total=False):
+    decimal: str
+    thousands: str
+    grouping: List[int]
+    currency: List[str]
+
+
+D3_FORMAT: D3Format = {}
+
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
@@ -439,9 +458,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,  # deprecated
     "ENABLE_ADVANCED_DATA_TYPES": False,
-    "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot

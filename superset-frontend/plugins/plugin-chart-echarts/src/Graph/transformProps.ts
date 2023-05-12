@@ -34,7 +34,12 @@ import {
   EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
-import { getChartPadding, getLegendProps, sanitizeHtml } from '../utils/series';
+import {
+  getChartPadding,
+  getColtypesMapping,
+  getLegendProps,
+  sanitizeHtml,
+} from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
@@ -174,7 +179,7 @@ export default function transformProps(
     theme,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
-
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     source,
     target,
@@ -343,5 +348,6 @@ export default function transformProps(
     filterState,
     refs,
     emitCrossFilters,
+    coltypeMapping,
   };
 }

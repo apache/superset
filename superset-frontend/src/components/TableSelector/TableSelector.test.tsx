@@ -18,8 +18,15 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import { queryClient } from 'src/views/QueryProvider';
+import { act } from 'react-dom/test-utils';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  defaultStore as store,
+} from 'spec/helpers/testing-library';
+import { api } from 'src/hooks/apiResources/queryApi';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import TableSelector, { TableSelectorMultiple } from '.';
@@ -56,11 +63,13 @@ const getSelectItemContainer = (select: HTMLElement) =>
   );
 
 beforeEach(() => {
-  queryClient.clear();
   fetchMock.get(databaseApiRoute, { result: [] });
 });
 
 afterEach(() => {
+  act(() => {
+    store.dispatch(api.util.resetApiState());
+  });
   fetchMock.reset();
 });
 
@@ -69,7 +78,7 @@ test('renders with default props', async () => {
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
   const props = createProps();
-  render(<TableSelector {...props} />, { useRedux: true });
+  render(<TableSelector {...props} />, { useRedux: true, store });
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type to search databases',
   });
@@ -91,7 +100,7 @@ test('renders table options', async () => {
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
   const props = createProps();
-  render(<TableSelector {...props} />, { useRedux: true });
+  render(<TableSelector {...props} />, { useRedux: true, store });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
@@ -109,7 +118,10 @@ test('renders disabled without schema', async () => {
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
   const props = createProps();
-  render(<TableSelector {...props} schema={undefined} />, { useRedux: true });
+  render(<TableSelector {...props} schema={undefined} />, {
+    useRedux: true,
+    store,
+  });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
@@ -128,7 +140,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
     sqlLabMode: false,
   });
 
-  render(<TableSelector {...props} />, { useRedux: true });
+  render(<TableSelector {...props} />, { useRedux: true, store });
 
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
@@ -168,7 +180,7 @@ test('table multi select retain all the values selected', async () => {
     onTableSelectChange: callback,
   });
 
-  render(<TableSelectorMultiple {...props} />, { useRedux: true });
+  render(<TableSelectorMultiple {...props} />, { useRedux: true, store });
 
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
