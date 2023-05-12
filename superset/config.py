@@ -1091,7 +1091,7 @@ FLASK_APP_MUTATOR = None
 ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
