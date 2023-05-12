@@ -33,6 +33,14 @@ import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import getBootstrapData from '../../../utils/getBootstrapData';
+
+const getDefaultRowLimit = (): number => {
+  const bootstrapData = getBootstrapData();
+  const nativeFilterDefaultRowLimit =
+    bootstrapData?.common?.conf?.NATIVE_FILTER_DEFAULT_ROW_LIMIT;
+  return nativeFilterDefaultRowLimit || 1000;
+};
 
 export const getFormData = ({
   datasetId,
@@ -75,7 +83,7 @@ export const getFormData = ({
     extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
-    row_limit: 1000,
+    row_limit: getDefaultRowLimit(),
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
