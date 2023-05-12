@@ -1,22 +1,28 @@
 import React from 'react';
-import { IPanelMsgObj } from '../../types/global';
-import { ButtonsWrapper } from './styles';
+import { IPanelMsgObj, StylesConfig } from '../../types/global';
+import { ButtonsWrapper, Button } from './styles';
 
-const ButtonsBlock = ({ btnsInfo }: { btnsInfo: IPanelMsgObj['buttons'] }) => (
+const ButtonsBlock = ({
+  btnsInfo,
+  stylesConfig,
+}: {
+  btnsInfo: IPanelMsgObj['buttons'];
+  stylesConfig: StylesConfig;
+}) => (
   <div>
     {btnsInfo && (
       <ButtonsWrapper>
         {btnsInfo?.map((btn, key) => (
-          <a
+          <Button
             key={key}
             href={btn.link}
-            className={`btn btn-sm ${btn.class} ${key}`}
+            className="btn btn-sm"
             target="_blank"
             rel="noreferrer"
-            style={{ marginRight: key !== btnsInfo.length - 1 ? '20px' : '0' }}
+            stylesConfig={stylesConfig}
           >
             {btn.txt}
-          </a>
+          </Button>
         ))}
       </ButtonsWrapper>
     )}

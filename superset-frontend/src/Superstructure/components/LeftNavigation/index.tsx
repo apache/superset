@@ -1,6 +1,6 @@
 import { hot } from 'react-hot-loader/root';
 import React from 'react';
-import { RoutesConfig } from '../../types/global';
+import { RoutesConfig, StylesConfig } from '../../types/global';
 import {
   LeftNavigationWrapper,
   UlContainer,
@@ -11,8 +11,10 @@ import {
 const LeftNavigation = (props: {
   routesConfig: RoutesConfig;
   baseRoute: string;
+  stylesConfig: StylesConfig;
 }) => {
   const allAvailableRoutes = props.routesConfig.filter(route => !route.hidden);
+  const { businessId } = props.stylesConfig;
 
   return (
     <LeftNavigationWrapper>
@@ -24,7 +26,10 @@ const LeftNavigation = (props: {
 
           return (
             <ListItem key={`${route}-${index}`}>
-              <StyledLink activeClassName="active-link" to={link}>
+              <StyledLink
+                activeClassName={`active-link active-link-${businessId}`}
+                to={link}
+              >
                 {route.name}
               </StyledLink>
             </ListItem>

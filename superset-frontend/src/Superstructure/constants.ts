@@ -29,6 +29,36 @@ const DODOPIZZA_THEME = {
   },
 };
 
+const STYLES_DODOPIZZA = {
+  businessId: 'dodopizza',
+  colors: {
+    primary: '#ff6900',
+    secondary: '#fff0e6',
+    light: '#efefef',
+    dark: '#141414',
+  },
+};
+
+const STYLES_DRINKIT = {
+  businessId: 'drinkit',
+  colors: {
+    primary: '#334cdb',
+    secondary: '#f7f7f2',
+    light: '#efefef',
+    dark: '#141414',
+  },
+};
+
+const STYLES_DONER42 = {
+  businessId: 'doner42',
+  colors: {
+    primary: '#ff6900',
+    secondary: '#fff0e6',
+    light: '#efefef',
+    dark: '#141414',
+  },
+};
+
 const MESSAGES = {
   GET_MENU: {
     CONFIG: {
@@ -303,6 +333,9 @@ const USER_ROLES = {
 export {
   API_V1,
   MESSAGES,
+  STYLES_DODOPIZZA,
+  STYLES_DRINKIT,
+  STYLES_DONER42,
   SUPERSET_ENDPOINT,
   PLUGIN_SELECTOR,
   DODOPIZZA_THEME,

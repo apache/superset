@@ -28,11 +28,22 @@ export interface MicrofrontendParams {
 
 export type RoutesConfig = MicrofrontendNavigation['routes'];
 
+export interface StylesConfig {
+  businessId: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    light: string;
+    dark: string;
+  };
+}
+
 export interface MainComponentProps {
   navigation: MicrofrontendNavigation;
   store: any;
   theme?: any;
   basename: string;
+  stylesConfig: StylesConfig;
 }
 
 export interface InitConfig {
@@ -43,7 +54,7 @@ export interface InitConfig {
   token?: string;
 }
 
-export interface PanelMsgParams {
+export interface WarningMsgParams {
   title?: string;
   subTitle?: string;
   body?: string;
@@ -51,8 +62,22 @@ export interface PanelMsgParams {
   children?: React.ReactNode;
 }
 
-export interface ErrorParams extends PanelMsgParams {
+export interface PanelMsgParams {
+  title?: string;
+  subTitle?: string;
+  body?: string;
+  extra?: string;
+  children?: React.ReactNode;
+  stylesConfig: StylesConfig;
+}
+
+export interface ErrorParams {
   stackTrace?: string;
+  title?: string;
+  subTitle?: string;
+  body?: string;
+  extra?: string;
+  children?: React.ReactNode;
 }
 
 export interface IPanelMsgObj {
@@ -64,7 +89,7 @@ export interface IPanelMsgObj {
   listTitleExtra?: string;
   messages?: string[];
   messagesExtra?: string[];
-  buttons?: { txt: string; link: string; class?: string }[];
+  buttons?: { txt: string; link: string }[];
 }
 
 export interface Dashboard {

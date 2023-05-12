@@ -42,7 +42,12 @@ import { serializeValue } from '../parseEnvFile/utils';
 import { addSlash, logConfigs } from './helpers';
 
 import '../../theme';
-import { MESSAGES } from '../constants';
+import {
+  MESSAGES,
+  STYLES_DODOPIZZA,
+  STYLES_DRINKIT,
+  STYLES_DONER42,
+} from '../constants';
 
 setupClient();
 
@@ -61,6 +66,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
     basename: '',
   } as FullConfiguration);
   const [isFullConfigReady, setFullConfigReady] = useState(false);
+  const [stylesConfig, setStylesConfig] = useState(STYLES_DODOPIZZA);
 
   /**
    * Helper functions
@@ -249,6 +255,8 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
   useEffect(() => {
     composeAPIConfig(params);
+    if (params.business === 'drinkit') setStylesConfig(STYLES_DRINKIT);
+    else if (params.business === 'doner42') setStylesConfig(STYLES_DONER42);
   }, [params]);
 
   useEffect(() => {
@@ -341,6 +349,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
               <LeftNavigation
                 routesConfig={FULL_CONFIG.navigation.routes}
                 baseRoute={FULL_CONFIG.basename}
+                stylesConfig={stylesConfig}
               />
               <DashboardComponentWrapper
                 withNavigation={FULL_CONFIG.navigation.showNavigationMenu}
@@ -349,6 +358,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                   navigation={FULL_CONFIG.navigation}
                   store={store}
                   basename={FULL_CONFIG.basename}
+                  stylesConfig={stylesConfig}
                 />
               </DashboardComponentWrapper>
             </Router>

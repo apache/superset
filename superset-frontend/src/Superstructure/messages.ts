@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 import {
   DODOPIZZA_ANALYTICS_URL,
   DODOPIZZA_KNOWLEDGEBASE_URL,
@@ -19,7 +20,7 @@ const UNAVAILABLE = {
 };
 
 const IF_QUESTIONS_RU =
-  'Если у Вас возникли вопросы, то можно обратиться в команду Data Engineering';
+  'Если у Вас возникли вопросы, то можно обратиться в команду поддержки';
 
 const RULES_RU = {
   title: 'Добро пожаловать в Superset dashboard plugin',
@@ -28,17 +29,58 @@ const RULES_RU = {
   messages: [
     'Слева можно выбрать интересующий дашборд.',
     'Данный инструмент встроен в DODO IS и показывает дашборды из standalone сервиса по ссылке: https://analytics.dodois.io/',
+    'Примененные конфигурации: CERTIFIED BY => DODOPIZZA',
   ],
   buttons: [
     {
       txt: 'Правила работы с аналитикой',
       link: DODOPIZZA_KNOWLEDGEBASE_URL,
-      class: 'btn-warning',
     },
     {
       txt: 'Перейти в аналитику  (standalone)',
       link: DODOPIZZA_ANALYTICS_URL,
-      class: 'btn-info',
+    },
+  ],
+};
+
+const RULES_DRINKIT_RU = {
+  title: 'Добро пожаловать в Superset dashboard plugin',
+  subTitle: 'Новый инструмент от команды DE для DRINKIT',
+  extra: IF_QUESTIONS_RU,
+  messages: [
+    'Слева можно выбрать интересующий дашборд.',
+    'Данный инструмент встроен в DODO IS и показывает дашборды из standalone сервиса по ссылке: https://analytics.dodois.io/',
+    'Примененные конфигурации: CERTIFIED BY => DRINKIT',
+  ],
+  buttons: [
+    {
+      txt: 'Посмотреть инструкцию по работе с дашбордами',
+      link: 'https://dodopizza.info/support/articles/f8170159-480d-4f82-9564-192ced3159b9/ru',
+    },
+    {
+      txt: 'Посмотреть все доступные дашборды',
+      link: DODOPIZZA_ANALYTICS_URL,
+    },
+  ],
+};
+
+const RULES_DONER42_RU = {
+  title: 'Добро пожаловать в Superset dashboard plugin',
+  subTitle: 'Новый инструмент от команды DE для DONER42',
+  extra: IF_QUESTIONS_RU,
+  messages: [
+    'Слева можно выбрать интересующий дашборд.',
+    'Данный инструмент встроен в DODO IS и показывает дашборды из standalone сервиса по ссылке: https://analytics.dodois.io/',
+    'Примененные конфигурации: CERTIFIED BY => DONER42',
+  ],
+  buttons: [
+    {
+      txt: 'Посмотреть инструкцию по работе с дашбордами',
+      link: 'https://dodopizza.info/support/articles/f8170159-480d-4f82-9564-192ced3159b9/ru',
+    },
+    {
+      txt: 'Посмотреть все доступные дашборды',
+      link: DODOPIZZA_ANALYTICS_URL,
     },
   ],
 };
@@ -119,6 +161,8 @@ const NEW_FEATURES_MAY_2023_RU = {
 
 export {
   RULES_RU,
+  RULES_DRINKIT_RU,
+  RULES_DONER42_RU,
   GLOBAL_WARNING_DEFAULT_HEADER,
   GLOBAL_WARNING_DEFAULT_BODY,
   LIMIT_WARNING_HEADER,

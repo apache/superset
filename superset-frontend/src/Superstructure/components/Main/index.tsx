@@ -8,6 +8,7 @@ export default function Main({
   navigation,
   store,
   basename,
+  stylesConfig,
 }: MainComponentProps) {
   window.featureFlags = {
     ...window.featureFlags,
@@ -24,7 +25,7 @@ export default function Main({
                 key={`${mappedRoute.idOrSlug}-${index}`}
                 path={`${basename}Main`}
               >
-                <AnalyticsMain />
+                <AnalyticsMain stylesConfig={stylesConfig} />
               </Route>
             );
           }

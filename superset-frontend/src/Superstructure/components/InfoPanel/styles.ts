@@ -1,8 +1,10 @@
 /* eslint-disable theme-colors/no-literal-colors */
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
+import { StylesConfig } from '../../types/global';
 
 const StyledH4 = styled.h4`
   margin-top: 0;
+  margin-left: 20px;
 `;
 const StyledP = styled.p`
   margin-bottom: 10px;
@@ -18,14 +20,17 @@ const InfoPanelWrapper = styled.div`
   box-sizing: border-box;
 `;
 
-const Alert = styled.div`
-  line-height: 22px;
-  color: #004085;
-  background-color: #cce5ff;
-  border: 1px solid #b8daff;
-  border-radius: 2px;
-  padding: 30px;
-  width: 100%;
+const Alert = styled.div<{
+  stylesConfig: StylesConfig;
+}>`
+  ${({ stylesConfig: { colors } }) => css`
+    line-height: 22px;
+    color: ${colors.dark};
+    background-color: ${colors.light};
+    border-radius: 2px;
+    padding: 30px;
+    width: 100%;
+  `}
 `;
 
 const StyledCode = styled.code`

@@ -15,17 +15,17 @@ const InfoPanel = ({
   body,
   extra,
   children,
+  stylesConfig,
 }: PanelMsgParams) => (
   <InfoPanelWrapper>
-    <Alert>
+    <Alert stylesConfig={stylesConfig}>
       <RowWrapper>
-        <ColumnWrapper classes="col-md-1 tinycolumn">
-          <InfoIcon color="#004085" />
-        </ColumnWrapper>
-
         {title && (
-          <ColumnWrapper classes="col-md-11">
-            <StyledH4>{title || ''}</StyledH4>
+          <ColumnWrapper classes="col-md-12">
+            <div style={{ display: 'flex' }}>
+              <InfoIcon color={stylesConfig.colors.primary} />
+              <StyledH4>{title || ''}</StyledH4>
+            </div>
           </ColumnWrapper>
         )}
 

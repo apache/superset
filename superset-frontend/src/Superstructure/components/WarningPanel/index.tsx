@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelMsgParams } from '../../types/global';
+import { WarningMsgParams } from '../../types/global';
 import { InfoIcon, ColumnWrapper, RowWrapper } from '../index';
 
 import {
@@ -16,7 +16,7 @@ const WarningPanel = ({
   body,
   extra,
   children,
-}: PanelMsgParams) => (
+}: WarningMsgParams) => (
   <WarningPanelWrapper>
     <Alert>
       <RowWrapper>
