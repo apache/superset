@@ -1180,7 +1180,7 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
         assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
     elif backend == "postgresql":
         assert "DATE_TRUNC('week', col5) >=" in query
-    elif backend == "postgresql":
+    elif backend == "presto":
         assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
 
 
