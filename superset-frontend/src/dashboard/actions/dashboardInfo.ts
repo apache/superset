@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
+import { makeApi, CategoricalColorNamespace, t } from '@superset-ui/core';
 import { isString } from 'lodash';
 import { getErrorText } from 'src/utils/getClientErrorObject';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -122,6 +122,7 @@ export const saveChartConfiguration =
         chartConfiguration,
         globalChartConfiguration,
       });
+      dispatch(addDangerToast(t('Failed to save cross-filter scoping')));
     }
   };
 
