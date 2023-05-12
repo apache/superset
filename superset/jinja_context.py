@@ -189,7 +189,7 @@ class ExtraCache:
         # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        if has_request_context() and request.args.get(param):  # type: ignore
+        if has_request_context() and request.args.get(param):
             return request.args.get(param, default)
 
         form_data, _ = get_form_data()

@@ -32,7 +32,6 @@ from typing import (
 )
 from uuid import UUID
 
-import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
@@ -49,7 +48,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
+from superset.sql_parse import ParsedQuery
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -164,41 +163,6 @@ def get_columns_description(
             return result_set.columns
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
-
-
-def validate_adhoc_subquery(
-    sql: str,
-    database_id: int,
-    default_schema: str,
-) -> str:
-    """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
-
-    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
-    predicates to it.
-
-    :param sql: adhoc sql expression
-    :raise SupersetSecurityException if sql contains sub-queries or
-    nested sub-queries with table
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset import is_feature_enabled
-
-    statements = []
-    for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            statement = insert_rls(statement, database_id, default_schema)
-        statements.append(statement)
-
-    return ";\n".join(str(statement) for statement in statements)
 
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)

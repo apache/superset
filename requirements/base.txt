@@ -122,8 +122,6 @@ geographiclib==1.52
     # via geopy
 geopy==2.2.0
     # via apache-superset
-graphlib-backport==1.0.3
-    # via apache-superset
 greenlet==2.0.2
     # via sqlalchemy
 gunicorn==20.1.0
@@ -196,6 +194,7 @@ ordered-set==4.1.0
     # via flask-limiter
 packaging==23.1
     # via
+    #   apache-superset
     #   deprecation
     #   limits
 pandas==1.5.3

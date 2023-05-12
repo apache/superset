@@ -1947,7 +1947,7 @@ class BasicParametersMixin:
             query.update(cls.encryption_parameters)
 
         return str(
-            URL(
+            URL.create(
                 f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),

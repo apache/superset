@@ -19,16 +19,16 @@ import logging
 import re
 import time
 from collections import defaultdict
+from graphlib import TopologicalSorter
 from inspect import getsource
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, List, Set, Type
+from typing import Any, Dict, List, Set, Type
 
 import click
 from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
-from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
 from progress.bar import ChargingBar
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
@@ -120,7 +120,7 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
     # sort topologically so we can create entities in order and
     # maintain relationships (eg, create a database before creating
     # a slice)
-    sorter = TopologicalSorter()
+    sorter: TopologicalSorter[Any] = TopologicalSorter()
     for model in models:
         inspector = inspect(model)
         dependent_tables: List[str] = []
