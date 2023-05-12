@@ -733,7 +733,7 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
+    response.headers.extend(
         {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
     )
 
