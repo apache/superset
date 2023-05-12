@@ -169,7 +169,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = fields.Int()
 
 
 class DashboardGetResponseSchema(Schema):

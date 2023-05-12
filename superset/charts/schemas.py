@@ -152,7 +152,7 @@ openapi_spec_methods_override = {
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = fields.Int()
 
 
 class ChartEntityResponseSchema(Schema):
