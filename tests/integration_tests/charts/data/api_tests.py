@@ -1159,6 +1159,31 @@ def test_custom_cache_timeout(test_client, login_as_admin, physical_query_contex
     assert rv.json["result"][0]["cache_timeout"] == 5678
 
 
+def test_time_filter_with_grain(test_client, login_as_admin, physical_query_context):
+    physical_query_context["queries"][0]["filters"] = [
+        {
+            "col": "col5",
+            "op": "TEMPORAL_RANGE",
+            "val": "Last quarter : ",
+            "grain": "P1W",
+        },
+    ]
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    query = rv.json["result"][0]["query"]
+    backend = get_example_database().backend
+    if backend == "sqlite":
+        assert (
+            "DATETIME(col5, 'start of day', -strftime('%w', col5) || ' days') >="
+            in query
+        )
+    elif backend == "mysql":
+        assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
+    elif backend == "postgresql":
+        assert "DATE_TRUNC('week', col5) >=" in query
+    elif backend == "presto":
+        assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
+
+
 def test_force_cache_timeout(test_client, login_as_admin, physical_query_context):
     physical_query_context["custom_cache_timeout"] = -1
     test_client.post(CHART_DATA_URI, json=physical_query_context)
