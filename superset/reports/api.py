@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Optional
 
@@ -51,6 +52,7 @@ from superset.reports.schemas import (
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
+from superset.utils.core import validate_vo_rk
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -333,6 +335,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if validate_vo_rk(request.json):
+          return self.response_422("INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists")
+
         try:
             item = self.add_model_schema.load(request.json)
             # normally this would be covered by a decorator, however
@@ -414,6 +419,18 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # if request.json and request.json.get("type") is not None and request.json["type"] == ReportScheduleType.ALERT:
+        #   routing_key = None
+        #   for recipient in request.json["recipients"]:
+        #     if recipient["type"] == "VictorOps":
+        #       routing_key = recipient["recipient_config_json"]["target"]
+        #   if routing_key:
+        #     if not validate_routing_key_api(app.config,routing_key):
+        #         return self.response_422("INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists")
+
+        if validate_vo_rk(request.json):
+          return self.response_422("INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists")
+
         try:
             item = self.edit_model_schema.load(request.json)
             # normally this would be covered by a decorator, however

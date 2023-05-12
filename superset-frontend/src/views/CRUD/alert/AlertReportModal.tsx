@@ -618,12 +618,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     // VO routing key validation
-    if (routingKeys && routingKeys.length > 0) {
-      const isInValid = await validateRoutingKey(recipients);
-      if (isInValid) {
-        return;
-      }
-    }
+    // if (routingKeys && routingKeys.length > 0) {
+    //   const isInValid = await validateRoutingKey(recipients);
+    //   if (isInValid) {
+    //     return;
+    //   }
+    // }
 
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
