@@ -20,7 +20,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 #### Commons
 
-##### In your `superset_config.py` or `superset_config_docker.py`
+#### In your `superset_config.py` or `superset_config_docker.py`
 
 - `"ALERT_REPORTS"` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) must be turned to True.
 - `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
@@ -28,9 +28,9 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
 
-###### Disable dry-run mode
+##### Dry-run mode
 
-Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+For debugging purposes, Superset supports a "dry-run" mode where the worker only writes a message to the logs instead of actually sending email/Slack notifications.  This mode is off by default.  To enable dry-run mode, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `True` in your [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
 ##### In your `Dockerfile`
 
