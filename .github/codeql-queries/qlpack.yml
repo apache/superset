@@ -1,0 +1,4 @@
+name: superset-ql-queries
+version: 0.0.0
+libraryPathDependencies: codeql-python
+suites: superset-ql-suite
