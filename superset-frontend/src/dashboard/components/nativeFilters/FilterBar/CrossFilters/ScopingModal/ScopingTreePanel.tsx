@@ -54,7 +54,6 @@ const InfoText = styled.div`
   ${({ theme }) => css`
     font-size: ${theme.typography.sizes.s}px;
     color: ${theme.colors.grayscale.base};
-    max-width: ${theme.gridUnit * 100}px;
     margin-bottom: ${theme.gridUnit * 7}px;
   `}
 `;
@@ -153,7 +152,12 @@ export const ScopingTreePanel = ({
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
   return (
-    <div data-test="scoping-tree-panel">
+    <div
+      data-test="scoping-tree-panel"
+      css={css`
+        flex: 1;
+      `}
+    >
       {!isCrossFiltersEnabled && (
         <Alert
           message={

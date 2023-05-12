@@ -306,6 +306,7 @@ export const ScopingModal = ({
       destroyOnClose
       bodyStyle={{
         padding: 0,
+        height: 700,
       }}
     >
       <ScopingModalContent
