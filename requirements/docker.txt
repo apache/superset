@@ -12,6 +12,10 @@
     #   -r requirements/docker.in
 gevent==22.10.2
     # via -r requirements/docker.in
+greenlet==2.0.2
+    # via
+    #   -r requirements/docker.in
+    #   gevent
 psycopg2-binary==2.9.6
     # via apache-superset
 zope-event==4.5.0

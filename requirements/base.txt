@@ -122,8 +122,6 @@ geographiclib==1.52
     # via geopy
 geopy==2.2.0
     # via apache-superset
-greenlet==2.0.2
-    # via sqlalchemy
 gunicorn==20.1.0
     # via apache-superset
 hashids==1.3.1
@@ -308,6 +306,7 @@ wcwidth==0.2.5
     # via prompt-toolkit
 werkzeug==2.3.3
     # via
+    #   apache-superset
     #   flask
     #   flask-jwt-extended
     #   flask-login
