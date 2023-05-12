@@ -56,6 +56,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     NamedTuple,
     Optional,
     Sequence,
@@ -655,10 +656,10 @@ def error_msg_from_exception(ex: Exception) -> str:
     """
     msg = ""
     if hasattr(ex, "message"):
-        if isinstance(ex.message, dict):  # type: ignore
+        if isinstance(ex.message, dict):
             msg = ex.message.get("message")  # type: ignore
-        elif ex.message:  # type: ignore
-            msg = ex.message  # type: ignore
+        elif ex.message:
+            msg = ex.message
     return msg or str(ex)
 
 
@@ -1148,9 +1149,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     append_adhoc_filters: List[AdhocFilterClause] = extra_form_data.get(
         "adhoc_filters", []
     )
-    adhoc_filters.extend(
-        {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
-    )
+    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)  # type: ignore
     if append_filters:
         for key, value in form_data.items():
             if re.match("adhoc_filter.*", key):
@@ -1667,7 +1666,7 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
 
 
-def get_column_name_from_column(column: Column) -> Optional[str]:
+def get_column_name_from_column(column: Column) -> Optional[Column]:
     """
     Extract the physical column that a column is referencing. If the column is
     an adhoc column, always returns `None`.
@@ -1677,10 +1676,12 @@ def get_column_name_from_column(column: Column) -> Optional[str]:
     """
     if is_adhoc_column(column):
         return None
-    return column  # type: ignore
+    return column
 
 
-def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+def get_column_names_from_columns(
+    columns: List[Column],
+) -> List[Union[AdhocColumn, str]]:
     """
     Extract the physical columns that a list of columns are referencing. Ignore
     adhoc columns
@@ -1785,7 +1786,7 @@ def indexed(
     return idx
 
 
-def is_test() -> bool:
+def is_test() -> Literal[0, 1]:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
@@ -1793,7 +1794,6 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-
     temporal_columns: Set[Any]
     if datasource.type == "query":
         temporal_columns = {

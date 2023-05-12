@@ -107,7 +107,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
         self.interval = interval
 
     def init_app(self, app: Flask) -> None:
-        app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore
+        app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)
 
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)

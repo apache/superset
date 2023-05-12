@@ -99,8 +99,8 @@ def boxplot(
             return np.nanpercentile(series, low)
 
     else:
-        whisker_high = np.max  # type: ignore
-        whisker_low = np.min  # type: ignore
+        whisker_high = np.max
+        whisker_low = np.min
 
     def outliers(series: Series) -> Set[float]:
         above = series[series > whisker_high(series)]

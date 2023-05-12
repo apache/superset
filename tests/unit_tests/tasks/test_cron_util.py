@@ -21,7 +21,7 @@ import pytest
 import pytz
 from dateutil import parser
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime  # type: ignore
+from freezegun.api import FakeDatetime
 
 from superset.tasks.cron_util import cron_schedule_window
 

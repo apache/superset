@@ -153,7 +153,7 @@ def get_form_data(  # pylint: disable=too-many-locals
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data: Dict[str, Any] = initial_form_data or {}
 
-    if has_request_context():  # type: ignore
+    if has_request_context():
         # chart data API requests are JSON
         request_json_data = (
             request.json["queries"][0]
@@ -186,7 +186,7 @@ def get_form_data(  # pylint: disable=too-many-locals
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
 
-    if has_request_context():  # type: ignore
+    if has_request_context():
         url_id = request.args.get("r")
         if url_id:
             saved_url = db.session.query(models.Url).filter_by(id=url_id).first()

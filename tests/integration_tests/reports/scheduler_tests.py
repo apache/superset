@@ -22,7 +22,7 @@ from unittest.mock import patch
 import pytest
 from flask_appbuilder.security.sqla.models import User
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime  # type: ignore
+from freezegun.api import FakeDatetime
 
 from superset.extensions import db
 from superset.reports.models import ReportScheduleType

@@ -298,7 +298,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 )
 
             # validate parameters
-            parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
+            parameters = engine_spec.parameters_schema.load(parameters)
 
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
@@ -306,7 +306,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             except json.decoder.JSONDecodeError:
                 encrypted_extra = {}
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
                 parameters,
                 encrypted_extra,
             )
@@ -482,7 +482,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
-
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(

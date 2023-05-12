@@ -64,7 +64,7 @@ class SqlJsonExecutorBase(SqlJsonExecutor, ABC):
 
     def __init__(self, query_dao: QueryDAO, get_sql_results_task: GetSqlResultsTask):
         self._query_dao = query_dao
-        self._get_sql_results_task = get_sql_results_task  # type: ignore
+        self._get_sql_results_task = get_sql_results_task
 
 
 class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
@@ -163,7 +163,6 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         rendered_query: str,
         log_params: Optional[Dict[str, Any]],
     ) -> SqlJsonExecutionStatus:
-
         query_id = execution_context.query.id
         logger.info("Query %i: Running query on a Celery worker", query_id)
         try:
