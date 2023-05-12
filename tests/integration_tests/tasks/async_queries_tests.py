@@ -47,6 +47,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     @mock.patch.object(async_queries, "set_form_data")
     def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
         user = security_manager.find_user("gamma")
@@ -69,6 +70,7 @@ class TestAsyncQueries(SupersetTestCase):
     )
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
         user = security_manager.find_user("gamma")
@@ -91,6 +93,7 @@ class TestAsyncQueries(SupersetTestCase):
     def test_soft_timeout_load_chart_data_into_cache(
         self, mock_update_job, mock_run_command
     ):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
         form_data = {}
@@ -115,6 +118,7 @@ class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         table = self.get_table(name="birth_names")
         user = security_manager.find_user("gamma")
@@ -146,6 +150,7 @@ class TestAsyncQueries(SupersetTestCase):
     def test_load_explore_json_into_cache_error(
         self, mock_set_form_data, mock_update_job
     ):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
         form_data = {}
@@ -169,6 +174,7 @@ class TestAsyncQueries(SupersetTestCase):
     def test_soft_timeout_load_explore_json_into_cache(
         self, mock_update_job, mock_run_command
     ):
+        app._got_first_request = False
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
         form_data = {}
