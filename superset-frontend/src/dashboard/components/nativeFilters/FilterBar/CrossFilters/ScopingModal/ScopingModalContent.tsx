@@ -60,6 +60,7 @@ export const ScopingModalContent = ({
           width: 30%;
           border-right: 1px solid ${theme.colors.grayscale.light2};
         `}
+        data-test="scoping-list-panel"
       >
         <ChartsScopingListPanel
           setCurrentChartId={setCurrentChartId}

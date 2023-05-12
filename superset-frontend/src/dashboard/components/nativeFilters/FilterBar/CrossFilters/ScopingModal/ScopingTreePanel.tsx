@@ -129,7 +129,8 @@ const ChartSelect = ({
         </Tooltip>
       </div>
       <Select
-        ariaLabel={t('Chart')}
+        data-test="select-chart"
+        ariaLabel={t('Select chart')}
         options={options}
         value={value && value === NEW_CHART_SCOPING_ID ? undefined : value}
         onChange={value => {
@@ -152,7 +153,7 @@ export const ScopingTreePanel = ({
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
   return (
-    <div>
+    <div data-test="scoping-tree-panel">
       {!isCrossFiltersEnabled && (
         <Alert
           message={

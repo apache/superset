@@ -42,7 +42,7 @@ const getUpdatedGloballyScopedChartsInScope = (
   Object.entries(configs).reduce((acc, [id, config]) => {
     if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
       acc[id] = {
-        id,
+        id: Number(config.id),
         crossFilters: {
           scope: GLOBAL_SCOPE_POINTER,
           chartsInScope: globalChartsInScope.filter(
@@ -64,15 +64,17 @@ const getActualScopeFromGlobalScope = (
   excluded: globalScope.excluded.filter(id => id !== chartId),
 });
 
+export interface ScopingModalProps {
+  initialChartId: number | undefined;
+  isVisible: boolean;
+  closeModal: () => void;
+}
+
 export const ScopingModal = ({
   initialChartId,
   isVisible,
   closeModal,
-}: {
-  initialChartId: number | undefined;
-  isVisible: boolean;
-  closeModal: () => void;
-}) => {
+}: ScopingModalProps) => {
   const dispatch = useDispatch();
   const layout = useSelector<RootState, Layout>(
     state => state.dashboardLayout.present,
@@ -299,6 +301,7 @@ export const ScopingModal = ({
       show={isVisible}
       title={t('Cross-filtering scoping')}
       onHandledPrimaryAction={saveScoping}
+      primaryButtonName={t('Save')}
       responsive
       destroyOnClose
       bodyStyle={{

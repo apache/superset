@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, useCallback, useState } from 'react';
-import { ScopingModal } from './ScopingModal';
 
-export const useCrossFiltersScopingModal = (
-  initialChartId?: number,
-): [() => void, ReactElement | null] => {
-  const [isVisible, setIsVisible] = useState(false);
+import { ReactElement } from 'react';
+import { renderHook } from '@testing-library/react-hooks';
+import { createWrapper, render } from 'spec/helpers/testing-library';
+import { useCrossFiltersScopingModal } from './useCrossFiltersScopingModal';
 
-  const openModal = useCallback(() => setIsVisible(true), []);
-  const closeModal = useCallback(() => setIsVisible(false), []);
+test('Renders modal after calling method open', async () => {
+  const { result } = renderHook(() => useCrossFiltersScopingModal(), {
+    wrapper: createWrapper(),
+  });
 
-  return [
-    openModal,
-    isVisible ? (
-      <ScopingModal
-        initialChartId={initialChartId}
-        closeModal={closeModal}
-        isVisible={isVisible}
-      />
-    ) : null,
-  ];
-};
+  const [openModal, Modal] = result.current;
+  expect(Modal).toBeNull();
+
+  openModal();
+
+  const { getByText } = render(result.current[1] as ReactElement, {
+    useRedux: true,
+  });
+
+  expect(getByText('Cross-filtering scoping')).toBeInTheDocument();
+});

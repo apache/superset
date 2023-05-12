@@ -85,19 +85,20 @@ const ScopingTitle = ({
   );
 };
 
+export interface ChartsScopingListPanelProps {
+  activeChartId: number | undefined;
+  chartConfigs: ChartConfiguration;
+  setCurrentChartId: (chartId: number | undefined) => void;
+  removeCustomScope: (chartId: number) => void;
+  addNewCustomScope: () => void;
+}
 export const ChartsScopingListPanel = ({
   activeChartId,
   chartConfigs,
   setCurrentChartId,
   removeCustomScope,
   addNewCustomScope,
-}: {
-  activeChartId: number | undefined;
-  chartConfigs: ChartConfiguration;
-  setCurrentChartId: (chartId: number | undefined) => void;
-  removeCustomScope: (chartId: number) => void;
-  addNewCustomScope: () => void;
-}) => {
+}: ChartsScopingListPanelProps) => {
   const theme = useTheme();
   const layout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
