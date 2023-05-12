@@ -915,7 +915,7 @@ def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
         msg,
         config,
         bcc=granter.email,
-        dryrun=not config["EMAIL_NOTIFICATIONS"],
+        dryrun=config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"],
     )
 
 
