@@ -66,7 +66,7 @@ def permalink_salt() -> Iterator[str]:
 
 
 def test_post(
-    test_client, login_as_admin, dashboard_id: int, permalink_salt: str
+    dashboard_id: int, permalink_salt: str, test_client, login_as_admin
 ) -> None:
     resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
     assert resp.status_code == 201
@@ -93,14 +93,14 @@ def test_post_access_denied(test_client, login_as, dashboard_id: int):
     assert resp.status_code == 404
 
 
-def test_post_invalid_schema(test_client, login_as_admin, dashboard_id: int):
+def test_post_invalid_schema(dashboard_id: int, test_client, login_as_admin):
     resp = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json={"foo": "bar"}
     )
     assert resp.status_code == 400
 
 
-def test_get(test_client, login_as_admin, dashboard_id: int, permalink_salt: str):
+def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin):
     key = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE
     ).json["key"]
