@@ -67,7 +67,7 @@ def permalink_salt() -> Iterator[str]:
 
 
 def test_post(
-    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+    form_data: Dict[str, Any], permalink_salt: str, test_client, login_as_admin
 ):
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 201
@@ -80,14 +80,14 @@ def test_post(
     db.session.commit()
 
 
-def test_post_access_denied(test_client, login_as, form_data):
+def test_post_access_denied(form_data, test_client, login_as):
     login_as("gamma")
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 403
 
 
 def test_get_missing_chart(
-    test_client, login_as_admin, chart, permalink_salt: str
+    chart, permalink_salt: str, test_client, login_as_admin
 ) -> None:
     from superset.key_value.models import KeyValueEntry
 
@@ -121,7 +121,7 @@ def test_post_invalid_schema(test_client, login_as_admin) -> None:
 
 
 def test_get(
-    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+    form_data: Dict[str, Any], permalink_salt: str, test_client, login_as_admin
 ) -> None:
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     data = json.loads(resp.data.decode("utf-8"))
