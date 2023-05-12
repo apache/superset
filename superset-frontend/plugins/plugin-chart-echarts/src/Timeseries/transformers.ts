@@ -142,8 +142,8 @@ export const getBaselineSeriesForStream = (
 
 export function transformSeries(
   series: SeriesOption,
-  originalSeriesName: string,
   colorScale: CategoricalColorScale,
+  colorScaleKey: string,
   opts: {
     area?: boolean;
     filterState?: FilterState;
@@ -235,7 +235,7 @@ export function transformSeries(
   }
   // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(originalSeriesName, sliceId),
+    color: colorScale(colorScaleKey, sliceId),
     opacity,
   };
   let emphasis = {};

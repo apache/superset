@@ -240,12 +240,12 @@ export default function transformProps(
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
-    const originalSeriesName = getOriginalSeries(seriesName, array);
+    const colorScaleKey = getOriginalSeries(seriesName, array);
 
     const transformedSeries = transformSeries(
       entry,
-      originalSeriesName,
       colorScale,
+      colorScaleKey,
       {
         area,
         filterState,
