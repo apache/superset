@@ -1091,7 +1091,6 @@ FLASK_APP_MUTATOR = None
 ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
-ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
