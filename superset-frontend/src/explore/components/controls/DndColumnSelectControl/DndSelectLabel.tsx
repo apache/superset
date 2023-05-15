@@ -35,14 +35,14 @@ import { DndItemType } from '../../DndItemType';
 export type DndSelectLabelProps = {
   name: string;
   accept: DndItemType | DndItemType[];
-  ghostButtonText?: string;
+  ghostButtonText: string;
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   canDropValue?: (value: DndItemValue) => boolean;
   onDropValue?: (value: DndItemValue) => void;
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
-  onClickGhostButton?: () => void;
+  onClickGhostButton: () => void;
 };
 
 export default function DndSelectLabel({
@@ -80,7 +80,7 @@ export default function DndSelectLabel({
         onClick={props.onClickGhostButton}
       >
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
-        {t(props.ghostButtonText || 'Drop columns here')}
+        {t(props.ghostButtonText)}
       </AddControlLabel>
     );
   }
