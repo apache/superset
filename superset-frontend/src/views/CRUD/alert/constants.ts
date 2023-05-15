@@ -29,3 +29,8 @@ export const ERROR_MESSAGES = {
   SAME_METHOD:
     'The selected method is already chosen as a notification method. Please select another or append the recipients in the selected one',
 };
+
+export const CRON_SCHEDULE = {
+  EVERY_MIN: '*',
+  EVERY_HOUR: '0',
+};

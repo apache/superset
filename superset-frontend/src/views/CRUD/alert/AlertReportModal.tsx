@@ -60,6 +60,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { ERROR_MESSAGES } from './constants';
+import { getLeastTimeout } from './helper';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -427,6 +428,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
+  const [maxWorkingTimeout, setMaxWorkingTimeout] =
+    useState<number>(MAX_WORKING_TIMEOUT);
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,
     emailError: '',
@@ -552,10 +555,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       routingKeys.push(..._routingKeys);
       invalidRoutingKeys.push(..._invalidRoutingKeys);
     }
-
-    console.log('Loop - IE : ', invalidEmails);
-    console.log('Loop - IRK : ', invalidRoutingKeys);
-    console.log('Loop - RK : ', routingKeys);
   };
 
   const getEmailAndVOError = (
@@ -600,10 +599,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         });
       }
     });
-
-    console.log('IE : ', invalidEmails);
-    console.log('IRK : ', invalidRoutingKeys);
-    console.log('RK : ', routingKeys);
 
     const { emailError, voError } = getEmailAndVOError(
       invalidEmails,
@@ -1059,7 +1054,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
       currentAlert.working_timeout !== undefined &&
-      currentAlert.working_timeout <= MAX_WORKING_TIMEOUT &&
+      currentAlert.working_timeout <= maxWorkingTimeout &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
         (contentType === 'chart' && !!currentAlert.chart) ||
         (contentType === 'text_message' && !!currentAlert.msg_content)) &&
@@ -1191,6 +1186,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validate();
+    displayTimeoutValidation(currentAlertSafe?.crontab || DEFAULT_CRON_VALUE);
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1211,6 +1207,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  const displayTimeoutValidation = (cronSchedule: string) => {
+    const minutePart = cronSchedule.split(' ')[0];
+    const timeout = getLeastTimeout(minutePart, MAX_WORKING_TIMEOUT);
+    setMaxWorkingTimeout(timeout);
+  };
 
   return (
     <StyledModal
@@ -1405,7 +1407,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledSectionTitle>
             <AlertReportCronScheduler
               value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
-              onChange={newVal => updateAlertState('crontab', newVal)}
+              onChange={newVal => {
+                updateAlertState('crontab', newVal);
+                displayTimeoutValidation(
+                  currentAlert?.crontab || DEFAULT_CRON_VALUE,
+                );
+              }}
             />
             <div className="control-label">{t('Timezone')}</div>
             <div
@@ -1461,13 +1468,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div
                 className={
                   currentAlert?.working_timeout &&
-                  currentAlert.working_timeout > MAX_WORKING_TIMEOUT
+                  currentAlert.working_timeout > maxWorkingTimeout
                     ? 'error'
                     : 'helper'
                 }
               >
                 Minimum and Maximum working timeout can be 1 second and{' '}
-                {MAX_WORKING_TIMEOUT} seconds respectively
+                {maxWorkingTimeout} seconds respectively
               </div>
             </StyledInputContainer>
             {!isReport && (
