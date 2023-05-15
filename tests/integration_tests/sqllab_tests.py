@@ -647,7 +647,9 @@ class TestSqlLab(SupersetTestCase):
         admin = security_manager.find_user("admin")
         gamma_sqllab = security_manager.find_user("gamma_sqllab")
         self.assertEqual(3, len(data["result"]))
-        user_queries = [result.get("user").get("first_name") for result in data["result"]]
+        user_queries = [
+            result.get("user").get("first_name") for result in data["result"]
+        ]
         assert admin.first_name in user_queries
         assert gamma_sqllab.first_name in user_queries
 

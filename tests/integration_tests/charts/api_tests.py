@@ -823,7 +823,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "owners": [
                 {
                     "id": 1,
-                    "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
                 }
