@@ -345,7 +345,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
         ):
             return ""
-        return f"/superset/profile/{self.changed_by.username}"  # type: ignore
+        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def icons(self) -> str:
