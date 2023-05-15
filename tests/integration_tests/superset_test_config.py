@@ -90,7 +90,6 @@ WTF_CSRF_ENABLED = False
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
 
 AUTH_ROLE_PUBLIC = "Public"
-ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
