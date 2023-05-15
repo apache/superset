@@ -59,6 +59,10 @@ const STYLES_DONER42 = {
   },
 };
 
+console.log('STYLES_DODOPIZZA', STYLES_DODOPIZZA);
+console.log('STYLES_DRINKIT', STYLES_DRINKIT);
+console.log('STYLES_DONER42', STYLES_DONER42);
+
 const MESSAGES = {
   GET_MENU: {
     CONFIG: {
