@@ -31,7 +31,7 @@ const AnalyticsMain = (props: { stylesConfig: StylesConfig }) => {
             <div>
               <InfoPanelInner msgObj={InfoMessageObj} />
               <RowWrapper>
-                <ColumnWrapper classes="col-md-11 offset-md-1">
+                <ColumnWrapper classes="col-md-10">
                   <ButtonsBlock
                     stylesConfig={stylesConfig}
                     btnsInfo={InfoMessageObj.buttons}

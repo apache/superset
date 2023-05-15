@@ -51,7 +51,7 @@ const InfoPanel = ({
       {extra && (
         <div style={{ marginTop: '20px' }}>
           <RowWrapper>
-            <ColumnWrapper classes="col-md-11 offset-md-1">
+            <ColumnWrapper classes="col-md-10">
               <StyledCode>{extra || ''}</StyledCode>
             </ColumnWrapper>
           </RowWrapper>
