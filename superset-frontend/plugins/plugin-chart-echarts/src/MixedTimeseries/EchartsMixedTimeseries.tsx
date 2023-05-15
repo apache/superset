@@ -101,6 +101,7 @@ export default function EchartsMixedTimeseries({
   const [isVisibleNow, setIsVisible] = useState(false);
 
   useEffect(() => {
+    console.log('echartOptions', echartOptions);
     setEchartsOptions(echartOptions);
     const current = getCurrentLabelState(
       echartOptions.series as Array<{
