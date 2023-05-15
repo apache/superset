@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getExtensionsRegistry,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -42,6 +48,11 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
+
+const extensionsRegistry = getExtensionsRegistry();
+const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
+  'database.delete.related',
+);
 
 const PAGE_SIZE = 25;
 
@@ -512,13 +523,24 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-            databaseCurrentlyDeleting.database_name,
-            databaseCurrentlyDeleting.chart_count,
-            databaseCurrentlyDeleting.dashboard_count,
-            databaseCurrentlyDeleting.sqllab_tab_count,
-          )}
+          description={
+            <>
+              <p>
+                {t(
+                  'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  databaseCurrentlyDeleting.database_name,
+                  databaseCurrentlyDeleting.chart_count,
+                  databaseCurrentlyDeleting.dashboard_count,
+                  databaseCurrentlyDeleting.sqllab_tab_count,
+                )}
+              </p>
+              {DatabaseDeleteRelatedExtension && currentDatabase?.id && (
+                <DatabaseDeleteRelatedExtension
+                  databaseId={currentDatabase.id}
+                />
+              )}
+            </>
+          }
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {
               handleDatabaseDelete(databaseCurrentlyDeleting);
