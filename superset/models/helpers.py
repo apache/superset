@@ -1269,7 +1269,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return or_(*groups)
 
-    def dttm_sql_literal(self, dttm: sa.DateTime, col_type: Optional[str]) -> str:
+    def dttm_sql_literal(
+        self,
+        col: "TableColumn",
+        dttm: sa.DateTime,
+        col_type: Optional[str],
+    ) -> str:
         """Convert datetime object to a SQL expression string"""
 
         sql = (
@@ -1280,6 +1285,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if sql:
             return sql
+
+        tf = col.python_date_format
+
+        # Fallback to the default format (if defined).
+        if not tf and self.db_extra:
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                col.column_name
+            )
+
+        if tf:
+            if tf in {"epoch_ms", "epoch_s"}:
+                seconds_since_epoch = int(dttm.timestamp())
+                if tf == "epoch_s":
+                    return str(seconds_since_epoch)
+                return str(seconds_since_epoch * 1000)
+            return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
@@ -1309,14 +1330,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             l.append(
                 col
                 >= self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(start_dttm, time_col.type)
+                    self.dttm_sql_literal(time_col, start_dttm, time_col.type)
                 )
             )
         if end_dttm:
             l.append(
                 col
                 < self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(end_dttm, time_col.type)
+                    self.dttm_sql_literal(time_col, end_dttm, time_col.type)
                 )
             )
         return and_(*l)
