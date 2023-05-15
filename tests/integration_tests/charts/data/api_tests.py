@@ -28,10 +28,7 @@ from zipfile import ZipFile
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
-from tests.integration_tests.base_tests import (
-    SupersetTestCase,
-    test_client,
-)
+from tests.integration_tests.base_tests import SupersetTestCase, test_client
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -626,6 +623,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
         self.logout()
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login("admin")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -643,6 +641,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query returns results synchronously
         when results are already cached.
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
 
         class QueryContext:
@@ -672,6 +671,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -683,6 +683,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query (async)
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
@@ -998,6 +999,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
@@ -1024,6 +1026,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with run failure
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
         cache_loader.load.return_value = self.query_context_payload
         rv = self.get_assert_metric(
@@ -1041,8 +1044,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request (no login)
         """
-        self.logout()
+        app._got_first_request = False
         async_query_manager.init_app(app)
+        self.logout()
         cache_loader.load.return_value = self.query_context_payload
         orig_run = ChartDataCommand.run
 
@@ -1063,6 +1067,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data cache API: Test chart data async cache request with invalid cache key
         """
+        app._got_first_request = False
         async_query_manager.init_app(app)
         rv = self.get_assert_metric(
             f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
@@ -1159,6 +1164,31 @@ def test_custom_cache_timeout(test_client, login_as_admin, physical_query_contex
     assert rv.json["result"][0]["cache_timeout"] == 5678
 
 
+def test_time_filter_with_grain(test_client, login_as_admin, physical_query_context):
+    physical_query_context["queries"][0]["filters"] = [
+        {
+            "col": "col5",
+            "op": "TEMPORAL_RANGE",
+            "val": "Last quarter : ",
+            "grain": "P1W",
+        },
+    ]
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    query = rv.json["result"][0]["query"]
+    backend = get_example_database().backend
+    if backend == "sqlite":
+        assert (
+            "DATETIME(col5, 'start of day', -strftime('%w', col5) || ' days') >="
+            in query
+        )
+    elif backend == "mysql":
+        assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
+    elif backend == "postgresql":
+        assert "DATE_TRUNC('week', col5) >=" in query
+    elif backend == "presto":
+        assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
+
+
 def test_force_cache_timeout(test_client, login_as_admin, physical_query_context):
     physical_query_context["custom_cache_timeout"] = -1
     test_client.post(CHART_DATA_URI, json=physical_query_context)
@@ -1188,10 +1218,10 @@ def test_data_cache_default_timeout(
 
 
 def test_chart_cache_timeout(
+    load_energy_table_with_slice: List[Slice],
     test_client,
     login_as_admin,
     physical_query_context,
-    load_energy_table_with_slice: List[Slice],
 ):
     # should override datasource cache timeout
 
@@ -1210,7 +1240,6 @@ def test_chart_cache_timeout(
     db.session.commit()
 
     physical_query_context["form_data"] = {"slice_id": slice_with_cache_timeout.id}
-
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 20
 

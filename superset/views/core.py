@@ -568,6 +568,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=("GET",))
     @check_resource_permissions(check_explore_cache_perms)
+    @deprecated(eol_version="3.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -615,6 +616,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
+    @deprecated(eol_version="3.0")
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
@@ -1886,6 +1888,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
+        assert dashboard is not None
+
         has_access_ = False
         for datasource in dashboard.datasources:
             datasource = DatasourceDAO.get_datasource(
@@ -2417,7 +2421,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
+            int(config.get("DISPLAY_MAX_ROW"))
         )
         return ExecuteSqlCommand(
             execution_context,
@@ -2442,7 +2446,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sql_json_executor = SynchronousSqlJsonExecutor(
                 query_dao,
                 get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),  # type: ignore
+                config.get("SQLLAB_TIMEOUT"),
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor
