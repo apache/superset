@@ -397,11 +397,6 @@ type NotificationSetting = {
   options: NotificationMethodOption[];
 };
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -411,8 +406,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
-  const frontendConfig = bootstrapData?.common?.conf;
-
   const conf = useCommonConf();
   const currentNotification = JSON.parse(
     JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
@@ -617,14 +610,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return;
     }
 
-    // VO routing key validation
-    // if (routingKeys && routingKeys.length > 0) {
-    //   const isInValid = await validateRoutingKey(recipients);
-    //   if (isInValid) {
-    //     return;
-    //   }
-    // }
-
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
@@ -697,42 +682,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       });
     }
   };
-
-  const validateRoutingKey = async (recipients: any) => {
-    let response: any = null;
-    let invalid = true;
-    let voRoutingKey = '';
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < recipients.length; i++) {
-      if (recipients[i].type === RecipientIconName.VO) {
-        if (recipients[i].recipient_config_json.target) {
-          voRoutingKey = recipients[i].recipient_config_json.target;
-          const options = {
-            headers: {
-              'X-VO-Api-Id': frontendConfig.X_VO_API_ID,
-              'X-VO-Api-Key': frontendConfig.X_VO_API_KEY,
-            },
-          };
-          // eslint-disable-next-line no-await-in-loop
-          response = await // eslint-disable-next-line no-await-in-loop
-          (await fetch(frontendConfig.VO_VALIDATE_ROUTING_KEY, options)).json();
-        }
-      }
-    }
-
-    if (response) {
-      response?.routingKeys.forEach((key: any) => {
-        if (key.routingKey === voRoutingKey) {
-          invalid = false;
-        }
-      });
-    }
-    if (invalid) {
-      addDangerToast(t(ERROR_MESSAGES.VO_ROUTING_KEY_ERROR));
-    }
-    return invalid;
-  };
-
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = useMemo(
     () =>
