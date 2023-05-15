@@ -33,7 +33,10 @@ declare module 'deck.gl' {
     aggregation?: string;
   }
 
-  export class HeatmapLayer<T extends object = any> extends Layer<T, HeatmapLayerProps<T>> {
+  export class HeatmapLayer<T extends object = any> extends Layer<
+    T,
+    HeatmapLayerProps<T>
+  > {
     constructor(props: HeatmapLayerProps<T>);
   }
 }
