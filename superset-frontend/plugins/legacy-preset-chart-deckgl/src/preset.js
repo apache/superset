@@ -26,6 +26,7 @@ import PathChartPlugin from './layers/Path';
 import PolygonChartPlugin from './layers/Polygon';
 import ScatterChartPlugin from './layers/Scatter';
 import ScreengridChartPlugin from './layers/Screengrid';
+import CountourChartPlugin from './layers/Contour';
 
 export default class DeckGLChartPreset extends Preset {
   constructor() {
@@ -41,6 +42,7 @@ export default class DeckGLChartPreset extends Preset {
         new PolygonChartPlugin().configure({ key: 'deck_polygon' }),
         new ScatterChartPlugin().configure({ key: 'deck_scatter' }),
         new ScreengridChartPlugin().configure({ key: 'deck_screengrid' }),
+        new CountourChartPlugin().configure({ key: 'deck_contour' }),
       ],
     });
   }
