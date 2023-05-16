@@ -250,7 +250,6 @@ const config = {
               'react-hot-loader',
               'react-select',
               'react-sortable-hoc',
-              'react-virtualized',
               'react-table',
               'react-ace',
               '@hot-loader.*',

@@ -88,7 +88,6 @@ from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
-    validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
@@ -113,6 +112,7 @@ from superset.models.helpers import (
     ExploreMixin,
     QueryResult,
     QueryStringExtended,
+    validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict

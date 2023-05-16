@@ -20,11 +20,23 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.0.1
+    rev: v1.3.0
     hooks:
       - id: mypy
         args: [--check-untyped-defs]
-        additional_dependencies: [types-all]
+        additional_dependencies:
+          [
+            types-simplejson,
+            types-python-dateutil,
+            types-requests,
+            types-redis,
+            types-pytz,
+            types-croniter,
+            types-PyYAML,
+            types-setuptools,
+            types-paramiko,
+            types-Markdown,
+          ]
   - repo: https://github.com/peterdemin/pip-compile-multi
     rev: v2.6.2
     hooks:
