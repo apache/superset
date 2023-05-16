@@ -112,6 +112,9 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
+    # global_chart_configuration keeps data about global cross-filter scoping
+    # for charts - can be overriden by chart_configuration for each chart
+    global_chart_configuration = fields.Dict()
     # filter_sets_configuration is for dashboard-native filters
     filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
