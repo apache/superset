@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterScope } from '@superset-ui/core';
-import { CHART_TYPE } from './componentTypes';
-import { Layout } from '../types';
 
-export function getChartIdsInFilterScope(
-  filterScope: NativeFilterScope,
-  chartIds: number[],
-  layout: Layout,
-) {
-  const layoutItems = Object.values(layout);
-  return chartIds.filter(
-    chartId =>
-      !filterScope.excluded.includes(chartId) &&
-      layoutItems
-        .find(
-          layoutItem =>
-            layoutItem?.type === CHART_TYPE &&
-            layoutItem.meta?.chartId === chartId,
-        )
-        ?.parents?.some(elementId => filterScope.rootPath.includes(elementId)),
-  );
-}
+import { ReactElement } from 'react';
+import { renderHook } from '@testing-library/react-hooks';
+import { createWrapper, render } from 'spec/helpers/testing-library';
+import { useCrossFiltersScopingModal } from './useCrossFiltersScopingModal';
+
+test('Renders modal after calling method open', async () => {
+  const { result } = renderHook(() => useCrossFiltersScopingModal(), {
+    wrapper: createWrapper(),
+  });
+
+  const [openModal, Modal] = result.current;
+  expect(Modal).toBeNull();
+
+  openModal();
+
+  const { getByText } = render(result.current[1] as ReactElement, {
+    useRedux: true,
+  });
+
+  expect(getByText('Cross-filtering scoping')).toBeInTheDocument();
+});
