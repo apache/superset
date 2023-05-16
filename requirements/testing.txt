@@ -130,7 +130,7 @@ sqlalchemy-bigquery==1.6.1
     # via apache-superset
 statsd==4.0.1
     # via -r requirements/testing.in
-trino==0.323.0
+trino==0.324.0
     # via apache-superset
 tzdata==2023.3
     # via pytz-deprecation-shim
