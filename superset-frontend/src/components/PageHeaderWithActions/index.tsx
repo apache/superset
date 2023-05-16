@@ -133,8 +133,8 @@ export const PageHeaderWithActions = ({
 }: PageHeaderWithActionsProps) => (
   <div css={headerStyles} className="header-with-actions">
     <div className="title-panel">
-      <img className="iki-logo" src={IkiLogo} alt="Ikigai Logo" />
-      <DynamicEditableTitle {...editableTitleProps} />
+      {/* <img className="iki-logo" src={IkiLogo} alt="Ikigai Logo" /> */}
+      {/* <DynamicEditableTitle {...editableTitleProps} /> */}
       {/* showTitlePanelItems && (
         <div css={buttonsStyles}>
           {certificatiedBadgeProps?.certifiedBy && (
