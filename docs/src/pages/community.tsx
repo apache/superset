@@ -74,10 +74,6 @@ const communityLinks = [
   },
 ];
 
-const StyledMain = styled('main')`
-  padding-top: 70px;
-`;
-
 const StyledJoinCommunity = styled('section')`
   background-color: #fbfbfb;
   border-bottom: 1px solid #ededed;
@@ -157,7 +153,7 @@ const Community = () => {
       title="Community"
       description="Community website for Apache Superset, a data visualization and data exploration platform"
     >
-      <StyledMain>
+      <main>
         <BlurredSection>
           <SectionHeader
             level="h1"
@@ -209,7 +205,7 @@ const Community = () => {
             scrolling="no"
           />
         </BlurredSection>
-      </StyledMain>
+      </main>
     </Layout>
   );
 };
