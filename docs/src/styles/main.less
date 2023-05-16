@@ -80,6 +80,37 @@ a > span > svg {
   display: none;
 }
 
+/* Default button */
+
+.default-button-theme {
+  display: block;
+  background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%);
+  color: #ffffff;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  &::before {
+    border-radius: inherit;
+    background: linear-gradient(180deg, #11b0d8 0%, #116f86 100%);
+    content: '';
+    display: block;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    z-index: -1;
+    transition: all 0.3s;
+  }
+  &:hover {
+    color: #ffffff;
+    &::before {
+      opacity: 1;
+    }
+  }
+}
+
 /* Navbar */
 
 .navbar {
@@ -88,20 +119,12 @@ a > span > svg {
   background-color: #fff;
 
   .get-started-button {
-    display: block;
-    background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%);
     border-radius: 10px;
     font-size: 18px;
     font-weight: bold;
-    color: #ffffff;
     width: 142px;
     padding: 7px 0;
-    transition: all 0.3s;
-    text-align: center;
     margin-right: 20px;
-    &:hover {
-      color: #ffffff;
-    }
   }
 
   .github-button {

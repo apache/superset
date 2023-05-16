@@ -112,19 +112,12 @@ const StyledTitleContainer = styled('div')`
 `;
 
 const StyledButton = styled(Link)`
-  display: block;
-  background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%);
   border-radius: 10px;
   font-size: 20px;
   font-weight: bold;
-  color: #ffffff;
   width: 170px;
   padding: 10px 0;
   margin: 15px auto 0;
-  transition: all 0.3s;
-  &:hover {
-    color: #ffffff;
-  }
   ${mq[1]} {
     font-size: 19px;
     width: 175px;
@@ -544,7 +537,9 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-            <StyledButton href="/docs/intro">Get Started</StyledButton>
+            <StyledButton className="default-button-theme" href="/docs/intro">
+              Get Started
+            </StyledButton>
           </div>
           <StyledScreenshotContainer>
             <img

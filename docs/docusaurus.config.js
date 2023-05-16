@@ -222,7 +222,7 @@ const config = {
           {
             href: '/docs/intro',
             position: 'right',
-            className: 'get-started-button',
+            className: 'default-button-theme get-started-button',
             label: 'Get Started',
           },
           {
