@@ -330,21 +330,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     def datasource(self) -> RelationshipProperty:
         return self.table
 
-    def get_time_filter(
-        self,
-        start_dttm: Optional[DateTime] = None,
-        end_dttm: Optional[DateTime] = None,
-        label: Optional[str] = "__time",
-        template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
-        col = self.get_sqla_col(label=label, template_processor=template_processor)
-        l = []
-        if start_dttm:
-            l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
-        if end_dttm:
-            l.append(col < self.table.text(self.dttm_sql_literal(end_dttm)))
-        return and_(*l)
-
     def get_timestamp_expression(
         self,
         time_grain: Optional[str],
@@ -378,36 +363,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.table.make_sqla_column_compatible(time_expr, label)
-
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
-        """Convert datetime object to a SQL expression string"""
-        sql = (
-            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
-            if self.type
-            else None
-        )
-
-        if sql:
-            return sql
-
-        tf = self.python_date_format
-
-        # Fallback to the default format (if defined).
-        if not tf:
-            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
-                self.column_name
-            )
-
-        if tf:
-            if tf in ["epoch_ms", "epoch_s"]:
-                seconds_since_epoch = int(dttm.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
-            return f"'{dttm.strftime(tf)}'"
-
-        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
-        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
     @property
     def data(self) -> Dict[str, Any]:
