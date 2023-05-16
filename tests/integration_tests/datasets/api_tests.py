@@ -27,8 +27,8 @@ import pytest
 import yaml
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
-from superset import app
 
+from superset import app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
