@@ -49,7 +49,7 @@ class Dashboard(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    for dashboard in paginated_update(session.query(Dashboard).all()):
+    for dashboard in paginated_update(session.query(Dashboard)):
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
@@ -83,7 +83,7 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for dashboard in paginated_update(session.query(Dashboard).all()):
+    for dashboard in paginated_update(session.query(Dashboard)):
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
