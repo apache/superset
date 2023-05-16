@@ -69,7 +69,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.9"
       - name: OS dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

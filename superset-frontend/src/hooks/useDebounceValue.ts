@@ -16,28 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { useState, useEffect } from 'react';
+import { FAST_DEBOUNCE } from 'src/constants';
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: Infinity,
-      retry: false,
-      retryOnMount: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+export function useDebounceValue(value: string, delay = FAST_DEBOUNCE) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
-type Props = {
-  children: React.ReactNode;
-};
+  useEffect(() => {
+    const handler: NodeJS.Timeout = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
-const Queryprovider: React.FC<Props> = ({ children }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
+    // Cancel the timeout if value changes (also on delay change or unmount)
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
 
-export default Queryprovider;
+  return debouncedValue;
+}

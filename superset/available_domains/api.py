@@ -38,7 +38,7 @@ class AvailableDomainsRestApi(BaseSupersetApi):
     openapi_spec_tag = "Available Domains"
     openapi_spec_component_schemas = (AvailableDomainsSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

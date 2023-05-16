@@ -66,12 +66,12 @@ github:
           - cypress-matrix (3, chrome)
           - docker-build
           - frontend-build
-          - pre-commit (3.8)
-          - python-lint (3.8)
-          - test-mysql (3.8)
-          - test-postgres (3.8)
+          - pre-commit (3.9)
+          - python-lint (3.9)
+          - test-mysql (3.9)
           - test-postgres (3.9)
-          - test-sqlite (3.8)
+          - test-postgres (3.10)
+          - test-sqlite (3.9)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

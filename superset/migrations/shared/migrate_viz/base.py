@@ -48,6 +48,7 @@ class MigrateViz:
     rename_keys: Dict[str, str] = {}
     source_viz_type: str
     target_viz_type: str
+    has_x_axis_control: bool = False
 
     def __init__(self, form_data: str) -> None:
         self.data = try_load_json(form_data)
@@ -92,6 +93,9 @@ class MigrateViz:
         if not granularity_sqla:
             return
 
+        if self.has_x_axis_control:
+            rv_data["x_axis"] = granularity_sqla
+
         temporal_filter = {
             "clause": "WHERE",
             "subject": granularity_sqla,
@@ -106,17 +110,22 @@ class MigrateViz:
             temporal_filter["subject"] = granularity_sqla["label"]
             temporal_filter["sqlExpression"] = granularity_sqla["sqlExpression"]
 
-        rv_data["adhoc_filters"] = rv_data.get("adhoc_filters", []) + [temporal_filter]
+        rv_data["adhoc_filters"] = (rv_data.get("adhoc_filters") or []) + [
+            temporal_filter
+        ]
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> Slice:
         clz = cls(slc.params)
-        slc.viz_type = cls.target_viz_type
         form_data_bak = copy.deepcopy(clz.data)
 
         clz._pre_action()
         clz._migrate()
         clz._post_action()
+
+        # viz_type depends on the migration and should be set after its execution
+        # because a source viz can be mapped to different target viz types
+        slc.viz_type = clz.target_viz_type
 
         # only backup params
         slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})

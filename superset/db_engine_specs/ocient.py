@@ -261,9 +261,7 @@ class OcientEngineSpec(BaseEngineSpec):
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
         try:
-            rows: List[Tuple[Any, ...]] = super(OcientEngineSpec, cls).fetch_data(
-                cursor, limit
-            )
+            rows: List[Tuple[Any, ...]] = super().fetch_data(cursor, limit)
         except Exception as exception:
             with OcientEngineSpec.query_id_mapping_lock:
                 del OcientEngineSpec.query_id_mapping[
