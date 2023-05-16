@@ -32,7 +32,7 @@ const StyledBlurredSection = styled('section')`
     position: relative;
     z-index: -1;
     ${mq[1]} {
-      margin-top: -35px;
+      margin-top: -40px;
     }
   }
 `;

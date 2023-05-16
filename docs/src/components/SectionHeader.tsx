@@ -64,6 +64,7 @@ const StyledSectionHeaderH1 = styled(StyledSectionHeader)`
     line-height: 40px;
     ${mq[1]} {
       font-size: 25px;
+      line-height: 29px;
     }
   }
 `;
