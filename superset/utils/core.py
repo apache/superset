@@ -2025,7 +2025,7 @@ def get_alert_link(conf, report_schedule) -> str:
     return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
 def validate_vo_rk(data):
-      if data and data.get("type") is not None and data["type"] == "Alert":
+      if data and data.get("type") is not None and data.get("recipients") is not None and data["type"] == "Alert":
           routing_key = None
           for recipient in data["recipients"]:
             if recipient["type"] == "VictorOps":
