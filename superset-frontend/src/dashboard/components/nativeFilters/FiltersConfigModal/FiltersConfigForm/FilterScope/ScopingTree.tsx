@@ -33,6 +33,7 @@ type ScopingTreeProps = {
   initialScope: NativeFilterScope;
   chartId?: number;
   initiallyExcludedCharts?: number[];
+  title?: string;
 };
 
 const buildTreeLeafTitle = (
@@ -61,6 +62,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   updateFormValues,
   chartId,
   initiallyExcludedCharts = [],
+  title,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
@@ -70,6 +72,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({
     chartId,
     initiallyExcludedCharts,
     buildTreeLeafTitle,
+    title,
   );
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
 

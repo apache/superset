@@ -189,7 +189,7 @@ export const ScopingTreePanel = ({
               `Select the charts to which you want to apply cross-filters when interacting with this chart. You can select "All charts" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.`,
             )
           : t(
-              `Select the charts to which you want to be affected by cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select "All charts" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.`,
+              `Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select "All charts" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.`,
             )}
       </InfoText>
       <ScopingTree
@@ -197,6 +197,7 @@ export const ScopingTreePanel = ({
         initialScope={currentScope}
         forceUpdate={noOp}
         chartId={chartId}
+        title={t('All charts')}
       />
     </div>
   );

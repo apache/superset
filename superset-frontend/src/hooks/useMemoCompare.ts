@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { isDefined } from '@superset-ui/core';
 
 export const useMemoCompare = <T>(
   next: T,
@@ -31,5 +32,8 @@ export const useMemoCompare = <T>(
       previousRef.current = next;
     }
   });
+  if (!isDefined(previous)) {
+    return next;
+  }
   return isEqual ? previous : next;
 };
