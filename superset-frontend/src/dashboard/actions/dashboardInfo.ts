@@ -67,9 +67,9 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
 
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
-export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
-export const SET_CHART_CONFIG_COMPLETE = 'SET_CHART_CONFIG_COMPLETE';
-export const SET_CHART_CONFIG_FAIL = 'SET_CHART_CONFIG_FAIL';
+export const SAVE_CHART_CONFIG_BEGIN = 'SAVE_CHART_CONFIG_BEGIN';
+export const SAVE_CHART_CONFIG_COMPLETE = 'SAVE_CHART_CONFIG_COMPLETE';
+export const SAVE_CHART_CONFIG_FAIL = 'SAVE_CHART_CONFIG_FAIL';
 
 export const saveChartConfiguration =
   ({
@@ -81,7 +81,7 @@ export const saveChartConfiguration =
   }) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
     dispatch({
-      type: SET_CHART_CONFIG_BEGIN,
+      type: SAVE_CHART_CONFIG_BEGIN,
       chartConfiguration,
       globalChartConfiguration,
     });
@@ -112,13 +112,13 @@ export const saveChartConfiguration =
         }),
       );
       dispatch({
-        type: SET_CHART_CONFIG_COMPLETE,
+        type: SAVE_CHART_CONFIG_COMPLETE,
         chartConfiguration,
         globalChartConfiguration,
       });
     } catch (err) {
       dispatch({
-        type: SET_CHART_CONFIG_FAIL,
+        type: SAVE_CHART_CONFIG_FAIL,
         chartConfiguration,
         globalChartConfiguration,
       });

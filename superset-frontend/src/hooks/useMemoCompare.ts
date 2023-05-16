@@ -16,21 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import isEqual from 'lodash/isEqual';
-import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from 'src/dashboard/types';
-import { useMemoCompare } from 'src/hooks/useMemoCompare';
 
-const chartIdsSelector = createSelector(
-  (state: RootState) => state.charts,
-  charts => Object.values(charts).map(chart => chart.id),
-);
+import { useEffect, useRef } from 'react';
 
-export const useChartIds = () => {
-  const chartIds = useSelector<RootState, number[]>(chartIdsSelector);
-  return useMemoCompare(
-    chartIds,
-    (prev, next) => prev === next || isEqual(prev, next),
-  );
+export const useMemoCompare = <T>(
+  next: T,
+  compare: (prev: T | undefined, next: T) => boolean,
+) => {
+  const previousRef = useRef<T>();
+  const previous = previousRef.current;
+  const isEqual = compare(previous, next);
+  useEffect(() => {
+    if (!isEqual) {
+      previousRef.current = next;
+    }
+  });
+  return isEqual ? previous : next;
 };

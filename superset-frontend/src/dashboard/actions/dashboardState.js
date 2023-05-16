@@ -58,7 +58,7 @@ import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
   dashboardInfoChanged,
-  SET_CHART_CONFIG_COMPLETE,
+  SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
@@ -327,7 +327,7 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         if (metadata.chart_configuration) {
           dispatch({
-            type: SET_CHART_CONFIG_COMPLETE,
+            type: SAVE_CHART_CONFIG_COMPLETE,
             chartConfiguration: metadata.chart_configuration,
           });
         }

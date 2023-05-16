@@ -34,6 +34,7 @@ from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.migrations.shared.utils import paginated_update
 
 Base = declarative_base()
 
@@ -48,7 +49,7 @@ class Dashboard(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in paginated_update(session.query(Dashboard).all()):
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
@@ -82,7 +83,7 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in paginated_update(session.query(Dashboard).all()):
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
