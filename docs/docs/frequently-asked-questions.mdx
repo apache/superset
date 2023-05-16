@@ -186,17 +186,14 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 ### What database engine can I use as a backend for Superset?
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
-information like your list of users, slices and dashboard definitions.
+information like your list of users and dashboard definitions. While Superset supports a
+[variety of databases as data *sources*](https://superset.apache.org/docs/databases/installing-database-drivers/),
+only a few database engines are supported for use as the OLTP backend / metadata store.
 
-Superset is tested using Mysql, Postgresql and Sqlite for its backend. It’s recommended you install
-Superset on one of these database server for production.
+Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
+Superset on one of these database servers for production.  Installation on other OLTP databases
+may work but isn’t tested. Column-store, non-OLTP databases are not designed for this type of workload.
 
-Using a column-store, non-OLTP databases like Vertica, Redshift or Presto as a database backend
-simply won’t work as these databases are not designed for this type of workload. Installation on
-Oracle, Microsoft SQL Server, or other OLTP databases may work but isn’t tested.
-
-Please note that pretty much any databases that have a SqlAlchemy integration should work perfectly
-fine as a datasource for Superset, just not as the OLTP backend.
 
 ### How can I configure OAuth authentication and authorization?
 
