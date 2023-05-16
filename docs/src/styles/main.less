@@ -35,6 +35,10 @@ h6 {
   font-weight: var(--ifm-heading-font-weight);
 }
 
+.under-navbar {
+  margin-top: -67px;
+}
+
 .theme-doc-toc-desktop {
   position: fixed !important;
 }
@@ -118,13 +122,12 @@ a > span > svg {
   }
 }
 
-.navbar--fixed-top {
-  position: fixed;
-  width: 100%;
-}
-
 .navbar__logo {
   height: 50px;
+}
+
+.dropdown > .navbar__link::after {
+  display: none;
 }
 
 .navbar-sidebar__brand {

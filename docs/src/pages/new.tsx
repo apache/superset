@@ -444,25 +444,33 @@ export default function Home(): JSX.Element {
     logo.setAttribute('src', '/img/superset-logo-horiz.svg');
   };
 
+  // Set up dark <-> light navbar change
   useEffect(() => {
     changeToDark();
 
-    window.addEventListener('scroll', () => {
+    const navbarToggle = document.body.querySelector('.navbar__toggle');
+    navbarToggle.addEventListener('click', () => changeToLight());
+
+    const scrollListener = () => {
       if (window.scrollY > 0) {
         changeToLight();
       } else {
         changeToDark();
       }
-    });
+    };
 
-    const navbarToggle = document.body.querySelector('.navbar__toggle');
-    navbarToggle.addEventListener('click', () => changeToLight());
+    window.addEventListener('scroll', scrollListener);
+
+    return () => {
+      window.removeEventListener('scroll', scrollListener);
+    };
   }, []);
 
   return (
     <Layout
       title="Welcome"
       description="Community website for Apache Superset, a data visualization and data exploration platform"
+      wrapperClassName="under-navbar"
     >
       <StyledMain>
         <StyledTitleContainer>
