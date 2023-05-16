@@ -97,6 +97,7 @@ setup(
         "holidays>=0.23, <0.24",
         "humanize",
         "isodate",
+        "Mako>=1.2.2",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "nh3>=0.2.11, <0.3",
