@@ -47,7 +47,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
     openapi_spec_tag = "Explore Form Data"
     openapi_spec_component_schemas = (FormDataPostSchema, FormDataPutSchema)
 
-    @expose("/form_data", methods=["POST"])
+    @expose("/form_data", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -112,7 +112,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["PUT"])
+    @expose("/form_data/<string:key>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -186,7 +186,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["GET"])
+    @expose("/form_data/<string:key>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -238,7 +238,7 @@ class ExploreFormDataRestApi(BaseSupersetApi):
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/form_data/<string:key>", methods=["DELETE"])
+    @expose("/form_data/<string:key>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

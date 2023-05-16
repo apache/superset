@@ -23,7 +23,6 @@ import time
 from abc import ABCMeta
 from collections import defaultdict, deque
 from datetime import datetime
-from distutils.version import StrictVersion
 from textwrap import dedent
 from typing import (
     Any,
@@ -43,6 +42,7 @@ import pandas as pd
 import simplejson as json
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
+from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -468,7 +468,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         # Default to the new syntax if version is unset.
         presto_version = database.get_extra().get("version")
 
-        if presto_version and StrictVersion(presto_version) < StrictVersion("0.199"):
+        if presto_version and Version(presto_version) < Version("0.199"):
             full_table_name = f"{schema}.{table_name}" if schema else table_name
             partition_select_clause = f"SHOW PARTITIONS FROM {full_table_name}"
         else:
@@ -708,7 +708,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         version = extra.get("version")
-        return version is not None and StrictVersion(version) >= StrictVersion("0.319")
+        return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
     def update_impersonation_config(

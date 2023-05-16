@@ -314,7 +314,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}+{cls.default_driver}", **url_params))
+        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
 
     @classmethod
     def get_parameters_from_uri(
