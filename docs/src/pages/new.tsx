@@ -65,13 +65,16 @@ const StyledTitleContainer = styled('div')`
   margin-bottom: 160px;
   background-image: url('/img/grid-background.jpg');
   background-size: cover;
-  .infoContainer {
+  ${mq[1]} {
+    margin-bottom: 100px;
+  }
+  .info-container {
     position: relative;
     z-index: 4;
   }
   .superset-mark {
     ${mq[1]} {
-      width: 188px;
+      width: 140px;
     }
   }
   .info-text {
@@ -81,8 +84,8 @@ const StyledTitleContainer = styled('div')`
     margin: 24px auto 10px;
     color: #f8fdff;
     ${mq[1]} {
-      font-size: 34px;
-      line-height: 41px;
+      font-size: 25px;
+      line-height: 30px;
     }
   }
   .github-section {
@@ -95,13 +98,13 @@ const StyledTitleContainer = styled('div')`
     .github-button {
       margin: 5px;
       ${mq[1]} {
-        transform: scale(1.5);
-        margin: 15px;
+        transform: scale(1.25);
+        margin: 8px;
         &:first-of-type {
-          margin-top: 20px;
+          margin-top: 5px;
         }
         &:last-of-type {
-          margin-bottom: 10px;
+          margin-bottom: 5px;
         }
       }
     }
@@ -123,9 +126,9 @@ const StyledButton = styled(Link)`
     color: #ffffff;
   }
   ${mq[1]} {
-    font-size: 24px;
-    width: 200px;
-    padding: 12px 0;
+    font-size: 19px;
+    width: 175px;
+    padding: 10px 0;
   }
 `;
 
@@ -206,6 +209,7 @@ const StyledFeaturesList = styled('ul')`
   .item {
     text-align: left;
     border: 1px solid #ededed;
+    background-color: #fff;
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -222,13 +226,16 @@ const StyledFeaturesList = styled('ul')`
       margin-right: 20px;
       width: 140px;
       text-align: center;
+      ${mq[1]} {
+        width: 115px;
+      }
     }
     .title {
       font-size: 24px;
       color: #484848;
       margin: 10px 0 0;
       ${mq[1]} {
-        font-size: 32px;
+        font-size: 23px;
         margin-top: 20px;
       }
     }
@@ -238,7 +245,8 @@ const StyledFeaturesList = styled('ul')`
       color: #5f5f5f;
       margin: 5px 0 0;
       ${mq[1]} {
-        font-size: 23px;
+        font-size: 16px;
+        margin-top: 10px;
       }
     }
   }
@@ -277,9 +285,9 @@ const StyledSliderSection = styled('div')`
     ${mq[1]} {
       flex-direction: column;
       text-align: left;
-      max-width: 170px;
-      gap: 20px;
-      margin-top: 25px;
+      max-width: 120px;
+      gap: 10px;
+      margin-top: 15px;
       margin-bottom: 40px;
     }
     .toggle {
@@ -289,7 +297,9 @@ const StyledSliderSection = styled('div')`
       padding-left: 32px;
       cursor: pointer;
       ${mq[1]} {
+        font-size: 17px;
         font-weight: bold;
+        padding-left: 22px;
       }
       &::before {
         content: '';
@@ -302,6 +312,10 @@ const StyledSliderSection = styled('div')`
         top: 50%;
         left: 0;
         transform: translate3d(0, -50%, 0);
+        ${mq[1]} {
+          width: 8px;
+          height: 8px;
+        }
       }
       &.active::before {
         background-color: var(--ifm-color-primary);
@@ -317,6 +331,10 @@ const StyledSliderSection = styled('div')`
       line-height: 32px;
       color: var(--ifm-font-base-color-inverse);
       margin-bottom: 45px;
+      ${mq[1]} {
+        font-size: 17px;
+        line-height: 23px;
+      }
     }
     & > img {
       border-radius: 10px;
@@ -344,12 +362,20 @@ const StyledKeyFeatures = styled('div')`
     & > .item {
       display: flex;
       font-size: 17px;
+      ${mq[1]} {
+        font-size: 15px;
+      }
       & > img {
         width: 20px;
         height: 20px;
         flex-shrink: 0;
         margin-right: 12px;
         margin-top: 4px;
+        ${mq[1]} {
+          width: 18px;
+          height: 18px;
+          margin-top: 2px;
+        }
       }
     }
   }
@@ -474,7 +500,7 @@ export default function Home(): JSX.Element {
     >
       <StyledMain>
         <StyledTitleContainer>
-          <div className="infoContainer">
+          <div className="info-container">
             <img
               className="superset-mark"
               src="/img/superset-mark-dark.svg"
