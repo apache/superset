@@ -51,7 +51,7 @@ const features = [
     image: 'rich-visualizations.jpg',
     title: 'Rich visualizations and dashboards',
     description:
-      'Superset ships with 40+ pre-installed visualization types. Our plug-in architecture makes it easy to build custom visualizations in Superset.',
+      'Superset ships with 40+ pre-installed visualization types. Our plug-in architecture makes it easy to build custom visualizations.',
   },
 ];
 
@@ -625,8 +625,8 @@ export default function Home(): JSX.Element {
               <div className="item">
                 <img src="/img/check-icon.svg" alt="check-icon" />
                 <div>
-                  <strong>Drag-and-drop</strong> and/or{' '}
-                  <strong>code-based navigation</strong>
+                  Support for <strong>drag-and-drop</strong> and{' '}
+                  <strong>SQL queries</strong>
                 </div>
               </div>
               <div className="item">
