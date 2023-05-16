@@ -404,7 +404,12 @@ class Database(
             )
 
         with engine_context as server_context:
-            if ssh_tunnel:
+            if ssh_tunnel and server_context:
+                logger.info(
+                    "[SSH] Successfully create tunnel at %s: %s",
+                    server_context.local_bind_address,
+                    server_context.local_bind_port,
+                )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri, server_context
                 )

@@ -91,7 +91,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
             {"col": "report_schedule", "opr": "rel_o_m", "value": layer_id}
         )
 
-    @expose("/<int:pk>/log/", methods=["GET"])
+    @expose("/<int:pk>/log/", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -152,7 +152,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         self._apply_layered_relation_to_rison(pk, kwargs["rison"])
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:pk>/log/<int:log_id>", methods=["GET"])
+    @expose("/<int:pk>/log/<int:log_id>", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")

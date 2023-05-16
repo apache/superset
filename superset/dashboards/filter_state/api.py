@@ -47,7 +47,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     def get_delete_command(self) -> Type[DeleteFilterStateCommand]:
         return DeleteFilterStateCommand
 
-    @expose("/<int:pk>/filter_state", methods=["POST"])
+    @expose("/<int:pk>/filter_state", methods=("POST",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -97,7 +97,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/filter_state/<string:key>", methods=["PUT"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=("PUT",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -153,7 +153,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>", methods=["GET"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=("GET",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -199,7 +199,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>", methods=["DELETE"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=("DELETE",))
     @protect()
     @safe
     @event_logger.log_this_with_context(

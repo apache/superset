@@ -15,11 +15,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+import os
+from typing import Any, Dict, Optional
 
 import pytest
 
-from superset.utils.core import QueryObjectFilterClause, remove_extra_adhoc_filters
+from superset.utils.core import (
+    is_test,
+    parse_boolean_string,
+    QueryObjectFilterClause,
+    remove_extra_adhoc_filters,
+)
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -84,3 +90,46 @@ def test_remove_extra_adhoc_filters(
 ) -> None:
     remove_extra_adhoc_filters(original)
     assert expected == original
+
+
+def test_is_test():
+    orig_value = os.getenv("SUPERSET_TESTENV")
+
+    os.environ["SUPERSET_TESTENV"] = "true"
+    assert is_test()
+    os.environ["SUPERSET_TESTENV"] = "false"
+    assert not is_test()
+    os.environ["SUPERSET_TESTENV"] = ""
+    assert not is_test()
+
+    if orig_value is not None:
+        os.environ["SUPERSET_TESTENV"] = orig_value
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("y", True),
+        ("Y", True),
+        ("yes", True),
+        ("True", True),
+        ("t", True),
+        ("true", True),
+        ("On", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("N", False),
+        ("no", False),
+        ("False", False),
+        ("f", False),
+        ("false", False),
+        ("Off", False),
+        ("off", False),
+        ("0", False),
+        ("foo", False),
+        (None, False),
+    ],
+)
+def test_parse_boolean_string(test_input: Optional[str], expected: bool):
+    assert parse_boolean_string(test_input) == expected

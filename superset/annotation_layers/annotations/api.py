@@ -135,7 +135,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             {"col": "layer", "opr": "rel_o_m", "value": layer_id}
         )
 
-    @expose("/<int:pk>/annotation/", methods=["GET"])
+    @expose("/<int:pk>/annotation/", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -196,7 +196,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         self._apply_layered_relation_to_rison(pk, kwargs["rison"])
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["GET"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -253,7 +253,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         self._apply_layered_relation_to_rison(pk, kwargs["rison"])
         return self.get_headless(annotation_id, **kwargs)
 
-    @expose("/<int:pk>/annotation/", methods=["POST"])
+    @expose("/<int:pk>/annotation/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -321,7 +321,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["PUT"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -396,7 +396,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=["DELETE"])
+    @expose("/<int:pk>/annotation/<int:annotation_id>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -451,7 +451,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>/annotation/", methods=["DELETE"])
+    @expose("/<int:pk>/annotation/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

@@ -124,7 +124,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"tables", "roles"}
     base_related_field_filters = app.config["RLS_BASE_RELATED_FIELD_FILTERS"]
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -202,7 +202,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>", methods=["PUT"])
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -291,7 +291,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         except RLSRuleNotFoundError as ex:
             return self.response_404()
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
