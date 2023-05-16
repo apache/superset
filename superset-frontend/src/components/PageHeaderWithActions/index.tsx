@@ -20,12 +20,12 @@ import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import { AntdDropdownProps } from 'src/components';
 import {
-  DynamicEditableTitle,
+  // DynamicEditableTitle,
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
 import { CertifiedBadgeProps } from '../CertifiedBadge';
 import { FaveStarProps } from '../FaveStar';
-import IkiLogo from '../../assets/images/ikigai.png';
+// import IkiLogo from '../../assets/images/ikigai.png';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.gridUnit * 8}px;
@@ -121,7 +121,7 @@ export type PageHeaderWithActionsProps = {
 };
 
 export const PageHeaderWithActions = ({
-  editableTitleProps,
+  // editableTitleProps,
   // showTitlePanelItems,
   // certificatiedBadgeProps,
   // showFaveStar,
