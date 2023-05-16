@@ -127,7 +127,7 @@ function selectColorScheme(color: string) {
 }
 
 function applyChanges() {
-  cy.getBySel('properties-modal-apply-button').click();
+  cy.getBySel('properties-modal-apply-button').click({ force: true });
 }
 
 function saveChanges() {
@@ -359,17 +359,17 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(157, 172, 185)');
+        .should('have.css', 'fill', 'rgb(108, 131, 142)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(2)
-        .should('have.css', 'fill', 'rgb(45, 85, 132)');
+        .should('have.css', 'fill', 'rgb(41, 171, 226)');
     });
 
     it('should re-apply original color after removing custom label color with no color scheme set', () => {
@@ -422,17 +422,17 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(31, 168, 201)');
-      cy.get(
-        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
-      )
-        .eq(1)
         .should('have.css', 'fill', 'rgb(69, 78, 124)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(224, 67, 85)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .eq(2)
-        .should('have.css', 'fill', 'rgb(90, 193, 137)');
+        .should('have.css', 'fill', 'rgb(168, 104, 183)');
     });
 
     it('should show the same colors in Explore', () => {

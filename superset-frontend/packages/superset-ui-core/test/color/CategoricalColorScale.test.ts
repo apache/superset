@@ -120,6 +120,24 @@ describe('CategoricalColorScale', () => {
       scale.getColor('goat');
       expect(scale.range()).toHaveLength(6);
     });
+
+    it('should remove shared color from range if avoid colors collision enabled', () => {
+      window.featureFlags = {
+        [FeatureFlag.AVOID_COLORS_COLLISION]: true,
+      };
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const color1 = scale.getColor('a', 1);
+      expect(scale.range()).toHaveLength(3);
+      const color2 = scale.getColor('a', 2);
+      expect(color1).toBe(color2);
+      scale.getColor('b', 2);
+      expect(scale.range()).toHaveLength(2);
+      scale.getColor('c', 2);
+      expect(scale.range()).toHaveLength(1);
+    });
+    window.featureFlags = {
+      [FeatureFlag.AVOID_COLORS_COLLISION]: false,
+    };
   });
   describe('.setColor(value, forcedColor)', () => {
     it('overrides default color', () => {
@@ -228,31 +246,12 @@ describe('CategoricalColorScale', () => {
   });
 
   describe('.removeSharedLabelColorFromRange(colorMap, cleanedValue)', () => {
-    it('range should be the same  if analogous colors enabled', () => {
-      window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
-      };
-      const colors = ['blue', 'green', 'red'];
-      const scale = new CategoricalColorScale(colors);
-      expect(scale.range()).toEqual(colors);
-
-      const sharedLabelColor = getSharedLabelColor();
-      const colorMap = sharedLabelColor.getColorMap();
-      sharedLabelColor.addSlice('cow', 'blue', 1);
-      sharedLabelColor.addSlice('goat', 'green', 1);
-      scale.removeSharedLabelColorFromRange(colorMap, 'pig');
-      expect(scale.range()).toEqual(colors);
-      sharedLabelColor.clear();
-    });
-
     it('should remove shared color from range', () => {
-      window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
-      };
       const scale = new CategoricalColorScale(['blue', 'green', 'red']);
       expect(scale.range()).toEqual(['blue', 'green', 'red']);
 
       const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.clear();
       const colorMap = sharedLabelColor.getColorMap();
       sharedLabelColor.addSlice('cow', 'blue', 1);
       scale.removeSharedLabelColorFromRange(colorMap, 'pig');
