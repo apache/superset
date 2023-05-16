@@ -19,34 +19,34 @@
 
 export const Databases = [
   {
-    title: 'PostgresSQL',
+    title: 'PostgreSQL',
     href: 'https://www.postgresql.org/',
-    imgName: 'postsql.png',
+    imgName: 'postgresql.svg',
   },
   {
     title: 'BigQuery',
     href: 'https://cloud.google.com/bigquery/',
-    imgName: 'googleBQ.png',
+    imgName: 'google-big-query.svg',
   },
   {
     title: 'Snowflake',
     href: 'https://www.snowflake.com/',
-    imgName: 'snowflake.png',
+    imgName: 'snowflake.svg',
   },
   {
     title: 'MySQL',
     href: 'https://www.mysql.com/',
-    imgName: 'mysql.png',
+    imgName: 'mysql.svg',
   },
   {
     title: 'Amazon Redshift',
     href: 'https://aws.amazon.com/redshift/',
-    imgName: 'aws-redshift.png',
+    imgName: 'amazon-redshift.jpg',
   },
   {
     title: 'Amazon Athena',
     href: 'https://aws.amazon.com/pt/athena/',
-    imgName: 'aws-athena.png',
+    imgName: 'amazon-athena.jpg',
   },
   {
     title: 'Apache Druid',
@@ -61,11 +61,11 @@ export const Databases = [
   {
     title: 'Google Sheets',
     href: 'https://www.google.com/sheets/about/',
-    imgName: 'google-sheets.png',
+    imgName: 'google-sheets.svg',
   },
   {
     title: 'CSV',
-    imgName: 'csv.png',
+    imgName: 'csv.svg',
   },
   {
     title: 'ClickHouse',
@@ -95,7 +95,7 @@ export const Databases = [
   {
     title: 'Apache Pinot',
     href: 'https://pinot.apache.org/',
-    imgName: 'apache-pinot.png',
+    imgName: 'apache-pinot.svg',
   },
   {
     title: 'Presto',
@@ -110,7 +110,7 @@ export const Databases = [
   {
     title: 'SAP Hana',
     href: 'https://www.sap.com/products/technology-platform/hana.html',
-    imgName: 'sap-hana.png',
+    imgName: 'sap-hana.jpg',
   },
   {
     title: 'Microsoft SqlServer',
