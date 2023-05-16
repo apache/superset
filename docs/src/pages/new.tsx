@@ -30,25 +30,25 @@ import '../styles/main.less';
 
 const features = [
   {
-    image: 'easy-to-use.png',
+    image: 'powerful-yet-easy.jpg',
     title: 'Powerful yet easy to use',
     description:
       'Superset makes it easy to explore your data, using either our simple no-code viz builder or state-of-the-art SQL IDE.',
   },
   {
-    image: 'integrates-with-databases.png',
+    image: 'modern-databases.jpg',
     title: 'Integrates with modern databases',
     description:
       'Superset can connect to any SQL-based databases including modern cloud-native databases and engines at petabyte scale.',
   },
   {
-    image: 'modern-architecture.png',
+    image: 'modern-architecture.jpg',
     title: 'Modern architecture',
     description:
       'Superset is lightweight and highly scalable, leveraging the power of your existing data infrastructure without requiring yet another ingestion layer.',
   },
   {
-    image: 'rich-visualizations.png',
+    image: 'rich-visualizations.jpg',
     title: 'Rich visualizations and dashboards',
     description:
       'Superset ships with 40+ pre-installed visualization types. Our plug-in architecture makes it easy to build custom visualizations in Superset.',
