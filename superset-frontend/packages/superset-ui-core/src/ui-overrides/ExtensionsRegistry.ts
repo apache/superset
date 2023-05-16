@@ -65,6 +65,9 @@ type ConfigDetailsProps = {
 type RightMenuItemIconProps = {
   menuChild: MenuObjectChildProps;
 };
+type DatabaseDeleteRelatedExtensionProps = {
+  databaseId: number;
+};
 
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
@@ -80,6 +83,7 @@ export type Extensions = Partial<{
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
   'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
 }>;
 
 /**
