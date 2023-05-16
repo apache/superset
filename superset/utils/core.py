@@ -2038,15 +2038,12 @@ def validate_routing_key_api(conf, routing_key):
     isRoutingKey = False
     if routing_key:
         REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
-        headers = {
+        header = {
               'X-VO-Api-Id': conf["X_VO_API_ID"],
               'X-VO-Api-Key': conf["X_VO_API_KEY"],
-            },
+        }
         try:
-            response = requests.get(REQUEST_URL, headers={
-                'X-VO-Api-Id': conf["X_VO_API_ID"],
-                'X-VO-Api-Key': conf["X_VO_API_KEY"],
-                },verify=False)
+            response = requests.get(REQUEST_URL, headers=header,verify=False)
             data = response.json()
             isRoutingKey = (
                 len(
