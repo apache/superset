@@ -90,7 +90,7 @@ const StyledJoinCommunity = styled('section')`
     width: 40px;
     margin-top: 5px;
     ${mq[1]} {
-      width: 60px;
+      width: 40px;
       margin-top: 0;
     }
   }
@@ -100,7 +100,8 @@ const StyledJoinCommunity = styled('section')`
     font-weight: 700;
     color: var(--ifm-font-base-color);
     ${mq[1]} {
-      font-size: 32px;
+      font-size: 23px;
+      line-height: 26px;
     }
   }
   .description {
@@ -110,8 +111,8 @@ const StyledJoinCommunity = styled('section')`
     margin-top: -8px;
     margin-bottom: 23px;
     ${mq[1]} {
-      font-size: 23px;
-      line-height: 30px;
+      font-size: 17px;
+      line-height: 22px;
       color: #484848;
       margin-bottom: 35px;
       margin-top: 0;
