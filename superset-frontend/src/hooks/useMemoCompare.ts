@@ -16,25 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterScope } from '@superset-ui/core';
-import { CHART_TYPE } from './componentTypes';
-import { Layout } from '../types';
 
-export function getChartIdsInFilterScope(
-  filterScope: NativeFilterScope,
-  chartIds: number[],
-  layout: Layout,
-) {
-  const layoutItems = Object.values(layout);
-  return chartIds.filter(
-    chartId =>
-      !filterScope.excluded.includes(chartId) &&
-      layoutItems
-        .find(
-          layoutItem =>
-            layoutItem?.type === CHART_TYPE &&
-            layoutItem.meta?.chartId === chartId,
-        )
-        ?.parents?.some(elementId => filterScope.rootPath.includes(elementId)),
-  );
-}
+import { useEffect, useRef } from 'react';
+import { isDefined } from '@superset-ui/core';
+
+export const useMemoCompare = <T>(
+  next: T,
+  compare: (prev: T | undefined, next: T) => boolean,
+) => {
+  const previousRef = useRef<T>();
+  const previous = previousRef.current;
+  const isEqual = compare(previous, next);
+  useEffect(() => {
+    if (!isEqual) {
+      previousRef.current = next;
+    }
+  });
+  if (!isDefined(previous)) {
+    return next;
+  }
+  return isEqual ? previous : next;
+};

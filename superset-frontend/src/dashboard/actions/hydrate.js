@@ -309,11 +309,14 @@ export const hydrateDashboard =
     });
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      metadata.chart_configuration = getCrossFiltersConfiguration(
-        dashboardLayout.present,
-        metadata.chart_configuration,
-        chartQueries,
-      );
+      const { chartConfiguration, globalChartConfiguration } =
+        getCrossFiltersConfiguration(
+          dashboardLayout.present,
+          metadata,
+          chartQueries,
+        );
+      metadata.chart_configuration = chartConfiguration;
+      metadata.global_chart_configuration = globalChartConfiguration;
     }
 
     const { roles } = user;

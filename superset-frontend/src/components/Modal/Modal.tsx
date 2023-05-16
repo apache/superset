@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef, useState } from 'react';
+import React, {
+  CSSProperties,
+  ReactNode,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { isNil } from 'lodash';
 import { ModalFuncProps } from 'antd/lib/modal';
 import { styled, t } from '@superset-ui/core';
@@ -33,7 +39,7 @@ import Draggable, {
 
 export interface ModalProps {
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   disablePrimaryButton?: boolean;
   primaryButtonLoading?: boolean;
   onHide: () => void;
@@ -42,13 +48,13 @@ export interface ModalProps {
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
   name?: string;
-  title: React.ReactNode;
+  title: ReactNode;
   width?: string;
   maxWidth?: string;
   responsive?: boolean;
   hideFooter?: boolean;
   centered?: boolean;
-  footer?: React.ReactNode;
+  footer?: ReactNode;
   wrapProps?: object;
   height?: string;
   closable?: boolean;
@@ -59,6 +65,7 @@ export interface ModalProps {
   destroyOnClose?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
+  bodyStyle?: CSSProperties;
 }
 
 interface StyledModalProps {
