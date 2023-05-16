@@ -1017,12 +1017,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        owners: [
-          {
-            value: currentUser.userId,
-            label: `${currentUser.firstName} ${currentUser.lastName}`,
-          },
-        ],
+        owners: currentUser
+          ? [
+              {
+                value: currentUser.userId,
+                label: `${currentUser.firstName} ${currentUser.lastName}`,
+              },
+            ]
+          : [],
       });
       setNotificationSettings([]);
       setNotificationAddState('active');
