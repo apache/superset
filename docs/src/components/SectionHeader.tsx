@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import styled from '@emotion/styled';
+import { mq } from '../utils';
 
 type StyledSectionHeaderProps = {
   dark: boolean;
@@ -28,11 +29,11 @@ const StyledSectionHeader = styled('div')<StyledSectionHeaderProps>`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 55px 20px 0;
+  padding: 75px 20px 0;
   max-width: 720px;
   margin: 0 auto;
-  @media (min-width: 768px) {
-    padding-top: 75px;
+  ${mq[1]} {
+    padding-top: 55px;
   }
   .title,
   .subtitle {
@@ -45,24 +46,24 @@ const StyledSectionHeader = styled('div')<StyledSectionHeaderProps>`
 
 const StyledSectionHeaderH1 = styled(StyledSectionHeader)`
   .title {
-    font-size: 64px;
-    @media (min-width: 768px) {
-      font-size: 96px;
+    font-size: 96px;
+    ${mq[1]} {
+      font-size: 46px;
     }
   }
   .line {
-    margin-top: -20px;
-    margin-bottom: 30px;
-    @media (min-width: 768px) {
-      margin-top: -45px;
-      margin-bottom: 15px;
+    margin-top: -45px;
+    margin-bottom: 15px;
+    ${mq[1]} {
+      margin-top: -20px;
+      margin-bottom: 30px;
     }
   }
   .subtitle {
-    font-size: 34px;
+    font-size: 30px;
     line-height: 40px;
-    @media (min-width: 768px) {
-      font-size: 30px;
+    ${mq[1]} {
+      font-size: 25px;
     }
   }
 `;
@@ -70,17 +71,23 @@ const StyledSectionHeaderH1 = styled(StyledSectionHeader)`
 const StyledSectionHeaderH2 = styled(StyledSectionHeader)`
   .title {
     font-size: 48px;
+    ${mq[1]} {
+      font-size: 34px;
+    }
   }
   .line {
     margin-top: -15px;
     margin-bottom: 15px;
+    ${mq[1]} {
+      margin-top: -5px;
+    }
   }
   .subtitle {
-    font-size: 25px;
-    line-height: 36px;
-    @media (min-width: 768px) {
-      font-size: 24px;
-      line-height: 32px;
+    font-size: 24px;
+    line-height: 32px;
+    ${mq[1]} {
+      font-size: 18px;
+      line-height: 26px;
     }
   }
 `;

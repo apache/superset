@@ -18,6 +18,7 @@
  */
 import React, { ReactNode } from 'react';
 import styled from '@emotion/styled';
+import { mq } from '../utils';
 
 const StyledBlurredSection = styled('section')`
   text-align: center;
@@ -30,6 +31,9 @@ const StyledBlurredSection = styled('section')`
     margin-bottom: -35px;
     position: relative;
     z-index: -1;
+    ${mq[1]} {
+      margin-top: -35px;
+    }
   }
 `;
 
