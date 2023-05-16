@@ -28,6 +28,7 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.tags.models import TagTypes
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -152,7 +153,7 @@ openapi_spec_methods_override = {
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.Int()
+    type = EnumField(TagTypes, by_value=True)
 
 
 class ChartEntityResponseSchema(Schema):
