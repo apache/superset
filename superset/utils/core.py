@@ -2024,6 +2024,48 @@ def get_alert_link(conf, report_schedule) -> str:
     baseurl = conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
     return f"{baseurl}/{report_schedule.type.lower()}/list/?filters=(name:'{report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
+def validate_vo_rk(data):
+      if data and data.get("type") is not None and data.get("recipients") is not None and data["type"] == "Alert":
+          routing_key = None
+          for recipient in data["recipients"]:
+            if recipient["type"] == "VictorOps":
+              routing_key = recipient["recipient_config_json"]["target"]
+          if routing_key:
+            if not validate_routing_key_api(current_app.config,routing_key):
+                return True
+
+def validate_routing_key_api(conf, routing_key):
+    isRoutingKey = False
+    if routing_key:
+        REQUEST_URL = conf["VO_VALIDATE_ROUTING_KEY"]
+        header = {
+              'X-VO-Api-Id': conf["X_VO_API_ID"],
+              'X-VO-Api-Key': conf["X_VO_API_KEY"],
+        }
+        try:
+            response = requests.get(REQUEST_URL, headers=header,verify=False)
+            data = response.json()
+            isRoutingKey = (
+                len(
+                    list(
+                        filter(
+                            lambda x: x["routingKey"] == routing_key,
+                            data["routingKeys"],
+                        )
+                    )
+                )
+                > 0
+            )
+            logger.info("IS ROUTING KEY",isRoutingKey)
+        except requests.exceptions.HTTPError as e:
+            raise Exception(str(e))
+        if response.status_code != 200:
+            raise ValueError(
+                "Request to victor_ops returned an error %s, the response is:\n%s"
+                % (response.status_code, response.text)
+            )
+        return isRoutingKey
+
 def get_vo_payload(conf, report_schedule,message_type,exception = ""):
     ex = (" Error occured for" + str(exception)) if str(exception) else ""
     payload = {

@@ -23,6 +23,7 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset import security_manager
+
 from superset.commands.base import UpdateMixin
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.dao import DatabaseDAO
@@ -110,7 +111,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
-        
         if "sql" in self._properties:
             self._properties["sql"] = add_metadata_to_queries(
                 sql=sqlparse.format(self._properties["sql"], strip_comments=True) ,
