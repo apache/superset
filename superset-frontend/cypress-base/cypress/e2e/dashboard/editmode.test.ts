@@ -739,14 +739,15 @@ describe('Dashboard edit', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
-      cy.waitUntil(() => cy.getBySel('header-save-button').should('be.visible'));
+      cy.waitUntil(() =>
+        cy.getBySel('header-save-button').should('be.visible'),
+      );
       cy.contains('header-save-button', 'Save');
       discardChanges();
       cy.wait(1000);
       cy.getBySel('header-save-button').should('be.disabled');
     });
   });
-
 
   describe('Components', () => {
     beforeEach(() => {
