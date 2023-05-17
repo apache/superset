@@ -48,6 +48,7 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { CLAUSES } from 'src/explore/components/controls/FilterControl/types';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
+import { removeRedundantTemporalAdhocFilters } from 'src/utils/removeRedundantTemporalAdhocFilters';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Alert from 'src/components/Alert';
@@ -332,10 +333,10 @@ export default function DrillByModal({
     Object.keys(adhocFilters).forEach(adhocFilterFieldName => {
       updatedFormData = {
         ...updatedFormData,
-        [adhocFilterFieldName]: [
+        [adhocFilterFieldName]: removeRedundantTemporalAdhocFilters([
           ...ensureIsArray(formData[adhocFilterFieldName]),
           ...adhocFilters[adhocFilterFieldName],
-        ],
+        ]),
       };
     });
 
