@@ -125,7 +125,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         setStatusesDropdown(dropdown);
       },
       createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue getting flash statuses %s', errMsg)),
+        addDangerToast(
+          t('There was an issue getting flash statuses %s', errMsg),
+        ),
       ),
     );
 
@@ -447,7 +449,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         selects: statusesDropdown || FLASH_STATUS,
       },
     ],
-    [statusesDropdown,databaseDropdown, addDangerToast],
+    [statusesDropdown, databaseDropdown, addDangerToast],
   );
 
   return (
