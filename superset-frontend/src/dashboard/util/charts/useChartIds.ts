@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterScope } from '@superset-ui/core';
-import { CHART_TYPE } from './componentTypes';
-import { Layout } from '../types';
+import { useSelector } from 'react-redux';
+import isEqual from 'lodash/isEqual';
+import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from 'src/dashboard/types';
+import { useMemoCompare } from 'src/hooks/useMemoCompare';
 
-export function getChartIdsInFilterScope(
-  filterScope: NativeFilterScope,
-  chartIds: number[],
-  layout: Layout,
-) {
-  const layoutItems = Object.values(layout);
-  return chartIds.filter(
-    chartId =>
-      !filterScope.excluded.includes(chartId) &&
-      layoutItems
-        .find(
-          layoutItem =>
-            layoutItem?.type === CHART_TYPE &&
-            layoutItem.meta?.chartId === chartId,
-        )
-        ?.parents?.some(elementId => filterScope.rootPath.includes(elementId)),
+const chartIdsSelector = createSelector(
+  (state: RootState) => state.charts,
+  charts => Object.values(charts).map(chart => chart.id),
+);
+
+export const useChartIds = () => {
+  const chartIds = useSelector<RootState, number[]>(chartIdsSelector);
+  return useMemoCompare(
+    chartIds,
+    (prev, next) => prev === next || isEqual(prev, next),
   );
-}
+};

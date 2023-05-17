@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterScope } from '@superset-ui/core';
-import { CHART_TYPE } from './componentTypes';
-import { Layout } from '../types';
+import React, { ReactElement, useCallback, useState } from 'react';
+import { ScopingModal } from './ScopingModal';
 
-export function getChartIdsInFilterScope(
-  filterScope: NativeFilterScope,
-  chartIds: number[],
-  layout: Layout,
-) {
-  const layoutItems = Object.values(layout);
-  return chartIds.filter(
-    chartId =>
-      !filterScope.excluded.includes(chartId) &&
-      layoutItems
-        .find(
-          layoutItem =>
-            layoutItem?.type === CHART_TYPE &&
-            layoutItem.meta?.chartId === chartId,
-        )
-        ?.parents?.some(elementId => filterScope.rootPath.includes(elementId)),
-  );
-}
+export const useCrossFiltersScopingModal = (
+  initialChartId?: number,
+): [() => void, ReactElement | null] => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const openModal = useCallback(() => setIsVisible(true), []);
+  const closeModal = useCallback(() => setIsVisible(false), []);
+
+  return [
+    openModal,
+    isVisible ? (
+      <ScopingModal
+        initialChartId={initialChartId}
+        closeModal={closeModal}
+        isVisible={isVisible}
+      />
+    ) : null,
+  ];
+};
