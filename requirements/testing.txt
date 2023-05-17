@@ -456,8 +456,6 @@ psycopg2-binary==2.9.6
     # via apache-superset
 pure-eval==0.2.2
     # via stack-data
-pure-sasl==0.6.2
-    # via thrift-sasl
 pyarrow==10.0.1
     # via
     #   apache-superset
@@ -557,6 +555,7 @@ requests==2.30.0
     #   google-api-core
     #   google-cloud-bigquery
     #   pydruid
+    #   pyhive
     #   requests-oauthlib
     #   tableschema
     #   tabulator
@@ -573,8 +572,6 @@ rsa==4.9
     # via google-auth
 s3transfer==0.6.1
     # via boto3
-sasl==0.3.1
-    # via pyhive
 selenium==4.9.1
     # via apache-superset
 shortid==0.1.2
@@ -592,11 +589,9 @@ six==1.16.0
     #   prison
     #   python-dateutil
     #   rfc3339-validator
-    #   sasl
     #   tableschema
     #   tabulator
     #   thrift
-    #   thrift-sasl
     #   wtforms-json
 slack-sdk==3.21.3
     # via apache-superset
@@ -637,12 +632,7 @@ tabulate==0.8.10
 tabulator==1.53.5
     # via tableschema
 thrift==0.16.0
-    # via
-    #   apache-superset
-    #   pyhive
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via pyhive
+    # via apache-superset
 toml==0.10.2
     # via pylint
 tomli==2.0.1
