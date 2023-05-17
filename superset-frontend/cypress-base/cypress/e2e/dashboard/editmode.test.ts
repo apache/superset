@@ -734,15 +734,18 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-charts-filter-search-input').clear();
     });
 
-    // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
-    xit('should disable the Save button when undoing', () => {
+    it('should disable the Save button when undoing', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
+      cy.waitUntil(() => cy.getBySel('header-save-button').isVisible());
+      cy.contains('header-save-button', 'Save');
       discardChanges();
+      cy.wait(1000);
       cy.getBySel('header-save-button').should('be.disabled');
     });
   });
+
 
   describe('Components', () => {
     beforeEach(() => {
