@@ -678,9 +678,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = self.get_assert_metric("api/v1/chart/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res[0]["slice_name"], new_name)
-        self.assertNotIn("username", res[0]["changed_by"].keys())
-        self.assertNotIn("username", res[0]["owners"][0].keys())
+        current_chart = [d for d in res if d["id"] == chart_id][0]
+        self.assertEqual(current_chart["slice_name"], new_name)
+        self.assertNotIn("username", current_chart["changed_by"].keys())
+        self.assertNotIn("username", current_chart["owners"][0].keys())
 
         db.session.delete(model)
         db.session.commit()

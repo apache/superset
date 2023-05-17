@@ -1473,9 +1473,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric("api/v1/dashboard/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res[0]["dashboard_title"], "title2")
-        self.assertNotIn("username", res[0]["changed_by"].keys())
-        self.assertNotIn("username", res[0]["owners"][0].keys())
+        current_dash = [d for d in res if d["id"] == dashboard_id][0]
+        self.assertEqual(current_dash["dashboard_title"], "title2")
+        self.assertNotIn("username", current_dash["changed_by"].keys())
+        self.assertNotIn("username", current_dash["owners"][0].keys())
 
         db.session.delete(model)
         db.session.commit()

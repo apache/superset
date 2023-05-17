@@ -1333,8 +1333,9 @@ class TestDatasetApi(SupersetTestCase):
         response = self.get_assert_metric("api/v1/dataset/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res[0]["description"], "changed_description")
-        self.assertNotIn("username", res[0]["changed_by"].keys())
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertNotIn("username", current_dataset["changed_by"].keys())
 
         db.session.delete(dataset)
         db.session.commit()
@@ -1381,8 +1382,9 @@ class TestDatasetApi(SupersetTestCase):
         response = self.get_assert_metric("api/v1/dataset/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res[0]["description"], "changed_description")
-        self.assertEqual(res[0]["changed_by_url"], "/superset/profile/admin")
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
 
         app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(dataset)
@@ -1401,14 +1403,15 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         table_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
+        rv = self.put_assert_metric(uri, table_data, "put")
         self.assertEqual(rv.status_code, 200)
 
         response = self.get_assert_metric("api/v1/dataset/", "get_list")
         res = json.loads(response.data.decode("utf-8"))["result"]
 
-        self.assertEqual(res[0]["description"], "changed_description")
-        self.assertEqual(res[0]["changed_by_url"], "")
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "")
 
         app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(dataset)
