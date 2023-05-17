@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///mnt/c/Users/MDESHMU/apache-superset
     # via
     #   -r requirements/base.in
     #   -r requirements/docker.in
