@@ -116,8 +116,11 @@ describe('Cross-referenced dashboards', () => {
       saveAndVerifyDashboard(i + 1);
     });
 
-    verifyDashboardSearch();
-    verifyDashboardLink();
+    // Run the verifyDashboardSearch() and verifyDashboardLink() calls in parallel.
+    cy.parallel(() => {
+      verifyDashboardSearch();
+      verifyDashboardLink();
+    });
   });
 });
 
