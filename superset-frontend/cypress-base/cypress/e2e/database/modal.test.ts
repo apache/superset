@@ -19,7 +19,6 @@
 import { DATABASE_LIST } from 'cypress/utils/urls';
 import 'cypress-wait-until';
 
-
 function closeModal() {
   cy.get('body').then($body => {
     if ($body.find('[data-test="database-modal"]').length) {
@@ -71,12 +70,14 @@ describe('Add database', () => {
     );
   });
 
-  it('show error alerts on dynamic form for bad port', async () => {
+  it('show error alerts on dynamic form for bad port', () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
 
     // wait for the form to load
-    cy.waitUntil(() => cy.get('.ant-form-item-explain-error').should('be.visible'));
+    cy.waitUntil(() =>
+      cy.get('.ant-form-item-explain-error').should('be.visible'),
+    );
 
     // enter the host and port
     cy.get('input[name="host"]').type('localhost');
