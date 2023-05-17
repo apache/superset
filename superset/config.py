@@ -619,16 +619,14 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
-# the username of the account used to render the queries and dashboards/charts
+# By default, thumbnails are rendered per user, and will fall back to the Selenium
+# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# can be configured to always be rendered as a fixed user. See
+# `superset.tasks.types.ExecutorType` for a full list of executor options.
+# To always use a fixed user account, use the following configuration:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
-
-# To be able to have different thumbnails for different users, use these configs to
-# define which user to execute the thumbnails and potentially custom functions for
-# calculating thumbnail digests. To have unique thumbnails for all users, use the
-# following config:
-# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
-THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
