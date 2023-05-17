@@ -36,7 +36,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
-from superset.utils.core import backend
+from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -404,39 +404,41 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
-        expected_result = {
-            "certified_by": None,
-            "certification_details": None,
-            "changed_by": None,
-            "changed_by_name": "",
-            "changed_by_url": "",
-            "charts": [],
-            "created_by": {
-                "id": 1,
-                "first_name": "admin",
-                "last_name": "user",
-            },
-            "id": dashboard.id,
-            "css": "",
-            "dashboard_title": "title",
-            "datasources": [],
-            "json_metadata": "",
-            "owners": [
-                {
+        with override_user(admin):
+            expected_result = {
+                "certified_by": None,
+                "certification_details": None,
+                "changed_by": None,
+                "changed_by_name": "",
+                "changed_by_url": "",
+                "charts": [],
+                "created_by": {
                     "id": 1,
                     "first_name": "admin",
                     "last_name": "user",
-                }
-            ],
-            "roles": [],
-            "position_json": "",
-            "published": False,
-            "url": "/superset/dashboard/slug1/",
-            "slug": "slug1",
-            "tags": [],
-            "thumbnail_url": dashboard.thumbnail_url,
-            "is_managed_externally": False,
-        }
+                },
+                "id": dashboard.id,
+                "css": "",
+                "dashboard_title": "title",
+                "datasources": [],
+                "json_metadata": "",
+                "owners": [
+                    {
+                        "id": 1,
+                        "username": "admin",
+                        "first_name": "admin",
+                        "last_name": "user",
+                    }
+                ],
+                "roles": [],
+                "position_json": "",
+                "published": False,
+                "url": "/superset/dashboard/slug1/",
+                "slug": "slug1",
+                "tags": [],
+                "thumbnail_url": dashboard.thumbnail_url,
+                "is_managed_externally": False,
+            }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
