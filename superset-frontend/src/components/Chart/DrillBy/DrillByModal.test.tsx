@@ -65,6 +65,7 @@ const dataset = {
       column_name: 'gender',
     },
     { column_name: 'name' },
+    { column_name: 'ds', is_dttm: true },
   ],
 };
 
@@ -171,6 +172,56 @@ test('should generate Explore url', async () => {
           operator: '==',
           operatorId: 'EQUALS',
           subject: 'gender',
+        },
+      ],
+      slice_id: 0,
+      result_format: 'json',
+      result_type: 'full',
+      force: false,
+    },
+    datasource_id: Number(formData.datasource.split('__')[0]),
+    datasource_type: formData.datasource.split('__')[1],
+  };
+
+  const parsedRequestPayload = JSON.parse(
+    fetchMock.lastCall()?.[1]?.body as string,
+  );
+
+  expect(parsedRequestPayload.form_data).toEqual(
+    expectedRequestPayload.form_data,
+  );
+
+  expect(
+    await screen.findByRole('link', { name: 'Edit chart' }),
+  ).toHaveAttribute('href', '/explore/?form_data_key=123&dashboard_page_id=1');
+});
+
+test('should generate Explore url with temporal filter', async () => {
+  await renderModal({
+    column: { column_name: 'name' },
+    drillByConfig: {
+      filters: [{ col: 'ds', op: '==', val: 631152000000 }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
+  const expectedRequestPayload = {
+    form_data: {
+      ...omitBy(
+        omit(formData, ['slice_id', 'slice_name', 'dashboards']),
+        isUndefined,
+      ),
+      groupby: ['name'],
+      adhoc_filters: [
+        ...formData.adhoc_filters,
+        {
+          clause: 'WHERE',
+          comparator: '1990-01-01T00:00:00.000Z : 1990-01-01T23:59:59.999Z',
+          expressionType: 'SIMPLE',
+          operator: 'TEMPORAL_RANGE',
+          operatorId: 'TEMPORAL_RANGE',
+          subject: 'ds',
         },
       ],
       slice_id: 0,
