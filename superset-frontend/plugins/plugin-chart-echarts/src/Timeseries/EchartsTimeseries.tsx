@@ -188,7 +188,7 @@ export default function EchartsTimeseries({
   const [isVisibleNow, setIsVisible] = useState(false);
 
   useEffect(() => {
-    console.log('echartOptions', echartOptions);
+    console.log('Time-series echartOptions', echartOptions);
     setEchartsOptions(echartOptions);
     const current = getCurrentLabelState(
       echartOptions.series as Array<{

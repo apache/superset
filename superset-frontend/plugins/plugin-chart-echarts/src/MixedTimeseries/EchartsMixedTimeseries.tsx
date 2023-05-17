@@ -94,21 +94,24 @@ export default function EchartsMixedTimeseries({
   };
 
   const getCurrentLabelState = (
-    series: Array<{ label: { show: boolean; position: string } }>,
-  ) => series.map(s => s.label.show)[0];
+    series: Array<{ label?: { show: boolean; position: string } }>,
+  ) => series.map(s => s && s.label && s?.label.show);
 
   const [alteredEchartsOptions, setEchartsOptions] = useState(echartOptions);
   const [isVisibleNow, setIsVisible] = useState(false);
 
   useEffect(() => {
-    console.log('echartOptions', echartOptions);
+    console.log('Mixed time-series echartOptions', echartOptions);
     setEchartsOptions(echartOptions);
     const current = getCurrentLabelState(
       echartOptions.series as Array<{
-        label: { show: boolean; position: string };
+        label?: { show: boolean; position: string };
       }>,
     );
-    setIsVisible(!current);
+
+    const currentValue = current.length > 0 ? current[0] : false;
+    console.log('Current Show/Hide value', current, currentValue);
+    setIsVisible(!currentValue);
   }, [echartOptions]);
 
   const showHideHandler = () => {
