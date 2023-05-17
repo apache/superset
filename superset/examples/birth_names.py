@@ -144,8 +144,8 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
         metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
     for col in columns:
-        if col.column_name == "ds":
-            col.is_dttm = True
+        if col.column_name == "ds":  # type: ignore
+            col.is_dttm = True  # type: ignore
             break
 
     datasource.columns = columns

@@ -6,9 +6,10 @@ import {
   Locale,
   SequentialSchemeConfig,
 } from '@superset-ui/core';
+import { FormatLocaleDefinition } from 'd3-format';
 import { isPlainObject } from 'lodash';
+import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
-import { Languages } from '../views/components/LanguagePicker';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -150,6 +151,7 @@ export interface CommonBootstrapData {
   extra_sequential_color_schemes: SequentialSchemeConfig[];
   theme_overrides: JsonObject;
   menu_data: MenuData;
+  d3_format: Partial<FormatLocaleDefinition>;
 }
 
 export interface BootstrapData {

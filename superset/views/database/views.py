@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+import json
 import os
 import tempfile
 import zipfile
@@ -25,7 +26,7 @@ from flask import flash, g, redirect
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from werkzeug.wrappers import Response
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
@@ -122,7 +123,7 @@ class CustomFormView(SimpleFormView):
     your form pre-processing and post-processing
     """
 
-    @expose("/form", methods=["GET"])
+    @expose("/form", methods=("GET",))
     @has_access
     def this_form_get(self) -> Any:
         self._init_vars()
@@ -136,7 +137,7 @@ class CustomFormView(SimpleFormView):
             appbuilder=self.appbuilder,
         )
 
-    @expose("/form", methods=["POST"])
+    @expose("/form", methods=("POST",))
     @has_access
     def this_form_post(self) -> Any:
         self._init_vars()
@@ -176,7 +177,7 @@ class CsvToDatabaseView(CustomFormView):
         delimiter_input = form.delimiter.data
 
         if not schema_allows_file_upload(database, csv_table.schema):
-            message = __(
+            message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
@@ -189,6 +190,7 @@ class CsvToDatabaseView(CustomFormView):
             delimiter_input = form.otherInput.data
 
         try:
+            kwargs = {"dtype": json.loads(form.dtype.data)} if form.dtype.data else {}
             df = pd.concat(
                 pd.read_csv(
                     chunksize=1000,
@@ -208,6 +210,7 @@ class CsvToDatabaseView(CustomFormView):
                     skip_blank_lines=form.skip_blank_lines.data,
                     skipinitialspace=form.skip_initial_space.data,
                     skiprows=form.skiprows.data,
+                    **kwargs,
                 )
             )
 
@@ -232,10 +235,10 @@ class CsvToDatabaseView(CustomFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -247,7 +250,7 @@ class CsvToDatabaseView(CustomFormView):
                 .filter_by(
                     table_name=csv_table.table,
                     schema=csv_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -256,7 +259,7 @@ class CsvToDatabaseView(CustomFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=csv_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = csv_table.schema
@@ -265,7 +268,7 @@ class CsvToDatabaseView(CustomFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = __(
+            message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -280,7 +283,7 @@ class CsvToDatabaseView(CustomFormView):
             return redirect("/csvtodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = __(
+        message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             csv_filename=form.csv_file.data.filename,
@@ -315,7 +318,7 @@ class ExcelToDatabaseView(SimpleFormView):
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
         if not schema_allows_file_upload(database, excel_table.schema):
-            message = __(
+            message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
@@ -369,10 +372,10 @@ class ExcelToDatabaseView(SimpleFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a excel, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -384,7 +387,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 .filter_by(
                     table_name=excel_table.table,
                     schema=excel_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -393,7 +396,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=excel_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = excel_table.schema
@@ -402,7 +405,7 @@ class ExcelToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = __(
+            message = _(
                 'Unable to upload Excel file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -417,7 +420,7 @@ class ExcelToDatabaseView(SimpleFormView):
             return redirect("/exceltodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = __(
+        message = _(
             'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             excel_filename=form.excel_file.data.filename,
@@ -462,7 +465,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             ]
 
         if len(file_type) > 1:
-            message = __(
+            message = _(
                 "Multiple file extensions are not allowed for columnar uploads."
                 " Please make sure all files are of the same extension.",
             )
@@ -475,7 +478,7 @@ class ColumnarToDatabaseView(SimpleFormView):
         }
 
         if not schema_allows_file_upload(database, columnar_table.schema):
-            message = __(
+            message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for columnar uploads. "
                 "Please contact your Superset Admin.",
@@ -510,10 +513,10 @@ class ColumnarToDatabaseView(SimpleFormView):
             # Connect table to the database that should be used for exploration.
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
-            expore_database = database
+            explore_database = database
             explore_database_id = database.explore_database_id
             if explore_database_id:
-                expore_database = (
+                explore_database = (
                     db.session.query(models.Database)
                     .filter_by(id=explore_database_id)
                     .one_or_none()
@@ -525,7 +528,7 @@ class ColumnarToDatabaseView(SimpleFormView):
                 .filter_by(
                     table_name=columnar_table.table,
                     schema=columnar_table.schema,
-                    database_id=expore_database.id,
+                    database_id=explore_database.id,
                 )
                 .one_or_none()
             )
@@ -534,7 +537,7 @@ class ColumnarToDatabaseView(SimpleFormView):
                 sqla_table.fetch_metadata()
             if not sqla_table:
                 sqla_table = SqlaTable(table_name=columnar_table.table)
-                sqla_table.database = expore_database
+                sqla_table.database = explore_database
                 sqla_table.database_id = database.id
                 sqla_table.owners = [g.user]
                 sqla_table.schema = columnar_table.schema
@@ -543,7 +546,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = __(
+            message = _(
                 'Unable to upload Columnar file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -558,7 +561,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             return redirect("/columnartodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = __(
+        message = _(
             'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" '
             'in database "%(db_name)s"',
             columnar_filename=[file.filename for file in form.columnar_file.data],

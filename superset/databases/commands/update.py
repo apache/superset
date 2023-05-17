@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
@@ -33,7 +34,9 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
+    SSHTunnelUpdateFailedError,
 )
 from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
 from superset.extensions import db, security_manager
@@ -102,6 +105,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 )
 
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                if not is_feature_enabled("SSH_TUNNELING"):
+                    db.session.rollback()
+                    raise SSHTunnelingNotEnabledError()
                 existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
                 if existing_ssh_tunnel_model is None:
                     # We couldn't found an existing tunnel so we need to create one
@@ -118,7 +124,7 @@ class UpdateDatabaseCommand(BaseCommand):
                         UpdateSSHTunnelCommand(
                             existing_ssh_tunnel_model.id, ssh_tunnel_properties
                         ).run()
-                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                    except (SSHTunnelInvalidError, SSHTunnelUpdateFailedError) as ex:
                         # So we can show the original message
                         raise ex
                     except Exception as ex:

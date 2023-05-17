@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual } from 'lodash';
+import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {
@@ -31,7 +31,7 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
-import ChartContextMenu from './ChartContextMenu';
+import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -62,6 +62,7 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -86,7 +87,8 @@ class ChartRenderer extends React.Component {
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
-        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
+        (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) ||
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)),
       inContextMenu: false,
     };
     this.hasQueryResponseChange = false;
@@ -115,6 +117,11 @@ class ChartRenderer extends React.Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
     };
+
+    // TODO: queriesResponse comes from Redux store but it's being edited by
+    // the plugins, hence we need to clone it to avoid state mutation
+    // until we change the reducers to use Redux Toolkit with Immer
+    this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -129,6 +136,11 @@ class ChartRenderer extends React.Component {
       }
       this.hasQueryResponseChange =
         nextProps.queriesResponse !== this.props.queriesResponse;
+
+      if (this.hasQueryResponseChange) {
+        this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
+      }
+
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
@@ -142,7 +154,8 @@ class ChartRenderer extends React.Component {
         nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
-        nextProps.cacheBusterProp !== this.props.cacheBusterProp
+        nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
+        nextProps.emitCrossFilters !== this.props.emitCrossFilters
       );
     }
     return false;
@@ -223,7 +236,7 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, chartId } = this.props;
+    const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -243,7 +256,6 @@ class ChartRenderer extends React.Component {
       chartIsStale,
       formData,
       latestQueryFormData,
-      queriesResponse,
       postTransformProps,
     } = this.props;
 
@@ -336,11 +348,12 @@ class ChartRenderer extends React.Component {
             filterState={filterState}
             hooks={this.hooks}
             behaviors={behaviors}
-            queriesData={queriesResponse}
+            queriesData={this.mutableQueriesResponse}
             onRenderSuccess={this.handleRenderSuccess}
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
             postTransformProps={postTransformProps}
+            emitCrossFilters={emitCrossFilters}
             {...drillToDetailProps}
           />
         </div>

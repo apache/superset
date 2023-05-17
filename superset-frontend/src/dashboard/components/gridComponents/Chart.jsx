@@ -19,13 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  styled,
-  t,
-  logging,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
@@ -38,7 +32,6 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 
@@ -70,11 +63,6 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   maxRows: PropTypes.number.isRequired,
-  filterboxMigrationState: PropTypes.oneOf(
-    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
-      key => FILTER_BOX_MIGRATION_STATES[key],
-    ),
-  ),
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -97,6 +85,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -128,11 +117,6 @@ const ChartOverlay = styled.div`
   top: 0;
   left: 0;
   z-index: 5;
-
-  &.is-deactivated {
-    opacity: 0.5;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
 `;
 
 const SliceContainer = styled.div`
@@ -210,7 +194,7 @@ class Chart extends React.Component {
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
         const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
         // use deep objects equality comparison to prevent
-        // unneccessary updates when objects references change
+        // unnecessary updates when objects references change
         if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
           return true;
         }
@@ -329,10 +313,7 @@ class Chart extends React.Component {
         [URL_PARAMS.formDataKey.name]: key,
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
-      if (
-        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
-        isOpenInNewTab
-      ) {
+      if (isOpenInNewTab) {
         window.open(url, '_blank', 'noreferrer');
       } else {
         this.props.history.push(url);
@@ -404,10 +385,11 @@ class Chart extends React.Component {
       handleToggleFullSize,
       isFullSize,
       setControlValue,
-      filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
       isInView,
+      emitCrossFilters,
+      logEvent,
     } = this.props;
 
     const { width } = this.state;
@@ -419,12 +401,6 @@ class Chart extends React.Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const isLoading = chartStatus === 'loading';
-    const isDeactivatedViz =
-      slice.viz_type === 'filter_box' &&
-      [
-        FILTER_BOX_MIGRATION_STATES.REVIEWING,
-        FILTER_BOX_MIGRATION_STATES.CONVERTED,
-      ].includes(filterboxMigrationState);
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -437,6 +413,7 @@ class Chart extends React.Component {
           filterId: id,
         })
       : {};
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -457,6 +434,7 @@ class Chart extends React.Component {
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           logExploreChart={this.logExploreChart}
+          logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
           exportFullCSV={this.exportFullCSV}
@@ -481,10 +459,10 @@ class Chart extends React.Component {
 
         {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
-          markdown that is sanitized with bleach. See:
+          markdown that is sanitized with nh3. See:
              https://github.com/apache/superset/pull/4390
           and
-             https://github.com/apache/superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
+             https://github.com/apache/superset/pull/23862
         */}
         {isExpanded && slice.description_markeddown && (
           <div
@@ -501,15 +479,15 @@ class Chart extends React.Component {
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
-          {(isLoading || isDeactivatedViz) && (
+          {isLoading && (
             <ChartOverlay
-              className={cx(isDeactivatedViz && 'is-deactivated')}
               style={{
                 width,
                 height: this.getChartHeight(),
               }}
             />
           )}
+
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -533,11 +511,10 @@ class Chart extends React.Component {
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
-            isDeactivatedViz={isDeactivatedViz}
-            filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
             isInView={isInView}
+            emitCrossFilters={emitCrossFilters}
           />
         </ChartWrapper>
       </SliceContainer>

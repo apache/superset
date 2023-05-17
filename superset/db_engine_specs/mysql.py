@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional, Pattern, Tuple
 from urllib import parse
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -34,15 +35,10 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 
-from superset.db_engine_specs.base import (
-    BaseEngineSpec,
-    BasicParametersMixin,
-    ColumnTypeMapping,
-)
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -72,6 +68,8 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
     )
     encryption_parameters = {"ssl": "1"}
+
+    supports_dynamic_schema = True
 
     column_type_mappings = (
         (
@@ -133,13 +131,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         " + SECOND({col})) SECOND)",
         "PT1M": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        "PT1H": "DATE_ADD(DATE({col}), " "INTERVAL HOUR({col}) HOUR)",
+        "PT1H": "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
         "P1D": "DATE({col})",
-        "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
-        "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
+        "P1W": "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
+        "P1M": "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
         "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
-        "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
+        "P1Y": "DATE(DATE_SUB({col}, INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
         "INTERVAL DAYOFWEEK(DATE_SUB({col}, "
         "INTERVAL 1 DAY)) - 1 DAY))",
@@ -177,27 +175,60 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_uri_query_params = {
+        "mysqldb": {"local_infile"},
+        "mysqlconnector": {"allow_local_infile"},
+    }
+    enforce_uri_query_params = {
+        "mysqldb": {"local_infile": 0},
+        "mysqlconnector": {"allow_local_infile": 0},
+    }
 
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
-        if tt == utils.TemporalType.DATETIME:
+        if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""STR_TO_DATE('{datetime_formatted}', '%Y-%m-%d %H:%i:%s.%f')"""
         return None
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
-        if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
 
-        return uri
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+
+        return uri, new_connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        A MySQL database is a SQLAlchemy schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -231,23 +262,6 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         except (AttributeError, KeyError):
             pass
         return message
-
-    @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(native_type)
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:

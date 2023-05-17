@@ -23,6 +23,7 @@ from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
+from flask_babel import lazy_gettext as _
 
 from superset import db, event_logger
 from superset.charts.commands.exceptions import (
@@ -49,7 +50,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/query/", methods=["POST"])
+    @expose("/v1/query/", methods=("POST",))
     def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
@@ -71,7 +72,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/form_data/", methods=["GET"])
+    @expose("/v1/form_data/", methods=("GET",))
     def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Get the formdata stored in the database for existing slice.
@@ -92,7 +93,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
-    @expose("/v1/time_range/", methods=["GET"])
+    @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human readable string or datetime expression"""
         time_range = kwargs["rison"]
@@ -105,7 +106,7 @@ class Api(BaseSupersetView):
             }
             return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": f"Unexpected time range: {error}"}
+            error_msg = {"message": _("Unexpected time range: %s" % error)}
             return self.json_response(error_msg, 400)
 
     def get_query_context_factory(self) -> QueryContextFactory:

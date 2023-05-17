@@ -19,7 +19,7 @@
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
-  SET_ALL_SLICES,
+  ADD_SLICES,
 } from 'src/dashboard/actions/sliceEntities';
 
 import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
@@ -41,7 +41,7 @@ describe('sliceEntities reducer', () => {
   it('should set slices', () => {
     const result = sliceEntitiesReducer(
       { slices: { a: {} } },
-      { type: SET_ALL_SLICES, payload: { slices: { 1: {}, 2: {} } } },
+      { type: ADD_SLICES, payload: { slices: { 1: {}, 2: {} } } },
     );
 
     expect(result.slices).toEqual({

@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib import parse
 
+from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
-from superset.utils import core as utils
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -31,6 +31,8 @@ class DrillEngineSpec(BaseEngineSpec):
     engine = "drill"
     engine_name = "Apache Drill"
     default_driver = "sadrill"
+
+    supports_dynamic_schema = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -59,20 +61,38 @@ class DrillEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
             return f"""TO_TIMESTAMP('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
         return None
 
     @classmethod
-    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> URL:
-        if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: Dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> Tuple[URL, Dict[str, Any]]:
+        if schema:
+            uri = uri.set(database=parse.quote(schema.replace(".", "/"), safe=""))
 
-        return uri
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database).replace("/", ".")
 
     @classmethod
     def get_url_for_impersonation(

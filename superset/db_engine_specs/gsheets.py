@@ -47,8 +47,10 @@ class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
     service_account_info = EncryptedString(
         required=False,
-        description="Contents of GSheets JSON credentials.",
-        field_name="service_account_info",
+        metadata={
+            "description": "Contents of GSheets JSON credentials.",
+            "field_name": "service_account_info",
+        },
     )
 
 
@@ -257,7 +259,6 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         idx = 0
 
         for name, url in table_catalog.items():
-
             if not name:
                 errors.append(
                     SupersetError(

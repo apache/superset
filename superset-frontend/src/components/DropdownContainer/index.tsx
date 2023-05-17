@@ -30,9 +30,8 @@ import React, {
   ReactNode,
 } from 'react';
 import { Global } from '@emotion/react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import { usePrevious } from 'src/hooks/usePrevious';
 import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';

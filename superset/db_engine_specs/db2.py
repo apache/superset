@@ -27,7 +27,7 @@ class Db2EngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST({col} as TIMESTAMP)" " - MICROSECOND({col}) MICROSECONDS",
+        "PT1S": "CAST({col} as TIMESTAMP) - MICROSECOND({col}) MICROSECONDS",
         "PT1M": "CAST({col} as TIMESTAMP)"
         " - SECOND({col}) SECONDS"
         " - MICROSECOND({col}) MICROSECONDS",
@@ -45,7 +45,7 @@ class Db2EngineSpec(BaseEngineSpec):
         "P3M": "{col} - (DAY({col})-1) DAYS"
         " - (MONTH({col})-1) MONTHS"
         " + ((QUARTER({col})-1) * 3) MONTHS",
-        "P1Y": "{col} - (DAY({col})-1) DAYS" " - (MONTH({col})-1) MONTHS",
+        "P1Y": "{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS",
     }
 
     @classmethod

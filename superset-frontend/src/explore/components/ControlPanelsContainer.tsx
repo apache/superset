@@ -39,6 +39,7 @@ import {
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
+  usePrevious,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -46,6 +47,7 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
@@ -58,7 +60,6 @@ import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import Modal from 'src/components/Modal';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
@@ -69,6 +70,7 @@ import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
+import { CLAUSES } from './controls/FilterControl/types';
 
 const { confirm } = Modal;
 
@@ -234,7 +236,7 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
@@ -293,13 +295,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const previousXAxis = usePrevious(x_axis);
 
   useEffect(() => {
-    if (x_axis && x_axis !== previousXAxis) {
+    if (
+      x_axis &&
+      x_axis !== previousXAxis &&
+      isTemporalColumn(x_axis, props.exploreState.datasource)
+    ) {
       const noFilter =
         !adhoc_filters ||
         !adhoc_filters.find(
           filter =>
             filter.expressionType === 'SIMPLE' &&
-            filter.operator === 'TEMPORAL_RANGE' &&
+            filter.operator === Operators.TEMPORAL_RANGE &&
             filter.subject === x_axis,
         );
       if (noFilter) {
@@ -312,9 +318,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
-                clause: 'WHERE',
+                clause: CLAUSES.WHERE,
                 subject: x_axis,
-                operator: 'TEMPORAL_RANGE',
+                operator: Operators.TEMPORAL_RANGE,
                 comparator: defaultTimeFilter || NO_TIME_RANGE,
                 expressionType: 'SIMPLE',
               },
@@ -329,6 +335,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     setControlValue,
     defaultTimeFilter,
     previousXAxis,
+    props.exploreState.datasource,
   ]);
 
   useEffect(() => {
@@ -482,28 +489,21 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         : baseDescription;
 
     if (name === 'adhoc_filters') {
-      restProps.confirmDeletion = {
-        triggerCondition: (
-          valueToBeDeleted: Record<string, any>,
-          values: Record<string, any>[],
-        ) => {
-          const isTemporalRange = (filter: Record<string, any>) =>
-            filter.operator === Operators.TEMPORAL_RANGE;
-          if (isTemporalRange(valueToBeDeleted)) {
-            const count = values.filter(isTemporalRange).length;
-            if (count < 2) {
-              return true;
-            }
+      restProps.canDelete = (
+        valueToBeDeleted: Record<string, any>,
+        values: Record<string, any>[],
+      ) => {
+        const isTemporalRange = (filter: Record<string, any>) =>
+          filter.operator === Operators.TEMPORAL_RANGE;
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
+          const count = values.filter(isTemporalRange).length;
+          if (count === 1) {
+            return t(
+              `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+            );
           }
-          return false;
-        },
-        confirmationTitle: t(
-          'Are you sure you want to remove the last temporal filter?',
-        ),
-        confirmationText: t(
-          `This filter is the last temporal filter. If you proceed,
-          this chart won't be affected by time range filters in dashboards.`,
-        ),
+        }
+        return true;
       };
     }
 

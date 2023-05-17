@@ -18,9 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FeatureFlag,
   hasGenericChartAxes,
-  isFeatureEnabled,
   logging,
   Metric,
   QueryFormData,
@@ -43,10 +41,7 @@ import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
@@ -58,8 +53,9 @@ import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+import { CLAUSES, EXPRESSION_TYPES } from '../FilterControl/types';
 
-const { confirm } = Modal;
+const { warning } = Modal;
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -78,14 +74,10 @@ export interface DndFilterSelectProps
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
-  confirmDeletion?: {
-    triggerCondition: (
-      valueToBeDeleted: OptionValueType,
-      values: OptionValueType[],
-    ) => boolean;
-    confirmationTitle: string;
-    confirmationText: string;
-  };
+  canDelete?: (
+    valueToBeDeleted: OptionValueType,
+    values: OptionValueType[],
+  ) => true | string;
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
@@ -93,7 +85,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     datasource,
     onChange = () => {},
     name: controlName,
-    confirmDeletion,
+    canDelete,
   } = props;
 
   const propsValues = Array.from(props.value ?? []);
@@ -217,23 +209,14 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onClickClose = useCallback(
     (index: number) => {
-      if (confirmDeletion) {
-        const { confirmationText, confirmationTitle, triggerCondition } =
-          confirmDeletion;
-        if (triggerCondition(values[index], values)) {
-          confirm({
-            title: confirmationTitle,
-            content: confirmationText,
-            onOk() {
-              removeValue(index);
-            },
-          });
-          return;
-        }
+      const result = canDelete?.(values[index], values);
+      if (typeof result === 'string') {
+        warning({ title: t('Warning'), content: result });
+        return;
       }
       removeValue(index);
     },
-    [confirmDeletion, removeValue, values],
+    [canDelete, removeValue, values],
   );
 
   const onShiftOptions = useCallback(
@@ -387,7 +370,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
     };
-    if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
+    if (config.subject) {
       config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
       config.operatorId = Operators.IN;
     }
@@ -412,10 +395,6 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     [controlName, togglePopover],
   );
 
-  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-    ? t('Drop columns/metrics here or click')
-    : t('Drop columns or metrics here');
-
   return (
     <>
       <DndSelectLabel
@@ -423,12 +402,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={ghostButtonText}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? handleClickGhostButton
-            : undefined
-        }
+        ghostButtonText={t('Drop columns/metrics here or click')}
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocFilterPopoverTrigger

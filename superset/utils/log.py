@@ -42,6 +42,7 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
 
+from superset.extensions import stats_logger_manager
 from superset.utils.core import get_user_id, LoggerLevel
 
 if TYPE_CHECKING:
@@ -194,7 +195,7 @@ class AbstractEventLogger(ABC):
             slice_id = 0
 
         if log_to_statsd:
-            self.stats_logger.incr(action)
+            stats_logger_manager.instance.incr(action)
 
         try:
             # bulk insert
@@ -282,10 +283,6 @@ class AbstractEventLogger(ABC):
     def log_this_with_extra_payload(self, f: Callable[..., Any]) -> Callable[..., Any]:
         """Decorator that instrument `update_log_payload` to kwargs"""
         return self._wrapper(f, allow_extra_payload=True)
-
-    @property
-    def stats_logger(self) -> BaseStatsLogger:
-        return current_app.config["STATS_LOGGER"]
 
 
 def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:

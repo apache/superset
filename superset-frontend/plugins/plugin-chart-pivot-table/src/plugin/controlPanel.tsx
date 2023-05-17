@@ -32,7 +32,6 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   sharedControls,
-  emitFilterControl,
   Dataset,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -127,7 +126,6 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        emitFilterControl,
         ['series_limit'],
         [
           {
@@ -386,7 +384,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Conditional formatting'),
               description: t('Apply conditional color formatting to metrics'),
-              mapStateToProps(explore) {
+              mapStateToProps(explore, _, chart) {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
@@ -395,6 +393,7 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : explore?.datasource?.columns ?? {};
+                const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return { value, label: verboseMap[value] ?? value };
@@ -402,6 +401,7 @@ const config: ControlPanelConfig = {
                   return { value: value.label, label: value.label };
                 });
                 return {
+                  removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions: metricColumn,
                   verboseMap,
                 };

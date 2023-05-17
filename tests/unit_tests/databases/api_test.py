@@ -50,6 +50,10 @@ def test_post_with_uuid(
     )
     assert response.status_code == 201
 
+    # check that response includes UUID
+    payload = response.json
+    assert payload["result"]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
+
     database = session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 
@@ -241,6 +245,10 @@ def test_delete_ssh_tunnel(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
+        mocker.patch(
+            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            return_value=True,
+        )
 
         # Create our SSHTunnel
         tunnel = SSHTunnel(
@@ -313,6 +321,10 @@ def test_delete_ssh_tunnel_not_found(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
+        mocker.patch(
+            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            return_value=True,
+        )
 
         # Create our SSHTunnel
         tunnel = SSHTunnel(

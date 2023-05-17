@@ -20,11 +20,11 @@ import re
 
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose, permission_name
+from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Regexp
 
 from superset import db
@@ -35,7 +35,6 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
-    create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
@@ -186,7 +185,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session.query(models.SqlaTable),
+            query_func=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -261,7 +260,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session.query(models.SqlaTable),
+            query_func=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -405,7 +404,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = {
         "database": QuerySelectField(
             "Database",
-            query_factory=lambda: db.session.query(models.Database),
+            query_func=lambda: db.session.query(models.Database),
             widget=Select2Widget(extra_classes="readonly"),
         )
     }
@@ -418,7 +417,6 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     ) -> None:
         if fetch_metadata:
             item.fetch_metadata()
-        create_table_permissions(item)
         if flash_message:
             flash(
                 _(
@@ -436,7 +434,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
-    @expose("/edit/<pk>", methods=["GET", "POST"])
+    @expose(
+        "/edit/<pk>",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @has_access
     def edit(self, pk: str) -> FlaskResponse:
         """Simple hack to redirect to explore view after saving"""

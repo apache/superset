@@ -233,7 +233,7 @@ class TestDatasource(SupersetTestCase):
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
 
-    def test_external_metadata_for_mutistatement_virtual_table(self):
+    def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(username="admin")
         table = SqlaTable(
             table_name="multistatement_sql_table",
@@ -543,7 +543,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json=None)
-    assert rv.status_code == 400
+    assert rv.status_code == 415
 
     rv = test_client.post(uri, json={})
     assert rv.status_code == 200

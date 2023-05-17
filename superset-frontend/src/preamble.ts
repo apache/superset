@@ -25,7 +25,7 @@ import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
-import setupDashboardComponents from './setup/setupDasboardComponents';
+import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import { initFeatureFlags } from './featureFlags';
 import getBootstrapData from './utils/getBootstrapData';
@@ -57,7 +57,7 @@ setupColors(
 );
 
 // Setup number formatters
-setupFormatters();
+setupFormatters(bootstrapData.common.d3_format);
 
 setupDashboardComponents();
 

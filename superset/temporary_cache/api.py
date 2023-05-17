@@ -21,10 +21,10 @@ from typing import Any
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
 from flask import request, Response
-from flask_appbuilder.api import BaseApi
 from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.key_value.types import JsonKeyValueCodec
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
@@ -34,12 +34,14 @@ from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
     TemporaryCachePutSchema,
 )
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
 
+CODEC = JsonKeyValueCodec()
 
-class TemporaryCacheRestApi(BaseApi, ABC):
+
+class TemporaryCacheRestApi(BaseSupersetApi, ABC):
     add_model_schema = TemporaryCachePostSchema()
     edit_model_schema = TemporaryCachePutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -70,7 +72,12 @@ class TemporaryCacheRestApi(BaseApi, ABC):
         try:
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
-            args = CommandParameters(resource_id=pk, value=item["value"], tab_id=tab_id)
+            args = CommandParameters(
+                resource_id=pk,
+                value=item["value"],
+                tab_id=tab_id,
+                codec=CODEC,
+            )
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
         except ValidationError as ex:
@@ -90,6 +97,7 @@ class TemporaryCacheRestApi(BaseApi, ABC):
                 key=key,
                 value=item["value"],
                 tab_id=tab_id,
+                codec=CODEC,
             )
             key = self.get_update_command()(args).run()
             return self.response(200, key=key)
@@ -102,7 +110,7 @@ class TemporaryCacheRestApi(BaseApi, ABC):
 
     def get(self, pk: int, key: str) -> Response:
         try:
-            args = CommandParameters(resource_id=pk, key=key)
+            args = CommandParameters(resource_id=pk, key=key, codec=CODEC)
             value = self.get_get_command()(args).run()
             if not value:
                 return self.response_404()

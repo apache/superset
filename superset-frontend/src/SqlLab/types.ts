@@ -35,12 +35,10 @@ export interface QueryEditor {
   id: string;
   dbId?: number;
   name: string;
-  schema?: string;
+  schema: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
-  tableOptions: any[];
-  schemaOptions?: SchemaOption[];
   functionNames: string[];
   validationResult?: {
     completed: boolean;

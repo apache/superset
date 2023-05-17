@@ -46,7 +46,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
-from superset.utils import csv
+from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
@@ -106,11 +106,13 @@ class QueryContextProcessor:
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
+        timeout = self.get_cache_timeout()
+        force_query = self._query_context.force or timeout == -1
         cache = QueryCacheManager.get(
-            cache_key,
-            CacheRegion.DATA,
-            self._query_context.force,
-            force_cached,
+            key=cache_key,
+            region=CacheRegion.DATA,
+            force_query=force_query,
+            force_cached=force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
@@ -139,7 +141,7 @@ class QueryContextProcessor:
                     key=cache_key,
                     query_result=query_result,
                     annotation_data=annotation_data,
-                    force_query=self._query_context.force,
+                    force_query=force_query,
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
@@ -165,6 +167,8 @@ class QueryContextProcessor:
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,
+            "applied_filter_columns": cache.applied_filter_columns,
+            "rejected_filter_columns": cache.rejected_filter_columns,
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
@@ -233,7 +237,7 @@ class QueryContextProcessor:
             try:
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
-                raise QueryObjectValidationError from ex
+                raise QueryObjectValidationError(ex.message) from ex
 
         result.df = df
         result.query = query
@@ -446,15 +450,20 @@ class QueryContextProcessor:
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
-        if self._query_context.result_format == ChartDataResultFormat.CSV:
+        if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            result = csv.df_to_escaped_csv(
-                df, index=include_index, **config["CSV_EXPORT"]
-            )
+
+            result = None
+            if self._query_context.result_format == ChartDataResultFormat.CSV:
+                result = csv.df_to_escaped_csv(
+                    df, index=include_index, **config["CSV_EXPORT"]
+                )
+            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
@@ -576,6 +585,7 @@ class QueryContextProcessor:
         if not chart.datasource:
             raise QueryObjectValidationError(_("The chart datasource does not exist"))
         form_data = chart.form_data.copy()
+        form_data.update(annotation_layer.get("overrides", {}))
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,

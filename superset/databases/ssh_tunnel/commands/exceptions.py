@@ -46,9 +46,22 @@ class SSHTunnelCreateFailedError(CommandException):
     message = _("Creating SSH Tunnel failed for an unknown reason")
 
 
+class SSHTunnelingNotEnabledError(CommandException):
+    status = 400
+    message = _("SSH Tunneling is not enabled")
+
+
 class SSHTunnelRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(
             [_("Field is required")],
             field_name=field_name,
         )
+
+
+class SSHTunnelMissingCredentials(CommandInvalidError):
+    message = _("Must provide credentials for the SSH Tunnel")
+
+
+class SSHTunnelInvalidCredentials(CommandInvalidError):
+    message = _("Cannot have multiple credentials for the SSH Tunnel")

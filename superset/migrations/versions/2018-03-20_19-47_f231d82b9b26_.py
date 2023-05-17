@@ -36,7 +36,6 @@ names = {"columns": "column_name", "metrics": "metric_name"}
 
 
 def upgrade():
-
     # Reduce the size of the metric_name column for constraint viability.
     with op.batch_alter_table("metrics", naming_convention=conv) as batch_op:
         batch_op.alter_column(
@@ -55,7 +54,6 @@ def upgrade():
 
 
 def downgrade():
-
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 

@@ -325,21 +325,13 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_filter_endpoint(self):
         self.login(username="admin")
-        slice_name = "Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
-        db.session.commit()
         tbl_id = self.table_ids.get("energy_usage")
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
-        url = (
-            "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
-            "&metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
-            "slice_id={}&datasource_name=energy_usage&"
-            "datasource_id=1&datasource_type=table"
-        )
+        url = "/superset/filter/table/{}/target/"
 
         # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id))
+        resp = self.get_resp(url.format(tbl_id))
         assert len(resp) > 0
         assert "energy_target0" in resp
 
@@ -425,7 +417,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
-        # Test all slice urls as user with with explore-v2-beta role
+        # Test all slice urls as user with explore-v2-beta role
         security_manager.add_role("explore-v2-beta")
 
         security_manager.add_user(
@@ -1096,6 +1088,7 @@ class TestCore(SupersetTestCase):
             "groupby": ["gender"],
             "row_limit": 100,
         }
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
@@ -1127,6 +1120,7 @@ class TestCore(SupersetTestCase):
             "groupby": ["gender"],
             "row_limit": 100,
         }
+        app._got_first_request = False
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
@@ -1619,7 +1613,7 @@ class TestCore(SupersetTestCase):
         Handle injected exceptions from the db mutator
         """
 
-        # Assert we can handle a custom excetion at the mutator level
+        # Assert we can handle a custom exception at the mutator level
         exception = SupersetException("Error message")
         mock_db_connection_mutator.side_effect = exception
         dash = db.session.query(Dashboard).first()

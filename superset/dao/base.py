@@ -44,7 +44,7 @@ class BaseDAO:
     """
     base_filter: Optional[BaseFilter] = None
     """
-    Child classes can register base filtering to be aplied to all filter methods
+    Child classes can register base filtering to be applied to all filter methods
     """
     id_column_name = "id"
 
@@ -65,24 +65,30 @@ class BaseDAO:
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
-        id_filter = {cls.id_column_name: model_id}
+        id_column = getattr(cls.model_cls, cls.id_column_name)
         try:
-            return query.filter_by(**id_filter).one_or_none()
+            return query.filter(id_column == model_id).one_or_none()
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None
 
     @classmethod
-    def find_by_ids(cls, model_ids: Union[List[str], List[int]]) -> List[Model]:
+    def find_by_ids(
+        cls,
+        model_ids: Union[List[str], List[int]],
+        session: Session = None,
+        skip_base_filter: bool = False,
+    ) -> List[Model]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
         if id_col is None:
             return []
-        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
+        session = session or db.session
+        query = session.query(cls.model_cls).filter(id_col.in_(model_ids))
+        if cls.base_filter and not skip_base_filter:
+            data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)

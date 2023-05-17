@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag } from '@superset-ui/core';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
@@ -47,6 +47,7 @@ const createProps = (viz_type = 'sunburst') =>
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
+    logEvent: jest.fn(),
     slice: {
       slice_id: 371,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',

@@ -763,6 +763,13 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
+    def test_get_or_create_db_existing_invalid_uri(self):
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        database.sqlalchemy_uri = "None"
+        db.session.commit()
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        assert database.sqlalchemy_uri == "sqlite:///superset.db"
+
     def test_get_iterable(self):
         self.assertListEqual(get_iterable(123), [123])
         self.assertListEqual(get_iterable([123]), [123])
@@ -910,7 +917,6 @@ class TestUtils(SupersetTestCase):
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
-        self.assertRaises(CertificateException, parse_ssl_cert, "abc" + ssl_certificate)
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
@@ -992,6 +998,7 @@ class TestUtils(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         dashboard_id = 1
 
+        assert slc.viz is not None
         resp = self.get_json_resp(
             f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
             + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',

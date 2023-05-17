@@ -117,6 +117,7 @@ export default function transformProps(
     filterState,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -133,7 +134,6 @@ export default function transformProps(
     showLabels,
     showUpperLabels,
     dashboardId,
-    emitFilter,
     sliceId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
@@ -288,11 +288,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

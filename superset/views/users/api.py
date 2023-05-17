@@ -15,24 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask import g, Response
-from flask_appbuilder.api import BaseApi, expose, safe
+from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
+from superset.views.base_api import BaseSupersetApi
+from superset.views.users.schemas import UserResponseSchema
 from superset.views.utils import bootstrap_user_data
-
-from .schemas import UserResponseSchema
 
 user_response_schema = UserResponseSchema()
 
 
-class CurrentUserRestApi(BaseApi):
+class CurrentUserRestApi(BaseSupersetApi):
     """An api to get information about the current user"""
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
     openapi_spec_component_schemas = (UserResponseSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @safe
     def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request
@@ -62,7 +62,7 @@ class CurrentUserRestApi(BaseApi):
 
         return self.response(200, result=user_response_schema.dump(g.user))
 
-    @expose("/roles/", methods=["GET"])
+    @expose("/roles/", methods=("GET",))
     @safe
     def get_my_roles(self) -> Response:
         """Get the user roles corresponding to the agent making the request

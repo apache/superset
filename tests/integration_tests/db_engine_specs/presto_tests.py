@@ -19,13 +19,14 @@ from textwrap import dedent
 from unittest import mock, skipUnless
 
 import pandas as pd
+from flask.ctx import AppContext
 from sqlalchemy import types
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import DatasourceName, GenericDataType
+from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -624,42 +625,6 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
-    def test_get_sqla_column_type(self):
-        column_spec = PrestoEngineSpec.get_column_spec("varchar(255)")
-        assert isinstance(column_spec.sqla_type, types.VARCHAR)
-        assert column_spec.sqla_type.length == 255
-        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
-
-        column_spec = PrestoEngineSpec.get_column_spec("varchar")
-        assert isinstance(column_spec.sqla_type, types.String)
-        assert column_spec.sqla_type.length is None
-        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
-
-        column_spec = PrestoEngineSpec.get_column_spec("char(10)")
-        assert isinstance(column_spec.sqla_type, types.CHAR)
-        assert column_spec.sqla_type.length == 10
-        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
-
-        column_spec = PrestoEngineSpec.get_column_spec("char")
-        assert isinstance(column_spec.sqla_type, types.CHAR)
-        assert column_spec.sqla_type.length is None
-        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
-
-        column_spec = PrestoEngineSpec.get_column_spec("integer")
-        assert isinstance(column_spec.sqla_type, types.Integer)
-        self.assertEqual(column_spec.generic_type, GenericDataType.NUMERIC)
-
-        column_spec = PrestoEngineSpec.get_column_spec("time")
-        assert isinstance(column_spec.sqla_type, types.Time)
-        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
-
-        column_spec = PrestoEngineSpec.get_column_spec("timestamp")
-        assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
-        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
-
-        sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
-        assert sqla_type is None
-
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
     @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
     def test_get_table_names(
@@ -1069,3 +1034,22 @@ def test_is_readonly():
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+
+
+def test_get_catalog_names(app_context: AppContext) -> None:
+    """
+    Test the ``get_catalog_names`` method.
+    """
+    database = get_example_database()
+
+    if database.backend != "presto":
+        return
+
+    with database.get_inspector_with_context() as inspector:
+        assert PrestoEngineSpec.get_catalog_names(database, inspector) == [
+            "jmx",
+            "memory",
+            "system",
+            "tpcds",
+            "tpch",
+        ]

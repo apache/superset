@@ -188,6 +188,31 @@ class TestDatabaseModel(SupersetTestCase):
                 "password": "original_user_password",
             }
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+    )
+    @mock.patch("superset.models.core.create_engine")
+    def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database1",
+            sqlalchemy_uri="mysql://user:password@localhost",
+        )
+        model._get_sqla_engine()
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        assert call_args[1]["connect_args"]["local_infile"] == 0
+
+        model = Database(
+            database_name="test_database2",
+            sqlalchemy_uri="mysql+mysqlconnector://user:password@localhost",
+        )
+        model._get_sqla_engine()
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert call_args[1]["connect_args"]["allow_local_infile"] == 0
+
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
         principal_user = security_manager.find_user(username="gamma")
@@ -476,15 +501,15 @@ class TestSqlaTableModel(SupersetTestCase):
             # TODO(bkyryliuk): make it work for presto.
             return
 
-        def cannonicalize_df(df):
+        def canonicalize_df(df):
             ret = df.sort_values(by=list(df.columns.values), inplace=False)
             ret.reset_index(inplace=True, drop=True)
             return ret
 
         df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
-        name_list1 = cannonicalize_df(df1).name.values.tolist()
+        name_list1 = canonicalize_df(df1).name.values.tolist()
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
-        name_list2 = cannonicalize_df(df1).name.values.tolist()
+        name_list2 = canonicalize_df(df1).name.values.tolist()
         self.assertFalse(df2.empty)
 
         assert name_list2 == name_list1

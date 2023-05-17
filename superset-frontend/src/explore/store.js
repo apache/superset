@@ -22,7 +22,7 @@ import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
 
 function handleDeprecatedControls(formData) {
-  // Reacffectation / handling of deprecated controls
+  // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
   // y_axis_zero was a boolean forcing 0 to be part of the Y Axis

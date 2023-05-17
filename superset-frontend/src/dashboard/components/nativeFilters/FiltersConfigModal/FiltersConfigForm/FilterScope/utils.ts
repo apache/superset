@@ -85,7 +85,7 @@ export const buildTree = (
       );
     } else {
       logging.warn(
-        `Unable to find item with id: ${child} in the dashboard layout.  This may indicate you have invalid references in your dashboard and the references to id: ${child} should be removed.`,
+        `Unable to find item with id: ${child} in the dashboard layout. This may indicate you have invalid references in your dashboard and the references to id: ${child} should be removed.`,
       );
     }
   });

@@ -39,7 +39,7 @@ class BaseAlertReportView(BaseSupersetView):
             return abort(404)
         return super().render_app_template()
 
-    @expose("/<pk>/log/", methods=["GET"])
+    @expose("/<pk>/log/", methods=("GET",))
     @has_access
     @permission_name("read")
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument

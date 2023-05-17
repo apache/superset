@@ -23,11 +23,12 @@ from urllib import parse
 import msgpack
 import pyarrow as pa
 import simplejson as json
-from flask import g, has_request_context, request
+from flask import flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.wrappers.response import Response
 
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
@@ -152,7 +153,7 @@ def get_form_data(  # pylint: disable=too-many-locals
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data: Dict[str, Any] = initial_form_data or {}
 
-    if has_request_context():  # type: ignore
+    if has_request_context():
         # chart data API requests are JSON
         request_json_data = (
             request.json["queries"][0]
@@ -185,7 +186,7 @@ def get_form_data(  # pylint: disable=too-many-locals
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
 
-    if has_request_context():  # type: ignore
+    if has_request_context():
         url_id = request.args.get("r")
         if url_id:
             saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
@@ -592,3 +593,8 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
+
+
+def redirect_with_flash(url: str, message: str, category: str) -> Response:
+    flash(message=message, category=category)
+    return redirect(url)

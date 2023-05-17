@@ -156,6 +156,7 @@ const createProps = (overrides: any = {}) => ({
   toggleExpandSlice: jest.fn(),
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
+  logEvent: jest.fn(),
   exportCSV: jest.fn(),
   formData: { slice_id: 1, datasource: '58__table' },
   width: 100,
@@ -299,18 +300,6 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
   ).toBeInTheDocument();
   expect(
     await screen.findByText('Use ⌘ + click to open in a new tab.'),
-  ).toBeInTheDocument();
-});
-
-test('Display correct tooltip when DASHBOARD_EDIT_CHART_IN_NEW_TAB is enabled', async () => {
-  window.featureFlags.DASHBOARD_EDIT_CHART_IN_NEW_TAB = true;
-  const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
-  expect(
-    await screen.findByText(
-      'Click to edit Vaccine Candidates per Phase in a new tab',
-    ),
   ).toBeInTheDocument();
 });
 
