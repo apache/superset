@@ -169,6 +169,8 @@ setup(
         "ocient": [
             "sqlalchemy-ocient>=1.0.0",
             "pyocient>=1.0.15",
+            "shapely",
+            "geojson",
         ],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
