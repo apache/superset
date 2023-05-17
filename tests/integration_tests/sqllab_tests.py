@@ -647,9 +647,11 @@ class TestSqlLab(SupersetTestCase):
         admin = security_manager.find_user("admin")
         gamma_sqllab = security_manager.find_user("gamma_sqllab")
         self.assertEqual(3, len(data["result"]))
-        user_queries = [result.get("user").get("username") for result in data["result"]]
-        assert admin.username in user_queries
-        assert gamma_sqllab.username in user_queries
+        user_queries = [
+            result.get("user").get("first_name") for result in data["result"]
+        ]
+        assert admin.first_name in user_queries
+        assert gamma_sqllab.first_name in user_queries
 
     def test_query_api_can_access_all_queries(self) -> None:
         """
