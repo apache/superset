@@ -20,6 +20,7 @@ import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
 import { interceptGet, interceptUpdate, openTab } from './utils';
+import 'cypress-wait-until';
 import {
   interceptExploreJson,
   interceptFiltering as interceptCharts,
@@ -738,7 +739,7 @@ describe('Dashboard edit', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
-      cy.waitUntil(() => cy.getBySel('header-save-button').isVisible());
+      cy.waitUntil(() => cy.getBySel('header-save-button').should('be.visible'));
       cy.contains('header-save-button', 'Save');
       discardChanges();
       cy.wait(1000);

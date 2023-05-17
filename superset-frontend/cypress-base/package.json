@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
     "cypress": "^10.11.0",
+    "cypress-wait-until": "^1.7.2",
     "eslint-plugin-cypress": "^2.12.1"
   }
 }
