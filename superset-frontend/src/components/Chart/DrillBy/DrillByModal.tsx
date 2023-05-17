@@ -245,6 +245,7 @@ export default function DrillByModal({
                 filter,
                 CLAUSES.WHERE,
                 isSimpleFilterTemporal(filter),
+                formData.time_grain_sqla,
               ),
             ),
           ];
@@ -273,6 +274,7 @@ export default function DrillByModal({
               filter,
               CLAUSES.WHERE,
               isSimpleFilterTemporal(filter),
+              formData.time_grain_sqla,
             ),
           ),
         ];
