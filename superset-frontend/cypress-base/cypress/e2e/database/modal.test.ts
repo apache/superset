@@ -17,6 +17,8 @@
  * under the License.
  */
 import { DATABASE_LIST } from 'cypress/utils/urls';
+import 'cypress-wait-until';
+
 
 function closeModal() {
   cy.get('body').then($body => {
@@ -69,12 +71,12 @@ describe('Add database', () => {
     );
   });
 
-  it('show error alerts on dynamic form for bad port', () => {
+  it('show error alerts on dynamic form for bad port', async () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
 
     // wait for the form to load
-    cy.waitUntil(() => cy.get('.ant-form-item-explain-error').isPresent());
+    cy.waitUntil(() => cy.get('.ant-form-item-explain-error').should('be.visible'));
 
     // enter the host and port
     cy.get('input[name="host"]').type('localhost');
