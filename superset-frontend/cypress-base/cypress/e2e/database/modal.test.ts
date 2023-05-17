@@ -72,9 +72,18 @@ describe('Add database', () => {
   it('show error alerts on dynamic form for bad port', () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
-    cy.get('input[name="host"]').focus().type('localhost');
-    cy.get('input[name="port"]').focus().type('123');
-    cy.get('input[name="database"]').focus();
+
+    // wait for the form to load
+    cy.waitUntil(() => cy.get('.ant-form-item-explain-error').isPresent());
+
+    // enter the host and port
+    cy.get('input[name="host"]').type('localhost');
+    cy.get('input[name="port"]').type('123');
+
+    // submit the form
+    cy.get('button[type="submit"]').click();
+
+    // assert that the error message is displayed
     cy.get('.ant-form-item-explain-error').contains('The port is closed');
   });
 });
