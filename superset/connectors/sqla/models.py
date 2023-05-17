@@ -44,7 +44,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from flask import escape, Markup
+from flask import current_app, escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
@@ -655,7 +655,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @property
     def changed_by_url(self) -> str:
-        if not self.changed_by:
+        if (
+            not self.changed_by
+            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        ):
             return ""
         return f"/superset/profile/{self.changed_by.username}"
 
