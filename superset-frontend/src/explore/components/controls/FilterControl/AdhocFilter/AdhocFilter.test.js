@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
+import { EXPRESSION_TYPES, CLAUSES } from '../types';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {
@@ -248,5 +246,37 @@ describe('AdhocFilter', () => {
       clause: CLAUSES.HAVING,
     });
     expect(adhocFilter2.comparator).toBe(null);
+  });
+  it('sets the label properly if subject is a string', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'order_date',
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('order_date');
+  });
+  it('sets the label properly if subject is an object with the column_date property', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: {
+        column_name: 'year',
+      },
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('year');
+  });
+  it('sets the label to empty is there is no column_name in the object', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: {
+        unknown: 'year',
+      },
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('');
+  });
+  it('sets the label to empty is there is no subject', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: undefined,
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('');
   });
 });

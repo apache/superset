@@ -138,7 +138,7 @@ class GitChangeLog:
         title = pr_info.title if pr_info else git_log.message
         pr_type = re.match(SUPERSET_PULL_REQUEST_TYPES, title)
         if pr_type:
-            pr_type = pr_type.group().strip('"')
+            pr_type = pr_type.group().strip('"')  # type: ignore
 
         labels = (" | ").join([label.name for label in pr_info.labels])
         is_risky = self._is_risk_pull_request(pr_info.labels)

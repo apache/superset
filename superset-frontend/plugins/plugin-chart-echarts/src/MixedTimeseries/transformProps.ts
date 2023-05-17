@@ -105,7 +105,10 @@ export default function transformProps(
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
-
+  const coltypeMapping = {
+    ...getColtypesMapping(queriesData[0]),
+    ...getColtypesMapping(queriesData[1]),
+  };
   const {
     area,
     areaB,
@@ -136,6 +139,7 @@ export default function transformProps(
     yAxisFormatSecondary,
     xAxisTimeFormat,
     yAxisBounds,
+    yAxisBoundsSecondary,
     yAxisIndex,
     yAxisIndexB,
     yAxisTitleSecondary,
@@ -170,12 +174,12 @@ export default function transformProps(
   }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
-  const rawSeriesA = extractSeries(rebasedDataA, {
+  const [rawSeriesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
-  const rawSeriesB = extractSeries(rebasedDataB, {
+  const [rawSeriesB] = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
     xAxis: xAxisLabel,
   });
@@ -282,10 +286,13 @@ export default function transformProps(
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
+    parseYAxisBound,
+  );
 
   const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
   const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
-    max,
+    max: maxSecondary,
     formatter: formatterSecondary,
   });
 
@@ -345,6 +352,8 @@ export default function transformProps(
   if (contributionMode === 'row' && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+    if (minSecondary === undefined) minSecondary = 0;
+    if (maxSecondary === undefined) maxSecondary = 1;
   }
 
   const tooltipFormatter =
@@ -412,8 +421,8 @@ export default function transformProps(
       {
         ...defaultYAxis,
         type: logAxisSecondary ? 'log' : 'value',
-        min,
-        max,
+        min: minSecondary,
+        max: maxSecondary,
         minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
@@ -458,7 +467,13 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
+      ...getLegendProps(
+        legendType,
+        legendOrientation,
+        showLegend,
+        theme,
+        zoomable,
+      ),
       // @ts-ignore
       data: rawSeriesA
         .concat(rawSeriesB)
@@ -517,5 +532,6 @@ export default function transformProps(
       type: xAxisType,
     },
     refs,
+    coltypeMapping,
   };
 }

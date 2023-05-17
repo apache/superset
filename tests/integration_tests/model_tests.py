@@ -188,6 +188,31 @@ class TestDatabaseModel(SupersetTestCase):
                 "password": "original_user_password",
             }
 
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+    )
+    @mock.patch("superset.models.core.create_engine")
+    def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database1",
+            sqlalchemy_uri="mysql://user:password@localhost",
+        )
+        model._get_sqla_engine()
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        assert call_args[1]["connect_args"]["local_infile"] == 0
+
+        model = Database(
+            database_name="test_database2",
+            sqlalchemy_uri="mysql+mysqlconnector://user:password@localhost",
+        )
+        model._get_sqla_engine()
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert call_args[1]["connect_args"]["allow_local_infile"] == 0
+
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
         principal_user = security_manager.find_user(username="gamma")

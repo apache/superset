@@ -20,11 +20,12 @@ import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
-  styled,
-  t,
-  SupersetClient,
-  JsonResponse,
+  FeatureFlag,
   isDefined,
+  JsonResponse,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -33,6 +34,7 @@ import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -65,6 +67,13 @@ const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
 const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
+
+if (
+  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+  !('filter_box' in denyList)
+) {
+  denyList.push('filter_box');
+}
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -335,19 +344,20 @@ export class ChartCreation extends React.PureComponent<
 
   render() {
     const isButtonDisabled = this.isBtnDisabled();
+    const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}
+          {t('Add a dataset')}{' '}
         </Link>
-        {` ${t('or')} `}
+        {t('or')}{' '}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
           rel="noopener noreferrer"
           target="_blank"
           data-test="add-chart-new-dataset-instructions"
         >
-          {`${t('view instructions')} `}
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
           <i className="fa fa-external-link" />
         </a>
         .
@@ -359,7 +369,7 @@ export class ChartCreation extends React.PureComponent<
           rel="noopener noreferrer"
           target="_blank"
         >
-          {`${t('View instructions')} `}
+          {`${VIEW_INSTRUCTIONS_TEXT} `}
           <i className="fa fa-external-link" />
         </a>
         .

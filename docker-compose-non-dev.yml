@@ -73,7 +73,7 @@ services:
     user: "root"
     volumes: *superset-volumes
     healthcheck:
-      test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
+      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
 
   superset-worker-beat:
     image: *superset-image

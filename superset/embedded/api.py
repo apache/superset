@@ -58,7 +58,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
 
     embedded_response_schema = EmbeddedDashboardResponseSchema()
 
-    @expose("/<uuid>", methods=["GET"])
+    @expose("/<uuid>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

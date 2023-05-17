@@ -49,11 +49,24 @@ interface MenuObjectChildProps {
   disable?: boolean;
 }
 
+export interface SwitchProps {
+  isEditMode: boolean;
+  dbFetched: any;
+  disableSSHTunnelingForEngine?: boolean;
+  useSSHTunneling: boolean;
+  setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
+  setDB: React.Dispatch<any>;
+  isSSHTunneling: boolean;
+}
+
 type ConfigDetailsProps = {
   embeddedId: string;
 };
 type RightMenuItemIconProps = {
   menuChild: MenuObjectChildProps;
+};
+type DatabaseDeleteRelatedExtensionProps = {
+  databaseId: number;
 };
 
 export type Extensions = Partial<{
@@ -69,6 +82,8 @@ export type Extensions = Partial<{
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
+  'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
 }>;
 
 /**

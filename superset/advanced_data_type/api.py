@@ -53,7 +53,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
 
     @protect()
     @safe
-    @expose("/convert", methods=["GET"])
+    @expose("/convert", methods=("GET",))
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
@@ -111,7 +111,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
 
     @protect()
     @safe
-    @expose("/types", methods=["GET"])
+    @expose("/types", methods=("GET",))
     @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",

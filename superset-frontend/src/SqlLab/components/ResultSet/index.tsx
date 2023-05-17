@@ -28,8 +28,8 @@ import {
   styled,
   t,
   useTheme,
+  usePrevious,
 } from '@superset-ui/core';
-import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,
@@ -42,9 +42,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable, {
-  MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable';
+import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
@@ -219,6 +217,9 @@ const ResultSet = ({
     }
   };
 
+  const getExportCsvUrl = (clientId: string) =>
+    `/api/v1/sqllab/export/${clientId}/`;
+
   const renderControls = () => {
     if (search || visualize || csv) {
       let { data } = query.results;
@@ -257,7 +258,7 @@ const ResultSet = ({
               />
             )}
             {csv && (
-              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
+              <Button buttonSize="small" href={getExportCsvUrl(query.id)}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -279,12 +280,7 @@ const ResultSet = ({
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
-              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
-              placeholder={
-                columns.length > MAX_COLUMNS_FOR_TABLE
-                  ? t('Too many columns to filter')
-                  : t('Filter results')
-              }
+              placeholder={t('Filter results')}
             />
           )}
         </ResultSetControls>
@@ -483,7 +479,7 @@ const ResultSet = ({
     // We need to calculate the height of this.renderRowsReturned()
     // if we want results panel to be proper height because the
     // FilterTable component needs an explicit height to render
-    // react-virtualized Table component
+    // the Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
       : height - rowMessageHeight;

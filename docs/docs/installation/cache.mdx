@@ -1,7 +1,7 @@
 ---
 title: Caching
 hide_title: true
-sidebar_position: 5
+sidebar_position: 6
 version: 1
 ---
 
@@ -65,6 +65,9 @@ DATA_CACHE_CONFIG = {
 The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or
 database. Each of these configurations will be checked in order before falling back to the default
 value defined in `DATA_CACHE_CONFIG.
+
+Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
+per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
 ### SQL Lab Query Results
 

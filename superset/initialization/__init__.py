@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import Any, Callable, Dict, TYPE_CHECKING
 
 import wtforms_json
@@ -52,7 +53,7 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
-from superset.utils.core import pessimistic_connection_handling
+from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 if TYPE_CHECKING:
@@ -124,7 +125,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityFiltersModelView,
+            RowLevelSecurityView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -149,10 +150,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
+        from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
+        from superset.tags.api import TagRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
+        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -186,7 +190,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
-        from superset.views.tags import TagView
+        from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
 
         #
@@ -219,7 +223,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
+        appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         #
         # Setup regular views
@@ -285,14 +291,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Manage"),
             category_icon="",
         )
-        appbuilder.add_view(
-            RowLevelSecurityFiltersModelView,
-            "Row Level Security",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
-        )
 
         #
         # Setup views with no menu
@@ -321,6 +319,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
+        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
 
@@ -363,9 +362,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL"),
+            category_label=__("SQL Lab"),
         )
-
+        appbuilder.add_view(
+            TaggedObjectsModelView,
+            "All Entities",
+            label=__("All Entities"),
+            icon="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
+        appbuilder.add_view(
+            TagModelView,
+            "Tags",
+            label=__("Tags"),
+            icon="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
             LogModelView,
@@ -415,6 +429,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
         )
 
+        appbuilder.add_view(
+            RowLevelSecurityView,
+            "Row Level Security",
+            href="/rowlevelsecurity/list/",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
+        )
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -439,7 +463,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
     def check_secret_key(self) -> None:
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+        def log_default_secret_key_warning() -> None:
             top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
             bottom_banner = 80 * "-" + "\n" + 80 * "-"
             logger.warning(top_banner)
@@ -451,6 +475,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "a sufficiently random sequence, ex: openssl rand -base64 42"
             )
             logger.warning(bottom_banner)
+
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            if (
+                self.superset_app.debug
+                or self.superset_app.config["TESTING"]
+                or is_test()
+            ):
+                logger.warning("Debug mode identified with default secret key")
+                log_default_secret_key_warning()
+                return
+            log_default_secret_key_warning()
+            logger.error("Refusing to start due to insecure SECRET_KEY")
+            sys.exit(1)
 
     def init_app(self) -> None:
         """
@@ -550,7 +587,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            self.superset_app.wsgi_app = ProxyFix(  # type: ignore
+            self.superset_app.wsgi_app = ProxyFix(
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
 
@@ -569,9 +606,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
-            self.superset_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
-                self.superset_app.wsgi_app  # type: ignore
-            )
+            self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
             try:
@@ -580,9 +615,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 pass
 
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.superset_app.wsgi_app = middleware(  # type: ignore
-                self.superset_app.wsgi_app
-            )
+            self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
         # Flask-Compress
         Compress(self.superset_app)

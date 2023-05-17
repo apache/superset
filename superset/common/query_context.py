@@ -118,7 +118,10 @@ class QueryContext:
         query_obj: QueryObject,
         force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
-        return self._processor.get_df_payload(query_obj, force_cached)
+        return self._processor.get_df_payload(
+            query_obj=query_obj,
+            force_cached=force_cached,
+        )
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         return self._processor.get_query_result(query_object)

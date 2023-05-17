@@ -22,11 +22,18 @@ import userEvent from '@testing-library/user-event';
 import Select from 'src/components/Select/Select';
 import { SELECT_ALL_VALUE } from './utils';
 
+type Option = {
+  label: string;
+  value: number;
+  gender: string;
+  disabled?: boolean;
+};
+
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
 const NO_DATA = 'No Data';
 const LOADING = 'Loading...';
-const OPTIONS = [
+const OPTIONS: Option[] = [
   { label: 'John', value: 1, gender: 'Male' },
   { label: 'Liam', value: 2, gender: 'Male' },
   { label: 'Olivia', value: 3, gender: 'Female' },
@@ -118,6 +125,11 @@ const type = (text: string) => {
   const select = getSelect();
   userEvent.clear(select);
   return userEvent.type(select, text, { delay: 10 });
+};
+
+const clearTypedText = () => {
+  const select = getSelect();
+  userEvent.clear(select);
 };
 
 const open = () => waitFor(() => userEvent.click(getSelect()));
@@ -794,6 +806,7 @@ test('"Select All" is checked when unchecking a newly added option and all the o
   expect(await findSelectOption(selectAllOptionLabel(10))).toBeInTheDocument();
   // add a new option
   await type(`${NEW_OPTION}{enter}`);
+  clearTypedText();
   expect(await findSelectOption(selectAllOptionLabel(11))).toBeInTheDocument();
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
   // select all should be selected
@@ -823,7 +836,58 @@ test('does not render "Select All" when there are 0 or 1 options', async () => {
   );
   expect(screen.queryByText(selectAllOptionLabel(1))).not.toBeInTheDocument();
   await type(`${NEW_OPTION}{enter}`);
+  clearTypedText();
   expect(screen.queryByText(selectAllOptionLabel(2))).toBeInTheDocument();
+});
+
+test('do not count unselected disabled options in "Select All"', async () => {
+  const options = [...OPTIONS];
+  options[0].disabled = true;
+  options[1].disabled = true;
+  render(
+    <Select
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      value={options[0]}
+    />,
+  );
+  await open();
+  // We have 2 options disabled but one is selected initially
+  // Select All should count one and ignore the other
+  expect(
+    screen.getByText(selectAllOptionLabel(OPTIONS.length - 1)),
+  ).toBeInTheDocument();
+});
+
+test('"Select All" does not affect disabled options', async () => {
+  const options = [...OPTIONS];
+  options[0].disabled = true;
+  options[1].disabled = true;
+  render(
+    <Select
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      value={options[0]}
+    />,
+  );
+  await open();
+
+  // We have 2 options disabled but one is selected initially
+  expect(await findSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+
+  // Checking Select All shouldn't affect the disabled options
+  const selectAll = selectAllOptionLabel(OPTIONS.length - 1);
+  userEvent.click(await findSelectOption(selectAll));
+  expect(await findSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+
+  // Unchecking Select All shouldn't affect the disabled options
+  userEvent.click(await findSelectOption(selectAll));
+  expect(await findSelectValue()).toHaveTextContent(options[0].label);
+  expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 });
 
 /*

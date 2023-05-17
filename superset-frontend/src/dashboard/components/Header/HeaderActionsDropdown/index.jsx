@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { isEmpty } from 'lodash';
 
-import { SupersetClient, t } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient, t } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
@@ -35,8 +36,8 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
+import { isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -70,11 +71,6 @@ const propTypes = {
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
-  filterboxMigrationState: PropTypes.oneOf(
-    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
-      key => FILTER_BOX_MIGRATION_STATES[key],
-    ),
-  ),
 };
 
 const defaultProps = {
@@ -82,7 +78,6 @@ const defaultProps = {
   colorScheme: undefined,
   refreshLimit: 0,
   refreshWarning: null,
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
 };
 
 const MENU_KEYS = {
@@ -230,7 +225,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       lastModifiedTime,
       addSuccessToast,
       addDangerToast,
-      filterboxMigrationState,
       setIsDropdownVisible,
       isDropdownVisible,
       ...rest
@@ -379,7 +373,10 @@ class HeaderActionsDropdown extends React.PureComponent {
           )
         ) : null}
         {editMode &&
-          filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.CONVERTED && (
+          !(
+            isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+            isEmpty(dashboardInfo?.metadata?.filter_scopes)
+          ) && (
             <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
               <FilterScopeModal
                 className="m-r-5"

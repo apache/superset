@@ -48,8 +48,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
     def __init__(
         self, sql_template_factory: Callable[..., BaseTemplateProcessor]
     ) -> None:
-
-        self._sql_template_processor_factory = sql_template_factory  # type: ignore
+        self._sql_template_processor_factory = sql_template_factory
 
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
         query_model = execution_context.query
@@ -76,9 +75,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
             # pylint: disable=protected-access
             syntax_tree = sql_template_processor._env.parse(rendered_query)
-            undefined_parameters = find_undeclared_variables(  # type: ignore
-                syntax_tree
-            )
+            undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
                     execution_context, undefined_parameters

@@ -38,7 +38,6 @@ import zlib
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from distutils.util import strtobool
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -69,8 +68,8 @@ from typing import (
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
-import bleach
 import markdown as md
+import nh3
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
@@ -126,6 +125,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ class AdhocFilterClause(TypedDict, total=False):
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
-    col: str
+    col: Column
     op: str  # pylint: disable=invalid-name
     val: Optional[FilterValues]
     grain: Optional[str]
@@ -655,15 +655,15 @@ def error_msg_from_exception(ex: Exception) -> str:
     """
     msg = ""
     if hasattr(ex, "message"):
-        if isinstance(ex.message, dict):  # type: ignore
+        if isinstance(ex.message, dict):
             msg = ex.message.get("message")  # type: ignore
-        elif ex.message:  # type: ignore
-            msg = ex.message  # type: ignore
+        elif ex.message:
+            msg = ex.message
     return msg or str(ex)
 
 
 def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
-    safe_markdown_tags = [
+    safe_markdown_tags = {
         "h1",
         "h2",
         "h3",
@@ -689,10 +689,10 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
         "dt",
         "img",
         "a",
-    ]
+    }
     safe_markdown_attrs = {
-        "img": ["src", "alt", "title"],
-        "a": ["href", "alt", "title"],
+        "img": {"src", "alt", "title"},
+        "a": {"href", "alt", "title"},
     }
     safe = md.markdown(
         raw or "",
@@ -702,7 +702,8 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
             "markdown.extensions.codehilite",
         ],
     )
-    safe = bleach.clean(safe, safe_markdown_tags, safe_markdown_attrs)
+    # pylint: disable=no-member
+    safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
     return safe
@@ -1089,7 +1090,7 @@ def simple_filter_to_adhoc(
         "expressionType": "SIMPLE",
         "comparator": filter_clause.get("val"),
         "operator": filter_clause["op"],
-        "subject": filter_clause["col"],
+        "subject": cast(str, filter_clause["col"]),
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
@@ -1159,6 +1160,14 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
                     for fltr in append_filters
                     if fltr
                 )
+    if (
+        form_data.get("time_range")
+        and not form_data.get("granularity")
+        and not form_data.get("granularity_sqla")
+    ):
+        for adhoc_filter in form_data.get("adhoc_filters", []):
+            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
+                adhoc_filter["comparator"] = form_data["time_range"]
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:
@@ -1181,6 +1190,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_grain": "time_grain_sqla",
             "__granularity": "granularity",
         }
+
         # Grab list of existing filters 'keyed' on the column and operator
 
         def get_filter_key(f: Dict[str, Any]) -> str:
@@ -1700,7 +1710,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
 
 def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     """
-    Extract the columns that a list of metrics are referencing. Expcludes all
+    Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
 
     :param metrics: Ad-hoc metric
@@ -1711,7 +1721,7 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional[Union[BaseDatasource, Query]] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1778,23 +1788,16 @@ def indexed(
 
 
 def is_test() -> bool:
-    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
+    return parse_boolean_string(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
 def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-
-    temporal_columns: Set[Any]
-    if datasource.type == "query":
-        temporal_columns = {
-            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
-        }
-    else:
-        temporal_columns = {
-            col.column_name for col in datasource.columns if col.is_dttm
-        }
+    temporal_columns: Set[Any] = {
+        col.column_name for col in datasource.columns if col.is_dttm
+    }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
@@ -1949,10 +1952,7 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
     """
     if bool_str is None:
         return False
-    try:
-        return bool(strtobool(bool_str.lower()))
-    except ValueError:
-        return False
+    return bool_str.lower() in ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
 
 
 def apply_max_row_limit(

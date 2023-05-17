@@ -22,13 +22,19 @@ import {
   getAlreadyExists,
   getFilterValues,
   getPasswordsNeeded,
+  getSSHPasswordsNeeded,
+  getSSHPrivateKeysNeeded,
+  getSSHPrivateKeyPasswordsNeeded,
   hasTerminalValidation,
   isAlreadyExists,
   isNeedsPassword,
+  isNeedsSSHPassword,
+  isNeedsSSHPrivateKey,
+  isNeedsSSHPrivateKeyPassword,
 } from 'src/views/CRUD/utils';
 import { User } from 'src/types/bootstrapTypes';
+import { WelcomeTable } from 'src/features/home/types';
 import { Filter, TableTab } from './types';
-import { WelcomeTable } from './welcome/types';
 
 const terminalErrors = {
   errors: [
@@ -112,6 +118,72 @@ const passwordNeededErrors = {
   ],
 };
 
+const sshTunnelPasswordNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: ['Must provide a password for the ssh tunnel'],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const sshTunnelPrivateKeyNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: ['Must provide a private key for the ssh tunnel'],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+const sshTunnelPrivateKeyPasswordNeededErrors = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        'databases/imported_database.yaml': {
+          _schema: ['Must provide a private key password for the ssh tunnel'],
+        },
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
 test('identifies error payloads indicating that password is needed', () => {
   let needsPassword;
 
@@ -127,6 +199,63 @@ test('identifies error payloads indicating that password is needed', () => {
 
   needsPassword = isNeedsPassword({ type: ['Must be equal to Database.'] });
   expect(needsPassword).toBe(false);
+});
+
+test('identifies error payloads indicating that ssh_tunnel password is needed', () => {
+  let needsSSHTunnelPassword;
+
+  needsSSHTunnelPassword = isNeedsSSHPassword({
+    _schema: ['Must provide a password for the ssh tunnel'],
+  });
+  expect(needsSSHTunnelPassword).toBe(true);
+
+  needsSSHTunnelPassword = isNeedsSSHPassword(
+    'Database already exists and `overwrite=true` was not passed',
+  );
+  expect(needsSSHTunnelPassword).toBe(false);
+
+  needsSSHTunnelPassword = isNeedsSSHPassword({
+    type: ['Must be equal to Database.'],
+  });
+  expect(needsSSHTunnelPassword).toBe(false);
+});
+
+test('identifies error payloads indicating that ssh_tunnel private_key is needed', () => {
+  let needsSSHTunnelPrivateKey;
+
+  needsSSHTunnelPrivateKey = isNeedsSSHPrivateKey({
+    _schema: ['Must provide a private key for the ssh tunnel'],
+  });
+  expect(needsSSHTunnelPrivateKey).toBe(true);
+
+  needsSSHTunnelPrivateKey = isNeedsSSHPrivateKey(
+    'Database already exists and `overwrite=true` was not passed',
+  );
+  expect(needsSSHTunnelPrivateKey).toBe(false);
+
+  needsSSHTunnelPrivateKey = isNeedsSSHPrivateKey({
+    type: ['Must be equal to Database.'],
+  });
+  expect(needsSSHTunnelPrivateKey).toBe(false);
+});
+
+test('identifies error payloads indicating that ssh_tunnel private_key_password is needed', () => {
+  let needsSSHTunnelPrivateKeyPassword;
+
+  needsSSHTunnelPrivateKeyPassword = isNeedsSSHPrivateKeyPassword({
+    _schema: ['Must provide a private key password for the ssh tunnel'],
+  });
+  expect(needsSSHTunnelPrivateKeyPassword).toBe(true);
+
+  needsSSHTunnelPrivateKeyPassword = isNeedsSSHPrivateKeyPassword(
+    'Database already exists and `overwrite=true` was not passed',
+  );
+  expect(needsSSHTunnelPrivateKeyPassword).toBe(false);
+
+  needsSSHTunnelPrivateKeyPassword = isNeedsSSHPrivateKeyPassword({
+    type: ['Must be equal to Database.'],
+  });
+  expect(needsSSHTunnelPrivateKeyPassword).toBe(false);
 });
 
 test('identifies error payloads indicating that overwrite confirmation is needed', () => {
@@ -151,6 +280,29 @@ test('extracts DB configuration files that need passwords', () => {
   expect(passwordsNeeded).toEqual(['databases/imported_database.yaml']);
 });
 
+test('extracts DB configuration files that need ssh_tunnel passwords', () => {
+  const sshPasswordsNeeded = getSSHPasswordsNeeded(
+    sshTunnelPasswordNeededErrors.errors,
+  );
+  expect(sshPasswordsNeeded).toEqual(['databases/imported_database.yaml']);
+});
+
+test('extracts DB configuration files that need ssh_tunnel private_keys', () => {
+  const sshPrivateKeysNeeded = getSSHPrivateKeysNeeded(
+    sshTunnelPrivateKeyNeededErrors.errors,
+  );
+  expect(sshPrivateKeysNeeded).toEqual(['databases/imported_database.yaml']);
+});
+
+test('extracts DB configuration files that need ssh_tunnel private_key_passwords', () => {
+  const sshPrivateKeyPasswordsNeeded = getSSHPrivateKeyPasswordsNeeded(
+    sshTunnelPrivateKeyPasswordNeededErrors.errors,
+  );
+  expect(sshPrivateKeyPasswordsNeeded).toEqual([
+    'databases/imported_database.yaml',
+  ]);
+});
+
 test('extracts files that need overwrite confirmation', () => {
   const alreadyExists = getAlreadyExists(overwriteNeededErrors.errors);
   expect(alreadyExists).toEqual(['databases/imported_database.yaml']);
@@ -166,6 +318,17 @@ test('detects if the error message is terminal or if it requires uses interventi
   expect(isTerminal).toBe(false);
 
   isTerminal = hasTerminalValidation(passwordNeededErrors.errors);
+  expect(isTerminal).toBe(false);
+
+  isTerminal = hasTerminalValidation(sshTunnelPasswordNeededErrors.errors);
+  expect(isTerminal).toBe(false);
+
+  isTerminal = hasTerminalValidation(sshTunnelPrivateKeyNeededErrors.errors);
+  expect(isTerminal).toBe(false);
+
+  isTerminal = hasTerminalValidation(
+    sshTunnelPrivateKeyPasswordNeededErrors.errors,
+  );
   expect(isTerminal).toBe(false);
 });
 

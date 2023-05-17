@@ -137,5 +137,12 @@ export type ImportResourceName =
   | 'dataset'
   | 'saved_query';
 
+export interface Tag {
+  changed_on_delta_humanized: string;
+  name: string;
+  id: number;
+  created_by: object;
+}
+
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;

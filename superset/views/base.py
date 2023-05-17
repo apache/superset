@@ -46,7 +46,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from pkg_resources import resource_filename
-from sqlalchemy import exc, or_
+from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -78,7 +78,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
 
@@ -116,6 +116,9 @@ FRONTEND_CONF_KEYS = (
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
     "WELCOME_PAGE_LAST_TAB",
     "VIZ_TYPE_DENYLIST",
+    "ALERT_REPORTS_DEFAULT_CRON_VALUE",
+    "ALERT_REPORTS_DEFAULT_RETENTION",
+    "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
 )
 
 logger = logging.getLogger(__name__)
@@ -188,6 +191,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "3.0.0",
+    new_target: Optional[str] = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -196,13 +200,19 @@ def deprecated(
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
-            logger.warning(
+            messsage = (
                 "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s",
+                "This API endpoint is deprecated and will be removed in version %s"
+            )
+            logger_args = [
                 self.__class__.__name__,
                 f.__name__,
                 eol_version,
-            )
+            ]
+            if new_target:
+                messsage += " . Use the following API endpoint instead: %s"
+                logger_args.append(new_target)
+            logger.warning(messsage, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -297,12 +307,6 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
                 "table name, error: {}"
             ).format(table.name, str(ex))
         ) from ex
-
-
-def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-    if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
 class BaseSupersetView(BaseView):
@@ -424,6 +428,7 @@ def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
+        "d3_format": conf.get("D3_FORMAT"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
@@ -485,7 +490,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path, cache_timeout=0), ex.code
+        return send_file(path, max_age=0), ex.code
 
     return json_errors_response(
         errors=[
@@ -507,7 +512,7 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        return send_file(path, max_age=0), 500
 
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
@@ -529,7 +534,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        return send_file(path, max_age=0), 500
 
     return json_errors_response(
         errors=[
@@ -676,20 +681,11 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        query = query.join(
+            models.Database,
+            models.Database.id == self.model.database_id,
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(datasource_perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class CsvResponse(Response):
@@ -737,7 +733,7 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
+    response.headers.extend(
         {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
     )
 

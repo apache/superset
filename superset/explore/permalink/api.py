@@ -49,7 +49,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
     openapi_spec_tag = "Explore Permanent Link"
     openapi_spec_component_schemas = (ExplorePermalinkPostSchema,)
 
-    @expose("/permalink", methods=["POST"])
+    @expose("/permalink", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -83,7 +83,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
                         description: The key to retrieve the permanent link data.
                       url:
                         type: string
-                        description: pemanent link.
+                        description: permanent link.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -110,7 +110,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/permalink/<string:key>", methods=["GET"])
+    @expose("/permalink/<string:key>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

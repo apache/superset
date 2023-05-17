@@ -39,8 +39,6 @@ export interface QueryEditor {
   autorun: boolean;
   sql: string;
   remoteId: number | null;
-  tableOptions: any[];
-  schemaOptions?: SchemaOption[];
   functionNames: string[];
   validationResult?: {
     completed: boolean;

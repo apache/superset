@@ -23,9 +23,10 @@ from superset.db_engine_specs.base import BaseEngineSpec
 
 
 class DremioEngineSpec(BaseEngineSpec):
-
     engine = "dremio"
     engine_name = "Dremio"
+
+    allows_alias_in_select = False
 
     _time_grain_expressions = {
         None: "{col}",

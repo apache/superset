@@ -28,10 +28,11 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { EchartsTimeseriesSeriesType } from '../../types';
-import { DEFAULT_FORM_DATA } from '../constants';
+import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   richTooltipSection,
+  seriesOrderSection,
   showValueSection,
 } from '../../controls';
 
@@ -51,7 +52,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.genericTime,
-    sections.echartsTimeSeriesQuery,
+    sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -60,6 +61,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         [
           {
@@ -166,9 +168,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
-              description: `${D3_TIME_FORMAT_DOCS}. ${t(
-                'When using other than adaptive formatting, labels may overlap.',
-              )}`,
+              description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },
         ],
