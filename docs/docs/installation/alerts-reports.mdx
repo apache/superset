@@ -175,35 +175,17 @@ to specify on behalf of which username to render the dashboards. In general dash
 are not accessible to unauthorized requests, that is why the worker needs to take over credentials
 of an existing user to take a snapshot.
 
-By default, Alerts and Reports are executed as the user that the `THUMBNAIL_SELENIUM_USER` config
-parameter is set to. To change this user, just change the config as follows:
-
-```python
-THUMBNAIL_SELENIUM_USER = 'username_with_permission_to_access_dashboards'
-```
-
-In addition, it's also possible to execute the reports as the report owners/creators. This is typically
-needed if there isn't a central service account that has access to all objects or databases (e.g.
-when using user impersonation on database connections). For this there's the config flag
-`ALERTS_REPORTS_EXECUTE_AS` which makes it possible to customize how alerts and reports are executed.
-To first try to execute as the creator in the owners list (if present), then fall
-back to the creator, then the last modifier in the owners list (if present), then the
-last modifier, then an owner (giving priority to the last modifier and then the
-creator if either is contained within the list of owners, otherwise the first owner
-will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+By default, Alerts and Reports are executed as the owner of the alert/report object. To use a fixed user account,
+just change the config as follows (`admin` in this example):
 
 ```python
 from superset.tasks.types import ExecutorType
 
-ALERT_REPORTS_EXECUTE_AS = [
-    ExecutorType.CREATOR_OWNER,
-    ExecutorType.CREATOR,
-    ExecutorType.MODIFIER_OWNER,
-    ExecutorType.MODIFIER,
-    ExecutorType.OWNER,
-    ExecutorType.SELENIUM,
-]
+THUMBNAIL_SELENIUM_USER = 'admin'
+ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
 ```
+
+Please refer to `ExecutorType` in the codebase for other executor types.
 
 
 **Important notes**
