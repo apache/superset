@@ -112,7 +112,7 @@ describe('Cross-referenced dashboards', () => {
     verifyDashboardsSubmenuItem('None');
 
     // Only run the saveAndVerifyDashboard() calls for the first 10 dashboards.
-    cy.only.times(10, (i) => {
+    cy.only.times(10, i => {
       saveAndVerifyDashboard(i + 1);
     });
 
