@@ -92,10 +92,16 @@ describe('Cross-referenced dashboards', () => {
   beforeEach(() => {
     interceptFiltering();
 
-    cy.createSampleDashboards(SAMPLE_DASHBOARDS_INDEXES);
-    cy.createSampleCharts([0]);
-    cy.visit(CHART_LIST);
-    cy.wait('@filtering');
+    cy.fixture('sampleDashboards').then(dashboards => {
+      cy.fixture('sampleCharts').then(charts => {
+        cy.visit(CHART_LIST);
+        cy.wait('@filtering');
+
+        // Cache the results of the createSampleDashboards() and createSampleCharts() calls.
+        cy.set('$sampleDashboards', dashboards);
+        cy.set('$sampleCharts', charts);
+      });
+    });
   });
 
   it('should show the cross-referenced dashboards', () => {
@@ -105,17 +111,10 @@ describe('Cross-referenced dashboards', () => {
     openDashboardsAddedTo();
     verifyDashboardsSubmenuItem('None');
 
-    saveAndVerifyDashboard('1');
-    saveAndVerifyDashboard('2');
-    saveAndVerifyDashboard('3');
-    saveAndVerifyDashboard('4');
-    saveAndVerifyDashboard('5');
-    saveAndVerifyDashboard('6');
-    saveAndVerifyDashboard('7');
-    saveAndVerifyDashboard('8');
-    saveAndVerifyDashboard('9');
-    saveAndVerifyDashboard('10');
-    saveAndVerifyDashboard('11');
+    // Only run the saveAndVerifyDashboard() calls for the first 10 dashboards.
+    cy.only.times(10, (i) => {
+      saveAndVerifyDashboard(i + 1);
+    });
 
     verifyDashboardSearch();
     verifyDashboardLink();
