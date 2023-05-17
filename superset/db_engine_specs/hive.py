@@ -468,7 +468,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
     ) -> str:
-        return f"SHOW PARTITIONS {table_name}"
+        full_table_name = f"{schema}.{table_name}" if schema else table_name
+        return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
