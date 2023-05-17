@@ -1,7 +1,7 @@
 ---
 title: Configuring Superset
 hide_title: true
-sidebar_position: 3
+sidebar_position: 4
 version: 1
 ---
 
@@ -12,19 +12,18 @@ version: 1
 To configure your application, you need to create a file `superset_config.py` and add it to your
 `PYTHONPATH`. If your application was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
-Here are some of the parameters you can set in that file:
+The following is an example of just a few of the parameters you can set in your `superset_config.py` file:
 ```
 # Superset specific config
 ROW_LIMIT = 5000
-
-SUPERSET_WEBSERVER_PORT = 8088
 
 # Flask App Builder configuration
 # Your App secret key will be used for securely signing the session cookie
 # and encrypting sensitive information on the database
 # Make sure you are changing this key for your deployment with a strong key.
-# You can generate a strong key using `openssl rand -base64 42`.
 # Alternatively you can set it with `SUPERSET_SECRET_KEY` environment variable.
+# You MUST set this for production environments or the server will not refuse
+# to start and you will see an error in the logs accordingly.
 SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 # The SQLAlchemy connection string to your database backend
@@ -68,6 +67,31 @@ you can add the endpoints to `WTF_CSRF_EXEMPT_LIST`:
 ```
 WTF_CSRF_EXEMPT_LIST = [‘’]
 ```
+
+### Specifying a SECRET_KEY
+
+#### Adding an initial SECRET_KEY
+
+Superset requires a user-specified SECRET_KEY to start up.  This requirement was [added in version 2.1.0 to force secure configurations](https://preset.io/blog/superset-security-update-default-secret_key-vulnerability/).  Add a strong SECRET_KEY to your `superset_config.py` file like:
+
+```python
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'`
+```
+
+You can generate a strong secure key with `openssl rand -base64 42`.
+
+#### Rotating to a newer SECRET_KEY
+
+If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
+`PREVIOUS_SECRET_KEY = `and provide your new key as `SECRET_KEY =`.  You can find your current SECRET_KEY with these
+commands - if running Superset with Docker, execute from within the Superset application container:
+
+```python
+superset shell
+from flask import current_app; print(current_app.config["SECRET_KEY"])
+```
+
+Save your `superset_config.py` with these values and then run `superset re-encrypt-secrets`.
 
 ### Using a production metastore
 
@@ -278,19 +302,3 @@ FEATURE_FLAGS = {
 ```
 
 A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
-
-### SECRET_KEY Rotation
-
-If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
-
-Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
-
-```python
-PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY'
-# To find out 'CURRENT_SECRET_KEY' follow these steps
-# 1. Got to superset shell : $ superset shell
-# 2. Run the command       : >>> from flask import current_app; print(current_app.config["SECRET_KEY"])
-
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY' # Generate a secure SECRET_KEY usng "openssl rand -base64 42"
-```
-Then run `superset re-encrypt-secrets`

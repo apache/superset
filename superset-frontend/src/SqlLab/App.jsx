@@ -22,7 +22,6 @@ import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader/root';
 import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
-import QueryProvider from 'src/views/QueryProvider';
 import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
 import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
@@ -133,15 +132,13 @@ if (sqlLabMenu) {
 }
 
 const Application = () => (
-  <QueryProvider>
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <GlobalStyles />
-        <SqlLabGlobalStyles />
-        <App />
-      </ThemeProvider>
-    </Provider>
-  </QueryProvider>
+  <Provider store={store}>
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <SqlLabGlobalStyles />
+      <App />
+    </ThemeProvider>
+  </Provider>
 );
 
 export default hot(Application);

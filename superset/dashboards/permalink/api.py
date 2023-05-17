@@ -47,7 +47,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
     openapi_spec_tag = "Dashboard Permanent Link"
     openapi_spec_component_schemas = (DashboardPermalinkPostSchema,)
 
-    @expose("/<pk>/permalink", methods=["POST"])
+    @expose("/<pk>/permalink", methods=("POST",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -114,7 +114,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
         except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/permalink/<string:key>", methods=["GET"])
+    @expose("/permalink/<string:key>", methods=("GET",))
     @protect()
     @safe
     @event_logger.log_this_with_context(

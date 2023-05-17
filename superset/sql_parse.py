@@ -509,6 +509,10 @@ def has_table_query(token_list: TokenList) -> bool:
     """
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
+        # Ignore comments
+        if isinstance(token, sqlparse.sql.Comment):
+            continue
+
         # Recurse into child token list
         if isinstance(token, TokenList) and has_table_query(token):
             return True

@@ -44,7 +44,7 @@ class ExploreRestApi(BaseSupersetApi):
     openapi_spec_tag = "Explore"
     openapi_spec_component_schemas = (ExploreContextSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

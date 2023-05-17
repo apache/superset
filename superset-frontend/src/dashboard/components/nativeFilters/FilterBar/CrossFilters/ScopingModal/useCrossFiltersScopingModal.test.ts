@@ -16,28 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: Infinity,
-      retry: false,
-      retryOnMount: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  },
+import { ReactElement } from 'react';
+import { renderHook } from '@testing-library/react-hooks';
+import { createWrapper, render } from 'spec/helpers/testing-library';
+import { useCrossFiltersScopingModal } from './useCrossFiltersScopingModal';
+
+test('Renders modal after calling method open', async () => {
+  const { result } = renderHook(() => useCrossFiltersScopingModal(), {
+    wrapper: createWrapper(),
+  });
+
+  const [openModal, Modal] = result.current;
+  expect(Modal).toBeNull();
+
+  openModal();
+
+  const { getByText } = render(result.current[1] as ReactElement, {
+    useRedux: true,
+  });
+
+  expect(getByText('Cross-filtering scoping')).toBeInTheDocument();
 });
-
-type Props = {
-  children: React.ReactNode;
-};
-
-const Queryprovider: React.FC<Props> = ({ children }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
-
-export default Queryprovider;

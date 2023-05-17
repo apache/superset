@@ -50,7 +50,6 @@ docker build --target lean \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
-  --build-arg PY_VER="3.8-slim"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -58,16 +57,16 @@ docker build --target lean \
   .
 
 #
-# Build the "lean39" image
+# Build the "lean310" image
 #
 docker build --target lean \
-  -t "${REPO_NAME}:${SHA}-py39" \
-  -t "${REPO_NAME}:${REFSPEC}-py39" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py39" \
-  --build-arg PY_VER="3.9-slim"\
+  -t "${REPO_NAME}:${SHA}-py310" \
+  -t "${REPO_NAME}:${REFSPEC}-py310" \
+  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
+  --build-arg PY_VER="3.10-slim"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
-  --label "target=lean39" \
+  --label "target=lean310" \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
 

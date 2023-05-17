@@ -335,7 +335,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 viz_type="mixed_timeseries",
                 metrics=["sum__num"],
                 groupby=["gender"],
-                metrics_b=["count"],
+                metrics_b=["sum__num"],
                 groupby_b=["state"],
             ),
         ),
