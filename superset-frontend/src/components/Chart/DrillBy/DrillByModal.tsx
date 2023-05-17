@@ -26,14 +26,17 @@ import React, {
 } from 'react';
 import {
   BaseFormData,
+  BinaryQueryObjectFilterClause,
   Column,
-  QueryData,
+  ContextMenuFilters,
   css,
   ensureIsArray,
+  GenericDataType,
   isDefined,
+  isPhysicalColumn,
+  QueryData,
   t,
   useTheme,
-  ContextMenuFilters,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -43,6 +46,7 @@ import Button from 'src/components/Button';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
+import { CLAUSES } from 'src/explore/components/controls/FilterControl/types';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -201,6 +205,17 @@ export default function DrillByModal({
     { groupby: column || [] },
   ]);
 
+  const isSimpleFilterTemporal = useCallback(
+    (filter: BinaryQueryObjectFilterClause) =>
+      isPhysicalColumn(filter.col) &&
+      dataset.columns?.some(
+        column =>
+          column.column_name === filter.col &&
+          (column.type_generic === GenericDataType.TEMPORAL || column.is_dttm),
+      ),
+    [dataset.columns],
+  );
+
   const getNewGroupby = useCallback(
     (groupbyCol: Column, fieldName = groupbyFieldName) =>
       Array.isArray(formData[fieldName])
@@ -225,7 +240,11 @@ export default function DrillByModal({
           acc.formData[adhocFilterFieldName] = [
             ...ensureIsArray(acc[adhocFilterFieldName]),
             ...ensureIsArray(config.filters).map(filter =>
-              simpleFilterToAdhoc(filter),
+              simpleFilterToAdhoc(
+                filter,
+                CLAUSES.WHERE,
+                isSimpleFilterTemporal(filter),
+              ),
             ),
           ];
           acc.overridenAdhocFilterFields.add(adhocFilterFieldName);
@@ -238,7 +257,7 @@ export default function DrillByModal({
           overridenAdhocFilterFields: new Set<string>(),
         },
       ),
-    [getNewGroupby],
+    [getNewGroupby, isSimpleFilterTemporal],
   );
 
   const getFiltersFromConfigsByFieldName = useCallback(
@@ -248,11 +267,17 @@ export default function DrillByModal({
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
           ...(acc[adhocFilterFieldName] || []),
-          ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
+          ...config.filters.map(filter =>
+            simpleFilterToAdhoc(
+              filter,
+              CLAUSES.WHERE,
+              isSimpleFilterTemporal(filter),
+            ),
+          ),
         ];
         return acc;
       }, {}),
-    [drillByConfigs],
+    [drillByConfigs, isSimpleFilterTemporal],
   );
 
   const onBreadcrumbClick = useCallback(

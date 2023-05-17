@@ -40,13 +40,13 @@ export type BaseQueryObjectFilterClause = {
 
 export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: BinaryOperator;
-  val: string | number | boolean;
+  val: string | number | boolean | Date;
   formattedVal?: string;
 };
 
 export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: SetOperator;
-  val: (string | number | boolean)[];
+  val: (string | number | boolean | Date)[];
   formattedVal?: string[];
 };
 

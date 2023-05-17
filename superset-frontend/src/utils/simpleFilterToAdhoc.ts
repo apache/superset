@@ -18,20 +18,27 @@
  */
 import {
   AdhocFilter,
+  createTimeRangeFromGranularity,
   isAdhocColumn,
   QueryObjectFilterClause,
   SimpleAdhocFilter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import {
   CLAUSES,
   EXPRESSION_TYPES,
 } from '../explore/components/controls/FilterControl/types';
-import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from '../explore/constants';
+import {
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
+} from '../explore/constants';
 import { translateToSql } from '../explore/components/controls/FilterControl/utils/translateToSQL';
 
 export const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause,
   clause: CLAUSES = CLAUSES.WHERE,
+  isTemporal = false,
+  timeGrain: TimeGranularity = 'P1D',
 ) => {
   let result: AdhocFilter;
   if (isAdhocColumn(filterClause.col)) {
@@ -45,6 +52,23 @@ export const simpleFilterToAdhoc = (
         comparator: 'val' in filterClause ? filterClause.val : undefined,
       } as SimpleAdhocFilter),
     };
+  } else if (
+    isTemporal &&
+    'val' in filterClause &&
+    (typeof filterClause.val === 'number' || filterClause.val instanceof Date)
+  ) {
+    const [start, end] = createTimeRangeFromGranularity(
+      new Date(filterClause.val),
+      timeGrain,
+    );
+    result = {
+      expressionType: 'SIMPLE',
+      clause,
+      operator: Operators.TEMPORAL_RANGE,
+      operatorId: Operators.TEMPORAL_RANGE,
+      subject: filterClause.col,
+      comparator: `${start.toISOString()} : ${end.toISOString()}`,
+    } as SimpleAdhocFilter;
   } else {
     result = {
       expressionType: 'SIMPLE',
