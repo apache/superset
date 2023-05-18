@@ -17,10 +17,12 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
   CategoricalColorNamespace,
+  ensureIsArray,
   GenericDataType,
   getMetricLabel,
   getNumberFormatter,
@@ -36,6 +38,7 @@ import {
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
+  getOriginalSeries,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -227,30 +230,43 @@ export default function transformProps(
     contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
   );
 
+  const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  const inverted = invert(verboseMap);
+
   rawSeries.forEach(entry => {
     const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
       ? { type: 'dashed' as ZRLineType }
       : {};
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area,
-      filterState,
-      seriesContexts,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      stack,
-      formatter,
-      showValue,
-      onlyTotal,
-      totalStackedValues: sortedTotalValues,
-      showValueIndexes,
-      thresholdValues,
-      richTooltip,
-      sliceId,
-      isHorizontal,
-      lineStyle,
-    });
+
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        filterState,
+        seriesContexts,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        stack,
+        formatter,
+        showValue,
+        onlyTotal,
+        totalStackedValues: sortedTotalValues,
+        showValueIndexes,
+        thresholdValues,
+        richTooltip,
+        sliceId,
+        isHorizontal,
+        lineStyle,
+      },
+    );
     if (transformedSeries) {
       if (stack === StackControlsValue.Stream) {
         // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0

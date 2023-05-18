@@ -17,22 +17,33 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import {
-  ensureIsArray,
-  JsonObject,
-  QueryFormData,
-  ComparisonType,
-} from '@superset-ui/core';
-import { hasTimeOffset } from './timeOffset';
+import { JsonObject } from '@superset-ui/core';
+import { isString } from 'lodash';
 
-export const isDerivedSeries = (
+export const hasTimeOffset = (
   series: JsonObject,
-  formData: QueryFormData,
-): boolean => {
-  const comparisonType = formData.comparison_type;
-  if (comparisonType !== ComparisonType.Values) {
-    return false;
-  }
-  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
-  return hasTimeOffset(series, timeCompare);
+  timeCompare: string[],
+): boolean =>
+  isString(series.name)
+    ? !!timeCompare.find(
+        timeOffset =>
+          // offset is represented as <offset>, group by list
+          series.name.includes(`${timeOffset},`) ||
+          // offset is represented as <metric>__<offset>
+          series.name.includes(`__${timeOffset}`),
+      )
+    : false;
+
+export const getOriginalSeries = (
+  seriesName: string,
+  timeCompare: string[],
+): string => {
+  let result = seriesName;
+  timeCompare.forEach(compare => {
+    // offset is represented as <offset>, group by list
+    result = result.replace(`${compare},`, '');
+    // offset is represented as <metric>__<offset>
+    result = result.replace(`__${compare}`, '');
+  });
+  return result.trim();
 };
