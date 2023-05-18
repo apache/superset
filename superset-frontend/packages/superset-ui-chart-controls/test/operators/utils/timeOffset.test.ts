@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -14,12 +13,18 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitationsxw
+ * specific language governing permissions and limitations
  * under the License.
  */
-export { getMetricOffsetsMap } from './getMetricOffsetsMap';
-export { isTimeComparison } from './isTimeComparison';
-export { isDerivedSeries } from './isDerivedSeries';
-export { extractExtraMetrics } from './extractExtraMetrics';
-export { getOriginalSeries, hasTimeOffset } from './timeOffset';
-export { TIME_COMPARISON_SEPARATOR } from './constants';
+import { getOriginalSeries } from '@superset-ui/chart-controls';
+
+test('returns the series name when time compare is empty', () => {
+  const seriesName = 'sum';
+  expect(getOriginalSeries(seriesName, [])).toEqual(seriesName);
+});
+
+test('returns the original series name', () => {
+  const seriesName = 'sum__1_month_ago';
+  const timeCompare = ['1_month_ago'];
+  expect(getOriginalSeries(seriesName, timeCompare)).toEqual('sum');
+});
