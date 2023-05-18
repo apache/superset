@@ -150,6 +150,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install wheel
+            pip install sasl
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
