@@ -113,7 +113,7 @@ const DrillActionConfig: React.FC<Props> = (props: Props) => {
         (e: any) => e.value === selectedDashboardID,
       );
       const advancedDataTypeNameLabel =
-        bootstrapData?.common?.advanced_data_types.find(
+        bootstrapData?.common?.advanced_data_types?.find(
           (e: { id: string }) => e.id === advancedDataTypeName,
         )?.verbose_name || advancedDataTypeName;
       const selectedFiltersWithColumn = filterList.filter((filter: any) =>
@@ -161,7 +161,7 @@ const DrillActionConfig: React.FC<Props> = (props: Props) => {
           hovered
           freeForm
           placeholder=""
-          options={bootstrapData?.common?.advanced_data_types.map(
+          options={bootstrapData?.common?.advanced_data_types?.map(
             (v: { id: any; verbose_name: any }) => ({
               value: v.id,
               label: v.verbose_name,

@@ -286,7 +286,7 @@ function ColumnCollectionTable({
                     name="advanced_data_type"
                     allowClear
                     allowNewOptions
-                    options={bootstrapData?.common?.advanced_data_types.map(
+                    options={bootstrapData?.common?.advanced_data_types?.map(
                       v => ({
                         value: v.id,
                         label: v.verbose_name,
