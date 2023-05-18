@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [23853](https://github.com/apache/superset/pull/23853): Migrated endpoint `/superset/warm_up_cache` to `/api/v1/charts/warm_up_cache/`. Corresponding permissions are `can warm_up_cache on Superset` to `can warm_up_cache on Chart`. Make sure you add/replace the necessary permissions on any custom roles you may have.
 - [23785](https://github.com/apache/superset/pull/23785) Deprecated the following feature flags: `CLIENT_CACHE`, `DASHBOARD_CACHE`, `DASHBOARD_FILTERS_EXPERIMENTAL`, `DASHBOARD_NATIVE_FILTERS`, `DASHBOARD_NATIVE_FILTERS_SET`, `DISABLE_DATASET_SOURCE_EDIT`, `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`, `REMOVE_SLICE_LEVEL_LABEL_COLORS`. It also removed `DASHBOARD_EDIT_CHART_IN_NEW_TAB` as the feature is supported without the need for a feature flag.
 - [23652](https://github.com/apache/superset/pull/23652) Enables GENERIC_CHART_AXES feature flag by default.
 - [23226](https://github.com/apache/superset/pull/23226) Migrated endpoint `/estimate_query_cost/<int:database_id>` to `/api/v1/sqllab/estimate/`. Corresponding permissions are can estimate query cost on SQLLab. Make sure you add/replace the necessary permissions on any custom roles you may have.

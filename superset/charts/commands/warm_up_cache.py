@@ -66,7 +66,7 @@ class WarmUpCacheCommand(BaseCommand):
                     )
 
                 if not chart.datasource:
-                    raise Exception("Slice's datasource does not exist")
+                    raise Exception("Chart's datasource does not exist")
 
                 obj = get_viz(
                     datasource_type=chart.datasource.type,
