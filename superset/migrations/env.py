@@ -43,7 +43,8 @@ if "sqlite" in DATABASE_URI:
         "SQLite Database support for metadata databases will \
         be removed in a future version of Superset."
     )
-decoded_uri = urllib.parse.unquote(DATABASE_URI)
+# Note: this should really be done only for the password portion of the URI:
+decoded_uri = urllib.parse.unquote(DATABASE_URI).replace("%", "%%")
 config.set_main_option("sqlalchemy.url", decoded_uri)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
