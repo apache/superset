@@ -377,20 +377,6 @@ const config: ControlPanelConfig = {
         [
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
             ? {
-                name: 'emitFilter',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Emit dashboard cross filters'),
-                  default: false,
-                  renderTrigger: true,
-                  description: t('Emit dashboard cross filters.'),
-                },
-              }
-            : null,
-        ],
-        [
-          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
-            ? {
                 name: 'principalColumns',
                 config: {
                   type: 'SelectControl',
@@ -449,8 +435,6 @@ const config: ControlPanelConfig = {
                         : [];
                     return newState;
                   },
-                  visibility: ({ controls }) =>
-                    Boolean(controls?.emitFilter?.value),
                   canCopy: true,
                 },
               }

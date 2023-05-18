@@ -12,7 +12,7 @@ describe('CccsGrid tranformProps', () => {
     boldText: true,
     headerFontSize: 'xs',
     headerText: 'my text',
-    emitFilter: false,
+    emitCrossFilters: false,
     include_search: false,
     page_length: 0,
     enable_grouping: false,

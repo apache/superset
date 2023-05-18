@@ -1,7 +1,7 @@
 # Vault CA container import
 ARG VAULT_CA_CONTAINER=uchimera.azurecr.io/cccs/hogwarts/vault-ca:master_11376_a25c34e1
 FROM $VAULT_CA_CONTAINER AS vault_ca
-FROM uchimera.azurecr.io/cccs/superset-base:fix-date-column-bug-in-cccs-viz_20230503190201_b6720
+FROM uchimera.azurecr.io/cccs/superset-base:fix_CLDN-2141-remove-emit-filters-from-chart-builder_20230518125505_b6856
 
 USER root
 

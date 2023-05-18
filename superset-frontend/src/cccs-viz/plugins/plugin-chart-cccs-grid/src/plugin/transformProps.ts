@@ -70,12 +70,12 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     height,
     rawFormData: formData,
     queriesData,
+    emitCrossFilters,
   } = chartProps;
   const {
     boldText,
     headerFontSize,
     headerText,
-    emitFilter,
     principalColumns,
     page_length,
     query_mode,
@@ -390,7 +390,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     boldText,
     headerFontSize,
     headerText,
-    emitFilter,
+    emitCrossFilters,
     principalColumns,
     include_search,
     page_length,

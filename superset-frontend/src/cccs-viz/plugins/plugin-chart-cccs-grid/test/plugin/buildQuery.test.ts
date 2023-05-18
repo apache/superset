@@ -6,7 +6,7 @@ describe('CccsGrid buildQuery', () => {
     datasource: '5__table',
     granularity_sqla: 'ds',
     series: 'foo',
-    emitFilter: false,
+    emitCrossFilters: false,
     include_search: false,
     page_length: 0,
     enable_grouping: false,
