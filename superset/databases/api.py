@@ -221,6 +221,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
         DatabaseRelatedObjectsResponse,
@@ -239,7 +240,33 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def get_connection(self, pk: int) -> Response:
-        """Get database connection info."""
+        """Get database connection info.
+        ---
+        get:
+          description: >-
+            Get a database connection info
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Database with connection info
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseConnectionSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         database = DatabaseDAO.find_by_id(pk)
         database_connection_schema = DatabaseConnectionSchema()
         response = {
