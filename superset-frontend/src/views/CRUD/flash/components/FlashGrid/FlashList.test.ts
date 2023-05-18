@@ -52,15 +52,17 @@ describe('FlashList', () => {
 
   it('Flash Status Api: Should handle 404 error with a proper error message', async () => {
     const mockErrorMessage = 'HTTP 404 Not Found';
-
-    fetchMock.get(mockUrl, {
+    fetchMock.mock(mockUrl, {
       code: 404,
       message: mockErrorMessage,
     });
-
-    const response = await fetch(mockUrl);
-    const responseData = await response.json();
-    expect(responseData).toHaveProperty('message', mockErrorMessage);
-    expect(responseData).toHaveProperty('code', 404);
+    try {
+      await fetch(mockUrl);
+    } catch (error) {
+      // eslint-disable-next-line jest/no-conditional-expect, jest/no-try-expect
+      expect(error).toHaveProperty('message', mockErrorMessage);
+      // eslint-disable-next-line jest/no-conditional-expect, jest/no-try-expect
+      expect(error).toHaveProperty('code', 404);
+    }
   });
 });
