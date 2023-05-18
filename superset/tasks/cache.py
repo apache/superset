@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 from urllib import request
@@ -49,7 +50,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     A cache warm up strategy.
 
     Each strategy defines a `get_payloads` method that returns a list of payloads to
-    be fetched from the `/api/v1/chart/warm_up_cache` endpoint.
+    send to the `/api/v1/chart/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
 
@@ -223,7 +224,9 @@ def fetch_url(data: str, headers: Dict[str, str]) -> Dict[str, str]:
         baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
         url = f"{baseurl}api/v1/chart/warm_up_cache"
         logger.info("Fetching %s with payload %s", url, data)
-        req = request.Request(url, data=data, headers=headers, method="PUT")
+        req = request.Request(
+            url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
+        )
         response = request.urlopen(  # pylint: disable=consider-using-with
             req, timeout=600
         )
@@ -285,11 +288,12 @@ def cache_warmup(
     results: Dict[str, List[str]] = {"scheduled": [], "errors": []}
     for payload in strategy.get_payloads():
         try:
-            logger.info("Scheduling %s", str(payload))
-            fetch_url.delay(str(payload), headers)
-            results["scheduled"].append(str(payload))
+            payload = json.dumps(payload)
+            logger.info("Scheduling %s", payload)
+            fetch_url.delay(payload, headers)
+            results["scheduled"].append(payload)
         except SchedulingError:
-            logger.exception("Error scheduling fetch_url for payload: %s", str(payload))
-            results["errors"].append(str(payload))
+            logger.exception("Error scheduling fetch_url for payload: %s", payload)
+            results["errors"].append(payload)
 
     return results
