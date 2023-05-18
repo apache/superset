@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import json
 from typing import Dict, Any
 
 import pytest
@@ -24,18 +23,9 @@ import pytest
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
-)
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
 )
 
 
