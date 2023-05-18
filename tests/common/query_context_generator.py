@@ -29,7 +29,6 @@ query_birth_names = {
     "row_limit": 100,
     "granularity": "ds",
     "time_range": "100 years ago : now",
-    "timeseries_limit": 0,
     "timeseries_limit_metric": None,
     "order_desc": True,
     "filters": [
