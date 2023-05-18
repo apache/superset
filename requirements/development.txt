@@ -88,7 +88,7 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydruid==0.6.5
     # via apache-superset
-pyhive[hive]==0.6.5
+pyhive==0.7.0.dev0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
