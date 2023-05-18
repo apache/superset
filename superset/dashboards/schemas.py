@@ -112,6 +112,9 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
+    # global_chart_configuration keeps data about global cross-filter scoping
+    # for charts - can be overriden by chart_configuration for each chart
+    global_chart_configuration = fields.Dict()
     # filter_sets_configuration is for dashboard-native filters
     filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
@@ -190,10 +193,10 @@ class DashboardGetResponseSchema(Schema):
     )
     changed_by_name = fields.String()
     changed_by_url = fields.String()
-    changed_by = fields.Nested(UserSchema)
+    changed_by = fields.Nested(UserSchema(exclude=(["username"])))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema))
+    owners = fields.List(fields.Nested(UserSchema(exclude=(["username"]))))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")

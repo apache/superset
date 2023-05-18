@@ -138,7 +138,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -187,7 +186,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -809,7 +807,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
         if token:
             response.set_cookie(token, "done", max_age=600)

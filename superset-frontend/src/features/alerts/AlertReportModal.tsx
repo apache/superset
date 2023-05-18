@@ -59,6 +59,7 @@ import {
   AlertsReportsConfig,
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
@@ -449,6 +450,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
@@ -1011,7 +1015,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
-      setCurrentAlert({ ...defaultAlert });
+      setCurrentAlert({
+        ...defaultAlert,
+        owners: currentUser
+          ? [
+              {
+                value: currentUser.userId,
+                label: `${currentUser.firstName} ${currentUser.lastName}`,
+              },
+            ]
+          : [],
+      });
       setNotificationSettings([]);
       setNotificationAddState('active');
     }

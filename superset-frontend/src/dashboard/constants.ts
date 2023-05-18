@@ -1,6 +1,6 @@
-/* eslint-disable import/prefer-default-export */
 import { DatasourceType } from '@superset-ui/core';
 import { Datasource } from 'src/dashboard/types';
+import { DASHBOARD_ROOT_ID } from './util/constants';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,3 +42,8 @@ export const FILTER_BAR_HEADER_HEIGHT = 80;
 export const FILTER_BAR_TABS_HEIGHT = 46;
 export const BUILDER_SIDEPANEL_WIDTH = 374;
 export const OVERWRITE_INSPECT_FIELDS = ['css', 'json_metadata.filter_scopes'];
+
+export const DEFAULT_CROSS_FILTER_SCOPING = {
+  rootPath: [DASHBOARD_ROOT_ID],
+  excluded: [],
+};

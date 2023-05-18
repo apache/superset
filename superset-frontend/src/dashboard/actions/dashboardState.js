@@ -56,9 +56,9 @@ import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
-  setChartConfiguration,
+  saveChartConfiguration,
   dashboardInfoChanged,
-  SET_CHART_CONFIG_COMPLETE,
+  SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
@@ -89,7 +89,6 @@ export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
-export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
@@ -110,7 +109,6 @@ export function fetchFaveStar(id) {
   };
 }
 
-export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
@@ -287,13 +285,11 @@ export function saveDashboardRequest(data, id, saveType) {
       const {
         dashboardLayout,
         charts,
-        dashboardInfo: {
-          metadata: { chart_configuration = {} },
-        },
+        dashboardInfo: { metadata },
       } = getState();
       return getCrossFiltersConfiguration(
         dashboardLayout.present,
-        chart_configuration,
+        metadata,
         charts,
       );
     };
@@ -304,8 +300,14 @@ export function saveDashboardRequest(data, id, saveType) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        const chartConfiguration = handleChartConfiguration();
-        dispatch(setChartConfiguration(chartConfiguration));
+        const { chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration();
+        dispatch(
+          saveChartConfiguration({
+            chartConfiguration,
+            globalChartConfiguration,
+          }),
+        );
       }
       dispatch(saveDashboardFinished());
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
@@ -325,7 +327,7 @@ export function saveDashboardRequest(data, id, saveType) {
         );
         if (metadata.chart_configuration) {
           dispatch({
-            type: SET_CHART_CONFIG_COMPLETE,
+            type: SAVE_CHART_CONFIG_COMPLETE,
             chartConfiguration: metadata.chart_configuration,
           });
         }
@@ -373,8 +375,10 @@ export function saveDashboardRequest(data, id, saveType) {
       [SAVE_TYPE_OVERWRITE, SAVE_TYPE_OVERWRITE_CONFIRMED].includes(saveType)
     ) {
       let chartConfiguration = {};
+      let globalChartConfiguration = {};
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-        chartConfiguration = handleChartConfiguration();
+        ({ chartConfiguration, globalChartConfiguration } =
+          handleChartConfiguration());
       }
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
@@ -392,6 +396,7 @@ export function saveDashboardRequest(data, id, saveType) {
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
+                global_chart_configuration: globalChartConfiguration,
               }),
             };
 
@@ -599,13 +604,6 @@ export function removeSliceFromDashboard(id) {
 export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
 export function setColorScheme(colorScheme) {
   return { type: SET_COLOR_SCHEME, colorScheme };
-}
-
-export function setColorSchemeAndUnsavedChanges(colorScheme) {
-  return dispatch => {
-    dispatch(setColorScheme(colorScheme));
-    dispatch(setUnsavedChanges(true));
-  };
 }
 
 export const SET_DIRECT_PATH = 'SET_DIRECT_PATH';
