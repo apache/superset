@@ -119,7 +119,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     fetchStatuses().then(
       ({ data }) => {
         const dropdown = data.map((item: any) => ({
-          label: item.datastore_name,
+          label: item.name,
           value: item.id,
         }));
         setStatusesDropdown(dropdown);

@@ -30,7 +30,7 @@ import {
 } from '../types';
 
 export const fetchDatabases = (): Promise<any> =>
-  FlashClient.get<any>('v1/status');
+  FlashClient.get<any>('v1/flash/statuses');
 
 export const fetchStatuses = (): Promise<any> =>
   FlashClient.get<any>('v1/datastore');
