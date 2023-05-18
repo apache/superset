@@ -23,10 +23,8 @@ kind: Job
 metadata:
   name: {{ template "superset.name" . }}-init-db
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.init.helmHook }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": "before-hook-creation"
+  {{- if .Values.init.jobAnnotations }}
+  annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
 spec:
   template:
