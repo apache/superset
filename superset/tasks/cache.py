@@ -71,7 +71,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         pass
 
-    def get_payloads(self) -> List[str]:
+    def get_payloads(self) -> List[Dict[str, int]]:
         raise NotImplementedError("Subclasses must implement get_payloads!")
 
 
@@ -93,7 +93,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dummy"
 
-    def get_payloads(self) -> List[str]:
+    def get_payloads(self) -> List[Dict[str, int]]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
@@ -125,7 +125,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
-    def get_payloads(self) -> List[str]:
+    def get_payloads(self) -> List[Dict[str, int]]:
         payloads = []
         session = db.create_scoped_session()
 
@@ -168,7 +168,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.tags = tags or []
 
-    def get_payloads(self) -> List[str]:
+    def get_payloads(self) -> List[Dict[str, int]]:
         payloads = []
         session = db.create_scoped_session()
 
