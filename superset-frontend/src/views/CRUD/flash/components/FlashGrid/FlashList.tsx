@@ -111,7 +111,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         setDatabaseDropdown(dropdown);
       },
       createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue getting Databases %s', errMsg)),
+        addDangerToast(t('There was an issue getting Databases: %s', errMsg)),
       ),
     );
 
@@ -126,7 +126,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue getting flash statuses %s', errMsg),
+          t('There was an issue getting Flash Statuses: %s', errMsg),
         ),
       ),
     );
@@ -446,7 +446,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         input: 'select',
         operator: FilterOperator.equals,
         unfilteredLabel: 'All',
-        selects: statusesDropdown || FLASH_STATUS,
+        selects: statusesDropdown.length > 0 ? statusesDropdown : FLASH_STATUS,
       },
     ],
     [statusesDropdown, databaseDropdown, addDangerToast],
