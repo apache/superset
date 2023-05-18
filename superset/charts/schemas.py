@@ -1627,7 +1627,6 @@ class CacheWarmUpResponseSchema(Schema):
     )
 
 
-
 CHART_SCHEMAS = (
     CacheWarmUpRequestSchema,
     CacheWarmUpResponseSchema,
