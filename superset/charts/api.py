@@ -47,6 +47,7 @@ from superset.charts.commands.exceptions import (
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.commands.warm_up_cache import WarmUpCacheCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import (
     ChartAllTextFilter,
@@ -60,6 +61,7 @@ from superset.charts.filters import (
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
+    CacheWarmUpRequestSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -69,6 +71,7 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
+from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -118,6 +121,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "thumbnail",
         "screenshot",
         "cache_screenshot",
+        "warm_up_cache",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -948,6 +952,66 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         ChartDAO.remove_favorite(chart)
         return self.response(200, result="OK")
+
+    @expose("/warm_up_cache", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".warm_up_cache",
+        log_to_statsd=False,
+    )
+    def warm_up_cache(self) -> Response:
+        """
+        ---
+        put:
+          summary: >-
+            Warms up the cache for the slice or table
+          description: >-
+            Warms up the cache for the slice or table.
+            Note for slices a force refresh occurs.
+            In terms of the `extra_filters` these can be obtained from records in the JSON
+            encoded `logs.json` column associated with the `explore_json` action.
+          requestBody:
+            description: >-
+              Identifies charts to warm up cache for, and any additional dashboard or
+              filter context to use. Either a chart id or a table name and a database
+              name can be passed.
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/CacheWarmUpRequestSchema"
+          responses:
+            200:
+              description: Each chart's warmup status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/CacheWarmUpResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = CacheWarmUpRequestSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            payload = WarmUpCacheCommand(
+                body.get("chart_id"),
+                body.get("dashboard_id"),
+                body.get("table_name"),
+                body.get("db_name"),
+                body.get("extra_filters"),
+            ).run()
+            return self.response(200, result=payload)
+        except CommandException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/import/", methods=("POST",))
     @protect()

@@ -34,6 +34,7 @@ from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -1627,3 +1628,113 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         assert data["result"][0]["slice_name"] == "name0"
         assert data["result"][0]["datasource_id"] == 1
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
+    def test_warm_up_cache(self):
+        self.login()
+        slc = self.get_slice("Girls", db.session)
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache", json={"chart_id": slc.id}
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={
+                "table_name": "energy_usage",
+                "db_name": get_example_database().database_name,
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert len(data["result"]) > 0
+
+        dashboard = self.get_dash_by_slug("births")
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": slc.id, "dashboard_id": dashboard.id},
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={
+                "chart_id": slc.id,
+                "dashboard_id": dashboard.id,
+                "extra_filters": json.dumps(
+                    [{"col": "name", "op": "in", "val": ["Jennifer"]}]
+                ),
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+    def test_warm_up_cache_required_params_missing(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"dashboard_id": 1})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {
+                "message": "Malformed request. slice_id or table_name and db_name arguments are expected"
+            },
+        )
+
+    def test_warm_up_cache_chart_not_found(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": 99999})
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "Chart not found"})
+
+    def test_warm_up_cache_table_not_found(self):
+        self.login()
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"table_name": "not_here", "db_name": "abc"},
+        )
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {"message": "The provided table was not found in the provided database"},
+        )
+
+    def test_warm_up_cache_payload_validation(self):
+        self.login()
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": "id", "table_name": 2, "db_name": 4},
+        )
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {
+                "message": {
+                    "chart_id": ["Not a valid integer."],
+                    "db_name": ["Not a valid string."],
+                    "table_name": ["Not a valid string."],
+                }
+            },
+        )

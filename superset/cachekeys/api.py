@@ -24,13 +24,7 @@ from flask_appbuilder.security.decorators import protect
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.cachekeys.commands.warm_up_cache import WarmUpCacheCommand
-from superset.cachekeys.schemas import (
-    CacheInvalidationRequestSchema,
-    CacheWarmUpRequestSchema,
-    CacheWarmUpResponseSchema,
-)
-from superset.commands.exceptions import CommandException
+from superset.cachekeys.schemas import CacheInvalidationRequestSchema
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, event_logger, stats_logger_manager
 from superset.models.cache import CacheKey
@@ -46,74 +40,9 @@ class CacheRestApi(BaseSupersetModelRestApi):
     class_permission_name = "CacheRestApi"
     include_route_methods = {
         "invalidate",
-        "warm_up_cache",
     }
 
-    openapi_spec_component_schemas = (
-        CacheInvalidationRequestSchema,
-        CacheWarmUpRequestSchema,
-        CacheWarmUpResponseSchema,
-    )
-
-    @expose("/warm_up_cache", methods=["PUT"])
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".warm_up_cache",
-        log_to_statsd=False,
-    )
-    def warm_up_cache(self) -> Response:
-        """
-        ---
-        put:
-          summary: >-
-            Warms up the cache for the slice or table
-          description: >-
-            Warms up the cache for the slice or table.
-            Note for slices a force refresh occurs.
-            In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
-          requestBody:
-            description: >-
-              Identifies charts to warm up cache for, and any additional dashboard or
-              filter context to use. Either a chart id or a table name and a database
-              name can be passed.
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/CacheWarmUpRequestSchema"
-          responses:
-            200:
-              description: Each chart's warmup status
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/CacheWarmUpResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            body = CacheWarmUpRequestSchema().load(request.json)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        try:
-            payload = WarmUpCacheCommand(
-                body.get("chart_id"),
-                body.get("dashboard_id"),
-                body.get("table_name"),
-                body.get("db_name"),
-                body.get("extra_filters"),
-            ).run()
-            return self.response(200, result=payload)
-        except CommandException as ex:
-            return self.response(ex.status, message=ex.message)
+    openapi_spec_component_schemas = (CacheInvalidationRequestSchema,)
 
     @expose("/invalidate", methods=("POST",))
     @protect()

@@ -1734,7 +1734,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=("GET",))
-    @deprecated(new_target="api/v1/cachekey/warm_up_cache")
+    @deprecated(new_target="api/v1/chart/warm_up_cache")
     def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
         self,
     ) -> FlaskResponse:

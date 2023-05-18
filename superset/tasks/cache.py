@@ -49,7 +49,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     A cache warm up strategy.
 
     Each strategy defines a `get_payloads` method that returns a list of payloads to
-    be fetched from the `/api/v1/cachekey/warm_up_cache` endpoint.
+    be fetched from the `/api/v1/chart/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
 
@@ -221,7 +221,7 @@ def fetch_url(data: str, headers: Dict[str, str]) -> Dict[str, str]:
     result = {}
     try:
         baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
-        url = f"{baseurl}api/v1/cachekey/warm_up_cache"
+        url = f"{baseurl}api/v1/chart/warm_up_cache"
         logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(url, data=data, headers=headers, method="PUT")
         response = request.urlopen(  # pylint: disable=consider-using-with

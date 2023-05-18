@@ -153,3 +153,21 @@ class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
 
 class ChartImportError(ImportFailedError):
     message = _("Import chart failed for an unknown reason")
+
+
+class WarmUpCacheParametersExpectedError(CommandException):
+    status = 400
+    message = _(
+        "Malformed request. slice_id or table_name "
+        "and db_name arguments are expected"
+    )
+
+
+class WarmUpCacheChartNotFoundError(CommandException):
+    status = 404
+    message = _("Chart not found")
+
+
+class WarmUpCacheTableNotFoundError(CommandException):
+    status = 404
+    message = _("The provided table was not found in the provided database")

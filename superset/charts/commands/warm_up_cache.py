@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 import simplejson as json
 from flask import g
 
-from superset.cachekeys.commands.exceptions import (
+from superset.charts.commands.exceptions import (
     WarmUpCacheChartNotFoundError,
     WarmUpCacheParametersExpectedError,
     WarmUpCacheTableNotFoundError,
