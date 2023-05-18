@@ -109,7 +109,7 @@ const Bar = styled.div<{ width: number }>`
 
 const CollapsedBar = styled.div<{ offset: number }>`
   position: absolute;
-  top: 111px;
+  top: 92px !important;
   left: 0;
   width: ${({ theme }) => theme.gridUnit * 8}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;

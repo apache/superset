@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -32,10 +33,14 @@ const TitleArea = styled.h4`
   flex-direction: row;
   justify-content: space-between;
   margin: 0;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: 0;
+  padding-bottom: 12px;
 
   & > span {
     flex-grow: 1;
+    font-size: 20px;
+    font-weight: 600;
+    align-self: center;
   }
 `;
 
@@ -44,8 +49,10 @@ const HeaderButton = styled(Button)`
 `;
 
 const Wrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit}px
-    ${({ theme }) => theme.gridUnit * 2}px;
+  padding-left: 18px;
+  padding-top: 32px;
+  display: flex;
+  jusitfy-content: space-between;
 `;
 
 type HeaderProps = {
@@ -54,15 +61,18 @@ type HeaderProps = {
 
 const AddFiltersButtonContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.gridUnit * 2}px;
+    margin-left: auto;
+    margin-right: 32px;
 
     & button > [role='img']:first-of-type {
       margin-right: ${theme.gridUnit}px;
       line-height: 0;
     }
 
-    span[role='img'] {
-      padding-bottom: 1px;
+    & > button {
+      background-color: #f2f3ff !important;
+      padding: 14px 18px 14px 10px !important;
+      font-weight: 400 !important;
     }
 
     .ant-btn > .anticon + span {
@@ -81,9 +91,9 @@ const StyledCollapseIcon = styled(Icons.CaretRight)`
   display: flex !important;
   align-items: center;
   justify-content: center;
-  left: -20px;
+  left: -30px;
   position: absolute;
-  top: 111px;
+  top: 68px;
 `;
 
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {

@@ -32,7 +32,7 @@ const StyledIcon = styled.div`
 `;
 
 const StyledFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: 16px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
   overflow-wrap: break-word;
