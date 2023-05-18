@@ -671,3 +671,8 @@ class TestSqlaTableModel(SupersetTestCase):
 
         # clean up and auto commit
         metadata_db.session.delete(slc)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_table_column_database(self) -> None:
+        tbl = self.get_table(name="birth_names")
+        assert tbl.get_column("ds").database is tbl.database  # type: ignore
