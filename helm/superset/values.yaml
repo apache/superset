@@ -632,7 +632,9 @@ init:
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
-  helmHook: true
+  jobAnnotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": "before-hook-creation"
   loadExamples: false
   createAdmin: true
   adminUser:
