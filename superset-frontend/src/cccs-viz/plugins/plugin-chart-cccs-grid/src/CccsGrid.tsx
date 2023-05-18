@@ -30,6 +30,7 @@ import {
   LicenseManager,
   MenuItemDef,
   GetContextMenuItemsParams,
+  GroupCellRenderer,
 } from '@ag-grid-enterprise/all-modules';
 import { ensureIsArray } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
@@ -285,9 +286,9 @@ export default function CccsGrid({
       const columnID = params.column.colId;
 
       // Only keep cells which belong to the current column
-      const newInstances = instances.filter(
-        (instance: any) => instance.params.column.colId === columnID,
-      );
+      const newInstances = instances
+        .filter((instance: any) => !(instance instanceof GroupCellRenderer))
+        .filter((instance: any) => instance.params.column.colId === columnID);
 
       // Add an expand all button which will send an update to each cell renderer
       jsonMenuItems.push({
