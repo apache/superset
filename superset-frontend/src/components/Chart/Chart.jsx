@@ -112,7 +112,7 @@ const Styles = styled.div`
 
 class Chart extends React.PureComponent<ChartProps, any> {
   static defaultProps = defaultProps;
-  
+
   constructor(props) {
     super(props);
     this.handleRenderContainerFailure =
