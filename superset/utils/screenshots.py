@@ -121,8 +121,7 @@ class BaseScreenshot:
     @staticmethod
     def get_from_cache_key(cache: Cache, cache_key: str) -> Optional[BytesIO]:
         logger.info("Attempting to get from cache: %s", cache_key)
-        payload = cache.get(cache_key)
-        if payload:
+        if payload := cache.get(cache_key):
             return BytesIO(payload)
         logger.info("Failed at getting from cache: %s", cache_key)
         return None

@@ -95,7 +95,6 @@ def handle_query_error(
     """Local method handling error while processing the SQL"""
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
-    troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
@@ -119,7 +118,7 @@ def handle_query_error(
 
     session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link:
+    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 

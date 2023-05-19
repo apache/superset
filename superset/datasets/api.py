@@ -977,8 +977,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=ex.messages)
         table_name = body["table_name"]
         database_id = body["database_id"]
-        table = DatasetDAO.get_table_by_name(database_id, table_name)
-        if table:
+        if table := DatasetDAO.get_table_by_name(database_id, table_name):
             return self.response(200, result={"table_id": table.id})
 
         body["database"] = database_id

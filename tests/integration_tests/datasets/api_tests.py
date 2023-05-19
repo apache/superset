@@ -641,14 +641,13 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -665,7 +664,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
@@ -673,7 +671,7 @@ class TestDatasetApi(SupersetTestCase):
             "table_name": energy_usage_ds.table_name,
             "sql": "select * from energy_usage",
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -690,7 +688,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="alpha")
         admin = self.get_user("admin")
@@ -701,7 +698,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql": "select * from energy_usage",
             "owners": [admin.id],
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 201

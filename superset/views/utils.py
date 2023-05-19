@@ -261,9 +261,8 @@ def get_datasource_info(
     :raises SupersetException: If the datasource no longer exists
     """
 
-    datasource = form_data.get("datasource", "")
-
-    if "__" in datasource:
+    # pylint: disable=superfluous-parens
+    if "__" in (datasource := form_data.get("datasource", "")):
         datasource_id, datasource_type = datasource.split("__")
         # The case where the datasource has been deleted
         if datasource_id == "None":
@@ -462,7 +461,7 @@ def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
