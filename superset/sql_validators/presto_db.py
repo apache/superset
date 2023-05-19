@@ -24,7 +24,7 @@ from superset import app, security_manager
 from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
-from superset.utils.core import get_username, QuerySource
+from superset.utils.core import QuerySource
 
 MAX_ERROR_ROWS = 10
 
@@ -57,7 +57,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
             sql = sql_query_mutator(
                 sql,
-                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=database,
             )

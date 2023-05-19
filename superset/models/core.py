@@ -551,7 +551,6 @@ class Database(
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         engine = self._get_sqla_engine(schema)
-        username = utils.get_username()
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
@@ -568,7 +567,6 @@ class Database(
                     engine.url,
                     sql,
                     schema,
-                    get_username(),
                     __name__,
                     security_manager,
                 )
@@ -579,7 +577,6 @@ class Database(
                 if mutate_after_split:
                     sql_ = sql_query_mutator(
                         sql_,
-                        user_name=username,
                         security_manager=security_manager,
                         database=None,
                     )
@@ -590,7 +587,6 @@ class Database(
             if mutate_after_split:
                 last_sql = sql_query_mutator(
                     sqls[-1],
-                    user_name=username,
                     security_manager=security_manager,
                     database=None,
                 )
