@@ -40,7 +40,7 @@ services:
 
   db:
     env_file: docker/.env
-    image: postgres:14
+    image: postgres:15
     container_name: superset_db
     restart: unless-stopped
     ports:
