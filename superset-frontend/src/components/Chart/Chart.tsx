@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
 import {
   ensureIsArray,
@@ -48,18 +47,18 @@ interface AnnotationDataProps {
 
 interface ActionsProps {
   getSavedChart: (
+    chartId: number,
     formData: any,
     force?: boolean,
     timeout?: number,
-    chartId: number,
     dashboardId?: number,
     ownState?: any,
   ) => Promise<any>;
   postChartFormData: (
+    chartId: number,
     formData: any,
     force?: boolean,
     timeout?: number,
-    chartId: number,
     dashboardId?: number,
     ownState?: any,
   ) => Promise<any>;
