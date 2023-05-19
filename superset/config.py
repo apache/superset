@@ -495,6 +495,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
+    "AVOID_COLORS_COLLISION": True,
 }
 
 # ------------------------------
