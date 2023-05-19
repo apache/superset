@@ -18,7 +18,6 @@
  */
 import {
   AdhocFilter,
-  createTimeRangeFromGranularity,
   isAdhocColumn,
   QueryObjectFilterClause,
   SimpleAdhocFilter,
@@ -28,17 +27,13 @@ import {
   CLAUSES,
   EXPRESSION_TYPES,
 } from '../explore/components/controls/FilterControl/types';
-import {
-  OPERATOR_ENUM_TO_OPERATOR_TYPE,
-  Operators,
-} from '../explore/constants';
+import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from '../explore/constants';
 import { translateToSql } from '../explore/components/controls/FilterControl/utils/translateToSQL';
 
 export const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause,
   clause: CLAUSES = CLAUSES.WHERE,
-  isTemporal = false,
-  timeGrain: TimeGranularity = 'P1D',
+  timeGrain: TimeGranularity,
 ) => {
   let result: AdhocFilter;
   if (isAdhocColumn(filterClause.col)) {

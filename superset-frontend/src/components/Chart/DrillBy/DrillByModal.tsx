@@ -26,14 +26,11 @@ import React, {
 } from 'react';
 import {
   BaseFormData,
-  BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
   css,
   ensureIsArray,
-  GenericDataType,
   isDefined,
-  isPhysicalColumn,
   QueryData,
   t,
   useTheme,
@@ -206,17 +203,6 @@ export default function DrillByModal({
     { groupby: column || [] },
   ]);
 
-  const isSimpleFilterTemporal = useCallback(
-    (filter: BinaryQueryObjectFilterClause) =>
-      isPhysicalColumn(filter.col) &&
-      dataset.columns?.some(
-        column =>
-          column.column_name === filter.col &&
-          (column.type_generic === GenericDataType.TEMPORAL || column.is_dttm),
-      ),
-    [dataset.columns],
-  );
-
   const getNewGroupby = useCallback(
     (groupbyCol: Column, fieldName = groupbyFieldName) =>
       Array.isArray(formData[fieldName])
@@ -244,7 +230,6 @@ export default function DrillByModal({
               simpleFilterToAdhoc(
                 filter,
                 CLAUSES.WHERE,
-                isSimpleFilterTemporal(filter),
                 formData.time_grain_sqla,
               ),
             ),
@@ -259,7 +244,7 @@ export default function DrillByModal({
           overridenAdhocFilterFields: new Set<string>(),
         },
       ),
-    [getNewGroupby, isSimpleFilterTemporal],
+    [formData.time_grain_sqla, getNewGroupby],
   );
 
   const getFiltersFromConfigsByFieldName = useCallback(
@@ -273,14 +258,13 @@ export default function DrillByModal({
             simpleFilterToAdhoc(
               filter,
               CLAUSES.WHERE,
-              isSimpleFilterTemporal(filter),
               formData.time_grain_sqla,
             ),
           ),
         ];
         return acc;
       }, {}),
-    [drillByConfigs, isSimpleFilterTemporal],
+    [drillByConfigs, formData.time_grain_sqla],
   );
 
   const onBreadcrumbClick = useCallback(
