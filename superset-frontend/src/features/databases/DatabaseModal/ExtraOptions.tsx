@@ -18,7 +18,11 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  DatabaseConnectionExtension,
+} from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -38,6 +42,7 @@ const ExtraOptions = ({
   onEditorChange,
   onExtraInputChange,
   onExtraEditorChange,
+  extraExtension,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
@@ -45,6 +50,7 @@ const ExtraOptions = ({
   onEditorChange: Function;
   onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   onExtraEditorChange: Function;
+  extraExtension: DatabaseConnectionExtension | undefined;
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
@@ -60,6 +66,10 @@ const ExtraOptions = ({
     }
     return value;
   });
+
+  const ExtraExtensionComponent = extraExtension?.component;
+  const ExtraExtensionLogo = extraExtension?.logo;
+  const ExtensionDescription = extraExtension?.description;
 
   return (
     <Collapse
@@ -437,6 +447,32 @@ const ExtraOptions = ({
           </StyledInputContainer>
         )}
       </Collapse.Panel>
+      {extraExtension && ExtraExtensionComponent && ExtensionDescription && (
+        <Collapse.Panel
+          header={
+            <div>
+              {ExtraExtensionLogo && <ExtraExtensionLogo />}
+              <span
+                css={(theme: SupersetTheme) => ({
+                  fontSize: theme.typography.sizes.l,
+                  fontWeight: theme.typography.weights.bold,
+                })}
+              >
+                {extraExtension?.title}
+              </span>
+              <p className="helper">
+                <ExtensionDescription />
+              </p>
+            </div>
+          }
+          key={extraExtension?.title}
+          collapsible={extraExtension.enabled?.() ? 'header' : 'disabled'}
+        >
+          <StyledInputContainer css={no_margin_bottom}>
+            <ExtraExtensionComponent db={db} onEdit={extraExtension.onEdit} />
+          </StyledInputContainer>
+        </Collapse.Panel>
+      )}
       <Collapse.Panel
         header={
           <div>
