@@ -19,6 +19,7 @@
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   DataRecord,
+  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
   supersetTheme as theme,
@@ -628,226 +629,231 @@ describe('formatSeriesName', () => {
     );
   });
 
-  describe('getLegendProps', () => {
-    it('should return the correct props for scroll type with top orientation without zoom', () => {
-      expect(
-        getLegendProps(
-          LegendType.Scroll,
-          LegendOrientation.Top,
-          true,
-          theme,
-          false,
-        ),
-      ).toEqual({
-        show: true,
-        top: 0,
-        right: 0,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      });
-    });
+  it('should normalize non-UTC string based timestamp', () => {
+    const annualTimeFormatter = getTimeFormatter('%Y');
+    expect(
+      formatSeriesName('1995-01-01 00:00:00.000000', {
+        timeFormatter: annualTimeFormatter,
+        coltype: GenericDataType.TEMPORAL,
+      }),
+    ).toEqual('1995');
+  });
+});
 
-    it('should return the correct props for scroll type with top orientation with zoom', () => {
-      expect(
-        getLegendProps(
-          LegendType.Scroll,
-          LegendOrientation.Top,
-          true,
-          theme,
-          true,
-        ),
-      ).toEqual({
-        show: true,
-        top: 0,
-        right: 55,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      });
-    });
-
-    it('should return the correct props for plain type with left orientation', () => {
-      expect(
-        getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
-      ).toEqual({
-        show: true,
-        left: 0,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      });
-    });
-
-    it('should return the correct props for plain type with right orientation without zoom', () => {
-      expect(
-        getLegendProps(
-          LegendType.Plain,
-          LegendOrientation.Right,
-          false,
-          theme,
-          false,
-        ),
-      ).toEqual({
-        show: false,
-        right: 0,
-        top: 0,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      });
-    });
-
-    it('should return the correct props for plain type with right orientation with zoom', () => {
-      expect(
-        getLegendProps(
-          LegendType.Plain,
-          LegendOrientation.Right,
-          false,
-          theme,
-          true,
-        ),
-      ).toEqual({
-        show: false,
-        right: 0,
-        top: 30,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      });
-    });
-
-    it('should return the correct props for plain type with bottom orientation', () => {
-      expect(
-        getLegendProps(
-          LegendType.Plain,
-          LegendOrientation.Bottom,
-          false,
-          theme,
-        ),
-      ).toEqual({
-        show: false,
-        bottom: 0,
-        orient: 'horizontal',
-        type: 'plain',
-        ...expectedThemeProps,
-      });
+describe('getLegendProps', () => {
+  it('should return the correct props for scroll type with top orientation without zoom', () => {
+    expect(
+      getLegendProps(
+        LegendType.Scroll,
+        LegendOrientation.Top,
+        true,
+        theme,
+        false,
+      ),
+    ).toEqual({
+      show: true,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
     });
   });
 
-  describe('getChartPadding', () => {
-    it('should handle top default', () => {
-      expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
-        bottom: 0,
-        left: 0,
-        right: 0,
-        top: defaultLegendPadding[LegendOrientation.Top],
-      });
+  it('should return the correct props for scroll type with top orientation with zoom', () => {
+    expect(
+      getLegendProps(
+        LegendType.Scroll,
+        LegendOrientation.Top,
+        true,
+        theme,
+        true,
+      ),
+    ).toEqual({
+      show: true,
+      top: 0,
+      right: 55,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
     });
+  });
 
-    it('should handle left default', () => {
-      expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
-        bottom: 0,
-        left: defaultLegendPadding[LegendOrientation.Left],
-        right: 0,
-        top: 0,
-      });
+  it('should return the correct props for plain type with left orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
+    ).toEqual({
+      show: true,
+      left: 0,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
     });
+  });
 
-    it('should return the default padding when show is false', () => {
-      expect(
-        getChartPadding(false, LegendOrientation.Left, 100, {
-          top: 10,
-          bottom: 20,
-          left: 30,
-          right: 40,
-        }),
-      ).toEqual({
+  it('should return the correct props for plain type with right orientation without zoom', () => {
+    expect(
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Right,
+        false,
+        theme,
+        false,
+      ),
+    ).toEqual({
+      show: false,
+      right: 0,
+      top: 0,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
+  });
+
+  it('should return the correct props for plain type with right orientation with zoom', () => {
+    expect(
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Right,
+        false,
+        theme,
+        true,
+      ),
+    ).toEqual({
+      show: false,
+      right: 0,
+      top: 30,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
+  });
+
+  it('should return the correct props for plain type with bottom orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
+    ).toEqual({
+      show: false,
+      bottom: 0,
+      orient: 'horizontal',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
+  });
+});
+
+describe('getChartPadding', () => {
+  it('should handle top default', () => {
+    expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: defaultLegendPadding[LegendOrientation.Top],
+    });
+  });
+
+  it('should handle left default', () => {
+    expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
+      bottom: 0,
+      left: defaultLegendPadding[LegendOrientation.Left],
+      right: 0,
+      top: 0,
+    });
+  });
+
+  it('should return the default padding when show is false', () => {
+    expect(
+      getChartPadding(false, LegendOrientation.Left, 100, {
+        top: 10,
         bottom: 20,
         left: 30,
         right: 40,
-        top: 10,
-      });
-    });
-
-    it('should return the correct padding for left orientation', () => {
-      expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
-        bottom: 0,
-        left: 100,
-        right: 0,
-        top: 0,
-      });
-    });
-
-    it('should return the correct padding for right orientation', () => {
-      expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
-        bottom: 0,
-        left: 0,
-        right: 50,
-        top: 0,
-      });
-    });
-
-    it('should return the correct padding for top orientation', () => {
-      expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
-        bottom: 0,
-        left: 0,
-        right: 0,
-        top: 20,
-      });
-    });
-
-    it('should return the correct padding for bottom orientation', () => {
-      expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
-        bottom: 10,
-        left: 0,
-        right: 0,
-        top: 0,
-      });
+      }),
+    ).toEqual({
+      bottom: 20,
+      left: 30,
+      right: 40,
+      top: 10,
     });
   });
 
-  describe('dedupSeries', () => {
-    it('should deduplicate ids in series', () => {
-      expect(
-        dedupSeries([
-          {
-            id: 'foo',
-          },
-          {
-            id: 'bar',
-          },
-          {
-            id: 'foo',
-          },
-          {
-            id: 'foo',
-          },
-        ]),
-      ).toEqual([
-        { id: 'foo' },
-        { id: 'bar' },
-        { id: 'foo (1)' },
-        { id: 'foo (2)' },
-      ]);
+  it('should return the correct padding for left orientation', () => {
+    expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
+      bottom: 0,
+      left: 100,
+      right: 0,
+      top: 0,
     });
   });
 
-  describe('sanitizeHtml', () => {
-    it('should remove html tags from series name', () => {
-      expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+  it('should return the correct padding for right orientation', () => {
+    expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 50,
+      top: 0,
     });
   });
 
-  describe('getOverMaxHiddenFormatter', () => {
-    it('should hide value if greater than max', () => {
-      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
-      expect(formatter.format(84500)).toEqual('');
+  it('should return the correct padding for top orientation', () => {
+    expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 20,
     });
-    it('should show value if less or equal than max', () => {
-      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
-      expect(formatter.format(81000)).toEqual('81000');
-      expect(formatter.format(50000)).toEqual('50000');
+  });
+
+  it('should return the correct padding for bottom orientation', () => {
+    expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
+      bottom: 10,
+      left: 0,
+      right: 0,
+      top: 0,
     });
+  });
+});
+
+describe('dedupSeries', () => {
+  it('should deduplicate ids in series', () => {
+    expect(
+      dedupSeries([
+        {
+          id: 'foo',
+        },
+        {
+          id: 'bar',
+        },
+        {
+          id: 'foo',
+        },
+        {
+          id: 'foo',
+        },
+      ]),
+    ).toEqual([
+      { id: 'foo' },
+      { id: 'bar' },
+      { id: 'foo (1)' },
+      { id: 'foo (2)' },
+    ]);
+  });
+});
+
+describe('sanitizeHtml', () => {
+  it('should remove html tags from series name', () => {
+    expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+  });
+});
+
+describe('getOverMaxHiddenFormatter', () => {
+  it('should hide value if greater than max', () => {
+    const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+    expect(formatter.format(84500)).toEqual('');
+  });
+  it('should show value if less or equal than max', () => {
+    const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+    expect(formatter.format(81000)).toEqual('81000');
+    expect(formatter.format(50000)).toEqual('50000');
   });
 });
