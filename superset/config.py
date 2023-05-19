@@ -834,7 +834,6 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -1188,7 +1187,6 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(
 #        sql,
-#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
 #        security_manager=security_manager,
 #        database=database,
 #    ):

@@ -117,7 +117,7 @@ from superset.models.helpers import (
 from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType, get_username, MediumText
+from superset.utils.core import GenericDataType, MediumText
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -829,8 +829,6 @@ class SqlaTable(
         if sql_query_mutator and not mutate_after_split:
             sql = sql_query_mutator(
                 sql,
-                # TODO(john-bodley): Deprecate in 3.0.
-                user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
             )

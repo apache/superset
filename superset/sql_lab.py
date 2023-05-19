@@ -53,7 +53,6 @@ from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.celery import session_scope
 from superset.utils.core import (
-    get_username,
     json_iso_dttm_ser,
     override_user,
     QuerySource,
@@ -255,7 +254,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )
@@ -266,7 +264,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 query.database.sqlalchemy_uri,
                 query.executed_sql,
                 query.schema,
-                get_username(),
                 __name__,
                 security_manager,
                 log_params,
