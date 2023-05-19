@@ -82,7 +82,7 @@ class CreateSSHTunnelCommand(BaseCommand):
             exceptions.append(SSHTunnelRequiredFieldValidationError("private_key"))
         if exceptions:
             exception = SSHTunnelInvalidError()
-            exception.add_list(exceptions)
+            exception.extend(exceptions)
             event_logger.log_with_context(
                 action="ssh_tunnel_creation_failed.{}.{}".format(
                     exception.__class__.__name__,

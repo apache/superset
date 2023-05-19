@@ -87,6 +87,4 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)
