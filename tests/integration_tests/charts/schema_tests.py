@@ -61,6 +61,7 @@ class TestSchema(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names")
 
+        payload["queries"][0]["timeseries_limit"] = 2
         payload["queries"][0]["timeseries_limit_metric"] = {
             "expressionType": "SIMPLE",
             "column": {

@@ -1438,6 +1438,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         series_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
+        timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
     ) -> SqlaQuery:
@@ -1466,6 +1467,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
+        # deprecated, to be removed in 2.0
+        if is_timeseries and timeseries_limit:
+            series_limit = timeseries_limit
         series_limit_metric = series_limit_metric or timeseries_limit_metric
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []

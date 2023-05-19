@@ -376,6 +376,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         granularity = self.form_data.get("granularity") or self.form_data.get(
             "granularity_sqla"
         )
+        limit = int(self.form_data.get("limit") or 0)
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
 
         # apply row limit to query
@@ -433,6 +434,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "metrics": metrics,
             "row_limit": row_limit,
             "filter": self.form_data.get("filters", []),
+            "timeseries_limit": limit,
             "extras": extras,
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
@@ -809,6 +811,7 @@ class TableViz(BaseViz):
             query_obj["metrics"] = []
             # raw mode does not support timeseries queries
             query_obj["timeseries_limit_metric"] = None
+            query_obj["timeseries_limit"] = None
             query_obj["is_timeseries"] = None
         else:
             sort_by = self.form_data.get("timeseries_limit_metric")
