@@ -52,23 +52,6 @@ export const simpleFilterToAdhoc = (
         comparator: 'val' in filterClause ? filterClause.val : undefined,
       } as SimpleAdhocFilter),
     };
-  } else if (
-    isTemporal &&
-    'val' in filterClause &&
-    (typeof filterClause.val === 'number' || filterClause.val instanceof Date)
-  ) {
-    const [start, end] = createTimeRangeFromGranularity(
-      new Date(filterClause.val),
-      timeGrain,
-    );
-    result = {
-      expressionType: 'SIMPLE',
-      clause,
-      operator: Operators.TEMPORAL_RANGE,
-      operatorId: Operators.TEMPORAL_RANGE,
-      subject: filterClause.col,
-      comparator: `${start.toISOString()} : ${end.toISOString()}`,
-    } as SimpleAdhocFilter;
   } else {
     result = {
       expressionType: 'SIMPLE',
@@ -79,6 +62,7 @@ export const simpleFilterToAdhoc = (
       )?.[0],
       subject: filterClause.col,
       comparator: 'val' in filterClause ? filterClause.val : undefined,
+      timeGrain,
     } as SimpleAdhocFilter;
   }
   if (filterClause.isExtra) {

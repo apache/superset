@@ -34,6 +34,7 @@ export default function convertFilter(
     return {
       col: subject,
       op: operator,
+      grain: filter.timeGrain,
     };
   }
   if (isBinaryAdhocFilter(filter)) {
@@ -43,6 +44,7 @@ export default function convertFilter(
       col: subject,
       op: operator,
       val: filter.comparator,
+      grain: filter.timeGrain,
     };
   }
 
@@ -52,5 +54,6 @@ export default function convertFilter(
     col: subject,
     op: operator,
     val: filter.comparator,
+    grain: filter.timeGrain,
   };
 }

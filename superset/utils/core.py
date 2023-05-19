@@ -218,6 +218,7 @@ class AdhocFilterClause(TypedDict, total=False):
     subject: str
     isExtra: Optional[bool]
     sqlExpression: Optional[str]
+    timeGrain: Optional[str]
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
@@ -1091,6 +1092,7 @@ def simple_filter_to_adhoc(
         "comparator": filter_clause.get("val"),
         "operator": filter_clause["op"],
         "subject": cast(str, filter_clause["col"]),
+        "timeGrain": filter_clause.get("grain"),
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
