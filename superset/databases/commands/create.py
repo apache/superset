@@ -141,7 +141,7 @@ class CreateDatabaseCommand(BaseCommand):
                 exceptions.append(DatabaseExistsValidationError())
         if exceptions:
             exception = DatabaseInvalidError()
-            exception.add_list(exceptions)
+            exception.extend(exceptions)
             event_logger.log_with_context(
                 action="db_connection_failed.{}.{}".format(
                     exception.__class__.__name__,
