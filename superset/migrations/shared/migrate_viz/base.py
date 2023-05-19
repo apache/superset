@@ -130,8 +130,7 @@ class MigrateViz:
         # only backup params
         slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})
 
-        query_context = try_load_json(slc.query_context)
-        if "form_data" in query_context:
+        if "form_data" in (query_context := try_load_json(slc.query_context)):
             query_context["form_data"] = clz.data
             slc.query_context = json.dumps(query_context)
         return slc
@@ -139,8 +138,7 @@ class MigrateViz:
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> Slice:
         form_data = try_load_json(slc.params)
-        form_data_bak = form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
-        if "viz_type" in form_data_bak:
+        if "viz_type" in (form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})):
             slc.params = json.dumps(form_data_bak)
             slc.viz_type = form_data_bak.get("viz_type")
             query_context = try_load_json(slc.query_context)

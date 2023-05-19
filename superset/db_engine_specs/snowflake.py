@@ -312,9 +312,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         }
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
-        missing = sorted(required - present)
 
-        if missing:
+        if missing := sorted(required - present):
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

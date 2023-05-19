@@ -380,8 +380,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
-        base_filters = self.base_related_field_filters.get(column_name)
-        if base_filters:
+        if base_filters := self.base_related_field_filters.get(column_name):
             filters.add_filter_list(base_filters)
         if value and filter_field:
             filters.add_filter(
@@ -588,8 +587,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
             return self.response_404()
         page, page_size = self._sanitize_page_args(page, page_size)
         # handle ordering
-        order_field = self.order_rel_fields.get(column_name)
-        if order_field:
+        if order_field := self.order_rel_fields.get(column_name):
             order_column, order_direction = order_field
         else:
             order_column, order_direction = "", ""

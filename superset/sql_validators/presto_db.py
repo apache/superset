@@ -54,8 +54,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_query_mutator:
+        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
             sql = sql_query_mutator(
                 sql,
                 user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
