@@ -619,16 +619,14 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
-# the username of the account used to render the queries and dashboards/charts
+# By default, thumbnails are rendered per user, and will fall back to the Selenium
+# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# can be configured to always be rendered as a fixed user. See
+# `superset.tasks.types.ExecutorType` for a full list of executor options.
+# To always use a fixed user account, use the following configuration:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
-
-# To be able to have different thumbnails for different users, use these configs to
-# define which user to execute the thumbnails and potentially custom functions for
-# calculating thumbnail digests. To have unique thumbnails for all users, use the
-# following config:
-# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
-THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
@@ -1249,12 +1247,13 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
+# execute as the primary owner of the alert/report (giving priority to the last
+# modifier and then the creator if either is contained within the list of owners,
+# otherwise the first owner will be used).
+#
 # To first try to execute as the creator in the owners list (if present), then fall
 # back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner (giving priority to the last modifier and then the
-# creator if either is contained within the list of owners, otherwise the first owner
-# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# last modifier, then an owner and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
 #     ExecutorType.CREATOR_OWNER,
 #     ExecutorType.CREATOR,
@@ -1263,7 +1262,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.OWNER,
 #     ExecutorType.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.OWNER]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())

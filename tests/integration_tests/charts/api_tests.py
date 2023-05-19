@@ -605,6 +605,114 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         db.session.delete(model)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_activity_access_disabled(self):
+        """
+        Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
+        """
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        admin = self.get_user("admin")
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
+        chart_data = {
+            "slice_name": (new_name := "title1_changed"),
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+
+        self.assertEqual(model.slice_name, new_name)
+        self.assertEqual(model.changed_by_url, "")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_activity_access_enabled(self):
+        """
+        Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
+        """
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
+        admin = self.get_user("admin")
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
+        chart_data = {
+            "slice_name": (new_name := "title1_changed"),
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+
+        self.assertEqual(model.slice_name, new_name)
+        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_get_list_no_username(self):
+        """
+        Chart API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
+        chart_data = {
+            "slice_name": (new_name := "title1_changed"),
+            "owners": [admin.id],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+
+        response = self.get_assert_metric("api/v1/chart/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_chart = [d for d in res if d["id"] == chart_id][0]
+        self.assertEqual(current_chart["slice_name"], new_name)
+        self.assertNotIn("username", current_chart["changed_by"].keys())
+        self.assertNotIn("username", current_chart["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_get_no_username(self):
+        """
+        Chart API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
+        chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
+        chart_data = {
+            "slice_name": (new_name := "title1_changed"),
+            "owners": [admin.id],
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Slice).get(chart_id)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["slice_name"], new_name)
+        self.assertNotIn("username", res["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
     def test_update_chart_new_owner_not_admin(self):
         """
         Chart API: Test update set new owner implicitly adds logged in owner
@@ -823,7 +931,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "owners": [
                 {
                     "id": 1,
-                    "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
                 }

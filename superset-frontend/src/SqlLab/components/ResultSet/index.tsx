@@ -42,9 +42,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable, {
-  MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable';
+import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
@@ -282,12 +280,7 @@ const ResultSet = ({
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
-              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
-              placeholder={
-                columns.length > MAX_COLUMNS_FOR_TABLE
-                  ? t('Too many columns to filter')
-                  : t('Filter results')
-              }
+              placeholder={t('Filter results')}
             />
           )}
         </ResultSetControls>
@@ -486,7 +479,7 @@ const ResultSet = ({
     // We need to calculate the height of this.renderRowsReturned()
     // if we want results panel to be proper height because the
     // FilterTable component needs an explicit height to render
-    // react-virtualized Table component
+    // the Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
       : height - rowMessageHeight;
