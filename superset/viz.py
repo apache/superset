@@ -365,10 +365,11 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         metrics = self.all_metrics or []
 
         groupby = self.dedup_columns(self.groupby, self.form_data.get("columns"))
-        groupby_labels = get_column_names(groupby)
 
         is_timeseries = self.is_timeseries
-        if DTTM_ALIAS in groupby_labels:
+
+        # pylint: disable=superfluous-parens
+        if DTTM_ALIAS in (groupby_labels := get_column_names(groupby)):
             del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
 
@@ -959,8 +960,7 @@ class PivotTableViz(BaseViz):
 
         if len(deduped_cols) < (len(groupby) + len(columns)):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
+        if sort_by := self.form_data.get("timeseries_limit_metric"):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
                 query_obj["metrics"].append(sort_by)
@@ -1077,8 +1077,7 @@ class TreemapViz(BaseViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         query_obj = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
+        if sort_by := self.form_data.get("timeseries_limit_metric"):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
                 query_obj["metrics"].append(sort_by)
@@ -1880,8 +1879,7 @@ class DistributionBarViz(BaseViz):
         if not self.form_data.get("groupby"):
             raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
 
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
+        if sort_by := self.form_data.get("timeseries_limit_metric"):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
                 query_obj["metrics"].append(sort_by)
@@ -2310,8 +2308,7 @@ class ParallelCoordinatesViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         query_obj = super().query_obj()
         query_obj["groupby"] = [self.form_data.get("series")]
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
+        if sort_by := self.form_data.get("timeseries_limit_metric"):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
                 query_obj["metrics"].append(sort_by)
@@ -2679,8 +2676,7 @@ class BaseDeckGLViz(BaseViz):
         if self.form_data.get("adhoc_filters") is None:
             self.form_data["adhoc_filters"] = []
 
-        line_column = self.form_data.get("line_column")
-        if line_column:
+        if line_column := self.form_data.get("line_column"):
             spatial_columns.add(line_column)
 
         for column in sorted(spatial_columns):
@@ -2706,13 +2702,12 @@ class BaseDeckGLViz(BaseViz):
 
         if self.form_data.get("js_columns"):
             group_by += self.form_data.get("js_columns") or []
-        metrics = self.get_metrics()
         # Ensure this value is sorted so that it does not
         # cause the cache key generation (which hashes the
         # query object) to generate different keys for values
         # that should be considered the same.
         group_by = sorted(set(group_by))
-        if metrics:
+        if metrics := self.get_metrics():
             query_obj["groupby"] = group_by
             query_obj["metrics"] = metrics
             query_obj["columns"] = []
@@ -3097,8 +3092,7 @@ class PairedTTestViz(BaseViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         query_obj = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
+        if sort_by := self.form_data.get("timeseries_limit_metric"):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
                 query_obj["metrics"].append(sort_by)

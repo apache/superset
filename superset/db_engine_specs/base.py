@@ -1704,8 +1704,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param source: Type coming from the database table or cursor description
         :return: ColumnSpec object
         """
-        col_types = cls.get_column_types(native_type)
-        if col_types:
+        if col_types := cls.get_column_types(native_type):
             column_type, generic_type = col_types
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
@@ -1996,9 +1995,8 @@ class BasicParametersMixin:
         required = {"host", "port", "username", "database"}
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
-        missing = sorted(required - present)
 
-        if missing:
+        if missing := sorted(required - present):
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

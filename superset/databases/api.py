@@ -1036,7 +1036,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"database_export_{timestamp}"
@@ -1060,7 +1059,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 

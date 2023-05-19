@@ -55,8 +55,7 @@ class BulkDeleteChartCommand(BaseCommand):
         if not self._models or len(self._models) != len(self._model_ids):
             raise ChartNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_chart_ids(self._model_ids)
-        if reports:
+        if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise ChartBulkDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))
