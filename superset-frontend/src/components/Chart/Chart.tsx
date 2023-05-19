@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import PropTypes from 'prop-types';
 import React from 'react';
 import {
   ensureIsArray,
@@ -39,40 +40,71 @@ import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
+// Type definitions for PropTypes
+
+interface AnnotationDataProps {
+  [key: string]: any;
+}
+
+interface ActionsProps {
+  getSavedChart: (
+    formData: any,
+    force?: boolean,
+    timeout?: number,
+    chartId: number,
+    dashboardId?: number,
+    ownState?: any,
+  ) => Promise<any>;
+  postChartFormData: (
+    formData: any,
+    force?: boolean,
+    timeout?: number,
+    chartId: number,
+    dashboardId?: number,
+    ownState?: any,
+  ) => Promise<any>;
+  chartRenderingFailed: (
+    error: string,
+    chartId: number,
+    componentStack?: string,
+  ) => void;
+  logEvent: (eventName: string, eventData: any) => void;
+}
+
 interface ChartProps {
-  annotationData?: any;
-  actions: any;
+  annotationData: AnnotationDataProps;
+  actions: ActionsProps;
   chartId: number;
-  datasource?: any;
+  datasource: any;
   dashboardId?: number;
-  initialValues?: any;
+  initialValues: any;
   formData: any;
-  labelColors?: any;
-  sharedLabelColors?: any;
-  width?: number;
-  height?: number;
-  setControlValue?: Function;
-  timeout?: number;
+  labelColors: any;
+  sharedLabelColors: any;
+  width: number;
+  height: number;
+  setControlValue: (key: string, value: any) => void;
+  timeout: number;
   vizType: string;
-  triggerRender?: boolean;
-  force?: boolean;
-  isFiltersInitialized?: boolean;
+  triggerRender: boolean;
+  force: boolean;
+  isFiltersInitialized: boolean;
   chartAlert?: string;
   chartStatus?: string;
   chartStackTrace?: string;
   queriesResponse?: any[];
-  triggerQuery?: boolean;
-  chartIsStale?: boolean;
-  errorMessage?: React.ReactNode;
-  addFilter?: Function;
-  onQuery?: Function;
-  onFilterMenuOpen?: Function;
-  onFilterMenuClose?: Function;
-  ownState?: any;
-  postTransformProps?: Function;
-  datasetsStatus?: 'loading' | 'error' | 'complete';
-  isInView?: boolean;
-  emitCrossFilters?: boolean;
+  triggerQuery: boolean;
+  chartIsStale: boolean;
+  errorMessage?: React.Node;
+  addFilter: () => any;
+  onQuery: () => any;
+  onFilterMenuOpen: () => any;
+  onFilterMenuClose: () => any;
+  ownState: any;
+  postTransformProps: () => any;
+  datasetsStatus: 'loading' | 'error' | 'complete';
+  isInView: boolean;
+  emitCrossFilters: boolean;
 }
 
 const BLANK = {};
@@ -80,7 +112,7 @@ const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
 
-const defaultProps: Partial<ChartProps> = {
+const defaultProps = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
   onFilterMenuClose: () => BLANK,
@@ -99,20 +131,32 @@ const Styles = styled.div`
 
   .chart-tooltip {
     opacity: 0.75;
-    border-radius: ${p => p.theme.gridUnit}px;
-    background-color: ${p => p.theme.colors.secondary.dark2};
-    color: ${p => p.theme.colors.grayscale.light5};
-    padding: ${p => p.theme.gridUnit}px ${p => p.theme.gridUnit * 2}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
-  &.isEmpty .loading {
-    display: none;
+  .slice_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    height: ${p => p.height}px;
+
+    .pivot_table tbody tr {
+      font-feature-settings: 'tnum' 1;
+    }
+
+    .alert {
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
+    }
   }
 `;
-
-class Chart extends React.PureComponent<ChartProps, any> {
-  static defaultProps = defaultProps;
-
+const MonospaceDiv = styled.div`
+  font-family: ${({ theme }) => theme.typography.families.monospace};
+  word-break: break-word;
+  overflow-x: auto;
+  white-space: pre-wrap;
+`;
+class Chart extends React.PureComponent<ChartProps> {
   constructor(props) {
     super(props);
     this.handleRenderContainerFailure =
@@ -305,3 +349,7 @@ class Chart extends React.PureComponent<ChartProps, any> {
     );
   }
 }
+
+Chart.defaultProps = defaultProps;
+
+export default Chart;
