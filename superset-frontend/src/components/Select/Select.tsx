@@ -441,8 +441,8 @@ const Select = forwardRef(
       onChange?.(newValues, newOptions);
     };
 
-    const shouldUseChildrenOptions = useMemo(
-      () => !selectAllEnabled || hasCustomLabels(options),
+    const shouldRenderChildrenOptions = useMemo(
+      () => selectAllEnabled || hasCustomLabels(options),
       [selectAllEnabled, options],
     );
 
@@ -499,7 +499,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          {...(!shouldUseChildrenOptions && { options: fullSelectOptions })}
+          {...(!shouldRenderChildrenOptions && { options: fullSelectOptions })}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
@@ -515,7 +515,8 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {shouldUseChildrenOptions && renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );
