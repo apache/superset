@@ -177,6 +177,4 @@ class UpdateDatabaseCommand(BaseCommand):
             ):
                 exceptions.append(DatabaseExistsValidationError())
         if exceptions:
-            exception = DatabaseInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatabaseInvalidError(exceptions=exceptions)

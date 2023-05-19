@@ -225,12 +225,10 @@ class SupersetResultSet:
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
-        set_type = self._type_dict.get(col_name)
-        if set_type:
+        if set_type := self._type_dict.get(col_name):
             return set_type
 
-        mapped_type = self.convert_pa_dtype(pa_dtype)
-        if mapped_type:
+        if mapped_type := self.convert_pa_dtype(pa_dtype):
             return mapped_type
 
         return None

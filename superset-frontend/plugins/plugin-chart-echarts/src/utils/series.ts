@@ -29,6 +29,7 @@ import {
   NumberFormatter,
   TimeFormatter,
   SupersetTheme,
+  normalizeTimestamp,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
@@ -336,7 +337,12 @@ export function formatSeriesName(
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
-    const d = name instanceof Date ? name : new Date(name);
+    const normalizedName =
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
+    const d =
+      normalizedName instanceof Date
+        ? normalizedName
+        : new Date(normalizedName);
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
   }

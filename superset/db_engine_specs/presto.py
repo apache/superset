@@ -1213,8 +1213,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     ) -> Dict[str, Any]:
         metadata = {}
 
-        indexes = database.get_indexes(table_name, schema_name)
-        if indexes:
+        if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -1278,8 +1277,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
-        tracking_url = cls.get_tracking_url(cursor)
-        if tracking_url:
+        if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
             session.commit()
 
