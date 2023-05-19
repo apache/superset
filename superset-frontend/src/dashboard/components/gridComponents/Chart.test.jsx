@@ -62,6 +62,7 @@ describe('Chart', () => {
     addDangerToast() {},
     exportCSV() {},
     exportFullCSV() {},
+    exportXLSX() {},
     componentId: 'test',
     dashboardId: 111,
     editMode: false,
@@ -143,6 +144,22 @@ describe('Chart', () => {
     wrapper.instance().exportFullCSV(props.slice.sliceId);
     expect(stubbedExportCSV.calledOnce).toBe(true);
     expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(666);
+    exploreUtils.exportChart.restore();
+  });
+  it('should call exportChart when exportXLSX is clicked', () => {
+    const stubbedExportXLSX = sinon
+      .stub(exploreUtils, 'exportChart')
+      .returns(() => {});
+    const wrapper = setup();
+    wrapper.instance().exportXLSX(props.slice.sliceId);
+    expect(stubbedExportXLSX.calledOnce).toBe(true);
+    expect(stubbedExportXLSX.lastCall.args[0]).toEqual(
+      expect.objectContaining({
+        formData: expect.anything(),
+        resultType: 'full',
+        resultFormat: 'xlsx',
+      }),
+    );
     exploreUtils.exportChart.restore();
   });
 });
