@@ -24,7 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import app
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     RolesNotFoundValidationError,
