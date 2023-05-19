@@ -404,7 +404,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
+        columns: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Select]:
         try:
             col_names, values = cls.latest_partition(
