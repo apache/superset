@@ -44,11 +44,13 @@ from superset.row_level_security.schemas import (
     RLSPutSchema,
     RLSShowSchema,
 )
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedRoles
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
     edit_model_schema = RLSPutSchema()
 
     allowed_rel_fields = {"tables", "roles"}
-    base_related_field_filters = app.config["RLS_BASE_RELATED_FIELD_FILTERS"]
+    base_related_field_filters = {
+        "tables": [["id", DatasourceFilter, lambda: []]],
+        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+    }
 
     @expose("/", methods=("POST",))
     @protect()

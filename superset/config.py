@@ -1379,18 +1379,6 @@ TALISMAN_CONFIG = {
     "force_https_permanent": False,
 }
 
-# It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `filter_rel_fields`
-# on `RLSRestApi`. Example:
-#
-# from flask_appbuilder.models.sqla import filters
-
-# RLS_BASE_RELATED_FIELD_FILTERS = {
-#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#     "roles": [["name", filters.FilterContains, "Admin"]]
-# }
-RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
-
 #
 # Flask session cookie options
 #
