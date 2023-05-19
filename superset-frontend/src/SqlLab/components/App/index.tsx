@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
@@ -97,15 +96,28 @@ const SqlLabStyles = styled.div`
   `};
 `;
 
-class App extends React.PureComponent {
-  constructor(props) {
+interface AppProps {
+  actions: typeof Actions & {
+    logEvent: typeof logEvent;
+  };
+  common: object;
+  localStorageUsageInKilobytes: number;
+  queries: any[];
+  queriesLastUpdate: Date;
+}
+
+interface AppState {
+  hash: string;
+}
+class App extends React.PureComponent<AppProps, AppState> {
+  constructor(props: AppProps) {
     super(props);
     this.state = {
       hash: window.location.hash,
     };
 
     this.showLocalStorageUsageWarning = throttle(
-      this.showLocalStorageUsageWarning,
+      this.showLocalStorageUsageWarning.bind(this),
       LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
       { trailing: false },
     );
@@ -185,13 +197,16 @@ class App extends React.PureComponent {
   }
 }
 
-App.propTypes = {
-  actions: PropTypes.object,
-  common: PropTypes.object,
-  localStorageUsageInKilobytes: PropTypes.number.isRequired,
-};
+interface RootState {
+  common: object;
+  localStorageUsageInKilobytes: number;
+  sqlLab?: {
+    queries: any[];
+    queriesLastUpdate: Date;
+  };
+}
 
-function mapStateToProps(state) {
+function mapStateToProps(state: RootState) {
   const { common, localStorageUsageInKilobytes, sqlLab } = state;
   return {
     common,
@@ -201,7 +216,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return {
     actions: bindActionCreators({ ...Actions, logEvent }, dispatch),
   };
