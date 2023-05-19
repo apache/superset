@@ -62,7 +62,7 @@ type HeaderProps = {
 const AddFiltersButtonContainer = styled.div`
   ${({ theme }) => css`
     margin-left: auto;
-    margin-right: 32px;
+    margin-right: 16px;
 
     & button > [role='img']:first-of-type {
       margin-right: ${theme.gridUnit}px;
