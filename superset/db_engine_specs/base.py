@@ -1276,7 +1276,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
         database: Database,
         query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
+        columns: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
