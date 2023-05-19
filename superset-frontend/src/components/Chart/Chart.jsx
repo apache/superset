@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
 import {
   ensureIsArray,
@@ -40,56 +39,48 @@ import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
-const propTypes = {
-  annotationData: PropTypes.object,
-  actions: PropTypes.object,
-  chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object,
-  // current chart is included by dashboard
-  dashboardId: PropTypes.number,
-  // original selected values for FilterBox viz
-  // so that FilterBox can pre-populate selected values
-  // only affect UI control
-  initialValues: PropTypes.object,
-  // formData contains chart's own filter parameter
-  // and merged with extra filter that current dashboard applying
-  formData: PropTypes.object.isRequired,
-  labelColors: PropTypes.object,
-  sharedLabelColors: PropTypes.object,
-  width: PropTypes.number,
-  height: PropTypes.number,
-  setControlValue: PropTypes.func,
-  timeout: PropTypes.number,
-  vizType: PropTypes.string.isRequired,
-  triggerRender: PropTypes.bool,
-  force: PropTypes.bool,
-  isFiltersInitialized: PropTypes.bool,
-  // state
-  chartAlert: PropTypes.string,
-  chartStatus: PropTypes.string,
-  chartStackTrace: PropTypes.string,
-  queriesResponse: PropTypes.arrayOf(PropTypes.object),
-  triggerQuery: PropTypes.bool,
-  chartIsStale: PropTypes.bool,
-  errorMessage: PropTypes.node,
-  // dashboard callbacks
-  addFilter: PropTypes.func,
-  onQuery: PropTypes.func,
-  onFilterMenuOpen: PropTypes.func,
-  onFilterMenuClose: PropTypes.func,
-  ownState: PropTypes.object,
-  postTransformProps: PropTypes.func,
-  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
-  isInView: PropTypes.bool,
-  emitCrossFilters: PropTypes.bool,
-};
+interface ChartProps {
+  annotationData?: any;
+  actions: any;
+  chartId: number;
+  datasource?: any;
+  dashboardId?: number;
+  initialValues?: any;
+  formData: any;
+  labelColors?: any;
+  sharedLabelColors?: any;
+  width?: number;
+  height?: number;
+  setControlValue?: Function;
+  timeout?: number;
+  vizType: string;
+  triggerRender?: boolean;
+  force?: boolean;
+  isFiltersInitialized?: boolean;
+  chartAlert?: string;
+  chartStatus?: string;
+  chartStackTrace?: string;
+  queriesResponse?: any[];
+  triggerQuery?: boolean;
+  chartIsStale?: boolean;
+  errorMessage?: React.ReactNode;
+  addFilter?: Function;
+  onQuery?: Function;
+  onFilterMenuOpen?: Function;
+  onFilterMenuClose?: Function;
+  ownState?: any;
+  postTransformProps?: Function;
+  datasetsStatus?: 'loading' | 'error' | 'complete';
+  isInView?: boolean;
+  emitCrossFilters?: boolean;
+}
 
 const BLANK = {};
 const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
 
-const defaultProps = {
+const defaultProps: Partial<ChartProps> = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
   onFilterMenuClose: () => BLANK,
@@ -108,34 +99,20 @@ const Styles = styled.div`
 
   .chart-tooltip {
     opacity: 0.75;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    border-radius: ${p => p.theme.gridUnit}px;
+    background-color: ${p => p.theme.colors.secondary.dark2};
+    color: ${p => p.theme.colors.grayscale.light5};
+    padding: ${p => p.theme.gridUnit}px ${p => p.theme.gridUnit * 2}px;
   }
 
-  .slice_container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    height: ${p => p.height}px;
-
-    .pivot_table tbody tr {
-      font-feature-settings: 'tnum' 1;
-    }
-
-    .alert {
-      margin: ${({ theme }) => theme.gridUnit * 2}px;
-    }
+  &.isEmpty .loading {
+    display: none;
   }
 `;
 
-const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
-  word-break: break-word;
-  overflow-x: auto;
-  white-space: pre-wrap;
-`;
-
-class Chart extends React.PureComponent {
+class Chart extends React.PureComponent<ChartProps, any> {
+  static defaultProps = defaultProps;
+  
   constructor(props) {
     super(props);
     this.handleRenderContainerFailure =
@@ -328,8 +305,3 @@ class Chart extends React.PureComponent {
     );
   }
 }
-
-Chart.propTypes = propTypes;
-Chart.defaultProps = defaultProps;
-
-export default Chart;
