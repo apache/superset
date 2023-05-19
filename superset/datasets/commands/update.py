@@ -114,13 +114,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatasetEndpointUnsafeValidationError())
 
         # Validate columns
-        columns = self._properties.get("columns")
-        if columns:
+        if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)
 
         # Validate metrics
-        metrics = self._properties.get("metrics")
-        if metrics:
+        if metrics := self._properties.get("metrics"):
             self._validate_metrics(metrics, exceptions)
 
         if exceptions:

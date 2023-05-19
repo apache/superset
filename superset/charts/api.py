@@ -649,8 +649,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         # fetch the chart screenshot using the current user and cache if set
-        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
-        if img:
+        if img := ChartScreenshot.get_from_cache_key(thumbnail_cache, digest):
             return Response(
                 FileWrapper(img), mimetype="image/png", direct_passthrough=True
             )
@@ -783,7 +782,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"chart_export_{timestamp}"
@@ -805,7 +803,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 

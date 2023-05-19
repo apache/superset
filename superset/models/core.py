@@ -277,9 +277,8 @@ class Database(
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = self.masked_encrypted_extra
         encrypted_config = {}
-        if masked_encrypted_extra is not None:
+        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
             try:
                 encrypted_config = json.loads(masked_encrypted_extra)
             except (TypeError, json.JSONDecodeError):
