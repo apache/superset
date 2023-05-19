@@ -243,10 +243,9 @@ export function useSingleViewResource<D extends object = any>(
         loading: true,
       });
 
+      const baseEndpoint = `/api/v1/${resourceName}/${resourceID}`;
       const endpoint =
-        path_suffix !== ''
-          ? `/api/v1/${resourceName}/${resourceID}/${path_suffix}`
-          : `/api/v1/${resourceName}/${resourceID}`;
+        path_suffix !== '' ? `${baseEndpoint}/${path_suffix}` : baseEndpoint;
       return SupersetClient.get({
         endpoint,
       })

@@ -146,8 +146,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "driver",
         "force_ctas_schema",
         "impersonate_user",
-        "extra",
-        "server_cert",
         "is_managed_externally",
         "engine_information",
     ]
@@ -243,7 +241,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get database connection info.
         ---
         get:
-          description: >-
+          summary: >-
             Get a database connection info
           parameters:
           - in: path

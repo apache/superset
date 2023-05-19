@@ -250,12 +250,10 @@ def test_database_connection(
                 "supports_file_upload": False,
             },
             "expose_in_sqllab": True,
-            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',
             "force_ctas_schema": None,
             "id": 1,
             "impersonate_user": False,
             "is_managed_externally": False,
-            "server_cert": None,
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
