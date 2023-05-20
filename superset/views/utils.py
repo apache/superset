@@ -55,7 +55,6 @@ from superset.viz import BaseViz
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
 
-
 REJECTED_FORM_DATA_KEYS: List[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
@@ -562,7 +561,8 @@ def _deserialize_results_payload(
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             try:
-                pa_table = pa.deserialize(ds_payload["data"])
+                reader = pa.BufferReader(ds_payload["data"])
+                pa_table = pa.ipc.open_stream(reader).read_all()
             except pa.ArrowSerializationError as ex:
                 raise SerializationError("Unable to deserialize table") from ex
 
