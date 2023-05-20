@@ -38,8 +38,7 @@ from flask_appbuilder.security.decorators import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
-from sqlalchemy.orm.session import Session
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import (
     app,
@@ -54,11 +53,9 @@ from superset import (
     sql_lab,
     viz,
 )
-from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -75,7 +72,6 @@ from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -91,10 +87,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
-from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
-from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
