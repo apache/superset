@@ -83,7 +83,9 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
-    # via thrift-sasl
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydruid==0.6.5
     # via apache-superset
 pyhive @ git+https://github.com/dropbox/PyHive.git@ff984798fac577f286556fcd81c87556c69ff506
@@ -101,8 +103,6 @@ rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
     # via boto3
-sasl==0.3.1
-    # via pyhive
 sqloxide==0.1.33
     # via -r requirements/development.in
 stack-data==0.6.2

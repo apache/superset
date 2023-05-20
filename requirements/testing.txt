@@ -18,8 +18,6 @@ db-dtypes==1.1.1
     # via pandas-gbq
 docker==6.1.1
     # via -r requirements/testing.in
-exceptiongroup==1.1.1
-    # via pytest
 flask-testing==0.8.1
     # via -r requirements/testing.in
 freezegun==1.2.2
