@@ -50,7 +50,10 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
 
   useEffect(() => {
     // add z-index to contours
-    const newContours = contours.map((contour, index) => ({ ...contour, zIndex: (index + 1) * 10 }));
+    const newContours = contours.map((contour, index) => ({
+      ...contour,
+      zIndex: (index + 1) * 10,
+    }));
     onChange?.(newContours);
   }, [onChange, contours]);
 
@@ -84,12 +87,14 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
 
   const valuesRenderer = () =>
     contours.map((contour, index) => (
-      <ContourOption
-        contour={contour}
-        index={index}
-        onClose={removeContour}
-        onShift={onShiftContour}
-      />
+      <ContourPopoverTrigger saveContour={saveContour} value={contour}>
+        <ContourOption
+          contour={contour}
+          index={index}
+          onClose={removeContour}
+          onShift={onShiftContour}
+        />
+      </ContourPopoverTrigger>
     ));
 
   const ghostButtonText = 'Click to add a contour';
@@ -107,8 +112,9 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
       />
       <ContourPopoverTrigger
         saveContour={saveContour}
+        isControlled
         visible={popoverVisible}
-        togglePopover={togglePopover}
+        toggleVisibility={setpopoverVisible}
       />
     </>
   );

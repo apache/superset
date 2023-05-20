@@ -9,8 +9,8 @@ export interface colorType {
 }
 
 export interface contourType extends OptionValueType {
-  color: colorType | undefined;
-  lowerThreshold: number | undefined;
+  color?: colorType | undefined;
+  lowerThreshold?: number | undefined;
   upperThreshold?: number | undefined;
   strokeWidth?: number | undefined;
 }
@@ -23,12 +23,14 @@ export interface ContourControlProps
 export interface ContourPopoverTriggerProps {
   description?: string;
   hovered?: boolean;
-  value?: string;
+  value?: contourType;
   children?: React.ReactNode;
   onChange?: (value: string) => void;
+  onEdit?: () => void;
   saveContour: (contour: contourType) => void;
-  visible: boolean;
-  togglePopover: (visible: boolean) => void;
+  isControlled?: boolean;
+  visible?: boolean;
+  toggleVisibility?: (visibility: boolean) => void;
 }
 
 export interface ContourPopoverControlProps {
