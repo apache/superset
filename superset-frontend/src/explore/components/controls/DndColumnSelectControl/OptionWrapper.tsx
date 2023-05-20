@@ -59,6 +59,7 @@ export default function OptionWrapper(
     isExtra,
     datasourceWarningMessage,
     canDelete = true,
+    hideTooltip = false,
     ...rest
   } = props;
   const ref = useRef<HTMLDivElement>(null);
@@ -126,7 +127,7 @@ export default function OptionWrapper(
       labelRef.current.scrollWidth > labelRef.current.clientWidth);
 
   const LabelContent = () => {
-    if (!shouldShowTooltip) {
+    if (!shouldShowTooltip || hideTooltip) {
       return <span>{label}</span>;
     }
     return (

@@ -95,7 +95,7 @@ const ContourOption = ({
         withCaret
         clickClose={onClose}
         onShiftOptions={onShift}
-        tooltipTitle=""
+        hideTooltip
       />
     </Tooltip>
   );
