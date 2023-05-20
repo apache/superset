@@ -24,7 +24,8 @@ import { styled, t } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
-import { ContourPopoverControlProps, colorType } from './types';
+import { ContourPopoverControlProps, colorType, contourType } from './types';
+import { init } from 'lodash/fp';
 
 enum CONTOUR_TYPES {
   ISOLINE = 'ISOLINE',
@@ -40,13 +41,26 @@ const StyledRow = styled(Row)`
   gap: 10px;
 `;
 
+const isIsoband = (contour: contourType) => {
+  if (Object.keys(contour).length < 4) {
+    return false;
+  }
+  return contour.upperThreshold && contour.lowerThreshold;
+};
+
+const getInitTabKey = (contour: contourType | undefined) => {
+  return contour && isIsoband(contour)
+    ? CONTOUR_TYPES.ISOBAND
+    : CONTOUR_TYPES.ISOLINE;
+};
+
 const ContourPopoverControl = ({
   value: initialValue,
   onSave,
   onClose,
   onChange,
 }: ContourPopoverControlProps) => {
-  const [currentTab, setCurrentTab] = useState(CONTOUR_TYPES.ISOLINE);
+  const [currentTab, setCurrentTab] = useState(getInitTabKey(initialValue));
   const [contour, setContour] = useState(
     initialValue || {
       lowerThreshold: undefined,
@@ -127,7 +141,10 @@ const ContourPopoverControl = ({
             description="test"
             hovered
           />
-          <TextControl onChange={updateLowerThreshold} />
+          <TextControl
+            value={contour.lowerThreshold}
+            onChange={updateLowerThreshold}
+          />
         </Col>
         <Col flex="1">
           <ControlHeader
@@ -136,7 +153,10 @@ const ContourPopoverControl = ({
             description="test"
             hovered
           />
-          <TextControl onChange={updateUpperThreshold} />
+          <TextControl
+            value={contour.upperThreshold}
+            onChange={updateUpperThreshold}
+          />
         </Col>
       </StyledRow>
       <StyledRow>
@@ -166,7 +186,10 @@ const ContourPopoverControl = ({
             description="test"
             hovered
           />
-          <TextControl onChange={updateLowerThreshold} />
+          <TextControl
+            value={contour.lowerThreshold}
+            onChange={updateLowerThreshold}
+          />
         </Col>
       </StyledRow>
       <StyledRow>
@@ -177,7 +200,10 @@ const ContourPopoverControl = ({
             description="test"
             hovered
           />
-          <TextControl onChange={updateStrokeWidth} />
+          <TextControl
+            value={contour.strokeWidth}
+            onChange={updateStrokeWidth}
+          />
         </Col>
         <Col flex="1">
           <ControlHeader
@@ -197,7 +223,11 @@ const ContourPopoverControl = ({
 
   return (
     <>
-      <Tabs id="contour-edit-tabs" onChange={onTabChange}>
+      <Tabs
+        id="contour-edit-tabs"
+        onChange={onTabChange}
+        defaultActiveKey={getInitTabKey(initialValue)}
+      >
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
           key={CONTOUR_TYPES.ISOLINE}
