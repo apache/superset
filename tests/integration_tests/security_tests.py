@@ -1363,7 +1363,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
         self.assertIn(("can_fave_slices", "Superset"), perm_set)
-        self.assertIn(("can_save_dash", "Superset"), perm_set)
         self.assertIn(("can_slice", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
@@ -1401,9 +1400,6 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("UserDBModelView", perm_set)
 
         self.assertIn(("all_database_access", "all_database_access"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_approve", "Superset"), perm_set)
 
         self.assert_can_menu("Security", perm_set)
         self.assert_can_menu("List Users", perm_set)
@@ -1444,11 +1440,6 @@ class TestRolePermission(SupersetTestCase):
                 security_manager.find_permission_view_menu(
                     "can_edit", "UserDBModelView"
                 )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_approve", "Superset")
             )
         )
 
@@ -1537,8 +1528,6 @@ class TestRolePermission(SupersetTestCase):
 
     def test_granter_permissions(self):
         granter_set = get_perm_tuples("granter")
-        self.assertIn(("can_override_role_permissions", "Superset"), granter_set)
-        self.assertIn(("can_approve", "Superset"), granter_set)
 
         self.assert_cannot_alpha(granter_set)
 
@@ -1573,7 +1562,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
         self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 

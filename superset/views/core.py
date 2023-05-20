@@ -38,7 +38,7 @@ from flask_appbuilder.security.decorators import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import DBAPIError, NoSuchModuleError
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
 
 from superset import (
     app,
@@ -53,9 +53,11 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -72,6 +74,7 @@ from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -87,7 +90,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
+from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
+from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
@@ -583,6 +589,230 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if url.query:
             return f"{url.path}?{url.query}"
         return url.path
+
+    @has_access
+    @event_logger.log_this
+    @expose(
+        "/explore/<datasource_type>/<int:datasource_id>/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
+    @expose(
+        "/explore/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
+    @deprecated()
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def explore(
+        self,
+        datasource_type: Optional[str] = None,
+        datasource_id: Optional[int] = None,
+        key: Optional[str] = None,
+    ) -> FlaskResponse:
+        if request.method == "GET":
+            return redirect(Superset.get_redirect_url())
+
+        initial_form_data = {}
+
+        form_data_key = request.args.get("form_data_key")
+        if key is not None:
+            command = GetExplorePermalinkCommand(key)
+            try:
+                permalink_value = command.run()
+                if permalink_value:
+                    state = permalink_value["state"]
+                    initial_form_data = state["formData"]
+                    url_params = state.get("urlParams")
+                    if url_params:
+                        initial_form_data["url_params"] = dict(url_params)
+                else:
+                    return json_error_response(
+                        _("Error: permalink state not found"), status=404
+                    )
+            except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
+                flash(__("Error: %(msg)s", msg=ex.message), "danger")
+                return redirect("/chart/list/")
+        elif form_data_key:
+            parameters = CommandParameters(key=form_data_key)
+            value = GetFormDataCommand(parameters).run()
+            initial_form_data = json.loads(value) if value else {}
+
+        if not initial_form_data:
+            slice_id = request.args.get("slice_id")
+            dataset_id = request.args.get("dataset_id")
+            if slice_id:
+                initial_form_data["slice_id"] = slice_id
+                if form_data_key:
+                    flash(
+                        _("Form data not found in cache, reverting to chart metadata.")
+                    )
+            elif dataset_id:
+                initial_form_data["datasource"] = f"{dataset_id}__table"
+                if form_data_key:
+                    flash(
+                        _(
+                            "Form data not found in cache, reverting to dataset metadata."
+                        )
+                    )
+
+        form_data, slc = get_form_data(
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
+
+        query_context = request.form.get("query_context")
+
+        try:
+            datasource_id, datasource_type = get_datasource_info(
+                datasource_id, datasource_type, form_data
+            )
+        except SupersetException:
+            datasource_id = None
+            # fallback unknown datasource to table type
+            datasource_type = SqlaTable.type
+
+        datasource: Optional[BaseDatasource] = None
+        if datasource_id is not None:
+            try:
+                datasource = DatasourceDAO.get_datasource(
+                    db.session,
+                    DatasourceType("table"),
+                    datasource_id,
+                )
+            except DatasetNotFoundError:
+                pass
+        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
+
+        if datasource:
+            if config["ENABLE_ACCESS_REQUEST"] and (
+                not security_manager.can_access_datasource(datasource)
+            ):
+                flash(
+                    __(security_manager.get_datasource_access_error_msg(datasource)),
+                    "danger",
+                )
+                return redirect(
+                    "superset/request_access/?"
+                    f"datasource_type={datasource_type}&"
+                    f"datasource_id={datasource_id}&"
+                )
+
+        viz_type = form_data.get("viz_type")
+        if not viz_type and datasource and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
+
+        selectedColumns = []
+
+        if "selectedColumns" in form_data:
+            selectedColumns = form_data.pop("selectedColumns")
+
+        if "viz_type" not in form_data:
+            form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
+            if app.config["DEFAULT_VIZ_TYPE"] == "table":
+                all_columns = []
+                for x in selectedColumns:
+                    all_columns.append(x["name"])
+                form_data["all_columns"] = all_columns
+
+        # slc perms
+        slice_add_perm = security_manager.can_access("can_write", "Chart")
+        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
+        slice_download_perm = security_manager.can_access("can_csv", "Superset")
+
+        form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
+
+        # On explore, merge legacy and extra filters into the form data
+        utils.convert_legacy_filters_into_adhoc(form_data)
+        utils.merge_extra_filters(form_data)
+
+        # merge request url params
+        if request.method == "GET":
+            utils.merge_request_params(form_data, request.args)
+
+        # handle save or overwrite
+        action = request.args.get("action")
+
+        if action == "overwrite" and not slice_overwrite_perm:
+            return json_error_response(
+                _("You don't have the rights to alter this chart"),
+                status=403,
+            )
+
+        if action == "saveas" and not slice_add_perm:
+            return json_error_response(
+                _("You don't have the rights to create a chart"),
+                status=403,
+            )
+
+        if action in ("saveas", "overwrite") and datasource:
+            return self.save_or_overwrite_slice(
+                slc,
+                slice_add_perm,
+                slice_overwrite_perm,
+                slice_download_perm,
+                datasource.id,
+                datasource.type,
+                datasource.name,
+                query_context,
+            )
+        standalone_mode = ReservedUrlParameters.is_standalone_mode()
+        force = request.args.get("force") in {"force", "1", "true"}
+        dummy_datasource_data: Dict[str, Any] = {
+            "type": datasource_type,
+            "name": datasource_name,
+            "columns": [],
+            "metrics": [],
+            "database": {"id": 0, "backend": ""},
+        }
+        try:
+            datasource_data = datasource.data if datasource else dummy_datasource_data
+        except (SupersetException, SQLAlchemyError):
+            datasource_data = dummy_datasource_data
+
+        if datasource:
+            datasource_data["owners"] = datasource.owners_data
+            if isinstance(datasource, Query):
+                datasource_data["columns"] = datasource.columns
+
+        bootstrap_data = {
+            "can_add": slice_add_perm,
+            "can_download": slice_download_perm,
+            "datasource": sanitize_datasource_data(datasource_data),
+            "form_data": form_data,
+            "datasource_id": datasource_id,
+            "datasource_type": datasource_type,
+            "slice": slc.data if slc else None,
+            "standalone": standalone_mode,
+            "force": force,
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "forced_height": request.args.get("height"),
+            "common": common_bootstrap_payload(g.user),
+        }
+        if slc:
+            title = slc.slice_name
+        elif datasource:
+            table_name = (
+                datasource.table_name
+                if datasource_type == "table"
+                else datasource.datasource_name
+            )
+            title = _("Explore - %(table)s", table=table_name)
+        else:
+            title = _("Explore")
+
+        return self.render_template(
+            "superset/basic.html",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+            entry="explore",
+            title=title.__str__(),
+            standalone_mode=standalone_mode,
+        )
 
     @api
     @handle_api_exception
