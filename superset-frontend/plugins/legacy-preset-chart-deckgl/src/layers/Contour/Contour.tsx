@@ -55,7 +55,8 @@ export const getLayer: getLayerType<unknown> = (
       upperThreshold?: number;
       strokeWidth?: number;
     }) => {
-      const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
+      const { lowerThreshold, upperThreshold, color, strokeWidth } =
+        contour;
       if (upperThreshold) {
         // Isoband format
         return {
@@ -82,7 +83,7 @@ export const getLayer: getLayerType<unknown> = (
     id: `contourLayer-${fd.slice_id}`,
     data,
     contours,
-    cellSize: Number(cellSize),
+    cellSize: Number(cellSize || '200'),
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: number[]; weight: number }) => d.position,
     getWeight: (d: { weight: any }) => d.weight || 0,

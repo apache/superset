@@ -28,12 +28,19 @@ const DEFAULT_CONTOURS: contourType[] = [
     lowerThreshold: 4,
     color: { r: 255, g: 0, b: 255, a: 100 },
     strokeWidth: 1,
+    zIndex: 0,
   },
-  { lowerThreshold: 5, color: { r: 0, g: 255, b: 0, a: 100 }, strokeWidth: 2 },
+  {
+    lowerThreshold: 5,
+    color: { r: 0, g: 255, b: 0, a: 100 },
+    strokeWidth: 2,
+    zIndex: 1,
+  },
   {
     lowerThreshold: 6,
     upperThreshold: 10,
     color: { r: 0, g: 0, b: 255, a: 100 },
+    zIndex: 2,
   },
 ];
 
@@ -43,9 +50,8 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
 
   useEffect(() => {
     // add z-index to contours
-    onChange?.(
-      contours.map((contour, index) => ({ ...contour, zIndex: index + 1 })),
-    );
+    const newContours = contours.map((contour, index) => ({ ...contour, zIndex: (index + 1) * 10 }));
+    onChange?.(newContours);
   }, [onChange, contours]);
 
   const togglePopover = (visible: boolean) => {
@@ -58,6 +64,7 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
 
   const saveContour = (contour: contourType) => {
     setContours([...contours, contour]);
+    togglePopover(false);
   };
 
   const removeContour = (index: number) => {

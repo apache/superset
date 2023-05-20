@@ -29,7 +29,7 @@ const ContourPopoverTrigger = ({
   togglePopover,
   ...props
 }: ContourPopoverTriggerProps) => {
-  const popoverContent = <ContourPopoverControl onSave={saveContour} />;
+  const popoverContent = <ContourPopoverControl onSave={saveContour} onClose={() => togglePopover(false)} />;
 
   return (
     <ControlPopover
