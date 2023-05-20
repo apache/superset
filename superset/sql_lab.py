@@ -24,7 +24,6 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import backoff
 import msgpack
-import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -51,6 +50,7 @@ from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.celery import session_scope
 from superset.utils.core import (
     json_iso_dttm_ser,
@@ -355,12 +355,7 @@ def _serialize_and_expand_data(
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            data = (
-                pa.default_serialization_context()
-                .serialize(result_set.pa_table)
-                .to_buffer()
-                .to_pybytes()
-            )
+            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
@@ -379,7 +374,8 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
+def execute_sql_statements(
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
     return_results: bool,
