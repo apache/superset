@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///mnt/c/Users/MDESHMU/Downloads/OSS/apache-superset
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
@@ -92,7 +92,7 @@ pure-sasl==0.6.2
     #   thrift-sasl
 pydruid==0.6.5
     # via apache-superset
-pyhive @ git+https://github.com/dropbox/PyHive.git@ff984798fac577f286556fcd81c87556c69ff506
+pyhive @ git+https://github.com/dropbox/PyHive.git@20cd74fcaf3d919825c5dc6192a8e968b9723e6b
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
