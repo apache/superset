@@ -25,7 +25,6 @@ const ContourPopoverTrigger = ({
   value: initialValue,
   saveContour,
   onChange,
-  onEdit,
   isControlled,
   visible: controlledVisibility,
   toggleVisibility,
@@ -42,13 +41,6 @@ const ContourPopoverTrigger = ({
       value={initialValue}
       onSave={saveContour}
       onClose={() => setVisibility(false)}
-      onChange={
-        onEdit
-          ? onEdit
-          : () => {
-              console.log('EDIT');
-            }
-      }
     />
   );
 

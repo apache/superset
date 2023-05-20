@@ -85,11 +85,19 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     setContours(newContours);
   };
 
+  const editContour = (contour: contourType, index: number) => {
+    const newContours = [...contours];
+    newContours[index] = contour;
+    setContours(newContours);
+  };
+
   const valuesRenderer = () =>
     contours.map((contour, index) => (
       <ContourOption
         key={index}
-        saveContour={saveContour}
+        saveContour={(newContour: contourType) =>
+          editContour(newContour, index)
+        }
         contour={contour}
         index={index}
         onClose={removeContour}
