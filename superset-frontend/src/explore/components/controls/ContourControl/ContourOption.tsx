@@ -21,6 +21,7 @@ import React from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import { styled } from '@superset-ui/core';
 import { ContourOptionProps } from './types';
+import ContourPopoverTrigger from './ContourPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
 
 const StyledOptionWrapper = styled(OptionWrapper)`
@@ -43,6 +44,7 @@ const ColorPatch = styled.div<{ formattedColor: string }>`
 const ContourOption = ({
   contour,
   index,
+  saveContour,
   onClose,
   onShift,
 }: ContourOptionProps) => {
@@ -82,11 +84,7 @@ const ContourOption = ({
   );
 
   return (
-    <Tooltip
-      placement="bottom"
-      id={`contour-option-${index}-tooltip`}
-      overlay={overlay}
-    >
+    <ContourPopoverTrigger saveContour={saveContour} value={contour}>
       <StyledOptionWrapper
         key={index}
         index={index}
@@ -95,9 +93,9 @@ const ContourOption = ({
         withCaret
         clickClose={onClose}
         onShiftOptions={onShift}
-        hideTooltip
+        tooltipOverlay={overlay}
       />
-    </Tooltip>
+    </ContourPopoverTrigger>
   );
 };
 

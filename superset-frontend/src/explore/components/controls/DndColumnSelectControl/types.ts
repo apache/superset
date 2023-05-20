@@ -32,7 +32,7 @@ export interface OptionProps {
   isExtra?: boolean;
   datasourceWarningMessage?: string;
   canDelete?: boolean;
-  hideTooltip?: boolean;
+  tooltipOverlay?: any;
 }
 
 export interface OptionItemInterface {

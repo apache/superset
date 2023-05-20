@@ -34,7 +34,8 @@ const ContourPopoverTrigger = ({
   const [isVisible, setIsVisible] = useState(false);
 
   const visible = isControlled ? controlledVisibility : isVisible;
-  const setVisibility = isControlled && toggleVisibility ? toggleVisibility : setIsVisible;
+  const setVisibility =
+    isControlled && toggleVisibility ? toggleVisibility : setIsVisible;
 
   const popoverContent = (
     <ContourPopoverControl

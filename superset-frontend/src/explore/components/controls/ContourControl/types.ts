@@ -45,6 +45,7 @@ export interface ContourPopoverControlProps {
 export interface ContourOptionProps {
   contour: contourType;
   index: number;
+  saveContour: (contour: contourType) => void;
   onClose: (index: number) => void;
   onShift: (hoverIndex: number, dragIndex: number) => void;
 }

@@ -87,14 +87,14 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
 
   const valuesRenderer = () =>
     contours.map((contour, index) => (
-      <ContourPopoverTrigger saveContour={saveContour} value={contour}>
-        <ContourOption
-          contour={contour}
-          index={index}
-          onClose={removeContour}
-          onShift={onShiftContour}
-        />
-      </ContourPopoverTrigger>
+      <ContourOption
+        key={index}
+        saveContour={saveContour}
+        contour={contour}
+        index={index}
+        onClose={removeContour}
+        onShift={onShiftContour}
+      />
     ));
 
   const ghostButtonText = 'Click to add a contour';
