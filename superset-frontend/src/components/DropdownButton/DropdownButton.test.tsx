@@ -18,8 +18,8 @@
  */
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import { DropdownButton } from '.';
 import React from 'react';
+import { DropdownButton } from '.';
 
 describe('<DropdownButton />', () => {
   it('renders without crashing', () => {
