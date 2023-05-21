@@ -1959,7 +1959,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
         if url_params := state.get("urlParams"):
-            params = parse.urlencode(url_params)
+            params = parse.urlencode(dict(url_params))
             url = f"{url}&{params}"
         hash_ = state.get("anchor", state.get("hash"))
         if hash_:
