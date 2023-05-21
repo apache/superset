@@ -108,7 +108,7 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
 
-MAPBOX_API_KEY=os.getenv('MAPBOX_API_KEY')
+MAPBOX_API_KEY = os.getenv("MAPBOX_API_KEY")
 
 #
 # Optionally import superset_config_docker.py (which will have been included on

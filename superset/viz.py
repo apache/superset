@@ -2991,7 +2991,8 @@ class DeckHex(BaseDeckGLViz):
             utils.get_metric_name(self.metric) if self.metric else None
         )
         return super().get_data(df)
-    
+
+
 class DeckContour(BaseDeckGLViz):
 
     """deck.gl's ContourLayer"""
@@ -3011,7 +3012,6 @@ class DeckContour(BaseDeckGLViz):
             utils.get_metric_name(self.metric) if self.metric else None
         )
         return super().get_data(df)
-
 
 
 class DeckGeoJson(BaseDeckGLViz):
