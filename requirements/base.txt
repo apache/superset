@@ -305,7 +305,7 @@ werkzeug==2.3.3
     #   flask
     #   flask-jwt-extended
     #   flask-login
-wrapt==1.12.1
+wrapt==1.15.0
     # via deprecated
 wtforms==2.3.3
     # via
@@ -317,10 +317,6 @@ wtforms-json==0.3.5
     # via apache-superset
 xlsxwriter==3.0.7
     # via apache-superset
-zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
