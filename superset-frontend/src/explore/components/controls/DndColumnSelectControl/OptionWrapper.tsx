@@ -124,8 +124,8 @@ export default function OptionWrapper(
     (!isDragging &&
       labelRef &&
       labelRef.current &&
-      labelRef.current.scrollWidth > labelRef.current.clientWidth) || 
-      (!isDragging && tooltipOverlay);
+      labelRef.current.scrollWidth > labelRef.current.clientWidth) ||
+    (!isDragging && tooltipOverlay);
 
   const LabelContent = () => {
     if (!shouldShowTooltip) {

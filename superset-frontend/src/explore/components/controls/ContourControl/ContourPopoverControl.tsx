@@ -17,11 +17,10 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { legacyValidateInteger } from '@superset-ui/core';
 import { Row, Col } from 'src/components';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
-import { styled, t } from '@superset-ui/core';
+import { legacyValidateInteger, styled, t } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
@@ -53,11 +52,8 @@ const isIsoband = (contour: contourType) => {
   return contour.upperThreshold && contour.lowerThreshold;
 };
 
-const getTabKey = (contour: contourType | undefined) => {
-  return contour && isIsoband(contour)
-    ? CONTOUR_TYPES.ISOBAND
-    : CONTOUR_TYPES.ISOLINE;
-};
+const getTabKey = (contour: contourType | undefined) =>
+  contour && isIsoband(contour) ? CONTOUR_TYPES.ISOBAND : CONTOUR_TYPES.ISOLINE;
 
 const determineErrorMap = (contour: contourType) => {
   const type = getTabKey(contour);
@@ -81,9 +77,9 @@ const determineErrorMap = (contour: contourType) => {
 const convertContourToNumeric = (contour: contourType) => {
   const formattedContour = { ...contour };
   const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
-  numericKeys.forEach(
-    key => (formattedContour[key] = Number(formattedContour[key])),
-  );
+  numericKeys.forEach(key => {
+    formattedContour[key] = Number(formattedContour[key]);
+  });
   return formattedContour;
 };
 

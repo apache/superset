@@ -24,7 +24,6 @@ import { ContourPopoverTriggerProps } from './types';
 const ContourPopoverTrigger = ({
   value: initialValue,
   saveContour,
-  onChange,
   isControlled,
   visible: controlledVisibility,
   toggleVisibility,

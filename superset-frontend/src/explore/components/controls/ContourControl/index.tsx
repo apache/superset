@@ -45,7 +45,7 @@ const DEFAULT_CONTOURS: contourType[] = [
   },
 ];
 
-const NewContourFormatPlaceholder = styled("div")`
+const NewContourFormatPlaceholder = styled('div')`
   position: relative;
   width: calc(100% - 4px);
   bottom: 16px;
@@ -54,7 +54,9 @@ const NewContourFormatPlaceholder = styled("div")`
 
 const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
   const [popoverVisible, setpopoverVisible] = useState(false);
-  const [contours, setContours] = useState<contourType[]>(props?.value ? props?.value : DEFAULT_CONTOURS);
+  const [contours, setContours] = useState<contourType[]>(
+    props?.value ? props?.value : DEFAULT_CONTOURS,
+  );
 
   useEffect(() => {
     // add z-index to contours

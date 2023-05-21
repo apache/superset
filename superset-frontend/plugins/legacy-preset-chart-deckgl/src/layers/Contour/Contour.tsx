@@ -55,8 +55,7 @@ export const getLayer: getLayerType<unknown> = (
       upperThreshold?: number;
       strokeWidth?: number;
     }) => {
-      const { lowerThreshold, upperThreshold, color, strokeWidth } =
-        contour;
+      const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
       if (upperThreshold) {
         // Isoband format
         return {

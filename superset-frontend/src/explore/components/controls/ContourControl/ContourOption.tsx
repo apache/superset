@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { Tooltip } from 'src/components/Tooltip';
 import { styled } from '@superset-ui/core';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
@@ -56,15 +55,15 @@ const ContourOption = ({
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
     : 'undefined';
 
-  const formatIsoline = (threshold: number, color: any, width: any) =>
+  const formatIsoline = (threshold: number, width: any) =>
     `Threshold: ${threshold}, color: ${formattedColor}, stroke width: ${width}`;
 
-  const formatIsoband = (threshold: number[], color: any) =>
+  const formatIsoband = (threshold: number[]) =>
     `Threshold: [${threshold[0]}, ${threshold[1]}], color: ${formattedColor}`;
 
   const displayString = isIsoband
-    ? formatIsoband([lowerThreshold || -1, upperThreshold], color)
-    : formatIsoline(lowerThreshold || -1, color, strokeWidth);
+    ? formatIsoband([lowerThreshold || -1, upperThreshold])
+    : formatIsoline(lowerThreshold || -1, strokeWidth);
 
   const overlay = (
     <div className="contour-tooltip-overlay">

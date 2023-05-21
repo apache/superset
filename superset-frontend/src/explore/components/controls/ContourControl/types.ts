@@ -32,7 +32,6 @@ export interface ContourPopoverTriggerProps {
   hovered?: boolean;
   value?: contourType;
   children?: React.ReactNode;
-  onChange?: (value: string) => void;
   saveContour: (contour: contourType) => void;
   isControlled?: boolean;
   visible?: boolean;

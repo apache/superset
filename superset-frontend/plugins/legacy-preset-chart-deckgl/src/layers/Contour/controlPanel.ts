@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ControlPanelConfig,
-  sections,
-} from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   autozoom,
@@ -61,9 +58,7 @@ const config: ControlPanelConfig = {
               label: t('Cell Size'),
               default: 300,
               isInt: true,
-              description: t(
-                'The size of each cell in meters',
-              ),
+              description: t('The size of each cell in meters'),
               renderTrigger: true,
               clearable: false,
             },
