@@ -17,6 +17,7 @@
  * under the License.
  */
 import { configureStore, ConfigureStoreOptions, Store } from '@reduxjs/toolkit';
+import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
@@ -133,6 +134,7 @@ export function setupStore({
   return configureStore({
     preloadedState: initialState,
     reducer: {
+      [api.reducerPath]: api.reducer,
       ...rootReducers,
     },
     middleware: getDefaultMiddleware =>
@@ -146,7 +148,7 @@ export function setupStore({
           ignoredPaths: [/queryController/g],
           warnAfter: 200,
         },
-      }).concat(logger),
+      }).concat(logger, api.middleware),
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
     ...overrides,
   });

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getExtensionsRegistry,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -63,6 +69,11 @@ import {
   CONFIRM_OVERWRITE_MESSAGE,
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
+
+const extensionsRegistry = getExtensionsRegistry();
+const DatasetDeleteRelatedExtension = extensionsRegistry.get(
+  'dataset.delete.related',
+);
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -707,12 +718,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <SubMenu {...menuData} />
       {datasetCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-            datasetCurrentlyDeleting.table_name,
-            datasetCurrentlyDeleting.chart_count,
-            datasetCurrentlyDeleting.dashboard_count,
-          )}
+          description={
+            <>
+              <p>
+                {t(
+                  'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                  datasetCurrentlyDeleting.table_name,
+                  datasetCurrentlyDeleting.chart_count,
+                  datasetCurrentlyDeleting.dashboard_count,
+                )}
+              </p>
+              {DatasetDeleteRelatedExtension && (
+                <DatasetDeleteRelatedExtension
+                  dataset={datasetCurrentlyDeleting}
+                />
+              )}
+            </>
+          }
           onConfirm={() => {
             if (datasetCurrentlyDeleting) {
               handleDatasetDelete(datasetCurrentlyDeleting);

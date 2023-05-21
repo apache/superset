@@ -174,7 +174,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -227,7 +227,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         except SavedQueryBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -262,7 +262,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"saved_query_export_{timestamp}"
@@ -284,13 +283,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

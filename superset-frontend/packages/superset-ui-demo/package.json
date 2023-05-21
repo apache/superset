@@ -14,7 +14,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/superset-ui-demo"
   },
   "keywords": [
     "storybook",
@@ -26,9 +27,9 @@
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/packages/superset-ui-demo#readme",
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
     "@emotion/cache": "^11.4.0",

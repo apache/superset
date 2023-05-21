@@ -128,6 +128,5 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        database_id = self._properties.get("id")
-        if database_id is not None:
+        if (database_id := self._properties.get("id")) is not None:
             self._model = DatabaseDAO.find_by_id(database_id)

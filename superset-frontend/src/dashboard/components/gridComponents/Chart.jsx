@@ -19,13 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  styled,
-  t,
-  logging,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
@@ -35,6 +29,7 @@ import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -145,6 +140,7 @@ class Chart extends React.Component {
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.exportFullCSV = this.exportFullCSV.bind(this);
+    this.exportXLSX = this.exportXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -319,10 +315,7 @@ class Chart extends React.Component {
         [URL_PARAMS.formDataKey.name]: key,
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
-      if (
-        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
-        isOpenInNewTab
-      ) {
+      if (isOpenInNewTab) {
         window.open(url, '_blank', 'noreferrer');
       } else {
         this.props.history.push(url);
@@ -333,8 +326,24 @@ class Chart extends React.Component {
     }
   };
 
+  exportFullCSV() {
+    this.exportCSV(true);
+  }
+
   exportCSV(isFullCSV = false) {
-    this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
+    this.exportTable('csv', isFullCSV);
+  }
+
+  exportXLSX() {
+    this.exportTable('xlsx', false);
+  }
+
+  exportTable(format, isFullCSV) {
+    const logAction =
+      format === 'csv'
+        ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+        : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
+    this.props.logEvent(logAction, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
@@ -343,14 +352,10 @@ class Chart extends React.Component {
         ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
       resultType: 'full',
-      resultFormat: 'csv',
+      resultFormat: format,
       force: true,
       ownState: this.props.ownState,
     });
-  }
-
-  exportFullCSV() {
-    this.exportCSV(true);
   }
 
   forceRefresh() {
@@ -446,6 +451,7 @@ class Chart extends React.Component {
           logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
+          exportXLSX={this.exportXLSX}
           exportFullCSV={this.exportFullCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
@@ -468,10 +474,10 @@ class Chart extends React.Component {
 
         {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
-          markdown that is sanitized with bleach. See:
+          markdown that is sanitized with nh3. See:
              https://github.com/apache/superset/pull/4390
           and
-             https://github.com/apache/superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
+             https://github.com/apache/superset/pull/23862
         */}
         {isExpanded && slice.description_markeddown && (
           <div

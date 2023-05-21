@@ -134,7 +134,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -183,7 +182,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -277,7 +275,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"owners", "created_by"}
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -339,7 +337,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -416,7 +414,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return response
 
-    @expose("/<pk>", methods=["DELETE"])
+    @expose("/<pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -472,7 +470,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -531,7 +529,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/cache_screenshot/", methods=["GET"])
+    @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
     @rison(screenshot_query_schema)
     @safe
@@ -605,7 +603,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return trigger_celery()
 
-    @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
+    @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -651,15 +649,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         # fetch the chart screenshot using the current user and cache if set
-        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
-        if img:
+        if img := ChartScreenshot.get_from_cache_key(thumbnail_cache, digest):
             return Response(
                 FileWrapper(img), mimetype="image/png", direct_passthrough=True
             )
         # TODO: return an empty image
         return self.response_404()
 
-    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
     @rison(thumbnail_query_schema)
     @safe
@@ -746,7 +743,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -785,7 +782,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"chart_export_{timestamp}"
@@ -805,13 +801,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/favorite_status/", methods=["GET"])
+    @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
     @rison(get_fav_star_ids_schema)
@@ -861,7 +857,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ]
         return self.response(200, result=res)
 
-    @expose("/<pk>/favorites/", methods=["POST"])
+    @expose("/<pk>/favorites/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -905,7 +901,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ChartDAO.add_favorite(chart)
         return self.response(200, result="OK")
 
-    @expose("/<pk>/favorites/", methods=["DELETE"])
+    @expose("/<pk>/favorites/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -949,7 +945,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ChartDAO.remove_favorite(chart)
         return self.response(200, result="OK")
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

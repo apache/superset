@@ -38,7 +38,6 @@ import zlib
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from distutils.util import strtobool
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -69,8 +68,8 @@ from typing import (
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
-import bleach
 import markdown as md
+import nh3
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
@@ -664,7 +663,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
-    safe_markdown_tags = [
+    safe_markdown_tags = {
         "h1",
         "h2",
         "h3",
@@ -690,10 +689,10 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
         "dt",
         "img",
         "a",
-    ]
+    }
     safe_markdown_attrs = {
-        "img": ["src", "alt", "title"],
-        "a": ["href", "alt", "title"],
+        "img": {"src", "alt", "title"},
+        "a": {"href", "alt", "title"},
     }
     safe = md.markdown(
         raw or "",
@@ -703,7 +702,8 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
             "markdown.extensions.codehilite",
         ],
     )
-    safe = bleach.clean(safe, safe_markdown_tags, safe_markdown_attrs)
+    # pylint: disable=no-member
+    safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
     return safe
@@ -1160,6 +1160,14 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
                     for fltr in append_filters
                     if fltr
                 )
+    if (
+        form_data.get("time_range")
+        and not form_data.get("granularity")
+        and not form_data.get("granularity_sqla")
+    ):
+        for adhoc_filter in form_data.get("adhoc_filters", []):
+            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
+                adhoc_filter["comparator"] = form_data["time_range"]
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:
@@ -1182,6 +1190,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_grain": "time_grain_sqla",
             "__granularity": "granularity",
         }
+
         # Grab list of existing filters 'keyed' on the column and operator
 
         def get_filter_key(f: Dict[str, Any]) -> str:
@@ -1779,7 +1788,7 @@ def indexed(
 
 
 def is_test() -> bool:
-    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))  # type: ignore
+    return parse_boolean_string(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
 def get_time_filter_status(
@@ -1791,8 +1800,7 @@ def get_time_filter_status(
     }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
-    time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
-    if time_column:
+    if time_column := applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL):
         if time_column in temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_COL})
         else:
@@ -1943,10 +1951,7 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
     """
     if bool_str is None:
         return False
-    try:
-        return bool(strtobool(bool_str.lower()))
-    except ValueError:
-        return False
+    return bool_str.lower() in ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
 
 
 def apply_max_row_limit(

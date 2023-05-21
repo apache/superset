@@ -277,9 +277,8 @@ class Database(
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = self.masked_encrypted_extra
         encrypted_config = {}
-        if masked_encrypted_extra is not None:
+        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
             try:
                 encrypted_config = json.loads(masked_encrypted_extra)
             except (TypeError, json.JSONDecodeError):
@@ -404,7 +403,12 @@ class Database(
             )
 
         with engine_context as server_context:
-            if ssh_tunnel:
+            if ssh_tunnel and server_context:
+                logger.info(
+                    "[SSH] Successfully create tunnel at %s: %s",
+                    server_context.local_bind_address,
+                    server_context.local_bind_port,
+                )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri, server_context
                 )
@@ -547,7 +551,6 @@ class Database(
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         engine = self._get_sqla_engine(schema)
-        username = utils.get_username()
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
@@ -564,7 +567,6 @@ class Database(
                     engine.url,
                     sql,
                     schema,
-                    get_username(),
                     __name__,
                     security_manager,
                 )
@@ -575,7 +577,6 @@ class Database(
                 if mutate_after_split:
                     sql_ = sql_query_mutator(
                         sql_,
-                        user_name=username,
                         security_manager=security_manager,
                         database=None,
                     )
@@ -586,7 +587,6 @@ class Database(
             if mutate_after_split:
                 last_sql = sql_query_mutator(
                     sqls[-1],
-                    user_name=username,
                     security_manager=security_manager,
                     database=None,
                 )

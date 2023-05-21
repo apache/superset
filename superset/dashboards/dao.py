@@ -200,11 +200,10 @@ class DashboardDAO(BaseDAO):
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
         commit: bool = False,
     ) -> Dashboard:
-        positions = data.get("positions")
         new_filter_scopes = {}
         md = dashboard.params_dict
 
-        if positions is not None:
+        if (positions := data.get("positions")) is not None:
             # find slices in the position data
             slice_ids = [
                 value.get("meta", {}).get("chartId")

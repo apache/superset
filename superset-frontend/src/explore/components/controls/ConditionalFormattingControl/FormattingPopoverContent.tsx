@@ -39,9 +39,12 @@ const JustifyEnd = styled.div`
 `;
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colors.success.light1, label: t('green') },
-  { value: theme.colors.alert.light1, label: t('yellow') },
-  { value: theme.colors.error.light1, label: t('red') },
+  { value: theme.colors.success.light1, label: t('success') },
+  { value: theme.colors.alert.light1, label: t('alert') },
+  { value: theme.colors.error.light1, label: t('error') },
+  { value: theme.colors.success.dark1, label: t('success dark') },
+  { value: theme.colors.alert.dark1, label: t('alert dark') },
+  { value: theme.colors.error.dark1, label: t('error dark') },
 ];
 
 const operatorOptions = [

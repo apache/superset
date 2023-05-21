@@ -18,12 +18,16 @@ import logging
 import re
 from typing import Any, Dict, Optional, Pattern, Tuple
 
+import pandas as pd
 from flask_babel import gettext as __
+from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 
 logger = logging.getLogger()
 
@@ -95,6 +99,42 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
             {"invalid": ["database"]},
         ),
     }
+
+    @classmethod
+    def df_to_sql(
+        cls,
+        database: Database,
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
+    ) -> None:
+        """
+        Upload data from a Pandas DataFrame to a database.
+
+        For regular engines this calls the `pandas.DataFrame.to_sql` method.
+        Overrides the base class to allow for pandas string types to be
+        used as nvarchar(max) columns, as redshift does not support
+        text data types.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
+        """
+        to_sql_kwargs = to_sql_kwargs or {}
+        to_sql_kwargs["dtype"] = {
+            # uses the max size for redshift nvarchar(65335)
+            # the default object and string types create a varchar(256)
+            col_name: NVARCHAR(length=65535)
+            for col_name, type in zip(df.columns, df.dtypes)
+            if isinstance(type, pd.StringDtype)
+        }
+
+        super().df_to_sql(
+            df=df, database=database, table=table, to_sql_kwargs=to_sql_kwargs
+        )
 
     @staticmethod
     def _mutate_label(label: str) -> str:

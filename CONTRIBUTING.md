@@ -585,6 +585,15 @@ There are three types of assets you can build:
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
+If this type of error comes while building assets(i.e using above commands):
+```bash
+Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
+```
+Then put this:
+```bash
+export NODE_OPTIONS=--no-experimental-fetch`
+```
+
 #### Webpack dev server
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
@@ -647,7 +656,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
 
 ```typescript
 export enum FeatureFlag {
@@ -859,10 +868,10 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
 # run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
 npm run cypress-debug

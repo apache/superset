@@ -11,7 +11,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/superset.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/superset-ui-switchboard"
   },
   "keywords": [
     "switchboard",

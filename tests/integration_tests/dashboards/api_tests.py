@@ -31,12 +31,12 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
-from superset.utils.core import backend
+from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -404,40 +404,40 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
-        expected_result = {
-            "certified_by": None,
-            "certification_details": None,
-            "changed_by": None,
-            "changed_by_name": "",
-            "changed_by_url": "",
-            "charts": [],
-            "created_by": {
-                "id": 1,
-                "first_name": "admin",
-                "last_name": "user",
-            },
-            "id": dashboard.id,
-            "css": "",
-            "dashboard_title": "title",
-            "datasources": [],
-            "json_metadata": "",
-            "owners": [
-                {
+        with override_user(admin):
+            expected_result = {
+                "certified_by": None,
+                "certification_details": None,
+                "changed_by": None,
+                "changed_by_name": "",
+                "changed_by_url": "",
+                "charts": [],
+                "created_by": {
                     "id": 1,
-                    "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
-                }
-            ],
-            "roles": [],
-            "position_json": "",
-            "published": False,
-            "url": "/superset/dashboard/slug1/",
-            "slug": "slug1",
-            "tags": [],
-            "thumbnail_url": dashboard.thumbnail_url,
-            "is_managed_externally": False,
-        }
+                },
+                "id": dashboard.id,
+                "css": "",
+                "dashboard_title": "title",
+                "datasources": [],
+                "json_metadata": "",
+                "owners": [
+                    {
+                        "id": 1,
+                        "first_name": "admin",
+                        "last_name": "user",
+                    }
+                ],
+                "roles": [],
+                "position_json": "",
+                "published": False,
+                "url": "/superset/dashboard/slug1/",
+                "slug": "slug1",
+                "tags": [],
+                "thumbnail_url": dashboard.thumbnail_url,
+                "is_managed_externally": False,
+            }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
@@ -1401,6 +1401,109 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
         self.assertEqual(model.roles, [admin_role])
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_activity_access_disabled(self):
+        """
+        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
+        """
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+
+        self.assertEqual(model.dashboard_title, "title2")
+        self.assertEqual(model.changed_by_url, "")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_activity_access_enabled(self):
+        """
+        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
+        """
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+
+        self.assertEqual(model.dashboard_title, "title2")
+        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_get_list_no_username(self):
+        """
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dashboard/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dash = [d for d in res if d["id"] == dashboard_id][0]
+        self.assertEqual(current_dash["dashboard_title"], "title2")
+        self.assertNotIn("username", current_dash["changed_by"].keys())
+        self.assertNotIn("username", current_dash["owners"][0].keys())
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_get_no_username(self):
+        """
+        Dashboard API: Tests that no username is returned
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"dashboard_title": "title2"}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["dashboard_title"], "title2")
+        self.assertNotIn("username", res["changed_by"].keys())
+        self.assertNotIn("username", res["owners"][0].keys())
 
         db.session.delete(model)
         db.session.commit()

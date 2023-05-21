@@ -23,7 +23,6 @@ import time
 from abc import ABCMeta
 from collections import defaultdict, deque
 from datetime import datetime
-from distutils.version import StrictVersion
 from textwrap import dedent
 from typing import (
     Any,
@@ -43,6 +42,7 @@ import pandas as pd
 import simplejson as json
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
+from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -464,16 +464,19 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 l.append(f"{field} = '{value}'")
             where_clause = "WHERE " + " AND ".join(l)
 
-        presto_version = database.get_extra().get("version")
-
         # Partition select syntax changed in v0.199, so check here.
         # Default to the new syntax if version is unset.
-        partition_select_clause = (
-            f'SELECT * FROM "{table_name}$partitions"'
-            if not presto_version
-            or StrictVersion(presto_version) >= StrictVersion("0.199")
-            else f"SHOW PARTITIONS FROM {table_name}"
-        )
+        presto_version = database.get_extra().get("version")
+
+        if presto_version and Version(presto_version) < Version("0.199"):
+            full_table_name = f"{schema}.{table_name}" if schema else table_name
+            partition_select_clause = f"SHOW PARTITIONS FROM {full_table_name}"
+        else:
+            system_table_name = f'"{table_name}$partitions"'
+            full_table_name = (
+                f"{schema}.{system_table_name}" if schema else system_table_name
+            )
+            partition_select_clause = f"SELECT * FROM {full_table_name}"
 
         sql = dedent(
             f"""\
@@ -492,7 +495,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         schema: Optional[str],
         database: Database,
         query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
+        columns: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Select]:
         try:
             col_names, values = cls.latest_partition(
@@ -510,13 +513,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         }
 
         for col_name, value in zip(col_names, values):
-            if col_name in column_type_by_name:
-                if column_type_by_name.get(col_name) == "TIMESTAMP":
-                    query = query.where(Column(col_name, TimeStamp()) == value)
-                elif column_type_by_name.get(col_name) == "DATE":
-                    query = query.where(Column(col_name, Date()) == value)
-                else:
-                    query = query.where(Column(col_name) == value)
+            col_type = column_type_by_name.get(col_name)
+
+            if isinstance(col_type, types.DATE):
+                col_type = Date()
+            elif isinstance(col_type, types.TIMESTAMP):
+                col_type = TimeStamp()
+
+            query = query.where(Column(col_name, col_type) == value)
+
         return query
 
     @classmethod
@@ -705,7 +710,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         version = extra.get("version")
-        return version is not None and StrictVersion(version) >= StrictVersion("0.319")
+        return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
     def update_impersonation_config(
@@ -1210,8 +1215,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     ) -> Dict[str, Any]:
         metadata = {}
 
-        indexes = database.get_indexes(table_name, schema_name)
-        if indexes:
+        if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -1223,11 +1227,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 "cols": sorted(indexes[0].get("column_names", [])),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=(
-                        f"{schema_name}.{table_name}"
-                        if schema_name and "." not in table_name
-                        else table_name
-                    ),
+                    table_name=table_name,
                     schema=schema_name,
                     indexes=indexes,
                     database=database,
@@ -1279,8 +1279,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
-        tracking_url = cls.get_tracking_url(cursor)
-        if tracking_url:
+        if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
             session.commit()
 

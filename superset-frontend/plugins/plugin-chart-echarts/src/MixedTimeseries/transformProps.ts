@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { invert } from 'lodash';
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
@@ -32,7 +33,9 @@ import {
   getXAxisLabel,
   isPhysicalColumn,
   isDefined,
+  ensureIsArray,
 } from '@superset-ui/core';
+import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
@@ -105,7 +108,10 @@ export default function transformProps(
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
-
+  const coltypeMapping = {
+    ...getColtypesMapping(queriesData[0]),
+    ...getColtypesMapping(queriesData[1]),
+  };
   const {
     area,
     areaB,
@@ -136,6 +142,7 @@ export default function transformProps(
     yAxisFormatSecondary,
     xAxisTimeFormat,
     yAxisBounds,
+    yAxisBoundsSecondary,
     yAxisIndex,
     yAxisIndexB,
     yAxisTitleSecondary,
@@ -282,62 +289,86 @@ export default function transformProps(
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+  let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
+    parseYAxisBound,
+  );
 
   const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
   const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
-    max,
+    max: maxSecondary,
     formatter: formatterSecondary,
   });
 
+  const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  const inverted = invert(verboseMap);
+
   rawSeriesA.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      showValue,
-      stack: Boolean(stack),
-      yAxisIndex,
-      filterState,
-      seriesKey: entry.name,
-      sliceId,
-      queryIndex: 0,
-      formatter:
-        seriesType === EchartsTimeseriesSeriesType.Bar
-          ? maxLabelFormatter
-          : formatter,
-      showValueIndexes: showValueIndexesA,
-      totalStackedValues,
-      thresholdValues,
-    });
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        showValue,
+        stack: Boolean(stack),
+        yAxisIndex,
+        filterState,
+        seriesKey: entry.name,
+        sliceId,
+        queryIndex: 0,
+        formatter:
+          seriesType === EchartsTimeseriesSeriesType.Bar
+            ? maxLabelFormatter
+            : formatter,
+        showValueIndexes: showValueIndexesA,
+        totalStackedValues,
+        thresholdValues,
+      },
+    );
     if (transformedSeries) series.push(transformedSeries);
   });
 
   rawSeriesB.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area: areaB,
-      markerEnabled: markerEnabledB,
-      markerSize: markerSizeB,
-      areaOpacity: opacityB,
-      seriesType: seriesTypeB,
-      showValue: showValueB,
-      stack: Boolean(stackB),
-      yAxisIndex: yAxisIndexB,
-      filterState,
-      seriesKey: primarySeries.has(entry.name as string)
-        ? `${entry.name} (1)`
-        : entry.name,
-      sliceId,
-      queryIndex: 1,
-      formatter:
-        seriesTypeB === EchartsTimeseriesSeriesType.Bar
-          ? maxLabelFormatterSecondary
-          : formatterSecondary,
-      showValueIndexes: showValueIndexesB,
-      totalStackedValues: totalStackedValuesB,
-      thresholdValues: thresholdValuesB,
-    });
+    const entryName = String(entry.name || '');
+    const seriesName = `${inverted[entryName] || entryName} (1)`;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area: areaB,
+        markerEnabled: markerEnabledB,
+        markerSize: markerSizeB,
+        areaOpacity: opacityB,
+        seriesType: seriesTypeB,
+        showValue: showValueB,
+        stack: Boolean(stackB),
+        yAxisIndex: yAxisIndexB,
+        filterState,
+        seriesKey: primarySeries.has(entry.name as string)
+          ? `${entry.name} (1)`
+          : entry.name,
+        sliceId,
+        queryIndex: 1,
+        formatter:
+          seriesTypeB === EchartsTimeseriesSeriesType.Bar
+            ? maxLabelFormatterSecondary
+            : formatterSecondary,
+        showValueIndexes: showValueIndexesB,
+        totalStackedValues: totalStackedValuesB,
+        thresholdValues: thresholdValuesB,
+      },
+    );
     if (transformedSeries) series.push(transformedSeries);
   });
 
@@ -345,6 +376,8 @@ export default function transformProps(
   if (contributionMode === 'row' && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+    if (minSecondary === undefined) minSecondary = 0;
+    if (maxSecondary === undefined) maxSecondary = 1;
   }
 
   const tooltipFormatter =
@@ -412,8 +445,8 @@ export default function transformProps(
       {
         ...defaultYAxis,
         type: logAxisSecondary ? 'log' : 'value',
-        min,
-        max,
+        min: minSecondary,
+        max: maxSecondary,
         minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
@@ -523,5 +556,6 @@ export default function transformProps(
       type: xAxisType,
     },
     refs,
+    coltypeMapping,
   };
 }

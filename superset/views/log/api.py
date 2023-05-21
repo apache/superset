@@ -82,7 +82,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
             return self.response(403, message=ex.message)
         return None
 
-    @expose("/recent_activity/<int:user_id>/", methods=["GET"])
+    @expose("/recent_activity/<int:user_id>/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -125,8 +125,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
         args = kwargs["rison"]

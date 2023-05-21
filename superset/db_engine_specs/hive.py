@@ -124,7 +124,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     jobs_stats_r = re.compile(r".*INFO.*Total jobs = (?P<max_jobs>[0-9]+)")
     # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
     launching_job_r = re.compile(
-        ".*INFO.*Launching Job (?P<job_number>[0-9]+) out of " "(?P<max_jobs>[0-9]+)"
+        ".*INFO.*Launching Job (?P<job_number>[0-9]+) out of (?P<max_jobs>[0-9]+)"
     )
     # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
     # map = 0%,  reduce = 0%
@@ -418,7 +418,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
+        columns: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Select]:
         try:
             col_names, values = cls.latest_partition(
@@ -468,7 +468,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
     ) -> str:
-        return f"SHOW PARTITIONS {table_name}"
+        full_table_name = f"{schema}.{table_name}" if schema else table_name
+        return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments

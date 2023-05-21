@@ -131,13 +131,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         " + SECOND({col})) SECOND)",
         "PT1M": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        "PT1H": "DATE_ADD(DATE({col}), " "INTERVAL HOUR({col}) HOUR)",
+        "PT1H": "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
         "P1D": "DATE({col})",
-        "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
-        "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
+        "P1W": "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
+        "P1M": "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
         "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
-        "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
+        "P1Y": "DATE(DATE_SUB({col}, INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
         "INTERVAL DAYOFWEEK(DATE_SUB({col}, "
         "INTERVAL 1 DAY)) - 1 DAY))",
@@ -175,8 +175,14 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
-    disallow_uri_query_params = {"local_infile"}
-    enforce_uri_query_params = {"local_infile": 0}
+    disallow_uri_query_params = {
+        "mysqldb": {"local_infile"},
+        "mysqlconnector": {"allow_local_infile"},
+    }
+    enforce_uri_query_params = {
+        "mysqldb": {"local_infile": 0},
+        "mysqlconnector": {"allow_local_infile": 0},
+    }
 
     @classmethod
     def convert_dttm(
@@ -199,9 +205,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> Tuple[URL, Dict[str, Any]]:
-        uri, new_connect_args = super(
-            MySQLEngineSpec, MySQLEngineSpec
-        ).adjust_engine_params(uri, connect_args, catalog, schema)
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
+
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 

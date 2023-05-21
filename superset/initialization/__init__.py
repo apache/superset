@@ -125,7 +125,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityFiltersModelView,
+            RowLevelSecurityView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -150,6 +150,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
+        from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
@@ -222,6 +223,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
+        appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
@@ -288,14 +290,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
-        )
-        appbuilder.add_view(
-            RowLevelSecurityFiltersModelView,
-            "Row Level Security",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
         )
 
         #
@@ -435,6 +429,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
         )
 
+        appbuilder.add_view(
+            RowLevelSecurityView,
+            "Row Level Security",
+            href="/rowlevelsecurity/list/",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
+        )
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -449,8 +453,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
-        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
-        if flask_app_mutator:
+        if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -583,7 +586,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            self.superset_app.wsgi_app = ProxyFix(  # type: ignore
+            self.superset_app.wsgi_app = ProxyFix(
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
 
@@ -602,9 +605,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
-            self.superset_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
-                self.superset_app.wsgi_app  # type: ignore
-            )
+            self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
             try:
@@ -613,9 +614,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 pass
 
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.superset_app.wsgi_app = middleware(  # type: ignore
-                self.superset_app.wsgi_app
-            )
+            self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
         # Flask-Compress
         Compress(self.superset_app)

@@ -43,7 +43,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from flask import escape, Markup
+from flask import current_app, escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
@@ -88,7 +88,6 @@ from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
-    validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
@@ -113,11 +112,12 @@ from superset.models.helpers import (
     ExploreMixin,
     QueryResult,
     QueryStringExtended,
+    validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType, get_username, MediumText
+from superset.utils.core import GenericDataType, MediumText
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -330,21 +330,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     def datasource(self) -> RelationshipProperty:
         return self.table
 
-    def get_time_filter(
-        self,
-        start_dttm: Optional[DateTime] = None,
-        end_dttm: Optional[DateTime] = None,
-        label: Optional[str] = "__time",
-        template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
-        col = self.get_sqla_col(label=label, template_processor=template_processor)
-        l = []
-        if start_dttm:
-            l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
-        if end_dttm:
-            l.append(col < self.table.text(self.dttm_sql_literal(end_dttm)))
-        return and_(*l)
-
     def get_timestamp_expression(
         self,
         time_grain: Optional[str],
@@ -378,36 +363,6 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.table.make_sqla_column_compatible(time_expr, label)
-
-    def dttm_sql_literal(self, dttm: DateTime) -> str:
-        """Convert datetime object to a SQL expression string"""
-        sql = (
-            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
-            if self.type
-            else None
-        )
-
-        if sql:
-            return sql
-
-        tf = self.python_date_format
-
-        # Fallback to the default format (if defined).
-        if not tf:
-            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
-                self.column_name
-            )
-
-        if tf:
-            if tf in ["epoch_ms", "epoch_s"]:
-                seconds_since_epoch = int(dttm.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
-            return f"'{dttm.strftime(tf)}'"
-
-        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
-        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -650,7 +605,10 @@ class SqlaTable(
 
     @property
     def changed_by_url(self) -> str:
-        if not self.changed_by:
+        if (
+            not self.changed_by
+            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        ):
             return ""
         return f"/superset/profile/{self.changed_by.username}"
 
@@ -871,8 +829,6 @@ class SqlaTable(
         if sql_query_mutator and not mutate_after_split:
             sql = sql_query_mutator(
                 sql,
-                # TODO(john-bodley): Deprecate in 3.0.
-                user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1035,11 +991,10 @@ class SqlaTable(
             schema=self.schema,
             template_processor=template_processor,
         )
-        col_in_metadata = self.get_column(expression)
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
-        if col_in_metadata:
+        if col_in_metadata := self.get_column(expression):
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
