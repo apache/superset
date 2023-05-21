@@ -22,15 +22,15 @@ import { DropdownButton } from '.';
 import React from 'react';
 
 describe('<DropdownButton />', () => {
-  const overlayElement = <div>Test Overlay</div>;
-
   it('renders without crashing', () => {
+    const overlayElement = <div>Test Overlay</div>;
     render(<DropdownButton overlay={overlayElement} />);
     const dropdownButtonElement = screen.getByRole('button');
     expect(dropdownButtonElement).toBeInTheDocument();
   });
 
   it('renders tooltip when tooltip prop is provided', () => {
+    const overlayElement = <div>Test Overlay</div>;
     const tooltipText = 'Test Tooltip';
     render(<DropdownButton overlay={overlayElement} tooltip={tooltipText} />);
     const tooltipElement = screen.getByText(tooltipText);
@@ -38,14 +38,16 @@ describe('<DropdownButton />', () => {
   });
 
   it('does not render tooltip when tooltip prop is not provided', () => {
+    const overlayElement = <div>Test Overlay</div>;
     render(<DropdownButton overlay={overlayElement} />);
     const tooltipElement = screen.queryByRole('tooltip');
     expect(tooltipElement).not.toBeInTheDocument();
   });
 
   it('renders overlay correctly', () => {
+    const overlayElement = <div>Test Overlay</div>;
     render(<DropdownButton overlay={overlayElement} />);
-    const overlayElement = screen.getByText('Test Overlay');
-    expect(overlayElement).toBeInTheDocument();
+    const overlayElementInRender = screen.getByText('Test Overlay');
+    expect(overlayElementInRender).toBeInTheDocument();
   });
 });
