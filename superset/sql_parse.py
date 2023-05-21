@@ -77,7 +77,7 @@ sqlparse.keywords.SQL_REGEX.insert(
 )
 
 
-class CtasMethod(strEnum):
+class CtasMethod(StrEnum):
     TABLE = "TABLE"
     VIEW = "VIEW"
 
