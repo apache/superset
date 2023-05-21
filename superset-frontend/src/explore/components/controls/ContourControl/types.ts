@@ -10,9 +10,16 @@ export interface colorType {
 
 export interface contourType extends OptionValueType {
   color?: colorType | undefined;
-  lowerThreshold?: number | undefined;
-  upperThreshold?: number | undefined;
-  strokeWidth?: number | undefined;
+  lowerThreshold?: any | undefined;
+  upperThreshold?: any | undefined;
+  strokeWidth?: any | undefined;
+}
+
+export interface errorMapType {
+  lowerThreshold: string[];
+  upperThreshold: string[];
+  strokeWidth: string[];
+  color: string[];
 }
 
 export interface ContourControlProps

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
+import { legacyValidateInteger } from '@superset-ui/core';
 import { Row, Col } from 'src/components';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -24,7 +25,12 @@ import { styled, t } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
-import { ContourPopoverControlProps, colorType, contourType } from './types';
+import {
+  ContourPopoverControlProps,
+  colorType,
+  contourType,
+  errorMapType,
+} from './types';
 
 enum CONTOUR_TYPES {
   ISOLINE = 'ISOLINE',
@@ -47,10 +53,45 @@ const isIsoband = (contour: contourType) => {
   return contour.upperThreshold && contour.lowerThreshold;
 };
 
-const getInitTabKey = (contour: contourType | undefined) => {
+const getTabKey = (contour: contourType | undefined) => {
   return contour && isIsoband(contour)
     ? CONTOUR_TYPES.ISOBAND
     : CONTOUR_TYPES.ISOLINE;
+};
+
+const determineErrorMap = (contour: contourType) => {
+  const type = getTabKey(contour);
+  const errorMap: errorMapType = {
+    lowerThreshold: [],
+    upperThreshold: [],
+    strokeWidth: [],
+    color: [],
+  };
+  if (type === CONTOUR_TYPES.ISOBAND) {
+    const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
+    if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
+  }
+  const lowerThresholdError = legacyValidateInteger(contour.lowerThreshold);
+  const strokeWidthError = legacyValidateInteger(contour.strokeWidth);
+  if (lowerThresholdError) errorMap.lowerThreshold.push(lowerThresholdError);
+  if (strokeWidthError) errorMap.strokeWidth.push(strokeWidthError);
+  return errorMap;
+};
+
+const convertContourToNumeric = (contour: contourType) => {
+  const formattedContour = { ...contour };
+  const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
+  numericKeys.forEach(
+    key => (formattedContour[key] = Number(formattedContour[key])),
+  );
+  return formattedContour;
+};
+
+const DEFAULT_CONTOUR = {
+  lowerThreshold: undefined,
+  upperThreshold: undefined,
+  color: undefined,
+  strokeWidth: undefined,
 };
 
 const ContourPopoverControl = ({
@@ -58,14 +99,10 @@ const ContourPopoverControl = ({
   onSave,
   onClose,
 }: ContourPopoverControlProps) => {
-  const [currentTab, setCurrentTab] = useState(getInitTabKey(initialValue));
-  const [contour, setContour] = useState(
-    initialValue || {
-      lowerThreshold: undefined,
-      upperThreshold: undefined,
-      color: undefined,
-      strokeWidth: undefined,
-    },
+  const [currentTab, setCurrentTab] = useState(getTabKey(initialValue));
+  const [contour, setContour] = useState(initialValue || DEFAULT_CONTOUR);
+  const [validationErrors, setValidationErrors] = useState(
+    determineErrorMap(initialValue || DEFAULT_CONTOUR),
   );
   const [isComplete, setIsComplete] = useState(false);
 
@@ -88,6 +125,9 @@ const ContourPopoverControl = ({
       'a' in contour.color &&
       typeof contour.color.a === 'number';
 
+    const errors = determineErrorMap(contour);
+    setValidationErrors(errors);
+
     setIsComplete(
       isIsoband
         ? validLower && validUpper && validColor
@@ -101,7 +141,7 @@ const ContourPopoverControl = ({
 
   const updateStrokeWidth = (value: number | string) => {
     const newContour = { ...contour };
-    newContour.strokeWidth = Number(value);
+    newContour.strokeWidth = value;
     setContour(newContour);
   };
 
@@ -113,19 +153,24 @@ const ContourPopoverControl = ({
 
   const updateLowerThreshold = (value: number | string) => {
     const newContour = { ...contour };
-    newContour.lowerThreshold = Number(value);
+    newContour.lowerThreshold = value;
     setContour(newContour);
   };
 
   const updateUpperThreshold = (value: number | string) => {
     const newContour = { ...contour };
-    newContour.upperThreshold = Number(value);
+    newContour.upperThreshold = value;
     setContour(newContour);
+  };
+
+  const containsErrors = () => {
+    const keys = Object.keys(validationErrors);
+    return keys.some(key => validationErrors[key].length > 0);
   };
 
   const handleSave = () => {
     if (isComplete && onSave) {
-      onSave(contour);
+      onSave(convertContourToNumeric(contour));
     }
   };
 
@@ -134,9 +179,10 @@ const ContourPopoverControl = ({
       <StyledRow>
         <Col flex="1">
           <ControlHeader
-            name="isoline-threshold-lower"
+            name="isoband-threshold-lower"
             label="Lower Threshold"
-            description="test"
+            description="The lower limit of the threshold range of the Isoband"
+            validationErrors={validationErrors.lowerThreshold}
             hovered
           />
           <TextControl
@@ -146,9 +192,10 @@ const ContourPopoverControl = ({
         </Col>
         <Col flex="1">
           <ControlHeader
-            name="isoline-threshold-upper"
+            name="isoband-threshold-upper"
             label="Upper Threshold"
-            description="test"
+            description="The upper limit of the threshold range of the Isoband"
+            validationErrors={validationErrors.upperThreshold}
             hovered
           />
           <TextControl
@@ -160,9 +207,10 @@ const ContourPopoverControl = ({
       <StyledRow>
         <Col flex="1">
           <ControlHeader
-            name="isoline-color"
+            name="isoband-color"
             label="Color"
-            description="test"
+            description="The color of the isoband"
+            validationErrors={validationErrors.color}
             hovered
           />
           <ColorPickerControl
@@ -181,7 +229,8 @@ const ContourPopoverControl = ({
           <ControlHeader
             name="isoline-threshold"
             label="Threshold"
-            description="test"
+            description="Defines the value that determines the boundary between different regions or levels in the data "
+            validationErrors={validationErrors.lowerThreshold}
             hovered
           />
           <TextControl
@@ -195,7 +244,8 @@ const ContourPopoverControl = ({
           <ControlHeader
             name="isoline-stroke-width"
             label="Stroke Width"
-            description="test"
+            description="The width of the Isoline in pixels"
+            validationErrors={validationErrors.strokeWidth}
             hovered
           />
           <TextControl
@@ -207,7 +257,8 @@ const ContourPopoverControl = ({
           <ControlHeader
             name="isoline-color"
             label="Color"
-            description="test"
+            description="The color of the isoline"
+            validationErrors={validationErrors.color}
             hovered
           />
           <ColorPickerControl
@@ -224,7 +275,7 @@ const ContourPopoverControl = ({
       <Tabs
         id="contour-edit-tabs"
         onChange={onTabChange}
-        defaultActiveKey={getInitTabKey(initialValue)}
+        defaultActiveKey={getTabKey(initialValue)}
       >
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
@@ -247,7 +298,7 @@ const ContourPopoverControl = ({
         </Button>
         <Button
           data-test="adhoc-filter-edit-popover-save-button"
-          disabled={!isComplete}
+          disabled={!isComplete || containsErrors()}
           buttonStyle="primary"
           buttonSize="small"
           className="m-r-5"
