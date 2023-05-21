@@ -17,7 +17,14 @@
 import logging
 import re
 from dataclasses import dataclass
-from enum import Enum
+
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+    class StrEnum(str, Enum):
+        pass
+
 from typing import Any, cast, Iterator, List, Optional, Set, Tuple
 from urllib import parse
 
@@ -70,7 +77,7 @@ sqlparse.keywords.SQL_REGEX.insert(
 )
 
 
-class CtasMethod(str, Enum):
+class CtasMethod(strEnum):
     TABLE = "TABLE"
     VIEW = "VIEW"
 
@@ -482,7 +489,7 @@ def sanitize_clause(clause: str) -> str:
     return clause
 
 
-class InsertRLSState(str, Enum):
+class InsertRLSState(strEnum):
     """
     State machine that scans for WHERE and ON clauses referencing tables.
     """
