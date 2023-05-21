@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import styled from '@emotion/styled';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import ContourOption from './ContourOption';
@@ -44,9 +45,16 @@ const DEFAULT_CONTOURS: contourType[] = [
   },
 ];
 
+const NewContourFormatPlaceholder = styled("div")`
+  position: relative;
+  width: calc(100% - 4px);
+  bottom: 16px;
+  left: 0;
+`;
+
 const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
   const [popoverVisible, setpopoverVisible] = useState(false);
-  const [contours, setContours] = useState<contourType[]>(DEFAULT_CONTOURS);
+  const [contours, setContours] = useState<contourType[]>(props?.value ? props?.value : DEFAULT_CONTOURS);
 
   useEffect(() => {
     // add z-index to contours
@@ -123,7 +131,9 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
         isControlled
         visible={popoverVisible}
         toggleVisibility={setpopoverVisible}
-      />
+      >
+        <NewContourFormatPlaceholder />
+      </ContourPopoverTrigger>
     </>
   );
 };
