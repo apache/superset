@@ -25,7 +25,6 @@ import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
 import { ContourPopoverControlProps, colorType, contourType } from './types';
-import { init } from 'lodash/fp';
 
 enum CONTOUR_TYPES {
   ISOLINE = 'ISOLINE',
@@ -58,7 +57,6 @@ const ContourPopoverControl = ({
   value: initialValue,
   onSave,
   onClose,
-  onChange,
 }: ContourPopoverControlProps) => {
   const [currentTab, setCurrentTab] = useState(getInitTabKey(initialValue));
   const [contour, setContour] = useState(

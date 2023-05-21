@@ -36,7 +36,6 @@ export interface ContourPopoverControlProps {
   description?: string;
   hovered?: boolean;
   value?: contourType;
-  onChange?: (value: string) => void;
   onSave?: (contour: contourType) => void;
   onClose?: () => void;
 }
