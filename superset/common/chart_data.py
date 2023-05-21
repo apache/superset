@@ -14,11 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+    class StrEnum(str, Enum):
+        pass
+
 from typing import Set
 
 
-class ChartDataResultFormat(str, Enum):
+class ChartDataResultFormat(StrEnum):
     """
     Chart data response format
     """
@@ -32,7 +38,7 @@ class ChartDataResultFormat(str, Enum):
         return {cls.CSV} | {cls.XLSX}
 
 
-class ChartDataResultType(str, Enum):
+class ChartDataResultType(StrEnum):
     """
     Chart data response type
     """
