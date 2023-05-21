@@ -489,7 +489,7 @@ def sanitize_clause(clause: str) -> str:
     return clause
 
 
-class InsertRLSState(strEnum):
+class InsertRLSState(StrEnum):
     """
     State machine that scans for WHERE and ON clauses referencing tables.
     """
