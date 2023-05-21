@@ -49,6 +49,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
+      expanded: true,
       controlSetRows: [
         [mapboxStyle, viewport],
         [autozoom],
@@ -56,13 +57,14 @@ const config: ControlPanelConfig = {
           {
             name: 'cellSize',
             config: {
-              type: 'SliderControl',
+              type: 'TextControl',
               label: t('Cell Size'),
-              min: 100,
-              max: 3000,
-              step: 100,
-              renderTrigger: true,
               default: 300,
+              isInt: true,
+              description: t(
+                'The size of each cell in meters',
+              ),
+              renderTrigger: true,
               clearable: false,
             },
           },
