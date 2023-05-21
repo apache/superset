@@ -19,7 +19,6 @@
 import {
   ControlPanelConfig,
   sections,
-  formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
@@ -33,11 +32,6 @@ import {
   spatial,
   viewport,
 } from '../../utilities/Shared_DeckGL';
-
-const CELL_SIZE_OPTIONS = Array.from(
-  { length: 20 },
-  (_: any, i: number) => `${(i + 1) * 100}`,
-);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -62,10 +56,13 @@ const config: ControlPanelConfig = {
           {
             name: 'cellSize',
             config: {
-              type: 'SelectControl',
+              type: 'SliderControl',
               label: t('Cell Size'),
-              choices: formatSelectOptions(CELL_SIZE_OPTIONS),
-              default: 200,
+              min: 100,
+              max: 3000,
+              step: 100,
+              renderTrigger: true,
+              default: 300,
               clearable: false,
             },
           },
@@ -95,6 +92,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ContourControl',
               label: t('Contours'),
+              renderTrigger: true,
               description: t(
                 'Define contour layers. Isolines represent a collection of line segments that ' +
                   'serparate the area above and below a given threshold. Isobands represent a ' +
