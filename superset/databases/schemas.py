@@ -880,3 +880,86 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
             "information"
         },
     )
+
+
+class DatabaseConnectionSchema(Schema):
+    """
+    Schema with database connection information.
+
+    This is only for admins (who have ``can_create`` on ``Database``).
+    """
+
+    allow_ctas = fields.Boolean(metadata={"description": allow_ctas_description})
+    allow_cvas = fields.Boolean(metadata={"description": allow_cvas_description})
+    allow_dml = fields.Boolean(metadata={"description": allow_dml_description})
+    allow_file_upload = fields.Boolean(
+        metadata={"description": allow_file_upload_description}
+    )
+    allow_run_async = fields.Boolean(
+        metadata={"description": allow_run_async_description}
+    )
+    backend = fields.String(
+        allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
+    )
+    cache_timeout = fields.Integer(
+        metadata={"description": cache_timeout_description}, allow_none=True
+    )
+    configuration_method = fields.String(
+        metadata={"description": configuration_method_description},
+    )
+    database_name = fields.String(
+        metadata={"description": database_name_description},
+        allow_none=True,
+        validate=Length(1, 250),
+    )
+    driver = fields.String(
+        allow_none=True, metadata={"description": "SQLAlchemy driver to use"}
+    )
+    engine_information = fields.Dict(keys=fields.String(), values=fields.Raw())
+    expose_in_sqllab = fields.Boolean(
+        metadata={"description": expose_in_sqllab_description}
+    )
+    extra = fields.String(
+        metadata={"description": extra_description}, validate=extra_validator
+    )
+    force_ctas_schema = fields.String(
+        metadata={"description": force_ctas_schema_description},
+        allow_none=True,
+        validate=Length(0, 250),
+    )
+    id = fields.Integer(metadata={"description": "Database ID (for updates)"})
+    impersonate_user = fields.Boolean(
+        metadata={"description": impersonate_user_description}
+    )
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    server_cert = fields.String(
+        metadata={"description": server_cert_description},
+        allow_none=True,
+        validate=server_cert_validator,
+    )
+    uuid = fields.String(required=False)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    masked_encrypted_extra = fields.String(
+        metadata={"description": encrypted_extra_description},
+        validate=encrypted_extra_validator,
+        allow_none=True,
+    )
+    parameters = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(),
+        metadata={"description": "DB-specific parameters for configuration"},
+    )
+    parameters_schema = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(),
+        metadata={
+            "description": (
+                "JSONSchema for configuring the database by "
+                "parameters instead of SQLAlchemy URI"
+            ),
+        },
+    )
+    sqlalchemy_uri = fields.String(
+        metadata={"description": sqlalchemy_uri_description},
+        validate=[Length(1, 1024), sqlalchemy_uri_validator],
+    )

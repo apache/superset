@@ -542,6 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     'database',
     t('database'),
     addDangerToast,
+    'connection',
   );
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
