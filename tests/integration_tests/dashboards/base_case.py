@@ -76,7 +76,6 @@ class DashboardTestCase(SupersetTestCase):
         view_menu = security_manager.find_view_menu(deleted_dashboard.view_name)
         self.assertIsNone(view_menu)
 
-
     def clean_created_objects(self):
         with app.test_request_context():
             self.logout()
