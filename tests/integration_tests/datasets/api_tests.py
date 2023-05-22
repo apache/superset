@@ -327,6 +327,19 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
+        database_backend = response["result"]["database"]["backend"]
+        time_grain_sqla = [
+            ["PT1S", "Second"],
+            ["PT1M", "Minute"],
+            ["PT1H", "Hour"],
+            ["P1D", "Day"],
+            ["P1W", "Week"],
+            ["P1M", "Month"],
+            ["P3M", "Quarter"],
+            ["P1Y", "Year"],
+        ]
+        if database_backend == "mysql":
+            time_grain_sqla.append(["1969-12-29T00:00:00Z/P1W", "Week starting Monday"])
         expected_result = {
             "cache_timeout": None,
             "database": {
@@ -353,17 +366,7 @@ class TestDatasetApi(SupersetTestCase):
             "name": f"{get_example_default_schema()}.energy_usage",
             "column_formats": {},
             "granularity_sqla": [],
-            "time_grain_sqla": [
-                ["PT1S", "Second"],
-                ["PT1M", "Minute"],
-                ["PT1H", "Hour"],
-                ["P1D", "Day"],
-                ["P1W", "Week"],
-                ["P1M", "Month"],
-                ["P3M", "Quarter"],
-                ["P1Y", "Year"],
-                ["1969-12-29T00:00:00Z/P1W", "Week starting Monday"],
-            ],
+            "time_grain_sqla": time_grain_sqla,
             "order_by_choices": [
                 ['["source", true]', "source [asc]"],
                 ['["source", false]', "source [desc]"],
@@ -381,7 +384,7 @@ class TestDatasetApi(SupersetTestCase):
                 "value": "value",
             },
         }
-        if response["result"]["database"]["backend"] not in ("presto", "hive"):
+        if database_backend not in ("presto", "hive"):
             assert {
                 k: v for k, v in response["result"].items() if k in expected_result
             } == expected_result
