@@ -22,7 +22,7 @@ import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
-//**
+/**
  * Enum for empty state sizes.
  *
  * @enum {number}
