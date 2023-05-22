@@ -20,8 +20,10 @@ from typing import Any, Dict, Union
 
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.exceptions import SupersetException
+from superset.tags.models import TagTypes
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -172,7 +174,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = EnumField(TagTypes, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
