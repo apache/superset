@@ -17,7 +17,7 @@
 """migrate-pivot-table-v1-to-v2
 
 Revision ID: 9ba2ce3086e5
-Revises: 07f9a902af1b
+Revises: 7e67aecbf3f1
 Create Date: 2023-04-14 11:10:10.148992
 
 """
