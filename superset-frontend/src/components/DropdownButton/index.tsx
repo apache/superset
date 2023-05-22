@@ -73,12 +73,32 @@ export interface DropdownButtonProps {
   buttonsRender?: ((buttons: ReactNode[]) => ReactNode[]) | undefined;
 }
 
+/**
+ * `DropdownButton` component.
+ *
+ * A styled dropdown button that optionally supports a tooltip.
+ *
+ * @param {React.ReactElement} overlay - The overlay shown when the button is clicked.
+ * @param {string} [tooltip] - The tooltip text shown when the cursor hovers over the button.
+ * @param {'topLeft'|'topRight'|'bottomLeft'|'bottomRight'} [placement] - The placement of the tooltip.
+ * @param {((buttons: ReactNode[]) => ReactNode[]) | undefined} [buttonsRender] - A function to customize the rendering of the buttons.
+ * @returns {JSX.Element} A styled dropdown button element.
+ */
 export const DropdownButton = ({
   overlay,
   tooltip,
   placement,
   ...rest
 }: DropdownButtonProps) => {
+  /**
+   * `buildButton` function.
+   *
+   * Builds the button with optional custom button rendering.
+   *
+   * @param {Object} props - The properties for the button.
+   * @param {((buttons: ReactNode[]) => ReactNode[]) | undefined} [props.buttonsRender] - A function to customize the rendering of the buttons.
+   * @returns {JSX.Element} A styled dropdown button element.
+   */
   const buildButton = (
     props: {
       buttonsRender?: DropdownButtonProps['buttonsRender'];
