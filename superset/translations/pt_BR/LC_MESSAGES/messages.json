@@ -26,7 +26,7 @@
           "expressão necessária para aderir ao"
         ],
        "source code of Superset's sandboxed parser": [
-          "código-fonte do analisador em área restrita do Athena"
+          "código-fonte do analisador em área restrita do Superset"
         ],
        "standard to ensure that the lexicographical ordering\n                      coincides with the chronological ordering. If the\n                      timestamp format does not adhere to the ISO 8601 standard\n                      you will need to define an expression and type for\n                      transforming the string into a date or timestamp. Note\n                      currently time zones are not supported. If time is stored\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n                      is specified we fall back to using the optional defaults on a per\n                      database/column name level via the extra parameter.": [
           "para garantir que a ordem lexicográfica coincida com a ordem cronológica. Se o\n formato do timestamp não for aderente ao padrão ISO 8601\n você precisará definir uma expressão e tipo para\n transformar o texto em data ou timestamp. Nota:\n naturalmente fusos horários não são suportados. Se o tempo é armazenado no formato epoch coloque ` epoch_s ` ou ` epoch_ms `. Se nenhum padrão for especificado\nemos utilizar os padrões de acordo com cada nível do banco de dados/nome de coluna via parâmetro extra."
@@ -148,7 +148,7 @@
           "), e eles tornaram-se disponíveis no seu SQL (exemplo:"
         ],
        "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
-          "*%(name)s*\n\n%(description)s\n\n<%(url) s|Explore no Athena >\n\n%(table)s\n"
+          "*%(name)s*\n\n%(description)s\n\n<%(url) s|Explore no Superset >\n\n%(table)s\n"
         ],
        "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [
           "*%(name)s*\n\n%(description)s\n\nErro: %(text)s\n"
@@ -893,7 +893,7 @@
           "Ocorreu um erro ao armazenar a sua consulta no backend. Para evitar perder as suas alterações, guarde a sua consulta utilizando o botão \"Save Query\"."
         ],
        "An unknown error occurred. Please contact your Superset administrator": [
-          "Ocorreu um erro desconhecido. Por favor entre em contato com seu administrador do Athena"
+          "Ocorreu um erro desconhecido. Por favor entre em contato com seu administrador do Superset"
         ],
        "Anchor to": [
           "Âncora para"
@@ -2204,14 +2204,14 @@
           "Banco de dados"
         ],
        "Database \"%(database_name)s\"schema \"%(schema_name)s\"is not allowed for csv uploads. Please contact your Superset Admin.": [
-          "Banco de dados \"%(database_name)s \"esquema \"%(schema_name)s\"não é permitido para carregamentos de csv. Por favor, contate o administrador do Athena."
+          "Banco de dados \"%(database_name)s \"esquema \"%(schema_name)s\"não é permitido para carregamentos de csv. Por favor, contate o administrador do Superset."
         ],
        "Database \"%(database_name)s\"schema \"%(schema_name)s\"is not allowed for excel uploads. Please contact your Superset Admin.": [
-          "Banco de dados \"%(database_name)s \"esquema \"%(schema_name)s\"não é permitido para carregamentos de excel. Por favor, contate o administrador do Athena."
+          "Banco de dados \"%(database_name)s \"esquema \"%(schema_name)s\"não é permitido para carregamentos de excel. Por favor, contate o administrador do Superset."
         ],
-       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": ["O banco de dados \"%(database_name)s\" schema \"%(schema_name)s\" não é permitido para uploads de colunas. Entre em contato com o administrador do Athena."],
-       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": ["O banco de dados \"%(database_name)s\" esquema \"%(schema_name)s\" não é permitido para uploads de csv. Entre em contato com o administrador do Athena."],
-       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": ["Banco de dados \"%(database_name)s\" esquema \"%(schema_name)s\" não é permitido para uploads do Excel. Entre em contato com o administrador do Athena."],
+       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": ["O banco de dados \"%(database_name)s\" schema \"%(schema_name)s\" não é permitido para uploads de colunas. Entre em contato com o administrador do Superset."],
+       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": ["O banco de dados \"%(database_name)s\" esquema \"%(schema_name)s\" não é permitido para uploads de csv. Entre em contato com o administrador do Superset."],
+       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": ["Banco de dados \"%(database_name)s\" esquema \"%(schema_name)s\" não é permitido para uploads do Excel. Entre em contato com o administrador do Superset."],
        "Database Connections": ["Conexões de banco de dados"],
        "Database Creation Error": ["Erro na criação do banco de dados"],
        "Database URL": [
@@ -2236,7 +2236,7 @@
        "Database does not support subqueries": ["O banco de dados não é compatível com subconsultas"],
        "Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions: ": ["O driver do banco de dados para importação talvez não esteja instalado. Visite a página de documentação do Superset para obter instruções de instalação:"],  
        "Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions:": [
-          "O driver para importação do banco de dados pode não estar instalado. Visite a página de documentação do Athena para obter instruções de instalação:"
+          "O driver para importação do banco de dados pode não estar instalado. Visite a página de documentação do Superset para obter instruções de instalação:"
         ],
        "Database is offline.": ["O banco de dados está off-line."], 
        "Database error": [
@@ -5044,7 +5044,7 @@
           "Escolha um nome para te ajudar identificar esse banco de dados."
         ],
        "Pick a nickname for how the database will display in Superset.": [
-          "Escolha um apelido para a forma como o banco de dados será exibido no Athena."
+          "Escolha um apelido para a forma como o banco de dados será exibido no Superset."
         ],
        "Pick a set of deck.gl charts to layer on top of one another": [
           "Escolha um conjunto de gráficos deck.gl para colocar em camadas uns sobre os outros"
@@ -5231,7 +5231,7 @@
           "Posição do subtotal ao nível da linha"
         ],
        "Powered by Apache Superset": [
-          "Feito pela Dataway Tecnologia da Informação"
+          "Feito por Apache Superset"
         ],
        "Pre-filter available values": [
           "Valores disponíveis para o pré-filtro"
@@ -6634,16 +6634,16 @@
           "Domingo"
         ],
        "Superset Embedded SDK documentation.": [
-          "Documentação do SDK incorporado Athena."
+          "Documentação do SDK incorporado Superset."
         ],
        "Superset chart": [
-          "Gráfico do Athena"
+          "Gráfico do Superset"
         ],
        "Superset dashboard": [
-          "Painel Athena"
+          "Painel Superset"
         ],
-       "Superset encountered an error while running a command.": ["O Athena encontrou um erro ao executar um comando."],
-       "Superset encountered an unexpected error.": ["O Athena encontrou um erro inesperado."], 
+       "Superset encountered an error while running a command.": ["O Superset encontrou um erro ao executar um comando."],
+       "Superset encountered an unexpected error.": ["O Superset encontrou um erro inesperado."], 
        "Supported databases": ["Bancos de dados compatíveis"], 
        "Survey Responses": [
           "Respostas da pesquisa"
@@ -6818,7 +6818,7 @@
           "O esquema de cores é determinado pelo painel relacionado.\n Edite o esquema de cores nas propriedades do painel."
         ],
        "The country code standard that Superset should expect to find in the [country] column": [
-          "O código de país padrão que o Athena deve esperar encontrar na coluna [country]"
+          "O código de país padrão que o Superset deve esperar encontrar na coluna [country]"
         ],
        "The dashboard has been saved": [
           "O painel foi salvo"
@@ -7038,7 +7038,7 @@
           "O tamanho da célula quadrada, em pixels"
         ],
        "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
-          "O URL enviado não é considerado seguro, use apenas URLs com o mesmo domínio do Athena."
+          "O URL enviado não é considerado seguro, use apenas URLs com o mesmo domínio do Superset."
         ],
        "The submitted payload has the incorrect format.": [
           "O payload enviado tem o formato incorreto."
@@ -7063,7 +7063,7 @@
           "A granularidade de tempo para a visualização. Observe que você pode digitar e usar linguagem natural simples, como `10 segundos`, `1 dia` ou `56 semanas`"
         ],
        "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
-          "A granularidade de tempo para a visualização. Isso aplica uma transformação de data para alterar sua coluna de tempo e define uma nova granularidade de tempo. As opções aqui são definidas com base em cada mecanismo de banco de dados no código-fonte do Athena."
+          "A granularidade de tempo para a visualização. Isso aplica uma transformação de data para alterar sua coluna de tempo e define uma nova granularidade de tempo. As opções aqui são definidas com base em cada mecanismo de banco de dados no código-fonte do Superset."
         ],
        "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
           "O intervalo de tempo para a visualização. Todos os horários relativos, por exemplo, \"Last month\", \"Last 7 days\", \"now\" etc., são avaliados no servidor usando o horário local do servidor (sem fuso horário). Todas as dicas de ferramentas e horários de espaço reservado são expressos em UTC (sem fuso horário). Os registros de data e hora são avaliados pelo banco de dados usando o fuso horário local do mecanismo. Observe que é possível definir explicitamente o fuso horário de acordo com o formato ISO 8601 ao especificar a hora inicial e/ou final."
@@ -7216,7 +7216,7 @@
           "Esse gráfico foi movido para um escopo de filtro diferente."
         ],
        "This chart is managed externally, and can't be edited in Superset": [
-          "Esse gráfico é gerenciado externamente e não pode ser editado no Athena"
+          "Esse gráfico é gerenciado externamente e não pode ser editado no Superset"
         ],
        "This chart might be incompatible with the filter (datasets don't match)": [
           "Esse gráfico pode ser incompatível com o filtro (os conjuntos de dados não correspondem)"
@@ -7245,7 +7245,7 @@
           "Isso controla se o campo de grão de tempo da exibição atual\n deve ser passado para o gráfico que contém os dados de anotação."
         ],
        "This dashboard is managed externally, and can't be edited in Superset": [
-          "Esse painel é gerenciado externamente e não pode ser editado no Athena"
+          "Esse painel é gerenciado externamente e não pode ser editado no Superset"
         ],
        "This dashboard is not published which means it will not show up in the list of dashboards. Favorite it to see it there or access it by using the URL directly.": [
           "Esse painel não está publicado, o que significa que não será exibido na lista de painéis. Favorite-o para vê-lo lá ou acesse-o usando diretamente a URL."
@@ -7267,13 +7267,13 @@
         ],
        "This defines the level of the hierarchy": ["Isso define o nível da hierarquia"],
        "This database is managed externally, and can't be edited in Superset": [
-          "Esse banco de dados é gerenciado externamente e não pode ser editado no Athena"
+          "Esse banco de dados é gerenciado externamente e não pode ser editado no Superset"
         ],
        "This database table does not contain any data. Please select a different table.": [
           "Essa tabela do banco de dados não contém dados. Selecione uma tabela diferente."
         ],
        "This dataset is managed externally, and can't be edited in Superset": [
-          "Esse conjunto de dados é gerenciado externamente e não pode ser editado no Athena"
+          "Esse conjunto de dados é gerenciado externamente e não pode ser editado no Superset"
         ],
        "This dataset is not used to power any charts.": [
           "Esse conjunto de dados não é usado para alimentar nenhum gráfico."
@@ -7282,7 +7282,7 @@
           "Isso define o elemento a ser plotado no gráfico"
         ],
        "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
-          "Esses campos funcionam como uma visualização do Athena, o que significa que o Athena executará uma consulta com base nessa string como uma subconsulta."
+          "Esses campos funcionam como uma visualização do Superset, o que significa que o Superset executará uma consulta com base nessa string como uma subconsulta."
         ],
        "This filter doesn't exist in dashboard. It will not be applied.": [
           "Esse filtro não existe no painel. Ele não será aplicado."
@@ -7490,7 +7490,7 @@
           "A cadeia de tempo é ambígua. Especifique [%(human_readable)s ago] ou [%(human_readable)s later]."
         ],
        "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-          "O gráfico de área de série temporal é semelhante ao gráfico de linhas, pois representa variáveis com a mesma escala, mas os gráficos de área empilham as métricas umas sobre as outras. Um gráfico de área no Athena pode ser de fluxo, empilhamento ou expansão."
+          "O gráfico de área de série temporal é semelhante ao gráfico de linhas, pois representa variáveis com a mesma escala, mas os gráficos de área empilham as métricas umas sobre as outras. Um gráfico de área no Superset pode ser de fluxo, empilhamento ou expansão."
         ],
        "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
           "Os gráficos de barras de séries temporais são usados para mostrar as alterações em uma métrica ao longo do tempo como uma série de barras."
@@ -7665,13 +7665,13 @@
           "Não foi possível carregar colunas para a tabela selecionada. Selecione uma tabela diferente."
         ],
        "Unable to migrate query editor state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
-          "Não foi possível migrar o estado do editor de consultas para o backend. O Athena tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
+          "Não foi possível migrar o estado do editor de consultas para o backend. O Superset tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
         ],
        "Unable to migrate query state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
-          "Não foi possível migrar o estado da consulta para o backend. O Athena tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
+          "Não foi possível migrar o estado da consulta para o backend. O Superset tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
         ],
        "Unable to migrate table schema state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
-          "Não foi possível migrar o estado do esquema da tabela para o backend. O Athena tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
+          "Não foi possível migrar o estado do esquema da tabela para o backend. O Superset tentará novamente mais tarde. Entre em contato com o administrador se o problema persistir."
         ],
        "Unable to retrieve dashboard colors": [
           "Não foi possível recuperar as cores do painel"
@@ -8083,7 +8083,7 @@
           "Quando apenas uma métrica primária é fornecida, é usada uma escala de cores categórica."
         ],
        "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
-          "Ao especificar o SQL, a fonte de dados atua como uma visualização. O Athena usará essa instrução como uma subconsulta ao agrupar e filtrar as consultas pai geradas."
+          "Ao especificar o SQL, a fonte de dados atua como uma visualização. O Superset usará essa instrução como uma subconsulta ao agrupar e filtrar as consultas pai geradas."
         ],
        "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
           "Ao usar \"Autocomplete filters\", isso pode ser usado para melhorar o desempenho da consulta que busca os valores. Use essa opção para aplicar um predicado (cláusula WHERE) à consulta que seleciona os valores distintos da tabela. Normalmente, a intenção seria limitar a varredura aplicando um filtro de tempo relativo em um campo particionado ou indexado relacionado ao tempo."
@@ -8527,7 +8527,7 @@
         ],
        "[Missing Dataset]": ["[Conjunto de dados ausente]"],  
        "[Superset] Access to the datasource %(name)s was granted": [
-          "[Athena] Acesso à fonte de dados %(name)s foi concedido"
+          "[Superset] Acesso à fonte de dados %(name)s foi concedido"
         ],
        "[Untitled]": ["[Sem título]"],
        "[asc]": ["[asc]"],  
@@ -8841,7 +8841,7 @@
           "ffill"
         ],
        "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components.": [
-          "filter_box será descontinuado em uma versão futura do Athena. Substitua filter_box por componentes de filtro do painel."
+          "filter_box será descontinuado em uma versão futura do Superset. Substitua filter_box por componentes de filtro do painel."
         ],
        "function type icon": [
           "ícone de tipo de função"
