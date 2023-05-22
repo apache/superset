@@ -37,7 +37,7 @@ from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
-from superset.constants import CacheRegion
+from superset.constants import CacheRegion, WeeklyTimeGrain
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -87,12 +87,10 @@ class QueryContextProcessor:
     to retrieve the data payload for a given viz.
     """
 
+    AGGREGATED_JOIN_COLUMN = "$aggregated_join_column"
+
     _query_context: QueryContext
     _qc_datasource: BaseDatasource
-    """
-    The query context contains the query object and additional fields necessary
-    to retrieve the data payload for a given viz.
-    """
 
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
@@ -317,9 +315,8 @@ class QueryContextProcessor:
         query_object_clone = copy.copy(query_object)
         queries: list[str] = []
         cache_keys: list[str | None] = []
-        rv_dfs: list[pd.DataFrame] = [df]
+        offset_dfs: list[pd.DataFrame] = []
 
-        time_offsets = query_object.time_offsets
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
@@ -328,7 +325,25 @@ class QueryContextProcessor:
                     "when using a Time Comparison."
                 )
             )
-        for offset in time_offsets:
+
+        columns = df.columns
+        time_grain = query_object.extras["time_grain_sqla"]
+        use_aggregated_join_column = any(
+            grain in time_grain for grain in ("P1W", "P1M", "P3M", "P1Y")
+        )
+        if use_aggregated_join_column:
+            # adds aggregated join column
+            df[self.AGGREGATED_JOIN_COLUMN] = df.apply(
+                lambda row: self.get_aggregated_join_column(row, 0, time_grain), axis=1
+            )
+            # skips the first column which is the temporal column
+            # because we'll use the aggregated join columns instead
+            columns = df.columns[1:]
+
+        metric_names = get_metric_names(query_object.metrics)
+        join_keys = [col for col in columns if col not in metric_names]
+
+        for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
                 # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
@@ -364,13 +379,15 @@ class QueryContextProcessor:
             ]
 
             # `offset` is added to the hash function
-            cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
+            cache_key = self.query_cache_key(
+                query_object_clone, time_offset=offset, time_grain=time_grain
+            )
             cache = QueryCacheManager.get(
                 cache_key, CacheRegion.DATA, query_context.force
             )
             # whether hit on the cache
             if cache.is_loaded:
-                rv_dfs.append(cache.df)
+                offset_dfs.append(cache.df)
                 queries.append(cache.query)
                 cache_keys.append(cache_key)
                 continue
@@ -379,11 +396,8 @@ class QueryContextProcessor:
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
                 metric: TIME_COMPARISON.join([metric, offset])
-                for metric in get_metric_names(
-                    query_object_clone_dct.get("metrics", [])
-                )
+                for metric in metric_names
             }
-            join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
 
             if isinstance(self._qc_datasource, Query):
                 result = self._qc_datasource.exc_query(query_object_clone_dct)
@@ -420,21 +434,23 @@ class QueryContextProcessor:
                         )
                     )
 
+                # modifies temporal column using offset
                 offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
                     **normalize_time_delta(offset)
                 )
 
-            # df left join `offset_metrics_df`
-            offset_df = dataframe_utils.left_join_df(
-                left_df=df,
-                right_df=offset_metrics_df,
-                join_keys=join_keys,
-            )
-            offset_slice = offset_df[metrics_mapping.values()]
+                if use_aggregated_join_column:
+                    # adds aggregated join column
+                    offset_metrics_df[
+                        self.AGGREGATED_JOIN_COLUMN
+                    ] = offset_metrics_df.apply(
+                        lambda row: self.get_aggregated_join_column(row, 0, time_grain),
+                        axis=1,
+                    )
 
-            # set offset_slice to cache and stack.
+            # cache df and query
             value = {
-                "df": offset_slice,
+                "df": offset_metrics_df,
                 "query": result.query,
             }
             cache.set(
@@ -444,10 +460,47 @@ class QueryContextProcessor:
                 datasource_uid=query_context.datasource.uid,
                 region=CacheRegion.DATA,
             )
-            rv_dfs.append(offset_slice)
+            offset_dfs.append(offset_metrics_df)
 
-        rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
-        return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
+        if offset_dfs:
+            # iterate on offset_dfs, left join each with df
+            for offset_df in offset_dfs:
+                df = dataframe_utils.left_join_df(
+                    left_df=df,
+                    right_df=offset_df,
+                    join_keys=join_keys,
+                    rsuffix="_right",
+                )
+
+        # remove AGGREGATED_JOIN_COLUMN from df
+        if use_aggregated_join_column:
+            df = df.drop(columns=[self.AGGREGATED_JOIN_COLUMN])
+
+        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+
+    def get_aggregated_join_column(
+        self, row: pd.Series, column_index: int, time_grain: str
+    ) -> str:
+        # weekly time grain
+        if "P1W" in time_grain:
+            if time_grain in (
+                WeeklyTimeGrain.WEEK_STARTING_SUNDAY,
+                WeeklyTimeGrain.WEEK_ENDING_SATURDAY,
+            ):
+                return row[column_index].strftime("%Y-W%U")
+            else:
+                return row[column_index].strftime("%Y-W%W")
+
+        # monthly time grain
+        elif "P1M" in time_grain:
+            return row[column_index].strftime("%Y-%m")
+
+        # quarterly time grain
+        elif "P3M" in time_grain:
+            return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
+
+        # yearly time grain
+        return row[column_index].strftime("%Y")
 
     def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
