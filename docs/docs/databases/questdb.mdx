@@ -1,0 +1,32 @@
+---
+title: QuestDB
+hide_title: true
+sidebar_position: 27
+version: 1
+---
+
+## QuestDB
+
+To use **QuestDB** with **Superset** add this Python module:
+
+```text
+questdb-connect>=1.0.8
+```
+
+When running Superset with `docker-compose`, add the above dependency to
+your `./docker/requirements-local.txt` file.
+
+## Connection string
+
+The connection string is as follows:
+
+```text
+questdb://<user>:<password>@<host>:<port>/<database>
+```
+
+examples:
+
+```
+questdb://admin:quest@localhost:8812/main
+questdb://admin:quest@host.docker.internal:8812/main (when running in docker)
+```
