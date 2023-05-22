@@ -22,24 +22,44 @@ import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
+//**
+ * Enum for empty state sizes.
+ *
+ * @enum {number}
+ */
 export enum EmptyStateSize {
   Small,
   Medium,
   Big,
 }
 
+/**
+ * Properties for the EmptyStateSmall component.
+ *
+ * @interface EmptyStateSmallProps
+ */
 export interface EmptyStateSmallProps {
   title: ReactNode;
   description?: ReactNode;
   image?: ReactNode;
 }
 
+/**
+ * Properties for the EmptyState component.
+ *
+ * @interface EmptyStateProps
+ */
 export interface EmptyStateProps extends EmptyStateSmallProps {
   buttonText?: ReactNode;
   buttonAction?: React.MouseEventHandler<HTMLElement>;
   className?: string;
 }
 
+/**
+ * Properties for the ImageContainer component.
+ *
+ * @interface ImageContainerProps
+ */
 export interface ImageContainerProps {
   image: ReactNode;
   size: EmptyStateSize;
@@ -118,6 +138,12 @@ const ActionButton = styled(Button)`
   `}
 `;
 
+/**
+ * Function to retrieve the image based on the given path or ReactNode.
+ *
+ * @param {string | ReactNode} image - Image path or ReactNode.
+ * @returns {string | ReactNode} - Returns the image path if a string is provided, otherwise returns the ReactNode.
+ */
 const getImage = (image: string | ReactNode) =>
   typeof image === 'string' ? `/static/assets/images/${image}` : image;
 
@@ -134,6 +160,12 @@ const getImageHeight = (size: EmptyStateSize) => {
   }
 };
 
+/**
+ * Component to display an empty image.
+ *
+ * @param {ImageContainerProps} props - Properties for the ImageContainer component.
+ * @returns {JSX.Element} The Empty component displaying an image.
+ */
 const ImageContainer = ({ image, size }: ImageContainerProps) => (
   <Empty
     description={false}
@@ -147,6 +179,12 @@ const handleMouseDown = (e: SyntheticEvent) => {
   e.stopPropagation();
 };
 
+/**
+ * Component to display a large empty state.
+ *
+ * @param {EmptyStateProps} props - Properties for the EmptyStateBig component.
+ * @returns {JSX.Element} The EmptyStateBig component.
+ */
 export const EmptyStateBig = ({
   title,
   image,
@@ -177,6 +215,12 @@ export const EmptyStateBig = ({
   </EmptyStateContainer>
 );
 
+/**
+ * Component to display a medium empty state.
+ *
+ * @param {EmptyStateProps} props - Properties for the EmptyStateMedium component.
+ * @returns {JSX.Element} The EmptyStateMedium component.
+ */
 export const EmptyStateMedium = ({
   title,
   image,
@@ -206,6 +250,12 @@ export const EmptyStateMedium = ({
   </EmptyStateContainer>
 );
 
+/**
+ * Component to display a small empty state.
+ *
+ * @param {EmptyStateSmallProps} props - Properties for the EmptyStateSmall component.
+ * @returns {JSX.Element} The EmptyStateSmall component.
+ */
 export const EmptyStateSmall = ({
   title,
   image,
@@ -231,6 +281,12 @@ const TRANSLATIONS = {
   HERE_TEXT: t('here'),
 };
 
+/**
+ * Function to create a small empty state component with the correct text based on whether there are empty search results.
+ *
+ * @param {boolean} emptyResultsWithSearch - Whether the search results are empty.
+ * @returns {JSX.Element} A small empty state component with the correct text.
+ */
 export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
   <EmptyStateSmall
     image="empty.svg"
