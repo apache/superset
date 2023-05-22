@@ -45,8 +45,7 @@ class MigrateAreaChart(MigrateViz):
     }
 
     def _pre_action(self) -> None:
-        contribution = self.data.get("contribution")
-        if contribution:
+        if contribution := self.data.get("contribution"):
             self.data["contributionMode"] = "row" if contribution else None
 
         show_brush = self.data.get("show_brush")
@@ -62,8 +61,7 @@ class MigrateAreaChart(MigrateViz):
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
 
-        x_ticks_layout = self.data.get("x_ticks_layout")
-        if x_ticks_layout:
+        if x_ticks_layout := self.data.get("x_ticks_layout"):
             self.data["x_ticks_layout"] = 45 if x_ticks_layout == "45°" else 0
 
         x_axis_label = self.data.get("x_axis_label")
@@ -73,16 +71,13 @@ class MigrateAreaChart(MigrateViz):
 
         self.data["opacity"] = 0.7
 
-        rolling_type = self.data.get("rolling_type")
-        if rolling_type:
+        if rolling_type := self.data.get("rolling_type"):
             self.data["rolling_type"] = None if rolling_type == "None" else rolling_type
 
-        time_compare = self.data.get("time_compare")
-        if time_compare:
+        if time_compare := self.data.get("time_compare"):
             self.data["time_compare"] = [value + " ago" for value in time_compare]
 
-        comparison_type = self.data.get("comparison_type")
-        if comparison_type:
+        if comparison_type := self.data.get("comparison_type"):
             self.data["comparison_type"] = (
                 "difference" if comparison_type == "absolute" else comparison_type
             )
