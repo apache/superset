@@ -2988,6 +2988,27 @@ class DeckHex(BaseDeckGLViz):
         return super().get_data(df)
 
 
+class DeckHeatmap(BaseDeckGLViz):
+
+    """deck.gl's HeatmapLayer"""
+
+    viz_type = "deck_heatmap"
+    verbose_name = _("Deck.gl - Heatmap")
+    spatial_control_keys = ["spatial"]
+
+    def get_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "position": data.get("spatial"),
+            "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
+        }
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        self.metric_label = (  # pylint: disable=attribute-defined-outside-init
+            utils.get_metric_name(self.metric) if self.metric else None
+        )
+        return super().get_data(df)
+
+
 class DeckGeoJson(BaseDeckGLViz):
 
     """deck.gl's GeoJSONLayer"""
