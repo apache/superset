@@ -78,11 +78,9 @@ class MigratePivotTable(MigrateViz):
     }
 
     def _pre_action(self) -> None:
-        pivot_margins = self.data.get("pivot_margins")
-        if pivot_margins:
+        if pivot_margins := self.data.get("pivot_margins"):
             self.data["colTotals"] = pivot_margins
             self.data["rowTotals"] = pivot_margins
 
-        pandas_aggfunc = self.data.get("pandas_aggfunc")
-        if pandas_aggfunc:
+        if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
