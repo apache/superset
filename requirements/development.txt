@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.3
-    # via ipython
 astroid==2.6.6
     # via pylint
 asttokens==2.2.1
@@ -88,7 +86,7 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydruid==0.6.5
     # via apache-superset
-pyhive[hive]==0.6.5
+pyhive @ git+https://github.com/dropbox/PyHive.git@a88e03874f12f37cff10f143e7b5f8187eb659fb
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
