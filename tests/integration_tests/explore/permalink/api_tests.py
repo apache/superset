@@ -22,8 +22,9 @@ import pytest
 from sqlalchemy.orm import Session
 
 from superset import db
+from superset.explore.permalink.schemas import ExplorePermalinkSchema
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.key_value.types import KeyValueResource, MarshmallowKeyValueCodec
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
@@ -94,14 +95,17 @@ def test_get_missing_chart(
     chart_id = 1234
     entry = KeyValueEntry(
         resource=KeyValueResource.EXPLORE_PERMALINK,
-        value=JsonKeyValueCodec().encode(
+        value=MarshmallowKeyValueCodec(ExplorePermalinkSchema()).encode(
             {
                 "chartId": chart_id,
                 "datasourceId": chart.datasource.id,
-                "datasourceType": DatasourceType.TABLE,
-                "formData": {
-                    "slice_id": chart_id,
-                    "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
+                "datasourceType": DatasourceType.TABLE.value,
+                "state": {
+                    "urlParams": [["foo", "bar"]],
+                    "formData": {
+                        "slice_id": chart_id,
+                        "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
+                    },
                 },
             }
         ),

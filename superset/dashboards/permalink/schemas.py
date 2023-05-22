@@ -17,7 +17,7 @@
 from marshmallow import fields, Schema
 
 
-class DashboardPermalinkPostSchema(Schema):
+class DashboardPermalinkStateSchema(Schema):
     dataMask = fields.Dict(
         required=False,
         allow_none=True,
@@ -48,3 +48,12 @@ class DashboardPermalinkPostSchema(Schema):
         allow_none=True,
         description="Optional anchor link added to url hash",
     )
+
+
+class DashboardPermalinkSchema(Schema):
+    dashboardId = fields.String(
+        required=True,
+        allow_none=False,
+        metadata={"description": "The id or slug of the dasbhoard"},
+    )
+    state = fields.Nested(DashboardPermalinkStateSchema())

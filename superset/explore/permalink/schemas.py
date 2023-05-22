@@ -17,7 +17,7 @@
 from marshmallow import fields, Schema
 
 
-class ExplorePermalinkPostSchema(Schema):
+class ExplorePermalinkStateSchema(Schema):
     formData = fields.Dict(
         required=True,
         allow_none=False,
@@ -37,3 +37,27 @@ class ExplorePermalinkPostSchema(Schema):
         allow_none=True,
         description="URL Parameters",
     )
+
+
+class ExplorePermalinkSchema(Schema):
+    chartId = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The id of the chart"},
+    )
+    datasourceType = fields.String(
+        required=True,
+        allow_none=False,
+        metadata={"description": "The type of the datasource"},
+    )
+    datasourceId = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The id of the datasource"},
+    )
+    datasource = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The fully qualified datasource reference"},
+    )
+    state = fields.Nested(ExplorePermalinkStateSchema())
