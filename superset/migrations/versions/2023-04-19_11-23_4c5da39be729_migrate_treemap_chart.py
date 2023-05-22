@@ -17,7 +17,7 @@
 """migrate_treemap_chart
 
 Revision ID: 4c5da39be729
-Revises: 07f9a902af1b
+Revises: 7e67aecbf3f1
 Create Date: 2023-04-19 11:23:23.192064
 
 """
