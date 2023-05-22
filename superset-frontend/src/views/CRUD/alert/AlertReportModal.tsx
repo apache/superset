@@ -127,7 +127,8 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 30;
 const DEFAULT_WORKING_TIMEOUT = 60;
-const MAX_WORKING_TIMEOUT = 300;
+const MAX_WORKING_TIMEOUT_ALERTS = 300;
+const MAX_WORKING_TIMEOUT_REPORTS = 900;
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
@@ -421,8 +422,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [maxWorkingTimeout, setMaxWorkingTimeout] =
-    useState<number>(MAX_WORKING_TIMEOUT);
+  const [maxWorkingTimeout, setMaxWorkingTimeout] = useState<number>(
+    isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+  );
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,
     emailError: '',
@@ -1159,7 +1161,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const displayTimeoutValidation = (cronSchedule: string) => {
     const minutePart = cronSchedule.split(' ')[0];
-    const timeout = getLeastTimeout(minutePart, MAX_WORKING_TIMEOUT);
+    const timeout = getLeastTimeout(
+      minutePart,
+      isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+    );
     setMaxWorkingTimeout(timeout);
   };
 
