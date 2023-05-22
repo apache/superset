@@ -224,6 +224,7 @@ export function useSingleViewResource<D extends object = any>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
+  path_suffix = '',
 ) {
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
@@ -242,8 +243,11 @@ export function useSingleViewResource<D extends object = any>(
         loading: true,
       });
 
+      const baseEndpoint = `/api/v1/${resourceName}/${resourceID}`;
+      const endpoint =
+        path_suffix !== '' ? `${baseEndpoint}/${path_suffix}` : baseEndpoint;
       return SupersetClient.get({
-        endpoint: `/api/v1/${resourceName}/${resourceID}`,
+        endpoint,
       })
         .then(
           ({ json = {} }) => {
