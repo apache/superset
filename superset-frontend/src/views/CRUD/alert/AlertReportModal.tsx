@@ -57,6 +57,7 @@ import {
   RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { PeriodType } from 'react-js-cron/dist/cjs/types';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { ERROR_MESSAGES } from './constants';
@@ -129,6 +130,21 @@ const DEFAULT_RETENTION = 30;
 const DEFAULT_WORKING_TIMEOUT = 60;
 const MAX_WORKING_TIMEOUT_ALERTS = 300;
 const MAX_WORKING_TIMEOUT_REPORTS = 900;
+const REPORTS_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+];
+const DEFAULT_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+  'minute',
+];
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
@@ -1012,7 +1028,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       checkNotificationSettings()
     ) {
       if (isReport) {
-        setDisableSave(false);
+        if (currentAlert.crontab === '* * * * *') {
+          setDisableSave(true);
+        } else {
+          setDisableSave(false);
+        }
       } else if (
         !!currentAlert.database &&
         currentAlert.sql?.length &&
@@ -1367,6 +1387,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   currentAlert?.crontab || DEFAULT_CRON_VALUE,
                 );
               }}
+              allowedPeriods={
+                isReport ? REPORTS_ALLOWED_PERIODS : DEFAULT_ALLOWED_PERIODS
+              }
             />
             <div className="control-label">{t('Timezone')}</div>
             <div
