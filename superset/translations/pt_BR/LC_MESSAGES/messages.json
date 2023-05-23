@@ -4167,9 +4167,6 @@
       "Shows or hides markers for the time series": [
         "Mostra ou esconde marcadores para a série temporal"
       ],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        "Mostra a composição de um conjunto de dados através da segmentação de um determinado retângulo em retângulos mais pequenos com áreas proporcionais ao seu valor ou contribuição para o todo. Estes retângulos podem também, por sua vez, ser segmentados hierarquicamente."
-      ],
       "Significance Level": ["Nível de significância"],
       "Simple": ["Simples"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
