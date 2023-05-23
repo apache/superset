@@ -26,6 +26,7 @@ import IconType from './IconType';
 const IconFileNames = [
   'alert',
   'alert_solid',
+  'cross-red',
   'alert_solid_small',
   'area-chart-tile',
   'bar-chart-tile',
