@@ -34,14 +34,14 @@ def validate_python_date_format(value: str) -> None:
         r"""
         ^(
             epoch_s|epoch_ms|
-            (?P<date>%Y(-%m(-%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
+            (?P<date>%Y([-/]%m([-/]%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
         )$
         """,
         re.VERBOSE,
     )
     match = regex.match(value or "")
     if not match:
-        raise ValidationError(_("Invalid date/timestamp format"))
+        raise ValidationError([_("Invalid date/timestamp format")])
 
 
 class DatasetColumnsPutSchema(Schema):
@@ -56,7 +56,7 @@ class DatasetColumnsPutSchema(Schema):
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
-    is_dttm = fields.Boolean(dump_default=False)
+    is_dttm = fields.Boolean(allow_none=True, dump_default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )

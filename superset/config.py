@@ -53,7 +53,6 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
@@ -266,9 +265,9 @@ FLASK_USE_RELOAD = True
 PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
-# user when this feature is on. This may has security implications
+# user when this feature is on. This may have security implications
 # and it's more secure to turn it off in production settings.
-SHOW_STACKTRACE = True
+SHOW_STACKTRACE = False
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
@@ -496,6 +495,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
+    "AVOID_COLORS_COLLISION": True,
 }
 
 # ------------------------------
@@ -834,7 +834,6 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -1188,7 +1187,6 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(
 #        sql,
-#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
 #        security_manager=security_manager,
 #        database=database,
 #    ):
@@ -1378,18 +1376,6 @@ TALISMAN_CONFIG = {
     "force_https": True,
     "force_https_permanent": False,
 }
-
-# It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `filter_rel_fields`
-# on `RLSRestApi`. Example:
-#
-# from flask_appbuilder.models.sqla import filters
-
-# RLS_BASE_RELATED_FIELD_FILTERS = {
-#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#     "roles": [["name", filters.FilterContains, "Admin"]]
-# }
-RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 
 #
 # Flask session cookie options

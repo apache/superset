@@ -586,58 +586,24 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == 1
         assert {"birth_names"} == received_tables
 
-    @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
-        {"roles": [["name", filters.FilterEqual, "Admin"]]},
-    )
-    def test_role_related_filter(self):
-        self.login("Admin")
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(username="admin")
 
-        params = prison.dumps({"page": 0, "page_size": 10})
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
 
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_roles = set([role["text"] for role in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"Admin"} == received_roles
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
-        {
-            "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-            "roles": [["name", filters.FilterEqual, "Admin"]],
-        },
-    )
-    def test_table_and_role_related_filter(self):
-        self.login("Admin")
-
-        params = prison.dumps({"page": 0, "page_size": 10})
-
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_tables = set([table["text"].split(".")[-1] for table in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"birth_names"} == received_tables
-
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_roles = set([role["text"] for role in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"Admin"} == received_roles
+        with mock.patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
+        ):
+            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles")
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

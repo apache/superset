@@ -285,9 +285,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
             parameters["http_path"] = connect_args.get("http_path")
 
         present = {key for key in parameters if parameters.get(key, ())}
-        missing = sorted(required - present)
 
-        if missing:
+        if missing := sorted(required - present):
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

@@ -73,15 +73,33 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.multiple = 0;
   }
 
+  removeSharedLabelColorFromRange(
+    sharedColorMap: Map<string, string>,
+    cleanedValue: string,
+  ) {
+    // make sure we don't overwrite the origin colors
+    const updatedRange = [...this.originColors];
+    // remove the color option from shared color
+    sharedColorMap.forEach((value: string, key: string) => {
+      if (key !== cleanedValue) {
+        const index = updatedRange.indexOf(value);
+        updatedRange.splice(index, 1);
+      }
+    });
+    this.range(updatedRange.length > 0 ? updatedRange : this.originColors);
+  }
+
   getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
+    const sharedColorMap = sharedLabelColor.getColorMap();
+    const sharedColor = sharedColorMap.get(cleanedValue);
 
     // priority: parentForcedColors > forcedColors > labelColors
     let color =
       this.parentForcedColors?.[cleanedValue] ||
       this.forcedColors?.[cleanedValue] ||
-      sharedLabelColor.getColorMap().get(cleanedValue);
+      sharedColor;
 
     if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
       const multiple = Math.floor(
@@ -96,7 +114,12 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
+      if (isFeatureEnabled(FeatureFlag.AVOID_COLORS_COLLISION)) {
+        this.removeSharedLabelColorFromRange(sharedColorMap, cleanedValue);
+        color = this.scale(cleanedValue);
+      }
     }
+
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
     return color;

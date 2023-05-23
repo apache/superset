@@ -378,8 +378,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
     src_class = target.cls_model
-    id_ = target.datasource_id
-    if id_:
+    if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm

@@ -193,13 +193,12 @@ def get_chart_holder(position):
     size_y = position["size_y"]
     slice_id = position["slice_id"]
     slice_name = position.get("slice_name")
-    code = position.get("code")
 
     width = max(GRID_MIN_COLUMN_COUNT, int(round(size_x / GRID_RATIO)))
     height = max(
         GRID_MIN_ROW_UNITS, int(round(((size_y / GRID_RATIO) * 100) / ROW_HEIGHT))
     )
-    if code is not None:
+    if (code := position.get("code")) is not None:
         markdown_content = " "  # white-space markdown
         if len(code):
             markdown_content = code

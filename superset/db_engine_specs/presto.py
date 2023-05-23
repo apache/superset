@@ -495,7 +495,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         schema: Optional[str],
         database: Database,
         query: Select,
-        columns: Optional[List[Dict[str, str]]] = None,
+        columns: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Select]:
         try:
             col_names, values = cls.latest_partition(
@@ -513,13 +513,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         }
 
         for col_name, value in zip(col_names, values):
-            if col_name in column_type_by_name:
-                if column_type_by_name.get(col_name) == "TIMESTAMP":
-                    query = query.where(Column(col_name, TimeStamp()) == value)
-                elif column_type_by_name.get(col_name) == "DATE":
-                    query = query.where(Column(col_name, Date()) == value)
-                else:
-                    query = query.where(Column(col_name) == value)
+            col_type = column_type_by_name.get(col_name)
+
+            if isinstance(col_type, types.DATE):
+                col_type = Date()
+            elif isinstance(col_type, types.TIMESTAMP):
+                col_type = TimeStamp()
+
+            query = query.where(Column(col_name, col_type) == value)
+
         return query
 
     @classmethod
@@ -1213,8 +1215,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     ) -> Dict[str, Any]:
         metadata = {}
 
-        indexes = database.get_indexes(table_name, schema_name)
-        if indexes:
+        if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -1278,8 +1279,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
-        tracking_url = cls.get_tracking_url(cursor)
-        if tracking_url:
+        if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
             session.commit()
 

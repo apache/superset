@@ -589,8 +589,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
-        public_role = self.get_public_role()
-        if public_role:
+        if public_role := self.get_public_role():
             # filter by public role
             view_menu_names = (
                 base_query.filter(self.role_model.id == public_role.id).filter(
@@ -639,8 +638,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         }
 
         # datasource_access
-        perms = self.user_view_menu_names("datasource_access")
-        if perms:
+        if perms := self.user_view_menu_names("datasource_access"):
             tables = (
                 self.get_session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
@@ -770,9 +768,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,
             )
         )
-        deleted_count = pvms.delete()
         sesh.commit()
-        if deleted_count:
+        if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
     def sync_role_definitions(self) -> None:
@@ -1916,8 +1913,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param dataset: The dataset to check against
         :return: A list of filters
         """
-        guest_user = self.get_current_guest_user_if_guest()
-        if guest_user:
+        if guest_user := self.get_current_guest_user_if_guest():
             return [
                 rule
                 for rule in guest_user.rls

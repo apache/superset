@@ -24,7 +24,6 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import backoff
 import msgpack
-import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -51,9 +50,9 @@ from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.celery import session_scope
 from superset.utils.core import (
-    get_username,
     json_iso_dttm_ser,
     override_user,
     QuerySource,
@@ -95,7 +94,6 @@ def handle_query_error(
     """Local method handling error while processing the SQL"""
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
-    troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
@@ -119,7 +117,7 @@ def handle_query_error(
 
     session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link:
+    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
@@ -256,7 +254,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )
@@ -267,7 +264,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 query.database.sqlalchemy_uri,
                 query.executed_sql,
                 query.schema,
-                get_username(),
                 __name__,
                 security_manager,
                 log_params,
@@ -359,12 +355,7 @@ def _serialize_and_expand_data(
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            data = (
-                pa.default_serialization_context()
-                .serialize(result_set.pa_table)
-                .to_buffer()
-                .to_pybytes()
-            )
+            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
@@ -383,7 +374,8 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
+def execute_sql_statements(
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
     return_results: bool,

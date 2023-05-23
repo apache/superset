@@ -297,6 +297,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         mode={tableSelectMode}
         value={tableSelectValue}
         allowClear={tableSelectMode === 'multiple'}
+        allowSelectAll={false}
       />
     );
 

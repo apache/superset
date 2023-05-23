@@ -124,6 +124,4 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = ReportScheduleInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise ReportScheduleInvalidError(exceptions=exceptions)
