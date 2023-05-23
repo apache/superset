@@ -36,6 +36,7 @@ import {
   styled,
   SupersetApiError,
   t,
+  SupersetError,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import React, {
@@ -44,6 +45,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import rison from 'rison';
@@ -54,6 +56,7 @@ import { Input, TextArea } from 'src/components/Input';
 import { Select, FormInstance } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { FormItem } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
@@ -72,7 +75,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
   getFormData,
@@ -346,6 +349,7 @@ const FiltersConfigForm = (
 ) => {
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<string>('');
+  const errorRef = useRef<SupersetError>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -506,10 +510,17 @@ const FiltersConfigForm = (
                     defaultValueQueriesData: asyncResult,
                   });
                 })
-                .catch((error: ClientErrorObject) => {
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
+                .catch((error: Response) => {
+                  getClientErrorObject(error).then(parsedError => {
+                    errorRef.current = parsedError.errors?.[0];
+                  });
+                  error.json().then(body => {
+                    setErrorWrapper(
+                      body.message ||
+                        error.statusText ||
+                        t('Check configuration'),
+                    );
+                  });
                 });
             } else {
               throw new Error(
@@ -523,11 +534,10 @@ const FiltersConfigForm = (
           }
         })
         .catch((error: Response) => {
-          error.json().then(body => {
-            setErrorWrapper(
-              body.message || error.statusText || t('Check configuration'),
-            );
+          getClientErrorObject(error).then(parsedError => {
+            errorRef.current = parsedError.errors?.[0];
           });
+          setError(error.message || error.error || t('Check configuration'));
         });
     },
     [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
@@ -1224,10 +1234,15 @@ const FiltersConfigForm = (
                     {error || showDefaultValue ? (
                       <DefaultValueContainer>
                         {error ? (
-                          <BasicErrorAlert
-                            title={t('Cannot load filter')}
-                            body={error}
-                            level="error"
+                          <ErrorMessageWithStackTrace
+                            error={errorRef.current}
+                            fallback={
+                              <BasicErrorAlert
+                                title={t('Cannot load filter')}
+                                body={error}
+                                level="error"
+                              />
+                            }
                           />
                         ) : (
                           <DefaultValue

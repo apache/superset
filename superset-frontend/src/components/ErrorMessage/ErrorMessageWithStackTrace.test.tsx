@@ -21,6 +21,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
+import BasicErrorAlert from './BasicErrorAlert';
 import { ErrorLevel, ErrorSource } from './types';
 
 jest.mock(
@@ -56,4 +57,23 @@ test('should render the link', () => {
   const link = screen.getByRole('link');
   expect(link).toHaveTextContent('(Request Access)');
   expect(link).toHaveAttribute('href', mockedProps.link);
+});
+
+test('should render the fallback', () => {
+  render(
+    <ErrorMessageWithStackTrace {
+      ...mockedProps,
+      fallback: (
+        <BasicErrorAlert
+          title='Blah'
+          body='Blahblah'
+          level='error'
+        />
+      )
+    } />,
+    { useRedux: true },
+  );
+  const button = screen.getByText('See more');
+  userEvent.click(button);
+  expect(screen.getByText('Blahblah')).toBeInTheDocument();
 });
