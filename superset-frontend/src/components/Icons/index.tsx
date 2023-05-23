@@ -27,6 +27,7 @@ const IconFileNames = [
   'alert',
   'alert_solid',
   'alert_solid_small',
+  'cross-red',
   'area-chart-tile',
   'bar-chart-tile',
   'big-number-chart-tile',

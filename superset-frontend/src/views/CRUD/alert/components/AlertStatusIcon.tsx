@@ -48,20 +48,22 @@ function getStatusColor(
 export default function AlertStatusIcon({
   state,
   isReportEnabled = false,
+  onClickEvent = () => {},
 }: {
   state: string;
   isReportEnabled: boolean;
+  onClickEvent?: any;
 }) {
   const theme = useTheme();
   const lastStateConfig = {
-    icon: Icons.Check,
+    icon: Icons.CheckCircleFilled,
     label: '',
     status: '',
   };
   switch (state) {
     case AlertState.Success:
       lastStateConfig.icon = isReportEnabled
-        ? Icons.Check
+        ? Icons.CheckCircleFilled
         : Icons.AlertSolidSmall;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
@@ -76,14 +78,14 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Working;
       break;
     case AlertState.Error:
-      lastStateConfig.icon = Icons.XSmall;
+      lastStateConfig.icon = Icons.CrossRed;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.Check;
+      lastStateConfig.icon = Icons.CheckCircleFilled;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
       break;
@@ -93,20 +95,23 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.Check;
+      lastStateConfig.icon = Icons.CheckCircleFilled;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <Icon
-        iconColor={getStatusColor(
-          lastStateConfig.status,
-          isReportEnabled,
-          theme,
-        )}
-      />
+      <span role="button" tabIndex={0} onClick={onClickEvent || undefined}>
+        <Icon
+          iconSize="m"
+          iconColor={getStatusColor(
+            lastStateConfig.status,
+            isReportEnabled,
+            theme,
+          )}
+        />
+      </span>
     </Tooltip>
   );
 }

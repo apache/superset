@@ -44,6 +44,7 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import AlertRunbook from 'src/components/AlertRunbook';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
 
@@ -221,14 +222,22 @@ function AlertList({
       {
         Cell: ({
           row: {
-            original: { last_state: lastState },
+            original: { last_state: lastState, type, id },
           },
-        }: any) => (
-          <AlertStatusIcon
-            state={lastState}
-            isReportEnabled={isReportEnabled}
-          />
-        ),
+        }: any) => {
+          const history = useHistory();
+          const handleGotoExecutionLog = (type: string, id: number) => {
+            history.push(`/${type.toLowerCase()}/${id}/log`);
+          };
+          return (
+            <AlertStatusIcon
+              onClickEvent={() => handleGotoExecutionLog(type, id)}
+              state={lastState}
+              isReportEnabled={isReportEnabled}
+            />
+          );
+        },
+
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
@@ -334,8 +343,10 @@ function AlertList({
           const history = useHistory();
           const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => setCurrentAlertDeleting(original);
-          const handleGotoExecutionLog = () =>
+          const handleGotoExecutionLog = () => {
+            console.log('history', history);
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
+          };
 
           const actions = [
             canEdit
@@ -503,6 +514,9 @@ function AlertList({
       >
         <RefreshContainer>
           <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
+          <AlertRunbook
+            title={isReportEnabled ? 'Reports Run book' : 'Alerts Run book'}
+          />
         </RefreshContainer>
       </SubMenu>
       <AlertReportModal
