@@ -23,9 +23,7 @@ from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.starrocks import ARRAY, DOUBLE, MAP, STRUCT, TINYINT
 from superset.utils.core import GenericDataType
-from tests.unit_tests.db_engine_specs.utils import (
-    assert_column_spec,
-)
+from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
 @pytest.mark.parametrize(
@@ -75,8 +73,10 @@ def test_get_column_spec(
     ],
 )
 def test_adjust_engine_params(
-    sqlalchemy_uri: str, connect_args: Dict[str, Any],
-    return_schema: str, return_connect_args: Dict[str, Any]
+    sqlalchemy_uri: str,
+    connect_args: Dict[str, Any],
+    return_schema: str,
+    return_connect_args: Dict[str, Any],
 ) -> None:
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 
