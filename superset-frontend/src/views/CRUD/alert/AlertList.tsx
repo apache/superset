@@ -44,9 +44,9 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import AlertRunbook from 'src/components/AlertRunbook';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
-import AlertRunbook from 'src/components/AlertRunbook';
 
 const PAGE_SIZE = 25;
 

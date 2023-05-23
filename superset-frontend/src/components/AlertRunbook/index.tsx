@@ -35,8 +35,7 @@ const RunbookContainer = styled.div`
 
 export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
   const routeToRunbook = () => {
-    const url =
-      'https://confluence.careempartner.com/pages/viewpage.action?pageId=149789439';
+    const url = '';
     window.open(url, '_blank', 'noreferrer');
   };
 
