@@ -189,6 +189,7 @@ setup(
         "thumbnails": ["Pillow>=9.5.0, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
+        "starrocks": ["starrocks>=1.0.0"],
     },
     python_requires="~=3.9",
     author="Apache Software Foundation",
