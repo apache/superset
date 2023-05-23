@@ -132,7 +132,7 @@ function applyChanges() {
 
 function saveChanges() {
   interceptUpdate();
-  cy.getBySel('header-save-button').click();
+  cy.getBySel('header-save-button').click({ force: true });
   cy.wait('@update');
 }
 
