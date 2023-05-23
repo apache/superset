@@ -65,7 +65,7 @@ export const supersetClientQuery: BaseQueryFn<
 
 export const api = createApi({
   reducerPath: 'queryApi',
-  tagTypes: ['Schemas', 'Tables'],
+  tagTypes: ['Schemas', 'Tables', 'DatabaseFunctions'],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,
 });
