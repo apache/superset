@@ -20,8 +20,10 @@ from typing import Any, Dict, Union
 
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.exceptions import SupersetException
+from superset.tags.models import TagTypes
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -172,7 +174,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = EnumField(TagTypes, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
@@ -193,10 +195,10 @@ class DashboardGetResponseSchema(Schema):
     )
     changed_by_name = fields.String()
     changed_by_url = fields.String()
-    changed_by = fields.Nested(UserSchema)
+    changed_by = fields.Nested(UserSchema(exclude=(["username"])))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema))
+    owners = fields.List(fields.Nested(UserSchema(exclude=(["username"]))))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")

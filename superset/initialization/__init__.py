@@ -453,8 +453,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
-        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
-        if flask_app_mutator:
+        if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):

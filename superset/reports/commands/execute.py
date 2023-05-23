@@ -176,8 +176,7 @@ class BaseReportState:
             )
 
         # If we need to render dashboard in a specific state, use stateful permalink
-        dashboard_state = self._report_schedule.extra.get("dashboard")
-        if dashboard_state:
+        if dashboard_state := self._report_schedule.extra.get("dashboard"):
             permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(self._report_schedule.dashboard.uuid),
                 state=dashboard_state,
@@ -671,7 +670,6 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._scheduled_dttm = scheduled_dttm
 
     def run(self) -> None:
-        state_found = False
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
                 self._report_schedule.last_state in state_cls.current_states
@@ -682,9 +680,8 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._scheduled_dttm,
                     self._execution_id,
                 ).next()
-                state_found = True
                 break
-        if not state_found:
+        else:
             raise ReportScheduleStateNotFoundError()
 
 

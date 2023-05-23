@@ -29,6 +29,7 @@ import {
   NumberFormatter,
   TimeFormatter,
   SupersetTheme,
+  normalizeTimestamp,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
@@ -246,7 +247,7 @@ export function extractSeries(
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
   } = {},
-): [SeriesOption[], number[]] {
+): [SeriesOption[], number[], number | undefined] {
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
@@ -260,7 +261,7 @@ export function extractSeries(
     xAxisSortSeries,
     xAxisSortSeriesAscending,
   } = opts;
-  if (data.length === 0) return [[], []];
+  if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
@@ -286,18 +287,27 @@ export function extractSeries(
           totalStackedValue: totalStackedValues[idx],
         }));
 
+  let minPositiveValue: number | undefined;
   const finalSeries = sortedSeries.map(name => ({
     id: name,
     name,
     data: sortedRows
       .map(({ row, totalStackedValue }, idx) => {
+        const currentValue = row[name];
+        if (
+          typeof currentValue === 'number' &&
+          currentValue > 0 &&
+          (minPositiveValue === undefined || minPositiveValue > currentValue)
+        ) {
+          minPositiveValue = currentValue;
+        }
         const isNextToDefinedValue =
           isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
         const isFillNeighborValue =
-          !isDefined(row[name]) &&
+          !isDefined(currentValue) &&
           isNextToDefinedValue &&
           fillNeighborValue !== undefined;
-        let value: DataRecordValue | undefined = row[name];
+        let value: DataRecordValue | undefined = currentValue;
         if (isFillNeighborValue) {
           value = fillNeighborValue;
         } else if (
@@ -314,6 +324,7 @@ export function extractSeries(
   return [
     finalSeries,
     sortedRows.map(({ totalStackedValue }) => totalStackedValue),
+    minPositiveValue,
   ];
 }
 
@@ -336,7 +347,12 @@ export function formatSeriesName(
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
-    const d = name instanceof Date ? name : new Date(name);
+    const normalizedName =
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
+    const d =
+      normalizedName instanceof Date
+        ? normalizedName
+        : new Date(normalizedName);
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
   }
@@ -511,4 +527,9 @@ export function getOverMaxHiddenFormatter(
       }`,
     id: NumberFormats.OVER_MAX_HIDDEN,
   });
+}
+
+export function calculateLowerLogTick(minPositiveValue: number) {
+  const logBase10 = Math.floor(Math.log10(minPositiveValue));
+  return Math.pow(10, logBase10);
 }

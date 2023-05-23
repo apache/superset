@@ -534,9 +534,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   databaseCurrentlyDeleting.sqllab_tab_count,
                 )}
               </p>
-              {DatabaseDeleteRelatedExtension && currentDatabase?.id && (
+              {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
-                  databaseId={currentDatabase.id}
+                  database={databaseCurrentlyDeleting}
                 />
               )}
             </>

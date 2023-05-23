@@ -1555,34 +1555,3 @@ export function createCtasDatasource(vizOptions) {
       });
   };
 }
-
-export function queryEditorSetFunctionNames(queryEditor, dbId) {
-  return function (dispatch) {
-    return SupersetClient.get({
-      endpoint: encodeURI(`/api/v1/database/${dbId}/function_names/`),
-    })
-      .then(({ json }) =>
-        dispatch({
-          type: QUERY_EDITOR_SET_FUNCTION_NAMES,
-          queryEditor,
-          functionNames: json.function_names,
-        }),
-      )
-      .catch(err => {
-        if (err.status === 404) {
-          // for databases that have been deleted, just reset the function names
-          dispatch({
-            type: QUERY_EDITOR_SET_FUNCTION_NAMES,
-            queryEditor,
-            functionNames: [],
-          });
-        } else {
-          dispatch(
-            addDangerToast(
-              t('An error occurred while fetching function names.'),
-            ),
-          );
-        }
-      });
-  };
-}

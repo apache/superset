@@ -765,8 +765,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         redirect_url = request.url.replace("/superset/explore", "/explore")
         form_data_key = None
-        request_form_data = request.args.get("form_data")
-        if request_form_data:
+        if request_form_data := request.args.get("form_data"):
             parsed_form_data = loads_request_json(request_form_data)
             slice_id = parsed_form_data.get(
                 "slice_id", int(request.args.get("slice_id", 0))
@@ -1498,8 +1497,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @deprecated(new_target="/api/v1/log/recent_activity/<user_id>/")
     def recent_activity(self, user_id: int) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
         limit = request.args.get("limit")
@@ -1543,8 +1541,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/fave_dashboards/<int:user_id>/", methods=("GET",))
     @deprecated(new_target="api/v1/dashboard/favorite_status/")
     def fave_dashboards(self, user_id: int) -> FlaskResponse:
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
         qry = (
             db.session.query(Dashboard, FavStar.dttm)
@@ -1580,8 +1577,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/created_dashboards/<int:user_id>/", methods=("GET",))
     @deprecated(new_target="api/v1/dashboard/")
     def created_dashboards(self, user_id: int) -> FlaskResponse:
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
         qry = (
             db.session.query(Dashboard)
@@ -1615,8 +1611,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
             user_id = cast(int, get_user_id())
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
         owner_ids_query = (
@@ -1669,8 +1664,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """List of slices created by this user"""
         if not user_id:
             user_id = cast(int, get_user_id())
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
         qry = (
             db.session.query(Slice)
@@ -1701,8 +1695,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Favorite slices for a user"""
         if user_id is None:
             user_id = cast(int, get_user_id())
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
         qry = (
             db.session.query(Slice, FavStar.dttm)
@@ -1965,8 +1958,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        url_params = state.get("urlParams")
-        if url_params:
+        if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
         hash_ = state.get("anchor", state.get("hash"))
@@ -2125,8 +2117,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         mydb = db.session.query(Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))
-        template_params = json.loads(request.form.get("templateParams") or "{}")
-        if template_params:
+        if template_params := json.loads(request.form.get("templateParams") or "{}"):
             template_processor = get_template_processor(mydb)
             sql = template_processor.process_template(sql, **template_params)
 
@@ -2393,8 +2384,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sql_json/", methods=("POST",))
     @deprecated(new_target="/api/v1/sqllab/execute/")
     def sql_json(self) -> FlaskResponse:
-        errors = SqlJsonPayloadSchema().validate(request.json)
-        if errors:
+        if errors := SqlJsonPayloadSchema().validate(request.json):
             return json_error_response(status=400, payload=errors)
 
         try:
@@ -2621,10 +2611,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             search_user_id = get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
-        status = request.args.get("status")
         # From and To time stamp should be Epoch timestamp in seconds
-        from_time = request.args.get("from")
-        to_time = request.args.get("to")
 
         query = db.session.query(Query)
         if search_user_id:
@@ -2635,7 +2622,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Filter on db Id
             query = query.filter(Query.database_id == database_id)
 
-        if status:
+        if status := request.args.get("status"):
             # Filter on status
             query = query.filter(Query.status == status)
 
@@ -2643,10 +2630,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Filter on search text
             query = query.filter(Query.sql.like(f"%{search_text}%"))
 
-        if from_time:
+        if from_time := request.args.get("from"):
             query = query.filter(Query.start_time > int(from_time))
 
-        if to_time:
+        if to_time := request.args.get("to"):
             query = query.filter(Query.start_time < int(to_time))
 
         query_limit = config["QUERY_SEARCH_LIMIT"]
@@ -2709,8 +2696,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user_id = -1 if not user else user.id
         # Prevent unauthorized access to other user's profiles,
         # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
-        error_obj = self.get_user_activity_access_error(user_id)
-        if error_obj:
+        if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
         payload = {
@@ -2789,8 +2775,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             **self._get_sqllab_tabs(get_user_id()),
         }
 
-        form_data = request.form.get("form_data")
-        if form_data:
+        if form_data := request.form.get("form_data"):
             try:
                 payload["requested_query"] = json.loads(form_data)
             except json.JSONDecodeError:

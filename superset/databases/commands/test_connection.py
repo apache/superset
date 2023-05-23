@@ -228,6 +228,5 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise DatabaseTestConnectionUnexpectedError(errors) from ex
 
     def validate(self) -> None:
-        database_name = self._properties.get("database_name")
-        if database_name is not None:
+        if (database_name := self._properties.get("database_name")) is not None:
             self._model = DatabaseDAO.get_database_by_name(database_name)

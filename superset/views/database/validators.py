@@ -51,7 +51,6 @@ def sqlalchemy_uri_validator(
 def schema_allows_file_upload(database: Database, schema: Optional[str]) -> bool:
     if not database.allow_file_upload:
         return False
-    schemas = database.get_schema_access_for_file_upload()
-    if schemas:
+    if schemas := database.get_schema_access_for_file_upload():
         return schema in schemas
     return security_manager.can_access_database(database)

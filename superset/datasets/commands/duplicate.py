@@ -128,6 +128,4 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(ex)
 
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)
