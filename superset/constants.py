@@ -126,7 +126,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "table_metadata": "read",
     "table_extra_metadata": "read",
     "test_connection": "read",
-    "validate_parameters": "read",
+    "validate_parameters": "write",
     "favorite_status": "read",
     "add_favorite": "read",
     "remove_favorite": "read",
