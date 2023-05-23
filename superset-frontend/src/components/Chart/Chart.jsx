@@ -219,8 +219,11 @@ class Chart extends React.PureComponent {
       )}" role.\nPlease reach out to the chart owner(s): ${this.props?.slice?.owners?.toString()} for further assistance.`;
     const message =
       (chartAlert || queryResponse?.message || '') +
-      (queryResponse?.errors?.[0].error_type ===
-      ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR
+      (queryResponse &&
+      queryResponse?.errors &&
+      queryResponse?.errors?.[0] &&
+      queryResponse?.errors?.[0].error_type ===
+        ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR
         ? messageModified
         : '');
     // if datasource is still loading, don't render JS errors
