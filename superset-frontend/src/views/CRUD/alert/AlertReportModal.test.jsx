@@ -45,7 +45,7 @@ const mockData = {
   recipients: [
     { type: 'Slack', id: 6, recipient_config_json: '{"target": "xyz"}' },
   ],
-  working_timeout: 300,
+  working_timeout: 60,
   timezone: 'Antarctica/Mawson',
   msg_content: 'sss',
   type: 'Report',
@@ -415,6 +415,26 @@ describe('AlertReportModal', () => {
       editReportWrapper.find('input[name="crontab"]').props().value,
     ).toEqual('0 * * * *');
     const saveButton = editReportWrapper.find(
+      'button[data-test="modal-confirm-button"]',
+    );
+    expect(saveButton.props().disabled).toBe(false);
+  });
+
+  it('If cron schedule * * * * * (Every minute) for Alerts the Save button should be enabled', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.crontab = '* * * * *';
+    props.alert.type = 'Alert';
+    props.alert.validator_type = 'operator';
+    props.alert.validator_config_json = '{"op": "==", "threshold": 1.0}';
+    const editAlertWrapper = await mountAndWait(props);
+    expect(
+      editAlertWrapper.find('input[name="crontab"]').props().value,
+    ).toEqual('* * * * *');
+    const saveButton = editAlertWrapper.find(
       'button[data-test="modal-confirm-button"]',
     );
     expect(saveButton.props().disabled).toBe(false);
