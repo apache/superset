@@ -1633,18 +1633,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
       />
-      <SSHTunnelContainer>
-        <SSHTunnelSwitchComponent
-          isEditMode={isEditMode}
-          dbFetched={dbFetched}
-          disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-          useSSHTunneling={useSSHTunneling}
-          setUseSSHTunneling={setUseSSHTunneling}
-          setDB={setDB}
-          isSSHTunneling={isSSHTunneling}
-        />
-      </SSHTunnelContainer>
-      {useSSHTunneling && (
+      {db?.parameters?.ssh && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>

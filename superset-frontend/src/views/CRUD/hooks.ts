@@ -753,6 +753,9 @@ export function useDatabaseValidation() {
         .catch(e => {
           if (typeof e.json === 'function') {
             return e.json().then(({ errors = [] }: JsonObject) => {
+              if (database?.parameters?.ssh) {
+                return [];
+              }
               const parsedErrors = errors
                 .filter((error: { error_type: string }) => {
                   const skipValidationError = ![
