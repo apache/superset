@@ -425,12 +425,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const conf = useCommonConf();
-  const currentNotification = JSON.parse(
-    JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
-  );
-  const reportNotificationsAllowed = currentNotification.filter(
-    (item: any) => item !== RecipientIconName.VO,
-  );
+  const currentNotification = conf?.ALERT_REPORTS_NOTIFICATION_METHODS
+    ? JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
+    : [];
+  const reportNotificationsAllowed = currentNotification
+    ? currentNotification.filter((item: any) => item !== RecipientIconName.VO)
+    : [];
   const allowedNotificationMethods: NotificationMethodOption[] =
     (isReport
       ? reportNotificationsAllowed

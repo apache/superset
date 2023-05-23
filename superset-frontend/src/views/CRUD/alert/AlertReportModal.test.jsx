@@ -39,6 +39,16 @@ const mockData = {
   chart: { id: 1, slice_name: 'test chart', viz_type: 'table' },
   database: { id: 1, database_name: 'test database' },
   sql: 'SELECT NaN',
+  crontab: '* * * * *',
+  log_retention: 30,
+  owners: [{ first_name: 'Samra', id: 3, last_Name: 'Hanif' }],
+  recipients: [
+    { type: 'Slack', id: 6, recipient_config_json: '{"target": "xyz"}' },
+  ],
+  working_timeout: 300,
+  timezone: 'Antarctica/Mawson',
+  msg_content: 'sss',
+  type: 'Report',
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
@@ -363,5 +373,50 @@ describe('AlertReportModal', () => {
 
     const bypass = alertWrapper.find('[data-test="bypass-cache"]');
     expect(bypass).not.toExist();
+  });
+
+  // TEST CASES FOR REPORTS CRON SCHEDULE DISABLE
+
+  it('If cron schedule * * * * * (Every minute) for Reports the save button should be disabled', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: true,
+    };
+
+    const editReportWrapper = await mountAndWait(props);
+    expect(
+      editReportWrapper.find('[data-test="alert-report-modal-title"]').text(),
+    ).toEqual('Edit Report');
+
+    expect(
+      editReportWrapper.find('input[name="crontab"]').props().value,
+    ).toEqual('* * * * *');
+    const saveButton = editReportWrapper.find(
+      'button[data-test="modal-confirm-button"]',
+    );
+    console.log('button', saveButton);
+    expect(saveButton.props().disabled).toBe(true);
+  });
+
+  it('If cron schedule 0 * * * * (Every hour) for Reports the Save button should be enabled', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: true,
+    };
+    props.alert.crontab = '0 * * * *';
+    const editReportWrapper = await mountAndWait(props);
+    expect(
+      editReportWrapper.find('[data-test="alert-report-modal-title"]').text(),
+    ).toEqual('Edit Report');
+
+    expect(
+      editReportWrapper.find('input[name="crontab"]').props().value,
+    ).toEqual('0 * * * *');
+    const saveButton = editReportWrapper.find(
+      'button[data-test="modal-confirm-button"]',
+    );
+    expect(saveButton.props().disabled).toBe(false);
   });
 });
