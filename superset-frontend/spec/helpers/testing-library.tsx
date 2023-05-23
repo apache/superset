@@ -73,7 +73,7 @@ export function createWrapper(options?: Options) {
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
-    if (useRedux) {
+    if (useRedux || store) {
       const mockStore =
         store ?? createStore(initialState, reducers || reducerIndex);
       result = <Provider store={mockStore}>{result}</Provider>;
