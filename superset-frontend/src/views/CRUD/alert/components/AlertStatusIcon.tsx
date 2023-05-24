@@ -56,14 +56,14 @@ export default function AlertStatusIcon({
 }) {
   const theme = useTheme();
   const lastStateConfig = {
-    icon: Icons.CheckCircleFilled,
+    icon: Icons.Check,
     label: '',
     status: '',
   };
   switch (state) {
     case AlertState.Success:
       lastStateConfig.icon = isReportEnabled
-        ? Icons.CheckCircleFilled
+        ? Icons.Check
         : Icons.AlertSolidSmall;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
@@ -78,14 +78,14 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Working;
       break;
     case AlertState.Error:
-      lastStateConfig.icon = Icons.CrossRed;
+      lastStateConfig.icon = Icons.XSmall;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.CheckCircleFilled;
+      lastStateConfig.icon = Icons.Check;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
       break;
@@ -95,7 +95,7 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.CheckCircleFilled;
+      lastStateConfig.icon = Icons.Check;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
   }
@@ -104,7 +104,7 @@ export default function AlertStatusIcon({
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <span role="button" tabIndex={0} onClick={onClickEvent || undefined}>
         <Icon
-          iconSize="m"
+          iconSize="xxl"
           iconColor={getStatusColor(
             lastStateConfig.status,
             isReportEnabled,
