@@ -109,6 +109,27 @@ export interface DatabaseConnectionExtension {
   onEdit?: (componentState: any) => void;
 }
 
+/**
+ * Interface for extensions to AI Form.
+ * These will be passed from the SQLEditor
+ *
+ * You can specify the types to be used for these properties
+ * for better type checking or use the default ones.
+ *
+ * @template TTables - Type for the tables array.
+ * @template TQueryEditor - Type for the query editor.
+ * @template TDatabase - Type for the database.
+ */
+export interface SQLAIExtensionProps<
+  TTables = any[],
+  TQueryEditor = object,
+  TDatabase = any,
+> {
+  tables: TTables[];
+  queryEditor: TQueryEditor;
+  database: TDatabase;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -126,6 +147,7 @@ export type Extensions = Partial<{
   'databaseconnection.extraOption': DatabaseConnectionExtension;
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
+  'sqleditor.ai.form': React.ComponentType<SQLAIExtensionProps>;
 }>;
 
 /**

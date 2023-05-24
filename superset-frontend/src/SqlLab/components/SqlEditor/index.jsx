@@ -30,7 +30,14 @@ import { CSSTransition } from 'react-transition-group';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -205,6 +212,8 @@ const propTypes = {
   scheduleQueryWarning: PropTypes.string,
 };
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const SqlEditor = ({
   tables,
   queryEditor,
@@ -252,6 +261,8 @@ const SqlEditor = ({
 
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
+
+  const SqlAIExtension = extensionsRegistry.get('sqleditor.ai.form');
 
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
@@ -673,6 +684,13 @@ const SqlEditor = ({
         onDragEnd={onResizeEnd}
       >
         <div ref={northPaneRef} className="north-pane">
+          {SqlAIExtension && (
+            <SqlAIExtension
+              tables={tables}
+              queryEditor={queryEditor}
+              database={database}
+            />
+          )}
           <AceEditorWrapper
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
