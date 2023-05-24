@@ -28,7 +28,7 @@ def test_ssh_tunnel_timeout_setting() -> None:
     app.config = {
         "SSH_TUNNEL_MAX_RETRIES": 2,
         "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "test",
-        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
+        "SSH_TUNNEL_TIMEOUT_SEC": 123.0,
         "SSH_TUNNEL_MANAGER_CLASS": "superset.extensions.ssh.SSHManager",
     }
     factory = SSHManagerFactory()
