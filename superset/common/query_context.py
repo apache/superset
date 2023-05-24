@@ -28,6 +28,7 @@ from superset.common.query_context_processor import (
 )
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
