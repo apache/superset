@@ -255,7 +255,6 @@ export const SSHTunnelSwitch = ({
   isEditMode,
   changeMethods,
   db,
-  setDB,
   useSSHTunneling,
 }: FieldPropTypes) =>
   true ? (
