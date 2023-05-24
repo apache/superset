@@ -20,9 +20,9 @@ import logging
 from io import StringIO
 from typing import TYPE_CHECKING
 
+import sshtunnel
 from flask import Flask
 from paramiko import RSAKey
-from sshtunnel import open_tunnel, SSHTunnelForwarder
 
 from superset.databases.utils import make_url_safe
 
@@ -34,9 +34,10 @@ class SSHManager:
     def __init__(self, app: Flask) -> None:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
+        sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
 
     def build_sqla_url(  # pylint: disable=no-self-use
-        self, sqlalchemy_url: str, server: SSHTunnelForwarder
+        self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
     ) -> str:
         # override any ssh tunnel configuration object
         url = make_url_safe(sqlalchemy_url)
@@ -49,7 +50,7 @@ class SSHManager:
         self,
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
-    ) -> SSHTunnelForwarder:
+    ) -> sshtunnel.SSHTunnelForwarder:
         url = make_url_safe(sqlalchemy_database_uri)
         params = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
@@ -68,7 +69,7 @@ class SSHManager:
             )
             params["ssh_pkey"] = private_key
 
-        return open_tunnel(**params)
+        return sshtunnel.open_tunnel(**params)
 
 
 class SSHManagerFactory:
