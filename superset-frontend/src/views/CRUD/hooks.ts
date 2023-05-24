@@ -753,7 +753,7 @@ export function useDatabaseValidation() {
         .catch(e => {
           if (typeof e.json === 'function') {
             return e.json().then(({ errors = [] }: JsonObject) => {
-              if (database?.parameters?.ssh) {
+              if (database?.ssh_tunnel) {
                 return [];
               }
               const parsedErrors = errors

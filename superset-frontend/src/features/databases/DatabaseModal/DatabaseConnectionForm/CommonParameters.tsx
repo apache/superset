@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
@@ -255,13 +256,12 @@ export const SSHTunnelSwitch = ({
   isEditMode,
   changeMethods,
   db,
-  useSSHTunneling,
 }: FieldPropTypes) =>
   true ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
       <AntdSwitch
         disabled={isEditMode && !isEmpty(db?.ssh_tunnel)}
-        checked={useSSHTunneling}
+        checked={db?.parameters?.ssh}
         onChange={changed => {
           changeMethods.onParametersChange({
             target: {
