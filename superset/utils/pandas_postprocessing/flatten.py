@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from collections.abc import Iterable
-from typing import Any, Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Union
 
 import pandas as pd
 

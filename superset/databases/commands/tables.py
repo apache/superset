@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, cast, Dict
+from typing import Any, cast
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -40,7 +40,7 @@ class TablesDatabaseCommand(BaseCommand):
         self._schema_name = schema_name
         self._force = force
 
-    def run(self) -> Dict[str, Any]:
+    def run(self) -> dict[str, Any]:
         self.validate()
         try:
             tables = security_manager.get_datasources_accessible_by_user(

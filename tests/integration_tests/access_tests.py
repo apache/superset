@@ -516,7 +516,7 @@ class TestRequestAccess(SupersetTestCase):
             )
             self.assertEqual(
                 access_request3.roles_with_datasource,
-                "<ul><li>{}</li></ul>".format(approve_link_3),
+                f"<ul><li>{approve_link_3}</li></ul>",
             )
 
             # cleanup

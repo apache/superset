@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateAnnotationCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Annotation] = None
@@ -54,7 +54,7 @@ class UpdateAnnotationCommand(BaseCommand):
         return annotation
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         layer_id: Optional[int] = self._properties.get("layer")
         short_descr: str = self._properties.get("short_descr", "")
 

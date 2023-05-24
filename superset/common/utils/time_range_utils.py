@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, cast, Dict, Optional, Tuple
+from typing import Any, cast
 
 from superset import app
 from superset.common.query_object import QueryObject
@@ -26,10 +26,10 @@ from superset.utils.date_parser import get_since_until
 
 
 def get_since_until_from_time_range(
-    time_range: Optional[str] = None,
-    time_shift: Optional[str] = None,
-    extras: Optional[Dict[str, Any]] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+    time_range: str | None = None,
+    time_shift: str | None = None,
+    extras: dict[str, Any] | None = None,
+) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
         relative_start=(extras or {}).get(
             "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
@@ -45,7 +45,7 @@ def get_since_until_from_time_range(
 # pylint: disable=invalid-name
 def get_since_until_from_query_object(
     query_object: QueryObject,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+) -> tuple[datetime | None, datetime | None]:
     """
     this function will return since and until by tuple if
     1) the time_range is in the query object.

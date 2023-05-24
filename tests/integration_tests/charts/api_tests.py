@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-import logging
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 

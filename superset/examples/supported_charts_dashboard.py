@@ -19,7 +19,6 @@
 
 import json
 import textwrap
-from typing import List
 
 from sqlalchemy import inspect
 
@@ -40,7 +39,7 @@ from .helpers import (
 DASH_SLUG = "supported_charts_dash"
 
 
-def create_slices(tbl: SqlaTable) -> List[Slice]:
+def create_slices(tbl: SqlaTable) -> list[Slice]:
     slice_kwargs = {
         "datasource_id": tbl.id,
         "datasource_type": DatasourceType.TABLE,
