@@ -494,7 +494,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Allow users to enable ssh tunneling when creating a DB.
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
-    "SSH_TUNNELING": False,
+    "SSH_TUNNELING": True,
     "AVOID_COLORS_COLLISION": True,
 }
 
@@ -515,6 +515,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # ----------------------------------------------------------------------
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
+SSH_TUNNEL_TIMEOUT = 1.0
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(

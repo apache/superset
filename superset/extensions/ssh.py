@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 from flask import Flask
 from paramiko import RSAKey
-from sshtunnel import open_tunnel, SSHTunnelForwarder
+from sshtunnel import open_tunnel, SSHTunnelForwarder, TUNNEL_TIMEOUT
 
 from superset.databases.utils import make_url_safe
 
@@ -34,6 +34,7 @@ class SSHManager:
     def __init__(self, app: Flask) -> None:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
+        TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT"]
 
     def build_sqla_url(  # pylint: disable=no-self-use
         self, sqlalchemy_url: str, server: SSHTunnelForwarder
