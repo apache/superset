@@ -23,6 +23,7 @@ from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCo
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.commands.upsert import UpsertKeyValueCommand
+from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.utils import encode_permalink_key, get_deterministic_uuid
 from superset.utils.core import get_user_id
 
@@ -58,9 +59,12 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 resource=self.resource,
                 key=get_deterministic_uuid(self.salt, (user_id, value)),
                 value=value,
+                codec=self.codec,
             ).run()
             assert key.id  # for type checks
             return encode_permalink_key(key=key.id, salt=self.salt)
+        except KeyValueCodecEncodeException as ex:
+            raise DashboardPermalinkCreateFailedError(str(ex)) from ex
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise DashboardPermalinkCreateFailedError() from ex

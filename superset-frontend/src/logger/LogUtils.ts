@@ -34,6 +34,8 @@ export const LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD =
 export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
 export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART =
   'export_csv_dashboard_chart';
+export const LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART =
+  'export_csv_dashboard_chart';
 export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
 export const LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION =
   'dataset_creation_empty_cancellation';
@@ -54,6 +56,11 @@ export const LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE =
   'sqllab_warn_local_storage_usage';
 export const LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY =
   'sqllab_fetch_failed_query';
+export const LOG_ACTIONS_DRILL_BY_MODAL_OPENED = 'drill_by_modal_opened';
+export const LOG_ACTIONS_FURTHER_DRILL_BY = 'further_drill_by';
+export const LOG_ACTIONS_DRILL_BY_EDIT_CHART = 'drill_by_edit_chart';
+export const LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED =
+  'drill_by_breadcrumb_clicked';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([

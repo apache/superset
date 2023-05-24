@@ -126,7 +126,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         # pylint: disable=bad-super-call
         super(BaseSupersetModelRestApi, self)._init_properties()
 
-    @expose("/<int:dashboard_id>/filtersets", methods=["GET"])
+    @expose("/<int:dashboard_id>/filtersets", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -189,7 +189,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         )
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:dashboard_id>/filtersets", methods=["POST"])
+    @expose("/<int:dashboard_id>/filtersets", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -256,7 +256,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["PUT"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -328,7 +328,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             logger.error(err)
             return self.response(err.status)
 
-    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["DELETE"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

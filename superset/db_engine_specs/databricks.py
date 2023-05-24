@@ -49,12 +49,13 @@ class DatabricksParametersSchema(Schema):
     host = fields.Str(required=True)
     port = fields.Integer(
         required=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
     database = fields.Str(required=True)
     encryption = fields.Boolean(
-        required=False, description=__("Use an encrypted connection to the database")
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
 
 
@@ -199,7 +200,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
             query.update(cls.encryption_parameters)
 
         return str(
-            URL(
+            URL.create(
                 f"{cls.engine}+{cls.default_driver}".rstrip("+"),
                 username="token",
                 password=parameters.get("access_token"),
@@ -284,9 +285,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
             parameters["http_path"] = connect_args.get("http_path")
 
         present = {key for key in parameters if parameters.get(key, ())}
-        missing = sorted(required - present)
 
-        if missing:
+        if missing := sorted(required - present):
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

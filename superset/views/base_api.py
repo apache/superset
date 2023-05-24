@@ -57,22 +57,28 @@ get_related_schema = {
 
 
 class RelatedResultResponseSchema(Schema):
-    value = fields.Integer(description="The related item identifier")
-    text = fields.String(description="The related item string representation")
-    extra = fields.Dict(description="The extra metadata for related item")
+    value = fields.Integer(metadata={"description": "The related item identifier"})
+    text = fields.String(
+        metadata={"description": "The related item string representation"}
+    )
+    extra = fields.Dict(metadata={"description": "The extra metadata for related item"})
 
 
 class RelatedResponseSchema(Schema):
-    count = fields.Integer(description="The total number of related values")
+    count = fields.Integer(
+        metadata={"description": "The total number of related values"}
+    )
     result = fields.List(fields.Nested(RelatedResultResponseSchema))
 
 
 class DistinctResultResponseSchema(Schema):
-    text = fields.String(description="The distinct item")
+    text = fields.String(metadata={"description": "The distinct item"})
 
 
 class DistincResponseSchema(Schema):
-    count = fields.Integer(description="The total number of distinct values")
+    count = fields.Integer(
+        metadata={"description": "The total number of distinct values"}
+    )
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
 
 
@@ -374,8 +380,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
-        base_filters = self.base_related_field_filters.get(column_name)
-        if base_filters:
+        if base_filters := self.base_related_field_filters.get(column_name):
             filters.add_filter_list(base_filters)
         if value and filter_field:
             filters.add_filter(
@@ -525,7 +530,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
-    @expose("/related/<column_name>", methods=["GET"])
+    @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -582,8 +587,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
             return self.response_404()
         page, page_size = self._sanitize_page_args(page, page_size)
         # handle ordering
-        order_field = self.order_rel_fields.get(column_name)
-        if order_field:
+        if order_field := self.order_rel_fields.get(column_name):
             order_column, order_direction = order_field
         else:
             order_column, order_direction = "", ""
@@ -604,7 +608,7 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
 
         return self.response(200, count=total_rows, result=result)
 
-    @expose("/distinct/<column_name>", methods=["GET"])
+    @expose("/distinct/<column_name>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

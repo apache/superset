@@ -1008,6 +1008,28 @@ FROM foo f"""
     assert sql.is_select()
 
 
+def test_cte_is_select_lowercase() -> None:
+    """
+    Some CTEs with lowercase select are not correctly identified as SELECTS.
+    """
+    sql = ParsedQuery(
+        """WITH foo AS(
+select
+  FLOOR(__time TO WEEK) AS "week",
+  name,
+  COUNT(DISTINCT user_id) AS "unique_users"
+FROM "druid"."my_table"
+GROUP BY 1,2
+)
+select
+  f.week,
+  f.name,
+  f.unique_users
+FROM foo f"""
+    )
+    assert sql.is_select()
+
+
 def test_unknown_select() -> None:
     """
     Test that `is_select` works when sqlparse fails to identify the type.
@@ -1195,6 +1217,14 @@ def test_sqlparse_issue_652():
         ("extract(HOUR from from_unixtime(hour_ts)", False),
         ("(SELECT * FROM table)", True),
         ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
+        (
+            "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
+        (
+            "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            True,
+        ),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:

@@ -135,6 +135,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   logExploreChart = () => ({}),
   logEvent,
   exportCSV = () => ({}),
+  exportXLSX = () => ({}),
   editMode = false,
   annotationQuery = {},
   annotationError = {},
@@ -242,7 +243,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               <Tooltip
                 placement="top"
                 title={t(
-                  'This chart emits/applies cross-filters to other charts that use the same dataset',
+                  'This chart applies cross-filters to charts whose datasets contain columns with the same name.',
                 )}
               >
                 <CrossFilterIcon iconSize="m" />
@@ -264,6 +265,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
+                exportXLSX={exportXLSX}
                 supersetCanExplore={supersetCanExplore}
                 supersetCanShare={supersetCanShare}
                 supersetCanCSV={supersetCanCSV}

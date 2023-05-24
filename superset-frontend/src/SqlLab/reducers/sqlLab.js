@@ -563,18 +563,6 @@ export default function sqlLabReducer(state = {}, action) {
         ),
       };
     },
-    [actions.QUERY_EDITOR_SET_FUNCTION_NAMES]() {
-      return {
-        ...state,
-        ...alterUnsavedQueryEditorState(
-          state,
-          {
-            functionNames: action.functionNames,
-          },
-          action.queryEditor.id,
-        ),
-      };
-    },
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
       return {
         ...state,
@@ -582,18 +570,6 @@ export default function sqlLabReducer(state = {}, action) {
           state,
           {
             schema: action.schema,
-          },
-          action.queryEditor.id,
-        ),
-      };
-    },
-    [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
-      return {
-        ...state,
-        ...alterUnsavedQueryEditorState(
-          state,
-          {
-            tableOptions: action.options,
           },
           action.queryEditor.id,
         ),
@@ -741,6 +717,21 @@ export default function sqlLabReducer(state = {}, action) {
         newQueries = state.queries;
       }
       return { ...state, queries: newQueries, queriesLastUpdate };
+    },
+    [actions.CLEAR_INACTIVE_QUERIES]() {
+      const { queries } = state;
+      const cleanedQueries = Object.fromEntries(
+        Object.entries(queries).filter(([, query]) => {
+          if (
+            ['running', 'pending'].includes(query.state) &&
+            query.progress === 0
+          ) {
+            return false;
+          }
+          return true;
+        }),
+      );
+      return { ...state, queries: cleanedQueries };
     },
     [actions.SET_USER_OFFLINE]() {
       return { ...state, offline: action.offline };

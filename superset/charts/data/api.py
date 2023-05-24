@@ -21,7 +21,7 @@ import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 import simplejson
-from flask import current_app, make_response, request, Response
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 class ChartDataRestApi(ChartRestApi):
     include_route_methods = {"get_data", "data", "data_from_cache"}
 
-    @expose("/<int:pk>/data/", methods=["GET"])
+    @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -171,7 +171,7 @@ class ChartDataRestApi(ChartRestApi):
             command=command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data", methods=["POST"])
+    @expose("/data", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -257,7 +257,7 @@ class ChartDataRestApi(ChartRestApi):
             command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data/<cache_key>", methods=["GET"])
+    @expose("/data/<cache_key>", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -299,6 +299,9 @@ class ChartDataRestApi(ChartRestApi):
         """
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
+            # Set form_data in Flask Global as it is used as a fallback
+            # for async queries with jinja context
+            setattr(g, "form_data", cached_data)
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()

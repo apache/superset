@@ -18,6 +18,7 @@ import logging
 from collections import Counter
 from typing import Any, Dict, List, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -30,6 +31,7 @@ from superset.datasets.commands.exceptions import (
     DatasetColumnNotFoundValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
+    DatasetEndpointUnsafeValidationError,
     DatasetExistsValidationError,
     DatasetForbiddenError,
     DatasetInvalidError,
@@ -41,6 +43,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.urls import is_safe_url
 
 logger = logging.getLogger(__name__)
 
@@ -101,21 +104,25 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
+        # Validate default URL safety
+        default_endpoint = self._properties.get("default_endpoint")
+        if (
+            default_endpoint
+            and not is_safe_url(default_endpoint)
+            and current_app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"]
+        ):
+            exceptions.append(DatasetEndpointUnsafeValidationError())
 
         # Validate columns
-        columns = self._properties.get("columns")
-        if columns:
+        if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)
 
         # Validate metrics
-        metrics = self._properties.get("metrics")
-        if metrics:
+        if metrics := self._properties.get("metrics"):
             self._validate_metrics(metrics, exceptions)
 
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)
 
     def _validate_columns(
         self, columns: List[Dict[str, Any]], exceptions: List[ValidationError]

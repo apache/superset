@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import { Behavior, FeatureFlag } from '@superset-ui/core';
 import * as core from '@superset-ui/core';
 import { getCrossFiltersConfiguration } from './crossFilters';
+import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
 const DASHBOARD_LAYOUT = {
   'CHART-1': {
@@ -101,19 +102,34 @@ const INITIAL_CHART_CONFIG = {
     crossFilters: {
       scope: {
         rootPath: ['ROOT_ID'],
-        excluded: [1],
+        excluded: [1, 2],
       },
-      chartsInScope: [2],
+      chartsInScope: [],
+    },
+  },
+  '2': {
+    id: 2,
+    crossFilters: {
+      scope: 'global' as const,
+      chartsInScope: [1],
     },
   },
 };
 
-test('Generate correct cross filters configuration without initial configuration', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
-  };
-  const metadataRegistryStub = sinon
+const GLOBAL_CHART_CONFIG = {
+  scope: DEFAULT_CROSS_FILTER_SCOPING,
+  chartsInScope: [1, 2],
+};
+
+const CHART_CONFIG_METADATA = {
+  chart_configuration: INITIAL_CHART_CONFIG,
+  global_chart_configuration: GLOBAL_CHART_CONFIG,
+};
+
+let metadataRegistryStub: SinonStub;
+
+beforeEach(() => {
+  metadataRegistryStub = sinon
     .stub(core, 'getChartMetadataRegistry')
     .callsFake(() => ({
       // @ts-ignore
@@ -121,28 +137,42 @@ test('Generate correct cross filters configuration without initial configuration
         behaviors: [Behavior.INTERACTIVE_CHART],
       }),
     }));
-  expect(
-    getCrossFiltersConfiguration(DASHBOARD_LAYOUT, undefined, CHARTS),
-  ).toEqual({
-    '1': {
-      id: 1,
-      crossFilters: {
-        scope: {
-          rootPath: ['ROOT_ID'],
-          excluded: [1],
+});
+
+afterEach(() => {
+  metadataRegistryStub.restore();
+});
+
+test('Generate correct cross filters configuration without initial configuration', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+  };
+
+  // @ts-ignore
+  expect(getCrossFiltersConfiguration(DASHBOARD_LAYOUT, {}, CHARTS)).toEqual({
+    chartConfiguration: {
+      '1': {
+        id: 1,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [2],
         },
-        chartsInScope: [2],
+      },
+      '2': {
+        id: 2,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1],
+        },
       },
     },
-    '2': {
-      id: 2,
-      crossFilters: {
-        scope: {
-          rootPath: ['ROOT_ID'],
-          excluded: [2],
-        },
-        chartsInScope: [1],
+    globalChartConfiguration: {
+      scope: {
+        excluded: [],
+        rootPath: ['ROOT_ID'],
       },
+      chartsInScope: [1, 2],
     },
   });
   metadataRegistryStub.restore();
@@ -153,40 +183,39 @@ test('Generate correct cross filters configuration with initial configuration', 
   global.featureFlags = {
     [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
   };
-  const metadataRegistryStub = sinon
-    .stub(core, 'getChartMetadataRegistry')
-    .callsFake(() => ({
-      // @ts-ignore
-      get: () => ({
-        behaviors: [Behavior.INTERACTIVE_CHART],
-      }),
-    }));
+
   expect(
     getCrossFiltersConfiguration(
       DASHBOARD_LAYOUT,
-      INITIAL_CHART_CONFIG,
+      CHART_CONFIG_METADATA,
       CHARTS,
     ),
   ).toEqual({
-    '1': {
-      id: 1,
-      crossFilters: {
-        scope: {
-          rootPath: ['ROOT_ID'],
-          excluded: [1],
+    chartConfiguration: {
+      '1': {
+        id: 1,
+        crossFilters: {
+          scope: {
+            rootPath: ['ROOT_ID'],
+            excluded: [1, 2],
+          },
+          chartsInScope: [],
         },
-        chartsInScope: [2],
+      },
+      '2': {
+        id: 2,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1],
+        },
       },
     },
-    '2': {
-      id: 2,
-      crossFilters: {
-        scope: {
-          rootPath: ['ROOT_ID'],
-          excluded: [2],
-        },
-        chartsInScope: [1],
+    globalChartConfiguration: {
+      scope: {
+        excluded: [],
+        rootPath: ['ROOT_ID'],
       },
+      chartsInScope: [1, 2],
     },
   });
   metadataRegistryStub.restore();
@@ -200,7 +229,7 @@ test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () 
   expect(
     getCrossFiltersConfiguration(
       DASHBOARD_LAYOUT,
-      INITIAL_CHART_CONFIG,
+      CHART_CONFIG_METADATA,
       CHARTS,
     ),
   ).toEqual(undefined);

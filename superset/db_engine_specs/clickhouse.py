@@ -198,20 +198,27 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
 
 
 class ClickHouseParametersSchema(Schema):
-    username = fields.String(allow_none=True, description=__("Username"))
-    password = fields.String(allow_none=True, description=__("Password"))
-    host = fields.String(required=True, description=__("Hostname or IP address"))
+    username = fields.String(allow_none=True, metadata={"description": __("Username")})
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
     port = fields.Integer(
         allow_none=True,
-        description=__("Database port"),
+        metadata={"description": __("Database port")},
         validate=Range(min=0, max=65535),
     )
-    database = fields.String(allow_none=True, description=__("Database name"))
+    database = fields.String(
+        allow_none=True, metadata={"description": __("Database name")}
+    )
     encryption = fields.Boolean(
-        default=True, description=__("Use an encrypted connection to the database")
+        dump_default=True,
+        metadata={"description": __("Use an encrypted connection to the database")},
     )
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
     )
 
 
@@ -307,7 +314,7 @@ class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}+{cls.default_driver}", **url_params))
+        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
 
     @classmethod
     def get_parameters_from_uri(

@@ -50,7 +50,6 @@ export const EXPAND_TABLE = 'EXPAND_TABLE';
 export const COLLAPSE_TABLE = 'COLLAPSE_TABLE';
 export const QUERY_EDITOR_SETDB = 'QUERY_EDITOR_SETDB';
 export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
-export const QUERY_EDITOR_SET_TABLE_OPTIONS = 'QUERY_EDITOR_SET_TABLE_OPTIONS';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
@@ -80,6 +79,7 @@ export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
+export const CLEAR_INACTIVE_QUERIES = 'CLEAR_INACTIVE_QUERIES';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
@@ -219,6 +219,10 @@ export function estimateQueryCost(queryEditor) {
   };
 }
 
+export function clearInactiveQueries() {
+  return { type: CLEAR_INACTIVE_QUERIES };
+}
+
 export function startQuery(query) {
   Object.assign(query, {
     id: query.id ? query.id : shortid.generate(),
@@ -353,14 +357,6 @@ export function fetchQueryResults(query, displayLimit) {
   };
 }
 
-export function cleanSqlComments(sql) {
-  if (!sql) return '';
-  // it sanitizes the following comment block groups
-  // group 1 -> /* */
-  // group 2 -> --
-  return sql.replace(/(--.*?$|\/\*[\s\S]*?\*\/)\n?/gm, '\n').trim();
-}
-
 export function runQuery(query) {
   return function (dispatch) {
     dispatch(startQuery(query));
@@ -370,7 +366,7 @@ export function runQuery(query) {
       json: true,
       runAsync: query.runAsync,
       schema: query.schema,
-      sql: cleanSqlComments(query.sql),
+      sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,
       tmp_table_name: query.tempTable,
@@ -952,10 +948,6 @@ export function queryEditorSetSchema(queryEditor, schema) {
   };
 }
 
-export function queryEditorSetTableOptions(queryEditor, options) {
-  return { type: QUERY_EDITOR_SET_TABLE_OPTIONS, queryEditor, options };
-}
-
 export function queryEditorSetAutorun(queryEditor, autorun) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
@@ -1501,7 +1493,7 @@ export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
 export function createDatasourceSuccess(data) {
-  const datasource = `${data.table_id}__table`;
+  const datasource = `${data.id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
 export function createDatasourceFailed(err) {
@@ -1511,9 +1503,18 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
+    const { dbId, schema, datasourceName, sql } = vizOptions;
     return SupersetClient.post({
-      endpoint: '/superset/sqllab_viz/',
-      postPayload: { data: vizOptions },
+      endpoint: '/api/v1/dataset/',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        database: dbId,
+        schema,
+        sql,
+        table_name: datasourceName,
+        is_managed_externally: false,
+        external_url: null,
+      }),
     })
       .then(({ json }) => {
         dispatch(createDatasourceSuccess(json));
@@ -1551,37 +1552,6 @@ export function createCtasDatasource(vizOptions) {
         const errorMsg = t('An error occurred while creating the data source');
         dispatch(createDatasourceFailed(errorMsg));
         return Promise.reject(new Error(errorMsg));
-      });
-  };
-}
-
-export function queryEditorSetFunctionNames(queryEditor, dbId) {
-  return function (dispatch) {
-    return SupersetClient.get({
-      endpoint: encodeURI(`/api/v1/database/${dbId}/function_names/`),
-    })
-      .then(({ json }) =>
-        dispatch({
-          type: QUERY_EDITOR_SET_FUNCTION_NAMES,
-          queryEditor,
-          functionNames: json.function_names,
-        }),
-      )
-      .catch(err => {
-        if (err.status === 404) {
-          // for databases that have been deleted, just reset the function names
-          dispatch({
-            type: QUERY_EDITOR_SET_FUNCTION_NAMES,
-            queryEditor,
-            functionNames: [],
-          });
-        } else {
-          dispatch(
-            addDangerToast(
-              t('An error occurred while fetching function names.'),
-            ),
-          );
-        }
       });
   };
 }

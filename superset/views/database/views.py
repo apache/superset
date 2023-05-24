@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+import json
 import os
 import tempfile
 import zipfile
@@ -122,7 +123,7 @@ class CustomFormView(SimpleFormView):
     your form pre-processing and post-processing
     """
 
-    @expose("/form", methods=["GET"])
+    @expose("/form", methods=("GET",))
     @has_access
     def this_form_get(self) -> Any:
         self._init_vars()
@@ -136,7 +137,7 @@ class CustomFormView(SimpleFormView):
             appbuilder=self.appbuilder,
         )
 
-    @expose("/form", methods=["POST"])
+    @expose("/form", methods=("POST",))
     @has_access
     def this_form_post(self) -> Any:
         self._init_vars()
@@ -189,6 +190,7 @@ class CsvToDatabaseView(CustomFormView):
             delimiter_input = form.otherInput.data
 
         try:
+            kwargs = {"dtype": json.loads(form.dtype.data)} if form.dtype.data else {}
             df = pd.concat(
                 pd.read_csv(
                     chunksize=1000,
@@ -208,6 +210,7 @@ class CsvToDatabaseView(CustomFormView):
                     skip_blank_lines=form.skip_blank_lines.data,
                     skipinitialspace=form.skip_initial_space.data,
                     skiprows=form.skiprows.data,
+                    **kwargs,
                 )
             )
 

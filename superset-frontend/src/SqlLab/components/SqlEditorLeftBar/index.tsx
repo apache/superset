@@ -29,13 +29,11 @@ import querystring from 'query-string';
 
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
   setDatabases,
   addDangerToast,
   resetState,
@@ -143,7 +141,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -218,15 +215,6 @@ const SqlEditorLeftBar = ({
     [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetTableOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
       dispatch(setDatabases(result));
@@ -256,7 +244,6 @@ const SqlEditorLeftBar = ({
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode

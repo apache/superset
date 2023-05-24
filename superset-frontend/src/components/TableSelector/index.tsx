@@ -97,7 +97,6 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
-  onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
@@ -158,7 +157,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   isDatabaseSelectEnabled = true,
   onDbChange,
   onSchemaChange,
-  onTablesLoad,
   readOnly = false,
   onEmptyResults,
   schema,
@@ -177,17 +175,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const {
     data,
     isFetching: loadingTables,
-    isFetched,
     refetch,
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: () => {
+    onSuccess: (data, isFetched) => {
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
     },
-    onError: (err: Response) => {
+    onError: err => {
       getClientErrorObject(err).then(clientError => {
         handleError(
           getClientErrorMessage(
@@ -198,14 +195,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       });
     },
   });
-
-  useEffect(() => {
-    // Set the tableOptions in the queryEditor so autocomplete
-    // works on new tabs
-    if (data && isFetched) {
-      onTablesLoad?.(data.options);
-    }
-  }, [data, isFetched, onTablesLoad]);
 
   const tableOptions = useMemo<TableOption[]>(
     () =>
@@ -275,8 +264,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const handleFilterOption = useMemo(
     () => (search: string, option: TableOption) => {
       const searchValue = search.trim().toLowerCase();
-      const { text } = option;
-      return text.toLowerCase().includes(searchValue);
+      const { value } = option;
+      return value.toLowerCase().includes(searchValue);
     },
     [],
   );
@@ -308,6 +297,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         mode={tableSelectMode}
         value={tableSelectValue}
         allowClear={tableSelectMode === 'multiple'}
+        allowSelectAll={false}
       />
     );
 

@@ -238,7 +238,7 @@ class QueryContextProcessor:
             try:
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
-                raise QueryObjectValidationError from ex
+                raise QueryObjectValidationError(ex.message) from ex
 
         result.df = df
         result.query = query
@@ -508,8 +508,7 @@ class QueryContextProcessor:
         return return_value
 
     def get_cache_timeout(self) -> int:
-        cache_timeout_rv = self._query_context.get_cache_timeout()
-        if cache_timeout_rv:
+        if cache_timeout_rv := self._query_context.get_cache_timeout():
             return cache_timeout_rv
         if (
             data_cache_timeout := config["DATA_CACHE_CONFIG"].get(

@@ -221,8 +221,7 @@ def get_query_results(
     :raises QueryObjectValidationError: if an unsupported result type is requested
     :return: JSON serializable result payload
     """
-    result_func = _result_type_functions.get(result_type)
-    if result_func:
+    if result_func := _result_type_functions.get(result_type):
         return result_func(query_context, query_obj, force_cached)
     raise QueryObjectValidationError(
         _("Invalid result type: %(result_type)s", result_type=result_type)

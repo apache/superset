@@ -25,8 +25,9 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { CSSTransition } from 'react-transition-group';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { css, FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
@@ -230,6 +231,7 @@ const SqlEditor = ({
         hideLeftBar,
       };
     },
+    shallowEqual,
   );
 
   const [height, setHeight] = useState(0);
@@ -353,39 +355,24 @@ const SqlEditor = ({
     return base;
   }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
 
-  const handleWindowResize = useCallback(() => {
-    setHeight(getSqlEditorHeight());
-  }, []);
-
-  const handleWindowResizeWithThrottle = useMemo(
-    () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
-    [handleWindowResize],
-  );
-
-  const onBeforeUnload = useCallback(
-    event => {
-      if (
-        database?.extra_json?.cancel_query_on_windows_unload &&
-        latestQuery?.state === 'running'
-      ) {
-        event.preventDefault();
-        stopQuery();
-      }
-    },
-    [
-      database?.extra_json?.cancel_query_on_windows_unload,
-      latestQuery?.state,
-      stopQuery,
-    ],
-  );
+  const onBeforeUnload = useEffectEvent(event => {
+    if (
+      database?.extra_json?.cancel_query_on_windows_unload &&
+      latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      stopQuery();
+    }
+  });
 
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     setHeight(getSqlEditorHeight());
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
+    const handleWindowResizeWithThrottle = throttle(
+      () => setHeight(getSqlEditorHeight()),
+      WINDOW_RESIZE_THROTTLE_MS,
+    );
 
     window.addEventListener('resize', handleWindowResizeWithThrottle);
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -394,7 +381,14 @@ const SqlEditor = ({
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [database, handleWindowResizeWithThrottle, onBeforeUnload]);
+    // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
+  }, [onBeforeUnload]);
+
+  useEffect(() => {
+    if (!database || isEmpty(database)) {
+      setShowEmptyState(true);
+    }
+  }, [database]);
 
   useEffect(() => {
     // setup hotkeys

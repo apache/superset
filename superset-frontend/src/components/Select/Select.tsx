@@ -47,6 +47,7 @@ import {
   selectAllOption,
   mapValues,
   mapOptions,
+  hasCustomLabels,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
@@ -440,6 +441,11 @@ const Select = forwardRef(
       onChange?.(newValues, newOptions);
     };
 
+    const shouldRenderChildrenOptions = useMemo(
+      () => selectAllEnabled || hasCustomLabels(options),
+      [selectAllEnabled, options],
+    );
+
     const customMaxTagPlaceholder = () => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = maxTagCount as number;
@@ -456,6 +462,7 @@ const Select = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
+          autoClearSearchValue={false}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
@@ -492,6 +499,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
+          {...(!shouldRenderChildrenOptions && { options: fullSelectOptions })}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
@@ -507,7 +515,8 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

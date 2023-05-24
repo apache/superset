@@ -23,6 +23,7 @@ from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
 from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.commands.create import CreateKeyValueCommand
+from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.utils import encode_permalink_key
 from superset.utils.core import DatasourceType
 
@@ -45,18 +46,21 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             value = {
                 "chartId": self.chart_id,
                 "datasourceId": datasource_id,
-                "datasourceType": datasource_type,
+                "datasourceType": datasource_type.value,
                 "datasource": self.datasource,
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
                 resource=self.resource,
                 value=value,
+                codec=self.codec,
             )
             key = command.run()
             if key.id is None:
                 raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
             return encode_permalink_key(key=key.id, salt=self.salt)
+        except KeyValueCodecEncodeException as ex:
+            raise ExplorePermalinkCreateFailedError(str(ex)) from ex
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise ExplorePermalinkCreateFailedError() from ex

@@ -103,7 +103,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by_name",
         "changed_by_url",
         "changed_by.first_name",
-        "changed_by.username",
+        "changed_by.last_name",
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",
@@ -113,7 +113,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
         "kind",
         "owners.id",
-        "owners.username",
         "owners.first_name",
         "owners.last_name",
         "schema",
@@ -146,7 +145,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "template_params",
         "select_star",
         "owners.id",
-        "owners.username",
         "owners.first_name",
         "owners.last_name",
         "columns.advanced_data_type",
@@ -195,6 +193,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.backend",
         "columns.advanced_data_type",
         "is_managed_externally",
+        "uid",
+        "datasource_name",
+        "name",
+        "column_formats",
+        "granularity_sqla",
+        "time_grain_sqla",
+        "order_by_choices",
+        "verbose_map",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -248,7 +254,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -311,7 +317,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>", methods=["PUT"])
+    @expose("/<pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -398,7 +404,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
-    @expose("/<pk>", methods=["DELETE"])
+    @expose("/<pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -454,7 +460,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -516,7 +522,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=filename,
+                download_name=filename,
             )
             if token:
                 response.set_cookie(token, "done", max_age=600)
@@ -538,7 +544,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             mimetype="application/text",
         )
 
-    @expose("/duplicate", methods=["POST"])
+    @expose("/duplicate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -609,7 +615,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/refresh", methods=["PUT"])
+    @expose("/<pk>/refresh", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -665,7 +671,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/related_objects", methods=["GET"])
+    @expose("/<pk>/related_objects", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -727,7 +733,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             dashboards={"count": len(dashboards), "result": dashboards},
         )
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -790,7 +796,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -923,7 +929,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/get_or_create/", methods=["POST"])
+    @expose("/get_or_create/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -971,8 +977,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=ex.messages)
         table_name = body["table_name"]
         database_id = body["database_id"]
-        table = DatasetDAO.get_table_by_name(database_id, table_name)
-        if table:
+        if table := DatasetDAO.get_table_by_name(database_id, table_name):
             return self.response(200, result={"table_id": table.id})
 
         body["database"] = database_id

@@ -108,7 +108,7 @@ describe('DataTablesPane', () => {
     userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
     const value = await copyToClipboardSpy.mock.calls[0][0]();
-    expect(value).toBe('2009-01-01 00:00:00\tAction\n');
+    expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
     fetchMock.restore();
   });

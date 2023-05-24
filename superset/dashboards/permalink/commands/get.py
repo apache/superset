@@ -25,7 +25,11 @@ from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCo
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.key_value.commands.get import GetKeyValueCommand
-from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
+from superset.key_value.exceptions import (
+    KeyValueCodecDecodeException,
+    KeyValueGetFailedError,
+    KeyValueParseKeyError,
+)
 from superset.key_value.utils import decode_permalink_id
 
 logger = logging.getLogger(__name__)
@@ -39,7 +43,11 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.validate()
         try:
             key = decode_permalink_id(self.key, salt=self.salt)
-            command = GetKeyValueCommand(resource=self.resource, key=key)
+            command = GetKeyValueCommand(
+                resource=self.resource,
+                key=key,
+                codec=self.codec,
+            )
             value: Optional[DashboardPermalinkValue] = command.run()
             if value:
                 DashboardDAO.get_by_id_or_slug(value["dashboardId"])
@@ -47,6 +55,7 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             return None
         except (
             DashboardNotFoundError,
+            KeyValueCodecDecodeException,
             KeyValueGetFailedError,
             KeyValueParseKeyError,
         ) as ex:
