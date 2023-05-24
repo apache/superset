@@ -1,7 +1,21 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-chord",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "description": "Superset Legacy Chart - Chord Diagram",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-chord#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/legacy-plugin-chart-chord"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": [
     "*.css"
   ],
@@ -11,23 +25,6 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/plugins/legacy-plugin-chart-chord"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-chord#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "d3": "^3.5.17",
     "prop-types": "^15.6.2",
@@ -36,5 +33,8 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-partition",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "description": "Superset Legacy Chart - Partition",
   "keywords": [
     "superset"

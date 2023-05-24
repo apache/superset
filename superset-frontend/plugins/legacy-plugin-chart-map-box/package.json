@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-map-box",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "description": "Superset Legacy Chart - MapBox",
   "keywords": [
     "superset"

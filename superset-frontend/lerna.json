@@ -3,7 +3,7 @@
   "npmClient": "npm",
   "packages": ["packages/*", "plugins/*"],
   "useWorkspaces": true,
-  "version": "0.18.25",
+  "version": "2.1.0",
   "ignoreChanges": [
     "**/*.md",
     "**/*.spec.tsx?",

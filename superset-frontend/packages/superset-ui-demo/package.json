@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "private": true,
   "description": "Storybook for Superset UI ✨",
   "keywords": [
@@ -40,9 +40,9 @@
     "@storybook/addon-knobs": "^6.3.1",
     "@storybook/addon-links": "^6.3.12",
     "@storybook/addons": "^6.3.12",
-    "@storybook/react": "^6.3.12",
+    "@storybook/react": "^7.0.7",
     "@types/react-loadable": "^5.5.3",
-    "antd": "4.10.3",
+    "antd": "4.23.1",
     "bootstrap": "^3.4.1",
     "core-js": "3.8.3",
     "gh-pages": "^3.0.0",

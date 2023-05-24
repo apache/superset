@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/generator-superset",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "description": "Scaffolder for Superset",
   "keywords": [
     "yeoman",

@@ -1,7 +1,21 @@
 {
   "name": "@superset-ui/plugin-chart-word-cloud",
-  "version": "0.18.25",
+  "version": "2.1.0",
   "description": "Superset Chart Plugin - Word Cloud",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-word-cloud#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-word-cloud"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": [
     "*.css"
   ],
@@ -11,23 +25,6 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/plugins/plugin-chart-word-cloud"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache/superset/issues"
-  },
-  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-word-cloud#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@types/d3-cloud": "^1.2.1",
     "@types/d3-scale": "^2.0.2",
@@ -36,10 +33,13 @@
     "encodable": "^0.7.6"
   },
   "peerDependencies": {
-    "@types/react": "*",
-    "@types/lodash": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@types/lodash": "*",
+    "@types/react": "*",
     "react": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

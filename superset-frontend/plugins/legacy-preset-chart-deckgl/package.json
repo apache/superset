@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-deckgl",
-  "version": "0.4.13",
+  "version": "2.1.0",
   "description": "Superset Legacy Chart - deck.gl",
   "keywords": [
     "superset"
