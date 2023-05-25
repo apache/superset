@@ -46,8 +46,8 @@ import {
   setEditMode,
   setSupersetUrl,
 } from 'src/dashboard/actions/dashboardState';
-import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+// import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
+// import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -64,11 +64,11 @@ import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import {
   BUILDER_SIDEPANEL_WIDTH,
-  CLOSED_FILTER_BAR_WIDTH,
-  FILTER_BAR_HEADER_HEIGHT,
-  FILTER_BAR_TABS_HEIGHT,
-  MAIN_HEADER_HEIGHT,
-  OPEN_FILTER_BAR_WIDTH,
+  // CLOSED_FILTER_BAR_WIDTH,
+  // FILTER_BAR_HEADER_HEIGHT,
+  // FILTER_BAR_TABS_HEIGHT,
+  // MAIN_HEADER_HEIGHT,
+  // OPEN_FILTER_BAR_WIDTH,
 } from 'src/dashboard/constants';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
@@ -126,18 +126,18 @@ const StyledDiv = styled.div`
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
-const FiltersPanel = styled.div`
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  z-index: 11;
-`;
+// const FiltersPanel = styled.div`
+//   grid-column: 1;
+//   grid-row: 1 / span 2;
+//   z-index: 11;
+// `;
 
-const StickyPanel = styled.div<{ width: number }>`
-  position: sticky;
-  top: -1px;
-  width: ${({ width }) => width}px;
-  flex: 0 0 ${({ width }) => width}px;
-`;
+// const StickyPanel = styled.div<{ width: number }>`
+//   position: sticky;
+//   top: -1px;
+//   width: ${({ width }) => width}px;
+//   flex: 0 0 ${({ width }) => width}px;
+// `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
@@ -230,9 +230,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-  const directPathToChild = useSelector<RootState, string[]>(
-    state => state.dashboardState.directPathToChild,
-  );
+  // const directPathToChild = useSelector<RootState, string[]>(
+  //   state => state.dashboardState.directPathToChild,
+  // );
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
   );
@@ -302,29 +302,29 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const {
     showDashboard,
     dashboardFiltersOpen,
-    toggleDashboardFiltersOpen,
+    // toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
   } = useNativeFilters();
 
-  const filterBarWidth = dashboardFiltersOpen
-    ? OPEN_FILTER_BAR_WIDTH
-    : CLOSED_FILTER_BAR_WIDTH;
+  // const filterBarWidth = dashboardFiltersOpen
+  //   ? OPEN_FILTER_BAR_WIDTH
+  //   : CLOSED_FILTER_BAR_WIDTH;
 
-  const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
-    threshold: [1],
-  });
+  // const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
+  //   threshold: [1],
+  // });
 
-  const filterSetEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
-  );
+  // const filterSetEnabled = isFeatureEnabled(
+  //   FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
+  // );
 
-  const offset =
-    FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
-    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+  // const offset =
+  //   FILTER_BAR_HEADER_HEIGHT +
+  //   (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+  //   (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
-  const filterBarHeight = `calc(100vh - ${offset}px)`;
-  const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
+  // const filterBarHeight = `calc(100vh - ${offset}px)`;
+  // const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
   const draggableStyle = useMemo(
     () => ({
