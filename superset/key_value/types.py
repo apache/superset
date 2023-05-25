@@ -24,6 +24,13 @@ from enum import Enum
 from typing import Any, Optional, TypedDict
 from uuid import UUID
 
+from marshmallow import Schema, ValidationError
+
+from superset.key_value.exceptions import (
+    KeyValueCodecDecodeException,
+    KeyValueCodecEncodeException,
+)
+
 
 @dataclass
 class Key:
@@ -61,10 +68,16 @@ class KeyValueCodec(ABC):
 
 class JsonKeyValueCodec(KeyValueCodec):
     def encode(self, value: dict[Any, Any]) -> bytes:
-        return bytes(json.dumps(value), encoding="utf-8")
+        try:
+            return bytes(json.dumps(value), encoding="utf-8")
+        except TypeError as ex:
+            raise KeyValueCodecEncodeException(str(ex)) from ex
 
     def decode(self, value: bytes) -> dict[Any, Any]:
-        return json.loads(value)
+        try:
+            return json.loads(value)
+        except TypeError as ex:
+            raise KeyValueCodecDecodeException(str(ex)) from ex
 
 
 class PickleKeyValueCodec(KeyValueCodec):
@@ -73,3 +86,22 @@ class PickleKeyValueCodec(KeyValueCodec):
 
     def decode(self, value: bytes) -> dict[Any, Any]:
         return pickle.loads(value)
+
+
+class MarshmallowKeyValueCodec(JsonKeyValueCodec):
+    def __init__(self, schema: Schema):
+        self.schema = schema
+
+    def encode(self, value: dict[Any, Any]) -> bytes:
+        try:
+            obj = self.schema.dump(value)
+            return super().encode(obj)
+        except ValidationError as ex:
+            raise KeyValueCodecEncodeException(message=str(ex)) from ex
+
+    def decode(self, value: bytes) -> dict[Any, Any]:
+        try:
+            obj = super().decode(value)
+            return self.schema.load(obj)
+        except ValidationError as ex:
+            raise KeyValueCodecEncodeException(message=str(ex)) from ex

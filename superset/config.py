@@ -53,7 +53,6 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
@@ -268,9 +267,9 @@ FLASK_USE_RELOAD = True
 PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
-# user when this feature is on. This may has security implications
+# user when this feature is on. This may have security implications
 # and it's more secure to turn it off in production settings.
-SHOW_STACKTRACE = True
+SHOW_STACKTRACE = False
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
@@ -498,6 +497,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
+    "AVOID_COLORS_COLLISION": True,
 }
 
 # ------------------------------
@@ -517,6 +517,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # ----------------------------------------------------------------------
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
+SSH_TUNNEL_TIMEOUT_SEC = 10.0
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -621,16 +622,14 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
-# the username of the account used to render the queries and dashboards/charts
+# By default, thumbnails are rendered per user, and will fall back to the Selenium
+# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# can be configured to always be rendered as a fixed user. See
+# `superset.tasks.types.ExecutorType` for a full list of executor options.
+# To always use a fixed user account, use the following configuration:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
-
-# To be able to have different thumbnails for different users, use these configs to
-# define which user to execute the thumbnails and potentially custom functions for
-# calculating thumbnail digests. To have unique thumbnails for all users, use the
-# following config:
-# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
-THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
@@ -838,7 +837,6 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -1192,7 +1190,6 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(
 #        sql,
-#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
 #        security_manager=security_manager,
 #        database=database,
 #    ):
@@ -1251,12 +1248,13 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
+# execute as the primary owner of the alert/report (giving priority to the last
+# modifier and then the creator if either is contained within the list of owners,
+# otherwise the first owner will be used).
+#
 # To first try to execute as the creator in the owners list (if present), then fall
 # back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner (giving priority to the last modifier and then the
-# creator if either is contained within the list of owners, otherwise the first owner
-# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# last modifier, then an owner and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
 #     ExecutorType.CREATOR_OWNER,
 #     ExecutorType.CREATOR,
@@ -1265,7 +1263,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.OWNER,
 #     ExecutorType.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.OWNER]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1381,18 +1379,6 @@ TALISMAN_CONFIG = {
     "force_https": True,
     "force_https_permanent": False,
 }
-
-# It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `filter_rel_fields`
-# on `RLSRestApi`. Example:
-#
-# from flask_appbuilder.models.sqla import filters
-
-# RLS_BASE_RELATED_FIELD_FILTERS = {
-#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#     "roles": [["name", filters.FilterContains, "Admin"]]
-# }
-RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 
 #
 # Flask session cookie options

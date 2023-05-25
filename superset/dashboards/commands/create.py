@@ -63,9 +63,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = DashboardInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DashboardInvalidError(exceptions=exceptions)
 
         try:
             roles = populate_roles(role_ids)
@@ -73,6 +71,4 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = DashboardInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DashboardInvalidError(exceptions=exceptions)

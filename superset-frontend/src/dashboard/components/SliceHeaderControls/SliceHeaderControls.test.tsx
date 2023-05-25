@@ -44,6 +44,7 @@ const createProps = (viz_type = 'sunburst') =>
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
+    exportXLSX: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
@@ -126,6 +127,8 @@ test('Should render default props', () => {
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
+  delete props.exportXLSX;
+  // @ts-ignore
   delete props.cachedDttm;
   // @ts-ignore
   delete props.updatedDttm;
@@ -168,6 +171,16 @@ test('Should "export to CSV"', async () => {
   userEvent.click(await screen.findByText('Export to .CSV'));
   expect(props.exportCSV).toBeCalledTimes(1);
   expect(props.exportCSV).toBeCalledWith(371);
+});
+
+test('Should "export to Excel"', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  expect(props.exportXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Excel'));
+  expect(props.exportXLSX).toBeCalledTimes(1);
+  expect(props.exportXLSX).toBeCalledWith(371);
 });
 
 test('Should not show "Download" if slice is filter box', () => {

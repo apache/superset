@@ -45,7 +45,7 @@ class TaggedObjectEntityResponseSchema(Schema):
     name = fields.String()
     url = fields.String()
     changed_on = fields.DateTime()
-    created_by = fields.Nested(UserSchema)
+    created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
 
 
