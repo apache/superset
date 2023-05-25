@@ -98,15 +98,12 @@ export interface DatabaseConnectionExtension {
   enabled: () => boolean;
 
   /**
-   * Callback for onsave
+   * Callbacks
    */
   // TODO: we need to move the db types to superset-ui/core in order to import them correctly
   onSave: (componentState: any, db: any) => any;
-
-  /**
-   * Used for parent to store data
-   */
   onEdit?: (componentState: any) => void;
+  onDelete?: (db: any) => void;
 }
 
 export type Extensions = Partial<{
@@ -124,6 +121,7 @@ export type Extensions = Partial<{
   'welcome.main.replacement': React.ComponentType;
   'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
   'databaseconnection.extraOption': DatabaseConnectionExtension;
+  /* Custom components to show in the database and dataset delete modals */
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
 }>;
