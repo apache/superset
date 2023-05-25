@@ -1121,6 +1121,59 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
+    @expose(
+        "/save_dash/<int:dashboard_id>/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
+    @deprecated()
+    def save_dash(  # pylint: disable=no-self-use
+        self, dashboard_id: int
+    ) -> FlaskResponse:
+        """Save a dashboard's metadata"""
+        session = db.session()
+        dash = session.query(Dashboard).get(dashboard_id)
+        security_manager.raise_for_ownership(dash)
+        data = json.loads(request.form["data"])
+        # client-side send back last_modified_time which was set when
+        # the dashboard was open. it was use to avoid mid-air collision.
+        remote_last_modified_time = data.get("last_modified_time")
+        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
+        if (
+            remote_last_modified_time
+            and remote_last_modified_time < current_last_modified_time
+        ):
+            return json_error_response(
+                __(
+                    "This dashboard was changed recently. "
+                    "Please reload dashboard to get latest version."
+                ),
+                412,
+            )
+        # remove to avoid confusion.
+        data.pop("last_modified_time", None)
+
+        if data.get("css") is not None:
+            dash.css = data["css"]
+        if data.get("dashboard_title") is not None:
+            dash.dashboard_title = data["dashboard_title"]
+        DashboardDAO.set_dash_metadata(dash, data)
+        session.merge(dash)
+        session.commit()
+
+        # get updated changed_on
+        dash = session.query(Dashboard).get(dashboard_id)
+        last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
+        session.close()
+        return json_success(
+            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time})
+        )
+
+    @api
+    @has_access_api
+    @event_logger.log_this
     @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
     @deprecated(new_target="api/v1/chart/<chart_id>")
     def add_slices(  # pylint: disable=no-self-use

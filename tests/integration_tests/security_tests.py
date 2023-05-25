@@ -1363,6 +1363,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
         self.assertIn(("can_fave_slices", "Superset"), perm_set)
+        self.assertIn(("can_save_dash", "Superset"), perm_set)
         self.assertIn(("can_slice", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
@@ -1562,6 +1563,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
+        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
         self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
