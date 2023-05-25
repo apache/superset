@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
 import { Extensions } from './types';
