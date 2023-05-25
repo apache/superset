@@ -29,7 +29,7 @@ import React, {
 import { JsonObject, styled, css, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
-import ErrorBoundary from 'src/components/ErrorBoundary';
+// import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import Icons from 'src/components/Icons';
@@ -58,7 +58,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
-import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+// import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -472,7 +472,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ) : (
               <Loading />
             )}
-            {editMode ? (
+            {/* {editMode ? (
               <BuilderComponentPane
                 isStandalone={!!standaloneMode}
                 topOffset={barTopOffset}
@@ -499,6 +499,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   </ErrorBoundary>
                 </StickyPanel>
               </FiltersPanel>
+            )} */}
+            {editMode && (
+              <BuilderComponentPane
+                isStandalone={!!standaloneMode}
+                topOffset={barTopOffset}
+              />
             )}
           </StyledDashboardContent>
         </div>
