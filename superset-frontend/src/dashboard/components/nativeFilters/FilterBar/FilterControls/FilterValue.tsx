@@ -34,7 +34,6 @@ import {
   styled,
   SuperChart,
   t,
-  SupersetError,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
@@ -44,7 +43,10 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -99,8 +101,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
-  const [error, setError] = useState<string>('');
-  const errorRef = useRef<SupersetError>();
+  const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
@@ -187,13 +188,10 @@ const FilterValue: React.FC<FilterControlProps> = ({
                   handleFilterLoadFinish();
                 })
                 .catch((error: Response) => {
-                  getClientErrorObject(error).then(parsedError => {
-                    errorRef.current = error.errors?.[0];
+                  getClientErrorObject(error).then(clientErrorObject => {
+                    setError(clientErrorObject);
+                    handleFilterLoadFinish();
                   });
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
-                  handleFilterLoadFinish();
                 });
             } else {
               throw new Error(
@@ -202,16 +200,15 @@ const FilterValue: React.FC<FilterControlProps> = ({
             }
           } else {
             setState(json.result);
-            setError('');
+            setError(undefined);
             handleFilterLoadFinish();
           }
         })
         .catch((error: Response) => {
-          getClientErrorObject(error).then(parsedError => {
-            errorRef.current = parsedError.errors?.[0];
+          getClientErrorObject(error).then(clientErrorObject => {
+            setError(clientErrorObject);
+            handleFilterLoadFinish();
           });
-          setError(error.statusText);
-          handleFilterLoadFinish();
         });
     }
   }, [
@@ -308,11 +305,11 @@ const FilterValue: React.FC<FilterControlProps> = ({
   if (error) {
     return (
       <ErrorMessageWithStackTrace
-        error={errorRef.current}
+        error={error.errors?.[0]}
         fallback={
           <BasicErrorAlert
             title={t('Cannot load filter')}
-            body={error}
+            body={error.error}
             level="error"
           />
         }

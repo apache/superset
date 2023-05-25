@@ -22,7 +22,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
 import BasicErrorAlert from './BasicErrorAlert';
-import { ErrorLevel, ErrorSource } from './types';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
 jest.mock(
   'src/components/Icons/Icon',
@@ -60,20 +60,19 @@ test('should render the link', () => {
 });
 
 test('should render the fallback', () => {
+  const body = 'Blahblah';
   render(
-    <ErrorMessageWithStackTrace {
-      ...mockedProps,
-      fallback: (
-        <BasicErrorAlert
-          title='Blah'
-          body='Blahblah'
-          level='error'
-        />
-      )
-    } />,
+    <ErrorMessageWithStackTrace
+      error={{
+        error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+        message: body,
+        extra: {},
+        level: 'error',
+      }}
+      fallback={<BasicErrorAlert title="Blah" body={body} level="error" />}
+      {...mockedProps}
+    />,
     { useRedux: true },
   );
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Blahblah')).toBeInTheDocument();
+  expect(screen.getByText(body)).toBeInTheDocument();
 });

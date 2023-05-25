@@ -36,7 +36,6 @@ import {
   styled,
   SupersetApiError,
   t,
-  SupersetError,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import React, {
@@ -45,7 +44,6 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import rison from 'rison';
@@ -75,7 +73,10 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
   getFormData,
@@ -348,8 +349,7 @@ const FiltersConfigForm = (
   ref: React.RefObject<any>,
 ) => {
   const isRemoved = !!removedFilters[filterId];
-  const [error, setError] = useState<string>('');
-  const errorRef = useRef<SupersetError>();
+  const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -444,11 +444,11 @@ const FiltersConfigForm = (
 
   const setNativeFilterFieldValuesWrapper = (values: object) => {
     setNativeFilterFieldValues(form, filterId, values);
-    setError('');
+    setError(undefined);
     forceUpdate();
   };
 
-  const setErrorWrapper = (error: string) => {
+  const setErrorWrapper = (error: ClientErrorObject) => {
     setNativeFilterFieldValues(form, filterId, {
       defaultValueQueriesData: null,
     });
@@ -511,15 +511,8 @@ const FiltersConfigForm = (
                   });
                 })
                 .catch((error: Response) => {
-                  getClientErrorObject(error).then(parsedError => {
-                    errorRef.current = parsedError.errors?.[0];
-                  });
-                  error.json().then(body => {
-                    setErrorWrapper(
-                      body.message ||
-                        error.statusText ||
-                        t('Check configuration'),
-                    );
+                  getClientErrorObject(error).then(clientErrorObject => {
+                    setErrorWrapper(clientErrorObject);
                   });
                 });
             } else {
@@ -534,10 +527,9 @@ const FiltersConfigForm = (
           }
         })
         .catch((error: Response) => {
-          getClientErrorObject(error).then(parsedError => {
-            errorRef.current = parsedError.errors?.[0];
+          getClientErrorObject(error).then(clientErrorObject => {
+            setError(clientErrorObject);
           });
-          setError(error.message || error.error || t('Check configuration'));
         });
     },
     [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
@@ -1235,11 +1227,11 @@ const FiltersConfigForm = (
                       <DefaultValueContainer>
                         {error ? (
                           <ErrorMessageWithStackTrace
-                            error={errorRef.current}
+                            error={error.errors?.[0]}
                             fallback={
                               <BasicErrorAlert
                                 title={t('Cannot load filter')}
-                                body={error}
+                                body={error.error}
                                 level="error"
                               />
                             }
