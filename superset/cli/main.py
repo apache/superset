@@ -15,12 +15,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
+import html
 import importlib
 import logging
+import os
 import pkgutil
 from typing import Any, Dict
 
 import click
+from click import Command
 from colorama import Fore, Style
 from flask.cli import FlaskGroup, with_appcontext
 
@@ -81,3 +85,74 @@ def version(verbose: bool) -> None:
     if verbose:
         print("[DB] : " + "{}".format(db.engine))
     print(Style.RESET_ALL)
+
+
+@superset.command(hidden=True)
+@with_appcontext
+def update_cli_docs() -> None:
+    """Regenerate the cli.md file in docs"""
+
+    click.secho("Retrieving cli info", fg="yellow")
+    markdown_content = generate_cli_docs(superset.commands)
+
+    click.secho("Generating cli markdown", fg="yellow")
+    superset_dir = os.path.abspath(os.path.dirname(__file__))
+    cli_markdown = os.path.join(
+        superset_dir, "..", "..", "docs", "static", "resources", "cli.mdx"
+    )
+
+    with open(cli_markdown, "w") as outfile:
+        outfile.write(html.escape(markdown_content, quote=False))
+    click.secho("Successfully generated cli docs!", fg="green")
+
+
+def generate_cli_docs(commands: dict[str, Command], level: int = 0) -> str:
+    """Recursively traverse Click CLI commands to collect documentation relevant info
+
+    :param commands: Click commands
+    :param level: count of recursion
+    :returns: markdown content as string
+    """
+    entries = {}
+    for cmd in commands.values():
+        positional_args = ""
+        named_args = ""
+
+        if cmd.hidden:
+            continue
+
+        entries[cmd.name] = f"{'#' * (level + 2)} {cmd.name}\n\n{cmd.help}\n\n"
+
+        # get arguments info
+        for option in cmd.params:
+            option_info = option.to_info_dict()
+
+            # get named arguments
+            if option_info["param_type_name"] == "option":
+                named_args += f"- `{option_info['opts']}`: "
+                named_args += f"{option_info['help']}"
+                if option_info["required"]:
+                    named_args += " (required)"
+                named_args += "\n\n"
+            # get positional arguments
+            elif option_info["param_type_name"] == "argument":
+                positional_args += (
+                    f"- `{option_info['opts']}`: {option_info['type']['param_type']}"
+                )
+                if option_info["required"]:
+                    positional_args += " (required)"
+                positional_args += "\n\n"
+
+        if positional_args:
+            entries[
+                cmd.name
+            ] += f"{'#' * (level + 3)} Positional Arguments\n\n{positional_args}"
+        if named_args:
+            entries[cmd.name] += f"{'#' * (level + 3)} Named Arguments\n\n{named_args}"
+
+        # get sub-commands info
+        if not cmd.params and isinstance(cmd, click.Group):
+            entries[cmd.name] += f"{'#' * (level + 3)} Sub-commands\n\n"
+            entries[cmd.name] += generate_cli_docs(cmd.commands, level + 2)
+
+    return "\n\n".join(dict(sorted(entries.items())).values())

@@ -1,0 +1,798 @@
+## cli
+
+Flask-Limiter maintenance &amp; utility commmands
+
+### Sub-commands
+
+#### clear
+
+Clear limits for a specific key
+
+##### Named Arguments
+
+- `['--endpoint']`: Endpoint to filter by
+
+- `['--path']`: Path to filter by
+
+- `['--method']`: HTTP Method to filter by
+
+- `['--key']`: Key to reset the limits for (required)
+
+- `['-y']`: Skip prompt for confirmation
+
+
+
+#### config
+
+View the extension configuration
+
+
+
+#### limits
+
+Enumerate details about all routes with rate limits
+
+##### Named Arguments
+
+- `['--endpoint']`: Endpoint to filter by
+
+- `['--path']`: Path to filter by
+
+- `['--method']`: HTTP Method to filter by
+
+- `['--key']`: Test the limit
+
+- `['--watch']`: Create a live dashboard
+
+
+
+## compute-thumbnails
+
+Compute thumbnails
+
+### Named Arguments
+
+- `['--asynchronous', '-a']`: Trigger commands to run remotely on a worker
+
+- `['--dashboards_only', '-d']`: Only process dashboards
+
+- `['--charts_only', '-c']`: Only process charts
+
+- `['--force', '-f']`: Force refresh, even if previously cached
+
+- `['--model_id', '-i']`: None
+
+
+
+## db
+
+Perform database migrations.
+
+### Sub-commands
+
+#### branches
+
+Show current branch points
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-v', '--verbose']`: Use more verbose output
+
+
+
+#### current
+
+Display the current revision for each database.
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-v', '--verbose']`: Use more verbose output
+
+
+
+#### downgrade
+
+Revert to a previous version
+
+##### Positional Arguments
+
+- `['revision']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['--sql']`: Don't emit SQL to database - dump to standard output instead
+
+- `['--tag']`: Arbitrary "tag" name - can be used by custom env.py scripts
+
+- `['-x', '--x-arg']`: Additional arguments consumed by custom env.py scripts
+
+
+
+#### edit
+
+Edit a revision file
+
+##### Positional Arguments
+
+- `['revision']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+
+
+#### heads
+
+Show current available heads in the script directory
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-v', '--verbose']`: Use more verbose output
+
+- `['--resolve-dependencies']`: Treat dependency versions as down revisions
+
+
+
+#### history
+
+List changeset scripts in chronological order.
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-r', '--rev-range']`: Specify a revision range; format is [start]:[end]
+
+- `['-v', '--verbose']`: Use more verbose output
+
+- `['-i', '--indicate-current']`: Indicate current version (Alembic 0.9.9 or greater is required)
+
+
+
+#### init
+
+Creates a new migration repository.
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['--multidb']`: Support multiple databases
+
+- `['-t', '--template']`: Repository template to use (default is "flask")
+
+- `['--package']`: Write empty __init__.py files to the environment and version locations
+
+
+
+#### list-templates
+
+List available templates.
+
+
+
+#### merge
+
+Merge two revisions together, creating a new revision file
+
+##### Positional Arguments
+
+- `['revisions']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-m', '--message']`: Merge revision message
+
+- `['--branch-label']`: Specify a branch label to apply to the new revision
+
+- `['--rev-id']`: Specify a hardcoded revision id instead of generating one
+
+
+
+#### migrate
+
+Autogenerate a new revision file (Alias for
+    'revision --autogenerate')
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-m', '--message']`: Revision message
+
+- `['--sql']`: Don't emit SQL to database - dump to standard output instead
+
+- `['--head']`: Specify head revision or &lt;branchname&gt;@head to base new revision on
+
+- `['--splice']`: Allow a non-head revision as the "head" to splice onto
+
+- `['--branch-label']`: Specify a branch label to apply to the new revision
+
+- `['--version-path']`: Specify specific path from config for version file
+
+- `['--rev-id']`: Specify a hardcoded revision id instead of generating one
+
+- `['-x', '--x-arg']`: Additional arguments consumed by custom env.py scripts
+
+
+
+#### revision
+
+Create a new revision file.
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['-m', '--message']`: Revision message
+
+- `['--autogenerate']`: Populate revision script with candidate migration operations, based on comparison of database to model
+
+- `['--sql']`: Don't emit SQL to database - dump to standard output instead
+
+- `['--head']`: Specify head revision or &lt;branchname&gt;@head to base new revision on
+
+- `['--splice']`: Allow a non-head revision as the "head" to splice onto
+
+- `['--branch-label']`: Specify a branch label to apply to the new revision
+
+- `['--version-path']`: Specify specific path from config for version file
+
+- `['--rev-id']`: Specify a hardcoded revision id instead of generating one
+
+
+
+#### show
+
+Show the revision denoted by the given symbol.
+
+##### Positional Arguments
+
+- `['revision']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+
+
+#### stamp
+
+'stamp' the revision table with the given revision; don't run any
+    migrations
+
+##### Positional Arguments
+
+- `['revision']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['--sql']`: Don't emit SQL to database - dump to standard output instead
+
+- `['--tag']`: Arbitrary "tag" name - can be used by custom env.py scripts
+
+
+
+#### upgrade
+
+Upgrade to a later version
+
+##### Positional Arguments
+
+- `['revision']`: String
+
+##### Named Arguments
+
+- `['-d', '--directory']`: Migration script directory (default is "migrations")
+
+- `['--sql']`: Don't emit SQL to database - dump to standard output instead
+
+- `['--tag']`: Arbitrary "tag" name - can be used by custom env.py scripts
+
+- `['-x', '--x-arg']`: Additional arguments consumed by custom env.py scripts
+
+
+
+## export-dashboards
+
+Export dashboards to ZIP file
+
+### Named Arguments
+
+- `['--dashboard-file', '-f']`: Specify the file to export to
+
+
+
+## export-datasources
+
+Export datasources to ZIP file
+
+### Named Arguments
+
+- `['--datasource-file', '-f']`: Specify the file to export to
+
+
+
+## fab
+
+ FAB flask group commands
+
+### Sub-commands
+
+#### babel-compile
+
+
+        Babel, Compiles all translations
+
+
+##### Named Arguments
+
+- `['--target']`: The target directory where translations reside
+
+
+
+#### babel-extract
+
+
+        Babel, Extracts and updates all messages marked for translation
+
+
+##### Named Arguments
+
+- `['--config']`: None
+
+- `['--input']`: None
+
+- `['--output']`: None
+
+- `['--target']`: None
+
+- `['--keywords', '-k']`: None
+
+
+
+#### collect-static
+
+
+        Copies flask-appbuilder static files to your projects static folder
+
+
+##### Named Arguments
+
+- `['--static_folder']`: Your projects static folder
+
+
+
+#### create-addon
+
+
+        Create a Skeleton AddOn (needs internet connection to github)
+
+
+##### Named Arguments
+
+- `['--name']`: Your addon name will be prefixed by fab_addon_, directory will have this name
+
+
+
+#### create-admin
+
+
+        Creates an admin user
+
+
+##### Named Arguments
+
+- `['--username']`: None
+
+- `['--firstname']`: None
+
+- `['--lastname']`: None
+
+- `['--email']`: None
+
+- `['--password']`: None
+
+
+
+#### create-app
+
+
+        Create a Skeleton application (needs internet connection to github)
+
+
+##### Named Arguments
+
+- `['--name']`: Your application name, directory will have this name
+
+- `['--engine']`: Write your engine type
+
+
+
+#### create-db
+
+
+        Create all your database objects (SQLAlchemy specific).
+
+
+
+
+#### create-permissions
+
+
+        Creates all permissions and add them to the ADMIN Role.
+
+
+
+
+#### create-user
+
+
+        Create a user
+
+
+##### Named Arguments
+
+- `['--role']`: None
+
+- `['--username']`: None
+
+- `['--firstname']`: None
+
+- `['--lastname']`: None
+
+- `['--email']`: None
+
+- `['--password']`: None
+
+
+
+#### export-roles
+
+Exports roles with permissions and view menus to JSON file
+
+##### Named Arguments
+
+- `['--path', '-path']`: Specify filepath to export roles to
+
+- `['--indent']`: Specify indent of generated JSON file
+
+
+
+#### import-roles
+
+ Imports roles with permissions and view menus from JSON file
+
+##### Named Arguments
+
+- `['--path', '-p']`: Path to a JSON file containing roles (required)
+
+
+
+#### list-users
+
+
+        List all users on the database
+
+
+
+
+#### list-views
+
+
+        List all registered views
+
+
+
+
+#### reset-password
+
+
+        Resets a user's password
+
+
+##### Named Arguments
+
+- `['--username']`: Resets the password for a particular user.
+
+- `['--password']`: None
+
+
+
+#### security-cleanup
+
+
+        Cleanup unused permissions from views and roles.
+
+
+
+
+#### security-converge
+
+
+        Converges security deletes previous_class_permission_name
+
+
+##### Named Arguments
+
+- `['--dry-run', '-d']`: Dry run &amp; print state transitions.
+
+
+
+#### version
+
+
+        Flask-AppBuilder package version
+
+
+
+
+## import-assets
+
+Import assets from ZIP file
+
+### Named Arguments
+
+- `['--path', '-p']`: Path to a single ZIP file
+
+
+
+## import-dashboards
+
+Import dashboards from ZIP file
+
+### Named Arguments
+
+- `['--path', '-p']`: Path to a single ZIP file
+
+- `['--username', '-u']`: Specify the user name to assign dashboards to
+
+
+
+## import-datasources
+
+Import datasources from ZIP file
+
+### Named Arguments
+
+- `['--path', '-p']`: Path to a single ZIP file
+
+
+
+## import-directory
+
+Imports configs from a given directory
+
+### Positional Arguments
+
+- `['directory']`: String (required)
+
+### Named Arguments
+
+- `['--overwrite', '-o']`: Overwriting existing metadata definitions
+
+- `['--force', '-f']`: Force load data even if table already exists
+
+
+
+## init
+
+Inits the Superset application
+
+
+
+## load-examples
+
+Loads a set of Slices and Dashboards and a supporting dataset
+
+### Named Arguments
+
+- `['--load-test-data', '-t']`: Load additional test data
+
+- `['--load-big-data', '-b']`: Load additional big data
+
+- `['--only-metadata', '-m']`: Only load metadata, skip actual data
+
+- `['--force', '-f']`: Force load data even if table already exists
+
+
+
+## load-test-users
+
+
+    Loads admin, alpha, and gamma user for testing purposes
+
+    Syncs permissions for those users/roles
+
+
+
+
+## native-filters
+
+
+    Perform native filter operations.
+
+
+### Sub-commands
+
+#### cleanup
+
+
+    Cleanup obsolete legacy filter-box charts and interim metadata.
+
+    Note this operation is irreversible.
+
+
+##### Named Arguments
+
+- `[]`:
+
+- `['--all']`: Cleanup all dashboards
+
+- `['--id']`: Cleanup the specific dashboard. Can be supplied multiple times.
+
+
+
+#### downgrade
+
+
+    Downgrade native dashboard filters to legacy filter-box charts (where applicable).
+
+
+##### Named Arguments
+
+- `[]`:
+
+- `['--all']`: Downgrade all dashboards
+
+- `['--id']`: Downgrade the specific dashboard. Can be supplied multiple times.
+
+
+
+#### upgrade
+
+
+    Upgrade legacy filter-box charts to native dashboard filters.
+
+
+##### Named Arguments
+
+- `[]`:
+
+- `['--all']`: Upgrade all dashboards
+
+- `['--id']`: Upgrade the specific dashboard. Can be supplied multiple times.
+
+
+
+## re-encrypt-secrets
+
+None
+
+### Named Arguments
+
+- `['--previous_secret_key', '-a']`: An optional previous secret key, if PREVIOUS_SECRET_KEY is not set on the config
+
+
+
+## routes
+
+Show all registered routes with endpoints and methods.
+
+### Named Arguments
+
+- `['--sort', '-s']`: Method to sort routes by. "match" is the order that Flask will match routes when dispatching a request.
+
+- `['--all-methods']`: Show HEAD and OPTIONS methods.
+
+
+
+## run
+
+Run a local development server.
+
+    This server is for development purposes only. It does not provide
+    the stability, security, or performance of production WSGI servers.
+
+    The reloader and debugger are enabled by default with the '--debug'
+    option.
+
+
+### Named Arguments
+
+- `['--debug']`: Set debug mode.
+
+- `['--host', '-h']`: The interface to bind to.
+
+- `['--port', '-p']`: The port to bind to.
+
+- `['--cert']`: Specify a certificate file to use HTTPS.
+
+- `['--key']`: The key file to use when specifying a certificate.
+
+- `['--reload']`: Enable or disable the reloader. By default the reloader is active if debug is enabled.
+
+- `['--debugger']`: Enable or disable the debugger. By default the debugger is active if debug is enabled.
+
+- `['--with-threads']`: Enable or disable multithreading.
+
+- `['--extra-files']`: Extra files that trigger a reload on change. Multiple paths are separated by ':'.
+
+- `['--exclude-patterns']`: Files matching these fnmatch patterns will not trigger a reload on change. Multiple patterns are separated by ':'.
+
+
+
+## set-database-uri
+
+Updates a database connection URI
+
+### Named Arguments
+
+- `['--database_name', '-d']`: Database name to change
+
+- `['--uri', '-u']`: Database URI to change
+
+- `['--skip_create', '-s']`: Create the DB if it doesn't exist
+
+
+
+## shell
+
+Run an interactive Python shell in the context of a given
+    Flask application.  The application will populate the default
+    namespace of this shell according to its configuration.
+
+    This is useful for executing small snippets of management code
+    without having to manually configure the application.
+
+
+
+
+## superset
+
+This is a management script for the Superset application.
+
+### Named Arguments
+
+- `['-e', '--env-file']`: Load environment variables from this file. python-dotenv must be installed.
+
+- `['-A', '--app']`: The Flask application or factory function to load, in the form 'module:name'. Module can be a dotted import or file path. Name is not required if it is 'app', 'application', 'create_app', or 'make_app', and can be 'name(args)' to pass arguments.
+
+- `['--debug']`: Set debug mode.
+
+- `['--version']`: Show the Flask version.
+
+
+
+## sync-tags
+
+Rebuilds special tags (owner, type, favorited by).
+
+
+
+## update-api-docs
+
+Regenerate the openapi.json file in docs
+
+
+
+## version
+
+Prints the current version number
+
+### Named Arguments
+
+- `['--verbose', '-v']`: Show extra information
