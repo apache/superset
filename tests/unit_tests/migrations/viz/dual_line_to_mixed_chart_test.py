@@ -29,10 +29,10 @@ ADHOC_FILTERS = [
 ]
 
 SOURCE_FORM_DATA = {
-    "metric": ["num_boys"],
+    "metric": "num_boys",
     "y_axis_format": ",d",
     "y_axis_bounds": [50, 100],
-    "metric_2": ["num_girls"],
+    "metric_2": "num_girls",
     "y_axis_2_format": ",d",
     "y_axis_2_bounds": [75, 150],
     "viz_type": "dual_line",
@@ -57,6 +57,7 @@ TARGET_FORM_DATA = {
     "form_data_bak": SOURCE_FORM_DATA,
     "yAxisIndex": 0,
     "yAxisIndexB": 1,
+    "truncateYAxis": True,
 }
 
 
