@@ -38,7 +38,6 @@ const metadata = new ChartMetadata({
   tags: [
     t('Additive'),
     t('Business'),
-    t('Formattable'),
     t('Legacy'),
     t('Percentages'),
     t('Popular'),
