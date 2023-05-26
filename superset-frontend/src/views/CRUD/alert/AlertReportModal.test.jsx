@@ -395,7 +395,27 @@ describe('AlertReportModal', () => {
     const saveButton = editReportWrapper.find(
       'button[data-test="modal-confirm-button"]',
     );
-    console.log('button', saveButton);
+    expect(saveButton.props().disabled).toBe(true);
+  });
+
+  it('If cron schedule * 1 1 * * for Reports the save button should be disabled', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: true,
+    };
+    props.alert.crontab = '* 1 1 * *';
+    const editReportWrapper = await mountAndWait(props);
+    expect(
+      editReportWrapper.find('[data-test="alert-report-modal-title"]').text(),
+    ).toEqual('Edit Report');
+
+    expect(
+      editReportWrapper.find('input[name="crontab"]').props().value,
+    ).toEqual('* 1 1 * *');
+    const saveButton = editReportWrapper.find(
+      'button[data-test="modal-confirm-button"]',
+    );
     expect(saveButton.props().disabled).toBe(true);
   });
 
