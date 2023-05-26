@@ -591,7 +591,7 @@ Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsume
 ```
 Then put this:
 ```bash
-export NODE_OPTIONS=--no-experimental-fetch`
+export NODE_OPTIONS=--no-experimental-fetch
 ```
 
 #### Webpack dev server
