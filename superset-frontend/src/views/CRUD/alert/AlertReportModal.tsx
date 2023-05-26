@@ -1028,7 +1028,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       checkNotificationSettings()
     ) {
       if (isReport) {
-        if (currentAlert.crontab === '* * * * *') {
+        const cron = currentAlert.crontab.split(' ');
+        if (cron.length === 5 && cron[0] === '*') {
           setDisableSave(true);
         } else {
           setDisableSave(false);
