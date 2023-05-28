@@ -136,7 +136,6 @@ def upload_csv(
     dtype: Union[str, None] = None,
 ):
     csv_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "csv_file": open(filename, "rb"),
         "delimiter": ",",
@@ -146,7 +145,7 @@ def upload_csv(
         "index_label": "test_label",
         "overwrite_duplicate": False,
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
@@ -159,7 +158,6 @@ def upload_excel(
     filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
 ):
     excel_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
@@ -169,7 +167,7 @@ def upload_excel(
         "index_label": "test_label",
         "mangle_dupe_cols": False,
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
@@ -180,7 +178,6 @@ def upload_columnar(
     filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
 ):
     columnar_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "columnar_file": open(filename, "rb"),
         "name": table_name,
@@ -188,7 +185,7 @@ def upload_columnar(
         "if_exists": "fail",
         "index_label": "test_label",
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)

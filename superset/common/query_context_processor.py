@@ -500,8 +500,7 @@ class QueryContextProcessor:
         return return_value
 
     def get_cache_timeout(self) -> int:
-        cache_timeout_rv = self._query_context.get_cache_timeout()
-        if cache_timeout_rv:
+        if cache_timeout_rv := self._query_context.get_cache_timeout():
             return cache_timeout_rv
         if (
             data_cache_timeout := config["DATA_CACHE_CONFIG"].get(

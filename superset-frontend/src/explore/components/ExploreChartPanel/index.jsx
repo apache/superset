@@ -418,7 +418,11 @@ const ExploreChartPanel = ({
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
-    return standaloneChartBody;
+    return (
+      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+        {standaloneChartBody}
+      </div>
+    );
   }
 
   return (

@@ -880,11 +880,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_query_mutator:
+        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
             sql = sql_query_mutator(
                 sql,
-                user_name=utils.get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1269,17 +1267,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return or_(*groups)
 
-    def dttm_sql_literal(self, dttm: sa.DateTime, col_type: Optional[str]) -> str:
+    def dttm_sql_literal(self, dttm: datetime, col: "TableColumn") -> str:
         """Convert datetime object to a SQL expression string"""
 
         sql = (
-            self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
-            if col_type
+            self.db_engine_spec.convert_dttm(col.type, dttm, db_extra=self.db_extra)
+            if col.type
             else None
         )
 
         if sql:
             return sql
+
+        tf = col.python_date_format
+
+        # Fallback to the default format (if defined).
+        if not tf and self.db_extra:
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                col.column_name
+            )
+
+        if tf:
+            if tf in {"epoch_ms", "epoch_s"}:
+                seconds_since_epoch = int(dttm.timestamp())
+                if tf == "epoch_s":
+                    return str(seconds_since_epoch)
+                return str(seconds_since_epoch * 1000)
+            return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
@@ -1309,14 +1323,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             l.append(
                 col
                 >= self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(start_dttm, time_col.type)
+                    self.dttm_sql_literal(start_dttm, time_col)
                 )
             )
         if end_dttm:
             l.append(
                 col
                 < self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(end_dttm, time_col.type)
+                    self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
         return and_(*l)

@@ -18,14 +18,14 @@
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, styled, usePrevious } from '@superset-ui/core';
+import { css, styled, usePrevious, t } from '@superset-ui/core';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
   addTable,
+  addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   SCHEMA_AUTOCOMPLETE_SCORE,
@@ -40,6 +40,7 @@ import {
 } from 'src/components/AsyncAceEditor';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { useSchemas, useTables } from 'src/hooks/apiResources';
+import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
 
 type HotKey = {
   key: string;
@@ -95,7 +96,6 @@ const AceEditorWrapper = ({
     'id',
     'dbId',
     'sql',
-    'functionNames',
     'validationResult',
     'schema',
   ]);
@@ -109,8 +109,20 @@ const AceEditorWrapper = ({
     }),
   });
 
+  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
+    { dbId: queryEditor.dbId },
+    { skip: !autocomplete || !queryEditor.dbId },
+  );
+
+  useEffect(() => {
+    if (isError) {
+      dispatch(
+        addDangerToast(t('An error occurred while fetching function names.')),
+      );
+    }
+  }, [dispatch, isError]);
+
   const currentSql = queryEditor.sql ?? '';
-  const functionNames = queryEditor.functionNames ?? [];
 
   // Loading schema, table and column names as auto-completable words
   const { schemas, schemaWords } = useMemo(
@@ -139,9 +151,6 @@ const AceEditorWrapper = ({
   useEffect(() => {
     // Making sure no text is selected from previous mount
     dispatch(queryEditorSetSelectedText(queryEditor, null));
-    if (queryEditor.dbId) {
-      dispatch(queryEditorSetFunctionNames(queryEditor, queryEditor.dbId));
-    }
     setAutoCompleter();
   }, []);
 
@@ -238,7 +247,7 @@ const AceEditorWrapper = ({
       meta: 'column',
     }));
 
-    const functionWords = functionNames.map(func => ({
+    const functionWords = (functionNames ?? []).map(func => ({
       name: func,
       value: func,
       score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,

@@ -28,6 +28,7 @@ import yaml
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
+from superset import app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
@@ -640,14 +641,13 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -664,7 +664,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
@@ -672,7 +671,7 @@ class TestDatasetApi(SupersetTestCase):
             "table_name": energy_usage_ds.table_name,
             "sql": "select * from energy_usage",
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
@@ -689,7 +688,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="alpha")
         admin = self.get_user("admin")
@@ -700,7 +698,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql": "select * from energy_usage",
             "owners": [admin.id],
         }
-        if schema:
+        if schema := get_example_default_schema():
             table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 201
@@ -1312,6 +1310,107 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.client.put(uri, json=table_data)
         assert rv.status_code == 403
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_get_list_no_username(self):
+        """
+        Dataset API: Tests that no username is returned
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertNotIn("username", current_dataset["changed_by"].keys())
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_get_no_username(self):
+        """
+        Dataset API: Tests that no username is returned
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric(uri, "get")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        self.assertEqual(res["description"], "changed_description")
+        self.assertNotIn("username", res["changed_by"].keys())
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_activity_access_enabled(self):
+        """
+        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
+        """
+        if backend() == "sqlite":
+            return
+
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.client.put(uri, json=table_data)
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_activity_access_disabled(self):
+        """
+        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = Fase
+        """
+        if backend() == "sqlite":
+            return
+
+        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        table_data = {"description": "changed_description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, table_data, "put")
+        self.assertEqual(rv.status_code, 200)
+
+        response = self.get_assert_metric("api/v1/dataset/", "get_list")
+        res = json.loads(response.data.decode("utf-8"))["result"]
+
+        current_dataset = [d for d in res if d["id"] == dataset.id][0]
+        self.assertEqual(current_dataset["description"], "changed_description")
+        self.assertEqual(current_dataset["changed_by_url"], "")
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(dataset)
         db.session.commit()
 

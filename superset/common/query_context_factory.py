@@ -125,10 +125,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             for column in datasource.columns
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
-        granularity = query_object.granularity
         x_axis = form_data and form_data.get("x_axis")
 
-        if granularity:
+        if granularity := query_object.granularity:
             filter_to_remove = None
             if x_axis and x_axis in temporal_columns:
                 filter_to_remove = x_axis

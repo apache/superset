@@ -86,9 +86,7 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                         )
                     )
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):
@@ -110,6 +108,4 @@ class DeleteTagsCommand(DeleteMixin, BaseCommand):
             if not TagDAO.find_by_name(tag):
                 exceptions.append(TagNotFoundError(tag))
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)

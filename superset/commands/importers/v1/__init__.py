@@ -108,9 +108,10 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            exception = CommandInvalidError(f"Error importing {self.model_name}")
-            exception.add_list(exceptions)
-            raise exception
+            raise CommandInvalidError(
+                f"Error importing {self.model_name}",
+                exceptions,
+            )
 
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: List[ValidationError]

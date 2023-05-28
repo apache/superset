@@ -19,6 +19,10 @@ repos:
     rev: 5.12.0
     hooks:
       - id: isort
+  - repo: https://github.com/MarcoGorelli/auto-walrus
+    rev: v0.2.2
+    hooks:
+    -   id: auto-walrus
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.3.0
     hooks:

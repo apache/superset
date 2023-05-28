@@ -16,11 +16,16 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
+import json
+from datetime import datetime
 from typing import List, Optional
 
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.engine.reflection import Inspector
+
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.models.core import Database
 
 
 def test_get_metrics(mocker: MockFixture) -> None:
@@ -143,3 +148,62 @@ def test_get_db_engine_spec(mocker: MockFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+
+@pytest.mark.parametrize(
+    "dttm,col,database,result",
+    [
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_s"),
+            Database(),
+            "1672536225",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_ms"),
+            Database(),
+            "1672536225000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="%Y-%m-%d"),
+            Database(),
+            "'2023-01-01'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(column_name="ds"),
+            Database(
+                extra=json.dumps(
+                    {
+                        "python_date_format_by_column_name": {
+                            "ds": "%Y-%m-%d",
+                        },
+                    },
+                ),
+                sqlalchemy_uri="foo://",
+            ),
+            "'2023-01-01'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(),
+            Database(sqlalchemy_uri="foo://"),
+            "'2023-01-01 01:23:45.600000'",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(type="TimeStamp"),
+            Database(sqlalchemy_uri="trino://"),
+            "TIMESTAMP '2023-01-01 01:23:45.600000'",
+        ),
+    ],
+)
+def test_dttm_sql_literal(
+    dttm: datetime,
+    col: TableColumn,
+    database: Database,
+    result: str,
+) -> None:
+    assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result

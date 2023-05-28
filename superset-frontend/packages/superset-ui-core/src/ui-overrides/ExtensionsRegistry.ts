@@ -29,7 +29,7 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 
 /**
  * This type defines all available extensions of Superset's default UI.
- * Namespace the keys here to follow the form of 'some_domain.functonality.item'.
+ * Namespace the keys here to follow the form of 'some_domain.functionality.item'.
  * Take care to name your keys well, as the name describes what this extension point's role is in Superset.
  *
  * When defining a new option here, take care to keep any parameters to functions (or components) minimal.
@@ -65,6 +65,46 @@ type ConfigDetailsProps = {
 type RightMenuItemIconProps = {
   menuChild: MenuObjectChildProps;
 };
+type DatabaseDeleteRelatedExtensionProps = {
+  database: object;
+};
+type DatasetDeleteRelatedExtensionProps = {
+  dataset: object;
+};
+
+/**
+ * Interface for extensions to database connections
+ */
+export interface DatabaseConnectionExtension {
+  /**
+   * Display title text for the extension show when creating a database connection
+   */
+  title: string;
+  /**
+   * url or dataURI (recommended) of a logo to use in place of a title.  title is fallback display if no logo is provided
+   */
+  logo?: React.ComponentType<any>;
+  /**
+   * Descriptive text displayed under the logo or title to provide user with more context about the configuration section
+   */
+  description: React.ComponentType<any>;
+  /**
+   * React component to render for display in the database connection configuration
+   */
+  component: React.ComponentType<any>;
+  /**
+   * Is the database extension enabled?
+   */
+  enabled: () => boolean;
+
+  /**
+   * Callbacks
+   */
+  // TODO: we need to move the db types to superset-ui/core in order to import them correctly
+  onSave: (componentState: any, db: any) => any;
+  onEdit?: (componentState: any) => void;
+  onDelete?: (db: any) => void;
+}
 
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
@@ -80,6 +120,10 @@ export type Extensions = Partial<{
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
   'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'databaseconnection.extraOption': DatabaseConnectionExtension;
+  /* Custom components to show in the database and dataset delete modals */
+  'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
+  'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
 }>;
 
 /**

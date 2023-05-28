@@ -1800,8 +1800,7 @@ def get_time_filter_status(
     }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
-    time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
-    if time_column:
+    if time_column := applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL):
         if time_column in temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_COL})
         else:
