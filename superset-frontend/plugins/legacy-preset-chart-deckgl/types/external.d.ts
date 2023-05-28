@@ -33,19 +33,37 @@ declare module 'deck.gl' {
     aggregation?: string;
   }
 
+  interface ContourLayerProps<T extends object = any> extends LayerProps<T> {
+    id?: string;
+    data?: T[];
+    getPosition?: (d: T) => number[] | null | undefined;
+    getWeight?: (d: T) => number | null | undefined;
+    contours: {
+      color?: colorType | undefined;
+      lowerThreshold?: any | undefined;
+      upperThreshold?: any | undefined;
+      strokeWidth?: any | undefined;
+      zIndex?: any | undefined;
+    };
+    cellSize: number;
+    colorRange?: number[][];
+    intensity?: number;
+    aggregation?: string;
+  }
+
   export class HeatmapLayer<T extends object = any> extends Layer<
     T,
     HeatmapLayerProps<T>
   > {
     constructor(props: HeatmapLayerProps<T>);
   }
-}
 
-export class ContourLayer<T extends object = any> extends Layer<
-  T,
-  HeatmapLayerProps<T>
-> {
-  constructor(props: HeatmapLayerProps<T>);
+  export class ContourLayer<T extends object = any> extends Layer<
+    T,
+    ContourLayerProps<T>
+  > {
+    constructor(props: ContourLayerProps<T>);
+  }
 }
 
 declare module '*.png' {
