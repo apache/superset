@@ -229,12 +229,12 @@ def test_get_schema_from_engine_params() -> None:
         (
             [["1.23456", "abc"]],
             [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
-            [(1.23456, "abc")],
+            [(Decimal("1.23456"), "abc")],
         ),
         (
             [[Decimal("1.23456"), "abc"]],
             [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
-            [(1.23456, "abc")],
+            [(Decimal("1.23456"), "abc")],
         ),
         (
             [["1.23456", "abc"]],

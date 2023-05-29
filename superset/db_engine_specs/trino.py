@@ -51,7 +51,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
 
     column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
-        DECIMAL: lambda val: float(val) if isinstance(val, (str, Decimal)) else val
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
     }
 
     @classmethod
@@ -275,10 +275,3 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
-
-    @classmethod
-    def fetch_data(
-        cls, cursor: Any, limit: Optional[int] = None
-    ) -> list[tuple[Any, ...]]:
-        data = super().fetch_data(cursor, limit)
-        return data

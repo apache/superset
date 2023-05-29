@@ -747,7 +747,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 for row in cursor.description
                 if (
                     func := cls.column_type_mutators.get(
-                        type(cls.get_sqla_column_type(row[1]))
+                        type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
                     )
                 )
             }
