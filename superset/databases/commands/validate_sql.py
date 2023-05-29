@@ -66,9 +66,12 @@ class ValidateSQLCommand(BaseCommand):
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 errors = self._validator.validate(sql, schema, self._model)
+                logger.info("ERRORS==", str(errors))
+                logger.info("ENGINE==", self._model.db_engine_spec)
+
             return [err.to_dict() for err in errors]
         except Exception as ex:
-            logger.exception(ex)
+            logger.info("exception in validator_py",ex)
             superset_error = SupersetError(
                 message=__(
                     "%(validator)s was unable to check your query.\n"

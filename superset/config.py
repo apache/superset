@@ -1616,6 +1616,7 @@ PREFERRED_DATABASES: List[str] = [
     "Presto",
     "MySQL",
     "SQLite",
+    "Trino"
     # etc.
 ]
 # When adding a new database we try to connect to it. Depending on which parameters are
