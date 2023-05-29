@@ -530,7 +530,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         table_data = {
             "database": main_db.id,
-            "schema": "",
+            "schema": None,
             "table_name": "ab_permission",
         }
         uri = "api/v1/dataset/"
