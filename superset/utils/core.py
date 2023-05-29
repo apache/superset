@@ -59,9 +59,9 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, flash, g, Markup, render_template, request
+from flask import current_app, flash, g, Markup, request
 from flask_appbuilder import SQLA
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
@@ -850,32 +850,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
         finally:
             # restore 'close with result'
             connection.should_close_with_result = save_should_close_with_result
-
-
-def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
-    granter: User,
-    user: User,
-    role: Role,
-    datasource: BaseDatasource,
-    tpl_name: str,
-    config: dict[str, Any],
-) -> None:
-    msg = render_template(
-        tpl_name, granter=granter, user=user, role=role, datasource=datasource
-    )
-    logger.info(msg)
-    subject = __(
-        "[Superset] Access to the datasource %(name)s was granted",
-        name=datasource.full_name,
-    )
-    send_email_smtp(
-        user.email,
-        subject,
-        msg,
-        config,
-        bcc=granter.email,
-        dryrun=not config["EMAIL_NOTIFICATIONS"],
-    )
 
 
 def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many-locals
