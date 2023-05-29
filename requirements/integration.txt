@@ -35,32 +35,27 @@ packaging==23.1
     #   pyproject-api
     #   tox
 pip-compile-multi==2.6.3
-    # via -r requirements/integration.in
+    # via -r integration.in
 pip-tools==6.13.0
     # via pip-compile-multi
-platformdirs==3.5.0
+platformdirs==3.5.1
     # via
     #   tox
     #   virtualenv
 pluggy==1.0.0
     # via tox
 pre-commit==3.3.1
-    # via -r requirements/integration.in
+    # via -r integration.in
 pyproject-api==1.5.1
     # via tox
 pyproject-hooks==1.0.0
     # via build
 pyyaml==5.4.1
     # via pre-commit
-tomli==2.0.1
-    # via
-    #   build
-    #   pyproject-api
-    #   tox
 toposort==1.10
     # via pip-compile-multi
-tox==4.5.1
-    # via -r requirements/integration.in
+tox==4.5.2
+    # via -r integration.in
 virtualenv==20.23.0
     # via
     #   pre-commit
