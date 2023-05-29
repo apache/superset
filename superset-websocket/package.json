@@ -28,7 +28,7 @@
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.2",
-    "@types/node": "^20.2.3",
+    "@types/node": "^20.2.5",
     "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.59.7",
