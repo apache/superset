@@ -742,9 +742,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
+            description = cursor.description or []
             column_type_mutators = {
                 row[0]: func
-                for row in cursor.description
+                for row in description
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -752,7 +753,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_type_mutators:
-                indexes = {row[0]: idx for idx, row in enumerate(cursor.description)}
+                indexes = {row[0]: idx for idx, row in enumerate(description)}
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
                     for col, func in column_type_mutators.items():
