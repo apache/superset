@@ -140,7 +140,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (
             re.compile(r"^percentile", re.IGNORECASE),
             PERCENTILE(),
-            GenericDataType.STRING
+            GenericDataType.STRING,
         ),
         (re.compile(r"^hll", re.IGNORECASE), HLL(), GenericDataType.STRING),
         (re.compile(r"^bitmap", re.IGNORECASE), BITMAP(), GenericDataType.STRING),

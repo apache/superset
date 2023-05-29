@@ -18,11 +18,20 @@
 from typing import Any, Optional
 
 import pytest
-from sqlalchemy import types, JSON
+from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.starrocks import ARRAY, BITMAP, DOUBLE, HLL,LARGEINT,\
-    MAP, PERCENTILE, STRUCT, TINYINT
+from superset.db_engine_specs.starrocks import (
+    ARRAY,
+    BITMAP,
+    DOUBLE,
+    HLL,
+    LARGEINT,
+    MAP,
+    PERCENTILE,
+    STRUCT,
+    TINYINT,
+)
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
