@@ -21,8 +21,8 @@ import pytest
 from sqlalchemy import types, JSON
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.starrocks import ARRAY, DOUBLE, MAP, STRUCT, TINYINT, \
-    LARGEINT, BITMAP, HLL
+from superset.db_engine_specs.starrocks import ARRAY, BITMAP, DOUBLE, HLL,LARGEINT,\
+    MAP, PERCENTILE, STRUCT, TINYINT
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
@@ -46,7 +46,7 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
         ("json", JSON, None, GenericDataType.STRING, False),
         ("bitmap", BITMAP, None, GenericDataType.STRING, False),
         ("hll", HLL, None, GenericDataType.STRING, False),
-        ("percentile", HLL, None, GenericDataType.STRING, False),
+        ("percentile", PERCENTILE, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(

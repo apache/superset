@@ -22,7 +22,7 @@ from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
-from sqlalchemy import Integer, Numeric, types, Float
+from sqlalchemy import Float, Integer, Numeric, types
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
