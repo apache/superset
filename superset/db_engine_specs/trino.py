@@ -17,12 +17,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from decimal import Decimal
+from typing import Any, Callable, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
+from sqlalchemy.types import DECIMAL, TypeEngine
 
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -48,13 +50,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Trino"
     allows_alias_to_source_column = False
 
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
+        DECIMAL: lambda val: float(val) if isinstance(val, (str, Decimal)) else val
+    }
+
     @classmethod
     def extra_table_metadata(
         cls,
         database: Database,
         table_name: str,
         schema_name: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         metadata = {}
 
         if indexes := database.get_indexes(table_name, schema_name):
@@ -95,7 +101,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def update_impersonation_config(
         cls,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
         uri: str,
         username: Optional[str],
     ) -> None:
@@ -131,7 +137,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return url
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 
     @classmethod
@@ -199,7 +205,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @staticmethod
-    def get_extra_params(database: Database) -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
@@ -207,9 +213,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
         """
-        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
-        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
-        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
         connect_args.setdefault("source", USER_AGENT)
 
@@ -222,7 +228,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
-        params: Dict[str, Any],
+        params: dict[str, Any],
     ) -> None:
         if not database.encrypted_extra:
             return
@@ -262,10 +268,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise ex
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[Type[Exception], Type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
+
+    @classmethod
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> list[tuple[Any, ...]]:
+        data = super().fetch_data(cursor, limit)
+        return data

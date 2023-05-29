@@ -16,7 +16,8 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple
+from decimal import Decimal
+from typing import Any, Callable, Optional, Pattern
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -123,6 +124,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             GenericDataType.STRING,
         ),
     )
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        DECIMAL: lambda val: float(val) if isinstance(val, (str, Decimal)) else val
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -143,9 +147,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "INTERVAL 1 DAY)) - 1 DAY))",
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
@@ -186,7 +190,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -201,10 +205,10 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def adjust_engine_params(
         cls,
         uri: URL,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Tuple[URL, Dict[str, Any]]:
+    ) -> tuple[URL, dict[str, Any]]:
         uri, new_connect_args = super().adjust_engine_params(
             uri,
             connect_args,
@@ -221,7 +225,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_schema_from_engine_params(
         cls,
         sqlalchemy_uri: URL,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
     ) -> Optional[str]:
         """
         Return the configured schema.

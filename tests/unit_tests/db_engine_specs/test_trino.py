@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from __future__ import annotations
+
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from decimal import Decimal
+from typing import Any, Dict, Optional, Type, Union
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -366,3 +369,37 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
     else:
         assert cancel_query_mock.call_args is None
+
+
+@pytest.mark.parametrize(
+    "data,description,expected_result",
+    [
+        (
+            [["1.23456", "abc"]],
+            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
+            [(1.23456, "abc")],
+        ),
+        (
+            [[Decimal("1.23456"), "abc"]],
+            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
+            [(1.23456, "abc")],
+        ),
+        (
+            [["1.23456", "abc"]],
+            [("dec", "varchar(255)"), ("str", "varchar(3)")],
+            [["1.23456", "abc"]],
+        ),
+    ],
+)
+def test_column_type_mutator(
+    data: list[Union[tuple[Any, ...], list[Any]]],
+    description: list[Any],
+    expected_result: list[Union[tuple[Any, ...], list[Any]]],
+):
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = data
+    mock_cursor.description = description
+
+    assert spec.fetch_data(mock_cursor) == expected_result

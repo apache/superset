@@ -16,7 +16,8 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, Type
+from decimal import Decimal
+from typing import Any, Dict, Optional, Type
 from unittest.mock import Mock, patch
 
 import pytest
@@ -220,3 +221,37 @@ def test_get_schema_from_engine_params() -> None:
         )
         == "db1"
     )
+
+
+@pytest.mark.parametrize(
+    "data,description,expected_result",
+    [
+        (
+            [["1.23456", "abc"]],
+            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
+            [(1.23456, "abc")],
+        ),
+        (
+            [[Decimal("1.23456"), "abc"]],
+            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
+            [(1.23456, "abc")],
+        ),
+        (
+            [["1.23456", "abc"]],
+            [("dec", "varchar(255)"), ("str", "varchar(3)")],
+            [["1.23456", "abc"]],
+        ),
+    ],
+)
+def test_column_type_mutator(
+    data: list[tuple[Any, ...]],
+    description: list[Any],
+    expected_result: list[tuple[Any, ...]],
+):
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+
+    mock_cursor = Mock()
+    mock_cursor.fetchall.return_value = data
+    mock_cursor.description = description
+
+    assert spec.fetch_data(mock_cursor) == expected_result

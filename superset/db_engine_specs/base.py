@@ -314,6 +314,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # engine-specific type mappings to check prior to the defaults
     column_type_mappings: Tuple[ColumnTypeMapping, ...] = ()
 
+    # type-specific functions to mutate values received from the database.
+    # Needed on certain databases that return values in an unexpected format
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {}
+
     # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -737,7 +741,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
-            return cursor.fetchall()
+            data = cursor.fetchall()
+            column_type_mutators = {
+                row[0]: func
+                for row in cursor.description
+                if (
+                    func := cls.column_type_mutators.get(
+                        type(cls.get_sqla_column_type(row[1]))
+                    )
+                )
+            }
+            if column_type_mutators:
+                indexes = {row[0]: idx for idx, row in enumerate(cursor.description)}
+                for row_idx, row in enumerate(data):
+                    new_row = list(row)
+                    for col, func in column_type_mutators.items():
+                        col_idx = indexes[col]
+                        new_row[col_idx] = func(row[col_idx])
+                    data[row_idx] = tuple(new_row)
+
+            return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
