@@ -37,7 +37,7 @@ from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
-from superset.constants import CacheRegion, WeeklyTimeGrain
+from superset.constants import CacheRegion, TimeGrain
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -74,6 +74,19 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
+AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
+
+AGGREGATED_JOIN_GRAINS = {
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+    TimeGrain.MONTH,
+    TimeGrain.QUARTER,
+    TimeGrain.YEAR,
+}
+
 
 class CachedTimeOffset(TypedDict):
     df: pd.DataFrame
@@ -86,8 +99,6 @@ class QueryContextProcessor:
     The query context contains the query object and additional fields necessary
     to retrieve the data payload for a given viz.
     """
-
-    AGGREGATED_JOIN_COLUMN = "$aggregated_join_column"
 
     _query_context: QueryContext
     _qc_datasource: BaseDatasource
@@ -328,12 +339,10 @@ class QueryContextProcessor:
 
         columns = df.columns
         time_grain = query_object.extras["time_grain_sqla"]
-        use_aggregated_join_column = any(
-            grain in time_grain for grain in ("P1W", "P1M", "P3M", "P1Y")
-        )
+        use_aggregated_join_column = time_grain in AGGREGATED_JOIN_GRAINS
         if use_aggregated_join_column:
             # adds aggregated join column
-            df[self.AGGREGATED_JOIN_COLUMN] = df.apply(
+            df[AGGREGATED_JOIN_COLUMN] = df.apply(
                 lambda row: self.get_aggregated_join_column(row, 0, time_grain), axis=1
             )
             # skips the first column which is the temporal column
@@ -441,9 +450,7 @@ class QueryContextProcessor:
 
                 if use_aggregated_join_column:
                     # adds aggregated join column
-                    offset_metrics_df[
-                        self.AGGREGATED_JOIN_COLUMN
-                    ] = offset_metrics_df.apply(
+                    offset_metrics_df[AGGREGATED_JOIN_COLUMN] = offset_metrics_df.apply(
                         lambda row: self.get_aggregated_join_column(row, 0, time_grain),
                         axis=1,
                     )
@@ -474,32 +481,32 @@ class QueryContextProcessor:
 
         # remove AGGREGATED_JOIN_COLUMN from df
         if use_aggregated_join_column:
-            df = df.drop(columns=[self.AGGREGATED_JOIN_COLUMN])
+            df = df.drop(columns=[AGGREGATED_JOIN_COLUMN])
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
     def get_aggregated_join_column(
         self, row: pd.Series, column_index: int, time_grain: str
     ) -> str:
-        # weekly time grain
-        if "P1W" in time_grain:
-            if time_grain in (
-                WeeklyTimeGrain.WEEK_STARTING_SUNDAY,
-                WeeklyTimeGrain.WEEK_ENDING_SATURDAY,
+        if time_grain in (
+                TimeGrain.WEEK_STARTING_SUNDAY,
+                TimeGrain.WEEK_ENDING_SATURDAY,
             ):
                 return row[column_index].strftime("%Y-W%U")
-            else:
+
+        elif time_grain in (
+                TimeGrain.WEEK,
+                TimeGrain.WEEK_STARTING_MONDAY,
+                TimeGrain.WEEK_ENDING_SUNDAY,
+            ):
                 return row[column_index].strftime("%Y-W%W")
 
-        # monthly time grain
-        elif "P1M" in time_grain:
+        elif time_grain == TimeGrain.MONTH:
             return row[column_index].strftime("%Y-%m")
 
-        # quarterly time grain
-        elif "P3M" in time_grain:
+        elif time_grain == TimeGrain.QUARTER:
             return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
 
-        # yearly time grain
         return row[column_index].strftime("%Y")
 
     def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
