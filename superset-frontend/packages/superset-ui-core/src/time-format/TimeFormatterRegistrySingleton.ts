@@ -82,6 +82,10 @@ export function getTimeFormatterForGranularity(granularity?: TimeGranularity) {
   return getTimeFormatter(undefined, granularity);
 }
 
+export function getTimeFormatLocale() {
+  return getInstance().getLocale();
+}
+
 export function formatTime(
   formatId: string | undefined,
   value: Date | number | null | undefined,
