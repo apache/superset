@@ -58,6 +58,7 @@ const IconFileNames = [
   'code',
   'cog',
   'switch_user',
+  'victorops',
   'collapse',
   'color_palette',
   'current-rendered-tile',

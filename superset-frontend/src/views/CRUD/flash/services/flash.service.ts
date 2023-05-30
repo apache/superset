@@ -32,6 +32,9 @@ import {
 export const fetchDatabases = (): Promise<any> =>
   FlashClient.get<any>('v1/datastore');
 
+export const fetchStatuses = (): Promise<any> =>
+  FlashClient.get<any>('v1/flash/statuses');
+
 export const fetchFlashes = (queryParams: any): Promise<any> =>
   FlashClient.get<FlashServiceObject[]>(`${'v1/flash/?'}${queryParams}`);
 

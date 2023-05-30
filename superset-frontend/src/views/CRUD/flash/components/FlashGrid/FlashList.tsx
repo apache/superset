@@ -39,6 +39,7 @@ import FlashExtendTTL from '../FlashExtendTTl/FlashExtendTTl';
 import FlashSchedule from '../FlashSchedule/FlashSchedule';
 import {
   fetchDatabases,
+  fetchStatuses,
   recoverFlashObject,
   removeFlash,
 } from '../../services/flash.service';
@@ -73,6 +74,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   const [currentFlash, setCurrentFlash] = useState<FlashServiceObject | {}>({});
   const [databaseDropdown, setDatabaseDropdown] = useState<Array<any>>([]);
+  const [statusesDropdown, setStatusesDropdown] = useState<Array<any>>([]);
 
   const [deleteFlash, setDeleteFlash] = useState<FlashServiceObject | null>(
     null,
@@ -89,6 +91,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   useEffect(() => {
     fetchDatabaseDropdown();
+    fetchStatusDropdown();
   }, []);
 
   const menuData: SubMenuProps = {
@@ -108,7 +111,23 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         setDatabaseDropdown(dropdown);
       },
       createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue getting Databases %s', errMsg)),
+        addDangerToast(t('There was an issue getting Databases: %s', errMsg)),
+      ),
+    );
+
+  const fetchStatusDropdown = (): Promise<any> =>
+    fetchStatuses().then(
+      ({ data }) => {
+        const dropdown = data.map((item: any) => ({
+          label: item.name,
+          value: item.id,
+        }));
+        setStatusesDropdown(dropdown);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue getting Flash Statuses: %s', errMsg),
+        ),
       ),
     );
 
@@ -425,12 +444,12 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         Header: t('Status'),
         id: 'status',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
-        selects: FLASH_STATUS,
+        selects: statusesDropdown.length > 0 ? statusesDropdown : FLASH_STATUS,
       },
     ],
-    [databaseDropdown, addDangerToast],
+    [statusesDropdown, databaseDropdown, addDangerToast],
   );
 
   return (

@@ -148,7 +148,7 @@ export const Table = styled.table`
 
     .table-row {
       .actions {
-        opacity: 0;
+        opacity: 1;
         font-size: ${theme.typography.sizes.xl}px;
         display: flex;
       }

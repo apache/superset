@@ -54,10 +54,14 @@ import {
   MetaObject,
   Operator,
   Recipient,
+  RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { PeriodType } from 'react-js-cron/dist/cjs/types';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { ERROR_MESSAGES } from './constants';
+import { getLeastTimeout } from './helper';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -124,7 +128,23 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 30;
 const DEFAULT_WORKING_TIMEOUT = 60;
-const MAX_WORKING_TIMEOUT = 300;
+const MAX_WORKING_TIMEOUT_ALERTS = 300;
+const MAX_WORKING_TIMEOUT_REPORTS = 900;
+const REPORTS_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+];
+const DEFAULT_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+  'minute',
+];
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
@@ -405,11 +425,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const conf = useCommonConf();
+  const currentNotification = conf?.ALERT_REPORTS_NOTIFICATION_METHODS
+    ? JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
+    : [];
+  const reportNotificationsAllowed = currentNotification
+    ? currentNotification.filter((item: any) => item !== RecipientIconName.VO)
+    : [];
   const allowedNotificationMethods: NotificationMethodOption[] =
-    conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
+    (isReport
+      ? reportNotificationsAllowed
+      : conf?.ALERT_REPORTS_NOTIFICATION_METHODS) ||
+    DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [invalidEmail, setInvalidEmail] = useState<boolean>(false);
+  const [maxWorkingTimeout, setMaxWorkingTimeout] = useState<number>(
+    isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+  );
+  const [invalidInput, setInvalidInputs] = useState<any>({
+    invalid: false,
+    emailError: '',
+    voError: '',
+  });
 
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
@@ -463,7 +499,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setting: NotificationSetting,
   ) => {
     const settings = notificationSettings.slice();
-
     settings[index] = setting;
     setNotificationSettings(settings);
 
@@ -499,25 +534,74 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setNotificationAddState('active');
   };
 
-  const onSave = () => {
+  const filterInvalidEmailsAndRoutingKeys = (
+    setting: NotificationSetting,
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    if (setting.method === RecipientIconName.Email) {
+      const emailStr = setting.recipients;
+      const emails = ([] as string[])
+        .concat(...emailStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidEmails = emails.filter(
+        email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
+      );
+      invalidEmails.push(..._invalidEmails);
+    } else if (setting.method === RecipientIconName.VO) {
+      const routingKeyStr = setting.recipients;
+      // eslint-disable-next-line no-underscore-dangle
+      const _routingKeys = ([] as string[])
+        .concat(...routingKeyStr.split(',').map(item => item.split(';')))
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      // eslint-disable-next-line no-underscore-dangle
+      const _invalidRoutingKeys = _routingKeys.filter(
+        routingKey => !/^[A-Za-z0-9_-]+$/.test(routingKey),
+      );
+
+      routingKeys.push(..._routingKeys);
+      invalidRoutingKeys.push(..._invalidRoutingKeys);
+    }
+  };
+
+  const getEmailAndVOError = (
+    invalidEmails: string[],
+    invalidRoutingKeys: string[],
+    routingKeys: string[],
+  ) => {
+    const emailError =
+      invalidEmails.length > 0 ? ERROR_MESSAGES.EMAIL_PATTERN_ERROR : '';
+
+    const voError =
+      routingKeys.length > 1
+        ? ERROR_MESSAGES.ROUTING_KEY_LIMITATION
+        : invalidRoutingKeys.length > 0
+        ? ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR
+        : '';
+
+    return { emailError, voError };
+  };
+
+  const onSave = async () => {
     // Notification Settings
-    setInvalidEmail(false);
+    setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
-    let invalidEmails = [];
+    const invalidEmails: string[] = [];
+    const invalidRoutingKeys: string[] = [];
+    const routingKeys: string[] = [];
+
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        if (setting.method === 'Email') {
-          const emailStr = setting.recipients;
-          const emails = ([] as string[])
-            .concat(...emailStr.split(',').map(item => item.split(';')))
-            .map(item => item.trim())
-            .filter(item => item !== '');
-
-          invalidEmails = emails.filter(
-            email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
-          );
-        }
-
+        filterInvalidEmailsAndRoutingKeys(
+          setting,
+          invalidEmails,
+          invalidRoutingKeys,
+          routingKeys,
+        );
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
@@ -527,13 +611,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    if (invalidEmails.length > 0) {
-      setInvalidEmail(true);
-      addDangerToast(
-        t(
-          'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
-        ),
-      );
+    const { emailError, voError } = getEmailAndVOError(
+      invalidEmails,
+      invalidRoutingKeys,
+      routingKeys,
+    );
+
+    if (emailError || voError) {
+      setInvalidInputs({ invalid: true, emailError, voError });
+      addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
       return;
     }
 
@@ -609,7 +695,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       });
     }
   };
-
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = useMemo(
     () =>
@@ -936,14 +1021,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
       currentAlert.working_timeout !== undefined &&
-      currentAlert.working_timeout <= MAX_WORKING_TIMEOUT &&
+      currentAlert.working_timeout <= maxWorkingTimeout &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
         (contentType === 'chart' && !!currentAlert.chart) ||
         (contentType === 'text_message' && !!currentAlert.msg_content)) &&
       checkNotificationSettings()
     ) {
       if (isReport) {
-        setDisableSave(false);
+        const cron = currentAlert.crontab.split(' ');
+        if (cron.length === 5 && cron[0] === '*') {
+          setDisableSave(true);
+        } else {
+          setDisableSave(false);
+        }
       } else if (
         !!currentAlert.database &&
         currentAlert.sql?.length &&
@@ -1068,6 +1158,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validate();
+    displayTimeoutValidation(currentAlertSafe?.crontab || DEFAULT_CRON_VALUE);
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1088,6 +1179,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  const displayTimeoutValidation = (cronSchedule: string) => {
+    const minutePart = cronSchedule.split(' ')[0];
+    const timeout = getLeastTimeout(
+      minutePart,
+      isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+    );
+    setMaxWorkingTimeout(timeout);
+  };
 
   return (
     <StyledModal
@@ -1282,7 +1382,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledSectionTitle>
             <AlertReportCronScheduler
               value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
-              onChange={newVal => updateAlertState('crontab', newVal)}
+              onChange={newVal => {
+                updateAlertState('crontab', newVal);
+                displayTimeoutValidation(
+                  currentAlert?.crontab || DEFAULT_CRON_VALUE,
+                );
+              }}
+              allowedPeriods={
+                isReport ? REPORTS_ALLOWED_PERIODS : DEFAULT_ALLOWED_PERIODS
+              }
             />
             <div className="control-label">{t('Timezone')}</div>
             <div
@@ -1338,13 +1446,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div
                 className={
                   currentAlert?.working_timeout &&
-                  currentAlert.working_timeout > MAX_WORKING_TIMEOUT
+                  currentAlert.working_timeout > maxWorkingTimeout
                     ? 'error'
                     : 'helper'
                 }
               >
                 Minimum and Maximum working timeout can be 1 second and{' '}
-                {MAX_WORKING_TIMEOUT} seconds respectively
+                {maxWorkingTimeout} seconds respectively
               </div>
             </StyledInputContainer>
             {!isReport && (
@@ -1481,7 +1589,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
-                invalid={invalidEmail}
+                invalidInput={invalidInput}
               />
             ))}
             <NotificationMethodAdd

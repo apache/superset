@@ -22,8 +22,12 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
-import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
+import {
+  NotificationMethodOption,
+  RecipientIconName,
+} from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
+import { ERROR_MESSAGES } from '../constants';
 
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
@@ -71,7 +75,7 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
-  invalid?: boolean;
+  invalidInput?: any;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -79,21 +83,25 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   index,
   onUpdate,
   onRemove,
-  invalid,
+  invalidInput,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [invalidEmail, setInvalidEmail] = useState<boolean | null>(
-    invalid || null,
+  const [invalid, setInvalid] = useState<any>(
+    invalidInput || {
+      invalid: false,
+      emailError: '',
+      voError: '',
+    },
   );
 
   useEffect(() => {
-    if (invalid) {
-      setInvalidEmail(invalid);
+    if (invalidInput) {
+      setInvalid(invalidInput);
     }
-  }, [invalid]);
+  }, [invalidInput]);
   const theme = useTheme();
 
   if (!setting) {
@@ -102,7 +110,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
-    setInvalidEmail(false);
+    setInvalid({
+      invalid: false,
+      error: '',
+    });
     setRecipientValue('');
     if (onUpdate) {
       const updatedSetting = {
@@ -135,6 +146,27 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   if (!!recipients && recipientValue !== recipients) {
     setRecipientValue(recipients);
   }
+
+  const getMethodHelpText = (method: string) => {
+    if (method === RecipientIconName.Email) {
+      return (
+        <div className="helper">
+          {t(
+            'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+          )}
+        </div>
+      );
+    }
+    if (method === RecipientIconName.VO) {
+      return (
+        <div className="helper">
+          {t(ERROR_MESSAGES.ROUTING_KEY_PATTERN_ERROR)}
+        </div>
+      );
+    }
+
+    return <div>{t('Recipients are separated by "," or ";"')}</div>;
+  };
 
   return (
     <StyledNotificationMethod>
@@ -169,11 +201,14 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
+          <div className="control-label">
+            {method === RecipientIconName.VO ? t('Routing key') : t(method)}
+          </div>
           <div className="input-container">
             <textarea
               className={
-                invalidEmail && method === 'Email'
+                (invalid?.emailError && method === RecipientIconName.Email) ||
+                (invalid?.voError && method === RecipientIconName.VO)
                   ? 'prominent-error-input'
                   : ''
               }
@@ -182,22 +217,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
-          {invalidEmail && method === 'Email' ? (
+          {invalid?.emailError && method === RecipientIconName.Email ? (
             <div className="error-text">
-              {t(
-                'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
-              )}
+              {t(ERROR_MESSAGES.EMAIL_PATTERN_ERROR)}
             </div>
           ) : null}
-          {method === 'Email' ? (
-            <div className="helper">
-              {t(
-                'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
-              )}
-            </div>
-          ) : (
-            <div>{t('Recipients are separated by "," or ";"')}</div>
-          )}
+          {invalid?.voError && method === RecipientIconName.VO ? (
+            <div className="error-text">{invalid?.voError}</div>
+          ) : null}
+          {getMethodHelpText(method)}
         </StyledInputContainer>
       ) : null}
     </StyledNotificationMethod>

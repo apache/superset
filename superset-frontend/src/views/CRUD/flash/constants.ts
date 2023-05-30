@@ -41,7 +41,7 @@ export const FLASH_STATUS: FilterDropdown[] = [
   { label: 'In Progress', value: 'InProgress' },
   { label: 'Materialized', value: 'Materialized' },
   { label: 'Materialized Failed', value: 'Materialized_Failed' },
-  { label: 'Stale', value: 'Stale' },
+  { label: 'Updated', value: 'Updated' },
   { label: 'Deleted', value: 'Deleted' },
   { label: 'Marked For Deletion', value: 'MarkedForDeletion' },
 ];
