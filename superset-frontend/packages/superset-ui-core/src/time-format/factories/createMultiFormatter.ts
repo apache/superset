@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { utcFormat, timeFormat } from 'd3-time-format';
+import {
+  timeFormatLocale,
+  TimeLocaleDefinition,
+  timeFormat,
+  utcFormat,
+} from 'd3-time-format';
 import { utcUtils, localTimeUtils } from '../utils/d3Time';
 import TimeFormatter from '../TimeFormatter';
 
@@ -38,12 +42,14 @@ export default function createMultiFormatter({
   description,
   formats = {},
   useLocalTime = false,
+  locale,
 }: {
   id: string;
   label?: string;
   description?: string;
   formats?: FormatsByStep;
   useLocalTime?: boolean;
+  locale?: TimeLocaleDefinition;
 }) {
   const {
     millisecond = '.%L',
@@ -56,16 +62,23 @@ export default function createMultiFormatter({
     year = '%Y',
   } = formats;
 
-  const format = useLocalTime ? timeFormat : utcFormat;
+  let formatFunc;
 
-  const formatMillisecond = format(millisecond);
-  const formatSecond = format(second);
-  const formatMinute = format(minute);
-  const formatHour = format(hour);
-  const formatDay = format(day);
-  const formatFirstDayOfWeek = format(week);
-  const formatMonth = format(month);
-  const formatYear = format(year);
+  if (typeof locale === 'undefined') {
+    formatFunc = useLocalTime ? timeFormat : utcFormat;
+  } else {
+    const formatLocale = timeFormatLocale(locale);
+    formatFunc = useLocalTime ? formatLocale.format : formatLocale.utcFormat;
+  }
+
+  const formatMillisecond = formatFunc(millisecond);
+  const formatSecond = formatFunc(second);
+  const formatMinute = formatFunc(minute);
+  const formatHour = formatFunc(hour);
+  const formatDay = formatFunc(day);
+  const formatFirstDayOfWeek = formatFunc(week);
+  const formatMonth = formatFunc(month);
+  const formatYear = formatFunc(year);
 
   const {
     hasMillisecond,
