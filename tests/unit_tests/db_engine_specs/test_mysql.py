@@ -237,6 +237,11 @@ def test_get_schema_from_engine_params() -> None:
             [(Decimal("1.23456"), "abc")],
         ),
         (
+            [[None, "abc"]],
+            [("dec", "decimal(12,6)"), ("str", "varchar(3)")],
+            [(None, "abc")],
+        ),
+        (
             [["1.23456", "abc"]],
             [("dec", "varchar(255)"), ("str", "varchar(3)")],
             [["1.23456", "abc"]],

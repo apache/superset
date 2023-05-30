@@ -743,7 +743,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            column_type_mutators = {
+            # Create a mapping between column name and a mutator function to normalize
+            # values with. The first two items in the description row are
+            # the column name and type.
+            column_mutators = {
                 row[0]: func
                 for row in description
                 if (
@@ -752,11 +755,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                     )
                 )
             }
-            if column_type_mutators:
+            if column_mutators:
                 indexes = {row[0]: idx for idx, row in enumerate(description)}
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_type_mutators.items():
+                    for col, func in column_mutators.items():
                         col_idx = indexes[col]
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
