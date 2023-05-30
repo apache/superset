@@ -84,6 +84,7 @@ class DatasetPostSchema(Schema):
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    columns = fields.List(fields.Dict())
 
 
 class DatasetPutSchema(Schema):

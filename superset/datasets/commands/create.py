@@ -22,6 +22,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
+from superset.connectors.sqla.models import TableColumn
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -44,8 +45,23 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
         try:
             # Creates SqlaTable (Dataset)
+            columns = self._properties.pop("columns")
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
+            ds_columns = []
+            for c in columns:
+                column_name = c.get("column_name") or c.get("name")
+
+                col = TableColumn(
+                    column_name=column_name,
+                    filterable=True,
+                    groupby=True,
+                    is_dttm=c.get("is_dttm", False),
+                    type=c.get("type", False),
+                )
+                ds_columns.append(col)
+
+            dataset.columns = ds_columns
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
