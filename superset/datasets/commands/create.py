@@ -61,7 +61,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 ds_columns.append(col)
 
             dataset.columns = ds_columns
-            dataset.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
+            dataset.metrics = [SqlMetric(metric_name="count", expression="COUNT(*)")]
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
