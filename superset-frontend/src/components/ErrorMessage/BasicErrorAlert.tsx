@@ -37,6 +37,7 @@ const StyledContent = styled.div`
   display: flex;
   flex-direction: column;
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  overflow: hidden;
 `;
 
 const StyledTitle = styled.span`
