@@ -61,6 +61,7 @@ export type ExploreQuery = QueryResponse & {
 };
 
 export interface ISimpleColumn {
+  column_name?: string | null;
   name?: string | null;
   type?: string | null;
   is_dttm?: boolean | null;
@@ -199,6 +200,7 @@ export const SaveDatasetModal = ({
       return;
     }
     setLoading(true);
+
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
@@ -218,7 +220,9 @@ export const SaveDatasetModal = ({
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
-          all_columns: datasource?.columns?.map(column => column.name),
+          all_columns: datasource?.columns?.map(
+            column => column.name || column.column_name,
+          ),
         }),
       }),
     ]);
@@ -305,7 +309,9 @@ export const SaveDatasetModal = ({
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === 'table' && {
-            all_columns: selectedColumns.map(column => column.name),
+            all_columns: selectedColumns.map(
+              column => column.name || column.column_name,
+            ),
           }),
         }),
       )

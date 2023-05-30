@@ -22,7 +22,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import TableColumn
+from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -61,6 +61,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 ds_columns.append(col)
 
             dataset.columns = ds_columns
+            dataset.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
