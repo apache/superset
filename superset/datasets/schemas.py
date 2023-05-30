@@ -78,7 +78,7 @@ class DatasetMetricsPutSchema(Schema):
 
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
-    schema = fields.String(validate=Length(0, 250))
+    schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
@@ -236,7 +236,9 @@ class GetOrCreateDatasetSchema(Schema):
         required=True, metadata={"description": "ID of database table belongs to"}
     )
     schema = fields.String(
-        metadata={"description": "The schema the table belongs to"}, allow_none=True
+        allow_none=True,
+        validate=Length(0, 250),
+        metadata={"description": "The schema the table belongs to"},
     )
     template_params = fields.String(
         metadata={"description": "Template params for the table"}
