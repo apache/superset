@@ -35,9 +35,10 @@ import {
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import * as chrono from 'chrono-node';
+import moment from 'moment';
 import { updateFlash } from '../../services/flash.service';
 import { FlashTypes } from '../../enums';
-import { UPDATE_TYPES } from '../../constants';
+import { FLASH_TYPE_JSON, UPDATE_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -47,7 +48,7 @@ const bootstrapData = JSON.parse(
 const flashTypeConf = bootstrapData?.common?.conf?.FLASH_TYPE;
 
 const getJSONSchema = () => {
-  const jsonSchema = flashTypeConf?.JSONSCHEMA;
+  const jsonSchema = flashTypeConf?.JSONSCHEMA ? flashTypeConf?.JSONSCHEMA : FLASH_TYPE_JSON.JSONSCHEMA
   return jsonSchema;
 };
 
@@ -128,8 +129,9 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   useEffect(() => {
     if (flash) {
-      formData.flashType =
-        flash?.flashType.replace(/([A-Z])/g, ' $1').trim() ?? '';
+      formData.flashType = flash?.flashType
+        ? flash?.flashType.replace(/([A-Z])/g, ' $1').trim()
+        : '';
       formData.teamSlackChannel = flash?.teamSlackChannel ?? '';
       formData.teamSlackHandle = flash?.teamSlackHandle ?? '';
       formData.ttl = flash?.ttl ?? '';
@@ -154,11 +156,17 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
           .parseDate('7 days from now')
           .toISOString()
           .split('T')[0];
+        formData.teamSlackChannel = '';
+        formData.teamSlackHandle = '';
       } else {
         formData.ttl = chrono
           .parseDate('7 days from now')
           .toISOString()
           .split('T')[0];
+        formData.teamSlackChannel = '';
+        formData.teamSlackHandle = '';
+        formData.scheduleType = '';
+        formData.scheduleStartTime = '';
       }
     }
     setFlashSchema(jsonSchema);
@@ -181,6 +189,9 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
+    payload.scheduleStartTime = payload.scheduleStartTime
+      ? moment(payload.scheduleStartTime).format('YYYY-MM-DD HH:mm:ss')
+      : '';
     flashTypeService(Number(flash?.id), UPDATE_TYPES.FLASHTYPE, payload);
   };
 
@@ -208,7 +219,7 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
         <Col xs={24}>
           <StyledJsonSchema>
             <SchemaForm
-              schema={flashSchema}
+              schema={flashSchema || {}}
               showErrorList={false}
               formData={formData}
               uiSchema={getUISchema()}
@@ -236,7 +247,9 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
         draggable
         onHide={onHide}
         show={show}
-        title={t('Update Flash Type')}
+        title={
+          <div data-test="flash-type-modal-title">{t('Update Flash Type')}</div>
+        }
         footer={<></>}
       >
         {renderModalBody()}

@@ -16,56 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import FlashType from 'src/views/CRUD/flash/components/FlashType/FlashType';
+import { Provider } from 'react-redux';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { styledMount as mount } from 'spec/helpers/theming';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import Modal from 'src/components/Modal';
+import SchemaForm from 'react-jsonschema-form';
 
-import { FilterDropdown } from './types';
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
+const flashTypeConf = bootstrapData?.common?.conf?.FLASH_TYPE;
 
-export const FLASH_TYPES: FilterDropdown[] = [
-  { label: 'One Time', value: 'One Time' },
-  { label: 'Short Term', value: 'Short Term' },
-  { label: 'Long Term', value: 'Long Term' },
-];
-
-export const SCHEDULE_TYPE: FilterDropdown[] = [
-  { label: 'Hourly', value: 'Hourly' },
-  { label: 'Daily', value: 'Daily' },
-  { label: 'Weekly', value: 'Weekly' },
-  { label: 'Monthly', value: 'Monthly' },
-];
-
-export const DATABASES: FilterDropdown[] = [
-  { label: 'Pinot Flashes', value: 'Pinot Flashes' },
-];
-
-export const FLASH_STATUS: FilterDropdown[] = [
-  { label: 'New', value: 'New' },
-  { label: 'In Progress', value: 'InProgress' },
-  { label: 'Materialized', value: 'Materialized' },
-  { label: 'Materialized Failed', value: 'Materialized_Failed' },
-  { label: 'Updated', value: 'Updated' },
-  { label: 'Deleted', value: 'Deleted' },
-  { label: 'Marked For Deletion', value: 'MarkedForDeletion' },
-];
-
-export const UPDATE_TYPES = {
-  SQL: 'sql',
-  TTL: 'ttl',
-  FLASHTYPE: 'flashType',
-  SCHEDULE: 'schedule',
-  OWNER: 'owner',
-  CTAGS: 'ctags',
+const getJSONSchema = () => {
+  const jsonSchema = flashTypeConf?.JSONSCHEMA;
+  return jsonSchema;
 };
 
-export const DATASOURCE_TYPES = {
-  HIVE: 'hive',
-  PINOT: 'pinot',
-};
-
-export const ERROR_MESSSAGES = {
-  REMOTE_SERVER:
-    'Unable to connect with the remote server. Please contact your Administrator or communicate on the required Support Channel.',
-};
-
-export const FLASH_TYPE_JSON = {
+const FLASH_TYPE = {
 
   "JSONSCHEMA": {
     "type": "object",
@@ -176,3 +147,76 @@ export const FLASH_TYPE_JSON = {
   },
   "VALIDATION": [],
 }
+
+const mockFlash = {
+  flashType: 'ShortTerm',
+  teamSlackHandle: '@abc',
+  teamSlackChannel: '#abc',
+  ttl: '2023-03-01',
+  scheduleType: 'Daily',
+  scheduleSratTime: '2023-05-31 12:59:00',
+};
+
+
+const mockedProps = {
+  addDangerToast: () => { },
+  addSuccessToast: () => { },
+  onHide: () => { },
+  refreshData: () => { },
+  flash: mockFlash,
+  show: true,
+  // flashSchema: FLASH_TYPE.JSONSCHEMA
+};
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+async function mountAndWait(props = mockedProps) {
+  const mounted = mount(
+    <Provider store={store}>
+      <FlashType show  {...props} />
+    </Provider>,
+  );
+
+  let app
+
+  await waitForComponentToPaint(mounted);
+
+  return mounted;
+}
+
+describe('FlashType', () => {
+  let wrapper;
+  beforeAll(async () => {
+    wrapper = await mountAndWait();
+  });
+
+  it('The component should render', () => {
+    expect(wrapper.find(FlashType)).toExist();
+  });
+
+  it('The modal inside flash type should be rendered', () => {
+    expect(wrapper.find(Modal)).toExist();
+  });
+
+  it('The schema form inside flash type should be rendered', () => {
+    expect(wrapper.find(SchemaForm)).toExist();
+  });
+
+  it('renders header for flash type modal', async () => {
+    expect(wrapper.find('[data-test="flash-type-modal-title"]').text()).toEqual(
+      'Update Flash Type',
+    );
+  });
+
+  it('For Flash Type: SHORT TERM, Following conditional controls should appear:  Schedule Type and Schedule Start Time', async () => {
+    const schemaForm = wrapper.find(SchemaForm)
+    let flashDropdown = schemaForm.find('select[id="root_flashType"]')
+    expect(flashDropdown.props().value).toEqual("Short Term")
+    const scheduleTypeControl = schemaForm.find('select[id="root_scheduleType"]')
+    expect(scheduleTypeControl.exists()).toBe(true);
+    const scheduleTimeControl = schemaForm.find('input[id="root_scheduleStartTime"]')
+    expect(scheduleTimeControl.exists()).toBe(true);
+  });
+
+
+});
