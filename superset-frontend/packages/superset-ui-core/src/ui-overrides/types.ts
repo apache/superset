@@ -108,21 +108,14 @@ export interface DatabaseConnectionExtension {
  * Interface for extensions SQL Form.
  * These will be passed from the SQLEditor
  *
- * You can specify the types to be used for these properties
- * for better type checking or use the default ones.
- *
- * @template TTables - Type for the tables array.
- * @template TQueryEditor - Type for the query editor.
- * @template TDatabase - Type for the database.
+ * @param queryEditorId the queryEditor's id
+ * @param setQueryEditorAndSaveSqlWithDebounce Debounced function that saves a query into the query editor
+ * @param startQuery Callback that starts a query from the query editor
  */
-export interface SQLFormExtensionProps<
-  TTables = any[],
-  TQueryEditor = object,
-  TDatabase = any,
-> {
-  tables: TTables[];
-  queryEditor: TQueryEditor;
-  database: TDatabase;
+export interface SQLFormExtensionProps {
+  queryEditorId: string;
+  setQueryEditorAndSaveSqlWithDebounce: (sql: string) => void;
+  startQuery: (ctasArg?: any, ctas_method?: any) => void;
 }
 
 export type Extensions = Partial<{

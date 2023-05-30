@@ -686,9 +686,11 @@ const SqlEditor = ({
         <div ref={northPaneRef} className="north-pane">
           {SqlFormExtension && (
             <SqlFormExtension
-              tables={tables}
-              queryEditor={queryEditor}
-              database={database}
+              queryEditorId={queryEditor.id}
+              setQueryEditorAndSaveSqlWithDebounce={
+                setQueryEditorAndSaveSqlWithDebounce
+              }
+              startQuery={startQuery}
             />
           )}
           <AceEditorWrapper
