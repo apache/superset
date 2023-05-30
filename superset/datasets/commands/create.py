@@ -49,15 +49,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             ds_columns = []
-            for c in columns:
-                column_name = c.get("column_name") or c.get("name")
-
+            for column in columns:
+                column_name = column.get("column_name") or column.get("name")
                 col = TableColumn(
                     column_name=column_name,
                     filterable=True,
                     groupby=True,
-                    is_dttm=c.get("is_dttm", False),
-                    type=c.get("type", False),
+                    is_dttm=column.get("is_dttm", False),
+                    type=column.get("type", False),
                 )
                 ds_columns.append(col)
 
