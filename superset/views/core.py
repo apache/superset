@@ -2080,7 +2080,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             cols.append(col)
 
         table.columns = cols
-        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
+        table.metrics = [SqlMetric(metric_name="count", expression="COUNT(*)")]
         db.session.commit()
 
         return json_success(
