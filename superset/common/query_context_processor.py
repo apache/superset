@@ -485,21 +485,22 @@ class QueryContextProcessor:
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
+    @staticmethod
     def get_aggregated_join_column(
-        self, row: pd.Series, column_index: int, time_grain: str
+        row: pd.Series, column_index: int, time_grain: str
     ) -> str:
         if time_grain in (
-                TimeGrain.WEEK_STARTING_SUNDAY,
-                TimeGrain.WEEK_ENDING_SATURDAY,
-            ):
-                return row[column_index].strftime("%Y-W%U")
+            TimeGrain.WEEK_STARTING_SUNDAY,
+            TimeGrain.WEEK_ENDING_SATURDAY,
+        ):
+            return row[column_index].strftime("%Y-W%U")
 
         elif time_grain in (
-                TimeGrain.WEEK,
-                TimeGrain.WEEK_STARTING_MONDAY,
-                TimeGrain.WEEK_ENDING_SUNDAY,
-            ):
-                return row[column_index].strftime("%Y-W%W")
+            TimeGrain.WEEK,
+            TimeGrain.WEEK_STARTING_MONDAY,
+            TimeGrain.WEEK_ENDING_SUNDAY,
+        ):
+            return row[column_index].strftime("%Y-W%W")
 
         elif time_grain == TimeGrain.MONTH:
             return row[column_index].strftime("%Y-%m")
