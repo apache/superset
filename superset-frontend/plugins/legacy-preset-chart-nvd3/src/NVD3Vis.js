@@ -29,7 +29,7 @@ import {
   getTimeFormatter,
   isDefined,
   NumberFormats,
-  smartDateVerboseFormatter,
+  SMART_DATE_VERBOSE_ID,
   t,
 } from '@superset-ui/core';
 
@@ -81,6 +81,8 @@ const NO_DATA_RENDER_DATA = [
     class: 'body',
   },
 ];
+
+const smartDateVerboseFormatter = getTimeFormatter(SMART_DATE_VERBOSE_ID);
 
 // Override the noData render function to make a prettier UX
 // Code adapted from https://github.com/novus/nvd3/blob/master/src/utils.js#L653

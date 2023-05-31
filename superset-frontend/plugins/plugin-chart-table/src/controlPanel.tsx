@@ -29,7 +29,7 @@ import {
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
-  smartDateFormatter,
+  SMART_DATE_ID,
   t,
 } from '@superset-ui/core';
 import {
@@ -385,7 +385,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('Timestamp format'),
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
               renderTrigger: true,
               clearable: false,
               choices: D3_TIME_FORMAT_OPTIONS,

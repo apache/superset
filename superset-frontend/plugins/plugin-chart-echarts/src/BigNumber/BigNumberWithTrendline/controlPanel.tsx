@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
+import { hasGenericChartAxes, SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -145,7 +145,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
             },
           },
         ],

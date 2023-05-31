@@ -19,11 +19,12 @@
 import {
   extractTimegrain,
   getNumberFormatter,
+  getTimeFormatter,
   NumberFormats,
   GenericDataType,
   getMetricLabel,
   t,
-  smartDateVerboseFormatter,
+  SMART_DATE_VERBOSE_ID,
   NumberFormatter,
   TimeFormatter,
   getXAxisLabel,
@@ -40,6 +41,8 @@ import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
 const defaultNumberFormatter = getNumberFormatter();
+const smartDateVerboseFormatter = getTimeFormatter(SMART_DATE_VERBOSE_ID);
+
 export function renderTooltipFactory(
   formatDate: TimeFormatter = smartDateVerboseFormatter,
   formatValue: NumberFormatter | TimeFormatter = defaultNumberFormatter,

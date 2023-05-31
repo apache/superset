@@ -27,7 +27,8 @@ import {
   GenericDataType,
   getColumnLabel,
   JsonObject,
-  smartDateDetailedFormatter,
+  SMART_DATE_DETAILED_ID,
+  getTimeFormatter,
   t,
   tn,
 } from '@superset-ui/core';
@@ -117,7 +118,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter: smartDateDetailedFormatter,
+        timeFormatter: getTimeFormatter(SMART_DATE_DETAILED_ID),
       }),
     [],
   );
