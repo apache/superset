@@ -28,7 +28,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
-from superset.constants import USER_AGENT
+from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -95,18 +95,18 @@ class DatabricksPropertiesType(TypedDict):
 
 time_grain_expressions = {
     None: "{col}",
-    "PT1S": "date_trunc('second', {col})",
-    "PT1M": "date_trunc('minute', {col})",
-    "PT1H": "date_trunc('hour', {col})",
-    "P1D": "date_trunc('day', {col})",
-    "P1W": "date_trunc('week', {col})",
-    "P1M": "date_trunc('month', {col})",
-    "P3M": "date_trunc('quarter', {col})",
-    "P1Y": "date_trunc('year', {col})",
-    "P1W/1970-01-03T00:00:00Z": (
+    TimeGrain.SECOND: "date_trunc('second', {col})",
+    TimeGrain.MINUTE: "date_trunc('minute', {col})",
+    TimeGrain.HOUR: "date_trunc('hour', {col})",
+    TimeGrain.DAY: "date_trunc('day', {col})",
+    TimeGrain.WEEK: "date_trunc('week', {col})",
+    TimeGrain.MONTH: "date_trunc('month', {col})",
+    TimeGrain.QUARTER: "date_trunc('quarter', {col})",
+    TimeGrain.YEAR: "date_trunc('year', {col})",
+    TimeGrain.WEEK_ENDING_SATURDAY: (
         "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
     ),
-    "1969-12-28T00:00:00Z/P1W": (
+    TimeGrain.WEEK_STARTING_SUNDAY: (
         "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
     ),
 }

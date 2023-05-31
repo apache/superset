@@ -21,6 +21,7 @@ from urllib import parse
 from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
@@ -36,16 +37,16 @@ class DrillEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "NEARESTDATE({col}, 'SECOND')",
-        "PT1M": "NEARESTDATE({col}, 'MINUTE')",
-        "PT15M": "NEARESTDATE({col}, 'QUARTER_HOUR')",
-        "PT30M": "NEARESTDATE({col}, 'HALF_HOUR')",
-        "PT1H": "NEARESTDATE({col}, 'HOUR')",
-        "P1D": "NEARESTDATE({col}, 'DAY')",
-        "P1W": "NEARESTDATE({col}, 'WEEK_SUNDAY')",
-        "P1M": "NEARESTDATE({col}, 'MONTH')",
-        "P3M": "NEARESTDATE({col}, 'QUARTER')",
-        "P1Y": "NEARESTDATE({col}, 'YEAR')",
+        TimeGrain.SECOND: "NEARESTDATE({col}, 'SECOND')",
+        TimeGrain.MINUTE: "NEARESTDATE({col}, 'MINUTE')",
+        TimeGrain.FIFTEEN_MINUTES: "NEARESTDATE({col}, 'QUARTER_HOUR')",
+        TimeGrain.THIRTY_MINUTES: "NEARESTDATE({col}, 'HALF_HOUR')",
+        TimeGrain.HOUR: "NEARESTDATE({col}, 'HOUR')",
+        TimeGrain.DAY: "NEARESTDATE({col}, 'DAY')",
+        TimeGrain.WEEK: "NEARESTDATE({col}, 'WEEK_SUNDAY')",
+        TimeGrain.MONTH: "NEARESTDATE({col}, 'MONTH')",
+        TimeGrain.QUARTER: "NEARESTDATE({col}, 'QUARTER')",
+        TimeGrain.YEAR: "NEARESTDATE({col}, 'YEAR')",
     }
 
     # Returns a function to convert a Unix timestamp in milliseconds to a date

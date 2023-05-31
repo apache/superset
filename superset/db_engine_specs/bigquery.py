@@ -35,7 +35,7 @@ from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
 from superset import sql_parse
-from superset.constants import PASSWORD_MASK
+from superset.constants import PASSWORD_MASK, TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
@@ -147,31 +147,31 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.SECOND: "CAST(TIMESTAMP_SECONDS("
         "UNIX_SECONDS(CAST({col} AS TIMESTAMP))"
         ") AS {type})",
-        "PT1M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.MINUTE: "CAST(TIMESTAMP_SECONDS("
         "60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60)"
         ") AS {type})",
-        "PT5M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.FIVE_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
         ") AS {type})",
-        "PT10M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.TEN_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "10*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 10*60)"
         ") AS {type})",
-        "PT15M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.FIFTEEN_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
         ") AS {type})",
-        "PT30M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.THIRTY_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
-        "PT1H": "{func}({col}, HOUR)",
-        "P1D": "{func}({col}, DAY)",
-        "P1W": "{func}({col}, WEEK)",
-        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
-        "P1M": "{func}({col}, MONTH)",
-        "P3M": "{func}({col}, QUARTER)",
-        "P1Y": "{func}({col}, YEAR)",
+        TimeGrain.HOUR: "{func}({col}, HOUR)",
+        TimeGrain.DAY: "{func}({col}, DAY)",
+        TimeGrain.WEEK: "{func}({col}, WEEK)",
+        TimeGrain.WEEK_STARTING_MONDAY: "{func}({col}, ISOWEEK)",
+        TimeGrain.MONTH: "{func}({col}, MONTH)",
+        TimeGrain.QUARTER: "{func}({col}, QUARTER)",
+        TimeGrain.YEAR: "{func}({col}, YEAR)",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
