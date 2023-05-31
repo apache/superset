@@ -251,6 +251,7 @@ export const CtasEnum = {
 };
 
 export type QueryColumn = {
+  name?: string;
   column_name: string;
   type: string | null;
   is_dttm: boolean;
@@ -426,17 +427,17 @@ export const testQueryResults = {
     expanded_columns: [],
     selected_columns: [
       {
-        name: 'Column 1',
+        column_name: 'Column 1',
         type: 'STRING',
         is_dttm: false,
       },
       {
-        name: 'Column 3',
+        column_name: 'Column 3',
         type: 'STRING',
         is_dttm: false,
       },
       {
-        name: 'Column 2',
+        column_name: 'Column 2',
         type: 'TIMESTAMP',
         is_dttm: true,
       },
