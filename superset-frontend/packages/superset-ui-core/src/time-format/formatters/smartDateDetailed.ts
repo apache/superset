@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { getTimeFormatLocale } from '../TimeFormatterRegistrySingleton';
 import createMultiFormatter from '../factories/createMultiFormatter';
 
 const smartDateDetailedFormatter = createMultiFormatter({
@@ -32,6 +33,7 @@ const smartDateDetailedFormatter = createMultiFormatter({
     month: '%Y-%m-%d',
     year: '%Y',
   },
+  locale: getTimeFormatLocale(),
 });
 
 export default smartDateDetailedFormatter;

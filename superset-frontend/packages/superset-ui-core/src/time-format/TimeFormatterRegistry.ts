@@ -42,6 +42,7 @@ export default class TimeFormatterRegistry extends RegistryWithDefaultKey<
 
   setD3Format(d3Format: Partial<TimeLocaleDefinition>) {
     this.d3Format = { ...DEFAULT_D3_TIME_FORMAT, ...d3Format };
+    return this;
   }
 
   getLocale() {
