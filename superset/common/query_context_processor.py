@@ -338,7 +338,7 @@ class QueryContextProcessor:
             )
 
         columns = df.columns
-        time_grain = query_object.extras["time_grain_sqla"]
+        time_grain = query_object.extras.get("time_grain_sqla")
         use_aggregated_join_column = time_grain in AGGREGATED_JOIN_GRAINS
         if use_aggregated_join_column:
             # adds aggregated join column
@@ -481,7 +481,7 @@ class QueryContextProcessor:
 
         # remove AGGREGATED_JOIN_COLUMN from df
         if use_aggregated_join_column:
-            df = df.drop(columns=[AGGREGATED_JOIN_COLUMN])
+            df.drop(columns=[AGGREGATED_JOIN_COLUMN], inplace=True)
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
