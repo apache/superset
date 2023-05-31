@@ -45,10 +45,11 @@ const bootstrapData = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
-const flashTypeConf = bootstrapData?.common?.conf?.FLASH_TYPE;
+const flashTypeConf =
+  bootstrapData?.common?.conf?.FLASH_TYPE ?? FLASH_TYPE_JSON;
 
 const getJSONSchema = () => {
-  const jsonSchema = flashTypeConf?.JSONSCHEMA ? flashTypeConf?.JSONSCHEMA : FLASH_TYPE_JSON.JSONSCHEMA
+  const jsonSchema = flashTypeConf?.JSONSCHEMA;
   return jsonSchema;
 };
 
@@ -219,7 +220,7 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
         <Col xs={24}>
           <StyledJsonSchema>
             <SchemaForm
-              schema={flashSchema || {}}
+              schema={flashSchema}
               showErrorList={false}
               formData={formData}
               uiSchema={getUISchema()}

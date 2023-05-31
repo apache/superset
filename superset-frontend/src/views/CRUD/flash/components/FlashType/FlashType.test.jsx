@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import FlashType from 'src/views/CRUD/flash/components/FlashType/FlashType';
 import { Provider } from 'react-redux';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -24,129 +25,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import Modal from 'src/components/Modal';
 import SchemaForm from 'react-jsonschema-form';
-
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-const flashTypeConf = bootstrapData?.common?.conf?.FLASH_TYPE;
-
-const getJSONSchema = () => {
-  const jsonSchema = flashTypeConf?.JSONSCHEMA;
-  return jsonSchema;
-};
-
-const FLASH_TYPE = {
-
-  "JSONSCHEMA": {
-    "type": "object",
-    "properties": {
-      "flashType": {
-        "title": "Flash Type",
-        "type": "string",
-        "enum": ["", "One Time", "Short Term", "Long Term"],
-        "enumNames": [
-          "Please Select",
-          "One Time (Valid upto 7 days)",
-          "Short Term (Valid upto 7 days)",
-          "Long Term (Valid upto 90 days)",
-        ],
-        "default": "Please Select",
-      },
-    },
-    "required": [
-      "flashType"
-    ],
-    "dependencies": {
-      "flashType": {
-        "oneOf": [
-          {
-            "properties": {
-              "flashType": { "enum": ["Long Term"] },
-              "teamSlackChannel": {
-                "type": "string",
-                "title": "Slack Channel",
-                "pattern": "^(#)[A-Za-z0-9_-]+$",
-              },
-              "teamSlackHandle": {
-                "type": "string",
-                "title": "Slack Handle",
-                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
-              },
-              "scheduleType": {
-                "title": "Schedule Type",
-                "type": "string",
-                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
-                "enumNames": [
-                  "Please Select",
-                  "Hourly",
-                  "Daily",
-                  "Weekly",
-                  "Monthly",
-                ],
-                "default": "Please Select",
-              },
-              "scheduleStartTime": {
-                "type": "string",
-                "title": "Schedule Start Time (In UTC)",
-                "format": "date-time",
-              },
-            },
-            "required": [
-              "teamSlackChannel",
-              "teamSlackHandle",
-              "scheduleType",
-              "scheduleStartTime"
-            ],
-          },
-          {
-            "properties": {
-              "flashType": { "enum": ["Short Term"] },
-              "scheduleType": {
-                "title": "Schedule Type",
-                "type": "string",
-                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
-                "enumNames": [
-                  "Please Select",
-                  "Hourly",
-                  "Daily",
-                  "Weekly",
-                  "Monthly",
-                ],
-                "default": "Please Select",
-              },
-              "scheduleStartTime": {
-                "type": "string",
-                "title": "Schedule Start Time (In UTC)",
-                "format": "date-time",
-              },
-            },
-            "required": ["scheduleType", "scheduleStartTime"],
-          },
-        ]
-      }
-    },
-  },
-  "UISCHEMA": {
-    "ui:order": [
-      "flashType",
-      "*"
-    ],
-    "teamSlackChannel": {
-      "ui:placeholder": "#slack_channel_name",
-      "ui:help": "Slack channel for notification",
-    },
-    "teamSlackHandle": {
-      "ui:placeholder": "@slack_handle_name",
-      "ui:help": "Slack handle for notification",
-    },
-    "scheduleType": { "ui:help": "Schedule type for the Flash object" },
-    "scheduleStartTime": {
-      "ui:help": "Start time from which the flash object is to be scheduled."
-    },
-  },
-  "VALIDATION": [],
-}
+import { FLASH_TYPE_JSON } from '../../constants';
 
 const mockFlash = {
   flashType: 'ShortTerm',
@@ -157,15 +36,13 @@ const mockFlash = {
   scheduleSratTime: '2023-05-31 12:59:00',
 };
 
-
 const mockedProps = {
-  addDangerToast: () => { },
-  addSuccessToast: () => { },
-  onHide: () => { },
-  refreshData: () => { },
+  addDangerToast: () => {},
+  addSuccessToast: () => {},
+  onHide: () => {},
+  refreshData: () => {},
   flash: mockFlash,
   show: true,
-  // flashSchema: FLASH_TYPE.JSONSCHEMA
 };
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -173,14 +50,13 @@ const store = mockStore({});
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
     <Provider store={store}>
-      <FlashType show  {...props} />
+      <FlashType show {...props} />
     </Provider>,
+    {
+      context: { store },
+    },
   );
-
-  let app
-
   await waitForComponentToPaint(mounted);
-
   return mounted;
 }
 
@@ -188,6 +64,12 @@ describe('FlashType', () => {
   let wrapper;
   beforeAll(async () => {
     wrapper = await mountAndWait();
+  });
+
+  it('should render with the correct flashTypeConf', async () => {
+    expect(wrapper.find(SchemaForm).prop('schema')).toEqual(
+      FLASH_TYPE_JSON.JSONSCHEMA,
+    );
   });
 
   it('The component should render', () => {
@@ -208,15 +90,79 @@ describe('FlashType', () => {
     );
   });
 
-  it('For Flash Type: SHORT TERM, Following conditional controls should appear:  Schedule Type and Schedule Start Time', async () => {
-    const schemaForm = wrapper.find(SchemaForm)
-    let flashDropdown = schemaForm.find('select[id="root_flashType"]')
-    expect(flashDropdown.props().value).toEqual("Short Term")
-    const scheduleTypeControl = schemaForm.find('select[id="root_scheduleType"]')
+  it('For Flash Type: SHORT TERM, Following conditional controls should appear: SCHEDULE TYPE, SCHEDULE START TIME', async () => {
+    const schemaForm = wrapper.find(SchemaForm);
+    const flashDropdown = schemaForm.find('select[id="root_flashType"]');
+    expect(flashDropdown.props().value).toEqual('Short Term');
+    const scheduleTypeControl = schemaForm.find(
+      'select[id="root_scheduleType"]',
+    );
     expect(scheduleTypeControl.exists()).toBe(true);
-    const scheduleTimeControl = schemaForm.find('input[id="root_scheduleStartTime"]')
+    const scheduleTimeControl = schemaForm.find(
+      'input[id="root_scheduleStartTime"]',
+    );
     expect(scheduleTimeControl.exists()).toBe(true);
+    const slackChannelControl = schemaForm.find(
+      'input[id="root_teamSlackChannel"]',
+    );
+    expect(slackChannelControl.exists()).toBe(false);
+    const slackHandleControl = schemaForm.find(
+      'input[id="root_teamSlackHandle"]',
+    );
+    expect(slackHandleControl.exists()).toBe(false);
   });
 
+  it('For Flash Type: ONE TIME, Following conditional controls should appear:  None', async () => {
+    const props = {
+      ...mockedProps,
+    };
+    props.flash.flashType = 'OneTime';
+    const updatedWrapper = await mountAndWait(props);
+    const schemaForm = updatedWrapper.find(SchemaForm);
+    const flashDropdown = schemaForm.find('select[id="root_flashType"]');
+    expect(flashDropdown.props().value).toEqual('One Time');
+    const scheduleTypeControl = schemaForm.find(
+      'select[id="root_scheduleType"]',
+    );
+    expect(scheduleTypeControl.exists()).toBe(false);
+    const scheduleTimeControl = schemaForm.find(
+      'input[id="root_scheduleStartTime"]',
+    );
+    expect(scheduleTimeControl.exists()).toBe(false);
+    const slackChannelControl = schemaForm.find(
+      'input[id="root_teamSlackChannel"]',
+    );
+    expect(slackChannelControl.exists()).toBe(false);
+    const slackHandleControl = schemaForm.find(
+      'input[id="root_teamSlackHandle"]',
+    );
+    expect(slackHandleControl.exists()).toBe(false);
+  });
 
+  it('For Flash Type: LONG TERM, Following conditional controls should appear: SCHEDULE TYPE, SCHEDULE START TIME, SLACK CHANNEL, SLACK HANDLE', async () => {
+    const props = {
+      ...mockedProps,
+    };
+    props.flash.flashType = 'LongTerm';
+    const updatedWrapper = await mountAndWait(props);
+    const schemaForm = updatedWrapper.find(SchemaForm);
+    const flashDropdown = schemaForm.find('select[id="root_flashType"]');
+    expect(flashDropdown.props().value).toEqual('Long Term');
+    const scheduleTypeControl = schemaForm.find(
+      'select[id="root_scheduleType"]',
+    );
+    expect(scheduleTypeControl.exists()).toBe(true);
+    const scheduleTimeControl = schemaForm.find(
+      'input[id="root_scheduleStartTime"]',
+    );
+    expect(scheduleTimeControl.exists()).toBe(true);
+    const slackChannelControl = schemaForm.find(
+      'input[id="root_teamSlackChannel"]',
+    );
+    expect(slackChannelControl.exists()).toBe(true);
+    const slackHandleControl = schemaForm.find(
+      'input[id="root_teamSlackHandle"]',
+    );
+    expect(slackHandleControl.exists()).toBe(true);
+  });
 });
