@@ -25,6 +25,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import Modal from 'src/components/Modal';
 import SchemaForm from 'react-jsonschema-form';
+import * as chrono from 'chrono-node';
 import { FLASH_TYPE_JSON } from '../../constants';
 
 const mockFlash = {
@@ -164,5 +165,43 @@ describe('FlashType', () => {
       'input[id="root_teamSlackHandle"]',
     );
     expect(slackHandleControl.exists()).toBe(true);
+  });
+
+  it('For Flash Type: LONG TERM, TTL should be 30 days from now', async () => {
+    const props = {
+      ...mockedProps,
+    };
+    props.flash.flashType = 'LongTerm';
+    props.flash.ttl = chrono
+      .parseDate('90 days from now')
+      .toISOString()
+      .split('T')[0];
+
+    const updatedWrapper = await mountAndWait(props);
+    const schemaForm = updatedWrapper.find(SchemaForm);
+    const longTTL = chrono
+      .parseDate('90 days from now')
+      .toISOString()
+      .split('T')[0];
+    expect(schemaForm.prop('formData').ttl).toBe(longTTL);
+  });
+
+  it('For Flash Type: ONE TIME OR SHORT TERM, TTL should be 7 days from now', async () => {
+    const props = {
+      ...mockedProps,
+    };
+    props.flash.flashType = 'ShortTerm';
+    props.flash.ttl = chrono
+      .parseDate('7 days from now')
+      .toISOString()
+      .split('T')[0];
+
+    const updatedWrapper = await mountAndWait(props);
+    const schemaForm = updatedWrapper.find(SchemaForm);
+    const shortTTL = chrono
+      .parseDate('7 days from now')
+      .toISOString()
+      .split('T')[0];
+    expect(schemaForm.prop('formData').ttl).toBe(shortTTL);
   });
 });
