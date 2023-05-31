@@ -44,7 +44,7 @@ export enum ETableAction {
   FILTER = 'filter',
 }
 
-export { ColumnsType };
+export type { ColumnsType };
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
