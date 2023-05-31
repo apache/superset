@@ -54,7 +54,7 @@ test('get temporal columns from a QueryResponse', () => {
   expect(getTemporalColumns(testQueryResponse)).toEqual({
     temporalColumns: [
       {
-        name: 'Column 2',
+        column_name: 'Column 2',
         type: 'TIMESTAMP',
         is_dttm: true,
       },

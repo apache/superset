@@ -38,7 +38,7 @@ export default function columnChoices(
 
   if (isQueryResponse(datasource)) {
     return ensureIsArray(datasource.columns)
-      .map((col): [string, string] => [col.name, col.name])
+      .map((col): [string, string] => [col.column_name, col.column_name])
       .sort((opt1, opt2) =>
         opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
       );

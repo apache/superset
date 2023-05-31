@@ -405,17 +405,17 @@ export const testQueryResults = {
     displayLimitReached: false,
     columns: [
       {
-        name: 'Column 1',
+        column_name: 'Column 1',
         type: 'STRING',
         is_dttm: false,
       },
       {
-        name: 'Column 3',
+        column_name: 'Column 3',
         type: 'STRING',
         is_dttm: false,
       },
       {
-        name: 'Column 2',
+        column_name: 'Column 2',
         type: 'TIMESTAMP',
         is_dttm: true,
       },

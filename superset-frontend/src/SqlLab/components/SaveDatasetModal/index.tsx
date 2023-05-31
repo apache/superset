@@ -207,8 +207,8 @@ export const SaveDatasetModal = ({
         datasetToOverwrite?.datasetid,
         datasource?.sql,
         datasource?.columns?.map(
-          (d: { name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.name,
+          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.column_name,
             type: d.type,
             is_dttm: d.is_dttm,
           }),
@@ -220,9 +220,7 @@ export const SaveDatasetModal = ({
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
-          all_columns: datasource?.columns?.map(
-            column => column.name || column.column_name,
-          ),
+          all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
     ]);
@@ -309,9 +307,7 @@ export const SaveDatasetModal = ({
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === 'table' && {
-            all_columns: selectedColumns.map(
-              column => column.name || column.column_name,
-            ),
+            all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),
       )

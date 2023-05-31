@@ -575,31 +575,31 @@ const baseQuery: QueryResponse = {
     columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
     selected_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
     expanded_columns: [
       {
         is_dttm: true,
-        name: 'ds',
+        column_name: 'ds',
         type: 'STRING',
       },
     ],
