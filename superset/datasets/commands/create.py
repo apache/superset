@@ -50,7 +50,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             # Updates columns and metrics from the dataset
             ds_columns = []
             for column in columns:
-                column_name = column.get("column_name") or column.get("name")
+                column_name = column.get("column_name")
                 col = TableColumn(
                     column_name=column_name,
                     filterable=True,

@@ -205,7 +205,7 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
         ...{
-          all_columns: results.columns.map(column => column.name),
+          all_columns: results.columns.map(column => column.column_name),
         },
       });
       const url = mountExploreUrl(null, {
@@ -491,7 +491,7 @@ const ResultSet = ({
     }
     if (data && data.length > 0) {
       const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.name)
+        ? results.expanded_columns.map(col => col.column_name)
         : [];
       return (
         <>
@@ -500,7 +500,7 @@ const ResultSet = ({
           {sql}
           <FilterableTable
             data={data}
-            orderedColumnKeys={results.columns.map(col => col.name)}
+            orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
