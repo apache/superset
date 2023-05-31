@@ -64,11 +64,11 @@ class DruidEngineSpec(BaseEngineSpec):
         TimeGrain.MONTH: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1M')",
         TimeGrain.QUARTER: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P3M')",
         TimeGrain.YEAR: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1Y')",
-        TimeGrain.WEEK_STARTING_SUNDAY: (
+        TimeGrain.WEEK_ENDING_SATURDAY: (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
             "'P1D', 1), 'P1W'), 'P1D', 5)"
         ),
-        TimeGrain.WEEK_STARTING_MONDAY: (
+        TimeGrain.WEEK_STARTING_SUNDAY: (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
             "'P1D', 1), 'P1W'), 'P1D', -1)"
         ),

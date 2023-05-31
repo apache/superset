@@ -76,6 +76,10 @@ logger = logging.getLogger(__name__)
 
 AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
 
+# This only includes time grains that may influence
+# the temporal column used for joining offset results.
+# Given that we don't allow time shifts smaller than a day,
+# we don't need to include smaller time grains aggregations.
 AGGREGATED_JOIN_GRAINS = {
     TimeGrain.WEEK,
     TimeGrain.WEEK_STARTING_SUNDAY,
@@ -338,7 +342,7 @@ class QueryContextProcessor:
             )
 
         columns = df.columns
-        time_grain = query_object.extras.get("time_grain_sqla")
+        time_grain = query_object.extras.get("time_grain_sqla") or TimeGrain.DAY
         use_aggregated_join_column = time_grain in AGGREGATED_JOIN_GRAINS
         if use_aggregated_join_column:
             # adds aggregated join column
