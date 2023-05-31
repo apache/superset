@@ -20,9 +20,11 @@
 import { TimeLocaleDefinition } from 'd3-time-format';
 import createMultiFormatter from '../factories/createMultiFormatter';
 
-export const SMART_DATE_DETAILED = 'smart_date_detailed';
+export const SMART_DATE_DETAILED_ID = 'smart_date_detailed';
 
-export function createSmartDateDetailedFormatter(locale?: TimeLocaleDefinition) {
+export function createSmartDateDetailedFormatter(
+  locale?: TimeLocaleDefinition,
+) {
   return createMultiFormatter({
     id: 'smart_date_detailed',
     label: 'Detailed adaptive formatter',

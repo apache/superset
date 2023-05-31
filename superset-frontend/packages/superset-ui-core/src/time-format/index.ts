@@ -38,7 +38,7 @@ export {
   createSmartDateFormatter,
 } from './formatters/smartDate';
 export {
-  SMART_DATE_DETAILED,
+  SMART_DATE_DETAILED_ID,
   createSmartDateDetailedFormatter,
 } from './formatters/smartDateDetailed';
 export {
