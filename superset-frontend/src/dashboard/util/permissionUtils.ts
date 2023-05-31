@@ -50,7 +50,7 @@ export const canUserEditDashboard = (
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-  findPermission('can_write', 'Dashboard', user.roles);
+  findPermission('can_write', 'Dashboard', user?.roles);
 
 export function canUserAccessSqlLab(
   user?: UserWithPermissionsAndRoles | UndefinedUser,
