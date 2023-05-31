@@ -186,7 +186,7 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
 )
 
 
-class TimeGrain:
+class TimeGrain:  # pylint: disable=too-few-public-methods
     SECOND = "PT1S"
     FIVE_SECONDS = "PT5S"
     THIRTY_SECONDS = "PT30S"

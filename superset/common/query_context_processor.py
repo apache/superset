@@ -495,17 +495,17 @@ class QueryContextProcessor:
         ):
             return row[column_index].strftime("%Y-W%U")
 
-        elif time_grain in (
+        if time_grain in (
             TimeGrain.WEEK,
             TimeGrain.WEEK_STARTING_MONDAY,
             TimeGrain.WEEK_ENDING_SUNDAY,
         ):
             return row[column_index].strftime("%Y-W%W")
 
-        elif time_grain == TimeGrain.MONTH:
+        if time_grain == TimeGrain.MONTH:
             return row[column_index].strftime("%Y-%m")
 
-        elif time_grain == TimeGrain.QUARTER:
+        if time_grain == TimeGrain.QUARTER:
             return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
 
         return row[column_index].strftime("%Y")

@@ -45,7 +45,8 @@ class SqliteEngineSpec(BaseEngineSpec):
         TimeGrain.MINUTE: "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
         TimeGrain.HOUR: "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
         TimeGrain.DAY: "DATETIME({col}, 'start of day')",
-        TimeGrain.WEEK: "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')",
+        TimeGrain.WEEK: "DATETIME({col}, 'start of day', \
+            -strftime('%w', {col}) || ' days')",
         TimeGrain.MONTH: "DATETIME({col}, 'start of month')",
         TimeGrain.QUARTER: (
             "DATETIME({col}, 'start of month', "

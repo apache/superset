@@ -92,14 +92,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",
         TimeGrain.MINUTE: "DATE_TRUNC('MINUTE', {col})",
-        TimeGrain.FIVE_MINUTES: "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 5) * 5, \
-                DATE_TRUNC('HOUR', {col}))",
-        TimeGrain.TEN_MINUTES: "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 10) * 10, \
-                 DATE_TRUNC('HOUR', {col}))",
-        TimeGrain.FIFTEEN_MINUTES: "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, \
-                 DATE_TRUNC('HOUR', {col}))",
-        TimeGrain.THIRTY_MINUTES: "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
-                  DATE_TRUNC('HOUR', {col}))",
+        TimeGrain.FIVE_MINUTES: "DATEADD(MINUTE, \
+            FLOOR(DATE_PART(MINUTE, {col}) / 5) * 5, DATE_TRUNC('HOUR', {col}))",
+        TimeGrain.TEN_MINUTES: "DATEADD(MINUTE,  \
+            FLOOR(DATE_PART(MINUTE, {col}) / 10) * 10, DATE_TRUNC('HOUR', {col}))",
+        TimeGrain.FIFTEEN_MINUTES: "DATEADD(MINUTE, \
+            FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, DATE_TRUNC('HOUR', {col}))",
+        TimeGrain.THIRTY_MINUTES: "DATEADD(MINUTE, \
+            FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, DATE_TRUNC('HOUR', {col}))",
         TimeGrain.HOUR: "DATE_TRUNC('HOUR', {col})",
         TimeGrain.DAY: "DATE_TRUNC('DAY', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('WEEK', {col})",

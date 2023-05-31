@@ -44,11 +44,14 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
+        TimeGrain.SECOND: "DATEADD(second, \
+            'DATEDIFF(second, 2000-01-01', {col}), '2000-01-01')",
         TimeGrain.MINUTE: "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
         TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
-        TimeGrain.TEN_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
-        TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 15 * 15, 0)",
+        TimeGrain.TEN_MINUTES: "DATEADD(minute, \
+            DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
+        TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, \
+            DATEDIFF(minute, 0, {col}) / 15 * 15, 0)",
         TimeGrain.HALF_HOUR: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)",
         TimeGrain.HOUR: "DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)",
         TimeGrain.DAY: "DATEADD(day, DATEDIFF(day, 0, {col}), 0)",
@@ -125,8 +128,10 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.MINUTE: "{col}/ time(1min)",
         TimeGrain.HOUR: "{col}/ time(1h)",
         TimeGrain.DAY: "{col}/ time(1d)",
-        TimeGrain.MONTH: "datetime_diff('month',CreateDate, datetime(0001-01-01 00:00:00))+1",
-        TimeGrain.YEAR: "datetime_diff('year',CreateDate, datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.MONTH: "datetime_diff('month', CreateDate, \
+            datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.YEAR: "datetime_diff('year', CreateDate, \
+            datetime(0001-01-01 00:00:00))+1",
     }
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed

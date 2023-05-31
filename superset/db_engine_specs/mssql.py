@@ -56,12 +56,17 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATEADD(SECOND, DATEDIFF(SECOND, '2000-01-01', {col}), '2000-01-01')",
+        TimeGrain.SECOND: "DATEADD(SECOND, \
+            DATEDIFF(SECOND, '2000-01-01', {col}), '2000-01-01')",
         TimeGrain.MINUTE: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}), 0)",
-        TimeGrain.FIVE_MINUTES: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 5 * 5, 0)",
-        TimeGrain.TEN_MINUTES: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 10 * 10, 0)",
-        TimeGrain.FIFTEEN_MINUTES: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 15 * 15, 0)",
-        TimeGrain.THIRTY_MINUTES: "DATEADD(MINUTE, DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.TEN_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 10 * 10, 0)",
+        TimeGrain.FIFTEEN_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 15 * 15, 0)",
+        TimeGrain.THIRTY_MINUTES: "DATEADD(MINUTE, \
+            DATEDIFF(MINUTE, 0, {col}) / 30 * 30, 0)",
         TimeGrain.HOUR: "DATEADD(HOUR, DATEDIFF(HOUR, 0, {col}), 0)",
         TimeGrain.DAY: "DATEADD(DAY, DATEDIFF(DAY, 0, {col}), 0)",
         TimeGrain.WEEK: "DATEADD(DAY, 1 - DATEPART(WEEKDAY, {col}),"
