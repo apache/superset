@@ -56,7 +56,7 @@
     {{ lib.render_pagination(page, page_size, count, modelview_name) }}
     {{ lib.render_set_page_size(page, page_size, count, modelview_name) }}
 </div>
-    <script language="javascript">
+    <script language="javascript" nonce="{{ csp_nonce() }}">
         var modelActions = new AdminActions();
     </script>
 
