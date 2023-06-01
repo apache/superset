@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from flask_babel import gettext as __
 
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class QueryEstimationCommand(BaseCommand):
     _database_id: int
     _sql: str
-    _template_params: Dict[str, Any]
+    _template_params: dict[str, Any]
     _schema: str
     _database: Database
 
@@ -64,7 +64,7 @@ class QueryEstimationCommand(BaseCommand):
 
     def run(
         self,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         self.validate()
 
         sql = self._sql
@@ -96,7 +96,7 @@ class QueryEstimationCommand(BaseCommand):
             ) from ex
 
         spec = self._database.db_engine_spec
-        query_cost_formatters: Dict[str, Any] = app.config[
+        query_cost_formatters: dict[str, Any] = app.config[
             "QUERY_COST_FORMATTERS_BY_ENGINE"
         ]
         query_cost_formatter = query_cost_formatters.get(

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -55,12 +55,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         return dataset
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", None)
         sql = self._properties.get("sql", None)
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, schema, table_name):

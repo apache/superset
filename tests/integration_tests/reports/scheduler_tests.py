@@ -16,7 +16,6 @@
 # under the License.
 
 from random import randint
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -32,7 +31,7 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-def owners(get_user) -> List[User]:
+def owners(get_user) -> list[User]:
     return [get_user("admin")]
 
 

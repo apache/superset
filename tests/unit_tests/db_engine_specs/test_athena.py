@@ -81,7 +81,7 @@ def test_get_text_clause_with_colon() -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     query = (
-        "SELECT foo FROM tbl WHERE " "abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
+        "SELECT foo FROM tbl WHERE " r"abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query

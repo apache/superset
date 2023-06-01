@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Set
+from typing import Any
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -30,7 +30,7 @@ from superset.views.base import BaseFilter
 
 def can_access_databases(
     view_menu_name: str,
-) -> Set[str]:
+) -> set[str]:
     return {
         security_manager.unpack_database_and_schema(vm).database
         for vm in security_manager.user_view_menu_names(view_menu_name)

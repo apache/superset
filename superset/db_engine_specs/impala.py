@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import current_app
 from sqlalchemy import types
@@ -57,7 +57,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -68,7 +68,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> List[str]:
+    def get_schema_names(cls, inspector: Inspector) -> list[str]:
         schemas = [
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")

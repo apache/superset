@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import random
-from typing import Dict, List, Set
 
 import pandas as pd
 import pytest
@@ -29,7 +28,7 @@ from superset.utils.database import get_example_database
 from tests.integration_tests.dashboard_utils import create_slice, create_table_metadata
 from tests.integration_tests.test_app import app
 
-misc_dash_slices: Set[str] = set()
+misc_dash_slices: set[str] = set()
 
 
 ENERGY_USAGE_TBL_NAME = "energy_usage"
@@ -70,7 +69,7 @@ def _get_dataframe():
     return pd.DataFrame.from_dict(data)
 
 
-def _create_energy_table() -> List[Slice]:
+def _create_energy_table() -> list[Slice]:
     table = create_table_metadata(
         table_name=ENERGY_USAGE_TBL_NAME,
         database=get_example_database(),
@@ -100,7 +99,7 @@ def _create_energy_table() -> List[Slice]:
 
 
 def _create_and_commit_energy_slice(
-    table: SqlaTable, title: str, viz_type: str, param: Dict[str, str]
+    table: SqlaTable, title: str, viz_type: str, param: dict[str, str]
 ):
     slice = create_slice(title, viz_type, table, param)
     existing_slice = (

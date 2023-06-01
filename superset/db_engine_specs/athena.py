@@ -16,7 +16,8 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy import types
@@ -51,7 +52,7 @@ class AthenaEngineSpec(BaseEngineSpec):
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
             __(
                 "Please check your query for syntax errors at or "
@@ -64,7 +65,7 @@ class AthenaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

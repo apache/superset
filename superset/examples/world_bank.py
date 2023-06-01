@@ -17,7 +17,6 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-from typing import List
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -139,7 +138,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> List[Slice]:
+def create_slices(tbl: BaseDatasource) -> list[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {

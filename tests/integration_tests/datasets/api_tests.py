@@ -18,7 +18,7 @@
 import json
 import unittest
 from io import BytesIO
-from typing import List, Optional
+from typing import Optional
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
@@ -68,7 +68,7 @@ class TestDatasetApi(SupersetTestCase):
     @staticmethod
     def insert_dataset(
         table_name: str,
-        owners: List[int],
+        owners: list[int],
         database: Database,
         sql: Optional[str] = None,
         schema: Optional[str] = None,
@@ -94,7 +94,7 @@ class TestDatasetApi(SupersetTestCase):
             "ab_permission", [self.get_user("admin").id], get_main_database()
         )
 
-    def get_fixture_datasets(self) -> List[SqlaTable]:
+    def get_fixture_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
             .options(joinedload(SqlaTable.database))
@@ -102,7 +102,7 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
 
-    def get_fixture_virtual_datasets(self) -> List[SqlaTable]:
+    def get_fixture_virtual_datasets(self) -> list[SqlaTable]:
         return (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(self.fixture_virtual_table_names))
@@ -410,13 +410,11 @@ class TestDatasetApi(SupersetTestCase):
             )
             all_datasets = db.session.query(SqlaTable).all()
             schema_values = sorted(
-                set(
-                    [
-                        dataset.schema
-                        for dataset in all_datasets
-                        if dataset.schema is not None
-                    ]
-                )
+                {
+                    dataset.schema
+                    for dataset in all_datasets
+                    if dataset.schema is not None
+                }
             )
             expected_response = {
                 "count": len(schema_values),
