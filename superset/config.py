@@ -266,6 +266,12 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
 
+# Rate limiting
+RATELIMIT_ENABLED = True
+AUTH_RATE_LIMITED = True
+AUTH_RATE_LIMIT = "2 per 5 second"
+RATELIMIT_APPLICATION = "50 per second"
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------

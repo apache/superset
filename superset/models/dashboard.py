@@ -377,7 +377,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
-        for dashboard_id in dashboard_ids:
+        for dashboard_id in set(dashboard_ids):
             # make sure that dashboard_id is an integer
             dashboard_id = int(dashboard_id)
             dashboard = (
