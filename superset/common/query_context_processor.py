@@ -74,6 +74,7 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
+# Artificial column used for joining aggregated offset results
 AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
 
 # This only includes time grains that may influence
@@ -90,6 +91,9 @@ AGGREGATED_JOIN_GRAINS = {
     TimeGrain.QUARTER,
     TimeGrain.YEAR,
 }
+
+# Right suffix used for joining offset results
+R_SUFFIX = "__right_suffix"
 
 
 class CachedTimeOffset(TypedDict):
@@ -480,12 +484,15 @@ class QueryContextProcessor:
                     left_df=df,
                     right_df=offset_df,
                     join_keys=join_keys,
-                    rsuffix="_right",
+                    rsuffix=R_SUFFIX,
                 )
 
-        # remove AGGREGATED_JOIN_COLUMN from df
-        if use_aggregated_join_column:
-            df.drop(columns=[AGGREGATED_JOIN_COLUMN], inplace=True)
+        # removes columns used for join
+        df.drop(
+            list(df.filter(regex=f"{AGGREGATED_JOIN_COLUMN}|{R_SUFFIX}")),
+            axis=1,
+            inplace=True,
+        )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
