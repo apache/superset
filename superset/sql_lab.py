@@ -20,7 +20,7 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Optional, Union
 
 import backoff
 import msgpack
@@ -88,9 +88,9 @@ def handle_query_error(
     ex: Exception,
     query: Query,
     session: Session,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Local method handling error while processing the SQL"""
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
@@ -122,7 +122,7 @@ def handle_query_error(
     return payload
 
 
-def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
+def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
@@ -168,8 +168,8 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     username: Optional[str] = None,
     start_time: Optional[float] = None,
     expand_data: bool = False,
-    log_params: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]] = None,
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
         with override_user(security_manager.find_user(username)):
@@ -196,7 +196,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     query: Query,
     session: Session,
     cursor: Any,
-    log_params: Optional[Dict[str, Any]],
+    log_params: Optional[dict[str, Any]],
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
@@ -332,7 +332,7 @@ def apply_limit_if_exists(
 
 
 def _serialize_payload(
-    payload: Dict[Any, Any], use_msgpack: Optional[bool] = False
+    payload: dict[Any, Any], use_msgpack: Optional[bool] = False
 ) -> Union[bytes, str]:
     logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
@@ -346,10 +346,10 @@ def _serialize_and_expand_data(
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
-) -> Tuple[Union[bytes, str], List[Any], List[Any], List[Any]]:
+) -> tuple[Union[bytes, str], list[Any], list[Any], list[Any]]:
     selected_columns = result_set.columns
-    all_columns: List[Any]
-    expanded_columns: List[Any]
+    all_columns: list[Any]
+    expanded_columns: list[Any]
 
     if use_msgpack:
         with stats_timing(
@@ -383,15 +383,15 @@ def execute_sql_statements(
     session: Session,
     start_time: Optional[float],
     expand_data: bool,
-    log_params: Optional[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]],
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     query = get_query(query_id, session)
-    payload: Dict[str, Any] = dict(query_id=query_id)
+    payload: dict[str, Any] = dict(query_id=query_id)
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()

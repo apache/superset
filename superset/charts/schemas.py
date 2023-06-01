@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
@@ -1383,7 +1383,7 @@ class ChartDataQueryObjectSchema(Schema):
 
 
 class ChartDataQueryContextSchema(Schema):
-    query_context_factory: Optional[QueryContextFactory] = None
+    query_context_factory: QueryContextFactory | None = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
     custom_cache_timeout = fields.Integer(
@@ -1407,7 +1407,7 @@ class ChartDataQueryContextSchema(Schema):
 
     # pylint: disable=unused-argument
     @post_load
-    def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
+    def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Type, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from flask import Markup
 from flask_appbuilder import Model
@@ -41,7 +41,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     ROLES_DENYLIST = set(config["ROBOT_PERMISSION_ROLES"])
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> type["BaseDatasource"]:
         # pylint: disable=import-outside-toplevel
         from superset.datasource.dao import DatasourceDAO
 
@@ -77,7 +77,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 f"datasource_id={self.datasource_id}&"
                 f"created_by={self.created_by.username}&role_to_grant={role.name}"
             )
-            link = '<a href="{}">Grant {} Role</a>'.format(href, role.name)
+            link = f'<a href="{href}">Grant {role.name} Role</a>'
             action_list = action_list + "<li>" + link + "</li>"
         return "<ul>" + action_list + "</ul>"
 
@@ -90,8 +90,8 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 f"datasource_id={self.datasource_id}&"
                 f"created_by={self.created_by.username}&role_to_extend={role.name}"
             )
-            link = '<a href="{}">Extend {} Role</a>'.format(href, role.name)
+            link = f'<a href="{href}">Extend {role.name} Role</a>'
             if role.name in self.ROLES_DENYLIST:
-                link = "{} Role".format(role.name)
+                link = f"{role.name} Role"
             action_list = action_list + "<li>" + link + "</li>"
         return "<ul>" + action_list + "</ul>"

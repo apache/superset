@@ -18,7 +18,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 from zipfile import is_zipfile, ZipFile
 
 import click
@@ -309,7 +309,7 @@ else:
         from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
         path_object = Path(path)
-        files: List[Path] = []
+        files: list[Path] = []
         if path_object.is_file():
             files.append(path_object)
         elif path_object.exists() and not recursive:
@@ -363,7 +363,7 @@ else:
         sync_metrics = "metrics" in sync_array
 
         path_object = Path(path)
-        files: List[Path] = []
+        files: list[Path] = []
         if path_object.is_file():
             files.append(path_object)
         elif path_object.exists() and not recursive:

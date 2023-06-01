@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDashboardCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -48,9 +48,9 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         return dashboard
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
-        role_ids: Optional[List[int]] = self._properties.get("roles")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
+        role_ids: Optional[list[int]] = self._properties.get("roles")
         slug: str = self._properties.get("slug", "")
 
         # Validate slug uniqueness

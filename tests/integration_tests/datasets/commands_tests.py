@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from operator import itemgetter
-from typing import Any, List
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -312,7 +312,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
         assert dataset.filter_select_enabled
-        assert set(col.column_name for col in dataset.columns) == {
+        assert {col.column_name for col in dataset.columns} == {
             "num_california",
             "ds",
             "state",
@@ -526,7 +526,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.commit()
 
 
-def _get_table_from_list_by_name(name: str, tables: List[Any]):
+def _get_table_from_list_by_name(name: str, tables: list[Any]):
     for table in tables:
         if table.table_name == name:
             return table

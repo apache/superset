@@ -17,7 +17,7 @@
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -135,7 +135,7 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 
@@ -160,14 +160,14 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     encryption_parameters = {"ssl": "1"}
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: "Database") -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         Trim whitespace from connect_args to avoid databricks driver errors
         """
-        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
-        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
-        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
         connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
         connect_args.setdefault("_user_agent_entry", USER_AGENT)
@@ -184,7 +184,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> Set[str]:
+    ) -> set[str]:
         return super().get_table_names(
             database, inspector, schema
         ) - cls.get_view_names(database, inspector, schema)
@@ -213,8 +213,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
 
     @classmethod
     def extract_errors(
-        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
-    ) -> List[SupersetError]:
+        cls, ex: Exception, context: Optional[dict[str, Any]] = None
+    ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
@@ -271,8 +271,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     def validate_parameters(  # type: ignore
         cls,
         properties: DatabricksPropertiesType,
-    ) -> List[SupersetError]:
-        errors: List[SupersetError] = []
+    ) -> list[SupersetError]:
+        errors: list[SupersetError] = []
         required = {"access_token", "host", "port", "database", "extra"}
         extra = json.loads(properties.get("extra", "{}"))
         engine_params = extra.get("engine_params", {})
