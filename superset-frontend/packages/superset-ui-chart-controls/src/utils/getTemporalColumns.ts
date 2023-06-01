@@ -55,9 +55,9 @@ export function getTemporalColumns(
     rv.defaultTemporalColumn = datasource.main_dttm_col;
   }
   if (!isDefined(rv.defaultTemporalColumn)) {
-    rv.defaultTemporalColumn = (
-      rv.temporalColumns[0] as ColumnMeta
-    ).column_name;
+    rv.defaultTemporalColumn =
+      (rv.temporalColumns[0] as ColumnMeta)?.column_name ??
+      (rv.temporalColumns[0] as QueryColumn)?.name;
   }
 
   return rv;
