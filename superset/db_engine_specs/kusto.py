@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
@@ -61,7 +61,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         " DATEDIFF(week, 0, DATEADD(day, -1, {col})), 0)",
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
     column_type_mappings = (
         (
@@ -72,7 +72,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     )
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel,import-error
         import sqlalchemy_kusto.errors as kusto_exceptions
 
@@ -84,7 +84,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -128,10 +128,10 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "datetime_diff('year',CreateDate, datetime(0001-01-01 00:00:00))+1",
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel,import-error
         import sqlalchemy_kusto.errors as kusto_exceptions
 
@@ -143,7 +143,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -168,7 +168,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return not parsed_query.sql.startswith(".")
 
     @classmethod
-    def parse_sql(cls, sql: str) -> List[str]:
+    def parse_sql(cls, sql: str) -> list[str]:
         """
         Kusto supports a single query statement, but it could include sub queries
         and variables declared via let keyword.

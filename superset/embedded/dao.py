@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from superset.dao.base import BaseDAO
 from superset.extensions import db
@@ -31,7 +31,7 @@ class EmbeddedDAO(BaseDAO):
     id_column_name = "uuid"
 
     @staticmethod
-    def upsert(dashboard: Dashboard, allowed_domains: List[str]) -> EmbeddedDashboard:
+    def upsert(dashboard: Dashboard, allowed_domains: list[str]) -> EmbeddedDashboard:
         """
         Sets up a dashboard to be embeddable.
         Upsert is used to preserve the embedded_dashboard uuid across updates.
@@ -45,7 +45,7 @@ class EmbeddedDAO(BaseDAO):
         return embedded
 
     @classmethod
-    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Any:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> Any:
         """
         Use EmbeddedDAO.upsert() instead.
         At least, until we are ok with more than one embedded instance per dashboard.

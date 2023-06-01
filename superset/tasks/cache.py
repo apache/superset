@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
 
@@ -72,7 +72,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         pass
 
-    def get_urls(self) -> List[str]:
+    def get_urls(self) -> list[str]:
         raise NotImplementedError("Subclasses must implement get_urls!")
 
 
@@ -94,7 +94,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dummy"
 
-    def get_urls(self) -> List[str]:
+    def get_urls(self) -> list[str]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
@@ -126,7 +126,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
-    def get_urls(self) -> List[str]:
+    def get_urls(self) -> list[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -165,11 +165,11 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dashboard_tags"
 
-    def __init__(self, tags: Optional[List[str]] = None) -> None:
+    def __init__(self, tags: Optional[list[str]] = None) -> None:
         super().__init__()
         self.tags = tags or []
 
-    def get_urls(self) -> List[str]:
+    def get_urls(self) -> list[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -216,7 +216,7 @@ strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="fetch_url")
-def fetch_url(url: str, headers: Dict[str, str]) -> Dict[str, str]:
+def fetch_url(url: str, headers: dict[str, str]) -> dict[str, str]:
     """
     Celery job to fetch url
     """
@@ -242,7 +242,7 @@ def fetch_url(url: str, headers: Dict[str, str]) -> Dict[str, str]:
 @celery_app.task(name="cache-warmup")
 def cache_warmup(
     strategy_name: str, *args: Any, **kwargs: Any
-) -> Union[Dict[str, List[str]], str]:
+) -> Union[dict[str, list[str]], str]:
     """
     Warm up cache.
 
@@ -272,7 +272,7 @@ def cache_warmup(
     cookies = MachineAuthProvider.get_auth_cookies(user)
     headers = {"Cookie": f"session={cookies.get('session', '')}"}
 
-    results: Dict[str, List[str]] = {"scheduled": [], "errors": []}
+    results: dict[str, list[str]] = {"scheduled": [], "errors": []}
     for url in strategy.get_urls():
         try:
             logger.info("Scheduling %s", url)

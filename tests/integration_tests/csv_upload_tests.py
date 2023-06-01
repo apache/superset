@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import shutil
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from unittest import mock
 
@@ -132,7 +132,7 @@ def get_upload_db():
 def upload_csv(
     filename: str,
     table_name: str,
-    extra: Optional[Dict[str, str]] = None,
+    extra: Optional[dict[str, str]] = None,
     dtype: Union[str, None] = None,
 ):
     csv_upload_db_id = get_upload_db().id
@@ -155,7 +155,7 @@ def upload_csv(
 
 
 def upload_excel(
-    filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    filename: str, table_name: str, extra: Optional[dict[str, str]] = None
 ):
     excel_upload_db_id = get_upload_db().id
     form_data = {
@@ -175,7 +175,7 @@ def upload_excel(
 
 
 def upload_columnar(
-    filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    filename: str, table_name: str, extra: Optional[dict[str, str]] = None
 ):
     columnar_upload_db_id = get_upload_db().id
     form_data = {
@@ -218,7 +218,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
 
 
 def escaped_double_quotes(text):
-    return f"\&#34;{text}\&#34;"
+    return rf"\&#34;{text}\&#34;"
 
 
 def escaped_parquet(text):

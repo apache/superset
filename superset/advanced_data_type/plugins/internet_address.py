@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import ipaddress
-from typing import Any, List
+from typing import Any
 
 from sqlalchemy import Column
 
@@ -77,7 +77,7 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
 
 # Make this return a single clause
 def cidr_translate_filter_func(
-    col: Column, operator: FilterOperator, values: List[Any]
+    col: Column, operator: FilterOperator, values: list[Any]
 ) -> Any:
     """
     Convert a passed in column, FilterOperator and

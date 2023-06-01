@@ -19,7 +19,6 @@ from datetime import date, datetime, timezone
 import logging
 from math import nan
 from unittest.mock import Mock, patch
-from typing import Any, Dict, List, Set
 
 import numpy as np
 import pandas as pd
@@ -1009,7 +1008,7 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         test_viz = viz.TimeTableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data
-        self.assertEqual(set(["count", "sum__A"]), set(data["columns"]))
+        self.assertEqual({"count", "sum__A"}, set(data["columns"]))
         time_format = "%Y-%m-%d %H:%M:%S"
         expected = {
             t1.strftime(time_format): {"sum__A": 15, "count": 6},
@@ -1030,7 +1029,7 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         test_viz = viz.TimeTableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data
-        self.assertEqual(set(["a1", "a2", "a3"]), set(data["columns"]))
+        self.assertEqual({"a1", "a2", "a3"}, set(data["columns"]))
         time_format = "%Y-%m-%d %H:%M:%S"
         expected = {
             t1.strftime(time_format): {"a1": 15, "a2": 20, "a3": 25},

@@ -61,7 +61,7 @@ def upgrade():
             slc.params = json.dumps(params, indent=2, sort_keys=True)
             session.merge(slc)
             session.commit()
-            print("Upgraded ({}/{}): {}".format(i, slice_len, slc.slice_name))
+            print(f"Upgraded ({i}/{slice_len}): {slc.slice_name}")
         except Exception as ex:
             print(slc.slice_name + " error: " + str(ex))
 

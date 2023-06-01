@@ -23,7 +23,6 @@ from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
-from operator import itemgetter
 
 import prison
 import pytest
@@ -52,7 +51,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
@@ -1805,10 +1803,10 @@ class TestDatabaseApi(SupersetTestCase):
             schemas = [
                 s[0] for s in database.get_all_table_names_in_schema(schema_name)
             ]
-            self.assertEquals(response["count"], len(schemas))
+            self.assertEqual(response["count"], len(schemas))
             for option in response["result"]:
-                self.assertEquals(option["extra"], None)
-                self.assertEquals(option["type"], "table")
+                self.assertEqual(option["extra"], None)
+                self.assertEqual(option["type"], "table")
                 self.assertTrue(option["value"] in schemas)
 
     def test_database_tables_not_found(self):

@@ -173,7 +173,7 @@ def get_header_component(title):
 def get_row_container():
     return {
         "type": ROW_TYPE,
-        "id": "DASHBOARD_ROW_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_ROW_TYPE-{generate_id()}",
         "children": [],
         "meta": {"background": BACKGROUND_TRANSPARENT},
     }
@@ -182,7 +182,7 @@ def get_row_container():
 def get_col_container():
     return {
         "type": COLUMN_TYPE,
-        "id": "DASHBOARD_COLUMN_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_COLUMN_TYPE-{generate_id()}",
         "children": [],
         "meta": {"background": BACKGROUND_TRANSPARENT},
     }
@@ -203,18 +203,18 @@ def get_chart_holder(position):
         if len(code):
             markdown_content = code
         elif slice_name.strip():
-            markdown_content = "##### {}".format(slice_name)
+            markdown_content = f"##### {slice_name}"
 
         return {
             "type": MARKDOWN_TYPE,
-            "id": "DASHBOARD_MARKDOWN_TYPE-{}".format(generate_id()),
+            "id": f"DASHBOARD_MARKDOWN_TYPE-{generate_id()}",
             "children": [],
             "meta": {"width": width, "height": height, "code": markdown_content},
         }
 
     return {
         "type": CHART_TYPE,
-        "id": "DASHBOARD_CHART_TYPE-{}".format(generate_id()),
+        "id": f"DASHBOARD_CHART_TYPE-{generate_id()}",
         "children": [],
         "meta": {"width": width, "height": height, "chartId": int(slice_id)},
     }
@@ -584,10 +584,10 @@ def upgrade():
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
-        print("scanning dashboard ({}/{}) >>>>".format(i + 1, len(dashboards)))
+        print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         position_json = json.loads(dashboard.position_json or "[]")
         if not is_v2_dash(position_json):
-            print("Converting dashboard... dash_id: {}".format(dashboard.id))
+            print(f"Converting dashboard... dash_id: {dashboard.id}")
             position_dict = {}
             positions = []
             slices = dashboard.slices
@@ -650,7 +650,7 @@ def upgrade():
             session.merge(dashboard)
             session.commit()
         else:
-            print("Skip converted dash_id: {}".format(dashboard.id))
+            print(f"Skip converted dash_id: {dashboard.id}")
 
     session.close()
 

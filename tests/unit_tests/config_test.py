@@ -17,7 +17,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
 from functools import partial
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import pytest
 from pytest_mock import MockerFixture
@@ -44,7 +44,7 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
-def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: Dict[str, Any]) -> None:
+def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> None:
     """Applies dttm defaults to the table, mutates in place."""
     for dbcol in table.columns:
         # Set is_dttm is column is listed in dttm_columns.

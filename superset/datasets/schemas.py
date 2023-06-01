@@ -16,7 +16,7 @@
 # under the License.
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
@@ -150,7 +150,7 @@ class DatasetRelatedObjectsResponse(Schema):
 class ImportV1ColumnSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -176,7 +176,7 @@ class ImportV1ColumnSchema(Schema):
 class ImportV1MetricSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """
@@ -198,7 +198,7 @@ class ImportV1MetricSchema(Schema):
 class ImportV1DatasetSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
         """

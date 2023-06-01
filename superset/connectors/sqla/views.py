@@ -447,7 +447,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect("/explore/?datasource_type=table&datasource_id={}".format(pk))
+        return redirect(f"/explore/?datasource_type=table&datasource_id={pk}")
 
     @expose("/list/")
     @has_access

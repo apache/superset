@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -80,7 +80,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseReportState:
-    current_states: List[ReportState] = []
+    current_states: list[ReportState] = []
     initial: bool = False
 
     def __init__(
@@ -195,7 +195,7 @@ class BaseReportState:
             **kwargs,
         )
 
-    def _get_screenshots(self) -> List[bytes]:
+    def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -394,14 +394,14 @@ class BaseReportState:
     def _send(
         self,
         notification_content: NotificationContent,
-        recipients: List[ReportRecipients],
+        recipients: list[ReportRecipients],
     ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: CommandException
         """
-        notification_errors: List[SupersetError] = []
+        notification_errors: list[SupersetError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
