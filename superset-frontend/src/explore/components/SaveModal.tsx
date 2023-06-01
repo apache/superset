@@ -174,7 +174,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       if (this.props.datasource?.type === DatasourceType.Query) {
         const { schema, sql, database } = this.props.datasource;
         const { templateParams } = this.props.datasource;
-        const columns = this.props.datasource?.columns || [];
 
         await this.props.actions.saveDataset({
           schema,
@@ -182,7 +181,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           database,
           templateParams,
           datasourceName: this.state.datasetName,
-          columns,
         });
       }
 

@@ -45,23 +45,11 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
         try:
             # Creates SqlaTable (Dataset)
-            columns = self._properties.pop("columns", [])
             dataset = DatasetDAO.create(self._properties, commit=False)
-            # Updates columns and metrics from the dataset
-            ds_columns = []
-            for column in columns:
-                column_name = column.get("column_name")
-                col = TableColumn(
-                    column_name=column_name,
-                    filterable=True,
-                    groupby=True,
-                    is_dttm=column.get("is_dttm", False),
-                    type=column.get("type", False),
-                )
-                ds_columns.append(col)
 
-            dataset.columns = ds_columns
+            # Updates columns and metrics from the dataset
             dataset.metrics = [SqlMetric(metric_name="count", expression="COUNT(*)")]
+
             dataset.fetch_metadata(commit=False)
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:

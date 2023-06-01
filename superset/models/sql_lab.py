@@ -194,7 +194,7 @@ class Query(
         for col in self.extra.get("columns", []):
             columns.append(
                 TableColumn(
-                    column_name=col["name"],
+                    column_name=col["column_name"],
                     type=col["type"],
                     is_dttm=col["is_dttm"],
                     groupby=True,

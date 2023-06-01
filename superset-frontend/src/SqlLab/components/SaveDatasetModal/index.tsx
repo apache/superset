@@ -292,14 +292,13 @@ export const SaveDatasetModal = ({
       }
     }
 
+    console.log(datasource.schema);
     dispatch(
       createDatasource({
-        schema: datasource.schema,
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
         templateParams,
         datasourceName: datasetName,
-        columns: selectedColumns,
       }),
     )
       .then((data: { id: number }) =>
