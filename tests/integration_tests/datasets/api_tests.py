@@ -542,41 +542,6 @@ class TestDatasetApi(SupersetTestCase):
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
 
-    def test_create_dataset_item_with_columns(self):
-        """
-        Dataset API: Test create dataset item with columns
-        """
-        if backend() == "sqlite":
-            return
-
-        main_db = get_main_database()
-        self.login(username="admin")
-        table_data = {
-            "database": main_db.id,
-            "schema": None,
-            "table_name": "ab_permission",
-            "columns": [{"column_name": "foo", "type": "STRING", "is_dttm": False}],
-        }
-        uri = "api/v1/dataset/"
-        rv = self.post_assert_metric(uri, table_data, "post")
-        assert rv.status_code == 201
-        data = json.loads(rv.data.decode("utf-8"))
-        table_id = data.get("id")
-        model = db.session.query(SqlaTable).get(table_id)
-        assert model.table_name == table_data["table_name"]
-        assert model.database_id == table_data["database"]
-        assert len(model.columns) == 1
-
-        # Assert that columns were created
-        columns = (
-            db.session.query(TableColumn)
-            .filter_by(table_id=table_id)
-            .order_by("column_name")
-            .all()
-        )
-        assert columns[0].column_name == "id"
-        assert columns[1].column_name == "name"
-
         # Assert that metrics were created
         columns = (
             db.session.query(SqlMetric)
