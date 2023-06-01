@@ -346,7 +346,7 @@ class QueryContextProcessor:
             )
 
         columns = df.columns
-        time_grain = query_object.extras.get("time_grain_sqla") or TimeGrain.DAY
+        time_grain = query_context.form_data.get("time_grain_sqla") or TimeGrain.DAY
         use_aggregated_join_column = time_grain in AGGREGATED_JOIN_GRAINS
         if use_aggregated_join_column:
             # adds aggregated join column
