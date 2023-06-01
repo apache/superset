@@ -542,6 +542,16 @@ class TestDatasetApi(SupersetTestCase):
         assert model.table_name == table_data["table_name"]
         assert model.database_id == table_data["database"]
 
+        # Assert that columns were created
+        columns = (
+            db.session.query(TableColumn)
+            .filter_by(table_id=table_id)
+            .order_by("column_name")
+            .all()
+        )
+        assert columns[0].column_name == "id"
+        assert columns[1].column_name == "name"
+
         # Assert that metrics were created
         columns = (
             db.session.query(SqlMetric)

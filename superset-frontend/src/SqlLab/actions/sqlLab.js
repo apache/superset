@@ -1503,12 +1503,11 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
-    const { dbId, schema, datasourceName, sql, columns } = vizOptions;
+    const { dbId, schema, datasourceName, sql } = vizOptions;
     return SupersetClient.post({
       endpoint: '/api/v1/dataset/',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        columns,
         database: dbId,
         schema,
         sql,
