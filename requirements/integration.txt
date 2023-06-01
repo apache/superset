@@ -44,7 +44,7 @@ platformdirs==3.5.1
     #   virtualenv
 pluggy==1.0.0
     # via tox
-pre-commit==3.3.1
+pre-commit==3.3.2
     # via -r integration.in
 pyproject-api==1.5.1
     # via tox
