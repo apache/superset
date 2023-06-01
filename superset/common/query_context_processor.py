@@ -324,6 +324,24 @@ class QueryContextProcessor:
 
         return df
 
+    @staticmethod
+    def get_time_grain(
+        query_context: QueryContext, query_object: QueryObject
+    ) -> Optional[Any]:
+        if query_context.form_data:
+            return query_context.form_data.get("time_grain_sqla")
+
+        if (
+            query_object.columns
+            and len(query_object.columns) > 0
+            and isinstance(query_object.columns[0], dict)
+        ):
+            # If the time grain is in the columns it will be the first one
+            # and it will be of AdhocColumn type
+            return query_object.columns[0].get("timeGrain")
+
+        return query_object.extras.get("time_grain_sqla")
+
     def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
@@ -346,7 +364,7 @@ class QueryContextProcessor:
             )
 
         columns = df.columns
-        time_grain = query_context.form_data.get("time_grain_sqla") or TimeGrain.DAY
+        time_grain = self.get_time_grain(query_context, query_object) or TimeGrain.DAY
         use_aggregated_join_column = time_grain in AGGREGATED_JOIN_GRAINS
         if use_aggregated_join_column:
             # adds aggregated join column
