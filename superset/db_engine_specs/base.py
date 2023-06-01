@@ -630,7 +630,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
         """
-
         :param cursor: Cursor instance
         :param limit: Maximum number of rows to be returned by the cursor
         :return: Result of query
@@ -638,10 +637,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
+            logger.info("INSIDE FFETCH DAATA", str(cursor.arraysize))
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+                logger.info("INSIDE FFETCH DAATA", str(cursor.fetchmany(limit)))
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
         except Exception as ex:
+            logger.info("EXCEPTION IN BASE BY", str(ex))
             raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
@@ -1349,6 +1351,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
+            logger.info("ERROR IN EXECUTE==",str(ex))
             raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod

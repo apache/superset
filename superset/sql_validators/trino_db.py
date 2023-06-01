@@ -32,14 +32,14 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-class PrestoSQLValidationError(Exception):
+class TrinoSQLValidationError(Exception):
     """Error in the process of asking Presto to validate SQL querytext"""
 
 
-class PrestoDBSQLValidator(BaseSQLValidator):
+class TrinoDBSQLValidator(BaseSQLValidator):
     """Validate SQL queries using Presto's built-in EXPLAIN subtype"""
 
-    name = "PrestoDBSQLValidator"
+    name = "TrinoDBSQLValidator"
 
     @classmethod
     def validate_statement(
@@ -55,14 +55,14 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         logger.info("DB ENGINE==", db_engine_spec)
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_query_mutator:
-            sql = sql_query_mutator(
-                sql,
-                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
-                security_manager=security_manager,
-                database=database,
-            )
+        # sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        # if sql_query_mutator:
+        #     sql = sql_query_mutator(
+        #         sql,
+        #         user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+        #         security_manager=security_manager,
+        #         database=database,
+        #     )
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
@@ -79,61 +79,26 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             db_engine_spec.execute(cursor, sql)
             logger.info("CURSOR", str(cursor))
             logger.info("ENGINE INSIDE", str(db_engine_spec))
-
-            polled = cursor.poll()
-            while polled:
-                logger.info("polling presto for validation progress")
-                stats = polled.get("stats", {})
-                if stats:
-                    state = stats.get("state")
-                    if state == "FINISHED":
-                        break
-                time.sleep(0.2)
-                polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
-        except DatabaseError as db_error:
-            # The pyhive presto client yields EXPLAIN (TYPE VALIDATE) responses
-            # as though they were normal queries. In other words, it doesn't
-            # know that errors here are not exceptional. To map this back to
-            # ordinary control flow, we have to trap the category of exception
-            # raised by the underlying client, match the exception arguments
-            # pyhive provides against the shape of dictionary for a presto query
-            # invalid error, and restructure that error as an annotation we can
-            # return up.
-
-            # If the first element in the DatabaseError is not a dictionary, but
-            # is a string, return that message.
+        except Exception as db_error:
+            logger.info("database error==", str(db_error))
             if db_error.args and isinstance(db_error.args[0], str):
-                raise PrestoSQLValidationError(db_error.args[0]) from db_error
-
-            # Confirm the first element in the DatabaseError constructor is a
-            # dictionary with error information. This is currently provided by
-            # the pyhive client, but may break if their interface changes when
-            # we update at some point in the future.
+                raise TrinoSQLValidationError(db_error.args[0]) from db_error
             if not db_error.args or not isinstance(db_error.args[0], dict):
-                raise PrestoSQLValidationError(
+                raise TrinoSQLValidationError(
                     "The pyhive presto client returned an unhandled " "database error."
                 ) from db_error
             error_args: Dict[str, Any] = db_error.args[0]
-
-            # Confirm the two fields we need to be able to present an annotation
-            # are present in the error response -- a message, and a location.
             if "message" not in error_args:
-                raise PrestoSQLValidationError(
+                raise TrinoSQLValidationError(
                     "The pyhive presto client did not report an error message"
                 ) from db_error
             if "errorLocation" not in error_args:
-                # Pylint is confused about the type of error_args, despite the hints
-                # and checks above.
-                # pylint: disable=invalid-sequence-index
                 message = error_args["message"] + "\n(Error location unknown)"
-                # If we have a message but no error location, return the message and
-                # set the location as the beginning.
                 return SQLValidationAnnotation(
                     message=message, line_number=1, start_column=1, end_column=1
                 )
-
             # pylint: disable=invalid-sequence-index
             message = error_args["message"]
             err_loc = error_args["errorLocation"]
@@ -147,9 +112,9 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 start_column=start_column,
                 end_column=end_column,
             )
-        except Exception as ex:
-            logger.exception("Unexpected error running validation query: %s", str(ex))
-            raise ex
+        # except Exception as ex:
+        #     logger.exception("Unexpected error running validation query: %s", str(ex))
+        #     raise ex
 
     @classmethod
     def validate(
@@ -173,8 +138,9 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             for statement in parsed_query.get_statements():
-                logger.info("CURSOR IN PRESTO==",cursor)
+                logger.info("CURSOR IN TRINO==",cursor)
                 annotation = cls.validate_statement(statement, database, cursor)
+                logger.info("ANNOTATIONS==",annotation)
                 if annotation:
                     annotations.append(annotation)
         logger.debug("Validation found %i error(s)", len(annotations))
