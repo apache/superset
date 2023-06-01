@@ -133,6 +133,35 @@ For example, the filters `client_id=4` and `client_id=5`, applied to a role,
 will result in users of that role having `client_id=4` AND `client_id=5`
 added to their query, which can never be true.
 
+### User Sessions
+
+Superset uses [Flask](https://pypi.org/project/Flask/)
+and [Flask-Login](https://pypi.org/project/Flask-Login/) for user session management.
+
+Session cookies are used to maintain session info and user state between requests,
+although they do not contain personal user information they serve the purpose of identifying
+a user session on the server side.
+The session cookie is encrypted with the application `SECRET_KEY` and cannot be read by the client.
+So it's very important to keep the `SECRET_KEY` secret and set to a secure unique complex random value.
+
+Flask and Flask-Login offer a number of configuration options to control session behavior.
+
+- Relevant Flask settings:
+
+`SESSION_COOKIE_HTTPONLY`: (default: `False`): Controls if cookies should be set with the `HttpOnly` flag.
+
+`SESSION_COOKIE_SECURE`: (default: `False`) Browsers will only send cookies with requests over
+HTTPS if the cookie is marked “secure”. The application must be served over HTTPS for this to make sense.
+
+`SESSION_COOKIE_SAMESITE`: (default: "Lax") Prevents the browser from sending this cookie along with cross-site requests.
+
+`PERMANENT_SESSION_LIFETIME`: (default: "31 days") The lifetime of a permanent session as a `datetime.timedelta` object.
+
+- Relevant Flask-Login settings:
+
+`SESSION_PROTECTION`: The method used to protect the session from being stolen. [Documentation](https://flask-login.readthedocs.io/en/latest/#session-protection)
+Default: "strong"
+
 ### Content Security Policy (CSP)
 
 Superset uses the [Talisman](https://pypi.org/project/flask-talisman/) extension to enable implementation of a
