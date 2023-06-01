@@ -16,6 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { 
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
+  createSmartDateFormatter
+} from '@superset-ui/core';
+
 import {
   computeStackedYDomain,
   computeYDomain,
@@ -111,6 +117,13 @@ const DATA_WITH_DISABLED_SERIES = [
 ];
 
 describe('nvd3/utils', () => {
+  beforeEach(() => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+  });
+
   describe('getTimeOrNumberFormatter(format)', () => {
     it('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');
