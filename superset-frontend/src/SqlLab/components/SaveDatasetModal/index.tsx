@@ -292,7 +292,6 @@ export const SaveDatasetModal = ({
       }
     }
 
-    console.log(datasource.schema);
     dispatch(
       createDatasource({
         sql: datasource.sql,
