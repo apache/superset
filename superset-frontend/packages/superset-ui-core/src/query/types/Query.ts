@@ -443,7 +443,6 @@ export const testQueryResults = {
       },
     ],
     query: { limit: 6 },
-    sql: 'select * from foo',
   },
 };
 
