@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { 
+import {
   getTimeFormatterRegistry,
   SMART_DATE_ID,
-  createSmartDateFormatter
+  createSmartDateFormatter,
 } from '@superset-ui/core';
 
 import {

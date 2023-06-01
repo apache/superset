@@ -20,7 +20,7 @@
 import { TimeLocaleDefinition } from 'd3-time-format';
 import {
   TimeFormatter,
-  createSmartDateDetailedFormatter
+  createSmartDateDetailedFormatter,
 } from '@superset-ui/core';
 
 describe('smartDateDetailedFormatter', () => {
