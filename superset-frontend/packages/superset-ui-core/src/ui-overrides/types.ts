@@ -104,6 +104,20 @@ export interface DatabaseConnectionExtension {
   onDelete?: (db: any) => void;
 }
 
+/**
+ * Interface for extensions SQL Form.
+ * These will be passed from the SQLEditor
+ *
+ * @param queryEditorId the queryEditor's id
+ * @param setQueryEditorAndSaveSqlWithDebounce Debounced function that saves a query into the query editor
+ * @param startQuery Callback that starts a query from the query editor
+ */
+export interface SQLFormExtensionProps {
+  queryEditorId: string;
+  setQueryEditorAndSaveSqlWithDebounce: (sql: string) => void;
+  startQuery: (ctasArg?: any, ctas_method?: any) => void;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -122,4 +136,5 @@ export type Extensions = Partial<{
   /* Custom components to show in the database and dataset delete modals */
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
+  'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
 }>;
