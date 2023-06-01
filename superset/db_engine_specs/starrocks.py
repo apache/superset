@@ -40,7 +40,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.
 logger = logging.getLogger(__name__)
 
 
-class TINYINT(Integer):  # pylint: disable=no-init
+class TINYINT(Integer):
     __visit_name__ = "TINYINT"
 
 

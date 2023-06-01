@@ -22,7 +22,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlMetric
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
