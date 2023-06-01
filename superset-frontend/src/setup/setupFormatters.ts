@@ -84,15 +84,15 @@ export default function setupFormatters(
     .setD3Format(d3TimeFormat)
     .registerValue(
       SMART_DATE_ID,
-      createSmartDateFormatter(timeFormatterRegistry.getLocale()),
+      createSmartDateFormatter(timeFormatterRegistry.d3Format),
     )
     .registerValue(
       SMART_DATE_VERBOSE_ID,
-      createSmartDateVerboseFormatter(timeFormatterRegistry.getLocale()),
+      createSmartDateVerboseFormatter(timeFormatterRegistry.d3Format),
     )
     .registerValue(
       SMART_DATE_DETAILED_ID,
-      createSmartDateDetailedFormatter(timeFormatterRegistry.getLocale()),
+      createSmartDateDetailedFormatter(timeFormatterRegistry.d3Format),
     )
     .setDefaultKey(SMART_DATE_ID);
 }

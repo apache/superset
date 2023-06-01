@@ -45,10 +45,6 @@ export default class TimeFormatterRegistry extends RegistryWithDefaultKey<
     return this;
   }
 
-  getLocale() {
-    return this.d3Format;
-  }
-
   get(format?: string) {
     const targetFormat = `${
       format === null || typeof format === 'undefined' || format === ''
