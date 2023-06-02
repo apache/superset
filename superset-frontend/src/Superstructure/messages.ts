@@ -18,6 +18,8 @@ const UNAVAILABLE = {
   bodyRu:
     'Superset Dashboard Plugin в настоящее время недоступен. Он либо сломан, либо происходят важные обновления. Техническая команда работает над решением этой проблемы. Пожалуйста, будьте терпеливы',
 };
+const RELEASE_IS_STABLE = 'Релиз стабилен';
+const RELEASE_IN_TESTING = 'Релиз тестируется';
 
 const IF_QUESTIONS_RU =
   'Если у Вас возникли вопросы, то можно обратиться в команду поддержки';
@@ -99,7 +101,7 @@ const CSV_TEMP_PROBLEM_RU = {
 const UPGRADE_2_0_RU = {
   title: 'Успешный переход на версию Superset 2.0',
   date: '17.03.2023',
-  subTitle: 'Релиз стабилизирован',
+  subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы в версии 2.0',
   messages: [
@@ -120,7 +122,7 @@ const UPGRADE_2_0_RU = {
 const NEW_FEATURES_APRIL_2023_RU = {
   title: 'Обновления [Апрель 2023]',
   date: '11.04.2023',
-  subTitle: 'Релиз стабилен',
+  subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы',
   messages: [
@@ -140,7 +142,7 @@ const NEW_FEATURES_APRIL_2023_RU = {
 const NEW_FEATURES_MAY_2023_RU = {
   title: 'Обновления [Май 2023]',
   date: '03.05.2023',
-  subTitle: 'Релиз тестируется',
+  subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы',
   messages: [
@@ -157,7 +159,30 @@ const NEW_FEATURES_MAY_2023_RU = {
   messagesExtra: [
     'Доработкой функциональности для Changelog (удобное отображение нового обновления)',
     'Начинаем груммить введение инструмента для организации списка дашбордов и списка графиков в Standalone Superset',
-    'орабатываем разделение по бизнесам в Superset Dashboard Plugin (визуальное, функциональное)',
+    'обрабатываем разделение по бизнесам в Superset Dashboard Plugin (визуальное, функциональное)',
+  ],
+};
+
+const NEW_FEATURES_JUNE_2023_RU = {
+  title: 'Обновления [Июнь 2023]',
+  date: '02.06.2023',
+  subTitle: RELEASE_IN_TESTING,
+  extra: IF_QUESTIONS_RU,
+  listTitle: 'Новая функциональность / исправлены проблемы',
+  messages: [
+    'Добавили новые валюты в форматирование чисел: Euro, Zloty, Som, Uzbekistan Sum',
+    'Изменили форматирование чисел (вместо запятых - пробелы)',
+    'Изменили форматирование десятичных (вместо точек - запятые)',
+    'Обновили логотип в Superset standalone',
+    'Исправили разные проблемы пользователей в разных типах графиков',
+  ],
+  listTitleExtra: 'Что планируем брать в работу?',
+  messagesExtra: [
+    'Добавить все необходимые валюты в форматирование',
+    'Улучшить и локализовать форматирование чисел',
+    'Изменить форматирование по умолчанию в датах',
+    'Подумать, как упростить выбор дат в фильтрах',
+    'Улучшить уведомление пользователей о важных вещах в Superset Standalone и Superset dashboard plugin',
   ],
 };
 
@@ -174,4 +199,5 @@ export {
   UPGRADE_2_0_RU,
   NEW_FEATURES_APRIL_2023_RU,
   NEW_FEATURES_MAY_2023_RU,
+  NEW_FEATURES_JUNE_2023_RU,
 };

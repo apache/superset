@@ -13,13 +13,21 @@ interface ExtendedFormatLocaleDefinition extends FormatLocaleDefinition {
   code: string;
 }
 
-type SUPPORTED_LOCALES = 'DEFAULT_2f' | 'RUB_2f' | 'EUR_2f' | 'PLN_2f';
+type SUPPORTED_LOCALES =
+  | 'DEFAULT_2f'
+  | 'RUB_2f'
+  | 'EUR_2f'
+  | 'PLN_2f'
+  | 'KGS_2f'
+  | 'UZS_2f';
 
 export const SUPPORTED_LOCALES_ARRAY = [
   'DEFAULT_2f',
   'RUB_2f',
   'EUR_2f',
   'PLN_2f',
+  'KGS_2f',
+  'UZS_2f',
 ];
 
 export const D3_LOCALES: Record<
@@ -54,5 +62,21 @@ export const D3_LOCALES: Record<
     grouping: [3],
     currency: ['', 'zł'],
     code: 'PLN',
+  },
+  KGS_2f: {
+    id: 'сом,.2f',
+    decimal: ',',
+    thousands: '\u00a0',
+    grouping: [3],
+    currency: ['', '\u00a0сом.'],
+    code: 'KGS',
+  },
+  UZS_2f: {
+    id: 'сум,.2f',
+    decimal: ',',
+    thousands: '\u00a0',
+    grouping: [3],
+    currency: ['', '\u00a0сум.'],
+    code: 'UZS',
   },
 };
