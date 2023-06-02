@@ -135,7 +135,13 @@ def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
     type_ = group["type"].upper()
     children_type = group["children"]
     if type_ == "ARRAY":
-        return [{"name": column["name"], "type": children_type, "is_dttm": False}]
+        return [
+            {
+                "column_name": column["column_name"],
+                "type": children_type,
+                "is_dttm": False,
+            }
+        ]
 
     if type_ == "ROW":
         nameless_columns = 0
@@ -150,7 +156,7 @@ def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
                 type_ = parts[0]
                 nameless_columns += 1
             _column: ResultSetColumnType = {
-                "name": f"{column['name']}.{name.lower()}",
+                "column_name": f"{column['column_name']}.{name.lower()}",
                 "type": type_,
                 "is_dttm": False,
             }
@@ -1138,7 +1144,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         current_array_level = None
         while to_process:
             column, level = to_process.popleft()
-            if column["name"] not in [column["name"] for column in all_columns]:
+            if column["column_name"] not in [
+                column["column_name"] for column in all_columns
+            ]:
                 all_columns.append(column)
 
             # When unnesting arrays we need to keep track of how many extra rows
@@ -1150,7 +1158,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 unnested_rows: Dict[int, int] = defaultdict(int)
                 current_array_level = level
 
-            name = column["name"]
+            name = column["column_name"]
             values: Optional[Union[str, List[Any]]]
 
             if column["type"] and column["type"].startswith("ARRAY("):
@@ -1201,10 +1209,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         values = cast(Optional[List[Any]], destringify(values))
                         row[name] = values
                     for value, col in zip(values or [], expanded):
-                        row[col["name"]] = value
+                        row[col["column_name"]] = value
 
         data = [
-            {k["name"]: row.get(k["name"], "") for k in all_columns} for row in data
+            {k["column_name"]: row.get(k["column_name"], "") for k in all_columns}
+            for row in data
         ]
 
         return all_columns, data, expanded_columns

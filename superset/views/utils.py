@@ -569,6 +569,9 @@ def _deserialize_results_payload(
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_records(df) or []
 
+        for column in ds_payload["selected_columns"]:
+            column["column_name"] = column.pop("name")
+
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(
             ds_payload["selected_columns"], ds_payload["data"]

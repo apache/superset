@@ -251,9 +251,9 @@ class SupersetResultSet:
 
         columns = []
         for col in self.table.schema:
-            db_type_str = self.data_type(col.name, col.type)
+            db_type_str = self.data_type(col.column_nam, col.type)
             column: ResultSetColumnType = {
-                "name": col.name,
+                "column_name": col.name,
                 "type": db_type_str,
                 "is_dttm": self.is_temporal(db_type_str),
             }

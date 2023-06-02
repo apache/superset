@@ -64,7 +64,7 @@ class ResultSetColumnType(TypedDict):
     Superset virtual dataset column interface
     """
 
-    name: str
+    column_name: str
     type: Optional[str]
     is_dttm: bool
 
