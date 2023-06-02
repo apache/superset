@@ -97,7 +97,7 @@ flask-app: activate
 	flask run -p 8088 --with-threads --reload --debugger
 
 node-app:
-	cd superset-frontend; nvm use; npm run dev-server
+	cd superset-frontend; npm run dev-server
 
 build-cypress:
 	cd superset-frontend; npm run build-instrumented
