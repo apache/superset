@@ -93,11 +93,11 @@ py-lint: pre-commit
 js-format:
 	cd superset-frontend; npm run prettier
 
-flask-app:
+flask-app: activate
 	flask run -p 8088 --with-threads --reload --debugger
 
 node-app:
-	cd superset-frontend; npm run dev-server
+	cd superset-frontend; nvm use; npm run dev-server
 
 build-cypress:
 	cd superset-frontend; npm run build-instrumented
@@ -115,3 +115,21 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+# Create a postgres instance using docker
+# CLI: $ psql postgresql://postgres:1234@localhost:5432/postgres
+# superset_config.py: SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:1234@localhost:5432/postgres'
+db:
+	# start postgres with detached mode
+	docker run -d -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD="1234" --name pg postgres:alpine;\
+	EXIT_CODE=$$?;\
+	echo $$EXIT_CODE;\
+	echo "command exited with $$EXIT_CODE";\
+	if [ $$EXIT_CODE -ne "0" ]; then docker start pg; echo "DB has been created"; fi
+
+db-stop:
+	docker stop pg
+
+# Primarily made for GH codespaces but this flow could work on your local as well
+api: db flask-app
+client: node-app
