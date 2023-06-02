@@ -26,6 +26,8 @@ export {
   getNumberFormatter,
 } from './NumberFormatterRegistrySingleton';
 
+export { D3_LOCALES, SUPPORTED_LOCALES_ARRAY } from './D3FormatConfig';
+
 export { default as NumberFormatterRegistry } from './NumberFormatterRegistry';
 export { default as createD3NumberFormatter } from './factories/createD3NumberFormatter';
 export { default as createDurationFormatter } from './factories/createDurationFormatter';
