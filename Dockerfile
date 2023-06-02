@@ -68,6 +68,7 @@ RUN mkdir -p ${PYTHONPATH} \
         libsasl2-modules-gssapi-mit \
         libpq-dev \
         libecpg-dev \
+        libldap2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
