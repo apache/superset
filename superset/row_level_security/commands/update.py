@@ -17,7 +17,7 @@
 
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateRLSRuleCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])

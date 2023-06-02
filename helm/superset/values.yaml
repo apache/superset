@@ -248,11 +248,11 @@ supersetNode:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
-    redis_host: '{{ template "superset.fullname" . }}-redis-headless'
+    redis_host: '{{ .Release.Name }}-redis-headless'
     # redis_password: superset
     redis_port: "6379"
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
-    db_host: '{{ template "superset.fullname" . }}-postgresql'
+    db_host: '{{ .Release.Name }}-postgresql'
     db_port: "5432"
     db_user: superset
     db_pass: superset

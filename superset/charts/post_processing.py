@@ -27,7 +27,7 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 import pandas as pd
 from flask_babel import gettext as __
@@ -45,14 +45,14 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 
-def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
+def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
     Sort columns when combining metrics.
 
     MultiIndex labels have the metric name as the last element in the
     tuple. We want to sort these according to the list of passed metrics.
     """
-    parts: List[Any] = list(label)
+    parts: list[Any] = list(label)
     metric = parts[-1]
     parts[-1] = metrics.index(metric)
     return tuple(parts)
@@ -60,9 +60,9 @@ def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...
 
 def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches
     df: pd.DataFrame,
-    rows: List[str],
-    columns: List[str],
-    metrics: List[str],
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
     aggfunc: str = "Sum",
     transpose_pivot: bool = False,
     combine_metrics: bool = False,
@@ -194,7 +194,7 @@ def list_unique_values(series: pd.Series) -> str:
     """
     List unique values in a series.
     """
-    return ", ".join(set(str(v) for v in pd.Series.unique(series)))
+    return ", ".join({str(v) for v in pd.Series.unique(series)})
 
 
 pivot_v2_aggfunc_map = {
@@ -223,7 +223,7 @@ pivot_v2_aggfunc_map = {
 
 def pivot_table_v2(
     df: pd.DataFrame,
-    form_data: Dict[str, Any],
+    form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
@@ -249,7 +249,7 @@ def pivot_table_v2(
 
 def pivot_table(
     df: pd.DataFrame,
-    form_data: Dict[str, Any],
+    form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
@@ -285,7 +285,7 @@ def pivot_table(
 
 def table(
     df: pd.DataFrame,
-    form_data: Dict[str, Any],
+    form_data: dict[str, Any],
     datasource: Optional[  # pylint: disable=unused-argument
         Union["BaseDatasource", "Query"]
     ] = None,
@@ -315,10 +315,10 @@ post_processors = {
 
 
 def apply_post_process(
-    result: Dict[Any, Any],
-    form_data: Optional[Dict[str, Any]] = None,
+    result: dict[Any, Any],
+    form_data: Optional[dict[str, Any]] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
-) -> Dict[Any, Any]:
+) -> dict[Any, Any]:
     form_data = form_data or {}
 
     viz_type = form_data.get("viz_type")

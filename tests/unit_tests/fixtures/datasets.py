@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock
 
 
-def get_column_mock(params: Dict[str, Any]) -> Mock:
+def get_column_mock(params: dict[str, Any]) -> Mock:
     mock = Mock()
     mock.id = params["id"]
     mock.column_name = params["column_name"]
@@ -32,7 +32,7 @@ def get_column_mock(params: Dict[str, Any]) -> Mock:
     return mock
 
 
-def get_metric_mock(params: Dict[str, Any]) -> Mock:
+def get_metric_mock(params: dict[str, Any]) -> Mock:
     mock = Mock()
     mock.id = params["id"]
     mock.metric_name = params["metric_name"]

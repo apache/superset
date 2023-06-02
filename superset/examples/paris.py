@@ -52,7 +52,7 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
                 index=False,
             )
 
-    print("Creating table {} reference".format(tbl_name))
+    print(f"Creating table {tbl_name} reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

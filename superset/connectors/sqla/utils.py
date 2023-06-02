@@ -17,19 +17,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Iterator
 from functools import lru_cache
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    TYPE_CHECKING,
-    TypeVar,
-)
+from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
@@ -58,8 +48,8 @@ if TYPE_CHECKING:
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
-    schema_name: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+    schema_name: str | None = None,
+) -> list[dict[str, Any]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -103,7 +93,7 @@ def get_physical_table_metadata(
     return cols
 
 
-def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
+def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -150,7 +140,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
 def get_columns_description(
     database: Database,
     query: str,
-) -> List[ResultSetColumnType]:
+) -> list[ResultSetColumnType]:
     db_engine_spec = database.db_engine_spec
     try:
         with database.get_raw_connection() as conn:
@@ -171,7 +161,7 @@ def get_dialect_name(drivername: str) -> str:
 
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
-def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
+def get_identifier_quoter(drivername: str) -> dict[str, Callable[[str], str]]:
     return SqlaURL.create(drivername).get_dialect()().identifier_preparer.quote
 
 
@@ -181,9 +171,9 @@ logger = logging.getLogger(__name__)
 
 def find_cached_objects_in_session(
     session: Session,
-    cls: Type[DeclarativeModel],
-    ids: Optional[Iterable[int]] = None,
-    uuids: Optional[Iterable[UUID]] = None,
+    cls: type[DeclarativeModel],
+    ids: Iterable[int] | None = None,
+    uuids: Iterable[UUID] | None = None,
 ) -> Iterator[DeclarativeModel]:
     """Find known ORM instances in cached SQLA session states.
 

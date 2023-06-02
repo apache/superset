@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
 from sqlalchemy import types
@@ -45,8 +45,8 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -74,9 +74,9 @@ def test_get_column_spec(
 )
 def test_adjust_engine_params(
     sqlalchemy_uri: str,
-    connect_args: Dict[str, Any],
+    connect_args: dict[str, Any],
     return_schema: str,
-    return_connect_args: Dict[str, Any],
+    return_connect_args: dict[str, Any],
 ) -> None:
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 

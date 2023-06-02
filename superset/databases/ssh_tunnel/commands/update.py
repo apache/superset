@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateSSHTunnelCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
