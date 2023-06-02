@@ -53,8 +53,6 @@ class TrinoDBSQLValidator(BaseSQLValidator):
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
         logger.info("DB ENGINE==", db_engine_spec)
-
-        # Hook to allow environment-specific mutation (usually comments) to the SQL
         # sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         # if sql_query_mutator:
         #     sql = sql_query_mutator(
@@ -63,25 +61,26 @@ class TrinoDBSQLValidator(BaseSQLValidator):
         #         security_manager=security_manager,
         #         database=database,
         #     )
-
-        # Transform the final statement to an explain call before sending it on
-        # to presto to validate
         sql = f"EXPLAIN (TYPE VALIDATE) {sql}"
-
-        # Invoke the query against presto. NB this deliberately doesn't use the
-        # engine spec's handle_cursor implementation since we don't record
-        # these EXPLAIN queries done in validation as proper Query objects
-        # in the superset ORM.
-        # pylint: disable=import-outside-toplevel
-        from pyhive.exc import DatabaseError
+        from trino.exceptions import TrinoUserError
 
         try:
             db_engine_spec.execute(cursor, sql)
             logger.info("CURSOR", str(cursor))
             logger.info("ENGINE INSIDE", str(db_engine_spec))
+            polled = cursor.poll()
+            while polled:
+                logger.info("polling presto for validation progress")
+                stats = polled.get("stats", {})
+                if stats:
+                    state = stats.get("state")
+                    if state == "FINISHED":
+                        break
+                time.sleep(0.2)
+                polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
-        except Exception as db_error:
+        except TrinoUserError as db_error:
             logger.info("database error==", str(db_error))
             if db_error.args and isinstance(db_error.args[0], str):
                 raise TrinoSQLValidationError(db_error.args[0]) from db_error

@@ -1352,6 +1352,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor.execute(query)
         except Exception as ex:
             logger.info("ERROR IN EXECUTE==",str(ex))
+            logger.info("EXCEPTION TYPE", cls.get_dbapi_mapped_exception(ex))
             raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
