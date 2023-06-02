@@ -334,7 +334,7 @@
     "thread-loader": "^3.0.4",
     "transform-loader": "^0.2.4",
     "ts-loader": "^9.4.4",
-    "typescript": "^4.5.4",
+    "typescript": "^4.8.4",
     "vm-browserify": "^1.1.2",
     "webpack": "^5.88.1",
     "webpack-bundle-analyzer": "^4.9.0",

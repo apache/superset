@@ -24,16 +24,16 @@ export default function extent<T = number | string | Date | undefined | null>(
   // eslint-disable-next-line no-restricted-syntax
   for (const value of values) {
     if (value !== null) {
-      if (min === undefined) {
+      if (min === undefined || min === null) {
         if (value !== undefined) {
           min = value;
           max = value;
         }
-      } else {
+      } else if (value !== undefined) {
         if (min > value) {
           min = value;
         }
-        if (max !== undefined) {
+        if (max !== undefined && max !== null) {
           if (max < value) {
             max = value;
           }
