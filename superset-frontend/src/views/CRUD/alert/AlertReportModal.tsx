@@ -57,13 +57,11 @@ import {
   RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { ERROR_MESSAGES } from './constants';
 import { getLeastTimeout } from './helper';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
-import { ReportType } from 'src/reports/types';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -572,12 +570,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onSave = async () => {
-    console.log(currentAlert)
-    if(currentAlert && currentAlert?.sql && !isReport){
-      let isQueryInvalid = await validateSqlQuery(currentAlert?.sql)
-      console.log('Query Invalid',isQueryInvalid)
-      if(isQueryInvalid){
-        return
+    console.log(currentAlert);
+    if (currentAlert && currentAlert?.sql && !isReport) {
+      const isQueryInvalid = await validateSqlQuery(currentAlert?.sql);
+      console.log('Query Invalid', isQueryInvalid);
+      if (isQueryInvalid) {
+        return;
       }
     }
     // Notification Settings
@@ -909,36 +907,33 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
-  const validateSqlQuery = (sql:string) => {
-    return SupersetClient.post({
+  const validateSqlQuery = (sql: string) =>
+    SupersetClient.post({
       endpoint: `/api/v1/database/${currentAlert?.database?.value}/validate_sql/`,
-      body: JSON.stringify({sql:sql}),
+      body: JSON.stringify({ sql }),
       headers: { 'Content-Type': 'application/json' },
     })
-      .then(({json}) => {
-        console.log("response", json)
-        if(json && json.result && json.result.length > 0){
-          addDangerToast(t('Sql Query is not valid: %s', json?.result[0].message))
-          return true
+      .then(({ json }) => {
+        console.log('response', json);
+        if (json && json.result && json.result.length > 0) {
+          addDangerToast(
+            t('Sql Query is not valid: %s', json?.result[0].message),
+          );
+          return true;
         }
-        else{
-          return false
-        }
-      })
-      .catch((error) =>{
-        console.log("response in error",error.body)
-        // getClientErrorObject(response.result).then(error => {
-        //   let message = error.error || error.statusText || t('Unknown error');
-        //   if (message.includes('CSRF token')) {
-        //     message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
-        //   }
 
-        // })
-        addDangerToast(t('Sql Query is not valid: %s', error.statusText))
-        return true
-      }
-      );
-  }
+        return false;
+      })
+      .catch(response => {
+        console.log('response in error', response);
+        getClientErrorObject(response).then(error => {
+          const apiError = error?.error
+            ? error?.error
+            : 'Sql Query is not valid: Please Contact Administrator for further support';
+          addDangerToast(t(apiError));
+        });
+        return true;
+      });
 
   const onOwnersChange = (value: Array<SelectValue>) => {
     updateAlertState('owners', value || []);

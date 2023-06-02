@@ -59,16 +59,16 @@ class TrinoDBSQLValidator(BaseSQLValidator):
             db_engine_spec.execute(cursor, sql)
             logger.info("CURSOR", str(cursor))
             logger.info("ENGINE INSIDE", str(db_engine_spec))
-            polled = cursor.poll()
-            while polled:
-                logger.info("polling presto for validation progress")
-                stats = polled.get("stats", {})
-                if stats:
-                    state = stats.get("state")
-                    if state == "FINISHED":
-                        break
-                time.sleep(0.2)
-                polled = cursor.poll()
+            # polled = cursor.poll()
+            # while polled:
+            #     logger.info("polling presto for validation progress")
+            #     stats = polled.get("stats", {})
+            #     if stats:
+            #         state = stats.get("state")
+            #         if state == "FINISHED":
+            #             break
+            #     time.sleep(0.2)
+            #     polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
         except TrinoUserError as db_error:
