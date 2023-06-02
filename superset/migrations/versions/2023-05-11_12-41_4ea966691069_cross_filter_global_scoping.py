@@ -28,6 +28,7 @@ down_revision = "9c2a5681ddfd"
 
 import copy
 import json
+import logging
 
 import sqlalchemy as sa
 from alembic import op
@@ -37,6 +38,7 @@ from superset import db
 from superset.migrations.shared.utils import paginated_update
 
 Base = declarative_base()
+logger = logging.getLogger(__name__)
 
 
 class Dashboard(Base):
@@ -72,8 +74,9 @@ def upgrade():
             json_metadata["chart_configuration"] = new_chart_configuration
             dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("Failed to run up migration")
+            raise e
 
     session.commit()
     session.close()
@@ -91,20 +94,24 @@ def downgrade():
                 chart_id = config.get("id")
                 if chart_id is None:
                     continue
-                scope = config.get("crossFilters", {}).get("scope", {})
+                scope = config.get("crossFilters", {}).get("scope", "")
                 new_chart_configuration[chart_id] = copy.deepcopy(config)
-                if scope == "global":
+                if scope.lower() == "global":
                     new_chart_configuration[chart_id]["crossFilters"]["scope"] = {
                         "rootPath": ["ROOT_ID"],
                         "excluded": [chart_id],
                     }
 
             json_metadata["chart_configuration"] = new_chart_configuration
-            del json_metadata["global_chart_configuration"]
+
+            if "global_chart_configuration" in json_metadata:
+                del json_metadata["global_chart_configuration"]
+
             dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("Failed to run down migration")
+            raise e
 
     session.commit()
     session.close()
