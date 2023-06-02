@@ -63,6 +63,7 @@ import { ERROR_MESSAGES } from './constants';
 import { getLeastTimeout } from './helper';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
+import { ReportType } from 'src/reports/types';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -572,117 +573,120 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onSave = async () => {
     console.log(currentAlert)
-    if(currentAlert && currentAlert?.sql){
-      validateSqlQuery(currentAlert?.sql)
-
+    if(currentAlert && currentAlert?.sql && !isReport){
+      let isQueryInvalid = await validateSqlQuery(currentAlert?.sql)
+      console.log('Query Invalid',isQueryInvalid)
+      if(isQueryInvalid){
+        return
+      }
     }
     // Notification Settings
-    // setInvalidInputs({ invalid: false, emailError: '', voError: '' });
-    // const recipients: Recipient[] = [];
-    // const invalidEmails: string[] = [];
-    // const invalidRoutingKeys: string[] = [];
-    // const routingKeys: string[] = [];
+    setInvalidInputs({ invalid: false, emailError: '', voError: '' });
+    const recipients: Recipient[] = [];
+    const invalidEmails: string[] = [];
+    const invalidRoutingKeys: string[] = [];
+    const routingKeys: string[] = [];
 
-    // notificationSettings.forEach(setting => {
-    //   if (setting.method && setting.recipients.length) {
-    //     filterInvalidEmailsAndRoutingKeys(
-    //       setting,
-    //       invalidEmails,
-    //       invalidRoutingKeys,
-    //       routingKeys,
-    //     );
-    //     recipients.push({
-    //       recipient_config_json: {
-    //         target: setting.recipients,
-    //       },
-    //       type: setting.method,
-    //     });
-    //   }
-    // });
+    notificationSettings.forEach(setting => {
+      if (setting.method && setting.recipients.length) {
+        filterInvalidEmailsAndRoutingKeys(
+          setting,
+          invalidEmails,
+          invalidRoutingKeys,
+          routingKeys,
+        );
+        recipients.push({
+          recipient_config_json: {
+            target: setting.recipients,
+          },
+          type: setting.method,
+        });
+      }
+    });
 
-    // const { emailError, voError } = getEmailAndVOError(
-    //   invalidEmails,
-    //   invalidRoutingKeys,
-    //   routingKeys,
-    // );
+    const { emailError, voError } = getEmailAndVOError(
+      invalidEmails,
+      invalidRoutingKeys,
+      routingKeys,
+    );
 
-    // if (emailError || voError) {
-    //   setInvalidInputs({ invalid: true, emailError, voError });
-    //   addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
-    //   return;
-    // }
+    if (emailError || voError) {
+      setInvalidInputs({ invalid: true, emailError, voError });
+      addDangerToast(t(ERROR_MESSAGES.GENERIC_INVALID_INPUT));
+      return;
+    }
 
-    // const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
-    // const data: any = {
-    //   ...currentAlert,
-    //   type: isReport ? 'Report' : 'Alert',
-    //   force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
-    //   validator_type: conditionNotNull ? 'not null' : 'operator',
-    //   validator_config_json: conditionNotNull
-    //     ? {}
-    //     : currentAlert?.validator_config_json,
-    //   chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
-    //   dashboard:
-    //     contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
-    //   database: currentAlert?.database?.value,
-    //   owners: (currentAlert?.owners || []).map(
-    //     owner => (owner as MetaObject).value || owner.id,
-    //   ),
-    //   recipients,
-    //   report_format:
-    //     contentType === 'dashboard'
-    //       ? DEFAULT_NOTIFICATION_FORMAT
-    //       : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
-    // };
+    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
+    const data: any = {
+      ...currentAlert,
+      type: isReport ? 'Report' : 'Alert',
+      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      validator_type: conditionNotNull ? 'not null' : 'operator',
+      validator_config_json: conditionNotNull
+        ? {}
+        : currentAlert?.validator_config_json,
+      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
+      dashboard:
+        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      database: currentAlert?.database?.value,
+      owners: (currentAlert?.owners || []).map(
+        owner => (owner as MetaObject).value || owner.id,
+      ),
+      recipients,
+      report_format:
+        contentType === 'dashboard'
+          ? DEFAULT_NOTIFICATION_FORMAT
+          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+    };
 
-    // if (data.recipients && !data.recipients.length) {
-    //   delete data.recipients;
-    // }
+    if (data.recipients && !data.recipients.length) {
+      delete data.recipients;
+    }
 
-    // data.context_markdown = 'string';
+    data.context_markdown = 'string';
 
-    // if (isEditMode) {
-    //   // Edit
-    //   if (currentAlert && currentAlert.id) {
-    //     const update_id = currentAlert.id;
+    if (isEditMode) {
+      // Edit
+      if (currentAlert && currentAlert.id) {
+        const update_id = currentAlert.id;
 
-    //     delete data.id;
-    //     delete data.created_by;
-    //     delete data.last_eval_dttm;
-    //     delete data.last_state;
-    //     delete data.last_value;
-    //     delete data.last_value_row_json;
+        delete data.id;
+        delete data.created_by;
+        delete data.last_eval_dttm;
+        delete data.last_state;
+        delete data.last_value;
+        delete data.last_value_row_json;
 
-    //     updateResource(update_id, data).then(response => {
-    //       if (!response) {
-    //         return;
-    //       }
+        updateResource(update_id, data).then(response => {
+          if (!response) {
+            return;
+          }
 
-    //       addSuccessToast(t('%s updated', data.type));
+          addSuccessToast(t('%s updated', data.type));
 
-    //       if (onAdd) {
-    //         onAdd();
-    //       }
+          if (onAdd) {
+            onAdd();
+          }
 
-    //       hide();
-    //     });
-    //   }
-    // } else if (currentAlert) {
-    //   // Create
-    //   createResource(data).then(response => {
-    //     if (!response) {
-    //       return;
-    //     }
+          hide();
+        });
+      }
+    } else if (currentAlert) {
+      // Create
+      createResource(data).then(response => {
+        if (!response) {
+          return;
+        }
 
-    //     addSuccessToast(t('%s updated', data.type));
+        addSuccessToast(t('%s updated', data.type));
 
-    //     if (onAdd) {
-    //       onAdd(response);
-    //     }
+        if (onAdd) {
+          onAdd(response);
+        }
 
-    //     hide();
-    //   });
-    // }
+        hide();
+      });
+    }
   };
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = useMemo(
@@ -906,7 +910,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validateSqlQuery = (sql:string) => {
-    console.log("currentAlert", currentAlert)
     return SupersetClient.post({
       endpoint: `/api/v1/database/${currentAlert?.database?.value}/validate_sql/`,
       body: JSON.stringify({sql:sql}),
@@ -914,19 +917,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     })
       .then(({json}) => {
         console.log("response", json)
-        if(json && json.result && json.result.length > 0)
-        addDangerToast(t('Sql Query is not valid: %s', json?.result[0].message) )
+        if(json && json.result && json.result.length > 0){
+          addDangerToast(t('Sql Query is not valid: %s', json?.result[0].message))
+          return true
+        }
+        else{
+          return false
+        }
       })
       .catch((error) =>{
-        console.log("response in error",error)
-      }
+        console.log("response in error",error.body)
         // getClientErrorObject(response.result).then(error => {
-        //   console.log("error response",response)
         //   let message = error.error || error.statusText || t('Unknown error');
         //   if (message.includes('CSRF token')) {
         //     message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
         //   }
-        // }),
+
+        // })
+        addDangerToast(t('Sql Query is not valid: %s', error.statusText))
+        return true
+      }
       );
   }
 
