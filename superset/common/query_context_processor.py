@@ -342,6 +342,22 @@ class QueryContextProcessor:
 
         return query_object.extras.get("time_grain_sqla")
 
+    def add_aggregated_join_column(
+        self,
+        df: pd.DataFrame,
+        time_grain: str,
+        join_column_producer: Any,
+    ) -> None:
+        if join_column_producer:
+            df[AGGREGATED_JOIN_COLUMN] = df.apply(
+                lambda row: join_column_producer(row, 0), axis=1
+            )
+        else:
+            df[AGGREGATED_JOIN_COLUMN] = df.apply(
+                lambda row: self.get_aggregated_join_column(row, 0, time_grain),
+                axis=1,
+            )
+
     def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
@@ -372,16 +388,7 @@ class QueryContextProcessor:
             time_grain in AGGREGATED_JOIN_GRAINS or join_column_producer
         )
         if use_aggregated_join_column:
-            # adds aggregated join column
-            if join_column_producer:
-                df[AGGREGATED_JOIN_COLUMN] = df.apply(
-                    lambda row: join_column_producer(row, 0), axis=1
-                )
-            else:
-                df[AGGREGATED_JOIN_COLUMN] = df.apply(
-                    lambda row: self.get_aggregated_join_column(row, 0, time_grain),
-                    axis=1,
-                )
+            self.add_aggregated_join_column(df, time_grain, join_column_producer)
             # skips the first column which is the temporal column
             # because we'll use the aggregated join columns instead
             columns = df.columns[1:]
@@ -486,23 +493,9 @@ class QueryContextProcessor:
                 )
 
                 if use_aggregated_join_column:
-                    # adds aggregated join column
-                    if join_column_producer:
-                        offset_metrics_df[
-                            AGGREGATED_JOIN_COLUMN
-                        ] = offset_metrics_df.apply(
-                            lambda row: join_column_producer(row, 0),
-                            axis=1,
-                        )
-                    else:
-                        offset_metrics_df[
-                            AGGREGATED_JOIN_COLUMN
-                        ] = offset_metrics_df.apply(
-                            lambda row: self.get_aggregated_join_column(
-                                row, 0, time_grain
-                            ),
-                            axis=1,
-                        )
+                    self.add_aggregated_join_column(
+                        offset_metrics_df, time_grain, join_column_producer
+                    )
 
             # cache df and query
             value = {
