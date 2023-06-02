@@ -189,7 +189,6 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          // removed && isAggMode as it is a function defined above. So this will always evaluate to true
           hasGenericChartAxes
             ? {
                 name: 'time_grain_sqla',
@@ -218,7 +217,6 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          // removed && isAggMode as it is a function defined above. So this will always evaluate to true
           hasGenericChartAxes ? 'temporal_columns_lookup' : null,
         ],
         [
