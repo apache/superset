@@ -51,8 +51,13 @@ const getCsrfToken = async ({
   const csrfResponse = await GET_CSRF_TOKEN({ useAuth });
 
   if ('code' in csrfResponse) {
+    const csrfResponseAltered = {
+      ...csrfResponse,
+      message:
+        'Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
+    };
     return handleAxiosError({
-      response: csrfResponse,
+      response: csrfResponseAltered,
       errorObject: MESSAGES.CSRF,
     });
   }

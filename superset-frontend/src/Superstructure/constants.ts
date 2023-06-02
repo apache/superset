@@ -84,8 +84,10 @@ const MESSAGES = {
       stackTrace: 'CSRF',
       title: 'Get CSRF token from Superset',
     },
-    NO_TOKEN: 'No CSRF token was returned from Superset',
-    OTHER: 'While getting CSRF unexected error happened',
+    NO_TOKEN:
+      'No CSRF token was returned from Superset. Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
+    OTHER:
+      'While getting CSRF unexected error happened. Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
   },
 };
 

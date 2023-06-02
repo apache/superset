@@ -175,6 +175,8 @@ const NEW_FEATURES_JUNE_2023_RU = {
     'Изменили форматирование десятичных (вместо точек - запятые)',
     'Обновили логотип в Superset standalone',
     'Исправили разные проблемы пользователей в разных типах графиков',
+    'Добавили новые валюты в форматирование чисел: Naira, Romanian Leu, Somoni, Dong, Serbian Dinar, Armenian Dram, Lari, Rupiah, Azerbaijan Manat',
+    'Добавили пользовательское сообщение о том, что вход в суперсет невозможен без email',
   ],
   listTitleExtra: 'Что планируем брать в работу?',
   messagesExtra: [
