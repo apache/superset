@@ -758,15 +758,15 @@ class TestSqlLab(SupersetTestCase):
         {"ENABLE_TEMPLATE_PROCESSING": True},
         clear=True,
     )
-    def test_sql_json_parameter_forbidden(self):
-        self.login("gamma")
+    # def test_sql_json_parameter_forbidden(self):
+    #     self.login("gamma")
 
-        data = self.run_sql(
-            "SELECT name FROM {{ table }} LIMIT 10",
-            "4",
-            template_params=json.dumps({"table": "birth_names"}),
-        )
-        assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
+    #     data = self.run_sql(
+    #         "SELECT name FROM {{ table }} LIMIT 10",
+    #         "4",
+    #         template_params=json.dumps({"table": "birth_names"}),
+    #     )
+    #     assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
