@@ -28,6 +28,7 @@ down_revision = "9c2a5681ddfd"
 
 import copy
 import json
+import logging
 
 import sqlalchemy as sa
 from alembic import op
@@ -37,6 +38,7 @@ from superset import db
 from superset.migrations.shared.utils import paginated_update
 
 Base = declarative_base()
+logger = logging.getLogger(__name__)
 
 
 class Dashboard(Base):
@@ -50,12 +52,24 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
     for dashboard in paginated_update(session.query(Dashboard)):
+        #
+        # This is needed in order to work-around a potential issue
+        # that some folks may have run into where their json_metadata's
+        # were left partially upgraded.
+        #
+        needs_upgrade = True
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
             for config in json_metadata.get("chart_configuration", {}).values():
                 chart_id = int(config.get("id", 0))
                 scope = config.get("crossFilters", {}).get("scope", {})
+
+                # Skip any JSON's that have the "new" structure
+                if not isinstance(scope, dict):
+                    needs_upgrade = False
+                    continue
+
                 excluded = [
                     int(excluded_id) for excluded_id in scope.get("excluded", [])
                 ]
@@ -70,10 +84,13 @@ def upgrade():
                     ] = "global"
 
             json_metadata["chart_configuration"] = new_chart_configuration
-            dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception:
-            pass
+            if needs_upgrade:
+                dashboard.json_metadata = json.dumps(json_metadata)
+
+        except Exception as e:
+            logger.exception("Failed to run up migration")
+            raise e
 
     session.commit()
     session.close()
@@ -93,18 +110,22 @@ def downgrade():
                     continue
                 scope = config.get("crossFilters", {}).get("scope", {})
                 new_chart_configuration[chart_id] = copy.deepcopy(config)
-                if scope == "global":
+                if scope in ("global", "Global"):
                     new_chart_configuration[chart_id]["crossFilters"]["scope"] = {
                         "rootPath": ["ROOT_ID"],
                         "excluded": [chart_id],
                     }
 
             json_metadata["chart_configuration"] = new_chart_configuration
-            del json_metadata["global_chart_configuration"]
+
+            if "global_chart_configuration" in json_metadata:
+                del json_metadata["global_chart_configuration"]
+
             dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("Failed to run down migration")
+            raise e
 
     session.commit()
     session.close()
