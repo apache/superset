@@ -59,7 +59,7 @@ def upgrade():
         #
         needs_upgrade = True
         try:
-            json_metadata = json.loads(dashboard.json_metadata)
+            json_metadata = json.loads(dashboard.json_metadata or "{}")
             new_chart_configuration = {}
             for config in json_metadata.get("chart_configuration", {}).values():
                 chart_id = int(config.get("id", 0))
