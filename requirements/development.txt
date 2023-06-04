@@ -88,7 +88,7 @@ pure-eval==0.2.2
     # via stack-data
 pydruid==0.6.5
     # via apache-superset
-pyhive @ git+https://github.com/dropbox/PyHive.git@a54db4fe5bd84ac2890820abe510e665661991a1
+pyhive @ git+https://github.com/dropbox/PyHive.git@93af30db22f111ca6cb88127652b497ca54ba55e
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
