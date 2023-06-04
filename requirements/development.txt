@@ -86,13 +86,9 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
 pydruid==0.6.5
     # via apache-superset
-pyhive @ git+https://github.com/dropbox/PyHive.git@033707f32618137e429aaa4eea1407544144f5e5
+pyhive @ git+https://github.com/dropbox/PyHive.git@a54db4fe5bd84ac2890820abe510e665661991a1
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -116,12 +112,7 @@ tableschema==1.20.2
 tabulator==1.53.5
     # via tableschema
 thrift==0.16.0
-    # via
-    #   apache-superset
-    #   pyhive
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via pyhive
+    # via apache-superset
 tomlkit==0.11.8
     # via pylint
 traitlets==5.9.0
