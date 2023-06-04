@@ -35,7 +35,7 @@ packaging==23.1
     #   pyproject-api
     #   tox
 pip-compile-multi==2.6.3
-    # via -r integration.in
+    # via -r requirements/integration.in
 pip-tools==6.13.0
     # via pip-compile-multi
 platformdirs==3.8.1
