@@ -96,7 +96,7 @@ pyasn1-modules==0.3.0
     # via python-ldap
 pydruid==0.6.5
     # via apache-superset
-pyhive @ git+https://github.com/dropbox/PyHive.git@1b359e9589f069e47af7f1828fff7c48982c8d05
+pyhive @ git+https://github.com/dropbox/PyHive.git@36e6364a5e86d5df719def8239813a6df576e008
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
