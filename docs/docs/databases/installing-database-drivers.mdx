@@ -16,14 +16,16 @@ install new database drivers into your Superset configuration.
 ### Supported Databases and Dependencies
 
 Superset does not ship bundled with connectivity to databases, except for SQLite,
-which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
+which is part of the Python standard library.
+You’ll need to install the required packages for the database you want to use as your metadata database
+as well as the packages needed to connect to the databases you want to access through Superset.
 
-A list of some of the recommended packages.
+Some of the recommended packages are shown below. Please refer to [setup.py](https://github.com/apache/superset/blob/master/setup.py) for the versions that are compatible with Superset.
 
 | Database                                                  | PyPI package                                                                       | Connection String                                                                                           |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [Amazon Athena](/docs/databases/athena)                   | `pip install "PyAthenaJDBC>1.0.9` , `pip install "PyAthena>1.2.0`                  | `awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{ `        |
-| [Amazon DynamoDB](/docs/databases/dynamodb)               | `pip install "PyDynamoDB>=0.4.2`                                                   | `dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com?connector=superset`    |
+| [Amazon Athena](/docs/databases/athena)                   | `pip install pyathena[pandas]` , `pip install PyAthenaJDBC`                        | `awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{ `        |
+| [Amazon DynamoDB](/docs/databases/dynamodb)               | `pip install pydynamodb`                                                           | `dynamodb://{access_key_id}:{secret_access_key}@dynamodb.{region_name}.amazonaws.com?connector=superset`    |
 | [Amazon Redshift](/docs/databases/redshift)               | `pip install sqlalchemy-redshift`                                                  | ` redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>`                         |
 | [Apache Drill](/docs/databases/drill)                     | `pip install sqlalchemy-drill`                                                     | `drill+sadrill:// For JDBC drill+jdbc://`                                                                   |
 | [Apache Druid](/docs/databases/druid)                     | `pip install pydruid`                                                              | `druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql`                                         |
@@ -35,8 +37,8 @@ A list of some of the recommended packages.
 | [Apache Spark SQL](/docs/databases/spark-sql)             | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                  |
 | [Ascend.io](/docs/databases/ascend)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`             |
 | [Azure MS SQL](/docs/databases/sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`            |
-| [Big Query](/docs/databases/bigquery)                     | `pip install sqlalchemy-bigquery`                                                           | `bigquery://{project_id}`                                                                                   |
-| [ClickHouse](/docs/databases/clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                    |
+| [Big Query](/docs/databases/bigquery)                     | `pip install sqlalchemy-bigquery`                                                  | `bigquery://{project_id}`                                                                                   |
+| [ClickHouse](/docs/databases/clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                         |
 | [CockroachDB](/docs/databases/cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                           |
 | [Dremio](/docs/databases/dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                             |
 | [Elasticsearch](/docs/databases/elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                       |
@@ -52,6 +54,7 @@ A list of some of the recommended packages.
 | [Trino](/docs/databases/trino)                            | `pip install trino`                                                                | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                 |
 | [Presto](/docs/databases/presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                 |
 | [SAP Hana](/docs/databases/hana)                          | `pip install hdbcli sqlalchemy-hana or pip install apache-superset[hana]`          | `hana://{username}:{password}@{host}:{port}`                                                                |
+| [StarRocks](/docs/databases/starrocks)                    | `pip install starrocks`                                                            | `starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                          |
 | [Snowflake](/docs/databases/snowflake)                    | `pip install snowflake-sqlalchemy`                                                 | `snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}`             |
 | SQLite                                                    | No additional library needed                                                       | `sqlite://`                                                                                                 |
 | [SQL Server](/docs/databases/sql-server)                  | `pip install pymssql`                                                              | `mssql+pymssql://`                                                                                                  |

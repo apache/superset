@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
@@ -70,7 +70,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 ):
     """A slice is essentially a report or a view on data"""
 
-    query_context_factory: Optional[QueryContextFactory] = None
+    query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
@@ -134,17 +134,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> type[BaseDatasource]:
         # pylint: disable=import-outside-toplevel
         from superset.datasource.dao import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> Optional["BaseDatasource"]:
+    def datasource(self) -> BaseDatasource | None:
         return self.get_datasource
 
-    def clone(self) -> "Slice":
+    def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
             datasource_id=self.datasource_id,
@@ -158,7 +158,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    def get_datasource(self) -> Optional["BaseDatasource"]:
+    def get_datasource(self) -> BaseDatasource | None:
         return (
             db.session.query(self.cls_model)
             .filter_by(id=self.datasource_id)
@@ -166,20 +166,20 @@ class Slice(  # pylint: disable=too-many-public-methods
         )
 
     @renders("datasource_name")
-    def datasource_link(self) -> Optional[Markup]:
+    def datasource_link(self) -> Markup | None:
         # pylint: disable=no-member
         datasource = self.datasource
         return datasource.link if datasource else None
 
     @renders("datasource_url")
-    def datasource_url(self) -> Optional[str]:
+    def datasource_url(self) -> str | None:
         # pylint: disable=no-member
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
         return datasource.explore_url if datasource else None
 
-    def datasource_name_text(self) -> Optional[str]:
+    def datasource_name_text(self) -> str | None:
         # pylint: disable=no-member
         if self.table:
             if self.table.schema:
@@ -192,7 +192,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         return None
 
     @property
-    def datasource_edit_url(self) -> Optional[str]:
+    def datasource_edit_url(self) -> str | None:
         # pylint: disable=no-member
         datasource = self.datasource
         return datasource.url if datasource else None
@@ -200,7 +200,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     # pylint: enable=using-constant-test
 
     @property
-    def viz(self) -> Optional[BaseViz]:
+    def viz(self) -> BaseViz | None:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
         datasource = self.datasource
@@ -213,9 +213,9 @@ class Slice(  # pylint: disable=too-many-public-methods
         return utils.markdown(self.description)
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         """Data used to render slice in templates"""
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         self.token = ""
         try:
             viz = self.viz
@@ -261,8 +261,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return json.dumps(self.data)
 
     @property
-    def form_data(self) -> Dict[str, Any]:
-        form_data: Dict[str, Any] = {}
+    def form_data(self) -> dict[str, Any]:
+        form_data: dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
@@ -272,7 +272,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             {
                 "slice_id": self.id,
                 "viz_type": self.viz_type,
-                "datasource": "{}__{}".format(self.datasource_id, self.datasource_type),
+                "datasource": f"{self.datasource_id}__{self.datasource_type}",
             }
         )
 
@@ -281,7 +281,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> Optional[QueryContext]:
+    def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
                 return self.get_query_context_factory().create(
@@ -295,13 +295,13 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_explore_url(
         self,
         base_url: str = "/explore",
-        overrides: Optional[Dict[str, Any]] = None,
+        overrides: dict[str, Any] | None = None,
     ) -> str:
         return self.build_explore_url(self.id, base_url, overrides)
 
     @staticmethod
     def build_explore_url(
-        id_: int, base_url: str = "/explore", overrides: Optional[Dict[str, Any]] = None
+        id_: int, base_url: str = "/explore", overrides: dict[str, Any] | None = None
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": id_}

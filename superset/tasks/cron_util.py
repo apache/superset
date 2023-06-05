@@ -16,8 +16,8 @@
 # under the License.
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone as dt_timezone
-from typing import Iterator
 
 from croniter import croniter
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError

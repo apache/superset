@@ -288,7 +288,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset
     #   flask-appbuilder
-sqlparse==0.4.3
+sqlparse==0.4.4
     # via apache-superset
 sshtunnel==0.4.0
     # via apache-superset

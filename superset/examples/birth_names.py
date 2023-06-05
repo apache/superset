@@ -16,7 +16,7 @@
 # under the License.
 import json
 import textwrap
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -42,7 +42,7 @@ from .helpers import (
 
 def gen_filter(
     subject: str, comparator: str, operator: str = "=="
-) -> Dict[str, Union[bool, str]]:
+) -> dict[str, Union[bool, str]]:
     return {
         "clause": "WHERE",
         "comparator": comparator,
@@ -152,7 +152,7 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     datasource.metrics = metrics
 
 
-def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -529,7 +529,7 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
     return slices, misc_slices
 
 
-def create_dashboard(slices: List[Slice]) -> Dashboard:
+def create_dashboard(slices: list[Slice]) -> Dashboard:
     print("Creating a dashboard")
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:

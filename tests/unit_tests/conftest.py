@@ -19,7 +19,8 @@
 import importlib
 import os
 import unittest.mock
-from typing import Any, Callable, Iterator
+from collections.abc import Iterator
+from typing import Any, Callable
 
 import pytest
 from _pytest.fixtures import SubRequest

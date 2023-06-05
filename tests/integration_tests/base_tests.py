@@ -20,7 +20,7 @@ from datetime import datetime
 import imp
 import json
 from contextlib import contextmanager
-from typing import Any, Dict, Union, List, Optional
+from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
@@ -67,12 +67,12 @@ def get_resp(
     else:
         resp = client.get(url, follow_redirects=follow_redirects)
     if raise_on_error and resp.status_code > 400:
-        raise Exception("http request failed with code {}".format(resp.status_code))
+        raise Exception(f"http request failed with code {resp.status_code}")
     return resp.data.decode("utf-8")
 
 
 def post_assert_metric(
-    client: Any, uri: str, data: Dict[str, Any], func_name: str
+    client: Any, uri: str, data: dict[str, Any], func_name: str
 ) -> Response:
     """
     Simple client post with an extra assertion for statsd metrics
@@ -121,7 +121,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def create_user_with_roles(
-        username: str, roles: List[str], should_create_roles: bool = False
+        username: str, roles: list[str], should_create_roles: bool = False
     ):
         user_to_create = security_manager.find_user(username)
         if not user_to_create:
@@ -485,12 +485,12 @@ class SupersetTestCase(TestCase):
         return rv
 
     def post_assert_metric(
-        self, uri: str, data: Dict[str, Any], func_name: str
+        self, uri: str, data: dict[str, Any], func_name: str
     ) -> Response:
         return post_assert_metric(self.client, uri, data, func_name)
 
     def put_assert_metric(
-        self, uri: str, data: Dict[str, Any], func_name: str
+        self, uri: str, data: dict[str, Any], func_name: str
     ) -> Response:
         """
         Simple client put with an extra assertion for statsd metrics
