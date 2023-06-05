@@ -52,6 +52,7 @@ const mockData = {
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
+const DATABASE_ID = 12;
 
 fetchMock.get(FETCH_REPORT_ENDPOINT, REPORT_PAYLOAD);
 
@@ -60,9 +61,9 @@ const store = mockStore({});
 
 // Report mock is default for testing
 const mockedProps = {
-  addDangerToast: () => { },
+  addDangerToast: () => {},
   onAdd: jest.fn(() => []),
-  onHide: () => { },
+  onHide: () => {},
   show: true,
   isReport: true,
 };
@@ -72,8 +73,7 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
-const sqlValidateEndpoint = 'glob:*/api/v1/database/*/validate_sql/';
-
+const sqlValidateEndpoint = `glob:*/api/v1/database/${DATABASE_ID}/validate_sql/`;
 
 fetchMock.get(ownersEndpoint, {
   result: [],
@@ -91,9 +91,7 @@ fetchMock.get(chartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
 });
 
-fetchMock.post(sqlValidateEndpoint, {
-  result: [{ end_column: 15, line_number: 2, message: "line 2:15: Catalog 'abc' does not exist", start_column: 15 }],
-});
+// fetchMock.get(sqlValidateEndpoint, {});
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
@@ -115,6 +113,11 @@ describe('AlertReportModal', () => {
 
   beforeAll(async () => {
     wrapper = await mountAndWait();
+  });
+
+  afterEach(() => {
+    fetchMock.reset();
+    fetchMock.restore();
   });
 
   it('renders', () => {
@@ -464,5 +467,51 @@ describe('AlertReportModal', () => {
       'button[data-test="modal-confirm-button"]',
     );
     expect(saveButton.props().disabled).toBe(false);
+  });
+
+  // it.only('Validate Sql Query: Sql Query should be invalid', async () => {
+  //   const props = {
+  //     ...mockedProps,
+  //     alert: mockData,
+  //     isReport: false,
+  //   };
+  //   props.alert.crontab = '* * * * *';
+  //   props.alert.type = 'Alert';
+  //   props.alert.validator_type = 'operator';
+  //   props.alert.validator_config_json = '{"op": "==", "threshold": 1.0}';
+  //   props.alert.sql = 'select * from abc.rst.xyz';
+  //   const editAlertWrapper = await mountAndWait(props);
+  //   const payload = { sql: "select * from abc.rst.xyz" }
+  //   const result = [{ end_column: 15, line_number: 2, message: "line 2:15: Catalog 'abc' does not exist", start_column: 15 }]
+  //   const saveButton = wrapper.find('button[data-test="modal-confirm-button"]');
+  //   act(() => {
+  //     saveButton.props().onClick();
+  //   });
+  // expect(props.onAdd).toHaveBeenCalled();
+
+  // expect(fetchMock.lastOptions()?.body).toEqual(result);
+  //   fetchMock.post(sqlValidateEndpoint, result);
+  //   const sqlCalls = fetchMock.calls(/database\/12\/validate_sql/);
+  //   console.log("fetch Mock==", fetchMock)
+  //   console.log('sqlCalls==', sqlCalls)
+  //   expect(sqlCalls).toHaveLength(1);
+  // });
+
+  it('Validate Sql Query: Sql Query should be invalid', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    const editAlertWrapper = await mountAndWait(props);
+    const saveButton = editAlertWrapper.find(
+      'button[data-test="modal-confirm-button"]',
+    );
+    act(() => {
+      saveButton.props().onClick();
+    });
+    await waitForComponentToPaint(editAlertWrapper);
+    const sqlCalls = fetchMock.calls(/database\/1\/validate_sql/);
+    expect(sqlCalls).toHaveLength(1);
   });
 });
