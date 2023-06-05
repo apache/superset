@@ -19,7 +19,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ from superset.utils import core as utils
 logger = logging.getLogger(__name__)
 
 
-def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List[str]:
+def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:
     """De-duplicates a list of string by suffixing a counter
 
     Always returns the same number of entries as provided, and always returns
@@ -46,8 +46,8 @@ def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List
     )
     foo,bar,bar__1,bar__2,Bar__3
     """
-    new_l: List[str] = []
-    seen: Dict[str, int] = {}
+    new_l: list[str] = []
+    seen: dict[str, int] = {}
     for item in l:
         s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
@@ -104,14 +104,14 @@ class SupersetResultSet:
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type[BaseEngineSpec],
+        db_engine_spec: type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []
-        column_names: List[str] = []
-        pa_data: List[pa.Array] = []
-        deduped_cursor_desc: List[Tuple[Any, ...]] = []
-        numpy_dtype: List[Tuple[str, ...]] = []
+        column_names: list[str] = []
+        pa_data: list[pa.Array] = []
+        deduped_cursor_desc: list[tuple[Any, ...]] = []
+        numpy_dtype: list[tuple[str, ...]] = []
         stringified_arr: NDArray[Any]
 
         if cursor_description:
@@ -181,7 +181,7 @@ class SupersetResultSet:
             column_names = []
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
-        self._type_dict: Dict[str, Any] = {}
+        self._type_dict: dict[str, Any] = {}
         try:
             # The driver may not be passing a cursor.description
             self._type_dict = {
@@ -245,7 +245,7 @@ class SupersetResultSet:
         return self.table.num_rows
 
     @property
-    def columns(self) -> List[ResultSetColumnType]:
+    def columns(self) -> list[ResultSetColumnType]:
         if not self.table.column_names:
             return []
 

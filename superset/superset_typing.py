@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING, Union
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
@@ -69,8 +70,8 @@ class ResultSetColumnType(TypedDict):
     is_dttm: bool
 
 
-CacheConfig = Dict[str, Any]
-DbapiDescriptionRow = Tuple[
+CacheConfig = dict[str, Any]
+DbapiDescriptionRow = tuple[
     Union[str, bytes],
     str,
     Optional[str],
@@ -79,27 +80,27 @@ DbapiDescriptionRow = Tuple[
     Optional[int],
     bool,
 ]
-DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
-DbapiResult = Sequence[Union[List[Any], Tuple[Any, ...]]]
+DbapiDescription = Union[list[DbapiDescriptionRow], tuple[DbapiDescriptionRow, ...]]
+DbapiResult = Sequence[Union[list[Any], tuple[Any, ...]]]
 FilterValue = Union[bool, datetime, float, int, str]
-FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
-FormData = Dict[str, Any]
-Granularity = Union[str, Dict[str, Union[str, float]]]
+FilterValues = Union[FilterValue, list[FilterValue], tuple[FilterValue]]
+FormData = dict[str, Any]
+Granularity = Union[str, dict[str, Union[str, float]]]
 Column = Union[AdhocColumn, str]
 Metric = Union[AdhocMetric, str]
-OrderBy = Tuple[Metric, bool]
-QueryObjectDict = Dict[str, Any]
-VizData = Optional[Union[List[Any], Dict[Any, Any]]]
-VizPayload = Dict[str, Any]
+OrderBy = tuple[Metric, bool]
+QueryObjectDict = dict[str, Any]
+VizData = Optional[Union[list[Any], dict[Any, Any]]]
+VizPayload = dict[str, Any]
 
 # Flask response.
 Base = Union[bytes, str]
 Status = Union[int, str]
-Headers = Dict[str, Any]
+Headers = dict[str, Any]
 FlaskResponse = Union[
     Response,
     Base,
-    Tuple[Base, Status],
-    Tuple[Base, Status, Headers],
-    Tuple[Response, Status],
+    tuple[Base, Status],
+    tuple[Base, Status, Headers],
+    tuple[Response, Status],
 ]

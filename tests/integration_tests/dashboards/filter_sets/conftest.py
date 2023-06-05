@@ -17,7 +17,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Generator, List, TYPE_CHECKING
+from collections.abc import Generator
+from typing import Any, TYPE_CHECKING
 
 import pytest
 
@@ -67,7 +68,7 @@ security_manager: BaseSecurityManager = sm
 
 
 @pytest.fixture(autouse=True, scope="module")
-def test_users() -> Generator[Dict[str, int], None, None]:
+def test_users() -> Generator[dict[str, int], None, None]:
     usernames = [
         ADMIN_USERNAME_FOR_TEST,
         DASHBOARD_OWNER_USERNAME,
@@ -82,16 +83,16 @@ def test_users() -> Generator[Dict[str, int], None, None]:
         delete_users(usernames_to_ids)
 
 
-def delete_users(usernames_to_ids: Dict[str, int]) -> None:
+def delete_users(usernames_to_ids: dict[str, int]) -> None:
     for username in usernames_to_ids.keys():
         db.session.delete(security_manager.find_user(username))
     db.session.commit()
 
 
 def create_test_users(
-    admin_role: Role, filter_set_role: Role, usernames: List[str]
-) -> Dict[str, int]:
-    users: List[User] = []
+    admin_role: Role, filter_set_role: Role, usernames: list[str]
+) -> dict[str, int]:
+    users: list[User] = []
     for username in usernames:
         user = build_user(username, filter_set_role, admin_role)
         users.append(user)
@@ -108,7 +109,7 @@ def build_user(username: str, filter_set_role: Role, admin_role: Role) -> User:
     if not user:
         user = security_manager.find_user(username)
         if user is None:
-            raise Exception("Failed to build the user {}".format(username))
+            raise Exception(f"Failed to build the user {username}")
     return user
 
 
@@ -118,7 +119,7 @@ def build_filter_set_role() -> Role:
     all_datasource_view_name: ViewMenu = security_manager.find_view_menu(
         "all_datasource_access"
     )
-    pvms: List[PermissionView] = security_manager.find_permissions_view_menu(
+    pvms: list[PermissionView] = security_manager.find_permissions_view_menu(
         filterset_view_name
     ) + security_manager.find_permissions_view_menu(all_datasource_view_name)
     for pvm in pvms:
@@ -167,8 +168,8 @@ def dashboard_id(dashboard: Dashboard) -> Generator[int, None, None]:
 
 @pytest.fixture
 def filtersets(
-    dashboard_id: int, test_users: Dict[str, int], dumped_valid_json_metadata: str
-) -> Generator[Dict[str, List[FilterSet]], None, None]:
+    dashboard_id: int, test_users: dict[str, int], dumped_valid_json_metadata: str
+) -> Generator[dict[str, list[FilterSet]], None, None]:
     first_filter_set = FilterSet(
         name="filter_set_1_of_" + str(dashboard_id),
         dashboard_id=dashboard_id,
@@ -216,17 +217,17 @@ def filtersets(
 
 
 @pytest.fixture
-def filterset_id(filtersets: Dict[str, List[FilterSet]]) -> int:
+def filterset_id(filtersets: dict[str, list[FilterSet]]) -> int:
     return filtersets["Dashboard"][0].id
 
 
 @pytest.fixture
-def valid_json_metadata() -> Dict[str, Any]:
+def valid_json_metadata() -> dict[str, Any]:
     return {"nativeFilters": {}}
 
 
 @pytest.fixture
-def dumped_valid_json_metadata(valid_json_metadata: Dict[str, Any]) -> str:
+def dumped_valid_json_metadata(valid_json_metadata: dict[str, Any]) -> str:
     return json.dumps(valid_json_metadata)
 
 
@@ -238,7 +239,7 @@ def exists_user_id() -> int:
 @pytest.fixture
 def valid_filter_set_data_for_create(
     dashboard_id: int, dumped_valid_json_metadata: str, exists_user_id: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     name = "test_filter_set_of_dashboard_" + str(dashboard_id)
     return {
         NAME_FIELD: name,
@@ -252,7 +253,7 @@ def valid_filter_set_data_for_create(
 @pytest.fixture
 def valid_filter_set_data_for_update(
     dashboard_id: int, dumped_valid_json_metadata: str, exists_user_id: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     name = "name_changed_test_filter_set_of_dashboard_" + str(dashboard_id)
     return {
         NAME_FIELD: name,
@@ -273,13 +274,13 @@ def not_exists_user_id() -> int:
 
 @pytest.fixture()
 def dashboard_based_filter_set_dict(
-    filtersets: Dict[str, List[FilterSet]]
-) -> Dict[str, Any]:
+    filtersets: dict[str, list[FilterSet]]
+) -> dict[str, Any]:
     return filtersets["Dashboard"][0].to_dict()
 
 
 @pytest.fixture()
 def user_based_filter_set_dict(
-    filtersets: Dict[str, List[FilterSet]]
-) -> Dict[str, Any]:
+    filtersets: dict[str, list[FilterSet]]
+) -> dict[str, Any]:
     return filtersets[FILTER_SET_OWNER_USERNAME][0].to_dict()

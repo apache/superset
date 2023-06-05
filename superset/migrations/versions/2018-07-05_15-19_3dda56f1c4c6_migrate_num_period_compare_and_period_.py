@@ -77,24 +77,24 @@ def isodate_duration_to_string(obj):
     if obj.tdelta:
         if not obj.months and not obj.years:
             return format_seconds(obj.tdelta.total_seconds())
-        raise Exception("Unable to convert: {0}".format(obj))
+        raise Exception(f"Unable to convert: {obj}")
 
     if obj.months % 12 != 0:
         months = obj.months + 12 * obj.years
-        return "{0} months".format(months)
+        return f"{months} months"
 
-    return "{0} years".format(obj.years + obj.months // 12)
+    return f"{obj.years + obj.months // 12} years"
 
 
 def timedelta_to_string(obj):
     if obj.microseconds:
-        raise Exception("Unable to convert: {0}".format(obj))
+        raise Exception(f"Unable to convert: {obj}")
     elif obj.seconds:
         return format_seconds(obj.total_seconds())
     elif obj.days % 7 == 0:
-        return "{0} weeks".format(obj.days // 7)
+        return f"{obj.days // 7} weeks"
     else:
-        return "{0} days".format(obj.days)
+        return f"{obj.days} days"
 
 
 def format_seconds(value):
@@ -106,7 +106,7 @@ def format_seconds(value):
     else:
         period = "second"
 
-    return "{0} {1}{2}".format(value, period, "s" if value > 1 else "")
+    return "{} {}{}".format(value, period, "s" if value > 1 else "")
 
 
 def compute_time_compare(granularity, periods):
@@ -120,11 +120,11 @@ def compute_time_compare(granularity, periods):
         obj = isodate.parse_duration(granularity) * periods
     except isodate.isoerror.ISO8601Error:
         # if parse_human_timedelta can parse it, return it directly
-        delta = "{0} {1}{2}".format(periods, granularity, "s" if periods > 1 else "")
+        delta = "{} {}{}".format(periods, granularity, "s" if periods > 1 else "")
         obj = parse_human_timedelta(delta)
         if obj:
             return delta
-        raise Exception("Unable to parse: {0}".format(granularity))
+        raise Exception(f"Unable to parse: {granularity}")
 
     if isinstance(obj, isodate.duration.Duration):
         return isodate_duration_to_string(obj)

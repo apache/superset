@@ -15,10 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import copy
-import json
 from operator import and_
-import time
 from unittest.mock import patch
 import pytest
 from superset.dao.exceptions import DAOCreateFailedError, DAOException

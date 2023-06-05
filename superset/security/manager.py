@@ -20,18 +20,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -479,7 +468,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     def get_table_access_error_msg(  # pylint: disable=no-self-use
-        self, tables: Set["Table"]
+        self, tables: set["Table"]
     ) -> str:
         """
         Return the error message for the denied SQL tables.
@@ -492,7 +481,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return f"""You need access to the following tables: {", ".join(quoted_tables)},
             `all_database_access` or `all_datasource_access` permission"""
 
-    def get_table_access_error_object(self, tables: Set["Table"]) -> SupersetError:
+    def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
         """
         Return the error object for the denied SQL tables.
 
@@ -510,7 +499,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     def get_table_access_link(  # pylint: disable=unused-argument,no-self-use
-        self, tables: Set["Table"]
+        self, tables: set["Table"]
     ) -> Optional[str]:
         """
         Return the access link for the denied SQL tables.
@@ -521,7 +510,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return current_app.config.get("PERMISSION_INSTRUCTIONS_LINK")
 
-    def get_user_datasources(self) -> List["BaseDatasource"]:
+    def get_user_datasources(self) -> list["BaseDatasource"]:
         """
         Collect datasources which the user has explicit permissions to.
 
@@ -542,7 +531,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # group all datasources by database
         session = self.get_session
         all_datasources = SqlaTable.get_all_datasources(session)
-        datasources_by_database: Dict["Database", Set["SqlaTable"]] = defaultdict(set)
+        datasources_by_database: dict["Database", set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
 
@@ -569,7 +558,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def user_view_menu_names(self, permission_name: str) -> Set[str]:
+    def user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
             self.get_session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
@@ -599,7 +588,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return {s.name for s in view_menu_names}
         return set()
 
-    def get_accessible_databases(self) -> List[int]:
+    def get_accessible_databases(self) -> list[int]:
         """
         Return the list of databases accessible by the user.
 
@@ -613,8 +602,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ]
 
     def get_schemas_accessible_by_user(
-        self, database: "Database", schemas: List[str], hierarchical: bool = True
-    ) -> List[str]:
+        self, database: "Database", schemas: list[str], hierarchical: bool = True
+    ) -> list[str]:
         """
         Return the list of SQL schemas accessible by the user.
 
@@ -654,9 +643,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_datasources_accessible_by_user(  # pylint: disable=invalid-name
         self,
         database: "Database",
-        datasource_names: List[DatasourceName],
+        datasource_names: list[DatasourceName],
         schema: Optional[str] = None,
-    ) -> List[DatasourceName]:
+    ) -> list[DatasourceName]:
         """
         Return the list of SQL tables accessible by the user.
 
@@ -802,7 +791,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.get_session.commit()
         self.clean_perms()
 
-    def _get_pvms_from_builtin_role(self, role_name: str) -> List[PermissionView]:
+    def _get_pvms_from_builtin_role(self, role_name: str) -> list[PermissionView]:
         """
         Gets a list of model PermissionView permissions inferred from a builtin role
         definition
@@ -821,7 +810,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         role_from_permissions.append(pvm)
         return role_from_permissions
 
-    def find_roles_by_id(self, role_ids: List[int]) -> List[Role]:
+    def find_roles_by_id(self, role_ids: list[int]) -> list[Role]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
@@ -1179,7 +1168,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         old_database_name: str,
         target: "Database",
-    ) -> List[ViewMenu]:
+    ) -> list[ViewMenu]:
         """
         Helper method that Updates all datasource access permission
         when a database name changes.
@@ -1205,7 +1194,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(SqlaTable.database_id == target.id)
             .all()
         )
-        updated_view_menus: List[ViewMenu] = []
+        updated_view_menus: list[ViewMenu] = []
         for dataset in datasets:
             old_dataset_vm_name = self.get_dataset_perm(
                 dataset.id, dataset.table_name, old_database_name
@@ -1768,7 +1757,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
     @staticmethod
-    def get_exclude_users_from_lists() -> List[str]:
+    def get_exclude_users_from_lists() -> list[str]:
         """
         Override to dynamically identify a list of usernames to exclude from
         all UI dropdown lists, owners, created_by filters etc...
@@ -1896,7 +1885,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
         return AnonymousUserMixin()
 
-    def get_user_roles(self, user: Optional[User] = None) -> List[Role]:
+    def get_user_roles(self, user: Optional[User] = None) -> list[Role]:
         if not user:
             user = g.user
         if user.is_anonymous:
@@ -1906,7 +1895,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource"
-    ) -> List[GuestTokenRlsRule]:
+    ) -> list[GuestTokenRlsRule]:
         """
         Retrieves the row level security filters for the current user and the dataset,
         if the user is authenticated with a guest token.
@@ -1922,7 +1911,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
+    def get_rls_filters(self, table: "BaseDatasource") -> list[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
@@ -1990,7 +1979,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
+    def get_rls_ids(self, table: "BaseDatasource") -> list[int]:
         """
         Retrieves the appropriate row level security filters IDs for the current user
         and the passed table.
@@ -2002,10 +1991,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids.sort()  # Combinations rather than permutations
         return ids
 
-    def get_guest_rls_filters_str(self, table: "BaseDatasource") -> List[str]:
+    def get_guest_rls_filters_str(self, table: "BaseDatasource") -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
-    def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[str]:
+    def get_rls_cache_key(self, datasource: "BaseDatasource") -> list[str]:
         rls_ids = []
         if datasource.is_rls_supported:
             rls_ids = self.get_rls_ids(datasource)
@@ -2122,7 +2111,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         user: GuestTokenUser,
         resources: GuestTokenResources,
-        rls: List[GuestTokenRlsRule],
+        rls: list[GuestTokenRlsRule],
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
@@ -2183,7 +2172,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
-    def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
+    def parse_jwt_guest_token(self, raw_token: str) -> dict[str, Any]:
         """
         Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request

@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -189,8 +189,8 @@ def test_connect_convert_dttm(
 )
 def test_connect_get_column_spec(
     native_type: str,
-    sqla_type: Type[TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:

@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from superset import app, db
 from superset.charts.dao import ChartDAO
@@ -48,12 +48,12 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self,
         *,
         datasource: DatasourceDict,
-        queries: List[Dict[str, Any]],
-        form_data: Optional[Dict[str, Any]] = None,
-        result_type: Optional[ChartDataResultType] = None,
-        result_format: Optional[ChartDataResultFormat] = None,
+        queries: list[dict[str, Any]],
+        form_data: dict[str, Any] | None = None,
+        result_type: ChartDataResultType | None = None,
+        result_format: ChartDataResultFormat | None = None,
         force: bool = False,
-        custom_cache_timeout: Optional[int] = None,
+        custom_cache_timeout: int | None = None,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -101,13 +101,13 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             datasource_id=int(datasource["id"]),
         )
 
-    def _get_slice(self, slice_id: Any) -> Optional[Slice]:
+    def _get_slice(self, slice_id: Any) -> Slice | None:
         return ChartDAO.find_by_id(slice_id)
 
     def _process_query_object(
         self,
         datasource: BaseDatasource,
-        form_data: Optional[Dict[str, Any]],
+        form_data: dict[str, Any] | None,
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
@@ -117,7 +117,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     def _apply_granularity(
         self,
         query_object: QueryObject,
-        form_data: Optional[Dict[str, Any]],
+        form_data: dict[str, Any] | None,
         datasource: BaseDatasource,
     ) -> None:
         temporal_columns = {

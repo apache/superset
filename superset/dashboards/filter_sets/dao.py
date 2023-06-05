@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,7 +40,7 @@ class FilterSetDAO(BaseDAO):
     model_cls = FilterSet
 
     @classmethod
-    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
         if cls.model_cls is None:
             raise DAOConfigError()
         model = FilterSet()

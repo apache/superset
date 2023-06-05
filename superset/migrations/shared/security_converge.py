@@ -16,7 +16,6 @@
 # under the License.
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 from sqlalchemy import (
     Column,
@@ -41,7 +40,7 @@ class Pvm:
     permission: str
 
 
-PvmMigrationMapType = Dict[Pvm, Tuple[Pvm, ...]]
+PvmMigrationMapType = dict[Pvm, tuple[Pvm, ...]]
 
 # Partial freeze of the current metadata db schema
 
@@ -162,8 +161,8 @@ def _find_pvm(session: Session, view_name: str, permission_name: str) -> Permiss
 
 
 def add_pvms(
-    session: Session, pvm_data: Dict[str, Tuple[str, ...]], commit: bool = False
-) -> List[PermissionView]:
+    session: Session, pvm_data: dict[str, tuple[str, ...]], commit: bool = False
+) -> list[PermissionView]:
     """
     Checks if exists and adds new Permissions, Views and PermissionView's
     """
@@ -181,7 +180,7 @@ def add_pvms(
 
 
 def _delete_old_permissions(
-    session: Session, pvm_map: Dict[PermissionView, List[PermissionView]]
+    session: Session, pvm_map: dict[PermissionView, list[PermissionView]]
 ) -> None:
     """
     Delete old permissions:
@@ -222,7 +221,7 @@ def migrate_roles(
     Migrates all existing roles that have the permissions to be migrated
     """
     # Collect a map of PermissionView objects for migration
-    pvm_map: Dict[PermissionView, List[PermissionView]] = {}
+    pvm_map: dict[PermissionView, list[PermissionView]] = {}
     for old_pvm_key, new_pvms_ in pvm_key_map.items():
         old_pvm = _find_pvm(session, old_pvm_key.view, old_pvm_key.permission)
         if old_pvm:
@@ -252,8 +251,8 @@ def migrate_roles(
         session.commit()
 
 
-def get_reversed_new_pvms(pvm_map: PvmMigrationMapType) -> Dict[str, Tuple[str, ...]]:
-    reversed_pvms: Dict[str, Tuple[str, ...]] = {}
+def get_reversed_new_pvms(pvm_map: PvmMigrationMapType) -> dict[str, tuple[str, ...]]:
+    reversed_pvms: dict[str, tuple[str, ...]] = {}
     for old_pvm, new_pvms in pvm_map.items():
         if old_pvm.view not in reversed_pvms:
             reversed_pvms[old_pvm.view] = (old_pvm.permission,)
