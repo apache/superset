@@ -50,9 +50,9 @@ const store = mockStore({});
 
 // Report mock is default for testing
 const mockedProps = {
-  addDangerToast: () => {},
+  addDangerToast: () => { },
   onAdd: jest.fn(() => []),
-  onHide: () => {},
+  onHide: () => { },
   show: true,
   isReport: true,
 };
@@ -62,6 +62,8 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const sqlValidateEndpoint = 'glob:*/api/v1/database/*/validate_sql/';
+
 
 fetchMock.get(ownersEndpoint, {
   result: [],
@@ -77,6 +79,10 @@ fetchMock.get(dashboardEndpoint, {
 
 fetchMock.get(chartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
+});
+
+fetchMock.post(sqlValidateEndpoint, {
+  result: [{ end_column: 15, line_number: 2, message: "line 2:15: Catalog 'abc' does not exist", start_column: 15 }],
 });
 
 async function mountAndWait(props = mockedProps) {
