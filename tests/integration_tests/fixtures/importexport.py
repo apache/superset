@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List
+from typing import Any
 
 # example V0 import/export format
-dataset_ui_export: List[Dict[str, Any]] = [
+dataset_ui_export: list[dict[str, Any]] = [
     {
         "columns": [
             {
@@ -48,7 +48,7 @@ dataset_ui_export: List[Dict[str, Any]] = [
     }
 ]
 
-dataset_cli_export: Dict[str, Any] = {
+dataset_cli_export: dict[str, Any] = {
     "databases": [
         {
             "allow_run_async": True,
@@ -59,7 +59,7 @@ dataset_cli_export: Dict[str, Any] = {
     ]
 }
 
-dashboard_export: Dict[str, Any] = {
+dashboard_export: dict[str, Any] = {
     "dashboards": [
         {
             "__Dashboard__": {
@@ -318,35 +318,35 @@ dashboard_export: Dict[str, Any] = {
 }
 
 # example V1 import/export format
-database_metadata_config: Dict[str, Any] = {
+database_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Database",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-dataset_metadata_config: Dict[str, Any] = {
+dataset_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SqlaTable",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-chart_metadata_config: Dict[str, Any] = {
+chart_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Slice",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-dashboard_metadata_config: Dict[str, Any] = {
+dashboard_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Dashboard",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
-saved_queries_metadata_config: Dict[str, Any] = {
+saved_queries_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
-database_config: Dict[str, Any] = {
+database_config: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -361,7 +361,7 @@ database_config: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
+database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -383,7 +383,7 @@ database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_password: Dict[str, Any] = {
+database_with_ssh_tunnel_config_password: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -404,7 +404,7 @@ database_with_ssh_tunnel_config_password: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_no_credentials: Dict[str, Any] = {
+database_with_ssh_tunnel_config_no_credentials: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -424,7 +424,7 @@ database_with_ssh_tunnel_config_no_credentials: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_mix_credentials: Dict[str, Any] = {
+database_with_ssh_tunnel_config_mix_credentials: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -446,7 +446,7 @@ database_with_ssh_tunnel_config_mix_credentials: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_private_pass_only: Dict[str, Any] = {
+database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -468,7 +468,7 @@ database_with_ssh_tunnel_config_private_pass_only: Dict[str, Any] = {
 }
 
 
-dataset_config: Dict[str, Any] = {
+dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
     "description": "This is a dataset that was exported",
@@ -513,7 +513,7 @@ dataset_config: Dict[str, Any] = {
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
 }
 
-chart_config: Dict[str, Any] = {
+chart_config: dict[str, Any] = {
     "slice_name": "Deck Path",
     "viz_type": "deck_path",
     "params": {
@@ -557,7 +557,7 @@ chart_config: Dict[str, Any] = {
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
 
-dashboard_config: Dict[str, Any] = {
+dashboard_config: dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",

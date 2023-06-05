@@ -19,7 +19,7 @@ import logging
 import time
 from copy import copy
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
@@ -83,7 +83,7 @@ def import_chart(
 def import_dashboard(
     # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
-    dataset_id_mapping: Optional[Dict[int, int]] = None,
+    dataset_id_mapping: Optional[dict[int, int]] = None,
     import_time: Optional[int] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
@@ -97,7 +97,7 @@ def import_dashboard(
     """
 
     def alter_positions(
-        dashboard: Dashboard, old_to_new_slc_id_dict: Dict[int, int]
+        dashboard: Dashboard, old_to_new_slc_id_dict: dict[int, int]
     ) -> None:
         """Updates slice_ids in the position json.
 
@@ -166,7 +166,7 @@ def import_dashboard(
     dashboard_to_import.slug = None
 
     old_json_metadata = json.loads(dashboard_to_import.json_metadata or "{}")
-    old_to_new_slc_id_dict: Dict[int, int] = {}
+    old_to_new_slc_id_dict: dict[int, int] = {}
     new_timed_refresh_immune_slices = []
     new_expanded_slices = {}
     new_filter_scopes = {}
@@ -268,7 +268,7 @@ def import_dashboard(
     return dashboard_to_import.id  # type: ignore
 
 
-def decode_dashboards(o: Dict[str, Any]) -> Any:
+def decode_dashboards(o: dict[str, Any]) -> Any:
     """
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
@@ -302,7 +302,7 @@ def import_dashboards(
     data = json.loads(content, object_hook=decode_dashboards)
     if not data:
         raise DashboardImportException(_("No data in file"))
-    dataset_id_mapping: Dict[int, int] = {}
+    dataset_id_mapping: dict[int, int] = {}
     for table in data["datasources"]:
         new_dataset_id = import_dataset(table, database_id, import_time=import_time)
         params = json.loads(table.params)
@@ -324,7 +324,7 @@ class ImportDashboardsCommand(BaseCommand):
 
     # pylint: disable=unused-argument
     def __init__(
-        self, contents: Dict[str, str], database_id: Optional[int] = None, **kwargs: Any
+        self, contents: dict[str, str], database_id: Optional[int] = None, **kwargs: Any
     ):
         self.contents = contents
         self.database_id = database_id

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
+from typing import Optional
 
 from sqlalchemy.sql.expression import ColumnClause
 
@@ -30,7 +30,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_alias_in_orderby = False
 
     # Pinot does its own conversion below
-    _time_grain_expressions: Dict[Optional[str], str] = {
+    _time_grain_expressions: dict[Optional[str], str] = {
         "PT1S": "1:SECONDS",
         "PT1M": "1:MINUTES",
         "PT5M": "5:MINUTES",
@@ -45,7 +45,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "year",
     }
 
-    _python_to_java_time_patterns: Dict[str, str] = {
+    _python_to_java_time_patterns: dict[str, str] = {
         "%Y": "yyyy",
         "%m": "MM",
         "%d": "dd",
@@ -54,7 +54,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "%S": "ss",
     }
 
-    _use_date_trunc_function: Dict[str, bool] = {
+    _use_date_trunc_function: dict[str, bool] = {
         "PT1S": False,
         "PT1M": False,
         "PT5M": False,

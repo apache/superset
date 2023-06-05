@@ -75,7 +75,7 @@ WTF_CSRF_EXEMPT_LIST = [‘’]
 Superset requires a user-specified SECRET_KEY to start up.  This requirement was [added in version 2.1.0 to force secure configurations](https://preset.io/blog/superset-security-update-default-secret_key-vulnerability/).  Add a strong SECRET_KEY to your `superset_config.py` file like:
 
 ```python
-SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'`
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 ```
 
 You can generate a strong secure key with `openssl rand -base64 42`.

@@ -34,6 +34,7 @@ type Props = {
   source?: ErrorSource;
   description?: string;
   errorMitigationFunction?: () => void;
+  fallback?: React.ReactNode;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -45,6 +46,7 @@ export default function ErrorMessageWithStackTrace({
   stackTrace,
   source,
   description,
+  fallback,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -60,6 +62,10 @@ export default function ErrorMessageWithStackTrace({
         />
       );
     }
+  }
+
+  if (fallback) {
+    return <>{fallback}</>;
   }
 
   return (
