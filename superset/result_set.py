@@ -251,7 +251,7 @@ class SupersetResultSet:
 
         columns = []
         for col in self.table.schema:
-            db_type_str = self.data_type(col.column_nam, col.type)
+            db_type_str = self.data_type(col.column_name, col.type)
             column: ResultSetColumnType = {
                 "column_name": col.name,
                 "type": db_type_str,
