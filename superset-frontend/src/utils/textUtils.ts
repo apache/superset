@@ -15,17 +15,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/* eslint-disable global-require */
 const loadModule = () => {
-  let module;
   try {
-    // @ts-ignore
-    module = require('../../../superset_text'); // eslint-disable-line import/no-unresolved
+    // eslint-disable-next-line global-require
+    return require('../../../superset_text.yml') || {};
   } catch (e) {
-    module = {};
+    return {};
   }
-  return module;
 };
 
 const supersetText = loadModule();
