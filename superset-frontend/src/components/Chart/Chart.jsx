@@ -211,12 +211,19 @@ class Chart extends React.PureComponent {
       datasetsStatus,
     } = this.props;
     const error = queryResponse?.errors?.[0];
-    const messageModified = `\n\nYou do not have permission to the underlying datasource used. Kindly raise access for "${this.props?.slice?.perm
-      .split('.')[0]
-      .substr(
-        1,
-        this.props?.slice?.perm.split('.')[0].length - 2,
-      )}" role.\nPlease reach out to the chart owner(s): ${this.props?.slice?.owners?.toString()} for further assistance.`;
+    const messageModified =
+      this.props &&
+      this.props.slice &&
+      this.props.slice.perm &&
+      this.props.slice.owners &&
+      this.props.slice.owners.length > 0
+        ? `\n\nYou do not have permission to the underlying datasource used. Kindly raise access for "${this.props?.slice?.perm
+            .split('.')[0]
+            .substr(
+              1,
+              this.props?.slice?.perm.split('.')[0].length - 2,
+            )}" role.\nPlease reach out to the chart owner(s): ${this.props?.slice?.owners?.toString()} for further assistance.`
+        : '';
     const message =
       (chartAlert || queryResponse?.message || '') +
       (queryResponse &&

@@ -57,6 +57,7 @@ import {
   RecipientIconName,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { PeriodType } from 'react-js-cron/dist/cjs/types';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -128,7 +129,23 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 30;
 const DEFAULT_WORKING_TIMEOUT = 60;
-const MAX_WORKING_TIMEOUT = 300;
+const MAX_WORKING_TIMEOUT_ALERTS = 300;
+const MAX_WORKING_TIMEOUT_REPORTS = 900;
+const REPORTS_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+];
+const DEFAULT_ALLOWED_PERIODS: PeriodType[] = [
+  'year',
+  'month',
+  'week',
+  'day',
+  'hour',
+  'minute',
+];
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
@@ -409,12 +426,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const conf = useCommonConf();
-  const currentNotification = JSON.parse(
-    JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS),
-  );
-  const reportNotificationsAllowed = currentNotification.filter(
-    (item: any) => item !== RecipientIconName.VO,
-  );
+  const currentNotification = conf?.ALERT_REPORTS_NOTIFICATION_METHODS
+    ? JSON.parse(JSON.stringify(conf?.ALERT_REPORTS_NOTIFICATION_METHODS))
+    : [];
+  const reportNotificationsAllowed = currentNotification
+    ? currentNotification.filter((item: any) => item !== RecipientIconName.VO)
+    : [];
   const allowedNotificationMethods: NotificationMethodOption[] =
     (isReport
       ? reportNotificationsAllowed
@@ -422,8 +439,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [maxWorkingTimeout, setMaxWorkingTimeout] =
-    useState<number>(MAX_WORKING_TIMEOUT);
+  const [maxWorkingTimeout, setMaxWorkingTimeout] = useState<number>(
+    isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+  );
   const [invalidInput, setInvalidInputs] = useState<any>({
     invalid: false,
     emailError: '',
@@ -1047,7 +1065,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       checkNotificationSettings()
     ) {
       if (isReport) {
-        setDisableSave(false);
+        const cron = currentAlert.crontab.split(' ');
+        if (cron.length === 5 && cron[0] === '*') {
+          setDisableSave(true);
+        } else {
+          setDisableSave(false);
+        }
       } else if (
         !!currentAlert.database &&
         currentAlert.sql?.length &&
@@ -1196,7 +1219,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const displayTimeoutValidation = (cronSchedule: string) => {
     const minutePart = cronSchedule.split(' ')[0];
-    const timeout = getLeastTimeout(minutePart, MAX_WORKING_TIMEOUT);
+    const timeout = getLeastTimeout(
+      minutePart,
+      isReport ? MAX_WORKING_TIMEOUT_REPORTS : MAX_WORKING_TIMEOUT_ALERTS,
+    );
     setMaxWorkingTimeout(timeout);
   };
 
@@ -1399,6 +1425,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   currentAlert?.crontab || DEFAULT_CRON_VALUE,
                 );
               }}
+              allowedPeriods={
+                isReport ? REPORTS_ALLOWED_PERIODS : DEFAULT_ALLOWED_PERIODS
+              }
             />
             <div className="control-label">{t('Timezone')}</div>
             <div
