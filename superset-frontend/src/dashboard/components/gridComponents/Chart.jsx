@@ -141,6 +141,7 @@ class Chart extends React.Component {
     this.exportCSV = this.exportCSV.bind(this);
     this.exportFullCSV = this.exportFullCSV.bind(this);
     this.exportXLSX = this.exportXLSX.bind(this);
+    this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -338,6 +339,10 @@ class Chart extends React.Component {
     this.exportTable('xlsx', false);
   }
 
+  exportFullXLSX() {
+    this.exportTable('xlsx', true);
+  }
+
   exportTable(format, isFullCSV) {
     const logAction =
       format === 'csv'
@@ -453,6 +458,7 @@ class Chart extends React.Component {
           exportCSV={this.exportCSV}
           exportXLSX={this.exportXLSX}
           exportFullCSV={this.exportFullCSV}
+          exportFullXLSX={this.exportFullXLSX}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
