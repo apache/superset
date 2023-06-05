@@ -225,7 +225,12 @@ const config: ControlPanelConfig = {
 
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics', 'default_group_by'],
+              rerender: [
+                'metrics',
+                'principalColumns',
+                'percent_metrics',
+                'default_group_by',
+              ],
             },
           },
         ],
@@ -384,8 +389,9 @@ const config: ControlPanelConfig = {
                   description: t(
                     'Preselect a set of principal columns that can easily be emitted from the context menu',
                   ),
+                  allowSelectAll: false,
                   multi: true,
-                  freeForm: true,
+                  freeForm: false,
                   allowAll: true,
                   default: [],
                   canSelectAll: true,
@@ -414,11 +420,20 @@ const config: ControlPanelConfig = {
                       : controls?.groupby?.value;
                     newState.options = newState.options.filter(
                       (o: { column_name: string }) =>
-                        ensureIsArray(choices).includes(o.column_name),
+                        ensureIsArray(choices).includes(o.column_name) ||
+                        ensureIsArray(controlState.value).includes(
+                          o.column_name,
+                        ),
                     );
-                    const invalidOptions = ensureIsArray(
-                      controlState.value,
-                    ).filter(c => !ensureIsArray(choices).includes(c));
+                    // invalid options are options that are selected, but are not present in the available choices
+                    const invalidOptions = ensureIsArray(newState.options)
+                      .filter(
+                        o =>
+                          ensureIsArray(controlState.value).includes(
+                            o.column_name,
+                          ) && !ensureIsArray(choices).includes(o.column_name),
+                      )
+                      .map(o => o.verbose_name || o.column_name);
                     newState.externalValidationErrors =
                       invalidOptions.length > 0
                         ? invalidOptions.length > 1

@@ -105,6 +105,7 @@ export default function CccsGrid({
   const [sortFields, setSortFields] = useState(['']);
   const [sortOrders, setSortOrders] = useState(['']);
   const [sortedColumnDefs, setSortedColumnDefs] = useState(columnDefs);
+  const [orderedColumnDefs, setOrderedColumnDefs] = useState(sortedColumnDefs);
   const gridRef = useRef<AgGridReactType>(null);
 
   const handleChange = useCallback(
@@ -163,6 +164,10 @@ export default function CccsGrid({
       setSortFields([]);
       setSortOrders([]);
       setSortedColumnDefs(columnDefs);
+      // if emit filters are not set, reset the column ordering
+      if (!emitCrossFilters) {
+        setOrderedColumnDefs(sortedColumnDefs);
+      }
     }
   }, [columnDefs, JSON.stringify(sortFields)]);
 
@@ -517,9 +522,19 @@ export default function CccsGrid({
     }
   }, [include_search]);
 
-  const onColumnMoved = useCallback(e => {
-    setControlValue('column_state', e.columnApi.getColumnState());
-  }, []);
+  const onColumnMoved = useCallback(
+    e => {
+      setControlValue('column_state', e.columnApi.getColumnState());
+      const colState = e.columnApi.getColumnState();
+      // set the column orders to preserve them
+      setOrderedColumnDefs(
+        colState.map((c: { colId: any }) =>
+          sortedColumnDefs.find((sc: { colId: any }) => c.colId === sc.colId),
+        ),
+      );
+    },
+    [setControlValue, sortedColumnDefs],
+  );
 
   const onSortChanged = (event: SortChangedEvent) => {
     const sortModel = event.api.getSortModel();
@@ -598,7 +613,7 @@ export default function CccsGrid({
         <AgGridReact
           ref={gridRef}
           modules={AllModules}
-          columnDefs={sortedColumnDefs}
+          columnDefs={orderedColumnDefs}
           defaultColDef={DEFAULT_COLUMN_DEF}
           frameworkComponents={frameworkComponents}
           enableBrowserTooltips={true}
