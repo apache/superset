@@ -1147,7 +1147,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 current_array_level = level
 
             name = column["column_name"]
-            values: Optional[Union[str, List[Any]]]
+            values: str | list[Any] | None
 
             if column["type"] and column["type"].startswith("ARRAY("):
                 # keep processing array children; we append to the right so that
