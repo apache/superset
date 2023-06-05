@@ -91,8 +91,6 @@ fetchMock.get(chartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
 });
 
-// fetchMock.get(sqlValidateEndpoint, {});
-
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
     <Provider store={store}>
@@ -469,35 +467,8 @@ describe('AlertReportModal', () => {
     expect(saveButton.props().disabled).toBe(false);
   });
 
-  // it.only('Validate Sql Query: Sql Query should be invalid', async () => {
-  //   const props = {
-  //     ...mockedProps,
-  //     alert: mockData,
-  //     isReport: false,
-  //   };
-  //   props.alert.crontab = '* * * * *';
-  //   props.alert.type = 'Alert';
-  //   props.alert.validator_type = 'operator';
-  //   props.alert.validator_config_json = '{"op": "==", "threshold": 1.0}';
-  //   props.alert.sql = 'select * from abc.rst.xyz';
-  //   const editAlertWrapper = await mountAndWait(props);
-  //   const payload = { sql: "select * from abc.rst.xyz" }
-  //   const result = [{ end_column: 15, line_number: 2, message: "line 2:15: Catalog 'abc' does not exist", start_column: 15 }]
-  //   const saveButton = wrapper.find('button[data-test="modal-confirm-button"]');
-  //   act(() => {
-  //     saveButton.props().onClick();
-  //   });
-  // expect(props.onAdd).toHaveBeenCalled();
-
-  // expect(fetchMock.lastOptions()?.body).toEqual(result);
-  //   fetchMock.post(sqlValidateEndpoint, result);
-  //   const sqlCalls = fetchMock.calls(/database\/12\/validate_sql/);
-  //   console.log("fetch Mock==", fetchMock)
-  //   console.log('sqlCalls==', sqlCalls)
-  //   expect(sqlCalls).toHaveLength(1);
-  // });
-
-  it('Validate Sql Query: Sql Query should be invalid', async () => {
+  //   TEST CASES FOR SQL QUERY VALIDATION API
+  it('Validate Sql Query: The sql query validation api exists', async () => {
     const props = {
       ...mockedProps,
       alert: mockData,
@@ -513,5 +484,65 @@ describe('AlertReportModal', () => {
     await waitForComponentToPaint(editAlertWrapper);
     const sqlCalls = fetchMock.calls(/database\/1\/validate_sql/);
     expect(sqlCalls).toHaveLength(1);
+  });
+
+  it('Validate Sql Query: Sql Query should be invalid with Catalog error message', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select * from abc.rst.xyz';
+    const result = [
+      {
+        end_column: 15,
+        line_number: 2,
+        message: "line 2:15: Catalog 'abc' does not exist",
+        start_column: 15,
+      },
+    ];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response[0].message).toEqual(result[0].message);
+  });
+
+  it('Validate Sql Query: Sql Query should be invalid with Schema error', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select * from abc';
+    const result = [
+      {
+        end_column: 15,
+        line_number: 2,
+        message:
+          'line 2:15: Schema must be specified when session schema is not set',
+        start_column: 15,
+      },
+    ];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response[0].message).toEqual(result[0].message);
+  });
+
+  it('Validate Sql Query: Sql Query should be valid', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select 1';
+    const result = [];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response.length).toEqual(result.length);
   });
 });
