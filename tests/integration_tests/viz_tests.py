@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from datetime import date, datetime, timezone
+from datetime import datetime
 import logging
 from math import nan
 from unittest.mock import Mock, patch
