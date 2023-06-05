@@ -23,6 +23,7 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## 2.1.1
+- [24185](https://github.com/apache/superset/pull/24185): `/api/v1/database/test_connection` and `api/v1/database/validate_parameters` permissions changed from `can_read` to `can_write`. Only Admin user's have access.
 
 ### Other
 
