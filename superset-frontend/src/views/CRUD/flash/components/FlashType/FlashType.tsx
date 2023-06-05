@@ -193,6 +193,16 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
     payload.scheduleStartTime = payload.scheduleStartTime
       ? moment(payload.scheduleStartTime).format('YYYY-MM-DD HH:mm:ss')
       : '';
+    if (payload.flashType === FlashTypes.SHORT_TERM) {
+      delete payload.teamSlackHandle;
+      delete payload.teamSlackChannel;
+    }
+    if (payload.flashType === FlashTypes.ONE_TIME) {
+      delete payload.teamSlackHandle;
+      delete payload.teamSlackChannel;
+      delete payload.scheduleType;
+      delete payload.scheduleStartTime;
+    }
     flashTypeService(Number(flash?.id), UPDATE_TYPES.FLASHTYPE, payload);
   };
 
