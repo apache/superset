@@ -91,7 +91,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(table)
         session.commit()
 
@@ -137,7 +137,7 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(tbl)
         session.commit()
 
