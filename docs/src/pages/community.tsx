@@ -29,14 +29,14 @@ const communityLinks = [
     url: 'http://bit.ly/join-superset-slack',
     title: 'Slack',
     description: 'Interact with other Superset users and community members.',
-    image: 'slack-symbol.png',
+    image: 'slack-symbol.jpg',
   },
   {
     url: 'https://github.com/apache/superset',
     title: 'GitHub',
     description:
       'Create tickets to report issues, report bugs, and suggest new features.',
-    image: 'github-symbol.png',
+    image: 'github-symbol.jpg',
   },
   {
     url: 'https://lists.apache.org/list.html?dev@superset.apache.org',
@@ -49,7 +49,7 @@ const communityLinks = [
     url: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
     title: 'Stack Overflow',
     description: 'Our growing knowledge base.',
-    image: 'stack-overflow-symbol.png',
+    image: 'stackoverflow-symbol.jpg',
   },
   {
     url: 'https://www.meetup.com/Global-Apache-Superset-Community-Meetup/',
