@@ -191,7 +191,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, id: str, **kwargs: Any) -> Response:
+    def get(self, _id: str, **kwargs: Any) -> Response:
         """Get a saved query by id or uuid
         ---
         get:
@@ -222,7 +222,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        saved_query = SavedQueryDAO.get_by_id(id)
+        saved_query = SavedQueryDAO.get_by_id(_id)
         if not saved_query:
             return self.response_404()
         result = self.saved_query_get_schema.dump(saved_query)

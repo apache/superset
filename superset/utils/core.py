@@ -1976,7 +1976,7 @@ def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
         ]
 
 
-def is_uuid(value: Union[str, int]) -> bool:
+def is_uuid(value: str | int) -> bool:
     try:
         uuid.UUID(str(value))
         return True

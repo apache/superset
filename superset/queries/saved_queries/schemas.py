@@ -88,6 +88,7 @@ class SavedQueryGetSchema(Schema):
     )
     uuid = fields.UUID(metadata={"description": "Query's UUID"})
 
+    # pylint: disable=no-self-use, unused-argument
     @post_dump(pass_original=True)
     def post_dump(self, serialized: Dict[str, Any], saved_query: SavedQuery, **kwargs):
         serialized["changed_on_delta_humanized"] = saved_query.changed_on_humanized

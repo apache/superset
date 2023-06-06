@@ -49,15 +49,15 @@ class SavedQueryDAO(BaseDAO):
             raise DAODeleteFailedError() from ex
 
     @classmethod
-    def get_by_id(cls, id: str) -> Optional[SavedQuery]:
-        if is_uuid(id):
+    def get_by_id(cls, _id: str) -> Optional[SavedQuery]:
+        if is_uuid(_id):
             return (
                 db.session.query(SavedQuery)
-                .filter(SavedQuery.uuid == uuid.UUID(id))
+                .filter(SavedQuery.uuid == uuid.UUID(_id))
                 .scalar()
             )
         try:
-            query = db.session.query(SavedQuery).filter(SavedQuery.id == int(id))
+            query = db.session.query(SavedQuery).filter(SavedQuery.id == int(_id))
         except ValueError:  # Invalid id
             return None
         query = cls.base_filter("id", SQLAInterface(SavedQuery, db.session)).apply(
