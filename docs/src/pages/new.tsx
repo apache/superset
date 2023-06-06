@@ -310,6 +310,9 @@ const StyledSliderSection = styled('div')`
           height: 8px;
         }
       }
+      &.active {
+        font-weight: 700;
+      }
       &.active::before {
         background-color: var(--ifm-color-primary);
       }
