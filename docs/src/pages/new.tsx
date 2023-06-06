@@ -131,12 +131,14 @@ const StyledScreenshotContainer = styled('div')`
   padding-top: 30px;
   margin-top: 25px;
   margin-bottom: -125px;
+  max-width: 800px;
   ${mq[1]} {
     padding-top: 20px;
   }
   .screenshot {
     position: relative;
     z-index: 3;
+    border-radius: 10px;
   }
   .screenshot-shadow-1 {
     position: absolute;
@@ -547,7 +549,7 @@ export default function Home(): JSX.Element {
           <StyledScreenshotContainer>
             <img
               className="screenshot"
-              src="/img/hero-screenshot.png"
+              src="/img/hero-screenshot.jpg"
               alt="hero-screenshot"
             />
             <div className="screenshot-shadow-1"></div>
