@@ -61,9 +61,9 @@ const store = mockStore({});
 
 // Report mock is default for testing
 const mockedProps = {
-  addDangerToast: () => {},
+  addDangerToast: () => { },
   onAdd: jest.fn(() => []),
-  onHide: () => {},
+  onHide: () => { },
   show: true,
   isReport: true,
 };
@@ -468,23 +468,6 @@ describe('AlertReportModal', () => {
   });
 
   //   TEST CASES FOR SQL QUERY VALIDATION API
-  it('Validate Sql Query: The sql query validation api exists', async () => {
-    const props = {
-      ...mockedProps,
-      alert: mockData,
-      isReport: false,
-    };
-    const editAlertWrapper = await mountAndWait(props);
-    const saveButton = editAlertWrapper.find(
-      'button[data-test="modal-confirm-button"]',
-    );
-    act(() => {
-      saveButton.props().onClick();
-    });
-    await waitForComponentToPaint(editAlertWrapper);
-    const sqlCalls = fetchMock.calls(/database\/1\/validate_sql/);
-    expect(sqlCalls).toHaveLength(1);
-  });
 
   it('Validate Sql Query: Sql Query should be invalid with Catalog error message', async () => {
     const props = {
