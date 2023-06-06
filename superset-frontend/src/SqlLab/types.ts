@@ -40,6 +40,7 @@ export interface QueryEditor {
   sql: string;
   remoteId: number | null;
   dialect?: string;
+  transpiledSql?: string;
   validationResult?: {
     completed: boolean;
     errors: SupersetError[];

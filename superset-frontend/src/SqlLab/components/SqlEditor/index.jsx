@@ -38,7 +38,6 @@ import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { FormLabel } from 'src/components/Form';
 import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
@@ -664,7 +663,7 @@ const SqlEditor = ({
     const hotkeys = getHotkeyConfig();
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
-    console.log('database', database);
+
     return (
       <Split
         expandToMin

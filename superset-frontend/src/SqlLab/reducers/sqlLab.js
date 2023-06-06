@@ -606,6 +606,7 @@ export default function sqlLabReducer(state = {}, action) {
           state,
           {
             dialect: action.dialect,
+            transpiledSql: action.transpiledSql,
           },
           action.queryEditor.id,
         ),

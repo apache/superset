@@ -24,11 +24,11 @@ import Loading from 'src/components/Loading';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { useTranslateQuery } from 'src/hooks/apiResources';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { queryEditorSetSelectedText } from '../../actions/sqlLab';
+import useEffectEvent from 'src/hooks/useEffectEvent';
+import { queryEditorSetSqlDialect } from '../../actions/sqlLab';
 
 import { StyledAceEditor } from '../AceEditorWrapper';
 import SqlDialectSelect from '../SqlDialectSelect';
-import useEffectEvent from 'src/hooks/useEffectEvent';
 
 type Props = {
   children: ReactChildren;
@@ -56,9 +56,16 @@ export default function SqlDialectEditorPane({
       skip: !enabled,
     },
   );
-  const setSelectedText = useEffectEvent((selectedText: string) => {
-    dispatch(queryEditorSetSelectedText(queryEditor, selectedText));
+  const setSelectedText = useEffectEvent((transpiledText: string) => {
+    dispatch(
+      queryEditorSetSqlDialect(
+        queryEditor,
+        queryEditor.dialect,
+        transpiledText,
+      ),
+    );
   });
+
   useEffect(() => {
     setSelectedText(enabled && data ? data : '');
   }, [data, enabled, setSelectedText]);
@@ -123,10 +130,10 @@ export default function SqlDialectEditorPane({
 
             <StyledAceEditor
               height="100%"
-              onChange={() => {}}
               width="100%"
               editorProps={{ $blockScrolling: true }}
               value={data}
+              onChange={setSelectedText}
             />
           </div>
         )}

@@ -48,11 +48,11 @@ const buildText = (
       </>
     );
   }
-  if (transpiled) {
-    return t('Run transpiled');
-  }
   if (selectedText) {
     return t('Run selection');
+  }
+  if (transpiled) {
+    return t('Run transpiled');
   }
   return t('Run');
 };
@@ -96,10 +96,11 @@ const RunQueryActionButton = ({
   const theme = useTheme();
   const userOS = detectOS();
 
-  const { selectedText, sql, dialect } = useQueryEditor(queryEditorId, [
+  const { selectedText, sql, transpiledSql } = useQueryEditor(queryEditorId, [
     'selectedText',
     'sql',
     'dialect',
+    'transpiledSql',
   ]);
 
   const shouldShowStopBtn =
@@ -156,7 +157,7 @@ const RunQueryActionButton = ({
               buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText, Boolean(dialect))}
+        {buildText(shouldShowStopBtn, selectedText, Boolean(transpiledSql))}
       </ButtonComponent>
     </StyledButton>
   );

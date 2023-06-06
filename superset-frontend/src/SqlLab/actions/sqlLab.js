@@ -1103,11 +1103,12 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql) {
   };
 }
 
-export function queryEditorSetSqlDialect(queryEditor, dialect) {
+export function queryEditorSetSqlDialect(queryEditor, dialect, transpiledSql) {
   return {
     type: QUERY_EDITOR_SET_SQL_DIALECT,
     queryEditor,
     dialect,
+    transpiledSql,
   };
 }
 
