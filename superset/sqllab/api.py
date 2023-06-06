@@ -19,6 +19,7 @@ from typing import Any, cast, Dict, Optional
 from urllib import parse
 
 import simplejson as json
+import sqlglot
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -45,6 +46,7 @@ from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
+    TranslatePayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
 )
@@ -74,6 +76,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
+    translate_model_schema = TranslatePayloadSchema()
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
@@ -82,6 +85,7 @@ class SqlLabRestApi(BaseSupersetApi):
     openapi_spec_component_schemas = (
         EstimateQueryCostSchema,
         ExecutePayloadSchema,
+        TranslatePayloadSchema,
         QueryExecutionResponseSchema,
     )
 
@@ -247,6 +251,36 @@ class SqlLabRestApi(BaseSupersetApi):
             json.dumps(
                 result, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
             ),
+            200,
+        )
+
+    @staticmethod
+    def _get_dialect(database_backend: str) -> str:
+        if database_backend == "postgresql":
+            return "postgres"
+        return database_backend
+
+    @expose("/translate/", methods=("POST",))
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".translate_sql_query",
+        log_to_statsd=False,
+    )
+    def translate_sql_query(self) -> FlaskResponse:
+        try:
+            model = self.translate_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        return json_success(
+            json.dumps({
+                "result": sqlglot.transpile(model.get("sql", ""),
+                                            read=self._get_dialect(model.get("read_dialect", "")),
+                                            write=self._get_dialect(model.get("write_dialect", "")),
+                                            pretty=True)[0]
+            }),
             200,
         )
 

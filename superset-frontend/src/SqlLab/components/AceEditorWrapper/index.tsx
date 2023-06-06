@@ -60,8 +60,9 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
-const StyledAceEditor = styled(AceEditor)`
+export const StyledAceEditor = styled(AceEditor)`
   ${({ theme }) => css`
+    flex: 1;
     && {
       // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};

@@ -68,6 +68,7 @@ export const TIME_OPTIONS = [
 export const SQL_EDITOR_GUTTER_HEIGHT = 5;
 export const SQL_EDITOR_GUTTER_MARGIN = 3;
 export const SQL_TOOLBAR_HEIGHT = 51;
+export const SQL_DIALECT_TOOLBAR_HEIGHT = 29;
 export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
 export const SQL_EDITOR_PADDING = 10;
 export const INITIAL_NORTH_PERCENT = 30;

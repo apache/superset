@@ -53,6 +53,7 @@ export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
+export const QUERY_EDITOR_SET_SQL_DIALECT = 'QUERY_EDITOR_SET_SQL_DIALECT';
 export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
@@ -376,6 +377,11 @@ export function runQuery(query) {
       queryLimit: query.queryLimit,
       expand_data: true,
     };
+    SupersetClient.post({
+      endpoint: `/api/v1/sqllab/translate/`,
+      body: JSON.stringify({ sql: query.sql }),
+      headers: { 'Content-Type': 'application/json' },
+    });
 
     const search = window.location.search || '';
     return SupersetClient.post({
@@ -1094,6 +1100,14 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql) {
       );
     }
     return Promise.resolve();
+  };
+}
+
+export function queryEditorSetSqlDialect(queryEditor, dialect) {
+  return {
+    type: QUERY_EDITOR_SET_SQL_DIALECT,
+    queryEditor,
+    dialect,
   };
 }
 

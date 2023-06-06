@@ -57,6 +57,11 @@ class ExecutePayloadSchema(Schema):
     expand_data = fields.Boolean(allow_none=True)
 
 
+class TranslatePayloadSchema(Schema):
+    sql = fields.String(required=True)
+    write_dialect = fields.String(allow_none=True)
+    read_dialect = fields.String(allow_none=True)
+
 class QueryResultSchema(Schema):
     changedOn = fields.DateTime()
     changed_on = fields.String()

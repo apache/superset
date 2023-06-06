@@ -39,6 +39,7 @@ export interface QueryEditor {
   autorun: boolean;
   sql: string;
   remoteId: number | null;
+  dialect?: string;
   validationResult?: {
     completed: boolean;
     errors: SupersetError[];

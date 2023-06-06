@@ -38,6 +38,7 @@ import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
+import { FormLabel } from 'src/components/Form';
 import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
@@ -66,6 +67,7 @@ import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  SQL_DIALECT_TOOLBAR_HEIGHT,
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_PADDING,
   INITIAL_NORTH_PERCENT,
@@ -93,6 +95,7 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import SqlDialectEditorPane from '../SqlDialectEditorPane';
 
 const bootstrapData = getBootstrapData();
 const validatorMap =
@@ -469,7 +472,8 @@ const SqlEditor = ({
     aceEditorHeight:
       (height * northPercent) / (theme.gridUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
-      SQL_TOOLBAR_HEIGHT,
+      SQL_TOOLBAR_HEIGHT -
+      SQL_DIALECT_TOOLBAR_HEIGHT,
     southPaneHeight:
       (height * southPercent) / (theme.gridUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
@@ -660,6 +664,7 @@ const SqlEditor = ({
     const hotkeys = getHotkeyConfig();
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
+    console.log('database', database);
     return (
       <Split
         expandToMin
@@ -673,16 +678,21 @@ const SqlEditor = ({
         onDragEnd={onResizeEnd}
       >
         <div ref={northPaneRef} className="north-pane">
-          <AceEditorWrapper
-            autocomplete={autocompleteEnabled}
-            onBlur={setQueryEditorAndSaveSql}
-            onChange={onSqlChanged}
+          <SqlDialectEditorPane
+            databaseBackend={database?.backend}
             queryEditorId={queryEditor.id}
-            database={database}
-            extendedTables={tables}
-            height={`${aceEditorHeight}px`}
-            hotkeys={hotkeys}
-          />
+          >
+            <AceEditorWrapper
+              autocomplete={autocompleteEnabled}
+              onBlur={setQueryEditorAndSaveSql}
+              onChange={onSqlChanged}
+              queryEditorId={queryEditor.id}
+              database={database}
+              extendedTables={tables}
+              height={`${aceEditorHeight}px`}
+              hotkeys={hotkeys}
+            />
+          </SqlDialectEditorPane>
           {renderEditorBottomBar(hotkeys)}
         </div>
         <SouthPane

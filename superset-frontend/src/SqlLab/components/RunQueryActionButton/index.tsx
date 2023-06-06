@@ -39,6 +39,7 @@ export interface RunQueryActionButtonProps {
 const buildText = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
+  transpiled: boolean,
 ): string | JSX.Element => {
   if (shouldShowStopButton) {
     return (
@@ -46,6 +47,9 @@ const buildText = (
         <i className="fa fa-stop" /> {t('Stop')}
       </>
     );
+  }
+  if (transpiled) {
+    return t('Run transpiled');
   }
   if (selectedText) {
     return t('Run selection');
@@ -92,9 +96,10 @@ const RunQueryActionButton = ({
   const theme = useTheme();
   const userOS = detectOS();
 
-  const { selectedText, sql } = useQueryEditor(queryEditorId, [
+  const { selectedText, sql, dialect } = useQueryEditor(queryEditorId, [
     'selectedText',
     'sql',
+    'dialect',
   ]);
 
   const shouldShowStopBtn =
@@ -151,7 +156,7 @@ const RunQueryActionButton = ({
               buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText)}
+        {buildText(shouldShowStopBtn, selectedText, Boolean(dialect))}
       </ButtonComponent>
     </StyledButton>
   );
