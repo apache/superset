@@ -1279,7 +1279,7 @@ class SqlaTable(
             removed=[
                 col
                 for col in old_columns_by_name
-                if col not in {col["name"] for col in new_columns}
+                if col not in {col["column_name"] for col in new_columns}
             ]
         )
 
