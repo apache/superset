@@ -182,7 +182,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
-    @expose("/<id>", methods=("GET",))
+    @expose("/<_id>", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -201,7 +201,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             Users who did not create a saved query can only discover it via UUID
           parameters:
           - in: path
-            name: id
+            name: _id
             schema:
               type: string
             description: ID or UUID of the saved query
