@@ -36,7 +36,7 @@ export const Databases = [
   {
     title: 'MySQL',
     href: 'https://www.mysql.com/',
-    imgName: 'mysql.svg',
+    imgName: 'mysql.jpg',
   },
   {
     title: 'Amazon Redshift',
