@@ -239,7 +239,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_presto_expand_data_with_complex_row_columns(self):
         cols = [
             {
-                "name": "row_column",
+                "column_name": "row_column",
                 "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR))",
                 "is_dttm": False,
             }
@@ -250,18 +250,22 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         expected_cols = [
             {
-                "name": "row_column",
+                "column_name": "row_column",
                 "type": "ROW(NESTED_OBJ1 VARCHAR, NESTED_ROW ROW(NESTED_OBJ2 VARCHAR))",
                 "is_dttm": False,
             },
-            {"name": "row_column.nested_obj1", "type": "VARCHAR", "is_dttm": False},
             {
-                "name": "row_column.nested_row",
+                "column_name": "row_column.nested_obj1",
+                "type": "VARCHAR",
+                "is_dttm": False,
+            },
+            {
+                "column_name": "row_column.nested_row",
                 "type": "ROW(NESTED_OBJ2 VARCHAR)",
                 "is_dttm": False,
             },
             {
-                "name": "row_column.nested_row.nested_obj2",
+                "column_name": "row_column.nested_row.nested_obj2",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
@@ -282,14 +286,18 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         ]
 
         expected_expanded_cols = [
-            {"name": "row_column.nested_obj1", "type": "VARCHAR", "is_dttm": False},
             {
-                "name": "row_column.nested_row",
+                "column_name": "row_column.nested_obj1",
+                "type": "VARCHAR",
+                "is_dttm": False,
+            },
+            {
+                "column_name": "row_column.nested_row",
                 "type": "ROW(NESTED_OBJ2 VARCHAR)",
                 "is_dttm": False,
             },
             {
-                "name": "row_column.nested_row.nested_obj2",
+                "column_name": "row_column.nested_row.nested_obj2",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
@@ -597,7 +605,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             {"column_name": "event_id", "type": "VARCHAR", "is_dttm": False},
             {"column_name": "timestamp", "type": "BIGINT", "is_dttm": False},
             {
-                "name": "user",
+                "column_name": "user",
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
                 "is_dttm": False,
             },
