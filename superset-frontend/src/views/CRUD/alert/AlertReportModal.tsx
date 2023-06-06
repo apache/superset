@@ -588,10 +588,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onSave = async () => {
-    console.log(currentAlert);
     if (currentAlert && currentAlert?.sql && !isReport) {
       const isQueryInvalid = await validateSqlQuery(currentAlert?.sql);
-      console.log('Query Invalid', isQueryInvalid);
       if (isQueryInvalid) {
         return;
       }
@@ -932,7 +930,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       headers: { 'Content-Type': 'application/json' },
     })
       .then(({ json }) => {
-        console.log('response', json);
         if (json && json.result && json.result.length > 0) {
           addDangerToast(
             t('Sql Query is not valid: %s', json?.result[0].message),
@@ -943,11 +940,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         return false;
       })
       .catch(response => {
-        console.log('response in error', response);
         getClientErrorObject(response).then(error => {
           const apiError = error?.error
             ? error?.error
-            : 'Sql Query is not valid: Please Contact Administrator for further support';
+            : ERROR_MESSAGES.CONTACT_ADMINISTRATOR;
           addDangerToast(t(apiError));
         });
         return true;

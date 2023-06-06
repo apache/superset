@@ -28,6 +28,8 @@ export const ERROR_MESSAGES = {
     'INVALID ROUTING KEY, The entered routing key for VictorOps doesnot exists',
   SAME_METHOD:
     'The selected method is already chosen as a notification method. Please select another or append the recipients in the selected one',
+  CONTACT_ADMINISTRATOR:
+    'Sql Query is not valid: Please Contact Administrator for further support',
 };
 
 export const CRON_SCHEDULE = {

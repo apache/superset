@@ -102,9 +102,9 @@ class TrinoDBSQLValidator(BaseSQLValidator):
                 start_column=start_column,
                 end_column=end_column,
             )
-        # except Exception as ex:
-        #     logger.exception("Unexpected error running validation query: %s", str(ex))
-        #     raise ex
+        except Exception as ex:
+            logger.exception("Unexpected error running validation query: %s", str(ex))
+            raise ex
 
     @classmethod
     def validate(

@@ -61,9 +61,9 @@ const store = mockStore({});
 
 // Report mock is default for testing
 const mockedProps = {
-  addDangerToast: () => { },
+  addDangerToast: () => {},
   onAdd: jest.fn(() => []),
-  onHide: () => { },
+  onHide: () => {},
   show: true,
   isReport: true,
 };
