@@ -57,6 +57,7 @@ const fetchTimeRange = async (timeRange: string) => {
   try {
     console.log('fetchTimeRange [ process.env.type => ', process.env.type, ']');
     if (process.env.type === undefined) {
+      console.log('endpoint', endpoint);
       const response = await SupersetClient.get({ endpoint });
       const timeRangeString = buildTimeRangeString(
         response?.json?.result?.since || '',

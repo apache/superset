@@ -770,6 +770,7 @@ const FiltersConfigForm = (
                     GenericDataType.TEMPORAL,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
+                console.log('valueXX', filterType);
                 return {
                   value: filterType,
                   label: mappedName || name,
