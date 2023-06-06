@@ -736,12 +736,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         table_name = "table_name"
         engine = mock.Mock()
         cols = [
-            {"name": "val1"},
-            {"name": "val2<?!@#$312,/'][p098"},
-            {"name": ".val2"},
-            {"name": "val2."},
-            {"name": "val.2"},
-            {"name": ".val2."},
+            {"column_name": "val1"},
+            {"column_name": "val2<?!@#$312,/'][p098"},
+            {"column_name": ".val2"},
+            {"column_name": "val2."},
+            {"column_name": "val.2"},
+            {"column_name": ".val2."},
         ]
         PrestoEngineSpec.select_star(
             database, table_name, engine, show_cols=True, cols=cols
@@ -756,8 +756,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             True,
             True,
             [
-                {"name": "val1"},
-                {"name": "val2<?!@#$312,/'][p098"},
+                {"column_name": "val1"},
+                {"column_name": "val2<?!@#$312,/'][p098"},
             ],
         )
 
