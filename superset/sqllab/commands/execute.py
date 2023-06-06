@@ -120,6 +120,7 @@ class ExecuteSqlCommand(BaseCommand):
             # SupersetErrorsException || SupersetErrorsException
             raise ex
         except Exception as ex:
+            raise ex
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
     def _try_get_existing_query(self) -> Query | None:

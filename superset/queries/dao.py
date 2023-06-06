@@ -60,7 +60,8 @@ class QueryDAO(BaseDAO):
         # pull relevant data from payload and store in extra_json
         columns = payload.get("columns", {})
         for col in columns:
-            col["column_name"] = col.pop("name")
+            if "name" in col:
+                col["column_name"] = col.pop("name")
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
 

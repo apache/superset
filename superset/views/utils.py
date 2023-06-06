@@ -570,7 +570,8 @@ def _deserialize_results_payload(
         ds_payload["data"] = dataframe.df_to_records(df) or []
 
         for column in ds_payload["selected_columns"]:
-            column["column_name"] = column.pop("name")
+            if "name" in column:
+                column["column_name"] = column.pop("name")
 
         db_engine_spec = query.database.db_engine_spec
         all_columns, data, expanded_columns = db_engine_spec.expand_data(
