@@ -1282,7 +1282,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def _get_fields(cls, cols: list[dict[str, Any]]) -> list[Any]:
-        return [column(c["name"]) for c in cols]
+        return [column(c["column_name"]) for c in cols]
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments,too-many-locals
