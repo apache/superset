@@ -1012,6 +1012,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None
+            column_info["column_name"] = column.pop("name")
             result.append(column_info)
         return result
 
