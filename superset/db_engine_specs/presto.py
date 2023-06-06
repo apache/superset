@@ -1081,7 +1081,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         if is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
             dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
-                col for col in presto_cols if not re.search(dot_regex, col["name"])
+                col
+                for col in presto_cols
+                if not re.search(dot_regex, col["column_name"])
             ]
         return super().select_star(
             database,

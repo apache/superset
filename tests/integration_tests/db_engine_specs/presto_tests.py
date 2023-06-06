@@ -199,8 +199,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_with_simple_structural_columns(self):
         cols = [
-            {"name": "row_column", "type": "ROW(NESTED_OBJ VARCHAR)", "is_dttm": False},
-            {"name": "array_column", "type": "ARRAY(BIGINT)", "is_dttm": False},
+            {
+                "column_name": "row_column",
+                "type": "ROW(NESTED_OBJ VARCHAR)",
+                "is_dttm": False,
+            },
+            {"column_name": "array_column", "type": "ARRAY(BIGINT)", "is_dttm": False},
         ]
         data = [
             {"row_column": ["a"], "array_column": [1, 2, 3]},
@@ -210,9 +214,17 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             cols, data
         )
         expected_cols = [
-            {"name": "row_column", "type": "ROW(NESTED_OBJ VARCHAR)", "is_dttm": False},
-            {"name": "row_column.nested_obj", "type": "VARCHAR", "is_dttm": False},
-            {"name": "array_column", "type": "ARRAY(BIGINT)", "is_dttm": False},
+            {
+                "column_name": "row_column",
+                "type": "ROW(NESTED_OBJ VARCHAR)",
+                "is_dttm": False,
+            },
+            {
+                "column_name": "row_column.nested_obj",
+                "type": "VARCHAR",
+                "is_dttm": False,
+            },
+            {"column_name": "array_column", "type": "ARRAY(BIGINT)", "is_dttm": False},
         ]
 
         expected_data = [
@@ -225,7 +237,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         ]
 
         expected_expanded_cols = [
-            {"name": "row_column.nested_obj", "type": "VARCHAR", "is_dttm": False}
+            {
+                "column_name": "row_column.nested_obj",
+                "type": "VARCHAR",
+                "is_dttm": False,
+            }
         ]
         self.assertEqual(actual_cols, expected_cols)
         self.assertEqual(actual_data, expected_data)
@@ -314,7 +330,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_presto_expand_data_with_complex_row_columns_and_null_values(self):
         cols = [
             {
-                "name": "row_column",
+                "column_name": "row_column",
                 "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
                 "is_dttm": False,
             }
@@ -330,17 +346,17 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         expected_cols = [
             {
-                "name": "row_column",
+                "column_name": "row_column",
                 "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
                 "is_dttm": False,
             },
             {
-                "name": "row_column.nested_row",
+                "column_name": "row_column.nested_row",
                 "type": "ROW(NESTED_OBJ VARCHAR)",
                 "is_dttm": False,
             },
             {
-                "name": "row_column.nested_row.nested_obj",
+                "column_name": "row_column.nested_row.nested_obj",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
@@ -370,12 +386,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         expected_expanded_cols = [
             {
-                "name": "row_column.nested_row",
+                "column_name": "row_column.nested_row",
                 "type": "ROW(NESTED_OBJ VARCHAR)",
                 "is_dttm": False,
             },
             {
-                "name": "row_column.nested_row.nested_obj",
+                "column_name": "row_column.nested_row.nested_obj",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
@@ -391,9 +407,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_with_complex_array_columns(self):
         cols = [
-            {"name": "int_column", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "int_column", "type": "BIGINT", "is_dttm": False},
             {
-                "name": "array_column",
+                "column_name": "array_column",
                 "type": "ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))",
                 "is_dttm": False,
             },
@@ -406,19 +422,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             cols, data
         )
         expected_cols = [
-            {"name": "int_column", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "int_column", "type": "BIGINT", "is_dttm": False},
             {
-                "name": "array_column",
+                "column_name": "array_column",
                 "type": "ARRAY(ROW(NESTED_ARRAY ARRAY(ROW(NESTED_OBJ VARCHAR))))",
                 "is_dttm": False,
             },
             {
-                "name": "array_column.nested_array",
+                "column_name": "array_column.nested_array",
                 "type": "ARRAY(ROW(NESTED_OBJ VARCHAR))",
                 "is_dttm": False,
             },
             {
-                "name": "array_column.nested_array.nested_obj",
+                "column_name": "array_column.nested_array.nested_obj",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
@@ -475,12 +491,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         ]
         expected_expanded_cols = [
             {
-                "name": "array_column.nested_array",
+                "column_name": "array_column.nested_array",
                 "type": "ARRAY(ROW(NESTED_OBJ VARCHAR))",
                 "is_dttm": False,
             },
             {
-                "name": "array_column.nested_array.nested_obj",
+                "column_name": "array_column.nested_array.nested_obj",
                 "type": "VARCHAR",
                 "is_dttm": False,
             },
