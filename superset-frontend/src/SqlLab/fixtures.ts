@@ -187,6 +187,7 @@ export const defaultQueryEditor = {
   remoteId: null,
   hideLeftBar: false,
   templateParams: '{}',
+  uuid: '8a7f4812-fa3a-4cf8-86f3-67a55fcc9102',
 };
 
 export const extraQueryEditor1 = {
