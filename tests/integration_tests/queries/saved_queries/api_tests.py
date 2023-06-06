@@ -564,7 +564,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         uri = f"api/v1/saved_query/{saved_query.uuid}"
         rv = self.get_assert_metric(uri, "get")
-        # Non owner can access saved query using its numerical ID
+        # Non owner can access saved query using its UUID
         assert rv.status_code == 200
 
     def test_create_saved_query(self):
