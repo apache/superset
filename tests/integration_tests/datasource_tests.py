@@ -109,7 +109,7 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        col_names = {o.get("name") for o in resp}
+        col_names = {o.get("column_name") for o in resp}
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
