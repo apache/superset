@@ -57,8 +57,8 @@ from superset.queries.saved_queries.filters import (
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
-    SavedQueryGetSchema,
     openapi_spec_methods_override,
+    SavedQueryGetSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
