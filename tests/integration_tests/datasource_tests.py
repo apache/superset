@@ -216,7 +216,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol"}
         session.delete(table)
         session.commit()
 
