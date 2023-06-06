@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 
 from marshmallow import fields, post_dump, Schema
 from marshmallow.validate import Length
@@ -91,7 +91,7 @@ class SavedQueryGetSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @post_dump(pass_original=True)
     def post_dump(
-        self, serialized: Dict[str, Any], saved_query: SavedQuery, **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, serialized: dict[str, Any], saved_query: SavedQuery, **kwargs: Any
+    ) -> dict[str, Any]:
         serialized["changed_on_delta_humanized"] = saved_query.changed_on_humanized
         return serialized
