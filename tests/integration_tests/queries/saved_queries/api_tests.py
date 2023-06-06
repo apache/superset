@@ -19,6 +19,7 @@
 import json
 from io import BytesIO
 from typing import Optional
+from unittest.mock import ANY
 from zipfile import is_zipfile, ZipFile
 
 import yaml
@@ -148,6 +149,7 @@ class TestSavedQueryApi(SupersetTestCase):
             "schema",
             "sql",
             "sql_tables",
+            "uuid",
         ]
         for expected_column in expected_columns:
             assert expected_column in data["result"][0]
@@ -489,14 +491,14 @@ class TestSavedQueryApi(SupersetTestCase):
         }
         assert data == expected_response
 
-    def test_get_saved_query_not_allowed(self):
+    def test_get_saved_query_invalid_id(self):
         """
-        SavedQuery API: Test related user not allowed
+        SavedQuery API: Test get saved query invalid id
         """
         self.login(username="admin")
         uri = f"api/v1/saved_query/wrong"
         rv = self.client.get(uri)
-        assert rv.status_code == 405
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_get_saved_query(self):
@@ -528,8 +530,9 @@ class TestSavedQueryApi(SupersetTestCase):
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("uuid", data["result"])
         for key, value in data["result"].items():
-            if key not in ("changed_on_delta_humanized",):
+            if key not in ("changed_on_delta_humanized", "uuid"):
                 assert value == expected_result[key]
 
     def test_get_saved_query_not_found(self):
@@ -544,6 +547,25 @@ class TestSavedQueryApi(SupersetTestCase):
         assert rv.status_code == 404
         db.session.delete(query)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_get_saved_query_not_owned_by_user(self):
+        """
+        Saved Query API: Test get saved query behavior when non owner requests
+        """
+        saved_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
+        )
+        self.login(username="gamma_sqllab")
+        uri = f"api/v1/saved_query/{saved_query.id}"
+        rv = self.get_assert_metric(uri, "get")
+        # Non owner can't access saved query using its numerical ID
+        assert rv.status_code == 404
+
+        uri = f"api/v1/saved_query/{saved_query.uuid}"
+        rv = self.get_assert_metric(uri, "get")
+        # Non owner can access saved query using its numerical ID
+        assert rv.status_code == 200
 
     def test_create_saved_query(self):
         """

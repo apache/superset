@@ -161,9 +161,8 @@ export function updateQueryEditor(alterations) {
 export function scheduleQuery(query) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
+      endpoint: '/api/v1/saved_query/',
       postPayload: query,
-      stringify: false,
     })
       .then(() =>
         dispatch(

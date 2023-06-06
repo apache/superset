@@ -216,10 +216,10 @@ function SavedQueryList({
   };
 
   const copyQueryLink = useCallback(
-    (id: number) => {
+    (uuid: string) => {
       copyTextToClipboard(() =>
         Promise.resolve(
-          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+          `${window.location.origin}/superset/sqllab?savedQueryId=${uuid}`,
         ),
       )
         .then(() => {
@@ -390,7 +390,7 @@ function SavedQueryList({
             handleSavedQueryPreview(original.id);
           };
           const handleEdit = () => openInSqlLab(original.id);
-          const handleCopy = () => copyQueryLink(original.id);
+          const handleCopy = () => copyQueryLink(original.uuid);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 

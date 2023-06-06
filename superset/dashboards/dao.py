@@ -26,12 +26,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.slice import Slice
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, is_uuid
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)

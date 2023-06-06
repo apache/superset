@@ -22,7 +22,7 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
@@ -47,6 +47,7 @@ from superset.queries.saved_queries.commands.export import ExportSavedQueriesCom
 from superset.queries.saved_queries.commands.importers.dispatcher import (
     ImportSavedQueriesCommand,
 )
+from superset.queries.saved_queries.dao import SavedQueryDAO
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
@@ -56,6 +57,7 @@ from superset.queries.saved_queries.filters import (
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
+    SavedQueryGetSchema,
     openapi_spec_methods_override,
 )
 from superset.views.base_api import (
@@ -99,6 +101,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql",
         "sql_tables",
         "template_parameters",
+        "uuid"
     ]
     list_columns = [
         "changed_on_delta_humanized",
@@ -118,6 +121,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
+        "uuid",
     ]
     if is_feature_enabled("TAGGING_SYSTEM"):
         list_columns += ["tags.id", "tags.name", "tags.type"]
@@ -129,6 +133,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "template_parameters",
+        "extra_json",
     ]
     edit_columns = add_columns
     order_columns = [
@@ -158,8 +163,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
     }
+    openapi_spec_component_schemas = (SavedQueryGetSchema,)
     openapi_spec_tag = "Queries"
     openapi_spec_methods = openapi_spec_methods_override
+
+    saved_query_get_schema = SavedQueryGetSchema()
 
     related_field_filters = {
         "database": "database_name",
@@ -173,6 +181,52 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
+
+    @expose("/<id>", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, id: str, **kwargs: Any) -> Response:
+        """Get a saved query by id or uuid
+        ---
+        get:
+          summary: >-
+            Gets a saved query
+          description: >-
+            Users who did not create a saved query can only discover it via UUID
+          parameters:
+          - in: path
+            name: id
+            schema:
+              type: string
+            description: ID or UUID of the saved query
+          responses:
+            200:
+              description: Saved query
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SavedQueryGetSchema'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        saved_query = SavedQueryDAO.get_by_id(id)
+        if not saved_query:
+            return self.response_404()
+        result = self.saved_query_get_schema.dump(saved_query)
+        return self.response(200, result=result)
 
     @expose("/", methods=("DELETE",))
     @protect()

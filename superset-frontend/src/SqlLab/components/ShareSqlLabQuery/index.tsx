@@ -48,7 +48,7 @@ const ShareSqlLabQuery = ({
 }: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
-  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
+  const { dbId, name, schema, autorun, sql, remoteId, templateParams, uuid } =
     useQueryEditor(queryEditorId, [
       'dbId',
       'name',
@@ -57,6 +57,7 @@ const ShareSqlLabQuery = ({
       'sql',
       'remoteId',
       'templateParams',
+      'uuid',
     ]);
 
   const getCopyUrlForKvStore = (callback: Function) => {
@@ -76,10 +77,10 @@ const ShareSqlLabQuery = ({
   const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
 
-    if (remoteId) {
+    if (uuid) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
-      }?savedQueryId=${remoteId}`;
+      }?savedQueryId=${uuid}`;
       callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');

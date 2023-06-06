@@ -60,7 +60,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, is_uuid
 from superset.utils.decorators import debounce
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -452,14 +452,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
-
-
-def is_uuid(value: Union[str, int]) -> bool:
-    try:
-        uuid.UUID(str(value))
-        return True
-    except ValueError:
-        return False
 
 
 def is_int(value: Union[str, int]) -> bool:

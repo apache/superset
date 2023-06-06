@@ -49,6 +49,7 @@ export interface QueryEditor {
   selectedText?: string;
   queryLimit?: number;
   description?: string;
+  uuid: string | null;
 }
 
 export type toastState = {

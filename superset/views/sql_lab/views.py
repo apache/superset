@@ -20,7 +20,7 @@ import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.decorators import has_access, has_access_api, permission_name
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_
 
@@ -33,6 +33,7 @@ from superset.utils.core import get_user_id
 from superset.views.base import (
     BaseSupersetView,
     DeleteMixin,
+    deprecated,
     json_success,
     SupersetModelView,
 )
@@ -127,9 +128,32 @@ class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
     show_columns = add_columns + ["id"]
 
     @has_access_api
-    @expose("show/<pk>")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)
+    @expose("/api/read", methods=("GET",))
+    @permission_name("list")
+    @deprecated(new_target="/api/v1/saved_query/", eol_version="4.0")
+    def api_read(self) -> FlaskResponse:
+        return super().api_read()
+
+    @has_access_api
+    @expose("/api/get/<pk>", methods=("GET",))
+    @permission_name("show")
+    @deprecated(new_target="/api/v1/saved_query/<pk>", eol_version="4.0")
+    def api_get(self, pk: int) -> FlaskResponse:
+        return super().api_get(pk)
+
+    @has_access_api
+    @expose("/api/create", methods=("POST",))
+    @permission_name("add")
+    @deprecated(new_target="/api/v1/saved_query/", eol_version="4.0")
+    def api_create(self) -> FlaskResponse:
+        return super().api_create()
+
+    @has_access_api
+    @expose("/api/update/<pk>", methods=("PUT",))
+    @permission_name("edit")
+    @deprecated(new_target="/api/v1/saved_query/<pk>", eol_version="4.0")
+    def api_update(self, pk: int) -> FlaskResponse:
+        return super().api_update(pk)
 
 
 def _get_owner_id(tab_state_id: int) -> int:
