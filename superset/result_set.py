@@ -258,5 +258,4 @@ class SupersetResultSet:
                 "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
-
         return columns

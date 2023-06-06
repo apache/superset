@@ -1286,11 +1286,11 @@ class SqlaTable(
         # clear old columns before adding modified columns back
         columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.pop(col["name"], None)
+            old_column = old_columns_by_name.pop(col["column_name"], None)
             if not old_column:
-                results.added.append(col["name"])
+                results.added.append(col["column_name"])
                 new_column = TableColumn(
-                    column_name=col["name"],
+                    column_name=col["column_name"],
                     type=col["type"],
                     table=self,
                 )
@@ -1299,14 +1299,14 @@ class SqlaTable(
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
-                    results.modified.append(col["name"])
+                    results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
-                any_date_col = col["name"]
+                any_date_col = col["column_name"]
 
         # add back calculated (virtual) columns
         columns.extend([col for col in old_columns if col.expression])

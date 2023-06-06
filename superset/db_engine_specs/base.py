@@ -1231,7 +1231,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param schema: Schema name. If omitted, uses default schema for database
         :return: All columns in table
         """
-        return inspector.get_columns(table_name, schema)
+        columns = []
+        for col in inspector.get_columns(table_name, schema):
+            col["column_name"] = col.pop("name")
+            columns.append(col)
+        return columns
 
     @classmethod
     def get_metrics(  # pylint: disable=unused-argument
