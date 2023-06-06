@@ -575,10 +575,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_array(self):
         cols = [
-            {"name": "event_id", "type": "VARCHAR", "is_dttm": False},
-            {"name": "timestamp", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "event_id", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "timestamp", "type": "BIGINT", "is_dttm": False},
             {
-                "name": "user",
+                "column_name": "user",
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
                 "is_dttm": False,
             },
@@ -594,16 +594,16 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             cols, data
         )
         expected_cols = [
-            {"name": "event_id", "type": "VARCHAR", "is_dttm": False},
-            {"name": "timestamp", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "event_id", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "timestamp", "type": "BIGINT", "is_dttm": False},
             {
                 "name": "user",
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
                 "is_dttm": False,
             },
-            {"name": "user.id", "type": "BIGINT", "is_dttm": False},
-            {"name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
-            {"name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "user.id", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
         ]
         expected_data = [
             {
@@ -616,9 +616,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             }
         ]
         expected_expanded_cols = [
-            {"name": "user.id", "type": "BIGINT", "is_dttm": False},
-            {"name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
-            {"name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "user.id", "type": "BIGINT", "is_dttm": False},
+            {"column_name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
+            {"column_name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
         ]
 
         self.assertEqual(actual_cols, expected_cols)
