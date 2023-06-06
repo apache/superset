@@ -101,7 +101,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "sql",
         "sql_tables",
         "template_parameters",
-        "uuid"
+        "uuid",
     ]
     list_columns = [
         "changed_on_delta_humanized",

@@ -20,7 +20,11 @@ import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api, permission_name
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_
 

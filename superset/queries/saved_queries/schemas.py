@@ -72,7 +72,9 @@ class SavedQuerySqlTableSchema(Schema):
 
 
 class SavedQueryGetSchema(Schema):
-    changed_on_delta_humanized = fields.String(metadata={"description": "How long ago the query was changed"})
+    changed_on_delta_humanized = fields.String(
+        metadata={"description": "How long ago the query was changed"}
+    )
     created_by = fields.Nested(SavedQueryCreatorSchema)
     database = fields.Nested(SavedQueryDatabaseSchema)
     description = fields.String(metadata={"description": "Query's description"})
@@ -80,7 +82,10 @@ class SavedQueryGetSchema(Schema):
     label = fields.String(metadata={"description": "Query's label"})
     schema = fields.String(metadata={"description": "Query's schema"})
     sql = fields.String(metadata={"description": "Query's SQL"})
-    sql_tables = fields.List(fields.Nested(SavedQuerySqlTableSchema), metadata={"description": "Tables accessed by query SQL"})
+    sql_tables = fields.List(
+        fields.Nested(SavedQuerySqlTableSchema),
+        metadata={"description": "Tables accessed by query SQL"},
+    )
     uuid = fields.UUID(metadata={"description": "Query's UUID"})
 
     @post_dump(pass_original=True)
