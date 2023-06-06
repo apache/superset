@@ -16,29 +16,17 @@
 # under the License.
 # pylint: disable=too-many-lines
 """a collection of model-related helper classes and functions"""
+import builtins
 import dataclasses
 import json
 import logging
 import re
 import uuid
 from collections import defaultdict
+from collections.abc import Hashable
 from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
-from typing import (
-    Any,
-    cast,
-    Dict,
-    Hashable,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Text,
-    Tuple,
-    Type,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 import dateutil.parser
 import humanize
@@ -145,7 +133,7 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-def json_to_dict(json_str: str) -> Dict[Any, Any]:
+def json_to_dict(json_str: str) -> dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
         val = re.sub(",[ \t\r\n]+\\]", "]", val)
@@ -179,22 +167,22 @@ class ImportExportMixin:
     # The name of the attribute
     # with the SQL Alchemy back reference
 
-    export_children: List[str] = []
+    export_children: list[str] = []
     # List of (str) names of attributes
     # with the SQL Alchemy forward references
 
-    export_fields: List[str] = []
+    export_fields: list[str] = []
     # The names of the attributes
     # that are available for import and export
 
-    extra_import_fields: List[str] = []
+    extra_import_fields: list[str] = []
     # Additional fields that should be imported,
     # even though they were not exported
 
     __mapper__: Mapper
 
     @classmethod
-    def _unique_constrains(cls) -> List[Set[str]]:
+    def _unique_constrains(cls) -> list[set[str]]:
         """Get all (single column and multi column) unique constraints"""
         unique = [
             {c.name for c in u.columns}
@@ -207,7 +195,7 @@ class ImportExportMixin:
         return unique
 
     @classmethod
-    def parent_foreign_key_mappings(cls) -> Dict[str, str]:
+    def parent_foreign_key_mappings(cls) -> dict[str, str]:
         """Get a mapping of foreign name to the local name of foreign keys"""
         parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
         if parent_rel:
@@ -217,7 +205,7 @@ class ImportExportMixin:
     @classmethod
     def export_schema(
         cls, recursive: bool = True, include_parent_ref: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Export schema as a dictionary"""
         parent_excludes = set()
         if not include_parent_ref:
@@ -227,12 +215,12 @@ class ImportExportMixin:
 
         def formatter(column: sa.Column) -> str:
             return (
-                "{0} Default ({1})".format(str(column.type), column.default.arg)
+                f"{str(column.type)} Default ({column.default.arg})"
                 if column.default
                 else str(column.type)
             )
 
-        schema: Dict[str, Any] = {
+        schema: dict[str, Any] = {
             column.name: formatter(column)
             for column in cls.__table__.columns  # type: ignore
             if (column.name in cls.export_fields and column.name not in parent_excludes)
@@ -252,10 +240,10 @@ class ImportExportMixin:
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
         session: Session,
-        dict_rep: Dict[Any, Any],
+        dict_rep: dict[Any, Any],
         parent: Optional[Any] = None,
         recursive: bool = True,
-        sync: Optional[List[str]] = None,
+        sync: Optional[list[str]] = None,
     ) -> Any:
         """Import obj from a dictionary"""
         if sync is None:
@@ -281,9 +269,7 @@ class ImportExportMixin:
             if cls.export_parent:
                 for prnt in parent_refs.keys():
                     if prnt not in dict_rep:
-                        raise RuntimeError(
-                            "{0}: Missing field {1}".format(cls.__name__, prnt)
-                        )
+                        raise RuntimeError(f"{cls.__name__}: Missing field {prnt}")
         else:
             # Set foreign keys to parent obj
             for k, v in parent_refs.items():
@@ -371,7 +357,7 @@ class ImportExportMixin:
         include_parent_ref: bool = False,
         include_defaults: bool = False,
         export_uuids: bool = False,
-    ) -> Dict[Any, Any]:
+    ) -> dict[Any, Any]:
         """Export obj to dictionary"""
         export_fields = set(self.export_fields)
         if export_uuids:
@@ -457,18 +443,18 @@ class ImportExportMixin:
             self.owners = [g.user]
 
     @property
-    def params_dict(self) -> Dict[Any, Any]:
+    def params_dict(self) -> dict[Any, Any]:
         return json_to_dict(self.params)
 
     @property
-    def template_params_dict(self) -> Dict[Any, Any]:
+    def template_params_dict(self) -> dict[Any, Any]:
         return json_to_dict(self.template_params)  # type: ignore
 
 
 def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
-    url = "/superset/profile/{}/".format(user.username)
+    url = f"/superset/profile/{user.username}/"
     return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
 
 
@@ -505,13 +491,13 @@ class AuditMixinNullable(AuditMixin):
     @property
     def created_by_name(self) -> str:
         if self.created_by:
-            return escape("{}".format(self.created_by))
+            return escape(f"{self.created_by}")
         return ""
 
     @property
     def changed_by_name(self) -> str:
         if self.changed_by:
-            return escape("{}".format(self.changed_by))
+            return escape(f"{self.changed_by}")
         return ""
 
     @renders("created_by")
@@ -565,12 +551,12 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         df: pd.DataFrame,
         query: str,
         duration: timedelta,
-        applied_template_filters: Optional[List[str]] = None,
-        applied_filter_columns: Optional[List[ColumnTyping]] = None,
-        rejected_filter_columns: Optional[List[ColumnTyping]] = None,
+        applied_template_filters: Optional[list[str]] = None,
+        applied_filter_columns: Optional[list[ColumnTyping]] = None,
+        rejected_filter_columns: Optional[list[ColumnTyping]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
-        errors: Optional[List[Dict[str, Any]]] = None,
+        errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
     ) -> None:
@@ -593,7 +579,7 @@ class ExtraJSONMixin:
     extra_json = sa.Column(sa.Text, default="{}")
 
     @property
-    def extra(self) -> Dict[str, Any]:
+    def extra(self) -> dict[str, Any]:
         try:
             return json.loads(self.extra_json or "{}") or {}
         except (TypeError, JSONDecodeError) as exc:
@@ -603,7 +589,7 @@ class ExtraJSONMixin:
             return {}
 
     @extra.setter
-    def extra(self, extras: Dict[str, Any]) -> None:
+    def extra(self, extras: dict[str, Any]) -> None:
         self.extra_json = json.dumps(extras)
 
     def set_extra_json_key(self, key: str, value: Any) -> None:
@@ -615,7 +601,7 @@ class ExtraJSONMixin:
     def ensure_extra_json_is_not_none(  # pylint: disable=no-self-use
         self,
         _: str,
-        value: Optional[Dict[str, Any]],
+        value: Optional[dict[str, Any]],
     ) -> Any:
         if value is None:
             return "{}"
@@ -627,7 +613,7 @@ class CertificationMixin:
 
     extra = sa.Column(sa.Text, default="{}")
 
-    def get_extra_dict(self) -> Dict[str, Any]:
+    def get_extra_dict(self) -> dict[str, Any]:
         try:
             return json.loads(self.extra)
         except (TypeError, json.JSONDecodeError):
@@ -652,8 +638,8 @@ class CertificationMixin:
 
 def clone_model(
     target: Model,
-    ignore: Optional[List[str]] = None,
-    keep_relations: Optional[List[str]] = None,
+    ignore: Optional[list[str]] = None,
+    keep_relations: Optional[list[str]] = None,
     **kwargs: Any,
 ) -> Model:
     """
@@ -676,22 +662,22 @@ def clone_model(
 
 # todo(hugh): centralize where this code lives
 class QueryStringExtended(NamedTuple):
-    applied_template_filters: Optional[List[str]]
-    applied_filter_columns: List[ColumnTyping]
-    rejected_filter_columns: List[ColumnTyping]
-    labels_expected: List[str]
-    prequeries: List[str]
+    applied_template_filters: Optional[list[str]]
+    applied_filter_columns: list[ColumnTyping]
+    rejected_filter_columns: list[ColumnTyping]
+    labels_expected: list[str]
+    prequeries: list[str]
     sql: str
 
 
 class SqlaQuery(NamedTuple):
-    applied_template_filters: List[str]
-    applied_filter_columns: List[ColumnTyping]
-    rejected_filter_columns: List[ColumnTyping]
+    applied_template_filters: list[str]
+    applied_filter_columns: list[ColumnTyping]
+    rejected_filter_columns: list[ColumnTyping]
     cte: Optional[str]
-    extra_cache_keys: List[Any]
-    labels_expected: List[str]
-    prequeries: List[str]
+    extra_cache_keys: list[Any]
+    labels_expected: list[str]
+    prequeries: list[str]
     sqla_query: Select
 
 
@@ -719,7 +705,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def db_extra(self) -> Optional[Dict[str, Any]]:
+    def db_extra(self) -> Optional[dict[str, Any]]:
         raise NotImplementedError()
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
@@ -730,11 +716,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def owners_data(self) -> List[Any]:
+    def owners_data(self) -> list[Any]:
         raise NotImplementedError()
 
     @property
-    def metrics(self) -> List[Any]:
+    def metrics(self) -> list[Any]:
         return []
 
     @property
@@ -750,7 +736,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def column_names(self) -> List[str]:
+    def column_names(self) -> list[str]:
         raise NotImplementedError()
 
     @property
@@ -762,15 +748,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def dttm_cols(self) -> List[str]:
+    def dttm_cols(self) -> list[str]:
         raise NotImplementedError()
 
     @property
-    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+    def db_engine_spec(self) -> builtins.type["BaseEngineSpec"]:
         raise NotImplementedError()
 
     @property
-    def database(self) -> Type["Database"]:
+    def database(self) -> builtins.type["Database"]:
         raise NotImplementedError()
 
     @property
@@ -782,7 +768,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def columns(self) -> List[Any]:
+    def columns(self) -> list[Any]:
         raise NotImplementedError()
 
     def get_fetch_values_predicate(
@@ -790,7 +776,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> TextClause:
         raise NotImplementedError()
 
-    def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
+    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
@@ -799,7 +785,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_row_level_filters(
         self,
         template_processor: BaseTemplateProcessor,
-    ) -> List[TextClause]:
+    ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
         current user. A custom username can be passed when the user is not present in the
@@ -808,8 +794,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
         """
-        all_filters: List[TextClause] = []
-        filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
+        all_filters: list[TextClause] = []
+        filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
                 clause = self.text(
@@ -923,8 +909,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         row: pd.Series,
         dimension: str,
-        columns_by_name: Dict[str, "TableColumn"],
-    ) -> Union[str, int, float, bool, Text]:
+        columns_by_name: dict[str, "TableColumn"],
+    ) -> Union[str, int, float, bool, str]:
         """
         Convert a prequery result type to its equivalent Python type.
 
@@ -944,7 +930,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             value = value.item()
 
         column_ = columns_by_name[dimension]
-        db_extra: Dict[str, Any] = self.database.get_extra()  # type: ignore
+        db_extra: dict[str, Any] = self.database.get_extra()  # type: ignore
 
         if isinstance(column_, dict):
             if (
@@ -969,7 +955,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return value
 
     def make_orderby_compatible(
-        self, select_exprs: List[ColumnElement], orderby_exprs: List[ColumnElement]
+        self, select_exprs: list[ColumnElement], orderby_exprs: list[ColumnElement]
     ) -> None:
         """
         If needed, make sure aliases for selected columns are not used in
@@ -1088,7 +1074,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> Tuple[Union[TableClause, Alias], Optional[str]]:
+    ) -> tuple[Union[TableClause, Alias], Optional[str]]:
         """
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery. If the FROM is referencing a
@@ -1117,7 +1103,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def adhoc_metric_to_sqla(
         self,
         metric: AdhocMetric,
-        columns_by_name: Dict[str, "TableColumn"],  # pylint: disable=unused-argument
+        columns_by_name: dict[str, "TableColumn"],  # pylint: disable=unused-argument
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
@@ -1151,7 +1137,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     @property
-    def template_params_dict(self) -> Dict[Any, Any]:
+    def template_params_dict(self) -> dict[Any, Any]:
         return {}
 
     @staticmethod
@@ -1162,9 +1148,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
         db_engine_spec: Optional[
-            Type["BaseEngineSpec"]
+            builtins.type["BaseEngineSpec"]
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
-        db_extra: Optional[Dict[str, Any]] = None,
+        db_extra: Optional[dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
@@ -1217,8 +1203,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: Dict[str, "SqlMetric"],
-        columns_by_name: Dict[str, "TableColumn"],
+        metrics_by_name: dict[str, "SqlMetric"],
+        columns_by_name: dict[str, "TableColumn"],
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
@@ -1248,9 +1234,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _get_top_groups(
         self,
         df: pd.DataFrame,
-        dimensions: List[str],
-        groupby_exprs: Dict[str, Any],
-        columns_by_name: Dict[str, "TableColumn"],
+        dimensions: list[str],
+        groupby_exprs: dict[str, Any],
+        columns_by_name: dict[str, "TableColumn"],
     ) -> ColumnElement:
         groups = []
         for _unused, row in df.iterrows():
@@ -1335,7 +1321,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -1369,7 +1355,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_timestamp_expression(
         self,
-        column: Dict[str, Any],
+        column: dict[str, Any],
         time_grain: Optional[str],
         label: Optional[str] = None,
         template_processor: Optional[BaseTemplateProcessor] = None,
@@ -1417,23 +1403,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
-        extras: Optional[Dict[str, Any]] = None,
+        columns: Optional[list[Column]] = None,
+        extras: Optional[dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
-            List[utils.QueryObjectFilterClause]
+            list[utils.QueryObjectFilterClause]
         ] = None,
         from_dttm: Optional[datetime] = None,
         granularity: Optional[str] = None,
-        groupby: Optional[List[Column]] = None,
+        groupby: Optional[list[Column]] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
         is_rowcount: bool = False,
         is_timeseries: bool = True,
-        metrics: Optional[List[Metric]] = None,
-        orderby: Optional[List[OrderBy]] = None,
+        metrics: Optional[list[Metric]] = None,
+        orderby: Optional[list[OrderBy]] = None,
         order_desc: bool = True,
         to_dttm: Optional[datetime] = None,
-        series_columns: Optional[List[Column]] = None,
+        series_columns: Optional[list[Column]] = None,
         series_limit: Optional[int] = None,
         series_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
@@ -1464,23 +1450,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         }
         columns = columns or []
         groupby = groupby or []
-        rejected_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
-        applied_adhoc_filters_columns: List[Union[str, ColumnTyping]] = []
+        rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
+        applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         series_column_names = utils.get_column_names(series_columns or [])
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
             series_limit = timeseries_limit
         series_limit_metric = series_limit_metric or timeseries_limit_metric
         template_kwargs.update(self.template_params_dict)
-        extra_cache_keys: List[Any] = []
+        extra_cache_keys: list[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
-        removed_filters: List[str] = []
-        applied_template_filters: List[str] = []
+        removed_filters: list[str] = []
+        applied_template_filters: list[str] = []
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
-        prequeries: List[str] = []
+        prequeries: list[str] = []
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
@@ -1489,11 +1475,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        columns_by_name: Dict[str, "TableColumn"] = {
+        columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
         }
 
-        metrics_by_name: Dict[str, "SqlMetric"] = {
+        metrics_by_name: dict[str, "SqlMetric"] = {
             m.metric_name: m for m in self.metrics
         }
 
@@ -1507,7 +1493,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not metrics and not columns and not groupby:
             raise QueryObjectValidationError(_("Empty query?"))
 
-        metrics_exprs: List[ColumnElement] = []
+        metrics_exprs: list[ColumnElement] = []
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 assert isinstance(metric, dict)
@@ -1542,7 +1528,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
-        orderby_exprs: List[ColumnElement] = []
+        orderby_exprs: list[ColumnElement] = []
         for orig_col, ascending in orderby:
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
@@ -1582,7 +1568,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     _("Unknown column used in orderby: %(col)s", col=orig_col)
                 )
 
-        select_exprs: List[Union[Column, Label]] = []
+        select_exprs: list[Union[Column, Label]] = []
         groupby_all_columns = {}
         groupby_series_columns = {}
 

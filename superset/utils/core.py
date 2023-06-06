@@ -35,6 +35,7 @@ import threading
 import traceback
 import uuid
 import zlib
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -47,24 +48,7 @@ from enum import Enum, IntEnum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TYPE_CHECKING,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypeVar
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
@@ -197,11 +181,11 @@ class LoggerLevel(str, Enum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: List[int]
+    owners: list[int]
     notification_type: str
-    notification_source: Optional[str]
-    chart_id: Optional[int]
-    dashboard_id: Optional[int]
+    notification_source: str | None
+    chart_id: int | None
+    dashboard_id: int | None
 
 
 class DatasourceDict(TypedDict):
@@ -212,20 +196,20 @@ class DatasourceDict(TypedDict):
 class AdhocFilterClause(TypedDict, total=False):
     clause: str
     expressionType: str
-    filterOptionName: Optional[str]
-    comparator: Optional[FilterValues]
+    filterOptionName: str | None
+    comparator: FilterValues | None
     operator: str
     subject: str
-    isExtra: Optional[bool]
-    sqlExpression: Optional[str]
+    isExtra: bool | None
+    sqlExpression: str | None
 
 
 class QueryObjectFilterClause(TypedDict, total=False):
     col: Column
     op: str  # pylint: disable=invalid-name
-    val: Optional[FilterValues]
-    grain: Optional[str]
-    isExtra: Optional[bool]
+    val: FilterValues | None
+    grain: str | None
+    isExtra: bool | None
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -351,9 +335,9 @@ class ReservedUrlParameters(str, Enum):
     EDIT_MODE = "edit"
 
     @staticmethod
-    def is_standalone_mode() -> Optional[bool]:
+    def is_standalone_mode() -> bool | None:
         standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
-        standalone: Optional[bool] = bool(
+        standalone: bool | None = bool(
             standalone_param and standalone_param != "false" and standalone_param != "0"
         )
         return standalone
@@ -370,10 +354,10 @@ class ColumnTypeSource(Enum):
 
 
 class ColumnSpec(NamedTuple):
-    sqla_type: Union[TypeEngine, str]
+    sqla_type: TypeEngine | str
     generic_type: GenericDataType
     is_dttm: bool
-    python_date_format: Optional[str] = None
+    python_date_format: str | None = None
 
 
 try:
@@ -407,8 +391,8 @@ def flasher(msg: str, severity: str = "message") -> None:
 
 
 def parse_js_uri_path_item(
-    item: Optional[str], unquote: bool = True, eval_undefined: bool = False
-) -> Optional[str]:
+    item: str | None, unquote: bool = True, eval_undefined: bool = False
+) -> str | None:
     """Parse a uri path item made with js.
 
     :param item: a uri path component
@@ -421,7 +405,7 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
-def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
+def cast_to_num(value: float | int | str | None) -> float | int | None:
     """Casts a value to an int/float
 
     >>> cast_to_num('1 ')
@@ -457,7 +441,7 @@ def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float
         return None
 
 
-def cast_to_boolean(value: Any) -> Optional[bool]:
+def cast_to_boolean(value: Any) -> bool | None:
     """Casts a value to an int/float
 
     >>> cast_to_boolean(1)
@@ -487,7 +471,7 @@ def cast_to_boolean(value: Any) -> Optional[bool]:
     return False
 
 
-def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
+def list_minus(l: list[Any], minus: list[Any]) -> list[Any]:
     """Returns l without what is in minus
 
     >>> list_minus([1, 2, 3], [2])
@@ -501,12 +485,12 @@ class DashboardEncoder(json.JSONEncoder):
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
-    def default(self, o: Any) -> Union[Dict[Any, Any], str]:
+    def default(self, o: Any) -> dict[Any, Any] | str:
         if isinstance(o, uuid.UUID):
             return str(o)
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
-            return {"__{}__".format(o.__class__.__name__): vals}
+            return {f"__{o.__class__.__name__}__": vals}
         except Exception:  # pylint: disable=broad-except
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
@@ -519,13 +503,13 @@ class JSONEncodedDict(TypeDecorator):  # pylint: disable=abstract-method
     impl = TEXT
 
     def process_bind_param(
-        self, value: Optional[Dict[Any, Any]], dialect: str
-    ) -> Optional[str]:
+        self, value: dict[Any, Any] | None, dialect: str
+    ) -> str | None:
         return json.dumps(value) if value is not None else None
 
     def process_result_value(
-        self, value: Optional[str], dialect: str
-    ) -> Optional[Dict[Any, Any]]:
+        self, value: str | None, dialect: str
+    ) -> dict[Any, Any] | None:
         return json.loads(value) if value is not None else None
 
 
@@ -634,7 +618,7 @@ def json_int_dttm_ser(obj: Any) -> Any:
     return base_json_conv(obj)
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+def json_dumps_w_dates(payload: dict[Any, Any], sort_keys: bool = False) -> str:
     """Dumps payload to JSON with Datetime objects properly converted"""
     return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
@@ -662,7 +646,7 @@ def error_msg_from_exception(ex: Exception) -> str:
     return msg or str(ex)
 
 
-def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
+def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -709,15 +693,15 @@ def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
     return safe
 
 
-def readfile(file_path: str) -> Optional[str]:
+def readfile(file_path: str) -> str | None:
     with open(file_path) as f:
         content = f.read()
     return content
 
 
 def generic_find_constraint_name(
-    table: str, columns: Set[str], referenced: str, database: SQLA
-) -> Optional[str]:
+    table: str, columns: set[str], referenced: str, database: SQLA
+) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
     tbl = sa.Table(
         table, database.metadata, autoload=True, autoload_with=database.engine
@@ -731,8 +715,8 @@ def generic_find_constraint_name(
 
 
 def generic_find_fk_constraint_name(
-    table: str, columns: Set[str], referenced: str, insp: Inspector
-) -> Optional[str]:
+    table: str, columns: set[str], referenced: str, insp: Inspector
+) -> str | None:
     """Utility to find a foreign-key constraint name in alembic migrations"""
     for fk in insp.get_foreign_keys(table):
         if (
@@ -745,8 +729,8 @@ def generic_find_fk_constraint_name(
 
 
 def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
-    table: str, columns: Set[str], referenced: str, insp: Inspector
-) -> Set[str]:
+    table: str, columns: set[str], referenced: str, insp: Inspector
+) -> set[str]:
     """Utility to find foreign-key constraint names in alembic migrations"""
     names = set()
 
@@ -761,8 +745,8 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
 
 
 def generic_find_uq_constraint_name(
-    table: str, columns: Set[str], insp: Inspector
-) -> Optional[str]:
+    table: str, columns: set[str], insp: Inspector
+) -> str | None:
     """Utility to find a unique constraint name in alembic migrations"""
 
     for uq in insp.get_unique_constraints(table):
@@ -773,14 +757,14 @@ def generic_find_uq_constraint_name(
 
 
 def get_datasource_full_name(
-    database_name: str, datasource_name: str, schema: Optional[str] = None
+    database_name: str, datasource_name: str, schema: str | None = None
 ) -> str:
     if not schema:
-        return "[{}].[{}]".format(database_name, datasource_name)
-    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
+        return f"[{database_name}].[{datasource_name}]"
+    return f"[{database_name}].[{schema}].[{datasource_name}]"
 
 
-def validate_json(obj: Union[bytes, bytearray, str]) -> None:
+def validate_json(obj: bytes | bytearray | str) -> None:
     if obj:
         try:
             json.loads(obj)
@@ -851,7 +835,7 @@ class TimerTimeout:
 
 
 # Windows has no support for SIGALRM, so we use the timer based timeout
-timeout: Union[Type[TimerTimeout], Type[SigalrmTimeout]] = (
+timeout: type[TimerTimeout] | type[SigalrmTimeout] = (
     TimerTimeout if platform.system() == "Windows" else SigalrmTimeout
 )
 
@@ -897,9 +881,9 @@ def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
     granter: User,
     user: User,
     role: Role,
-    datasource: "BaseDatasource",
+    datasource: BaseDatasource,
     tpl_name: str,
-    config: Dict[str, Any],
+    config: dict[str, Any],
 ) -> None:
     msg = render_template(
         tpl_name, granter=granter, user=user, role=role, datasource=datasource
@@ -923,15 +907,15 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     to: str,
     subject: str,
     html_content: str,
-    config: Dict[str, Any],
-    files: Optional[List[str]] = None,
-    data: Optional[Dict[str, str]] = None,
-    images: Optional[Dict[str, bytes]] = None,
+    config: dict[str, Any],
+    files: list[str] | None = None,
+    data: dict[str, str] | None = None,
+    images: dict[str, bytes] | None = None,
     dryrun: bool = False,
-    cc: Optional[str] = None,
-    bcc: Optional[str] = None,
+    cc: str | None = None,
+    bcc: str | None = None,
     mime_subtype: str = "mixed",
-    header_data: Optional[HeaderDataType] = None,
+    header_data: HeaderDataType | None = None,
 ) -> None:
     """
     Send an email with html content, eg:
@@ -1000,9 +984,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
 
 def send_mime_email(
     e_from: str,
-    e_to: List[str],
+    e_to: list[str],
     mime_msg: MIMEMultipart,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     dryrun: bool = False,
 ) -> None:
     smtp_host = config["SMTP_HOST"]
@@ -1035,8 +1019,8 @@ def send_mime_email(
     smtp.quit()
 
 
-def get_email_address_list(address_string: str) -> List[str]:
-    address_string_list: List[str] = []
+def get_email_address_list(address_string: str) -> list[str]:
+    address_string_list: list[str] = []
     if isinstance(address_string, str):
         address_string_list = re.split(r",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
@@ -1049,12 +1033,12 @@ def get_email_address_str(address_string: str) -> str:
     return address_list_str
 
 
-def choicify(values: Iterable[Any]) -> List[Tuple[Any, Any]]:
+def choicify(values: Iterable[Any]) -> list[tuple[Any, Any]]:
     """Takes an iterable and makes an iterable of tuples with it"""
     return [(v, v) for v in values]
 
 
-def zlib_compress(data: Union[bytes, str]) -> bytes:
+def zlib_compress(data: bytes | str) -> bytes:
     """
     Compress things in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
@@ -1065,7 +1049,7 @@ def zlib_compress(data: Union[bytes, str]) -> bytes:
     return zlib.compress(data)
 
 
-def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, str]:
+def zlib_decompress(blob: bytes, decode: bool | None = True) -> bytes | str:
     """
     Decompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
@@ -1094,12 +1078,12 @@ def simple_filter_to_adhoc(
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
-    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
+    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
 
     return result
 
 
-def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterClause:
+def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterClause:
     if clause not in ("where", "having"):
         raise ValueError(__("Unsupported clause type: %(clause)s", clause=clause))
     result: AdhocFilterClause = {
@@ -1107,19 +1091,19 @@ def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterCla
         "expressionType": "SQL",
         "sqlExpression": form_data.get(clause),
     }
-    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
+    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
 
     return result
 
 
-def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
+def merge_extra_form_data(form_data: dict[str, Any]) -> None:
     """
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
     """
     filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_filters: List[QueryObjectFilterClause] = extra_form_data.get("filters", None)
+    append_filters: list[QueryObjectFilterClause] = extra_form_data.get("filters", None)
 
     # merge append extras
     for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
@@ -1144,9 +1128,9 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     if extras:
         form_data["extras"] = extras
 
-    adhoc_filters: List[AdhocFilterClause] = form_data.get("adhoc_filters", [])
+    adhoc_filters: list[AdhocFilterClause] = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    append_adhoc_filters: List[AdhocFilterClause] = extra_form_data.get(
+    append_adhoc_filters: list[AdhocFilterClause] = extra_form_data.get(
         "adhoc_filters", []
     )
     adhoc_filters.extend(
@@ -1170,7 +1154,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
                 adhoc_filter["comparator"] = form_data["time_range"]
 
 
-def merge_extra_filters(form_data: Dict[str, Any]) -> None:
+def merge_extra_filters(form_data: dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
@@ -1193,7 +1177,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
 
         # Grab list of existing filters 'keyed' on the column and operator
 
-        def get_filter_key(f: Dict[str, Any]) -> str:
+        def get_filter_key(f: dict[str, Any]) -> str:
             if "expressionType" in f:
                 return "{}__{}".format(f["subject"], f["operator"])
 
@@ -1244,7 +1228,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
         del form_data["extra_filters"]
 
 
-def merge_request_params(form_data: Dict[str, Any], params: Dict[str, Any]) -> None:
+def merge_request_params(form_data: dict[str, Any], params: dict[str, Any]) -> None:
     """
     Merge request parameters to the key `url_params` in form_data. Only updates
     or appends parameters to `form_data` that are defined in `params; pre-existing
@@ -1261,7 +1245,7 @@ def merge_request_params(form_data: Dict[str, Any], params: Dict[str, Any]) -> N
     form_data["url_params"] = url_params
 
 
-def user_label(user: User) -> Optional[str]:
+def user_label(user: User) -> str | None:
     """Given a user ORM FAB object, returns a label"""
     if user:
         if user.first_name and user.last_name:
@@ -1272,7 +1256,7 @@ def user_label(user: User) -> Optional[str]:
     return None
 
 
-def get_example_default_schema() -> Optional[str]:
+def get_example_default_schema() -> str | None:
     """
     Return the default schema of the examples database, if any.
     """
@@ -1295,7 +1279,7 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
-def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
+def get_base_axis_labels(columns: list[Column] | None) -> tuple[str, ...]:
     axis_cols = [
         col
         for col in columns or []
@@ -1304,14 +1288,12 @@ def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
     return tuple(get_column_name(col) for col in axis_cols)
 
 
-def get_xaxis_label(columns: Optional[List[Column]]) -> Optional[str]:
+def get_xaxis_label(columns: list[Column] | None) -> str | None:
     labels = get_base_axis_labels(columns)
     return labels[0] if labels else None
 
 
-def get_column_name(
-    column: Column, verbose_map: Optional[Dict[str, Any]] = None
-) -> str:
+def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -> str:
     """
     Extract label from column
 
@@ -1336,9 +1318,7 @@ def get_column_name(
     raise ValueError("Missing label")
 
 
-def get_metric_name(
-    metric: Metric, verbose_map: Optional[Dict[str, Any]] = None
-) -> str:
+def get_metric_name(metric: Metric, verbose_map: dict[str, Any] | None = None) -> str:
     """
     Extract label from metric
 
@@ -1374,9 +1354,9 @@ def get_metric_name(
 
 
 def get_column_names(
-    columns: Optional[Sequence[Column]],
-    verbose_map: Optional[Dict[str, Any]] = None,
-) -> List[str]:
+    columns: Sequence[Column] | None,
+    verbose_map: dict[str, Any] | None = None,
+) -> list[str]:
     return [
         column
         for column in [get_column_name(column, verbose_map) for column in columns or []]
@@ -1385,9 +1365,9 @@ def get_column_names(
 
 
 def get_metric_names(
-    metrics: Optional[Sequence[Metric]],
-    verbose_map: Optional[Dict[str, Any]] = None,
-) -> List[str]:
+    metrics: Sequence[Metric] | None,
+    verbose_map: dict[str, Any] | None = None,
+) -> list[str]:
     return [
         metric
         for metric in [get_metric_name(metric, verbose_map) for metric in metrics or []]
@@ -1396,9 +1376,9 @@ def get_metric_names(
 
 
 def get_first_metric_name(
-    metrics: Optional[Sequence[Metric]],
-    verbose_map: Optional[Dict[str, Any]] = None,
-) -> Optional[str]:
+    metrics: Sequence[Metric] | None,
+    verbose_map: dict[str, Any] | None = None,
+) -> str | None:
     metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
 
@@ -1417,7 +1397,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
     mapping = {"having": "having_filters", "where": "filters"}
 
     if not form_data.get("adhoc_filters"):
-        adhoc_filters: List[AdhocFilterClause] = []
+        adhoc_filters: list[AdhocFilterClause] = []
         form_data["adhoc_filters"] = adhoc_filters
 
         for clause, filters in mapping.items():
@@ -1475,17 +1455,13 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
                     sql_having_filters.append(sql_expression)
-        form_data["where"] = " AND ".join(
-            ["({})".format(sql) for sql in sql_where_filters]
-        )
-        form_data["having"] = " AND ".join(
-            ["({})".format(sql) for sql in sql_having_filters]
-        )
+        form_data["where"] = " AND ".join([f"({sql})" for sql in sql_where_filters])
+        form_data["having"] = " AND ".join([f"({sql})" for sql in sql_having_filters])
         form_data["having_filters"] = simple_having_filters
         form_data["filters"] = simple_where_filters
 
 
-def get_username() -> Optional[str]:
+def get_username() -> str | None:
     """
     Get username (if defined) associated with the current user.
 
@@ -1498,7 +1474,7 @@ def get_username() -> Optional[str]:
         return None
 
 
-def get_user_id() -> Optional[int]:
+def get_user_id() -> int | None:
     """
     Get the user identifier (if defined) associated with the current user.
 
@@ -1517,7 +1493,7 @@ def get_user_id() -> Optional[int]:
 
 
 @contextmanager
-def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
+def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
     """
     Temporarily override the current user per `flask.g` with the specified user.
 
@@ -1583,7 +1559,7 @@ def create_ssl_cert_file(certificate: str) -> str:
 
 def time_function(
     func: Callable[..., FlaskResponse], *args: Any, **kwargs: Any
-) -> Tuple[float, Any]:
+) -> tuple[float, Any]:
     """
     Measures the amount of time a function takes to execute in ms
 
@@ -1603,7 +1579,7 @@ def MediumText() -> Variant:  # pylint:disable=invalid-name
 
 
 def shortid() -> str:
-    return "{}".format(uuid.uuid4())[-12:]
+    return f"{uuid.uuid4()}"[-12:]
 
 
 class DatasourceName(NamedTuple):
@@ -1611,7 +1587,7 @@ class DatasourceName(NamedTuple):
     schema: str
 
 
-def get_stacktrace() -> Optional[str]:
+def get_stacktrace() -> str | None:
     if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
     return None
@@ -1649,7 +1625,7 @@ def split(
     yield string[i:]
 
 
-def get_iterable(x: Any) -> List[Any]:
+def get_iterable(x: Any) -> list[Any]:
     """
     Get an iterable (list) representation of the object.
 
@@ -1659,7 +1635,7 @@ def get_iterable(x: Any) -> List[Any]:
     return x if isinstance(x, list) else [x]
 
 
-def get_form_data_token(form_data: Dict[str, Any]) -> str:
+def get_form_data_token(form_data: dict[str, Any]) -> str:
     """
     Return the token contained within form data or generate a new one.
 
@@ -1669,7 +1645,7 @@ def get_form_data_token(form_data: Dict[str, Any]) -> str:
     return form_data.get("token") or "token_" + uuid.uuid4().hex[:8]
 
 
-def get_column_name_from_column(column: Column) -> Optional[str]:
+def get_column_name_from_column(column: Column) -> str | None:
     """
     Extract the physical column that a column is referencing. If the column is
     an adhoc column, always returns `None`.
@@ -1682,7 +1658,7 @@ def get_column_name_from_column(column: Column) -> Optional[str]:
     return column  # type: ignore
 
 
-def get_column_names_from_columns(columns: List[Column]) -> List[str]:
+def get_column_names_from_columns(columns: list[Column]) -> list[str]:
     """
     Extract the physical columns that a list of columns are referencing. Ignore
     adhoc columns
@@ -1693,7 +1669,7 @@ def get_column_names_from_columns(columns: List[Column]) -> List[str]:
     return [col for col in map(get_column_name_from_column, columns) if col]
 
 
-def get_column_name_from_metric(metric: Metric) -> Optional[str]:
+def get_column_name_from_metric(metric: Metric) -> str | None:
     """
     Extract the column that a metric is referencing. If the metric isn't
     a simple metric, always returns `None`.
@@ -1704,11 +1680,11 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
-            return cast(Dict[str, Any], metric["column"])["column_name"]
+            return cast(dict[str, Any], metric["column"])["column_name"]
     return None
 
 
-def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
+def get_column_names_from_metrics(metrics: list[Metric]) -> list[str]:
     """
     Extract the columns that a list of metrics are referencing. Excludes all
     SQL metrics.
@@ -1721,12 +1697,12 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: Optional[Union[BaseDatasource, Query]] = None,
-) -> List[GenericDataType]:
+    datasource: BaseDatasource | Query | None = None,
+) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
     # omitting string types as those will be the default type
-    inferred_type_map: Dict[str, GenericDataType] = {
+    inferred_type_map: dict[str, GenericDataType] = {
         "floating": GenericDataType.NUMERIC,
         "integer": GenericDataType.NUMERIC,
         "mixed-integer-float": GenericDataType.NUMERIC,
@@ -1737,7 +1713,7 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name: Dict[str, Any] = {}
+    columns_by_name: dict[str, Any] = {}
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
@@ -1745,7 +1721,7 @@ def extract_dataframe_dtypes(
             else:
                 columns_by_name[column.column_name] = column
 
-    generic_types: List[GenericDataType] = []
+    generic_types: list[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
@@ -1767,7 +1743,7 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
+def extract_column_dtype(col: BaseColumn) -> GenericDataType:
     if col.is_temporal:
         return GenericDataType.TEMPORAL
     if col.is_numeric:
@@ -1776,11 +1752,9 @@ def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
     return GenericDataType.STRING
 
 
-def indexed(
-    items: List[Any], key: Union[str, Callable[[Any], Any]]
-) -> Dict[Any, List[Any]]:
+def indexed(items: list[Any], key: str | Callable[[Any], Any]) -> dict[Any, list[Any]]:
     """Build an index for a list of objects"""
-    idx: Dict[Any, Any] = {}
+    idx: dict[Any, Any] = {}
     for item in items:
         key_ = getattr(item, key) if isinstance(key, str) else key(item)
         idx.setdefault(key_, []).append(item)
@@ -1792,14 +1766,14 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "BaseDatasource",
-    applied_time_extras: Dict[str, str],
-) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns: Set[Any] = {
+    datasource: BaseDatasource,
+    applied_time_extras: dict[str, str],
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    temporal_columns: set[Any] = {
         col.column_name for col in datasource.columns if col.is_dttm
     }
-    applied: List[Dict[str, str]] = []
-    rejected: List[Dict[str, str]] = []
+    applied: list[dict[str, str]] = []
+    rejected: list[dict[str, str]] = []
     if time_column := applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL):
         if time_column in temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_COL})
@@ -1844,14 +1818,14 @@ def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
     return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)
 
 
-def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
+def find_duplicates(items: Iterable[InputType]) -> list[InputType]:
     """Find duplicate items in an iterable."""
     return [item for item, count in collections.Counter(items).items() if count > 1]
 
 
 def remove_duplicates(
-    items: Iterable[InputType], key: Optional[Callable[[InputType], Any]] = None
-) -> List[InputType]:
+    items: Iterable[InputType], key: Callable[[InputType], Any] | None = None
+) -> list[InputType]:
     """Remove duplicate items in an iterable."""
     if not key:
         return list(dict.fromkeys(items).keys())
@@ -1868,9 +1842,9 @@ def remove_duplicates(
 @dataclass
 class DateColumn:
     col_label: str
-    timestamp_format: Optional[str] = None
-    offset: Optional[int] = None
-    time_shift: Optional[str] = None
+    timestamp_format: str | None = None
+    offset: int | None = None
+    time_shift: str | None = None
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1881,9 +1855,9 @@ class DateColumn:
     @classmethod
     def get_legacy_time_column(
         cls,
-        timestamp_format: Optional[str],
-        offset: Optional[int],
-        time_shift: Optional[str],
+        timestamp_format: str | None,
+        offset: int | None,
+        time_shift: str | None,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
@@ -1895,7 +1869,7 @@ class DateColumn:
 
 def normalize_dttm_col(
     df: pd.DataFrame,
-    dttm_cols: Tuple[DateColumn, ...] = tuple(),
+    dttm_cols: tuple[DateColumn, ...] = tuple(),
 ) -> None:
     for _col in dttm_cols:
         if _col.col_label not in df.columns:
@@ -1925,7 +1899,7 @@ def normalize_dttm_col(
             df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
 
-def parse_boolean_string(bool_str: Optional[str]) -> bool:
+def parse_boolean_string(bool_str: str | None) -> bool:
     """
     Convert a string representation of a true/false value into a boolean
 
@@ -1956,7 +1930,7 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
 
 def apply_max_row_limit(
     limit: int,
-    max_limit: Optional[int] = None,
+    max_limit: int | None = None,
 ) -> int:
     """
     Override row limit if max global limit is defined
@@ -1979,7 +1953,7 @@ def apply_max_row_limit(
     return max_limit
 
 
-def create_zip(files: Dict[str, Any]) -> BytesIO:
+def create_zip(files: dict[str, Any]) -> BytesIO:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
         for filename, contents in files.items():
@@ -1989,7 +1963,7 @@ def create_zip(files: Dict[str, Any]) -> BytesIO:
     return buf
 
 
-def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
+def remove_extra_adhoc_filters(form_data: dict[str, Any]) -> None:
     """
     Remove filters from slice data that originate from a filter box or native filter
     """

@@ -15,10 +15,11 @@
 #  specific language governing permissions and limitations
 #  under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 
 class ExampleDataGenerator(ABC):
     @abstractmethod
-    def generate(self) -> Iterable[Dict[Any, Any]]:
+    def generate(self) -> Iterable[dict[Any, Any]]:
         ...

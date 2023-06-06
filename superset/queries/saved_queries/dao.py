@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 import uuid
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -36,7 +36,7 @@ class SavedQueryDAO(BaseDAO):
     base_filter = SavedQueryFilter
 
     @staticmethod
-    def bulk_delete(models: Optional[List[SavedQuery]], commit: bool = True) -> None:
+    def bulk_delete(models: Optional[list[SavedQuery]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
         try:
             db.session.query(SavedQuery).filter(SavedQuery.id.in_(item_ids)).delete(

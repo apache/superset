@@ -17,7 +17,8 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Pattern, Tuple, Type
+from re import Pattern
+from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -40,11 +41,11 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.
 logger = logging.getLogger(__name__)
 
 
-class TINYINT(Integer):  # pylint: disable=no-init
+class TINYINT(Integer):
     __visit_name__ = "TINYINT"
 
 
-class DOUBLE(Numeric):  # pylint: disable=no-init
+class DOUBLE(Numeric):
     __visit_name__ = "DOUBLE"
 
 
@@ -52,7 +53,7 @@ class ARRAY(TypeEngine):  # pylint: disable=no-init
     __visit_name__ = "ARRAY"
 
     @property
-    def python_type(self) -> Optional[Type[List[Any]]]:
+    def python_type(self) -> Optional[type[list[Any]]]:
         return list
 
 
@@ -60,7 +61,7 @@ class MAP(TypeEngine):  # pylint: disable=no-init
     __visit_name__ = "MAP"
 
     @property
-    def python_type(self) -> Optional[Type[Dict[Any, Any]]]:
+    def python_type(self) -> Optional[type[dict[Any, Any]]]:
         return dict
 
 
@@ -68,7 +69,7 @@ class STRUCT(TypeEngine):  # pylint: disable=no-init
     __visit_name__ = "STRUCT"
 
     @property
-    def python_type(self) -> Optional[Type[Any]]:
+    def python_type(self) -> Optional[type[Any]]:
         return None
 
 
@@ -117,7 +118,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (re.compile(r"^struct.*", re.IGNORECASE), STRUCT(), GenericDataType.STRING),
     )
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
@@ -134,10 +135,10 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     def adjust_engine_params(
         cls,
         uri: URL,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Tuple[URL, Dict[str, Any]]:
+    ) -> tuple[URL, dict[str, Any]]:
         database = uri.database
         if schema and database:
             schema = parse.quote(schema, safe="")
@@ -152,9 +153,9 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         columns = cls._show_columns(inspector, table_name, schema)
-        result: List[Dict[str, Any]] = []
+        result: list[dict[str, Any]] = []
         for column in columns:
             column_spec = cls.get_column_spec(column.Type)
             column_type = column_spec.sqla_type if column_spec else None
@@ -174,7 +175,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     @classmethod
     def _show_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> List[ResultRow]:
+    ) -> list[ResultRow]:
         """
         Show starrocks column names
         :param inspector: object that performs database schema inspection
@@ -185,13 +186,13 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         quote = inspector.engine.dialect.identifier_preparer.quote_identifier
         full_table = quote(table_name)
         if schema:
-            full_table = "{}.{}".format(quote(schema), full_table)
+            full_table = f"{quote(schema)}.{full_table}"
         return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
 
     @classmethod
     def _create_column_info(
         cls, name: str, data_type: types.TypeEngine
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create column info object
         :param name: column name
@@ -204,7 +205,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     def get_schema_from_engine_params(
         cls,
         sqlalchemy_uri: URL,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
     ) -> Optional[str]:
         """
         Return the configured schema.

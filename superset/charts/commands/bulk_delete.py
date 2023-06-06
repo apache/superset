@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -37,9 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 class BulkDeleteChartCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[Slice]] = None
+        self._models: Optional[list[Slice]] = None
 
     def run(self) -> None:
         self.validate()

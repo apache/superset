@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -71,8 +71,8 @@ from tests.unit_tests.fixtures.common import dttm
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -166,7 +166,7 @@ def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
     ],
 )
 def test_adjust_engine_params(
-    sqlalchemy_uri: str, connect_args: Dict[str, Any], returns: Dict[str, Any]
+    sqlalchemy_uri: str, connect_args: dict[str, Any], returns: dict[str, Any]
 ) -> None:
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 

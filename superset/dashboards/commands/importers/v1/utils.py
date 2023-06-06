@@ -17,7 +17,7 @@
 
 import json
 import logging
-from typing import Any, Dict, Set
+from typing import Any
 
 from flask import g
 from sqlalchemy.orm import Session
@@ -32,12 +32,12 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position": "position_json", "metadata": "json_metadata"}
 
 
-def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
+def find_chart_uuids(position: dict[str, Any]) -> set[str]:
     return set(build_uuid_to_id_map(position))
 
 
-def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
-    uuids: Set[str] = set()
+def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
+    uuids: set[str] = set()
     for native_filter in metadata.get("native_filter_configuration", []):
         targets = native_filter.get("targets", [])
         for target in targets:
@@ -47,7 +47,7 @@ def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
     return uuids
 
 
-def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
+def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     return {
         child["meta"]["uuid"]: child["meta"]["chartId"]
         for child in position.values()
@@ -60,10 +60,10 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
 
 
 def update_id_refs(  # pylint: disable=too-many-locals
-    config: Dict[str, Any],
-    chart_ids: Dict[str, int],
-    dataset_info: Dict[str, Dict[str, Any]],
-) -> Dict[str, Any]:
+    config: dict[str, Any],
+    chart_ids: dict[str, int],
+    dataset_info: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
@@ -147,7 +147,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
 
 def import_dashboard(
     session: Session,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Dashboard:

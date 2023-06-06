@@ -17,7 +17,7 @@
 import logging
 import random
 import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from sqlalchemy import func
 
@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 session = appbuilder.get_session
 
 
-def get_mock_positions(dashboard: Dashboard) -> Dict[str, Any]:
+def get_mock_positions(dashboard: Dashboard) -> dict[str, Any]:
     positions = {"DASHBOARD_VERSION_KEY": "v2"}
     for i, slc in enumerate(dashboard.slices):
-        id_ = "DASHBOARD_CHART_TYPE-{}".format(i)
+        id_ = f"DASHBOARD_CHART_TYPE-{i}"
         position_data: Any = {
             "type": "CHART",
             "id": id_,
@@ -48,7 +48,7 @@ def get_mock_positions(dashboard: Dashboard) -> Dict[str, Any]:
 
 def build_save_dash_parts(
     dashboard_slug: Optional[str] = None, dashboard_to_edit: Optional[Dashboard] = None
-) -> Tuple[Dashboard, Dict[str, Any], Dict[str, Any]]:
+) -> tuple[Dashboard, dict[str, Any], dict[str, Any]]:
     if not dashboard_to_edit:
         dashboard_slug = (
             dashboard_slug if dashboard_slug else DEFAULT_DASHBOARD_SLUG_TO_TEST
@@ -68,7 +68,7 @@ def build_save_dash_parts(
     return dashboard_to_edit, data_before_change, data_after_change
 
 
-def get_all_dashboards() -> List[Dashboard]:
+def get_all_dashboards() -> list[Dashboard]:
     return db.session.query(Dashboard).all()
 
 

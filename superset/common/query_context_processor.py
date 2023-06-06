@@ -19,7 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, ClassVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -77,8 +77,8 @@ logger = logging.getLogger(__name__)
 
 class CachedTimeOffset(TypedDict):
     df: pd.DataFrame
-    queries: List[str]
-    cache_keys: List[Optional[str]]
+    queries: list[str]
+    cache_keys: list[str | None]
 
 
 class QueryContextProcessor:
@@ -102,8 +102,8 @@ class QueryContextProcessor:
     enforce_numerical_metrics: ClassVar[bool] = True
 
     def get_df_payload(
-        self, query_obj: QueryObject, force_cached: Optional[bool] = False
-    ) -> Dict[str, Any]:
+        self, query_obj: QueryObject, force_cached: bool | None = False
+    ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
@@ -181,7 +181,7 @@ class QueryContextProcessor:
             "label_map": label_map,
         }
 
-    def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
+    def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
@@ -248,8 +248,8 @@ class QueryContextProcessor:
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         # todo: should support "python_date_format" and "get_column" in each datasource
         def _get_timestamp_format(
-            source: BaseDatasource, column: Optional[str]
-        ) -> Optional[str]:
+            source: BaseDatasource, column: str | None
+        ) -> str | None:
             column_obj = source.get_column(column)
             if (
                 column_obj
@@ -315,9 +315,9 @@ class QueryContextProcessor:
         query_context = self._query_context
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
-        queries: List[str] = []
-        cache_keys: List[Optional[str]] = []
-        rv_dfs: List[pd.DataFrame] = [df]
+        queries: list[str] = []
+        cache_keys: list[str | None] = []
+        rv_dfs: list[pd.DataFrame] = [df]
 
         time_offsets = query_object.time_offsets
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
@@ -449,7 +449,7 @@ class QueryContextProcessor:
         rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
-    def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(self, df: pd.DataFrame) -> str | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -470,9 +470,9 @@ class QueryContextProcessor:
 
     def get_payload(
         self,
-        cache_query_context: Optional[bool] = False,
+        cache_query_context: bool | None = False,
         force_cached: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
         # Get all the payloads from the QueryObjects
@@ -522,13 +522,13 @@ class QueryContextProcessor:
 
         return generate_cache_key(cache_dict, key_prefix)
 
-    def get_annotation_data(self, query_obj: QueryObject) -> Dict[str, Any]:
+    def get_annotation_data(self, query_obj: QueryObject) -> dict[str, Any]:
         """
         :param query_context:
         :param query_obj:
         :return:
         """
-        annotation_data: Dict[str, Any] = self.get_native_annotation_data(query_obj)
+        annotation_data: dict[str, Any] = self.get_native_annotation_data(query_obj)
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
@@ -541,7 +541,7 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_native_annotation_data(query_obj: QueryObject) -> Dict[str, Any]:
+    def get_native_annotation_data(query_obj: QueryObject) -> dict[str, Any]:
         annotation_data = {}
         annotation_layers = [
             layer
@@ -576,8 +576,8 @@ class QueryContextProcessor:
 
     @staticmethod
     def get_viz_annotation_data(
-        annotation_layer: Dict[str, Any], force: bool
-    ) -> Dict[str, Any]:
+        annotation_layer: dict[str, Any], force: bool
+    ) -> dict[str, Any]:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))

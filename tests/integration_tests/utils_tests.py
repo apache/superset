@@ -21,7 +21,7 @@ from decimal import Decimal
 import json
 import os
 import re
-from typing import Any, Tuple, List, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 from superset.databases.commands.exceptions import DatabaseInvalidError
@@ -121,12 +121,12 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(np.int64(1)), int)
         assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
         assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv(set([1])), list)
+        assert isinstance(base_json_conv({1}), list)
         assert isinstance(base_json_conv(Decimal("1.0")), float)
         assert isinstance(base_json_conv(uuid.uuid4()), str)
         assert isinstance(base_json_conv(time()), str)
         assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(bytes()), str)
+        assert isinstance(base_json_conv(b""), str)
         assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
 
         with pytest.raises(TypeError):
@@ -1054,7 +1054,7 @@ class TestUtils(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
         slc = self.get_slice("Girls", db.session)
-        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+        cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
                 "dttm",
