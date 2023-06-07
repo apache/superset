@@ -54,7 +54,7 @@ pyyaml==5.4.1
     # via pre-commit
 toposort==1.10
     # via pip-compile-multi
-tox==4.5.2
+tox==4.6.0
     # via -r integration.in
 virtualenv==20.23.0
     # via
