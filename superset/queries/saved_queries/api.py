@@ -182,7 +182,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
-    @expose("/<_id>", methods=("GET",))
+    @expose("/<id_>", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -191,7 +191,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, _id: str, **kwargs: Any) -> Response:
+    def get(self, id_: str, **kwargs: Any) -> Response:
         """Get a saved query by id or uuid
         ---
         get:
@@ -201,7 +201,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             Users who did not create a saved query can only discover it via UUID
           parameters:
           - in: path
-            name: _id
+            name: id_
             schema:
               type: string
             description: ID or UUID of the saved query
@@ -222,7 +222,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        saved_query = SavedQueryDAO.get_by_id(_id)
+        saved_query = SavedQueryDAO.get_by_id(id_)
         if not saved_query:
             return self.response_404()
         result = self.saved_query_get_schema.dump(saved_query)
