@@ -27,6 +27,7 @@ assists people when migrating to a new version.
 - [24256](https://github.com/apache/superset/pull/24256): `Flask-Login` session validation is now set to `strong` by default. Previous setting was `basic`.
 
 ### Other
+- [23888](https://github.com/apache/superset/pull/23888): Database Migration for json serialization instead of pickle should upgrade/downgrade correctly when bumping to/from this patch version
 
 ## 2.1.0
 
