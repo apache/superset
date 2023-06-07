@@ -287,7 +287,7 @@ const StyledSliderSection = styled('div')`
     }
     .toggle {
       font-size: 24px;
-      color: var(--ifm-font-base-color-inverse);
+      color: #b4c0c7;
       position: relative;
       padding-left: 32px;
       cursor: pointer;
@@ -314,6 +314,7 @@ const StyledSliderSection = styled('div')`
       }
       &.active {
         font-weight: 700;
+        color: #ffffff;
       }
       &.active::before {
         background-color: var(--ifm-color-primary);
