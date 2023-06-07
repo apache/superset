@@ -496,6 +496,7 @@ export default function Home(): JSX.Element {
 
     return () => {
       window.removeEventListener('scroll', scrollListener);
+      changeToLight();
     };
   }, []);
 
