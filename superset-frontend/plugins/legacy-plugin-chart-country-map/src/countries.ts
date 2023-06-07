@@ -19,6 +19,7 @@
 
 import austria from './countries/austria.geojson';
 import argentina from './countries/argentina.geojson';
+import azerbaijan from './countries/azerbaijan.geojson'
 import australia from './countries/australia.geojson';
 import belgium from './countries/belgium.geojson';
 import bolivia from './countries/bolivia.geojson';
@@ -107,6 +108,7 @@ import vietnam from './countries/vietnam.geojson';
 export const countries = {
   austria,
   argentina,
+  azerbaijan,
   australia,
   belgium,
   bolivia,
