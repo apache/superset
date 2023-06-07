@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 class PrestoSQLValidationError(Exception):
     """Error in the process of asking Presto to validate SQL querytext"""
 
+class TrinoSQLValidationError(Exception):
+    """Error in the process of asking Trino to validate SQL querytext"""
+
+class MySqlSQLValidationError(Exception):
+    """Error in the process of asking Mysql to validate SQL querytext"""
 
 class PrestoDBSQLValidator(BaseSQLValidator):
     """Validate SQL queries using Presto's built-in EXPLAIN subtype"""
@@ -66,7 +71,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
-        sql = f"EXPLAIN (TYPE VALIDATE) {sql}"
+        sql = f"EXPLAIN {sql}"
 
         # Invoke the query against presto. NB this deliberately doesn't use the
         # engine spec's handle_cursor implementation since we don't record
@@ -74,22 +79,13 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # in the superset ORM.
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
+        from trino.exceptions import TrinoUserError
+        from MySQLdb._exceptions import DatabaseError as DbError,Error
 
         try:
             db_engine_spec.execute(cursor, sql)
             logger.info("CURSOR", str(cursor))
             logger.info("ENGINE INSIDE", str(db_engine_spec))
-
-            polled = cursor.poll()
-            while polled:
-                logger.info("polling presto for validation progress")
-                stats = polled.get("stats", {})
-                if stats:
-                    state = stats.get("state")
-                    if state == "FINISHED":
-                        break
-                time.sleep(0.2)
-                polled = cursor.poll()
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
         except DatabaseError as db_error:
@@ -134,6 +130,61 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     message=message, line_number=1, start_column=1, end_column=1
                 )
 
+            # pylint: disable=invalid-sequence-index
+            message = error_args["message"]
+            err_loc = error_args["errorLocation"]
+            line_number = err_loc.get("lineNumber", None)
+            start_column = err_loc.get("columnNumber", None)
+            end_column = err_loc.get("columnNumber", None)
+
+            return SQLValidationAnnotation(
+                message=message,
+                line_number=line_number,
+                start_column=start_column,
+                end_column=end_column,
+            )
+        except TrinoUserError as db_error:
+            logger.info("database error==", str(db_error))
+            if db_error.args and isinstance(db_error.args[0], str):
+                raise TrinoSQLValidationError(db_error.args[0]) from db_error
+            if not db_error.args or not isinstance(db_error.args[0], dict):
+                raise TrinoSQLValidationError(
+                    "The trino client returned an unhandled " "database error."
+                ) from db_error
+            error_args: Dict[str, Any] = db_error.args[0]
+            if "message" not in error_args:
+                raise TrinoSQLValidationError(
+                    "The trino client did not report an error message"
+                ) from db_error
+            if "errorLocation" not in error_args:
+                message = error_args["message"] + "\n(Error location unknown)"
+                return SQLValidationAnnotation(
+                    message=message, line_number=1, start_column=1, end_column=1
+                )
+            # pylint: disable=invalid-sequence-index
+            message = error_args["message"]
+            err_loc = error_args["errorLocation"]
+            line_number = err_loc.get("lineNumber", None)
+            start_column = err_loc.get("columnNumber", None)
+            end_column = err_loc.get("columnNumber", None)
+
+            return SQLValidationAnnotation(
+                message=message,
+                line_number=line_number,
+                start_column=start_column,
+                end_column=end_column,
+            )
+        except DbError or Error as db_error :
+            logger.info("database error==", str(db_error))
+            logger.info("database error args==", str(db_error.args[1]))
+            if db_error.args and isinstance(db_error.args[0], str):
+                raise MySqlSQLValidationError(db_error.args[0]) from db_error
+            error_args: Dict[str, Any] = { "message": db_error.args[1]}
+            if "errorLocation" not in error_args:
+                message = error_args["message"] + "\n(Error location unknown)"
+                return SQLValidationAnnotation(
+                    message=message, line_number=1, start_column=1, end_column=1
+                )
             # pylint: disable=invalid-sequence-index
             message = error_args["message"]
             err_loc = error_args["errorLocation"]
