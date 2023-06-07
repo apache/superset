@@ -18,7 +18,8 @@
  */
 import { Behavior, FeatureFlag } from '@superset-ui/core';
 import * as featureFlags from 'src/featureFlags';
-import { nativeFilterGate } from './utils';
+import { DashboardLayout } from 'src/dashboard/types';
+import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
 
@@ -123,4 +124,41 @@ describe('nativeFilterGate', () => {
       expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
     });
   });
+});
+
+test('findTabsWithChartsInScope should handle a recursive layout structure', () => {
+  const dashboardLayout = {
+    DASHBOARD_VERSION_KEY: 'v2',
+    ROOT_ID: {
+      children: ['GRID_ID'],
+      id: 'ROOT_ID',
+      type: 'ROOT',
+    },
+    GRID_ID: {
+      children: ['TAB-LrujeuD5Qn', 'TABS-kN7tw6vFif'],
+      id: 'GRID_ID',
+      parents: ['ROOT_ID'],
+      type: 'GRID',
+    },
+    'TAB-LrujeuD5Qn': {
+      children: ['TABS-kN7tw6vFif'],
+      id: 'TAB-LrujeuD5Qn',
+      meta: {
+        text: 'View by Totals',
+      },
+      parents: ['ROOT_ID'],
+      type: 'TAB',
+    },
+    'TABS-kN7tw6vFif': {
+      children: ['TAB-LrujeuD5Qn', 'TAB--7BUkKkNl'],
+      id: 'TABS-kN7tw6vFif',
+      meta: {},
+      parents: ['ROOT_ID'],
+      type: 'TABS',
+    },
+  } as any as DashboardLayout;
+
+  expect(Array.from(findTabsWithChartsInScope(dashboardLayout, []))).toEqual(
+    [],
+  );
 });
