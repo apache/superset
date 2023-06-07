@@ -35,18 +35,16 @@ import {
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import * as chrono from 'chrono-node';
-import moment from 'moment';
 import { updateFlash } from '../../services/flash.service';
 import { FlashTypes } from '../../enums';
-import { FLASH_TYPE_JSON, UPDATE_TYPES } from '../../constants';
+import { UPDATE_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
-const flashTypeConf =
-  bootstrapData?.common?.conf?.FLASH_TYPE ?? FLASH_TYPE_JSON;
+const flashTypeConf = bootstrapData?.common?.conf?.FLASH_TYPE;
 
 const getJSONSchema = () => {
   const jsonSchema = flashTypeConf?.JSONSCHEMA;
@@ -124,22 +122,15 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
     teamSlackChannel: '',
     teamSlackHandle: '',
     ttl: '',
-    scheduleType: '',
-    scheduleStartTime: '',
   });
 
   useEffect(() => {
     if (flash) {
-      formData.flashType = flash?.flashType
-        ? flash?.flashType.replace(/([A-Z])/g, ' $1').trim()
-        : '';
+      formData.flashType =
+        flash?.flashType.replace(/([A-Z])/g, ' $1').trim() ?? '';
       formData.teamSlackChannel = flash?.teamSlackChannel ?? '';
       formData.teamSlackHandle = flash?.teamSlackHandle ?? '';
       formData.ttl = flash?.ttl ?? '';
-      formData.scheduleType = flash?.scheduleType ? flash?.scheduleType : '';
-      formData.scheduleStartTime = flash?.scheduleStartTime
-        ? new Date(flash?.scheduleStartTime).toISOString()
-        : '';
     }
   }, []);
 
@@ -157,17 +148,11 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
           .parseDate('7 days from now')
           .toISOString()
           .split('T')[0];
-        formData.teamSlackChannel = '';
-        formData.teamSlackHandle = '';
       } else {
         formData.ttl = chrono
           .parseDate('7 days from now')
           .toISOString()
           .split('T')[0];
-        formData.teamSlackChannel = '';
-        formData.teamSlackHandle = '';
-        formData.scheduleType = '';
-        formData.scheduleStartTime = '';
       }
     }
     setFlashSchema(jsonSchema);
@@ -190,19 +175,6 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
-    payload.scheduleStartTime = payload.scheduleStartTime
-      ? moment(payload.scheduleStartTime).format('YYYY-MM-DD HH:mm:ss')
-      : '';
-    if (payload.flashType === FlashTypes.SHORT_TERM) {
-      delete payload.teamSlackHandle;
-      delete payload.teamSlackChannel;
-    }
-    if (payload.flashType === FlashTypes.ONE_TIME) {
-      delete payload.teamSlackHandle;
-      delete payload.teamSlackChannel;
-      delete payload.scheduleType;
-      delete payload.scheduleStartTime;
-    }
     flashTypeService(Number(flash?.id), UPDATE_TYPES.FLASHTYPE, payload);
   };
 
@@ -258,9 +230,7 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
         draggable
         onHide={onHide}
         show={show}
-        title={
-          <div data-test="flash-type-modal-title">{t('Update Flash Type')}</div>
-        }
+        title={t('Update Flash Type')}
         footer={<></>}
       >
         {renderModalBody()}
