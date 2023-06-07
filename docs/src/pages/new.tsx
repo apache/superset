@@ -249,7 +249,7 @@ const StyledFeaturesList = styled('ul')`
 
 const StyledSliderSection = styled('div')`
   position: relative;
-  padding: 60px 20px 0;
+  padding: 60px 20px;
   ${mq[1]} {
     padding-top: 0;
     padding-bottom: 50px;
@@ -258,7 +258,7 @@ const StyledSliderSection = styled('div')`
     content: '';
     display: block;
     width: 100%;
-    height: calc(100% - 310px);
+    height: calc(100% - 320px);
     position: absolute;
     top: 0;
     left: 0;
@@ -280,7 +280,7 @@ const StyledSliderSection = styled('div')`
     ${mq[1]} {
       flex-direction: column;
       text-align: left;
-      max-width: 120px;
+      max-width: 140px;
       gap: 10px;
       margin-top: 15px;
       margin-bottom: 40px;
@@ -337,6 +337,15 @@ const StyledSliderSection = styled('div')`
     & > img {
       border-radius: 10px;
       border: 1px solid #f3f3f3;
+    }
+  }
+  video {
+    width: 100%;
+    max-width: 920px;
+    margin-top: 10px;
+    border-radius: 10px;
+    ${mq[1]} {
+      border-radius: 5px;
     }
   }
 `;
@@ -590,62 +599,55 @@ export default function Home(): JSX.Element {
                 onClick={() => slider.current.goTo(0)}
                 role="button"
               >
-                Create
+                Dashboards
               </li>
               <li
                 className={`toggle ${slideIndex === 1 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(1)}
                 role="button"
               >
-                Dashboard
+                Chart Builder
               </li>
               <li
                 className={`toggle ${slideIndex === 2 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(2)}
                 role="button"
               >
-                SQL View
+                SQL Lab
               </li>
               <li
                 className={`toggle ${slideIndex === 3 ? 'active' : null}`}
                 onClick={() => slider.current.goTo(3)}
                 role="button"
               >
-                SQL LAB
-              </li>
-              <li
-                className={`toggle ${slideIndex === 4 ? 'active' : null}`}
-                onClick={() => slider.current.goTo(4)}
-                role="button"
-              >
-                Update
+                Datasets
               </li>
             </ul>
             <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
               <div className="slide">
                 <p>
-                  Build charts and tables through intuitive drag-and-drop
-                  navigation
+                  Explore data and find insights from interactive dashboards.
                 </p>
-                <img src="/img/explore.jpg" alt="Explore (chart buider) UI" />
               </div>
               <div className="slide">
-                <p>(Dashboard) Text</p>
-                <img src="/img/dashboard.jpg" alt="Superset Dashboard" />
+                <p>Drag and drop to create robust charts and tables.</p>
               </div>
               <div className="slide">
-                <p>(SQL View) Text</p>
-                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
+                <p>
+                  Write custom SQL queries, browse database metadata, use Jinja
+                  templating, and more.
+                </p>
               </div>
               <div className="slide">
-                <p>(SQL Lab) Text</p>
-                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
-              </div>
-              <div className="slide">
-                <p>(Update) Text</p>
-                <img src="/img/sql_lab.jpg" alt="SQL Lab" />
+                <p>
+                  Create physical and virtual datasets to scale chart creation
+                  with unified metric definitions.
+                </p>
               </div>
             </Carousel>
+            <video autoPlay muted controls>
+              <source src="video/superset-video-4k.mp4" type="video/mp4" />
+            </video>
           </StyledSliderSection>
           <StyledKeyFeatures>
             <h3>Key features</h3>
