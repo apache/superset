@@ -60,8 +60,42 @@ beforeEach(() => {
   fetchMock.post(queryValidationApiRoute, fakeApiResult);
 });
 
-test('skips fetching validation if validator is undefined', () => {
-  const { result } = renderHook(
+const initialize = (withValidator = false) => {
+  if (withValidator) {
+    return renderHook(
+      () =>
+        useAnnotations({
+          sql: expectSql,
+          dbId: expectDbId,
+          schema: expectSchema,
+          templateParams: expectTemplateParams,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          initialState: {
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              databases: {
+                [expectDbId]: {
+                  backend: expectValidatorEngine,
+                },
+              },
+            },
+            common: {
+              conf: {
+                SQL_VALIDATORS_BY_ENGINE: {
+                  [expectValidatorEngine]: true,
+                },
+              },
+            },
+          },
+        }),
+      },
+    );
+  }
+  return renderHook(
     () =>
       useAnnotations({
         sql: expectSql,
@@ -76,43 +110,16 @@ test('skips fetching validation if validator is undefined', () => {
       }),
     },
   );
+};
+
+test('skips fetching validation if validator is undefined', () => {
+  const { result } = initialize();
   expect(result.current.data).toEqual([]);
   expect(fetchMock.calls(queryValidationApiRoute)).toHaveLength(0);
 });
 
 test('returns validation if validator is configured', async () => {
-  const { result, waitFor } = renderHook(
-    () =>
-      useAnnotations({
-        sql: expectSql,
-        dbId: expectDbId,
-        schema: expectSchema,
-        templateParams: expectTemplateParams,
-      }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        initialState: {
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              [expectDbId]: {
-                backend: expectValidatorEngine,
-              },
-            },
-          },
-          common: {
-            conf: {
-              SQL_VALIDATORS_BY_ENGINE: {
-                [expectValidatorEngine]: true,
-              },
-            },
-          },
-        },
-      }),
-    },
-  );
+  const { result, waitFor } = initialize(true);
   await waitFor(() =>
     expect(fetchMock.calls(queryValidationApiRoute)).toHaveLength(1),
   );
@@ -135,38 +142,7 @@ test('returns server error description', async () => {
     },
     { overwriteRoutes: true },
   );
-  const { result, waitFor } = renderHook(
-    () =>
-      useAnnotations({
-        sql: expectSql,
-        dbId: expectDbId,
-        schema: expectSchema,
-        templateParams: expectTemplateParams,
-      }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        initialState: {
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              [expectDbId]: {
-                backend: expectValidatorEngine,
-              },
-            },
-          },
-          common: {
-            conf: {
-              SQL_VALIDATORS_BY_ENGINE: {
-                [expectValidatorEngine]: true,
-              },
-            },
-          },
-        },
-      }),
-    },
-  );
+  const { result, waitFor } = initialize(true);
   await waitFor(
     () =>
       expect(result.current.data).toEqual([
@@ -190,38 +166,7 @@ test('returns sesion expire description when CSRF token expired', async () => {
     },
     { overwriteRoutes: true },
   );
-  const { result, waitFor } = renderHook(
-    () =>
-      useAnnotations({
-        sql: expectSql,
-        dbId: expectDbId,
-        schema: expectSchema,
-        templateParams: expectTemplateParams,
-      }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        initialState: {
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              [expectDbId]: {
-                backend: expectValidatorEngine,
-              },
-            },
-          },
-          common: {
-            conf: {
-              SQL_VALIDATORS_BY_ENGINE: {
-                [expectValidatorEngine]: true,
-              },
-            },
-          },
-        },
-      }),
-    },
-  );
+  const { result, waitFor } = initialize(true);
   await waitFor(
     () =>
       expect(result.current.data).toEqual([
