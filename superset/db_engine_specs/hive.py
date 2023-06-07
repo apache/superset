@@ -407,7 +407,11 @@ class HiveEngineSpec(PrestoEngineSpec):
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: str | None
     ) -> list[dict[str, Any]]:
-        return inspector.get_columns(table_name, schema)
+        columns = []
+        for col in inspector.get_columns(table_name, schema):
+            col["column_name"] = col.pop("name")
+            columns.append(col)
+        return columns
 
     @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments
