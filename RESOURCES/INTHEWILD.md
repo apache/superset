@@ -126,7 +126,7 @@ Join our growing community!
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
-- [BurdaForward] (https://www.burda-forward.de/en/)
+- [BurdaForward](https://www.burda-forward.de/en/)
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
