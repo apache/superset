@@ -646,7 +646,7 @@ export default function Home(): JSX.Element {
               </div>
             </Carousel>
             <video autoPlay muted controls>
-              <source src="video/superset-video-4k.mp4" type="video/mp4" />
+              <source src="/video/superset-video-4k.mp4" type="video/mp4" />
             </video>
           </StyledSliderSection>
           <StyledKeyFeatures>
