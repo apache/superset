@@ -459,8 +459,8 @@ export default function Home(): JSX.Element {
 
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const onChange = index => {
-    setSlideIndex(index);
+  const onChange = (current, next) => {
+    setSlideIndex(next);
   };
 
   const changeToDark = () => {
@@ -624,7 +624,7 @@ export default function Home(): JSX.Element {
                 Datasets
               </li>
             </ul>
-            <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
+            <Carousel ref={slider} effect="scrollx" beforeChange={onChange}>
               <div className="slide">
                 <p>
                   Explore data and find insights from interactive dashboards.
