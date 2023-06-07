@@ -74,7 +74,7 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
-# Artificial column used for joining aggregated offset results
+# Temporary column used for joining aggregated offset results
 AGGREGATED_JOIN_COLUMN = "__aggregated_join_column"
 
 # This only includes time grains that may influence
@@ -325,12 +325,7 @@ class QueryContextProcessor:
         return df
 
     @staticmethod
-    def get_time_grain(
-        query_context: QueryContext, query_object: QueryObject
-    ) -> Any | None:
-        if query_context.form_data:
-            return query_context.form_data.get("time_grain_sqla")
-
+    def get_time_grain(query_object: QueryObject) -> Any | None:
         if (
             query_object.columns
             and len(query_object.columns) > 0
@@ -346,7 +341,7 @@ class QueryContextProcessor:
         self,
         df: pd.DataFrame,
         time_grain: str,
-        join_column_producer: Any,
+        join_column_producer: Any = None,
     ) -> None:
         if join_column_producer:
             df[AGGREGATED_JOIN_COLUMN] = df.apply(
@@ -380,12 +375,18 @@ class QueryContextProcessor:
             )
 
         columns = df.columns
-        time_grain = self.get_time_grain(query_context, query_object) or TimeGrain.DAY
+        time_grain = self.get_time_grain(query_object)
+
+        if not time_grain:
+            raise QueryObjectValidationError(
+                _("Time Grain must be specified when using Time Shift.")
+            )
+
         join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
         )
         use_aggregated_join_column = (
-            time_grain in AGGREGATED_JOIN_GRAINS or join_column_producer
+            join_column_producer or time_grain in AGGREGATED_JOIN_GRAINS
         )
         if use_aggregated_join_column:
             self.add_aggregated_join_column(df, time_grain, join_column_producer)

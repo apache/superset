@@ -14,39 +14,60 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from pandas import Timestamp
+from pandas import DataFrame, Series, Timestamp
+from pandas.testing import assert_frame_equal
+from pytest import mark
 
-from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.query_context import QueryContext
+from superset.common.query_context_processor import (
+    AGGREGATED_JOIN_COLUMN,
+    QueryContextProcessor,
+)
+from superset.connectors.base.models import BaseDatasource
 from superset.constants import TimeGrain
 
-get_aggregated_join_column = QueryContextProcessor.get_aggregated_join_column
-
-row = [Timestamp("2020-01-07")]
-
-
-def test_week_join_column():
-    result = get_aggregated_join_column(
-        row=row, column_index=0, time_grain=TimeGrain.WEEK
+query_context_processor = QueryContextProcessor(
+    QueryContext(
+        datasource=BaseDatasource(),
+        queries=[],
+        result_type=ChartDataResultType.COLUMNS,
+        form_data={},
+        slice_=None,
+        result_format=ChartDataResultFormat.CSV,
+        cache_values={},
     )
-    assert result == "2020-W01"
+)
 
 
-def test_month_join_column():
-    result = get_aggregated_join_column(
-        row=row, column_index=0, time_grain=TimeGrain.MONTH
+def join_column_producer(row: Series, column_index: int) -> str:
+    return "CUSTOM_FORMAT"
+
+
+@mark.parametrize(
+    ("time_grain", "expected"),
+    [
+        (TimeGrain.WEEK, "2020-W01"),
+        (TimeGrain.MONTH, "2020-01"),
+        (TimeGrain.QUARTER, "2020-Q1"),
+        (TimeGrain.YEAR, "2020"),
+    ],
+)
+def test_aggregated_join_column(time_grain: str, expected: str):
+    df = DataFrame({"ds": [Timestamp("2020-01-07")]})
+    query_context_processor.add_aggregated_join_column(df, time_grain)
+    result = DataFrame(
+        {"ds": [Timestamp("2020-01-07")], AGGREGATED_JOIN_COLUMN: [expected]}
     )
-    assert result == "2020-01"
+    assert_frame_equal(df, result)
 
 
-def test_quarter_join_column():
-    result = get_aggregated_join_column(
-        row=row, column_index=0, time_grain=TimeGrain.QUARTER
+def test_aggregated_join_column_producer():
+    df = DataFrame({"ds": [Timestamp("2020-01-07")]})
+    query_context_processor.add_aggregated_join_column(
+        df, TimeGrain.YEAR, join_column_producer
     )
-    assert result == "2020-Q1"
-
-
-def test_year_join_column():
-    result = get_aggregated_join_column(
-        row=row, column_index=0, time_grain=TimeGrain.YEAR
+    result = DataFrame(
+        {"ds": [Timestamp("2020-01-07")], AGGREGATED_JOIN_COLUMN: ["CUSTOM_FORMAT"]}
     )
-    assert result == "2020"
+    assert_frame_equal(df, result)
