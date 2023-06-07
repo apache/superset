@@ -584,12 +584,56 @@ FLASH_TYPE = {
                                 "title": "Slack Handle",
                                 "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
                             },
+                             "scheduleType": {
+                                "title": "Schedule Type",
+                                "type": "string",
+                                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
+                                "enumNames": [
+                                    "Please Select",
+                                    "Hourly",
+                                    "Daily",
+                                    "Weekly",
+                                    "Monthly",
+                                ],
+                                "default": "Please Select",
+                            },
+                            "scheduleStartTime": {
+                                "type": "string",
+                                "title": "Schedule Start Time (In UTC)",
+                                "format": "date-time",
+                            },
                         },
                         "required": [
                             "teamSlackChannel",
                             "teamSlackHandle",
+                            "scheduleType",
+                            "scheduleStartTime"
                         ],
-                    }
+                    },
+                    {
+                        "properties": {
+                            "flashType": {"enum": ["Short Term"]},
+                            "scheduleType": {
+                                "title": "Schedule Type",
+                                "type": "string",
+                                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
+                                "enumNames": [
+                                    "Please Select",
+                                    "Hourly",
+                                    "Daily",
+                                    "Weekly",
+                                    "Monthly",
+                                ],
+                                "default": "Please Select",
+                            },
+                            "scheduleStartTime": {
+                                "type": "string",
+                                "title": "Schedule Start Time (In UTC)",
+                                "format": "date-time",
+                            },
+                        },
+                        "required": ["scheduleType", "scheduleStartTime"],
+                    },
                 ]
             }
         },
@@ -606,6 +650,10 @@ FLASH_TYPE = {
         "teamSlackHandle": {
             "ui:placeholder": "@slack_handle_name",
             "ui:help": "Slack handle for notification",
+        },
+        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleStartTime": {
+            "ui:help": "Start time from which the flash object is to be scheduled."
         },
     },
     "VALIDATION": [],
