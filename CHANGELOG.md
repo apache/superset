@@ -33,6 +33,10 @@ under the License.
 
 ### 2.1.1 (Sun Apr 23 15:44:21 2023 +0100)
 
+**Database Migrations**
+- [##23980](https://github.com/apache/superset/pull/23980) fix(migration): handle permalink edge cases correctly (@villebro)
+- [23888](https://github.com/apache/superset/pull/23888) chore(key-value): use json serialization for main resources (@villebro)
+
 **Fixes**
 - [#23723](https://github.com/apache/superset/pull/23723) add enforce URI query params with a specific for MySQL (@dpgaspar)
 - [#24054](https://github.com/apache/superset/pull/24054) fix: handle temporal columns in presto partitions (@giftig)
@@ -55,6 +59,7 @@ under the License.
 **Others**
 - [#24294](https://github.com/apache/superset/pull/24294) chore: update UPDATING for 2.1.0 (@eschutho)
 - [#24056](https://github.com/apache/superset/pull/24056) chore: Remove unnecessary information from response (@geido)
+
 
 
 ### 2.1.0 (Thu Mar 16 21:13:05 2023 -0700)
