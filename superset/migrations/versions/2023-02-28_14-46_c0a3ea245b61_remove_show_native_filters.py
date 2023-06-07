@@ -17,14 +17,14 @@
 """remove_show_native_filters
 
 Revision ID: c0a3ea245b61
-Revises: f3c2d8ec8595
+Revises: 9c2a5681ddfd
 Create Date: 2023-02-28 14:46:59.597847
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "c0a3ea245b61"
-down_revision = "f3c2d8ec8595"
+down_revision = "9c2a5681ddfd"
 
 import json
 
