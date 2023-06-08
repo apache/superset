@@ -29,7 +29,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Rural Breakdown', viz: 'sunburst' },
   { name: "World's Pop Growth", viz: 'area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
-  { name: 'Treemap', viz: 'treemap' },
+  { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];
 

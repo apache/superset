@@ -119,7 +119,7 @@ msgstr ""
 msgid " to visualize your data."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:116
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
 msgid "!= (Is not equal)"
 msgstr ""
 
@@ -614,7 +614,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:459
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:131
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
 msgid "30 days"
 msgstr "30日"
 
@@ -697,7 +697,7 @@ msgstr ""
 msgid "6 hour"
 msgstr "6時間"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:135
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
 msgid "60 days"
 msgstr "60日"
 
@@ -724,7 +724,7 @@ msgstr ""
 msgid "9/91 percentiles"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:139
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
 msgid "90 days"
 msgstr "90日"
 
@@ -732,11 +732,11 @@ msgstr "90日"
 msgid ":"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:96
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
 msgid "< (Smaller than)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:104
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
 msgid "<= (Smaller or equal)"
 msgstr ""
 
@@ -764,15 +764,15 @@ msgstr ""
 msgid "<no type>"
 msgstr "チャートタイプ"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:112
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
 msgid "== (Is equal)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:100
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
 msgid "> (Larger than)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:108
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
 msgid ">= (Larger or equal)"
 msgstr ""
 
@@ -823,7 +823,7 @@ msgid ""
 "empty will allow embedding from any domain."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:755
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:752
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:445
 msgid "A list of tags that have been applied to this chart."
 msgstr ""
@@ -854,7 +854,7 @@ msgid ""
 " rather than its radius or sweep angle."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:700
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:697
 msgid "A readable URL for your dashboard"
 msgstr "ダッシュボード用の読みやすいURL"
 
@@ -911,7 +911,7 @@ msgstr "csv の生成中にタイムアウトが発生しました。"
 msgid "A timeout occurred while taking a screenshot."
 msgstr "スクリーンショットの撮影中にタイムアウトが発生しました。"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:299
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:296
 msgid "A valid color scheme is required"
 msgstr "有効な配色が必要です"
 
@@ -946,8 +946,8 @@ msgstr "アラート状態"
 msgid "About"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:479
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:522
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:476
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:519
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:411
 msgid "Access"
 msgstr "アクセス"
@@ -992,7 +992,7 @@ msgstr "操作履歴"
 msgid "Actions"
 msgstr "アクション"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:386
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
 #: superset-frontend/src/pages/AlertReportList/index.tsx:355
 msgid "Active"
 msgstr "アクティブ"
@@ -1036,7 +1036,7 @@ msgstr "日時フォーマット"
 msgid "Add"
 msgstr "追加"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 #, fuzzy
 msgid "Add Alert"
 msgstr "アラート"
@@ -1073,7 +1073,7 @@ msgstr "ログを追加"
 msgid "Add Metric"
 msgstr "指標を追加"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 #, fuzzy
 msgid "Add Report"
 msgstr "レポート"
@@ -1202,7 +1202,7 @@ msgstr ""
 msgid "Add new formatter"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:374
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add notification method"
 msgstr ""
 
@@ -1313,7 +1313,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:153
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/controlPanel.ts:66
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:939
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:771
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:768
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:34
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1867
 msgid "Advanced"
@@ -1444,11 +1444,11 @@ msgstr "アラート"
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発動、猶予期間中"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 msgid "Alert condition"
 msgstr "アラート状態"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
 msgid "Alert condition schedule"
 msgstr "アラート状態スケジュール"
 
@@ -1468,7 +1468,7 @@ msgstr "猶予期間中にアラートが発生しました。"
 msgid "Alert found an error while executing a query."
 msgstr "クエリの実行中にアラートがエラーを検出しました。"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 msgid "Alert name"
 msgstr "アラート名"
 
@@ -1726,7 +1726,7 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:791
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:183
 #: superset-frontend/src/components/Tags/utils.tsx:67
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:127
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:128
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:109
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:38
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:92
@@ -2241,7 +2241,7 @@ msgstr ""
 msgid "Any"
 msgstr "任意"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:729
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:726
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:393
 msgid "Any additional detail to show in the certification tooltip."
 msgstr ""
@@ -2288,7 +2288,7 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:112
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:856
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:231
@@ -2636,7 +2636,7 @@ msgstr ""
 msgid "Basic"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:682
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:679
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:353
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:247
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:287
@@ -3030,7 +3030,7 @@ msgstr ""
 #: superset-frontend/src/components/Modal/Modal.tsx:269
 #: superset-frontend/src/components/ReportModal/index.tsx:219
 #: superset-frontend/src/dashboard/components/FilterBoxMigrationModal.tsx:72
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:649
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:646
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:151
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/EditSection.tsx:136
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/Footer.tsx:76
@@ -3078,7 +3078,6 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:30
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:38
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:42
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:47
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:70
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:41
@@ -3176,7 +3175,7 @@ msgstr "最近"
 msgid "Centroid (Longitude and Latitude): "
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:709
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:706
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:376
 #, fuzzy
 msgid "Certification"
@@ -3186,7 +3185,7 @@ msgstr "無効な証明書"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:348
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1235
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1241
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:723
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:720
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:387
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:390
 msgid "Certification details"
@@ -3207,7 +3206,7 @@ msgstr "更新者"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:337
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1222
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1230
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:714
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:711
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:378
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:379
 msgid "Certified by"
@@ -3302,7 +3301,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:69
 #: superset-frontend/src/features/home/ChartTable.tsx:191
 #: superset-frontend/src/features/home/RightMenu.tsx:219
@@ -3341,7 +3340,6 @@ msgstr "チャートID"
 #: superset-frontend/plugins/legacy-plugin-chart-sankey-loop/src/controlPanel.ts:36
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:69
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/controlPanel.ts:54
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/controlPanel.ts:43
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/controlPanel.ts:42
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:85
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:78
@@ -3953,7 +3951,7 @@ msgid ""
 "cell against the other cells in the selected range: "
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:500
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
 msgid "Colors"
 msgstr "色"
 
@@ -4258,7 +4256,7 @@ msgstr ""
 msgid "Compute the contribution to the total"
 msgstr "全体への寄与度を算出"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 #, fuzzy
 msgid "Condition"
 msgstr "アラート状態"
@@ -4879,7 +4877,7 @@ msgstr ""
 msgid "Dark mode"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:228
 #: superset-frontend/src/pages/DashboardList/index.tsx:672
@@ -4921,11 +4919,11 @@ msgstr "ダッシュボードのプロパティ"
 msgid "Dashboard parameters are invalid."
 msgstr "ダッシュボードパラメータが無効です。"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:639
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:636
 msgid "Dashboard properties"
 msgstr "ダッシュボードのプロパティ"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:447
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:444
 #, fuzzy
 msgid "Dashboard properties updated"
 msgstr "ダッシュボードのプロパティ"
@@ -6341,7 +6339,7 @@ msgstr "線の幅"
 msgid "Edit"
 msgstr "編集"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:380
 #, fuzzy
 msgid "Edit Alert"
 msgstr "テーブルを編集"
@@ -6395,7 +6393,7 @@ msgstr "指標を編集"
 msgid "Edit Plugin"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:378
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:379
 #, fuzzy
 msgid "Edit Report"
 msgstr "レポート"
@@ -6764,8 +6762,8 @@ msgid "Equal to (=)"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:182
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:139
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:298
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:140
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:295
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:57
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:97
 #: superset-frontend/src/pages/AlertReportList/index.tsx:64
@@ -7757,7 +7755,7 @@ msgstr ""
 msgid "Google Sheet Name and URL"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
 msgid "Grace period"
 msgstr "猶予期間"
 
@@ -8043,7 +8041,7 @@ msgid ""
 " and recreate table) or Append (insert data)."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
 #, fuzzy
 msgid "Ignore cache when generating screenshot"
 msgstr "スクリーンショットの生成時にレポートスケジュールの実行に失敗しました。"
@@ -8474,12 +8472,12 @@ msgstr ""
 msgid "JSON Metadata"
 msgstr "JSONメタデータ"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:776
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:773
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:336
 msgid "JSON metadata"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:368
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:365
 msgid "JSON metadata is invalid!"
 msgstr ""
 
@@ -8805,7 +8803,6 @@ msgstr "デフォルト値"
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:34
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:40
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/index.js:33
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:43
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:47
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:37
@@ -9067,7 +9064,7 @@ msgstr "新しいチャートを作成"
 msgid "Log Scale"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
 msgid "Log retention"
 msgstr "ログの保持"
 
@@ -9752,7 +9749,6 @@ msgid "Multi-Layers"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/index.js:33
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:44
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:49
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:66
@@ -10304,7 +10300,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:51
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:138
 #: superset-frontend/src/explore/controlPanels/sections.tsx:134
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:127
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:128
 msgid "None"
 msgstr "なし"
 
@@ -10355,7 +10351,7 @@ msgstr ""
 msgid "Not in"
 msgstr "注釈"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:120
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:121
 msgid "Not null"
 msgstr ""
 
@@ -10372,7 +10368,7 @@ msgstr ""
 msgid "Nothing triggered"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:411
 #: superset-frontend/src/pages/AlertReportList/index.tsx:302
 msgid "Notification method"
 msgstr ""
@@ -10420,7 +10416,6 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:65
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:144
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:67
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/controlPanel.ts:67
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:68
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:137
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:276
@@ -10923,12 +10918,12 @@ msgstr "所有者"
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:422
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:441
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:455
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:477
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:480
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:483
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:527
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:531
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:524
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:528
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:385
 #: superset-frontend/src/pages/AlertReportList/index.tsx:324
 #: superset-frontend/src/pages/DashboardList/index.tsx:369
 #: superset-frontend/src/pages/DatasetList/index.tsx:400
@@ -10946,8 +10941,8 @@ msgstr ""
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr "所有者は、ダッシュボードを変更できるユーザーのリストです。"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:494
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:542
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:491
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:539
 msgid ""
 "Owners is a list of users who can alter the dashboard. Searchable by name"
 " or username."
@@ -11012,7 +11007,6 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:26
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/index.js:26
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:55
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/index.ts:39
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:33
@@ -11106,7 +11100,6 @@ msgid "Percentage threshold"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:41
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:43
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:40
@@ -11145,7 +11138,7 @@ msgstr ""
 msgid "Person or group that has certified this chart."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:718
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:715
 #, fuzzy
 msgid "Person or group that has certified this dashboard."
 msgstr "このダッシュボードにアクセスできません。"
@@ -11285,7 +11278,7 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:795
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:792
 msgid "Please DO NOT overwrite the \"filter_scopes\" key."
 msgstr ""
 
@@ -11679,7 +11672,6 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:30
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:42
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/index.js:33
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:46
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:50
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:44
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:75
@@ -11763,7 +11755,6 @@ msgstr "クエリ"
 #: superset-frontend/plugins/legacy-plugin-chart-sankey-loop/src/controlPanel.ts:26
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:30
 #: superset-frontend/plugins/legacy-plugin-chart-sunburst/src/controlPanel.ts:31
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/controlPanel.ts:31
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:32
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:63
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:44
@@ -11979,7 +11970,6 @@ msgstr "警告"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:143
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:335
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:217
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/controlPanel.ts:53
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:487
 #: superset-frontend/src/explore/controlPanels/sections.tsx:213
 #, fuzzy
@@ -12305,11 +12295,11 @@ msgstr "レポート"
 msgid "Report failed"
 msgstr "レポートに失敗しました"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:383
 msgid "Report name"
 msgstr "レポート名"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
 msgid "Report schedule"
 msgstr "レポートスケジュール"
 
@@ -12520,6 +12510,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:375
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:389
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:545
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:548
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:551
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:406
@@ -12529,7 +12520,7 @@ msgstr ""
 msgid "Roles"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:562
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:559
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
 "access to a dashboard will bypass dataset level checks. If no roles are "
@@ -12769,7 +12760,7 @@ msgid ""
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
 #: superset-frontend/src/features/home/SavedQueries.tsx:261
 msgid "SQL Query"
 msgstr "SQLクエリ"
@@ -12920,7 +12911,7 @@ msgstr "土曜日"
 #: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/dashboard/components/Header/index.jsx:607
 #: superset-frontend/src/dashboard/components/Header/index.jsx:609
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:112
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:148
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:211
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:794
@@ -12939,7 +12930,7 @@ msgstr "土曜日"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:521
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger.tsx:250
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:347
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:376
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:230
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:272
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:218
@@ -13134,7 +13125,7 @@ msgstr "チャートのメールレポートのスケジュール"
 msgid "Schedule query"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
 msgid "Schedule settings"
 msgstr "スケジュール設定"
 
@@ -13601,15 +13592,15 @@ msgid ""
 "query by clicking on the %s button."
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as CSV"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:406
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as PNG"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
 msgid "Send as text"
 msgstr ""
 
@@ -14065,14 +14056,6 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:742
 msgid "Shows or hides markers for the time series"
-msgstr ""
-
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:31
-msgid ""
-"Shows the composition of a dataset by segmenting a given rectangle as "
-"smaller rectangles with areas proportional to their value or contribution"
-" to the whole. Those rectangles may also, in turn, be further segmented "
-"hierarchically."
 msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:64
@@ -15004,7 +14987,7 @@ msgid "Tagged Object could not be deleted."
 msgstr "データベースを削除できませんでした。"
 
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:126
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:736
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:733
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:430
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:683
 #: superset-frontend/src/pages/ChartList/index.tsx:482
@@ -15035,10 +15018,6 @@ msgstr "開始時間"
 #, fuzzy
 msgid "Target Color"
 msgstr "固定の色"
-
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/controlPanel.ts:57
-msgid "Target aspect ratio for treemap tiles."
-msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:87
 msgid "Target category"
@@ -15205,7 +15184,7 @@ msgid ""
 "[country] column"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:465
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:462
 msgid "The dashboard has been saved"
 msgstr "ダッシュボードが保存されました"
 
@@ -16088,7 +16067,7 @@ msgid ""
 "parameters."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:789
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:786
 #: superset/views/dashboard/mixin.py:58
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -16183,7 +16162,7 @@ msgid ""
 "be in %s."
 msgstr "このダッシュボードは現在強制的に更新されています。次の強制更新は %s。"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:661
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:658
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -16382,7 +16361,7 @@ msgstr ""
 msgid "Threshold alpha level for determining significance"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
 msgid "Threshold value should be double precision number"
 msgstr ""
 
@@ -16589,7 +16568,7 @@ msgstr ""
 msgid "Time granularity"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
 msgid "Time in seconds"
 msgstr "秒単位の時間"
 
@@ -16765,7 +16744,7 @@ msgstr "アクション"
 
 #: superset-frontend/src/components/DynamicEditableTitle/index.tsx:186
 #: superset-frontend/src/components/DynamicEditableTitle/index.tsx:207
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:687
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:684
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:41
 #: superset-frontend/src/pages/DashboardList/index.tsx:308
 #: superset/views/dashboard/mixin.py:78 superset/views/dashboard/views.py:184
@@ -16834,6 +16813,10 @@ msgstr "高さ"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:140
 msgid "Top to Bottom"
+msgstr ""
+
+#: superset/viz.py:1047
+msgid "Total"
 msgstr ""
 
 #: superset/charts/post_processing.py:73
@@ -16906,10 +16889,6 @@ msgstr "注釈を削除する"
 msgid "Treemap"
 msgstr "ツリーマップ"
 
-#: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:40
-msgid "Treemap (legacy)"
-msgstr ""
-
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:39
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:40
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:53
@@ -16927,7 +16906,7 @@ msgstr "変更"
 msgid "Triangle"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
 msgid "Trigger Alert If..."
 msgstr ""
 
@@ -17060,7 +17039,7 @@ msgstr "URLパラメータ"
 msgid "URL parameters"
 msgstr "URLパラメータ"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:696
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:693
 msgid "URL slug"
 msgstr "URLスラッグ"
 
@@ -17348,7 +17327,7 @@ msgstr "データベースを編集"
 msgid "Usage"
 msgstr "管理"
 
-#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:802
+#: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:799
 #, python-format
 msgid "Use \"%(menuName)s\" menu instead."
 msgstr ""
@@ -17525,7 +17504,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:117
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:100
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:143
 msgid "Value"
 msgstr ""
@@ -18357,7 +18336,7 @@ msgstr "注釈を追加"
 msgid "Working"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
 msgid "Working timeout"
 msgstr "作業タイムアウト"
 
@@ -19955,7 +19934,7 @@ msgstr "保存したクエリ"
 msgid "search by tags"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
 #, fuzzy
 msgid "seconds"
 msgstr "30秒"

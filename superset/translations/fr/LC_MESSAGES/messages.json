@@ -3038,9 +3038,6 @@
       "Showing %s of %s": ["Affichage de %s sur %s"],
       "Shows a list of all series available at that point in time": [""],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        ""
-      ],
       "Significance Level": [""],
       "Simple": ["Simple"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
@@ -3216,7 +3213,6 @@
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
       ],
-      "Target aspect ratio for treemap tiles.": [""],
       "Target value": ["Valeur cible"],
       "Template Name": ["Nom du template"],
       "Template parameters": ["Les paramètres du modèle"],
@@ -3841,7 +3837,6 @@
       "Transpose pivot": [""],
       "Tree layout": [""],
       "Treemap": ["Carte proportionnelle"],
-      "Treemap (legacy)": [""],
       "Trend": ["Tendance"],
       "Triangle": [""],
       "Trigger Alert If...": ["Déclencher une alerte si ..."],

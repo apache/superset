@@ -2985,9 +2985,6 @@
         "详细提示显示了该时间点的所有序列的列表。"
       ],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        "显示数据集的组成，方法是将给定矩形分割为较小的矩形，其面积与矩形的值或对整体的贡献成比例。这些矩形也可以按层次进一步分割"
-      ],
       "Significance Level": ["显著性"],
       "Simple": ["简单配置"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
@@ -3177,7 +3174,6 @@
         "获取数据点，并将其分组，以查看信息最密集的区域"
       ],
       "Target": ["目标"],
-      "Target aspect ratio for treemap tiles.": ["树形图中图块的目标高宽比。"],
       "Target category": ["目标类别"],
       "Target value": ["目标值"],
       "Template Name": ["模板名称"],
@@ -3786,7 +3782,6 @@
       "Tree layout": ["布局"],
       "Tree orientation": ["方向"],
       "Treemap": ["树状地图"],
-      "Treemap (legacy)": [""],
       "Trend": ["趋势"],
       "Triangle": ["三角形"],
       "Trigger Alert If...": ["如果 ... 则触发警报"],

@@ -2714,9 +2714,6 @@
       "Showing %s of %s": [""],
       "Shows a list of all series available at that point in time": [""],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        ""
-      ],
       "Significance Level": [""],
       "Simple": [""],
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
@@ -2887,7 +2884,6 @@
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
       ],
-      "Target aspect ratio for treemap tiles.": [""],
       "Template Name": ["템플릿 명"],
       "Template parameters": [""],
       "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
@@ -3371,6 +3367,7 @@
       "Tooltip time format": [""],
       "Top right": [""],
       "Top to Bottom": [""],
+      "Total": [""],
       "Total (%(aggfunc)s)": [""],
       "Total (%(aggregatorName)s)": [""],
       "Total: %s": [""],
@@ -3381,7 +3378,6 @@
       "Transpose pivot": [""],
       "Tree layout": [""],
       "Treemap": ["트리맵"],
-      "Treemap (legacy)": [""],
       "Trend": [""],
       "Triangle": [""],
       "Trigger Alert If...": [""],
