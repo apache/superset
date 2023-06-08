@@ -111,7 +111,6 @@
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
-    "@superset-ui/preset-chart-xy": "file:./plugins/preset-chart-xy",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@types/d3-format": "^3.0.1",
     "@visx/axis": "^3.0.1",
