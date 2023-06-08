@@ -466,7 +466,8 @@ const ExtraOptions = ({
             </div>
           }
           key={extraExtension?.title}
-          collapsible={extraExtension.enabled?.() ? 'header' : 'disabled'}
+          // @ts-ignore, 'icon' is valid in >=4.9.0 but missing from `CollapsibleType`
+          collapsible={extraExtension.enabled?.() ? 'icon' : 'disabled'}
         >
           <StyledInputContainer css={no_margin_bottom}>
             <ExtraExtensionComponent db={db} onEdit={extraExtension.onEdit} />
