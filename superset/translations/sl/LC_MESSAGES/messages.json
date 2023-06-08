@@ -997,12 +997,6 @@
       "Choose one of the available databases from the panel on the left.": [
         "Izberite eno od razpoložljivih podatkovnih baz v panelu na levi."
       ],
-      "Choose one or more charts for left axis": [
-        "Izberite enega ali več grafikonov za levo os"
-      ],
-      "Choose one or more charts for right axis": [
-        "Izberite enega ali več grafikonov za desno os"
-      ],
       "Choose the annotation layer type": ["Izberite tip sloja z oznakami"],
       "Choose the format for legend values": [
         "Izberite obliko vrednosti legende"
@@ -2620,7 +2614,6 @@
       "Multi-Levels": ["Večplastni"],
       "Multi-Variables": ["Več spremenljivk"],
       "Multiple": ["Več"],
-      "Multiple Line Charts": ["Veččrtni grafikon"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "Za nalaganje stolpčnih datotek niso dovoljene različne končnice. Poskrbite, da imajo vse datoteke enake končnice."
       ],
@@ -3108,7 +3101,6 @@
       ],
       "Predictive": ["Prediktivno"],
       "Predictive Analytics": ["Prediktivna analitika"],
-      "Prefix metric name with slice name": ["Imenu mere pripni ime rezine"],
       "Preview": ["Predogled"],
       "Preview: `%s`": ["Predogled: `%s`"],
       "Previous": ["Prejšnji"],
@@ -3325,7 +3317,6 @@
       "Right": ["Desno"],
       "Right Axis Format": ["Oblika desne osi"],
       "Right Axis Metric": ["Mera desne osi"],
-      "Right Axis chart(s)": ["Grafikoni desne osi"],
       "Right axis metric": ["Mera desne osi"],
       "Right to Left": ["Iz desne proti levi"],
       "Right value": ["Desna vrednost"],
@@ -4488,9 +4479,6 @@
       "Time Series": ["Časovna vrsta"],
       "Time Series - Bar Chart": ["Časovna vrsta - Stolpčni grafikon"],
       "Time Series - Line Chart": ["Časovna vrsta - Črtni grafikon"],
-      "Time Series - Multiple Line Charts": [
-        "Časovna vrsta - Veččrtni grafikon"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Časovna vrsta - Nightingale Rose grafikon"
       ],
@@ -4864,9 +4852,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Prikaže dva različna niza na isti x-osi. Niza sta lahko prikazana z različnim tipom grafikona (npr. en s stolpci in drug s črto)."
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        "Prikaže dve različni časovni vrsti z isto x-osjo oz. časovnim obdobjem. Grafikon se opušča, zato priporočamo uporabo kombiniranega grafikona časovne vrste!"
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Prikaže dve različni časovni vrsti na isti x-osi. Časovni vrsti sta lahko prikazani različno (npr. ena s stolpci in druga s črto)."
       ],
@@ -5138,8 +5123,6 @@
       "Y Axis Bounds": ["Meje Y-osi"],
       "Y Axis Format": ["Oblika Y osi"],
       "Y Axis Label": ["Naslov Y osi"],
-      "Y Axis Left": ["Y-os levo"],
-      "Y Axis Right": ["Y-os desno"],
       "Y Axis Title": ["Naslov Y osi"],
       "Y Log Scale": ["Logaritemska Y-os"],
       "Y bounds": ["Y meje"],

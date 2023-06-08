@@ -1186,12 +1186,6 @@
       "Choose one of the available databases from the panel on the left.": [
         "Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der linken Seite."
       ],
-      "Choose one or more charts for left axis": [
-        "Wählen Sie ein oder mehrere Diagramme die rechte Achse"
-      ],
-      "Choose one or more charts for right axis": [
-        "Wählen Sie ein oder mehrerer Diagramme für die rechte Achse"
-      ],
       "Choose the annotation layer type": [
         "Auswählen des Anmerkungsebenen-Typs"
       ],
@@ -3052,7 +3046,6 @@
       "Multi-Levels": ["Mehrstufige"],
       "Multi-Variables": ["Multi-Variablen"],
       "Multiple": ["Mehrfach"],
-      "Multiple Line Charts": ["Mehr-Liniendiagramme"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "Unterschiedliche Dateierweiterungen sind für spaltenförmige Uploads nicht zulässig. Bitte stellen Sie sicher, dass alle Dateien die gleiche Erweiterung haben."
       ],
@@ -3676,9 +3669,6 @@
       ],
       "Predictive": ["Prädikativ"],
       "Predictive Analytics": ["Prädiktive Analysen"],
-      "Prefix metric name with slice name": [
-        "Metrikname den Slice-Namen voranstellen"
-      ],
       "Preview": ["Vorschau"],
       "Preview: `%s`": ["Vorschau: `%s"],
       "Previous": ["Zurück"],
@@ -3920,7 +3910,6 @@
       "Right": ["Rechts"],
       "Right Axis Format": ["Format der rechten Achse"],
       "Right Axis Metric": ["Metrik der rechten Achse"],
-      "Right Axis chart(s)": ["Diagramm(e) der rechten Achse"],
       "Right axis metric": ["Metrik der rechten Achse"],
       "Right to Left": ["Rechts nach links"],
       "Right value": ["Rechter Wert"],
@@ -5330,9 +5319,6 @@
       "Time Series": ["Zeitreihen"],
       "Time Series - Bar Chart": ["Zeitreihen - Balkendiagramm"],
       "Time Series - Line Chart": ["Zeitreihen - Liniendiagramm"],
-      "Time Series - Multiple Line Charts": [
-        "Zeitreihen - Diagramme mit mehreren Linien"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Zeitreihe - Nightingale Rose Chart"
       ],
@@ -5741,9 +5727,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Visualisieren Sie zwei verschiedene Zeitreihen mit derselben x-Achse. Beachten Sie, dass beide Reihen mit einem anderen Diagrammtyp visualisiert werden können (z. B. eine mit Balken und die andere mit einer Linie)."
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        "Visualisieren Sie zwei verschiedene Zeitreihen mit demselben x-Achsen-Zeitbereich. Dieses Diagramm ist überholt und wir empfehlen stattdessen, das Gemischte Zeitreihen-Diagramm zu verwenden!"
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Visualisieren Sie zwei verschiedene Zeitreihen mit derselben x-Achse. Beachten Sie, dass jede Zeitreihe unterschiedlich visualisiert werden kann (z. B. eine mit Balken und die andere mit einer Linie)."
       ],
@@ -6066,8 +6049,6 @@
       "Y Axis Bounds": ["Grenzen der Y-Achse"],
       "Y Axis Format": ["Y-Achsenformat"],
       "Y Axis Label": ["Y Achsenbeschriftung"],
-      "Y Axis Left": ["Y-Achse links"],
-      "Y Axis Right": ["Y-Achse rechts"],
       "Y Axis Title": ["Titel der Y-Achse"],
       "Y Log Scale": ["Y-Log-Skala"],
       "Y bounds": ["Y-Grenzen"],

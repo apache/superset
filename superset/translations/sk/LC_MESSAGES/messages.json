@@ -795,8 +795,6 @@
       "Choose a target": [""],
       "Choose chart type": [""],
       "Choose one of the available databases from the panel on the left.": [""],
-      "Choose one or more charts for left axis": [""],
-      "Choose one or more charts for right axis": [""],
       "Choose the annotation layer type": [""],
       "Choose the format for legend values": [""],
       "Choose the position of the legend": [""],
@@ -2211,7 +2209,6 @@
       "Multi-Levels": [""],
       "Multi-Variables": [""],
       "Multiple": [""],
-      "Multiple Line Charts": [""],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         ""
       ],
@@ -2615,7 +2612,6 @@
       ],
       "Predictive": [""],
       "Predictive Analytics": [""],
-      "Prefix metric name with slice name": [""],
       "Preview": [""],
       "Preview: `%s`": [""],
       "Previous": [""],
@@ -2801,7 +2797,6 @@
       "Right": [""],
       "Right Axis Format": [""],
       "Right Axis Metric": [""],
-      "Right Axis chart(s)": [""],
       "Right axis metric": [""],
       "Right to Left": [""],
       "Right value": [""],
@@ -3808,7 +3803,6 @@
       "Time Series": [""],
       "Time Series - Bar Chart": [""],
       "Time Series - Line Chart": [""],
-      "Time Series - Multiple Line Charts": [""],
       "Time Series - Nightingale Rose Chart": [""],
       "Time Series - Paired t-test": [""],
       "Time Series - Percent Change": [""],
@@ -3991,6 +3985,7 @@
       "Unknown column used in orderby: %(col)s": [""],
       "Unknown error": [""],
       "Unknown input format": [""],
+      "Unknown type": [""],
       "Unknown value": [""],
       "Unsafe return type for function %(func)s: %(value_type)s": [""],
       "Unsafe template value for key %(key)s: %(value_type)s": [""],
@@ -4111,9 +4106,6 @@
         ""
       ],
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
-        ""
-      ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
         ""
       ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
@@ -4330,8 +4322,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Axis Title": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],
