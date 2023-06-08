@@ -182,6 +182,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
+    # pylint: disable=arguments-renamed
     @expose("/<id_>", methods=("GET",))
     @protect()
     @safe
