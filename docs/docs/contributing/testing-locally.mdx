@@ -93,8 +93,8 @@ export SUPERSET_TESTENV=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
-superset load-examples --load-test-data
 superset init
+superset load-examples --load-test-data
 superset run --port 8081
 ```
 
