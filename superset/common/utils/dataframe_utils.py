@@ -55,3 +55,47 @@ def is_datetime_series(series: Any) -> bool:
     return pd.api.types.is_datetime64_any_dtype(series) or (
         series.apply(lambda x: isinstance(x, datetime.date) or x is None).all()
     )
+
+
+HELPER_COLUMN = "__SUPERSET__HELPER_COLUMN__"
+
+
+def add_helper_column(
+    df: pd.DataFrame,
+    dttm_column: str,
+    grain: str,
+    drop_dttm_column: bool = False,
+) -> pd.DataFrame:
+    if grain not in ("P1W", "P1M", "P3M"):
+        return df
+
+    if grain == "P1W":
+        # e.g. a series likes 2023-03-10T00:00:00 -> will generate a integer column:
+        # this column used to join
+        # 2023001
+        # 2023002
+        # ...
+        # 2023052
+        df[HELPER_COLUMN] = (
+            df[dttm_column].dt.isocalendar().year * 1000
+            + df[dttm_column].dt.isocalendar().week
+        )
+    if grain == "P1M":
+        df[HELPER_COLUMN] = (
+            df[dttm_column].dt.isocalendar().year * 1000 + df[dttm_column].dt.month
+        )
+    if grain == "P3M":
+        df[HELPER_COLUMN] = (
+            df[dttm_column].dt.isocalendar().year * 1000 + df[dttm_column].dt.quarter
+        )
+
+    if drop_dttm_column:
+        df.drop(dttm_column, axis=1, inplace=True)
+    return df
+
+
+def drop_helper_column(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    df.drop(HELPER_COLUMN, axis=1, inplace=True)
+    return df

@@ -57,6 +57,7 @@ from superset.utils.core import (
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
+    get_time_grain,
     get_xaxis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
@@ -328,6 +329,9 @@ class QueryContextProcessor:
                     "when using a Time Comparison."
                 )
             )
+
+        index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
+        time_grain = get_time_grain(query_object.columns) or query_object.extras.get('time_grain_sqla')
         for offset in time_offsets:
             try:
                 # pylint: disable=line-too-long
@@ -411,7 +415,6 @@ class QueryContextProcessor:
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for index
-                index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
                 if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
                     raise QueryObjectValidationError(
                         _(
@@ -424,12 +427,28 @@ class QueryContextProcessor:
                     **normalize_time_delta(offset)
                 )
 
+            df = dataframe_utils.add_helper_column(
+                df=df, dttm_column=index, grain=time_grain
+            )
+            offset_metrics_df = dataframe_utils.add_helper_column(
+                df=offset_metrics_df,
+                dttm_column=index,
+                grain=time_grain,
+                drop_dttm_column=True,
+            )
+            join_keys = (
+                dataframe_utils.HELPER_COLUMN
+                if dataframe_utils.HELPER_COLUMN in df
+                else join_keys
+            )
+
             # df left join `offset_metrics_df`
             offset_df = dataframe_utils.left_join_df(
                 left_df=df,
                 right_df=offset_metrics_df,
                 join_keys=join_keys,
             )
+            offset_df = dataframe_utils.drop_helper_column(offset_df)
             offset_slice = offset_df[metrics_mapping.values()]
 
             # set offset_slice to cache and stack.

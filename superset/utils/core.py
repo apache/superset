@@ -1293,6 +1293,18 @@ def get_xaxis_label(columns: list[Column] | None) -> str | None:
     return labels[0] if labels else None
 
 
+def get_time_grain(columns: list[Column] | None) -> str | None:
+    axis_cols = [
+        col
+        for col in columns or []
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
+    ]
+    axis = axis_cols[0] if axis_cols and len(axis_cols) > 0 else None
+    if axis:
+        return axis.get("timeGrain")
+    return None
+
+
 def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -> str:
     """
     Extract label from column
