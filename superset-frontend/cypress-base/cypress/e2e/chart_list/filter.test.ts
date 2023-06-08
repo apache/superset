@@ -41,7 +41,7 @@ describe('Charts filters', () => {
   });
 
   it('should allow filtering by "Chart type" correctly', () => {
-    setFilter('Chart type', 'Area Chart (deprecated)');
+    setFilter('Chart type', 'Area Chart (legacy)');
     setFilter('Chart type', 'Bubble Chart');
   });
 
