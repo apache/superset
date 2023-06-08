@@ -28,9 +28,9 @@ import logging
 import math
 import re
 from collections import defaultdict, OrderedDict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from itertools import product
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import geohash
 import numpy as np
@@ -40,7 +40,7 @@ import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import request
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
@@ -76,14 +76,12 @@ from superset.utils.core import (
     get_column_names,
     get_column_names_from_columns,
     get_metric_names,
-    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -905,149 +903,6 @@ class TimeTableViz(BaseViz):
             records=pt.to_dict(orient="index"),
             columns=list(pt.columns),
             is_group_by=bool(self.form_data.get("groupby")),
-        )
-
-
-class PivotTableViz(BaseViz):
-
-    """A pivot table view, define your rows, columns and metrics"""
-
-    viz_type = "pivot_table"
-    verbose_name = _("Pivot Table")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = False
-    enforce_numerical_metrics = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        groupby = self.form_data.get("groupby")
-        columns = self.form_data.get("columns")
-        metrics = self.form_data.get("metrics")
-        transpose = self.form_data.get("transpose_pivot")
-        if not columns:
-            columns = []
-        if not groupby:
-            groupby = []
-        if not groupby:
-            raise QueryObjectValidationError(
-                _("Please choose at least one 'Group by' field")
-            )
-        if transpose and not columns:
-            raise QueryObjectValidationError(
-                _(
-                    "Please choose at least one 'Columns' field when "
-                    "select 'Transpose Pivot' option"
-                )
-            )
-        if not metrics:
-            raise QueryObjectValidationError(_("Please choose at least one metric"))
-        deduped_cols = self.dedup_columns(groupby, columns)
-
-        if len(deduped_cols) < (len(groupby) + len(columns)):
-            raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
-        if sort_by := self.form_data.get("timeseries_limit_metric"):
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                query_obj["orderby"] = [
-                    (sort_by, not self.form_data.get("order_desc", True))
-                ]
-        return query_obj
-
-    @staticmethod
-    @deprecated(deprecated_in="3.0")
-    def get_aggfunc(
-        metric: str, df: pd.DataFrame, form_data: dict[str, Any]
-    ) -> str | Callable[[Any], Any]:
-        aggfunc = form_data.get("pandas_aggfunc") or "sum"
-        if pd.api.types.is_numeric_dtype(df[metric]):
-            # Ensure that Pandas's sum function mimics that of SQL.
-            if aggfunc == "sum":
-                return lambda x: x.sum(min_count=1)
-        # only min and max work properly for non-numerics
-        return aggfunc if aggfunc in ("min", "max") else "max"
-
-    @staticmethod
-    @deprecated(deprecated_in="3.0")
-    def _format_datetime(value: pd.Timestamp | datetime | date | str) -> str:
-        """
-        Format a timestamp in such a way that the viz will be able to apply
-        the correct formatting in the frontend.
-
-        :param value: the value of a temporal column
-        :return: formatted timestamp if it is a valid timestamp, otherwise
-                 the original value
-        """
-        tstamp: pd.Timestamp | None = None
-        if isinstance(value, pd.Timestamp):
-            tstamp = value
-        if isinstance(value, (date, datetime)):
-            tstamp = pd.Timestamp(value)
-        if isinstance(value, str):
-            try:
-                tstamp = pd.Timestamp(value)
-            except ValueError:
-                pass
-        if tstamp:
-            return f"__timestamp:{datetime_to_epoch(tstamp)}"
-        # fallback in case something incompatible is returned
-        return cast(str, value)
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-
-        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
-        aggfuncs: dict[str, str | Callable[[Any], Any]] = {}
-        for metric in metrics:
-            aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
-
-        groupby = self.form_data.get("groupby") or []
-        columns = self.form_data.get("columns") or []
-
-        for column in groupby + columns:
-            if is_adhoc_column(column):
-                # TODO: check data type
-                pass
-            else:
-                column_obj = self.datasource.get_column(column)
-                if column_obj and column_obj.is_temporal:
-                    ts = df[column].apply(self._format_datetime)
-                    df[column] = ts
-
-        if self.form_data.get("transpose_pivot"):
-            groupby, columns = columns, groupby
-
-        df = df.pivot_table(
-            index=get_column_names(groupby),
-            columns=get_column_names(columns),
-            values=metrics,
-            aggfunc=aggfuncs,
-            margins=self.form_data.get("pivot_margins"),
-            margins_name=__("Total"),
-        )
-
-        # Re-order the columns adhering to the metric ordering.
-        df = df[metrics]
-
-        # Display metrics side by side with each column
-        if self.form_data.get("combine_metric"):
-            df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
-        return dict(
-            columns=list(df.columns),
-            html=df.to_html(
-                na_rep="null",
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed table-hover"
-                ).split(" "),
-            ),
         )
 
 

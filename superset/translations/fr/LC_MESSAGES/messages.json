@@ -135,6 +135,9 @@
       "A database with the same name already exists.": [
         "Une base de données avec le même nom existe déjà."
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Une URL complète désignant le lieu du plugin (pourrait être hébergé sur un CDN par exemple)"
       ],
@@ -209,9 +212,6 @@
       "Add Database": ["Ajouter une base de données"],
       "Add Log": ["Ajouter un log"],
       "Add Metric": ["Ajouter une métrique"],
-      "Add Row level security filter": [
-        "Ajouter un filtre de sécurité au niveau de la ligne"
-      ],
       "Add Saved Query": ["Ajouter une requête sauvegardée"],
       "Add a Plugin": ["Ajouter un plugin"],
       "Add a new tab to create SQL Query": [""],
@@ -226,6 +226,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add custom scoping": [""],
       "Add delivery method": ["Ajouter méthode de livraison"],
       "Add filter": ["Ajouter un filtre"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
@@ -309,6 +310,7 @@
       "All": ["Tous"],
       "All Text": ["Tout texte"],
       "All charts": ["Tous les graphiques"],
+      "All charts/global scoping": [""],
       "All filters": ["Tous les filtres"],
       "All panels with this column will be affected by this filter": [
         "Les panneaux avec cette colonne seront affectés par ce filtre"
@@ -640,6 +642,12 @@
       "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
         ""
       ],
+      "Bounds for the primary Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n                bounds are enabled. When left empty, the bounds are dynamically defined\n                based on the min/max of the data. Note that this feature will only expand\n                the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
       "Bubble Chart": ["Bulles"],
       "Bubble size": ["Taille de la bulle"],
       "Bucket break points": [""],
@@ -835,7 +843,6 @@
       "Choose a metric for right axis": [
         "Choisir une mesure pour l'axe de droite"
       ],
-      "Choose a unique name": [""],
       "Choose chart type": ["Choisissez un type de graphique"],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [
@@ -1056,6 +1063,7 @@
       "Could not load database driver: {}": [
         "Ce driver de la base de données n'a pas pu être chargé : {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1256,6 +1264,7 @@
       ],
       "December": ["Décembre"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Caractère décimal"],
       "Deck.gl - 3D Grid": ["Deck.gl - Grille 3D"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D HEX"],
@@ -1399,7 +1408,6 @@
         ""
       ],
       "Display row level total": [""],
-      "Display total row/column": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
       ],
@@ -1430,10 +1438,6 @@
         ""
       ],
       "Drill to detail: %s": [""],
-      "Drop columns here": ["Supprimer des colonnes ici"],
-      "Drop columns or metrics here": [
-        "Supprimer des colonnes ou des métriques ici"
-      ],
       "Drop columns/metrics here or click": [
         "Supprimer des colonnes/métriques ici ou cliquer"
       ],
@@ -1488,9 +1492,6 @@
       "Edit Log": ["Éditer le log"],
       "Edit Metric": ["Éditer la métrique"],
       "Edit Plugin": ["Éditer le plugin"],
-      "Edit Row level security filter": [
-        "Editer le filtre de sécurité au niveau de la ligne"
-      ],
       "Edit Saved Query": ["Éditer la requête sauvegardée"],
       "Edit Table": ["Éditer la table"],
       "Edit annotation": ["Modifier annotation"],
@@ -1613,6 +1614,7 @@
       "Excel to Database configuration": [
         "Configuration de Excel vers base de données"
       ],
+      "Excluded roles": [""],
       "Executed SQL": ["Lancer la requête SQL"],
       "Executed query": ["Lancer la requête sélectionnée"],
       "Execution ID": ["ID d'exécution"],
@@ -1664,8 +1666,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": [
         "Echec de la requête à distance."
       ],
@@ -1692,7 +1696,6 @@
       "Filter List": ["Filtres"],
       "Filter Settings": ["Paramètres des filtres"],
       "Filter Type": ["Type du filtre"],
-      "Filter box": ["Boite de filtrage"],
       "Filter configuration": ["Configuration du filtre"],
       "Filter configuration for the filter box": [
         "Configuration du filtre pour la boîte de filtrage"
@@ -1793,9 +1796,6 @@
       "Gravity": [""],
       "Group By": ["Grouper par"],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "'Grouper par' et 'Colonnes' ne peuvent pas se chevaucher"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Grouper par"],
       "Groupable": ["Groupable"],
@@ -1895,6 +1895,10 @@
       "Inner radius of donut hole": [""],
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": ["Filtrage instantané"],
+      "Intensity Radius is the radius at which the weight is distributed": [""],
+      "Intensity is the value multiplied by the weight to obtain the final weight": [
+        ""
+      ],
       "Interval End column": ["Dernière colonne de l'intervalle"],
       "Interval start column": ["Première colonne de l'intervalle"],
       "Invalid JSON": ["JSON invalide"],
@@ -1928,6 +1932,7 @@
         "Options invalides pour %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "Type de résultat invalide : %(result_type)s"
       ],
@@ -2221,7 +2226,6 @@
       "No data in file": ["Pas de données dans le fichier"],
       "No databases match your search": [""],
       "No description available.": ["Pas de description disponible."],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "Aucun graphique favori pour le moment, cliquer sur les étoiles !"
       ],
@@ -2374,7 +2378,6 @@
       "Optional warning about use of this metric": [
         "Avertissement optionnel à propos de l'utilisation de cette métrique"
       ],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2476,7 +2479,6 @@
         "Choisissez votre langage de balisage préféré"
       ],
       "Pivot Table": ["Table pivot"],
-      "Pivot Table (legacy)": [""],
       "Pivot operation must include at least one aggregate": [
         "L'opération de pivot nécessite au moins un agrégat"
       ],
@@ -2496,9 +2498,6 @@
       ],
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(server_error)s\". Puis essayez de relancer la requête."
-      ],
-      "Please choose at least one metric": [
-        "Choississez au moins une métrique"
       ],
       "Please choose different metrics on left and right axis": [
         "Choisissez des métriques différentes pour les axes gauches et droits"
@@ -2549,6 +2548,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "Le port %(port)s sur l'hôte \"%(hostname)s\" a refusé la connexion."
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["JSON des positions"],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2566,6 +2566,7 @@
       "Preview: `%s`": ["Prévisualisation : `%s`"],
       "Previous": ["Précédent"],
       "Primary or secondary y-axis": [""],
+      "Primary y-axis Bounds": [""],
       "Primary y-axis format": [""],
       "Private Key": [""],
       "Profile": ["Profil"],
@@ -2652,9 +2653,7 @@
       "Refresh frequency": ["Fréquence de rafraichissement"],
       "Refresh interval": ["Intervalle d'actualisation"],
       "Refresh the default values": ["Rafraichir les valeurs par défaut"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "Les filtres réguliers ajoutent des clauses WHERE aux requêtes si un utilisateur appartient à un profil référencé dans le filtre. Les filtres de base appliquent les filtres à toutes les requêtes sauf pour les profils définis dans le filtre, et peuvent être utilisés pour définir ce que les utilisateurs peuvent voir si aucun filtre RLS au sein d'un groupe de filtres ne s'appliquent à eux."
-      ],
+      "Regular": [""],
       "Relationships between community channels": [""],
       "Relative period": ["Période relative"],
       "Relative quantity": ["Quantité relative"],
@@ -2766,13 +2765,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         "Ligne contenant l'en-tête à utiliser en nom de colonne (0 est la première ligne de données). Laissez à vide s'il n'y a pas de ligne d'en-tête."
       ],
-      "Row level security filter": ["Filtre de sécurité au niveau de la ligne"],
       "Row limit": ["Nombre de lignes max"],
       "Rows": ["Lignes"],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": ["Lignes à lire"],
       "Rule": ["Règle"],
+      "Rule added": [""],
       "Run": ["Exécuter"],
       "Run a query to display results": [
         "Lancer une requête pour afficher les résultats"
@@ -2883,6 +2882,7 @@
       "Search by query text": ["Texte de recherche"],
       "Search...": ["Recherche..."],
       "Second": ["Seconde"],
+      "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
       "Secure Extra": ["Sécurité"],
@@ -2926,6 +2926,12 @@
         "Selectionner la date de début et la date de fin"
       ],
       "Select subject": ["Sélectionner un objet"],
+      "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
+      "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
       "Select the number of bins for the histogram": [""],
       "Select the numeric columns to draw the histogram": [""],
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
@@ -2981,9 +2987,6 @@
       "Show Log": ["Afficher le log"],
       "Show Markers": [""],
       "Show Metric": ["Afficher la métrique"],
-      "Show Row level security filter": [
-        "Afficher le filtre de sécurité au niveau de la ligne"
-      ],
       "Show Saved Query": ["Montrer les requêtes sauvegardées"],
       "Show Table": ["Afficher les tables"],
       "Show Trend Line": [""],
@@ -3168,7 +3171,6 @@
         "Superset a rencontré une erreur inattendue."
       ],
       "Survey Responses": [""],
-      "Swap Groups and Columns": [""],
       "Swap rows and columns": [""],
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
@@ -3179,6 +3181,9 @@
       "Symbol of two ends of edge line": [""],
       "Sync columns from source": ["Synchroniser les colonnes de la source"],
       "Syntax": ["Syntaxe"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["TABLES"],
       "THU": ["JEU"],
       "TUE": ["MAR"],
@@ -3505,6 +3510,9 @@
       "The user seems to have been deleted": [
         "L'utilisateur semble avoir été effacé"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "L'utilisateur \"%(username)s\" n'existe pas."
       ],
@@ -3630,7 +3638,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "Cela peut être soit une adresse IP (ex 127.0.0.1)  ou un nom de domaine (ex mydatabase.com)."
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -3830,7 +3838,6 @@
       "Track job": ["Suivre le job"],
       "Transformable": [""],
       "Transparent": [""],
-      "Transpose Pivot": [""],
       "Transpose pivot": [""],
       "Tree layout": [""],
       "Treemap": ["Carte proportionnelle"],
@@ -3879,6 +3886,8 @@
         ""
       ],
       "Unable to create chart without a query id.": [""],
+      "Unable to decode value": [""],
+      "Unable to encode value": [""],
       "Unable to find such a holiday: [%(holiday)s]": [
         "Impossible de trouver un tel congé : [%(holiday)s]"
       ],
@@ -3988,9 +3997,6 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Utilisé en interne pour identifier le plugin. Devrait être le nom du package tiré du fichier plugin package.json"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
-        ""
-      ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         ""
       ],
@@ -4004,6 +4010,9 @@
       ],
       "User query": ["Requête utilisateur"],
       "Username": ["Nom d'utilisateur"],
+      "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
+        ""
+      ],
       "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
         ""
       ],
@@ -4502,6 +4511,7 @@
       "e.g. world_population": [""],
       "e.g. xy12345.us-east-2.aws": [""],
       "edit mode": ["mode edition"],
+      "error dark": [""],
       "every": ["chaque"],
       "every day of the month": ["chaque jour du mois"],
       "every day of the week": ["chaque jour de la semaine"],
@@ -4518,7 +4528,6 @@
       ],
       "function type icon": [""],
       "geohash (square)": [""],
-      "green": ["vert"],
       "heatmap: values are normalized across the entire heatmap": [""],
       "hour": ["heure"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
@@ -4571,7 +4580,6 @@
       "queries": ["requêtes"],
       "query": ["requête"],
       "reboot": ["reboot"],
-      "red": ["rouge"],
       "report": ["rapport"],
       "reports": ["rapports"],
       "restore zoom": [""],
@@ -4597,7 +4605,6 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": ["année"],
-      "yellow": ["jaune"],
       "zoom area": [""]
     }
   }

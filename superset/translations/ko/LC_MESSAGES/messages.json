@@ -136,6 +136,9 @@
       "A comma-separated list of schemas that files are allowed to upload to.": [
         ""
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -202,7 +205,6 @@
       "Add Log": ["로그 추가"],
       "Add Metric": ["메트릭 추가"],
       "Add Report": [""],
-      "Add Row level security filter": [""],
       "Add Saved Query": ["저장된 Query 추가"],
       "Add a Plugin": ["플러그인 추가"],
       "Add a new tab to create SQL Query": [""],
@@ -213,6 +215,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add custom scoping": [""],
       "Add delivery method": [""],
       "Add filter": ["테이블 추가"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
@@ -279,6 +282,7 @@
       "All": [""],
       "All Text": [""],
       "All charts": ["차트 추가"],
+      "All charts/global scoping": [""],
       "All filters": ["필터"],
       "All filters (%(filterCount)d)": [""],
       "All panels": [""],
@@ -477,6 +481,7 @@
       "Are you sure you want to delete the selected datasets?": [""],
       "Are you sure you want to delete the selected layers?": [""],
       "Are you sure you want to delete the selected queries?": [""],
+      "Are you sure you want to delete the selected rules?": [""],
       "Are you sure you want to delete the selected tags?": [""],
       "Are you sure you want to delete the selected templates?": [""],
       "Are you sure you want to overwrite this dataset?": [""],
@@ -531,6 +536,12 @@
         ""
       ],
       "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the primary Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n                bounds are enabled. When left empty, the bounds are dynamically defined\n                based on the min/max of the data. Note that this feature will only expand\n                the axis range. It won't narrow the data's extent.": [
         ""
       ],
       "Box Plot": [""],
@@ -692,7 +703,6 @@
       "Choose a metric for left axis": [""],
       "Choose a metric for right axis": [""],
       "Choose a number format": [""],
-      "Choose a unique name": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose one or more charts for left axis": [""],
       "Choose one or more charts for right axis": [""],
@@ -872,6 +882,7 @@
       "Copy to clipboard": ["클립보드에 복사하기"],
       "Correlation": [""],
       "Cost estimate": [""],
+      "Could not connect to database: \"%(database)s\"": [""],
       "Could not determine datasource type": [""],
       "Could not fetch all saved charts": [""],
       "Could not find viz object": [""],
@@ -880,6 +891,7 @@
       ],
       "Could not load database driver: %(driver_name)s": [""],
       "Could not load database driver: {}": [""],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -906,6 +918,7 @@
         ""
       ],
       "Cross-filtering is not enabled for this dashboard.": [""],
+      "Cross-filtering is not enabled in this dashboard": [""],
       "Cumulative": [""],
       "Currently rendered: %s": [""],
       "Custom": [""],
@@ -1031,6 +1044,7 @@
       "Deactivate": [""],
       "December": [""],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": [""],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1150,7 +1164,6 @@
         ""
       ],
       "Display row level total": [""],
-      "Display total row/column": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
       ],
@@ -1183,10 +1196,7 @@
       ],
       "Drill to detail: %s": [""],
       "Drop a temporal column here or click": [""],
-      "Drop columns here": [""],
-      "Drop columns or metrics here": [""],
       "Drop columns/metrics here or click": [""],
-      "Drop temporal column here": [""],
       "Duplicate": [""],
       "Duplicate column name(s): %(columns)s": [""],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
@@ -1241,7 +1251,6 @@
       "Edit Metric": ["메트릭 편집"],
       "Edit Plugin": ["플러그인 수정"],
       "Edit Report": [""],
-      "Edit Row level security filter": [""],
       "Edit Saved Query": ["저장된 Query 수정"],
       "Edit Table": ["테이블 수정"],
       "Edit annotation": ["주석"],
@@ -1343,6 +1352,7 @@
       ],
       "Excel to Database configuration": [""],
       "Exclude selected values": [""],
+      "Excluded roles": [""],
       "Executed query": ["저장된 Query 수정"],
       "Execution ID": [""],
       "Execution log": [""],
@@ -1395,8 +1405,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
@@ -1417,7 +1429,7 @@
       "Filter Configuration": [""],
       "Filter List": ["필터"],
       "Filter Type": [""],
-      "Filter box": ["필터"],
+      "Filter box (deprecated)": [""],
       "Filter configuration": [""],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1511,10 +1523,8 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "Group By' 와 'Columns' 겹칠 수 없습니다"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
+      "Group Key": [""],
       "Group by": [""],
       "Groupable": [""],
       "Handlebars": [""],
@@ -1603,9 +1613,18 @@
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": ["필터"],
       "Intensity": [""],
+      "Intensity Radius": [""],
+      "Intensity Radius is the radius at which the weight is distributed": [""],
+      "Intensity is the value multiplied by the weight to obtain the final weight": [
+        ""
+      ],
       "Interpret Datetime Format Automatically": [""],
       "Interpret the datetime format automatically": [""],
       "Interval colors": [""],
+      "Intesity": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": [""],
@@ -1632,6 +1651,7 @@
       "Invalid numpy function: %(operator)s": [""],
       "Invalid options for %(rolling_type)s: %(options)s": [""],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
       "Invalid spatial point encountered: %s": [""],
@@ -1950,7 +1970,6 @@
       "No data in file": ["파일에 데이터가 없습니다"],
       "No databases match your search": [""],
       "No description available.": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [""],
       "No favorite dashboards yet, go click on stars!": [""],
       "No filter is selected.": [""],
@@ -2092,7 +2111,6 @@
       ],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2187,9 +2205,7 @@
       "Pick your favorite markup language": [""],
       "Pie shape": [""],
       "Pin": [""],
-      "Pivot Options": [""],
       "Pivot Table": ["피봇 테이블"],
-      "Pivot Table (legacy)": [""],
       "Pivot operation must include at least one aggregate": [""],
       "Pivot operation requires at least one index": [""],
       "Pixel height of each series": [""],
@@ -2208,9 +2224,6 @@
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
-      ],
-      "Please choose at least one metric": [
-        "적어도 하나의 메트릭을 선택하세요"
       ],
       "Please choose different metrics on left and right axis": [""],
       "Please confirm": [""],
@@ -2253,6 +2266,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": [""],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2272,6 +2286,7 @@
       "Previous Line": [""],
       "Primary": [""],
       "Primary or secondary y-axis": [""],
+      "Primary y-axis Bounds": [""],
       "Primary y-axis format": [""],
       "Private Key": [""],
       "Private Key & Password": [""],
@@ -2349,7 +2364,8 @@
       "Refresh interval": ["새로고침 간격"],
       "Refresh table list": [""],
       "Refresh the default values": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relationships between community channels": [""],
@@ -2451,13 +2467,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": [""],
       "Row limit": [""],
       "Rows": [""],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": [""],
       "Rule": [""],
+      "Rule added": [""],
       "Run": [""],
       "Run a query to display query history": [""],
       "Run a query to display results": [""],
@@ -2550,6 +2566,7 @@
       "Search by query text": [""],
       "Search...": ["검색"],
       "Second": ["초"],
+      "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
       "Secure Extra": ["보안"],
@@ -2587,6 +2604,12 @@
       "Select start and end date": ["데이터베이스 선택"],
       "Select subject": [""],
       "Select table or type to search tables": [""],
+      "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
+      "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
       "Select the number of bins for the histogram": [""],
       "Select the numeric columns to draw the histogram": [""],
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
@@ -2641,7 +2664,6 @@
       "Show Log": ["컬럼 보기"],
       "Show Markers": [""],
       "Show Metric": ["메트릭 보기"],
-      "Show Row level security filter": [""],
       "Show Saved Query": ["저장된 Query 보기"],
       "Show Table": ["테이블 보기"],
       "Show Timestamp": [""],
@@ -2819,7 +2841,6 @@
       "Superset dashboard": ["대시보드 저장"],
       "Superset encountered an error while running a command.": [""],
       "Survey Responses": [""],
-      "Swap Groups and Columns": [""],
       "Swap rows and columns": [""],
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
@@ -2832,6 +2853,9 @@
       "Symbol size": [""],
       "Sync columns from source": [""],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": [""],
       "TEMPORAL X-AXIS": [""],
       "TEMPORAL_RANGE": [""],
@@ -3107,6 +3131,9 @@
       "The type of visualization to display": [""],
       "The unit of measure for the specified point radius": [""],
       "The user seems to have been deleted": [""],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
       "The width of the lines": [""],
@@ -3173,7 +3200,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [""],
@@ -3351,7 +3378,6 @@
       "Track job": [""],
       "Transformable": [""],
       "Transparent": [""],
-      "Transpose Pivot": [""],
       "Transpose pivot": [""],
       "Tree layout": [""],
       "Treemap": ["트리맵"],
@@ -3397,6 +3423,8 @@
         ""
       ],
       "Unable to create chart without a query id.": [""],
+      "Unable to decode value": [""],
+      "Unable to encode value": [""],
       "Unable to find such a holiday: [%(holiday)s]": [""],
       "Unable to load columns for the selected table. Please select a different table.": [
         ""
@@ -3470,9 +3498,6 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         ""
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
-        ""
-      ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         ""
       ],
@@ -3482,6 +3507,9 @@
       "User must select a value before applying the filter": [""],
       "User must select a value for this filter": [""],
       "User query": ["Query 공유"],
+      "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
+        ""
+      ],
       "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
         ""
       ],
@@ -3961,6 +3989,7 @@
       "e.g. sql/protocolv1/o/12345": [""],
       "e.g. world_population": [""],
       "e.g. xy12345.us-east-2.aws": [""],
+      "error dark": [""],
       "every": [""],
       "every day of the month": [""],
       "every day of the week": [""],
@@ -3976,7 +4005,6 @@
       "for more information on how to structure your URI.": [""],
       "function type icon": [""],
       "geohash (square)": [""],
-      "green": [""],
       "heatmap: values are normalized across the entire heatmap": [""],
       "hour": ["시간"],
       "id": [""],
@@ -4054,6 +4082,7 @@
       "stream": [""],
       "string type icon": [""],
       "success": [""],
+      "success dark": [""],
       "sum": [""],
       "syntax.": [""],
       "tag": [""],
@@ -4078,7 +4107,6 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": ["년"],
-      "yellow": [""],
       "zoom area": [""]
     }
   }
