@@ -21,6 +21,7 @@ from typing import Any, Optional
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
@@ -43,21 +44,24 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
-        "PT1M": "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
-        "PT5M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
-        "PT10M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
-        "PT15M": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 15 * 15, 0)",
-        "PT0.5H": "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)",
-        "PT1H": "DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)",
-        "P1D": "DATEADD(day, DATEDIFF(day, 0, {col}), 0)",
-        "P1W": "DATEADD(day, -1, DATEADD(week, DATEDIFF(week, 0, {col}), 0))",
-        "P1M": "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
-        "P3M": "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
-        "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
-        "1969-12-28T00:00:00Z/P1W": "DATEADD(day, -1,"
+        TimeGrain.SECOND: "DATEADD(second, \
+            'DATEDIFF(second, 2000-01-01', {col}), '2000-01-01')",
+        TimeGrain.MINUTE: "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.TEN_MINUTES: "DATEADD(minute, \
+            DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
+        TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, \
+            DATEDIFF(minute, 0, {col}) / 15 * 15, 0)",
+        TimeGrain.HALF_HOUR: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 30 * 30, 0)",
+        TimeGrain.HOUR: "DATEADD(hour, DATEDIFF(hour, 0, {col}), 0)",
+        TimeGrain.DAY: "DATEADD(day, DATEDIFF(day, 0, {col}), 0)",
+        TimeGrain.WEEK: "DATEADD(day, -1, DATEADD(week, DATEDIFF(week, 0, {col}), 0))",
+        TimeGrain.MONTH: "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
+        TimeGrain.QUARTER: "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
+        TimeGrain.YEAR: "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
+        TimeGrain.WEEK_STARTING_SUNDAY: "DATEADD(day, -1,"
         " DATEADD(week, DATEDIFF(week, 0, {col}), 0))",
-        "1969-12-29T00:00:00Z/P1W": "DATEADD(week,"
+        TimeGrain.WEEK_STARTING_MONDAY: "DATEADD(week,"
         " DATEDIFF(week, 0, DATEADD(day, -1, {col})), 0)",
     }
 
@@ -120,12 +124,14 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "{col}/ time(1s)",
-        "PT1M": "{col}/ time(1min)",
-        "PT1H": "{col}/ time(1h)",
-        "P1D": "{col}/ time(1d)",
-        "P1M": "datetime_diff('month',CreateDate, datetime(0001-01-01 00:00:00))+1",
-        "P1Y": "datetime_diff('year',CreateDate, datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.SECOND: "{col}/ time(1s)",
+        TimeGrain.MINUTE: "{col}/ time(1min)",
+        TimeGrain.HOUR: "{col}/ time(1h)",
+        TimeGrain.DAY: "{col}/ time(1d)",
+        TimeGrain.MONTH: "datetime_diff('month', CreateDate, \
+            datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.YEAR: "datetime_diff('year', CreateDate, \
+            datetime(0001-01-01 00:00:00))+1",
     }
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed

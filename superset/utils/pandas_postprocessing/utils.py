@@ -23,6 +23,7 @@ import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame, NamedAgg
 
+from superset.constants import TimeGrain
 from superset.exceptions import InvalidPostProcessingError
 
 NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
@@ -74,23 +75,23 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
     "cumsum",
 )
 
-PROPHET_TIME_GRAIN_MAP = {
-    "PT1S": "S",
-    "PT1M": "min",
-    "PT5M": "5min",
-    "PT10M": "10min",
-    "PT15M": "15min",
-    "PT30M": "30min",
-    "PT1H": "H",
-    "P1D": "D",
-    "P1W": "W",
-    "P1M": "M",
-    "P3M": "Q",
-    "P1Y": "A",
-    "1969-12-28T00:00:00Z/P1W": "W-SUN",
-    "1969-12-29T00:00:00Z/P1W": "W-MON",
-    "P1W/1970-01-03T00:00:00Z": "W-SAT",
-    "P1W/1970-01-04T00:00:00Z": "W-SUN",
+PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
+    TimeGrain.SECOND: "S",
+    TimeGrain.MINUTE: "min",
+    TimeGrain.FIVE_MINUTES: "5min",
+    TimeGrain.TEN_MINUTES: "10min",
+    TimeGrain.FIFTEEN_MINUTES: "15min",
+    TimeGrain.THIRTY_MINUTES: "30min",
+    TimeGrain.HOUR: "H",
+    TimeGrain.DAY: "D",
+    TimeGrain.WEEK: "W",
+    TimeGrain.MONTH: "M",
+    TimeGrain.QUARTER: "Q",
+    TimeGrain.YEAR: "A",
+    TimeGrain.WEEK_STARTING_SUNDAY: "W-SUN",
+    TimeGrain.WEEK_STARTING_MONDAY: "W-MON",
+    TimeGrain.WEEK_ENDING_SATURDAY: "W-SAT",
+    TimeGrain.WEEK_ENDING_SUNDAY: "W-SUN",
 }
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")

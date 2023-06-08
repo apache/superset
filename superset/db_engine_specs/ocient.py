@@ -38,6 +38,7 @@ try:
 except (ImportError, RuntimeError):
     pass
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -295,14 +296,14 @@ class OcientEngineSpec(BaseEngineSpec):
     }
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "ROUND({col}, 'SECOND')",
-        "PT1M": "ROUND({col}, 'MINUTE')",
-        "PT1H": "ROUND({col}, 'HOUR')",
-        "P1D": "ROUND({col}, 'DAY')",
-        "P1W": "ROUND({col}, 'WEEK')",
-        "P1M": "ROUND({col}, 'MONTH')",
-        "P0.25Y": "ROUND({col}, 'QUARTER')",
-        "P1Y": "ROUND({col}, 'YEAR')",
+        TimeGrain.SECOND: "ROUND({col}, 'SECOND')",
+        TimeGrain.MINUTE: "ROUND({col}, 'MINUTE')",
+        TimeGrain.HOUR: "ROUND({col}, 'HOUR')",
+        TimeGrain.DAY: "ROUND({col}, 'DAY')",
+        TimeGrain.WEEK: "ROUND({col}, 'WEEK')",
+        TimeGrain.MONTH: "ROUND({col}, 'MONTH')",
+        TimeGrain.QUARTER_YEAR: "ROUND({col}, 'QUARTER')",
+        TimeGrain.YEAR: "ROUND({col}, 'YEAR')",
     }
 
     @classmethod
