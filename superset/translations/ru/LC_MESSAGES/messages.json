@@ -2109,8 +2109,8 @@
       "Years %s": ["Лет %s"],
       "START (INCLUSIVE)": ["НАЧАЛО (ВКЛЮЧИТЕЛЬНО)"],
       "END (EXCLUSIVE)": ["КОНЕЦ (НЕВКЛЮЧИТЕЛЬНО)"],
-      "Specific Date/Time": ["Точное дата и время"],
-      "Relative Date/Time": ["Относительное дата и время"],
+      "Specific Date/Time": ["Точные дата и время"],
+      "Relative Date/Time": ["Относительные дата и время"],
       "Midnight": ["Полночь"],
       "Now": ["Сейчас"],
       "Configure Time Range: Previous...": ["Предыдущие…"],
@@ -2749,7 +2749,16 @@
         "Значения зависят от других фильтров"
       ],
       "Numerical range": ["Цифровой диапазон"],
-      "Add and edit filters": ["Создать/изменить фильтры"]
+      "Add and edit filters": ["Создать/изменить фильтры"],
+      "Fill all required fields to enable \"Default Value\"": [
+        "Укажите все необходимые поля"
+      ],
+      "Single Value": ["Одиночное значение"],
+      "Single value type": ["Тип одиночного значения"],
+      "Minimum": ["Минимум"],
+      "Exact": ["Точное"],
+      "Maximum": ["Максимум"],
+      "Values dependent on": ["Значения зависят от"]
     }
   }
 }
