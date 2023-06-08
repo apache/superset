@@ -787,7 +787,6 @@
       ],
       "Choose a database...": ["选择数据库"],
       "Choose a dataset": ["选择数据源"],
-      "Choose a metric for left axis": ["选择左轴的计量指标"],
       "Choose a metric for right axis": ["为右轴选择一个指标"],
       "Choose a number format": ["选择一种数字格式"],
       "Choose a source": ["选择一个源"],
@@ -1911,7 +1910,6 @@
       "Least recently modified": ["最远修改"],
       "Left": ["左边"],
       "Left Axis Format": ["左轴格式化"],
-      "Left Axis Metric": ["左轴指标"],
       "Left Axis chart(s)": ["左轴图表"],
       "Left Margin": ["左边距"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -2405,8 +2403,6 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "在“时间”部分选择一个粒度，或取消选中“包含时间”"
       ],
-      "Pick a metric for left axis!": ["为左轴选择一个指标！"],
-      "Pick a metric for right axis!": ["为右轴选择一个指标！"],
       "Pick a metric for x, y and size": ["为 x 轴，y 轴和大小选择一个指标"],
       "Pick a metric to display": ["选择一个指标来显示"],
       "Pick a metric!": ["选择一个指标！"],
@@ -3685,7 +3681,6 @@
       "Time Range": ["时间范围"],
       "Time Series": ["时间序列"],
       "Time Series - Bar Chart": ["时间序列 - 柱状图"],
-      "Time Series - Dual Axis Line Chart": ["时间序列-双轴线图"],
       "Time Series - Line Chart": ["时间序列-折线图"],
       "Time Series - Multiple Line Charts": ["时间序列-多线图"],
       "Time Series - Nightingale Rose Chart": ["时间序列 - 南丁格尔玫瑰图"],
@@ -4008,9 +4003,6 @@
       "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
         "使用相同的x轴时间范围可视化两个不同的时间序列。此图表已被弃用，我们建议使用混合改为时间序列图！"
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        "使用相同的x轴将2个指标可视化为折线图。此图表可用于比较相同时间范围内的指标。"
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "在单个图表中跨三维数据（X轴、Y轴和气泡大小）可视化度量。同一组中的气泡可以“使用气泡颜色显示"
       ],
@@ -4229,8 +4221,6 @@
       "Y AXIS TITLE MARGIN": ["Y轴标题页边距"],
       "Y AXIS TITLE POSITION": ["Y轴标题位置"],
       "Y Axis": ["Y 轴"],
-      "Y Axis 1": ["Y 轴 1"],
-      "Y Axis 2": ["Y 轴 2"],
       "Y Axis 2 Bounds": ["Y 轴界限"],
       "Y Axis Bounds": ["Y 轴界限"],
       "Y Axis Format": ["Y 轴格式化"],

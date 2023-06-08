@@ -90,7 +90,6 @@ const DEFAULT_ORDER = [
   'deck_arc',
   'heatmap',
   'deck_grid',
-  'dual_line',
   'deck_screengrid',
   'line_multi',
   'treemap_v2',

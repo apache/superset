@@ -2143,12 +2143,6 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Elige una granularidad en la sección de tiempo o desmarca 'Incluir tiempo'"
       ],
-      "Pick a metric for left axis!": [
-        "Elige una métrica para el eje izquierdo!"
-      ],
-      "Pick a metric for right axis!": [
-        "Elige una métrica para el eje derecho!"
-      ],
       "Pick a metric for x, y and size": [
         "Elige una métrica para 'x', 'y' y 'tamaño'"
       ],
@@ -3257,9 +3251,6 @@
       "Thursday": ["Jueves"],
       "Time": ["Tiempo"],
       "Time Series - Bar Chart": ["Serie Temporal - Gráfico de Barras"],
-      "Time Series - Dual Axis Line Chart": [
-        "Serie Temporal - Gráfico de líneas de doble eje"
-      ],
       "Time Series - Line Chart": ["Serie Temporal - Gráfico de Líneas"],
       "Time Series - Multiple Line Charts": [
         "Serie temportal - Gráfico de múltiples líneas"
@@ -3554,9 +3545,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        ""
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         ""
       ],
@@ -3747,8 +3735,6 @@
       "Y AXIS TITLE MARGIN": [""],
       "Y AXIS TITLE POSITION": [""],
       "Y Axis": ["Eje Y"],
-      "Y Axis 1": [""],
-      "Y Axis 2": [""],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": ["Formato Eje Y"],

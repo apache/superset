@@ -84,3 +84,22 @@ class MigratePivotTable(MigrateViz):
 
         if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
+
+
+class MigrateDualLine(MigrateViz):
+    source_viz_type = "dual_line"
+    target_viz_type = "mixed_timeseries"
+    rename_keys = {
+        "x_axis_format": "x_axis_time_format",
+        "y_axis_2_format": "y_axis_format_secondary",
+        "y_axis_2_bounds": "y_axis_bounds_secondary",
+    }
+    remove_keys = {"metric", "metric_2"}
+
+    def _pre_action(self) -> None:
+        self.data["yAxisIndex"] = 0
+        self.data["yAxisIndexB"] = 1
+        self.data["adhoc_filters_b"] = self.data.get("adhoc_filters")
+        self.data["truncateYAxis"] = True
+        self.data["metrics"] = [self.data.get("metric")]
+        self.data["metrics_b"] = [self.data.get("metric_2")]

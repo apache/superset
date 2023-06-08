@@ -700,7 +700,6 @@
       "Choose File": ["CSV 파일"],
       "Choose a chart or dashboard not both": [""],
       "Choose a dataset": ["데이터소스 선택"],
-      "Choose a metric for left axis": [""],
       "Choose a metric for right axis": [""],
       "Choose a number format": [""],
       "Choose one of the available databases from the panel on the left.": [""],
@@ -1728,7 +1727,6 @@
       ],
       "Least recently modified": [""],
       "Left Axis Format": [""],
-      "Left Axis Metric": [""],
       "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
@@ -2186,8 +2184,6 @@
       "Physical dataset": ["데이터소스 선택"],
       "Pick a dimension from which categorical colors are defined": [""],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [""],
-      "Pick a metric for left axis!": [""],
-      "Pick a metric for right axis!": [""],
       "Pick a metric for x, y and size": [""],
       "Pick a metric to display": [""],
       "Pick a metric!": [""],
@@ -3300,7 +3296,6 @@
       "Time Lag": [""],
       "Time Range": [""],
       "Time Series - Bar Chart": [""],
-      "Time Series - Dual Axis Line Chart": [""],
       "Time Series - Line Chart": [""],
       "Time Series - Multiple Line Charts": [""],
       "Time Series - Nightingale Rose Chart": [""],
@@ -3571,9 +3566,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        ""
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         ""
       ],
@@ -3778,8 +3770,6 @@
       "Y AXIS TITLE MARGIN": [""],
       "Y AXIS TITLE POSITION": [""],
       "Y Axis": [""],
-      "Y Axis 1": [""],
-      "Y Axis 2": [""],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],

@@ -18186,11 +18186,13 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:28
 msgid ""
-"Visualizes 2 metrics as line plots using the same x-axis. This chart is "
-"useful for comparing metrics across the same time range."
+"Visualize two different time series using the same x-axis time range. "
+"This chart is being deprecated and we recommend using the Mixed "
+"Timeseries Chart instead!"
 msgstr ""
-"Visualiza 2 métricas como gráficos de linha usando o mesmo eixo x. Esse "
-"gráfico é útil para comparar métricas no mesmo intervalo de tempo."
+"Visualize duas séries temporais diferentes usando o mesmo intervalo de "
+"tempo do eixo x. Esse gráfico está sendo descontinuado e, em vez disso, "
+"recomendamos o uso do gráfico de série temporal mista!"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:28
 msgid ""

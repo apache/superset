@@ -388,20 +388,21 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Average and Sum Trends",
-            viz_type="dual_line",
+            viz_type="mixed_timeseries",
             params=get_slice_json(
                 defaults,
-                viz_type="dual_line",
-                metric={
+                viz_type="mixed_timeseries",
+                metrics={
                     "expressionType": "SIMPLE",
                     "column": {"column_name": "num", "type": "BIGINT(20)"},
                     "aggregate": "AVG",
                     "label": "AVG(num)",
                     "optionName": "metric_vgops097wej_g8uff99zhk7",
                 },
-                metric_2="sum__num",
+                metrics_b="sum__num",
                 granularity_sqla="ds",
-                metrics=metrics,
+                yAxisIndex=0,
+                yAxisIndexB=1,
             ),
         ),
         Slice(

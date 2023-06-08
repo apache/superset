@@ -65,7 +65,6 @@ export default function transformProps(chartProps) {
     lineInterpolation,
     maxBubbleSize,
     metric,
-    metric2,
     metrics = [],
     orderBars,
     pieLabelType,
@@ -106,7 +105,6 @@ export default function transformProps(chartProps) {
     rangeLabels,
     ranges,
     yAxisFormat,
-    yAxis2Format,
   } = formData;
 
   const rawData = queriesData[0].data || [];
@@ -119,9 +117,6 @@ export default function transformProps(chartProps) {
 
   if (vizType === 'pie') {
     numberFormat = numberFormat || grabD3Format(datasource, metric);
-  } else if (vizType === 'dual_line') {
-    yAxisFormat = yAxisFormat || grabD3Format(datasource, metric);
-    yAxis2Format = yAxis2Format || grabD3Format(datasource, metric2);
   } else if (
     ['line', 'dist_bar', 'bar', 'area'].includes(chartProps.formData.vizType)
   ) {
@@ -188,7 +183,6 @@ export default function transformProps(chartProps) {
     xIsLogScale: xLogScale,
     xTicksLayout,
     yAxisFormat,
-    yAxis2Format,
     yAxisBounds,
     yAxis2Bounds,
     yAxisLabel,
