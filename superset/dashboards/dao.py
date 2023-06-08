@@ -331,6 +331,7 @@ class DashboardDAO(BaseDAO):
         else:
             dash.slices = original_dash.slices
 
+        dash.params = original_dash.params
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
         db.session.commit()
