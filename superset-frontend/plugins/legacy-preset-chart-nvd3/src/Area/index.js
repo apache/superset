@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import example1 from './images/example1.jpg';
 import example2 from './images/example2.jpg';
@@ -38,6 +38,7 @@ const metadata = new ChartMetadata({
     { url: example3, caption: t('Video game consoles') },
     { url: example4, caption: t('Vehicle Types') },
   ],
+  label: ChartLabel.DEPRECATED,
   name: t('Area Chart (legacy)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
@@ -58,6 +59,9 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class AreaChartPlugin extends ChartPlugin {
   constructor() {
     super({
