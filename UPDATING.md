@@ -33,6 +33,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [23741](https://github.com/apache/superset/pull/23741) Migrates the TreeMap chart and removes the legacy Treemap code.
 - [23712](https://github.com/apache/superset/pull/23712) Migrates the Pivot Table v1 chart to v2 and removes v1 code.
 - [24029](https://github.com/apache/superset/pull/24029) Removes the `user` and `username` arguments for the `QUERY_LOGGER` and `SQL_QUERY_MUTATOR` methods respectively. If the username for the current user is required, the `superset.utils.core.get_username` method should be used.
 - [24128](https://github.com/apache/superset/pull/24128) The `RLS_BASE_RELATED_FIELD_FILTERS` config parameter has been removed. Now the Tables dropdown will feature the same tables that the user is able to see elsewhere in the application using the standard `DatasourceFilter`, and the Roles dropdown will be filtered using the filter defined in `EXTRA_RELATED_QUERY_FILTERS["role"]`.

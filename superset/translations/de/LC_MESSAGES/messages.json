@@ -4385,9 +4385,6 @@
       "Shows or hides markers for the time series": [
         "Ein- oder Ausblenden von Markern für die Zeitreihe"
       ],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        "Zeigt die Zusammensetzung eines Datensatzes an, indem ein bestimmtes Rechteck als kleinere Rechtecke mit Bereichen segmentiert wird, die proportional zu ihrem Wert oder Beitrag zum Ganzen sind. Diese Rechtecke können wiederum auch hierarchisch weiter segmentiert werden."
-      ],
       "Significance Level": ["Signifikanzniveau"],
       "Simple": ["Einfach"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
@@ -4670,9 +4667,6 @@
       ],
       "Target": ["Ziel"],
       "Target Color": ["Zielfarbe"],
-      "Target aspect ratio for treemap tiles.": [
-        "Ziel-Seitenverhältnis für Treemap-Kacheln."
-      ],
       "Target category": ["Zielkategorie"],
       "Target value": ["Zielwert"],
       "Template Name": ["Vorlagenname"],
@@ -5465,7 +5459,6 @@
       "Tree layout": ["Baum-Layout"],
       "Tree orientation": ["Baumausrichtung"],
       "Treemap": ["Treemap"],
-      "Treemap (legacy)": ["Kacheldiagramm (Legacy)"],
       "Trend": ["Trend"],
       "Triangle": ["Dreieck"],
       "Trigger Alert If...": ["Alarm auslösen falls..."],

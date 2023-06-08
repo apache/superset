@@ -2665,9 +2665,6 @@
       "Showing %s of %s": ["Mostrando %s de %s"],
       "Shows a list of all series available at that point in time": [""],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        ""
-      ],
       "Significance Level": [""],
       "Simple": [""],
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
@@ -2819,7 +2816,6 @@
       "Take your data points, and group them into \"bins\" to see where the densest areas of information lie": [
         ""
       ],
-      "Target aspect ratio for treemap tiles.": [""],
       "Template Name": ["Nombre Plantilla"],
       "Template parameters": ["Parametros de plantilla"],
       "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
@@ -3344,7 +3340,6 @@
       "Transpose pivot": ["Transponer pivot"],
       "Tree layout": [""],
       "Treemap": ["Mapa de Árbol"],
-      "Treemap (legacy)": [""],
       "Triangle": ["Triángulo"],
       "Trigger Alert If...": ["Disparar Alerta si..."],
       "Truncate Y Axis": ["Truncar el eje Y"],

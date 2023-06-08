@@ -24,7 +24,7 @@ import {
 import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
-const TREEMAP = { name: 'Treemap', viz: 'treemap' };
+const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
 const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
 const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
@@ -185,7 +185,7 @@ describe('Dashboard tabs', () => {
 
     cy.wait(1000);
 
-    cy.get("[data-test-viz-type='treemap'] .chart-container").then(
+    cy.get("[data-test-viz-type='treemap_v2'] .chart-container").then(
       $chartContainer => {
         expect($chartContainer.get(0).scrollWidth).eq(
           $chartContainer.get(0).offsetWidth,

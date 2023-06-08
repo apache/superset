@@ -92,7 +92,7 @@ charts_config_1: dict[str, Any] = {
     },
     "charts/Games_per_Genre_131.yaml": {
         "slice_name": "Games per Genre",
-        "viz_type": "treemap",
+        "viz_type": "treemap_v2",
         "params": {},
         "cache_timeout": None,
         "uuid": "0499bdec-0837-44f3-ae8a-8c670de81afd",
@@ -185,7 +185,7 @@ dashboards_config_1: dict[str, Any] = {
 charts_config_2: dict[str, Any] = {
     "charts/Games_per_Genre_131.yaml": {
         "slice_name": "Games per Genre",
-        "viz_type": "treemap",
+        "viz_type": "treemap_v2",
         "params": {},
         "cache_timeout": None,
         "uuid": "0499bdec-0837-44f3-ae8a-8c670de81afd",
