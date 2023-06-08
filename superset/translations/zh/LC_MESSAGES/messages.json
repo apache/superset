@@ -796,8 +796,6 @@
       "Choose one of the available databases from the panel on the left.": [
         "从左侧的面板中选择一个可用的数据库"
       ],
-      "Choose one or more charts for left axis": ["为左轴选择一个或多个图表"],
-      "Choose one or more charts for right axis": ["为右轴选择一个或多个图表"],
       "Choose the annotation layer type": ["选择注释层类型"],
       "Choose the source of your annotations": ["选择您的注释来源"],
       "Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette": [
@@ -2089,7 +2087,6 @@
       "Multi-Levels": ["多层次"],
       "Multi-Variables": ["多元"],
       "Multiple": ["多方"],
-      "Multiple Line Charts": ["复合折线图"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "柱状上传不允许使用多个文件扩展名请确保所有文件的扩展名相同。"
       ],
@@ -2506,7 +2503,6 @@
       ],
       "Predictive": ["预测"],
       "Predictive Analytics": ["预测分析"],
-      "Prefix metric name with slice name": ["用图表名称作为指标名称的前缀"],
       "Preview": ["预览"],
       "Preview: `%s`": ["预览 %s"],
       "Previous": ["之前"],
@@ -2680,7 +2676,6 @@
       "Right": ["高度"],
       "Right Axis Format": ["右轴格式化"],
       "Right Axis Metric": ["右轴指标"],
-      "Right Axis chart(s)": ["右轴图表"],
       "Right axis metric": ["右轴指标"],
       "Right to Left": ["右到左"],
       "Right value": ["右侧的值"],
@@ -3682,7 +3677,6 @@
       "Time Series": ["时间序列"],
       "Time Series - Bar Chart": ["时间序列 - 柱状图"],
       "Time Series - Line Chart": ["时间序列-折线图"],
-      "Time Series - Multiple Line Charts": ["时间序列-多线图"],
       "Time Series - Nightingale Rose Chart": ["时间序列 - 南丁格尔玫瑰图"],
       "Time Series - Paired t-test": ["时间序列 - 配对t检验"],
       "Time Series - Percent Change": ["时间序列 - 百分比变化"],
@@ -4225,8 +4219,6 @@
       "Y Axis Bounds": ["Y 轴界限"],
       "Y Axis Format": ["Y 轴格式化"],
       "Y Axis Label": ["Y 轴标签"],
-      "Y Axis Left": ["Y轴左侧"],
-      "Y Axis Right": ["Y轴右侧"],
       "Y Axis Title": ["Y 轴标题"],
       "Y Log Scale": ["Y经度标度"],
       "Y bounds": ["Y界限"],

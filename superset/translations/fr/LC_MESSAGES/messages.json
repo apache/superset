@@ -1998,7 +1998,6 @@
         ""
       ],
       "Least recently modified": ["Dernière modification"],
-      "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -2555,7 +2554,6 @@
       "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
         "Prédicat appliqué à la récupération des valeurs distinctes pour remplir le filtre de contrôle des composants. Supporte la syntaxe Jinja. S'applique uniquement si `Activer le filtre` est coché."
       ],
-      "Prefix metric name with slice name": [""],
       "Preview": ["Prévisualisation"],
       "Preview: `%s`": ["Prévisualisation : `%s`"],
       "Previous": ["Précédent"],
@@ -3746,9 +3744,6 @@
       "Time": ["Temps"],
       "Time Series - Bar Chart": ["Séries temporelles - histogramme"],
       "Time Series - Line Chart": ["Séries temporelles - ligne"],
-      "Time Series - Multiple Line Charts": [
-        "Séries temporelles - Lignes multiples"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Séries temporelles - Graphique Nightingale Rose"
       ],
@@ -4060,9 +4055,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        ""
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
@@ -4273,8 +4265,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": ["Format de l'axe Y"],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],
       "Y-Axis Sort By": [""],

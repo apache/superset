@@ -703,8 +703,6 @@
       "Choose a metric for right axis": [""],
       "Choose a number format": [""],
       "Choose one of the available databases from the panel on the left.": [""],
-      "Choose one or more charts for left axis": [""],
-      "Choose one or more charts for right axis": [""],
       "Choose the annotation layer type": ["주석 레이어"],
       "Choose the format for legend values": [""],
       "Choose the position of the legend": [""],
@@ -2275,7 +2273,6 @@
       ],
       "Predictive": [""],
       "Predictive Analytics": [""],
-      "Prefix metric name with slice name": [""],
       "Preview": ["데이터 미리보기"],
       "Preview: `%s`": [""],
       "Previous": [""],
@@ -2428,7 +2425,6 @@
       "Rich tooltip": [""],
       "Right": [""],
       "Right Axis Format": [""],
-      "Right Axis chart(s)": [""],
       "Right axis metric": [""],
       "Right to Left": [""],
       "Right-click on a dimension value to drill to detail by that value.": [
@@ -3297,7 +3293,6 @@
       "Time Range": [""],
       "Time Series - Bar Chart": [""],
       "Time Series - Line Chart": [""],
-      "Time Series - Multiple Line Charts": [""],
       "Time Series - Nightingale Rose Chart": [""],
       "Time Series - Paired t-test": [""],
       "Time Series - Percent Change": [""],
@@ -3560,9 +3555,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        ""
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
@@ -3774,8 +3766,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Axis Title": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],

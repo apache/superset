@@ -91,7 +91,6 @@ const DEFAULT_ORDER = [
   'heatmap',
   'deck_grid',
   'deck_screengrid',
-  'line_multi',
   'treemap_v2',
   'box_plot',
   'sunburst',

@@ -2247,7 +2247,6 @@
       "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
         "El predicado aplicado al obtener un valor distinto para rellenar el componente de control de filtro. Soporta la sintaxis de la plantilla jinja. Se aplica solo cuando `Habilitar selección de filtro` está activado."
       ],
-      "Prefix metric name with slice name": [""],
       "Preview": ["Previsualizar"],
       "Preview: `%s`": ["Previsualizar: `%s`"],
       "Previous": ["Anterior"],
@@ -3252,9 +3251,6 @@
       "Time": ["Tiempo"],
       "Time Series - Bar Chart": ["Serie Temporal - Gráfico de Barras"],
       "Time Series - Line Chart": ["Serie Temporal - Gráfico de Líneas"],
-      "Time Series - Multiple Line Charts": [
-        "Serie temportal - Gráfico de múltiples líneas"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Serie Temporal - Gráfico de Nightingale Rose"
       ],
@@ -3539,9 +3535,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        ""
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
@@ -3739,8 +3732,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": ["Formato Eje Y"],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Axis Title": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],

@@ -168,6 +168,9 @@
       "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
         ""
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Um URL completo apontando para o localização do plug-in construído (poderia ser hospedado em um CDN, por exemplo)"
       ],
@@ -5070,9 +5073,6 @@
       "Time Series": ["Séries temporais"],
       "Time Series - Bar Chart": ["Série temporal - Gráfico de barras"],
       "Time Series - Line Chart": ["Série temporal - Gráfico de linhas"],
-      "Time Series - Multiple Line Charts": [
-        "Séries temporais - Gráficos de linhas múltiplas"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Séries temporais - Gráfico Nightingale Rose"
       ],
@@ -5489,9 +5489,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Visualize duas séries diferentes usando o mesmo eixo x. Observe que ambas as séries podem ser visualizadas com um tipo de gráfico diferente (por exemplo, uma usando barras e outra usando uma linha)."
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        "Visualize duas séries temporais diferentes usando o mesmo intervalo de tempo do eixo x. Esse gráfico está sendo descontinuado e, em vez disso, recomendamos o uso do gráfico de série temporal mista!"
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Visualize duas séries temporais diferentes usando o mesmo eixo x. Observe que cada série temporal pode ser visualizada de forma diferente (por exemplo, uma usando barras e outra usando uma linha)."
       ],
@@ -5794,8 +5791,6 @@
       "Y Axis Bounds": ["Limites do Eixo Y"],
       "Y Axis Format": ["Formato do eixo Y"],
       "Y Axis Label": ["Rótulo do Eixo Y"],
-      "Y Axis Left": ["Eixo Y Esquerdo"],
-      "Y Axis Right": ["Eixo Y Direito"],
       "Y Axis Title": ["Título do Eixo Y"],
       "Y Log Scale": ["Escala logarítmica Y"],
       "Y bounds": ["Limites Y"],
