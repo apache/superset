@@ -17,8 +17,8 @@
 """migrate_treemap_chart
 
 Revision ID: 4c5da39be729
-Revises: 7e67aecbf3f1
-Create Date: 2023-04-19 11:23:23.192064
+Revises: 9ba2ce3086e5
+Create Date: 2023-06-08 10:22:23.192064
 
 """
 from alembic import op
@@ -28,7 +28,7 @@ from superset.migrations.shared.migrate_viz import MigrateTreeMap
 
 # revision identifiers, used by Alembic.
 revision = "4c5da39be729"
-down_revision = "7e67aecbf3f1"
+down_revision = "9ba2ce3086e5"
 
 
 def upgrade():
