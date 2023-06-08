@@ -988,7 +988,6 @@
       ],
       "Choose a database...": ["Izberite podatkovno bazo..."],
       "Choose a dataset": ["Izberite podatkovni set"],
-      "Choose a metric for left axis": ["Izberite mero za levo os"],
       "Choose a metric for right axis": ["Izberite mero za desno os"],
       "Choose a number format": ["Izberite obliko zapisa števila"],
       "Choose a source": ["Izberite izvor"],
@@ -2396,7 +2395,6 @@
       "Least recently modified": ["Zadnje spremenjeno"],
       "Left": ["Levo"],
       "Left Axis Format": ["Oblika leve osi"],
-      "Left Axis Metric": ["Mera za levo os"],
       "Left Axis chart(s)": ["Grafikoni leve osi"],
       "Left Margin": ["Levi rob"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -2984,8 +2982,6 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Izberite granulacijo v razdelku 'Čas' ali odstranite 'Vključi čas'"
       ],
-      "Pick a metric for left axis!": ["Izberite mero za levo os!"],
-      "Pick a metric for right axis!": ["Izberite mero za desno os!"],
       "Pick a metric for x, y and size": ["Izberite mere za x, y in velikost"],
       "Pick a metric to display": ["Izberite mero za prikaz"],
       "Pick a metric!": ["Izberite mero!"],
@@ -4491,9 +4487,6 @@
       "Time Range": ["Časovno obdobje"],
       "Time Series": ["Časovna vrsta"],
       "Time Series - Bar Chart": ["Časovna vrsta - Stolpčni grafikon"],
-      "Time Series - Dual Axis Line Chart": [
-        "Časovna vrsta - Črtni grafikon z dvojno osjo"
-      ],
       "Time Series - Line Chart": ["Časovna vrsta - Črtni grafikon"],
       "Time Series - Multiple Line Charts": [
         "Časovna vrsta - Veččrtni grafikon"
@@ -4877,9 +4870,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Prikaže dve različni časovni vrsti na isti x-osi. Časovni vrsti sta lahko prikazani različno (npr. ena s stolpci in druga s črto)."
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        "Prikaže dve meri na črtnem grafu z isto x-osjo. Grafikon je uporaben za primerjavo mer v istem časovnem obdobju."
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "Prikaže mero v treh dimenzijah podatkov na istem grafikonu (x os, y os, velikost mehurčka). Mehurčki v isti skupini so predstavljeni z barvo."
       ],
@@ -5144,8 +5134,6 @@
       "Y AXIS TITLE MARGIN": ["OBROBA NASLOVA Y OSI"],
       "Y AXIS TITLE POSITION": ["POZICIJA NASLOVA Y OSI"],
       "Y Axis": ["Y os"],
-      "Y Axis 1": ["Y-os 1"],
-      "Y Axis 2": ["Y-os 2"],
       "Y Axis 2 Bounds": ["Meje Y 2-osi"],
       "Y Axis Bounds": ["Meje Y-osi"],
       "Y Axis Format": ["Oblika Y osi"],

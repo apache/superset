@@ -1431,7 +1431,7 @@ msgstr "Napredni podatkovni tip"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:84
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:75
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:70
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "Advanced-Analytics"
 msgstr "Napredna analitika"
 
@@ -1641,7 +1641,7 @@ msgstr "Celotno besedilo"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/ScopeRow.tsx:59
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/useFilterScope.ts:60
 #: superset-frontend/src/dashboard/util/getFilterScopeNodesTree.js:85
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:128
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:127
 msgid "All charts"
 msgstr "Vsi grafikoni"
 
@@ -3227,7 +3227,7 @@ msgid "Categories to group by on the x-axis."
 msgstr "Kategorije za združevanje po x-osi."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/Scatter.jsx:46
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:678
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
 msgid "Category"
 msgstr "Kategorija"
 
@@ -3478,7 +3478,6 @@ msgstr "ID grafikona"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:31
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:70
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:54
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:41
@@ -3762,10 +3761,6 @@ msgstr "Izberite podatkovno bazo..."
 #: superset-frontend/src/pages/ChartCreation/index.tsx:395
 msgid "Choose a dataset"
 msgstr "Izberite podatkovni set"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:69
-msgid "Choose a metric for left axis"
-msgstr "Izberite mero za levo os"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:183
 #: superset-frontend/src/explore/controls.jsx:216
@@ -6483,7 +6478,7 @@ msgstr "Dinamično poišče vse možnosti filtra"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:73
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:42
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:65
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -7073,7 +7068,6 @@ msgstr "Vsak"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:30
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:29
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:26
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:30
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:25
@@ -7100,7 +7094,7 @@ msgstr "Natančno"
 msgid "Example"
 msgstr "Primer"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:853
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:852
 #: superset-frontend/src/pages/Home/index.tsx:208
 msgid "Examples"
 msgstr "Vzorci"
@@ -9011,14 +9005,9 @@ msgstr "Zadnje spremenjeno"
 msgid "Left"
 msgstr "Levo"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:72
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:166
 msgid "Left Axis Format"
 msgstr "Oblika leve osi"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:68
-msgid "Left Axis Metric"
-msgstr "Mera za levo os"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:97
 msgid "Left Axis chart(s)"
@@ -9060,7 +9049,6 @@ msgstr "Leva vrednost"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:34
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:50
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
@@ -10383,7 +10371,7 @@ msgstr "Podatkovna baza ni bila najdena."
 msgid "No databases match your search"
 msgstr "Nobena podatkovna baza ne ustreza iskanju"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:846
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:845
 msgid "No description available."
 msgstr "Opisa ni na razpolago."
 
@@ -11778,7 +11766,7 @@ msgstr "Prikaži povezavo zavihka"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:89
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:51
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "Popular"
 msgstr "Priljubljeni"
 
@@ -12061,7 +12049,6 @@ msgstr "poizvedbe"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:46
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:60
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:158
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:361
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:31
@@ -12304,7 +12291,7 @@ msgstr "Nedavno"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "Prejemniki so ločeni z \",\" ali \";\""
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:673
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:672
 msgid "Recommended tags"
 msgstr "Priporočene značke"
 
@@ -13521,7 +13508,7 @@ msgstr "Iskanje / Filter"
 msgid "Search Metrics & Columns"
 msgstr "Iskanje mer in stolpcev"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:779
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:778
 msgid "Search all charts"
 msgstr "Išči vse grafikone"
 
@@ -15296,7 +15283,7 @@ msgstr "Podatkovnega niza ni mogoče izbrisati."
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:126
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:733
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:430
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:683
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:682
 #: superset-frontend/src/pages/ChartList/index.tsx:482
 #: superset-frontend/src/pages/ChartList/index.tsx:714
 #: superset-frontend/src/pages/DashboardList/index.tsx:394
@@ -18228,14 +18215,6 @@ msgstr ""
 "Prikaže dve različni časovni vrsti na isti x-osi. Časovni vrsti sta lahko"
 " prikazani različno (npr. ena s stolpci in druga s črto)."
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:28
-msgid ""
-"Visualizes 2 metrics as line plots using the same x-axis. This chart is "
-"useful for comparing metrics across the same time range."
-msgstr ""
-"Prikaže dve meri na črtnem grafu z isto x-osjo. Grafikon je uporaben za "
-"primerjavo mer v istem časovnem obdobju."
-
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:28
 msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
@@ -19037,14 +19016,6 @@ msgstr "POZICIJA NASLOVA Y OSI"
 msgid "Y Axis"
 msgstr "Y os"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:40
-msgid "Y Axis 1"
-msgstr "Y-os 1"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:50
-msgid "Y Axis 2"
-msgstr "Y-os 2"
-
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:274
 msgid "Y Axis 2 Bounds"
 msgstr "Meje Y 2-osi"
@@ -19253,7 +19224,7 @@ msgid ""
 "filters in dashboards."
 msgstr ""
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Vis.js:367
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Vis.js:365
 msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr ""
 "Skupaj s filtriranjem časovnega obdobja ne morete uporabiti oznak pod 45°"
@@ -20325,7 +20296,6 @@ msgstr "ikona numeričnega tipa"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:55
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29

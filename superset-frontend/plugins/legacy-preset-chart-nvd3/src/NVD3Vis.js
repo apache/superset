@@ -126,7 +126,6 @@ const BREAKPOINTS = {
 
 const TIMESERIES_VIZ_TYPES = [
   'line',
-  'dual_line',
   'line_multi',
   'area',
   'compare',
@@ -201,7 +200,6 @@ const propTypes = {
     'line_multi',
     'time_pivot',
     'pie',
-    'dual_line',
   ]),
   xAxisFormat: PropTypes.string,
   numberFormat: PropTypes.string,
@@ -401,7 +399,6 @@ function nvd3Vis(element, props) {
         chart.interpolate(lineInterpolation);
         break;
 
-      case 'dual_line':
       case 'line_multi':
         chart = nv.models.multiChart();
         chart.interpolate(lineInterpolation);
@@ -713,7 +710,7 @@ function nvd3Vis(element, props) {
       );
     }
 
-    if (isVizTypes(['dual_line', 'line_multi'])) {
+    if (isVizTypes(['line_multi'])) {
       const yAxisFormatter1 = getNumberFormatter(yAxisFormat);
       const yAxisFormatter2 = getNumberFormatter(yAxis2Format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
@@ -812,7 +809,7 @@ function nvd3Vis(element, props) {
     }
 
     // align yAxis1 and yAxis2 ticks
-    if (isVizTypes(['dual_line', 'line_multi'])) {
+    if (isVizTypes(['line_multi'])) {
       const count = chart.yAxis1.ticks();
       const ticks1 = chart.yAxis1
         .scale()
@@ -915,7 +912,7 @@ function nvd3Vis(element, props) {
         margins.bottom = 40;
       }
 
-      if (isVizTypes(['dual_line', 'line_multi'])) {
+      if (isVizTypes(['line_multi'])) {
         const maxYAxis2LabelWidth = getMaxLabelSize(svg, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }

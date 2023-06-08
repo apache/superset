@@ -165,6 +165,9 @@
       "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
         ""
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Um URL completo apontando para o localização do plug-in construído (poderia ser hospedado em um CDN, por exemplo)"
       ],
@@ -1080,9 +1083,6 @@
       ],
       "Choose a database...": ["Escolha um banco de dados..."],
       "Choose a dataset": ["Escolha um conjunto de dados"],
-      "Choose a metric for left axis": [
-        "Escolha uma métrica para o eixo esquerdo"
-      ],
       "Choose a metric for right axis": [
         "Escolha uma métrica para o eixo direito"
       ],
@@ -2610,7 +2610,6 @@
       "Least recently modified": ["Modificação mais recente"],
       "Left": ["Esquerda"],
       "Left Axis Format": ["Formato do eixo esquerdo"],
-      "Left Axis Metric": ["Eixo esquerdo métrico"],
       "Left Axis chart(s)": ["Gráfico(s) do eixo esquerdo"],
       "Left Margin": ["Margem Esquerda"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -3323,12 +3322,6 @@
       ],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Escolha uma granularidade na seção Tempo ou desmarque a opção 'Incluir tempo'"
-      ],
-      "Pick a metric for left axis!": [
-        "Escolha uma métrica para o eixo esquerdo!"
-      ],
-      "Pick a metric for right axis!": [
-        "Escolha uma métrica para o eixo direito!"
       ],
       "Pick a metric for x, y and size": [
         "Escolha uma métrica para x, y e tamanho"
@@ -5076,9 +5069,6 @@
       "Time Ratio": ["Relação de tempo"],
       "Time Series": ["Séries temporais"],
       "Time Series - Bar Chart": ["Série temporal - Gráfico de barras"],
-      "Time Series - Dual Axis Line Chart": [
-        "Série Temporal - Gráfico de Linhas de Eixo Duplo"
-      ],
       "Time Series - Line Chart": ["Série temporal - Gráfico de linhas"],
       "Time Series - Multiple Line Charts": [
         "Séries temporais - Gráficos de linhas múltiplas"
@@ -5505,9 +5495,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         "Visualize duas séries temporais diferentes usando o mesmo eixo x. Observe que cada série temporal pode ser visualizada de forma diferente (por exemplo, uma usando barras e outra usando uma linha)."
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        "Visualiza 2 métricas como gráficos de linha usando o mesmo eixo x. Esse gráfico é útil para comparar métricas no mesmo intervalo de tempo."
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "Visualiza uma métrica em três dimensões de dados em um único gráfico (eixo X, eixo Y e tamanho da bolha). As bolhas do mesmo grupo podem ser exibidas usando a cor da bolha."
       ],
@@ -5803,8 +5790,6 @@
       "Y AXIS TITLE MARGIN": ["MARGEM DO TÍTULO DO EIXO Y"],
       "Y AXIS TITLE POSITION": ["POSIÇÃO DO TÍTULO DO EIXO Y"],
       "Y Axis": ["Eixo Y"],
-      "Y Axis 1": ["Eixo Y 1"],
-      "Y Axis 2": ["Eixo Y 2"],
       "Y Axis 2 Bounds": ["Eixo Y 2 Limites"],
       "Y Axis Bounds": ["Limites do Eixo Y"],
       "Y Axis Format": ["Formato do eixo Y"],

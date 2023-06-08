@@ -887,7 +887,6 @@
       ],
       "Choose a database...": [""],
       "Choose a dataset": ["Kies een dataset"],
-      "Choose a metric for left axis": [""],
       "Choose a metric for right axis": [
         "Kies een meeteenheid voor de rechteras"
       ],
@@ -2141,7 +2140,6 @@
       "Least recently modified": ["Meest recente wijziging"],
       "Left": [""],
       "Left Axis Format": [""],
-      "Left Axis Metric": [""],
       "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
@@ -2668,12 +2666,6 @@
       "Pick a dimension from which categorical colors are defined": [""],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Kies een granulariteit in de sectie Tijd of vink ‘Inclusief tijd’ uit"
-      ],
-      "Pick a metric for left axis!": [
-        "Kies een meeteenheid voor de linkeras!"
-      ],
-      "Pick a metric for right axis!": [
-        "Kies een meeteenheid voor de rechteras!"
       ],
       "Pick a metric for x, y and size": [
         "Kies een meeteenheid voor x, y en grootte"
@@ -4051,9 +4043,6 @@
       "Time Range": [""],
       "Time Series": [""],
       "Time Series - Bar Chart": ["Tijdreeks - Staafdiagram"],
-      "Time Series - Dual Axis Line Chart": [
-        "Tijdreeks - lijngrafiek met twee assen"
-      ],
       "Time Series - Line Chart": ["Tijdreeks - Lijngrafiek"],
       "Time Series - Multiple Line Charts": [
         "Tijdreeksen - Meervoudige lijndiagrammen"
@@ -4399,9 +4388,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        ""
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         ""
       ],
@@ -4613,8 +4599,6 @@
       "Y AXIS TITLE MARGIN": [""],
       "Y AXIS TITLE POSITION": [""],
       "Y Axis": ["Y As"],
-      "Y Axis 1": [""],
-      "Y Axis 2": [""],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": ["Y-as Formaat"],

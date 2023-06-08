@@ -1422,7 +1422,7 @@ msgstr "Erweiterter Datentyp"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:84
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:75
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:70
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "Advanced-Analytics"
 msgstr "Erweiterte Analysen"
 
@@ -1632,7 +1632,7 @@ msgstr "Gesamter Texte"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/ScopeRow.tsx:59
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/useFilterScope.ts:60
 #: superset-frontend/src/dashboard/util/getFilterScopeNodesTree.js:85
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:128
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:127
 msgid "All charts"
 msgstr "Alle Diagramme"
 
@@ -3233,7 +3233,7 @@ msgid "Categories to group by on the x-axis."
 msgstr "Kategorien, nach denen auf der x-Achse gruppiert werden soll."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/Scatter.jsx:46
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:678
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
 msgid "Category"
 msgstr "Kategorie"
 
@@ -3479,7 +3479,6 @@ msgstr "Diagramm-ID"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:31
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:70
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:54
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:41
@@ -3758,10 +3757,6 @@ msgstr "Wählen Sie eine Datenbank..."
 #: superset-frontend/src/pages/ChartCreation/index.tsx:395
 msgid "Choose a dataset"
 msgstr "Datensatz auswählen"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:69
-msgid "Choose a metric for left axis"
-msgstr "Wählen Sie eine Metrik für die linke Achse"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:183
 #: superset-frontend/src/explore/controls.jsx:216
@@ -6496,7 +6491,7 @@ msgstr "Alle Filterwerte dynamisch durchsuchen"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:73
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:42
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:65
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -7081,7 +7076,6 @@ msgstr "Jeden"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:30
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:29
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:26
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:30
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:25
@@ -7108,7 +7102,7 @@ msgstr "Genau"
 msgid "Example"
 msgstr "Beispiel"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:853
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:852
 #: superset-frontend/src/pages/Home/index.tsx:208
 msgid "Examples"
 msgstr "Beispiele"
@@ -9004,14 +8998,9 @@ msgstr "Zuletzt geändert"
 msgid "Left"
 msgstr "Links"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:72
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:166
 msgid "Left Axis Format"
 msgstr "Format der linken Achse"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:68
-msgid "Left Axis Metric"
-msgstr "Metrik linke Achse"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:97
 msgid "Left Axis chart(s)"
@@ -9053,7 +9042,6 @@ msgstr "Linker Wert"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:34
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:50
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
@@ -10356,7 +10344,7 @@ msgstr "Keine Datenbanktabellen gefunden"
 msgid "No databases match your search"
 msgstr "Keine Datenbanken stimmen mit Ihrer Suche überein"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:846
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:845
 msgid "No description available."
 msgstr "Keine Beschreibung verfügbar."
 
@@ -11762,7 +11750,7 @@ msgstr "Tab-Link"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:89
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:51
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:130
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:129
 msgid "Popular"
 msgstr "Beliebt"
 
@@ -12040,7 +12028,6 @@ msgstr "Abfragen"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:46
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:60
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:158
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:361
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:31
@@ -12282,7 +12269,7 @@ msgstr "Kürzlich"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "Empfänger werden durch \",\" oder \";\" getrennt."
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:673
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:672
 msgid "Recommended tags"
 msgstr "Empfohlene Tags"
 
@@ -13486,7 +13473,7 @@ msgstr "Suchen / Filtern"
 msgid "Search Metrics & Columns"
 msgstr "Metriken & Spalten durchsuchen"
 
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:779
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:778
 msgid "Search all charts"
 msgstr "Alle Diagramm durchsuchen"
 
@@ -15243,7 +15230,7 @@ msgstr "Getaggtes Object konnte nicht gelöscht werden."
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:126
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:733
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:430
-#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:683
+#: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:682
 #: superset-frontend/src/pages/ChartList/index.tsx:482
 #: superset-frontend/src/pages/ChartList/index.tsx:714
 #: superset-frontend/src/pages/DashboardList/index.tsx:394
@@ -19135,14 +19122,6 @@ msgstr "Y-ACHSE TITEL POSITION"
 msgid "Y Axis"
 msgstr "Y-Achse"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:40
-msgid "Y Axis 1"
-msgstr "Y-Achse 1"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/controlPanel.ts:50
-msgid "Y Axis 2"
-msgstr "Y-Achse 2"
-
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:274
 msgid "Y Axis 2 Bounds"
 msgstr "Grenzen der Y-Achse 2"
@@ -19364,7 +19343,7 @@ msgstr ""
 "Sie können den letzten Zeitfilter nicht löschen, da er für "
 "Zeitbereichsfilter in Dashboards verwendet wird."
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Vis.js:367
+#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Vis.js:365
 msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr ""
 "Sie können das 45°-Strich-Layout nicht zusammen mit dem "
@@ -20418,7 +20397,6 @@ msgstr "Symbol für numerischen Typ"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:55
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DualLine/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
