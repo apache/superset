@@ -112,6 +112,60 @@ def test_export_datasources_original(app_context, fs):
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
+def test_export_assets_versioned_export(app_context, fs):
+    """
+    Test that a ZIP file is exported.
+    """
+    # pylint: disable=reimported, redefined-outer-name
+    import superset.cli.importexport  # noqa: F811
+
+    # reload to define export_dashboards correctly based on the
+    # feature flags
+    importlib.reload(superset.cli.importexport)
+
+    runner = app.test_cli_runner()
+    with freeze_time("2021-01-01T00:00:00Z"):
+        response = runner.invoke(superset.cli.importexport.export_assets, ())
+
+    assert response.exit_code == 0
+    assert Path("assets_export_20210101T000000.zip").exists()
+
+    assert is_zipfile("assets_export_20210101T000000.zip")
+
+
+@mock.patch.dict(
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
+)
+@mock.patch(
+    "superset.commands.export.assets.ExportAssetsCommand.run",
+    side_effect=Exception(),
+)
+def test_failing_export_assets_versioned_export(
+    export_assets_command, app_context, fs, caplog
+):
+    """
+    Test that failing to export ZIP file is done elegantly.
+    """
+    caplog.set_level(logging.DEBUG)
+
+    # pylint: disable=reimported, redefined-outer-name
+    import superset.cli.importexport  # noqa: F811
+
+    # reload to define export_assets correctly based on the
+    # feature flags
+    importlib.reload(superset.cli.importexport)
+
+    runner = app.test_cli_runner()
+    with freeze_time("2021-01-01T00:00:00Z"):
+        response = runner.invoke(superset.cli.importexport.export_assets, ())
+
+    assert_cli_fails_properly(response, caplog)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch.dict(
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
+)
 def test_export_dashboards_versioned_export(app_context, fs):
     """
     Test that a ZIP file is exported.

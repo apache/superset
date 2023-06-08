@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 import sys
 from datetime import datetime
@@ -60,6 +61,81 @@ def import_directory(directory: str, overwrite: bool, force: bool) -> None:
 
 
 if feature_flags.get("VERSIONED_EXPORT"):
+
+    @click.command()
+    @with_appcontext
+    @click.option(
+        "--assets-file",
+        "-f",
+        help="Specify the file to export to",
+    )
+    def export_assets(assets_file: Optional[str] = None) -> None:
+        """Export assets from ZIP file"""
+        from superset.commands.export.assets import ExportAssetsCommand
+
+        g.user = security_manager.find_user(username="admin")
+
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"assets_export_{timestamp}"
+        assets_file = assets_file or f"{root}.zip"
+
+        try:
+            with ZipFile(assets_file, "w") as bundle:
+                for file_name, file_content in ExportAssetsCommand().run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the dashboards, please check "
+                "the exception traceback in the log"
+            )
+            sys.exit(1)
+
+    @click.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single ZIP file",
+    )
+    @click.option(
+        "--username",
+        "-u",
+        default=None,
+        help="Specify the user name to assign dashboards to",
+    )
+    @click.option(
+        "--passwords",
+        help='DB passwords with the following format {"databases/examples.yaml": "superset"}',
+    )
+    def import_assets(
+        path: str, username: Optional[str], passwords: Optional[str] = None
+    ) -> None:
+        """Import assets from ZIP file"""
+        from superset.commands.importers.v1.assets import ImportAssetsCommand
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
+
+        if username is not None:
+            # pylint: disable=assigning-non-slot
+            g.user = security_manager.find_user(username=username)
+
+        if passwords:
+            passwords = json.loads(passwords)
+
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            with open(path) as file:
+                contents = {path: file.read()}
+        try:
+            ImportAssetsCommand(contents, passwords=passwords).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the assets, please check the "
+                "exception traceback in the log"
+            )
+            sys.exit(1)
 
     @click.command()
     @with_appcontext
