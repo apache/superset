@@ -154,7 +154,6 @@ export interface SliceHeaderControlsProps {
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
-  sliceCanEdit?: boolean;
 
   crossFiltersEnabled?: boolean;
 }
