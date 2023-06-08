@@ -66,7 +66,6 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
-  validateQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -78,7 +77,6 @@ import {
   INITIAL_NORTH_PERCENT,
   INITIAL_SOUTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
-  VALIDATION_DEBOUNCE_MS,
   WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
@@ -102,8 +100,6 @@ import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 
 const bootstrapData = getBootstrapData();
-const validatorMap =
-  bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const StyledToolbar = styled.div`
@@ -437,37 +433,9 @@ const SqlEditor = ({
     [setQueryEditorAndSaveSql],
   );
 
-  const canValidateQuery = () => {
-    // Check whether or not we can validate the current query based on whether
-    // or not the backend has a validator configured for it.
-    if (database) {
-      return validatorMap.hasOwnProperty(database.backend);
-    }
-    return false;
-  };
-
-  const requestValidation = useCallback(
-    sql => {
-      if (database) {
-        dispatch(validateQuery(queryEditor, sql));
-      }
-    },
-    [database, dispatch, queryEditor],
-  );
-
-  const requestValidationWithDebounce = useMemo(
-    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [requestValidation],
-  );
-
   const onSqlChanged = sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
     setQueryEditorAndSaveSqlWithDebounce(sql);
-    // Request server-side validation of the query text
-    if (canValidateQuery()) {
-      // NB. requestValidation is debounced
-      requestValidationWithDebounce(sql);
-    }
   };
 
   // Return the heights for the ace editor and the south pane as an object
