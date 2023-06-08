@@ -17,7 +17,7 @@
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, DefaultDict, Optional, Union
 from urllib import parse
 
 import msgpack
@@ -55,12 +55,12 @@ from superset.viz import BaseViz
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
 
-REJECTED_FORM_DATA_KEYS: List[str] = []
+REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
+def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
@@ -69,7 +69,7 @@ def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
     return datasource_data
 
 
-def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
+def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
         user.roles = (security_manager.find_role("Public"),)
@@ -103,7 +103,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[Tuple[str]]], DefaultDict[str, List[str]]]:
+) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
@@ -138,7 +138,7 @@ def get_viz(
     return viz_obj
 
 
-def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
+def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     try:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
@@ -148,9 +148,9 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
 def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
-    initial_form_data: Optional[Dict[str, Any]] = None,
-) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data: Dict[str, Any] = initial_form_data or {}
+    initial_form_data: Optional[dict[str, Any]] = None,
+) -> tuple[dict[str, Any], Optional[Slice]]:
+    form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
         # chart data API requests are JSON
@@ -222,7 +222,7 @@ def get_form_data(  # pylint: disable=too-many-locals
     return form_data, slc
 
 
-def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
+def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
     """
     SQLLab can include a "filters" attribute in the templateParams.
     The filters attribute is a list of filters to include in the
@@ -244,7 +244,7 @@ def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
 
 def get_datasource_info(
     datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
-) -> Tuple[int, Optional[str]]:
+) -> tuple[int, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
 
@@ -277,8 +277,8 @@ def get_datasource_info(
 
 
 def apply_display_max_row_limit(
-    sql_results: Dict[str, Any], rows: Optional[int] = None
-) -> Dict[str, Any]:
+    sql_results: dict[str, Any], rows: Optional[int] = None
+) -> dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
 
@@ -311,7 +311,7 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     session = db.session()
     dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
@@ -348,11 +348,11 @@ def get_dashboard_extra_filters(
 
 
 def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
-    layout: Dict[str, Dict[str, Any]],
-    filter_scopes: Dict[str, Dict[str, Any]],
-    default_filters: Dict[str, Dict[str, List[Any]]],
+    layout: dict[str, dict[str, Any]],
+    filter_scopes: dict[str, dict[str, Any]],
+    default_filters: dict[str, dict[str, list[Any]]],
     slice_id: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     extra_filters = []
 
     # do not apply filters if chart is not in filter's scope or chart is immune to the
@@ -360,7 +360,7 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
     for filter_id, columns in default_filters.items():
         filter_slice = db.session.query(Slice).filter_by(id=filter_id).one_or_none()
 
-        filter_configs: List[Dict[str, Any]] = []
+        filter_configs: list[dict[str, Any]] = []
         if filter_slice:
             filter_configs = (
                 json.loads(filter_slice.params or "{}").get("filter_configs") or []
@@ -403,7 +403,7 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
 
 
 def is_slice_in_container(
-    layout: Dict[str, Dict[str, Any]], container_id: str, slice_id: int
+    layout: dict[str, dict[str, Any]], container_id: str, slice_id: int
 ) -> bool:
     if container_id == "ROOT_ID":
         return True
@@ -551,7 +551,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
 def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     logger.debug("Deserializing from msgpack: %r", use_msgpack)
     if use_msgpack:
         with stats_timing(

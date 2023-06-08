@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional, Type
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
@@ -27,7 +27,7 @@ from superset.models.core import Database
 
 
 def sqlalchemy_uri_validator(
-    uri: str, exception: Type[ValidationError] = ValidationError
+    uri: str, exception: type[ValidationError] = ValidationError
 ) -> None:
     """
     Check if a user has submitted a valid SQLAlchemy URI

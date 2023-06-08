@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 import json
-from typing import Generator, TYPE_CHECKING
+from collections.abc import Generator
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest

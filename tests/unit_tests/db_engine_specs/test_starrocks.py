@@ -15,13 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
-from sqlalchemy import types
+from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.starrocks import ARRAY, DOUBLE, MAP, STRUCT, TINYINT
+from superset.db_engine_specs.starrocks import (
+    ARRAY,
+    BITMAP,
+    DOUBLE,
+    HLL,
+    LARGEINT,
+    MAP,
+    PERCENTILE,
+    STRUCT,
+    TINYINT,
+)
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
@@ -30,23 +40,28 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
         # Numeric
-        ("TINYINT", TINYINT, None, GenericDataType.NUMERIC, False),
-        ("DECIMAL", types.DECIMAL, None, GenericDataType.NUMERIC, False),
-        ("DOUBLE", DOUBLE, None, GenericDataType.NUMERIC, False),
+        ("tinyint", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("largeint", LARGEINT, None, GenericDataType.NUMERIC, False),
+        ("decimal(38,18)", types.DECIMAL, None, GenericDataType.NUMERIC, False),
+        ("double", DOUBLE, None, GenericDataType.NUMERIC, False),
         # String
-        ("CHAR", types.CHAR, None, GenericDataType.STRING, False),
-        ("VARCHAR", types.VARCHAR, None, GenericDataType.STRING, False),
-        ("BINARY", types.String, None, GenericDataType.STRING, False),
+        ("char(10)", types.CHAR, None, GenericDataType.STRING, False),
+        ("varchar(65533)", types.VARCHAR, None, GenericDataType.STRING, False),
+        ("binary", types.String, None, GenericDataType.STRING, False),
         # Complex type
-        ("ARRAY", ARRAY, None, GenericDataType.STRING, False),
-        ("MAP", MAP, None, GenericDataType.STRING, False),
-        ("STRUCT", STRUCT, None, GenericDataType.STRING, False),
+        ("array<varchar(65533)>", ARRAY, None, GenericDataType.STRING, False),
+        ("map<string,int>", MAP, None, GenericDataType.STRING, False),
+        ("struct<int,string>", STRUCT, None, GenericDataType.STRING, False),
+        ("json", JSON, None, GenericDataType.STRING, False),
+        ("bitmap", BITMAP, None, GenericDataType.STRING, False),
+        ("hll", HLL, None, GenericDataType.STRING, False),
+        ("percentile", PERCENTILE, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -74,9 +89,9 @@ def test_get_column_spec(
 )
 def test_adjust_engine_params(
     sqlalchemy_uri: str,
-    connect_args: Dict[str, Any],
+    connect_args: dict[str, Any],
     return_schema: str,
-    return_connect_args: Dict[str, Any],
+    return_connect_args: dict[str, Any],
 ) -> None:
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 

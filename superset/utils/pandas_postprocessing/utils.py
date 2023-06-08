@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections.abc import Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Sequence
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -24,7 +25,7 @@ from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
-NUMPY_FUNCTIONS: Dict[str, Callable[..., Any]] = {
+NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "average": np.average,
     "argmin": np.argmin,
     "argmax": np.argmax,
@@ -133,8 +134,8 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
 
 def _get_aggregate_funcs(
     df: DataFrame,
-    aggregates: Dict[str, Dict[str, Any]],
-) -> Dict[str, NamedAgg]:
+    aggregates: dict[str, dict[str, Any]],
+) -> dict[str, NamedAgg]:
     """
     Converts a set of aggregate config objects into functions that pandas can use as
     aggregators. Currently only numpy aggregators are supported.
@@ -143,7 +144,7 @@ def _get_aggregate_funcs(
     :param aggregates: Mapping from column name to aggregate config.
     :return: Mapping from metric name to function that takes a single input argument.
     """
-    agg_funcs: Dict[str, NamedAgg] = {}
+    agg_funcs: dict[str, NamedAgg] = {}
     for name, agg_obj in aggregates.items():
         column = agg_obj.get("column", name)
         if column not in df:
@@ -180,7 +181,7 @@ def _get_aggregate_funcs(
 
 
 def _append_columns(
-    base_df: DataFrame, append_df: DataFrame, columns: Dict[str, str]
+    base_df: DataFrame, append_df: DataFrame, columns: dict[str, str]
 ) -> DataFrame:
     """
     Function for adding columns from one DataFrame to another DataFrame. Calls the

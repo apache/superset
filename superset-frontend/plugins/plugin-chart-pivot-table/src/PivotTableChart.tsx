@@ -59,7 +59,7 @@ const PivotTableWrapper = styled.div`
   overflow: auto;
 `;
 
-const METRIC_KEY = t('metric');
+const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`

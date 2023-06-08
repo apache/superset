@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, Dict, Iterator, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app, Response
 
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
-def statsd_gauge(metric_prefix: Optional[str] = None) -> Callable[..., Any]:
+def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
         """
         Handle sending statsd gauge metric from any method or function
@@ -83,13 +84,13 @@ def arghash(args: Any, kwargs: Any) -> int:
     return hash(sorted_args)
 
 
-def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
+def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
     """Ensure a function called with the same arguments executes only once
     per `duration` (default: 100ms).
     """
 
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
-        last: Dict[str, Any] = {"t": None, "input": None, "output": None}
+        last: dict[str, Any] = {"t": None, "input": None, "output": None}
 
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             now = time.time()

@@ -20,7 +20,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 from abc import ABC
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import gettext as __
 
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
-SqlResults = Dict[str, Any]
+SqlResults = dict[str, Any]
 
 GetSqlResultsTask = Callable[..., SqlResults]
 
@@ -53,7 +53,7 @@ class SqlJsonExecutor:
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
-        log_params: Optional[Dict[str, Any]],
+        log_params: dict[str, Any] | None,
     ) -> SqlJsonExecutionStatus:
         raise NotImplementedError()
 
@@ -88,7 +88,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
-        log_params: Optional[Dict[str, Any]],
+        log_params: dict[str, Any] | None,
     ) -> SqlJsonExecutionStatus:
         query_id = execution_context.query.id
         try:
@@ -120,8 +120,8 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
-        log_params: Optional[Dict[str, Any]],
-    ) -> Optional[SqlResults]:
+        log_params: dict[str, Any] | None,
+    ) -> SqlResults | None:
         with utils.timeout(
             seconds=self._timeout_duration_in_seconds,
             error_message=self._get_timeout_error_msg(),
@@ -132,8 +132,8 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
-        log_params: Optional[Dict[str, Any]],
-    ) -> Optional[SqlResults]:
+        log_params: dict[str, Any] | None,
+    ) -> SqlResults | None:
         return self._get_sql_results_task(
             execution_context.query.id,
             rendered_query,
@@ -161,7 +161,7 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         self,
         execution_context: SqlJsonExecutionContext,
         rendered_query: str,
-        log_params: Optional[Dict[str, Any]],
+        log_params: dict[str, Any] | None,
     ) -> SqlJsonExecutionStatus:
         query_id = execution_context.query.id
         logger.info("Query %i: Running query on a Celery worker", query_id)

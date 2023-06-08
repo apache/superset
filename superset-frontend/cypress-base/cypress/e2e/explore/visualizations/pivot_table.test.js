@@ -18,25 +18,26 @@
  */
 describe('Visualization > Pivot Table', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/api/v1/chart/data**').as('chartData');
   });
 
   const PIVOT_TABLE_FORM_DATA = {
     datasource: '3__table',
-    viz_type: 'pivot_table',
+    viz_type: 'pivot_table_v2',
     slice_id: 61,
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
     time_range: '100 years ago : now',
     metrics: ['sum__num'],
     adhoc_filters: [],
-    groupby: ['name'],
-    columns: ['state'],
-    row_limit: 5000,
-    pandas_aggfunc: 'sum',
-    pivot_margins: true,
-    number_format: '.3s',
-    combine_metric: false,
+    groupbyRows: ['name'],
+    groupbyColumns: ['state'],
+    series_limit: 5000,
+    aggregateFunction: 'Sum',
+    rowTotals: true,
+    colTotals: true,
+    valueFormat: '.3s',
+    combineMetric: false,
   };
 
   const TEST_METRIC = {
@@ -59,12 +60,12 @@ describe('Visualization > Pivot Table', () => {
 
   function verify(formData) {
     cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   }
 
   it('should work with single groupby', () => {
     verify(PIVOT_TABLE_FORM_DATA);
-    cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
+    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
     cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
   });
@@ -72,10 +73,10 @@ describe('Visualization > Pivot Table', () => {
   it('should work with more than one groupby', () => {
     verify({
       ...PIVOT_TABLE_FORM_DATA,
-      groupby: ['name', 'gender'],
+      groupbyRows: ['name', 'gender'],
     });
     cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
-    cy.get('.chart-container tr:eq(1) th:eq(1)').contains('state');
+    cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
     cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
   });
@@ -85,8 +86,8 @@ describe('Visualization > Pivot Table', () => {
       ...PIVOT_TABLE_FORM_DATA,
       metrics: ['sum__num', TEST_METRIC],
     });
-    cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
-    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('SUM(num_boys)');
+    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
+    cy.get('.chart-container tr:eq(0) th:eq(3)').contains('SUM(num_boys)');
     cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
   });
@@ -94,7 +95,7 @@ describe('Visualization > Pivot Table', () => {
   it('should work with multiple groupby and multiple metrics', () => {
     verify({
       ...PIVOT_TABLE_FORM_DATA,
-      groupby: ['name', 'gender'],
+      groupbyRows: ['name', 'gender'],
       metrics: ['sum__num', TEST_METRIC],
     });
     cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');

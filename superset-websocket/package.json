@@ -20,7 +20,7 @@
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.0",
     "uuid": "^9.0.0",
-    "winston": "^3.8.2",
+    "winston": "^3.9.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {
@@ -28,11 +28,11 @@
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^9.0.2",
-    "@types/node": "^20.2.3",
+    "@types/node": "^20.2.5",
     "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
-    "@typescript-eslint/eslint-plugin": "^5.59.6",
-    "@typescript-eslint/parser": "^5.59.7",
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.8",
     "eslint": "^8.41.0",
     "eslint-config-prettier": "^8.8.0",
     "jest": "^27.3.1",

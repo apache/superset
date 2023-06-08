@@ -20,7 +20,7 @@ import copy
 import json
 import re
 import uuid
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -296,7 +296,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     session.flush()
 
     dataset_uuid = uuid.uuid4()
-    yaml_config: Dict[str, Any] = {
+    yaml_config: dict[str, Any] = {
         "version": "1.0.0",
         "table_name": "my_table",
         "main_dttm_col": "ds",
@@ -388,7 +388,7 @@ def test_import_column_allowed_data_url(
     session.flush()
 
     dataset_uuid = uuid.uuid4()
-    yaml_config: Dict[str, Any] = {
+    yaml_config: dict[str, Any] = {
         "version": "1.0.0",
         "table_name": "my_table",
         "main_dttm_col": "ds",

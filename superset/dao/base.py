@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=isinstance-second-argument-not-valid-type
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -37,7 +37,7 @@ class BaseDAO:
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: Optional[Type[Model]] = None
+    model_cls: Optional[type[Model]] = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
@@ -75,10 +75,10 @@ class BaseDAO:
     @classmethod
     def find_by_ids(
         cls,
-        model_ids: Union[List[str], List[int]],
+        model_ids: Union[list[str], list[int]],
         session: Session = None,
         skip_base_filter: bool = False,
-    ) -> List[Model]:
+    ) -> list[Model]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
@@ -95,7 +95,7 @@ class BaseDAO:
         return query.all()
 
     @classmethod
-    def find_all(cls) -> List[Model]:
+    def find_all(cls) -> list[Model]:
         """
         Get all that fit the `base_filter`
         """
@@ -121,7 +121,7 @@ class BaseDAO:
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
-    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
         """
         Generic for creating models
         :raises: DAOCreateFailedError
@@ -163,7 +163,7 @@ class BaseDAO:
 
     @classmethod
     def update(
-        cls, model: Model, properties: Dict[str, Any], commit: bool = True
+        cls, model: Model, properties: dict[str, Any], commit: bool = True
     ) -> Model:
         """
         Generic update a model
@@ -196,7 +196,7 @@ class BaseDAO:
         return model
 
     @classmethod
-    def bulk_delete(cls, models: List[Model], commit: bool = True) -> None:
+    def bulk_delete(cls, models: list[Model], commit: bool = True) -> None:
         try:
             for model in models:
                 cls.delete(model, False)

@@ -16,7 +16,7 @@
 # under the License.
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from flask import g
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ from superset.models.slice import Slice
 
 def import_chart(
     session: Session,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Slice:

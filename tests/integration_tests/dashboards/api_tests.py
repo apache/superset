@@ -19,7 +19,7 @@
 import json
 from io import BytesIO
 from time import sleep
-from typing import List, Optional
+from typing import Optional
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
@@ -66,7 +66,7 @@ DASHBOARDS_FIXTURE_COUNT = 10
 class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "dashboard"
 
-    dashboards: List[Dashboard] = []
+    dashboards: list[Dashboard] = []
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
@@ -80,10 +80,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self,
         dashboard_title: str,
         slug: Optional[str],
-        owners: List[int],
-        roles: List[int] = [],
+        owners: list[int],
+        roles: list[int] = [],
         created_by=None,
-        slices: Optional[List[Slice]] = None,
+        slices: Optional[list[Slice]] = None,
         position_json: str = "",
         css: str = "",
         json_metadata: str = "",
@@ -211,9 +211,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
         dashboard = Dashboard.get("world_health")
-        expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
         result = data["result"]
-        actual_dataset_ids = set([dataset["id"] for dataset in result])
+        actual_dataset_ids = {dataset["id"] for dataset in result}
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
@@ -927,7 +927,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             with bundle.open("sql/dump.sql", "w") as fp:
-                fp.write("CREATE TABLE foo (bar INT)".encode())
+                fp.write(b"CREATE TABLE foo (bar INT)")
         buf.seek(0)
         return buf
 

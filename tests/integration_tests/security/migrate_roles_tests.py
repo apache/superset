@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for alerting in Superset"""
-import json
 import logging
 from contextlib import contextmanager
 from unittest.mock import patch

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -49,7 +49,7 @@ from tests.unit_tests.fixtures.common import dttm
 )
 def test_elasticsearch_convert_dttm(
     target_type: str,
-    db_extra: Optional[Dict[str, Any]],
+    db_extra: Optional[dict[str, Any]],
     expected_result: Optional[str],
     dttm: datetime,
 ) -> None:

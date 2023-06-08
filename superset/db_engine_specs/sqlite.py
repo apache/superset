@@ -16,7 +16,8 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Set, Tuple, TYPE_CHECKING
+from re import Pattern
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy import types
@@ -60,7 +61,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         ),
     }
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __('We can\'t seem to resolve the column "%(column_name)s"'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
@@ -74,7 +75,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
         if isinstance(sqla_type, (types.String, types.DateTime)):
@@ -84,6 +85,6 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     def get_table_names(
         cls, database: "Database", inspector: Inspector, schema: Optional[str]
-    ) -> Set[str]:
+    ) -> set[str]:
         """Need to disregard the schema for Sqlite"""
         return set(inspector.get_table_names())

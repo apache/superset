@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from abc import ABC
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Optional
 
 import simplejson as json
 from flask import current_app, request
@@ -60,7 +60,7 @@ class GetExploreCommand(BaseCommand, ABC):
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def run(self) -> Optional[Dict[str, Any]]:
+    def run(self) -> Optional[dict[str, Any]]:
         initial_form_data = {}
 
         if self._permalink_key is not None:
@@ -147,7 +147,7 @@ class GetExploreCommand(BaseCommand, ABC):
         utils.merge_request_params(form_data, request.args)
 
         # TODO: this is a dummy placeholder - should be refactored to being just `None`
-        datasource_data: Dict[str, Any] = {
+        datasource_data: dict[str, Any] = {
             "type": self._datasource_type,
             "name": datasource_name,
             "columns": [],
