@@ -109,6 +109,18 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)
         self.assertEqual(rv.status_code, 200)
 
+    def test_translate_request(self):
+        self.login()
+
+        data = {"sql": "SELECT 1", "read_dialect": "mysql", "write_dialect": "postgresql"}
+        rv = self.client.post(
+            "/api/v1/sqllab/translate/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(resp_data.get("status"), "success")
+        self.assertEqual(rv.status_code, 200)
+
     @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()
