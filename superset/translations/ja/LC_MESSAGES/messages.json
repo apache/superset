@@ -1733,7 +1733,6 @@
       ],
       "Least recently modified": ["最終更新"],
       "Left Axis Format": [""],
-      "Left Axis chart(s)": [""],
       "Left Margin": [""],
       "Left margin, in pixels, allowing for more room for axis labels": [""],
       "Left to Right": [""],
@@ -2248,7 +2247,6 @@
         ""
       ],
       "Predictive Analytics": [""],
-      "Prefix metric name with slice name": [""],
       "Preview": ["プレビュー"],
       "Preview: `%s`": [""],
       "Previous": ["前"],
@@ -3295,7 +3293,6 @@
       "Time Granularity": [""],
       "Time Series - Bar Chart": ["時系列 - 棒グラフ"],
       "Time Series - Line Chart": ["時系列 - 折れ線グラフ"],
-      "Time Series - Multiple Line Charts": ["時系列 - 複数の折れ線グラフ"],
       "Time Series - Nightingale Rose Chart": [""],
       "Time Series - Paired t-test": [""],
       "Time Series - Percent Change": ["時系列 - 変化率"],
@@ -3552,9 +3549,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
-        ""
-      ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
@@ -3760,8 +3754,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Axis Title": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],

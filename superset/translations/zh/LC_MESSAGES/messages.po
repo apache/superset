@@ -3350,7 +3350,6 @@ msgstr "图表 ID"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:70
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:49
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:54
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:82
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:59
@@ -3650,14 +3649,6 @@ msgstr "选择图表类型"
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:739
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "从左侧的面板中选择一个可用的数据库"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:100
-msgid "Choose one or more charts for left axis"
-msgstr "为左轴选择一个或多个图表"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:135
-msgid "Choose one or more charts for right axis"
-msgstr "为右轴选择一个或多个图表"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:812
 msgid "Choose the annotation layer type"
@@ -4211,7 +4202,6 @@ msgstr "比较不同活动在共享时间线视图中所花费的时间长度。
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:48
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:37
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:53
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:72
@@ -5174,7 +5164,7 @@ msgstr "数据库"
 msgid "Dataframe Index"
 msgstr "Dataframe索引"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:267
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:266
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:81
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:878
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:907
@@ -6752,8 +6742,6 @@ msgid "Error message"
 msgstr "错误信息"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:46
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:104
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:139
 msgid "Error while fetching charts"
 msgstr "获取图表时出错"
 
@@ -6828,7 +6816,6 @@ msgstr "每个"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:29
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:30
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:26
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:25
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:62
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:58
@@ -8773,7 +8760,6 @@ msgstr "左值"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:34
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:50
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:42
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:36
@@ -9628,7 +9614,7 @@ msgstr "最小化图表"
 msgid "Mixed Time-Series"
 msgstr "混和时间序列"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:278
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:277
 #: superset-frontend/src/pages/AlertReportList/index.tsx:335
 #: superset-frontend/src/pages/DashboardList/index.tsx:347
 #: superset-frontend/src/pages/DatasetList/index.tsx:375
@@ -9702,7 +9688,6 @@ msgstr "多维度"
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:37
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:41
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.js:31
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:39
 msgid "Multi-Layers"
 msgstr "多层"
 
@@ -9714,7 +9699,6 @@ msgid "Multi-Levels"
 msgstr "多层次"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:42
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:51
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:86
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:65
@@ -11523,10 +11507,6 @@ msgstr "预测"
 msgid "Predictive Analytics"
 msgstr "预测分析"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:64
-msgid "Prefix metric name with slice name"
-msgstr "用图表名称作为指标名称的前缀"
-
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.tsx:39
 msgid "Preview"
 msgstr "预览"
@@ -12408,10 +12388,6 @@ msgstr "右轴格式化"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:181
 msgid "Right Axis Metric"
 msgstr "右轴指标"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:132
-msgid "Right Axis chart(s)"
-msgstr "右轴图表"
 
 #: superset-frontend/src/explore/controls.jsx:214
 msgid "Right axis metric"
@@ -13365,8 +13341,6 @@ msgid "Select chart"
 msgstr "所有图表"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:103
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:138
 msgid "Select charts"
 msgstr "所有图表"
 
@@ -16291,7 +16265,6 @@ msgstr "星期四"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:35
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:87
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:82
@@ -17091,6 +17064,11 @@ msgstr "未知错误"
 msgid "Unknown input format"
 msgstr ""
 
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:178
+#, fuzzy
+msgid "Unknown type"
+msgstr "未知错误"
+
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:43
 msgid "Unknown value"
 msgstr "未知错误"
@@ -17600,13 +17578,6 @@ msgid ""
 "and 1 using a line)."
 msgstr "使用相同的x轴时间范围可视化两个不同的时间序列。请注意，每个时间序列可以以不同的方式可视化（例如1个使用条形图，1个使用线条）。"
 
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:28
-msgid ""
-"Visualize two different time series using the same x-axis time range. "
-"This chart is being deprecated and we recommend using the Mixed "
-"Timeseries Chart instead!"
-msgstr "使用相同的x轴时间范围可视化两个不同的时间序列。此图表已被弃用，我们建议使用混合改为时间序列图！"
-
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:68
 #, fuzzy
 msgid ""
@@ -17673,7 +17644,7 @@ msgstr "可视化列中出现频率最高的单词。字体越大，出现频率
 msgid "Viz is missing a datasource"
 msgstr "Viz 缺少一个数据源"
 
-#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:265
+#: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:264
 msgid "Viz type"
 msgstr "可视化类型"
 
@@ -18256,7 +18227,6 @@ msgstr "X 轴标题下边距"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/controlPanel.ts:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:98
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:73
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:77
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:91
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:314
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:182
@@ -18373,14 +18343,6 @@ msgstr "Y 轴格式化"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:353
 msgid "Y Axis Label"
 msgstr "Y 轴标签"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:88
-msgid "Y Axis Left"
-msgstr "Y轴左侧"
-
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:123
-msgid "Y Axis Right"
-msgstr "Y轴右侧"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:70
 msgid "Y Axis Title"
@@ -19616,7 +19578,6 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:55
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:45
-#: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/index.js:36
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/index.js:29
 msgid "nvd3"
 msgstr "nvd3"

@@ -2198,7 +2198,6 @@
         "Predicado aplicado ao obter um valor distinto para preencher a componente de controlo de filtro. Suporta a sintaxe jinja standard. Apenas se aplica quando \"Ativar Filtro de Seleção\" está ativado."
       ],
       "Predictive Analytics": [""],
-      "Prefix metric name with slice name": [""],
       "Preview": ["Pré-visualização para %s"],
       "Preview: `%s`": ["Pré-visualização para %s"],
       "Previous": ["Pré-visualização para %s"],
@@ -3200,9 +3199,6 @@
       "Time Range": ["Granularidade Temporal"],
       "Time Series - Bar Chart": ["Série Temporal - Gráfico de barras"],
       "Time Series - Line Chart": ["Série Temporal - Gráfico de linhas"],
-      "Time Series - Multiple Line Charts": [
-        "Série Temporal - Gráfico de linhas"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Série Temporal - Gráfico de linhas"
       ],
@@ -3357,6 +3353,7 @@
       "Unknown column used in orderby: %(col)s": [""],
       "Unknown error": [""],
       "Unknown input format": [""],
+      "Unknown type": [""],
       "Unknown value": [""],
       "Unsafe return type for function %(func)s: %(value_type)s": [""],
       "Unsafe template value for key %(key)s: %(value_type)s": [""],
@@ -3463,9 +3460,6 @@
         ""
       ],
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
-        ""
-      ],
-      "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
         ""
       ],
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
@@ -3671,8 +3665,6 @@
       "Y Axis Bounds": [""],
       "Y Axis Format": ["Formato do Eixo YY"],
       "Y Axis Label": [""],
-      "Y Axis Left": [""],
-      "Y Axis Right": [""],
       "Y Axis Title": [""],
       "Y Log Scale": [""],
       "Y bounds": [""],

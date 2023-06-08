@@ -193,7 +193,7 @@ class ChartPostSchema(Schema):
     viz_type = fields.String(
         metadata={
             "description": viz_type_description,
-            "example": ["bar", "line_multi", "area", "table"],
+            "example": ["bar", "area", "table"],
         },
         validate=Length(0, 250),
     )
@@ -254,7 +254,7 @@ class ChartPutSchema(Schema):
     viz_type = fields.String(
         metadata={
             "description": viz_type_description,
-            "example": ["bar", "line_multi", "area", "table"],
+            "example": ["bar", "area", "table"],
         },
         allow_none=True,
         validate=Length(0, 250),
