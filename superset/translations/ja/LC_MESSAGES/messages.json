@@ -2156,8 +2156,6 @@
       "Physical dataset": [""],
       "Pick a dimension from which categorical colors are defined": [""],
       "Pick a granularity in the Time section or uncheck 'Include Time'": [""],
-      "Pick a metric for left axis!": [""],
-      "Pick a metric for right axis!": [""],
       "Pick a metric for x, y and size": [""],
       "Pick a metric to display": ["表示する指標を選択"],
       "Pick a metric!": ["指標を選んでください!"],
@@ -3296,7 +3294,6 @@
       "Time Comparison": [""],
       "Time Granularity": [""],
       "Time Series - Bar Chart": ["時系列 - 棒グラフ"],
-      "Time Series - Dual Axis Line Chart": ["時系列 - 二重軸折れ線グラフ"],
       "Time Series - Line Chart": ["時系列 - 折れ線グラフ"],
       "Time Series - Multiple Line Charts": ["時系列 - 複数の折れ線グラフ"],
       "Time Series - Nightingale Rose Chart": [""],
@@ -3561,9 +3558,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        ""
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         ""
       ],
@@ -3762,8 +3756,6 @@
       "Y AXIS TITLE MARGIN": [""],
       "Y AXIS TITLE POSITION": [""],
       "Y Axis": ["Y軸"],
-      "Y Axis 1": [""],
-      "Y Axis 2": [""],
       "Y Axis 2 Bounds": [""],
       "Y Axis Bounds": [""],
       "Y Axis Format": [""],

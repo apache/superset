@@ -1105,7 +1105,6 @@
       ],
       "Choose a database...": ["Выберите базу данных..."],
       "Choose a dataset": ["Выберите датасет"],
-      "Choose a metric for left axis": ["Выберите меру для левой оси"],
       "Choose a metric for right axis": ["Выберите меру для правой оси"],
       "Choose a number format": ["Выберите числовой формат"],
       "Choose a source": ["Выберите источник"],
@@ -2586,7 +2585,6 @@
       "Least recently modified": ["Измененные давно"],
       "Left": ["Слева"],
       "Left Axis Format": ["Формат левой оси"],
-      "Left Axis Metric": ["Мера левой оси"],
       "Left Axis chart(s)": ["График(и) по левой оси"],
       "Left Margin": ["Левый отступ"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -3234,8 +3232,6 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "Выберите степень детализации в разделе Время или снимите флажок \"Включить время\"."
       ],
-      "Pick a metric for left axis!": ["Выберите меру для левой оси"],
-      "Pick a metric for right axis!": ["Выберите меру для правой оси"],
       "Pick a metric for x, y and size": ["Выберите меру для x, y и размера"],
       "Pick a metric to display": ["Выберите меру для отображения"],
       "Pick a metric!": ["Выберите меру!"],
@@ -4852,9 +4848,6 @@
       "Time Ratio": ["Соотношение времени"],
       "Time Series": ["Временной ряд"],
       "Time Series - Bar Chart": ["Столбчатая диаграмма (временные ряды)"],
-      "Time Series - Dual Axis Line Chart": [
-        "Диаграмма с двумя осями (временные ряды)"
-      ],
       "Time Series - Line Chart": ["Линейная диаграмма (временные ряды)"],
       "Time Series - Nightingale Rose Chart": [
         "Диаграмма Найтингейл (временные ряды)"
@@ -5240,9 +5233,6 @@
       "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        ""
-      ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         ""
       ],
@@ -5528,8 +5518,6 @@
       "Y AXIS TITLE MARGIN": ["Отступ названия оси Y"],
       "Y AXIS TITLE POSITION": ["Положение названия оси Y"],
       "Y Axis": ["Ось Y"],
-      "Y Axis 1": ["Ось Y 1"],
-      "Y Axis 2": ["Ось Y 2"],
       "Y Axis 2 Bounds": ["Границы оси Y 2"],
       "Y Axis Bounds": ["Границы оси Y"],
       "Y Axis Format": ["Формат Оси Y"],
