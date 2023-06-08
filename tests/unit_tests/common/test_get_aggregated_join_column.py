@@ -16,7 +16,7 @@
 # under the License.
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
-from pytest import mark
+from pytest import fixture, mark
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -40,8 +40,12 @@ query_context_processor = QueryContextProcessor(
 )
 
 
-def join_column_producer(row: Series, column_index: int) -> str:
-    return "CUSTOM_FORMAT"
+@fixture
+def make_join_column_producer():
+    def join_column_producer(row: Series, column_index: int) -> str:
+        return "CUSTOM_FORMAT"
+
+    return join_column_producer
 
 
 @mark.parametrize(
@@ -62,10 +66,10 @@ def test_aggregated_join_column(time_grain: str, expected: str):
     assert_frame_equal(df, result)
 
 
-def test_aggregated_join_column_producer():
+def test_aggregated_join_column_producer(make_join_column_producer):
     df = DataFrame({"ds": [Timestamp("2020-01-07")]})
     query_context_processor.add_aggregated_join_column(
-        df, TimeGrain.YEAR, join_column_producer
+        df, TimeGrain.YEAR, make_join_column_producer
     )
     result = DataFrame(
         {"ds": [Timestamp("2020-01-07")], AGGREGATED_JOIN_COLUMN: ["CUSTOM_FORMAT"]}

@@ -75,7 +75,7 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
     "cumsum",
 )
 
-PROPHET_TIME_GRAIN_MAP = {
+PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
     TimeGrain.SECOND: "S",
     TimeGrain.MINUTE: "min",
     TimeGrain.FIVE_MINUTES: "5min",
