@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.hive import HiveEngineSpec
 
-time_grain_expressions = {
+time_grain_expressions: dict[str | None, str] = {
     None: "{col}",
     TimeGrain.SECOND: "date_trunc('second', {col})",
     TimeGrain.MINUTE: "date_trunc('minute', {col})",
