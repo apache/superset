@@ -17,7 +17,6 @@
  * under the License.
  */
 import { JsonObject, QueryResponse } from '@superset-ui/core';
-import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { RootState } from 'src/dashboard/types';
@@ -39,10 +38,6 @@ export interface QueryEditor {
   autorun: boolean;
   sql: string;
   remoteId: number | null;
-  validationResult?: {
-    completed: boolean;
-    errors: SupersetError[];
-  };
   hideLeftBar?: boolean;
   latestQueryId?: string | null;
   templateParams?: string;
