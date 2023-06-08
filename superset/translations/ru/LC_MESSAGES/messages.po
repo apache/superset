@@ -613,7 +613,6 @@ msgid "2 years ago"
 msgstr "2 года назад"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:49
 msgid "2/98 percentiles"
 msgstr "2/98 перцентели"
 
@@ -756,7 +755,6 @@ msgid "7D"
 msgstr "7Д"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:98
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:50
 msgid "9/91 percentiles"
 msgstr "9/91 перцентели"
 
@@ -2800,7 +2798,6 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/BoxPlot/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:58
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/createMetadata.ts:27
 msgid "Box Plot"
 msgstr "Ящик с усами"
 
@@ -3429,7 +3426,6 @@ msgstr "ID графика"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:61
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:61
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:61
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:31
 #: superset-frontend/src/explore/fixtures.tsx:34
 #: superset-frontend/src/explore/fixtures.tsx:77
 #: superset-frontend/src/explore/fixtures.tsx:86
@@ -5905,7 +5901,6 @@ msgid "Details of the certification"
 msgstr "Детали утверждения"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:91
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:43
 msgid "Determines how whiskers and outliers are calculated."
 msgstr "Определяет формулу расчета \"усов\" и выбросов."
 
@@ -6045,7 +6040,6 @@ msgstr "Выполнить выбранный запрос"
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:28
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:52
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/createMetadata.ts:25
 msgid "Distribution"
 msgstr "Распределение"
 
@@ -9000,7 +8994,6 @@ msgid "Line"
 msgstr "Линейный"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/index.ts:80
-#: superset-frontend/plugins/preset-chart-xy/src/Line/createMetadata.ts:26
 msgid "Line Chart"
 msgstr "Линейный график"
 
@@ -9651,7 +9644,6 @@ msgid "Min periods"
 msgstr "Минимальный период"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:96
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:48
 msgid "Min/max (no outliers)"
 msgstr "Мин/макс (без выбросов)"
 
@@ -13138,7 +13130,6 @@ msgid "Scatter"
 msgstr "Точечный"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:79
-#: superset-frontend/plugins/preset-chart-xy/src/ScatterPlot/createMetadata.ts:26
 msgid "Scatter Plot"
 msgstr "Точечная диаграмма"
 
@@ -15901,7 +15892,6 @@ msgstr "Имя пользователя, указанное при подклю�
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:226
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:127
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:68
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Способ расположения делений по оси X"
 
@@ -17076,7 +17066,6 @@ msgid "Tuesday"
 msgstr "Вторник"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:95
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:47
 #, fuzzy
 msgid "Tukey"
 msgstr "запрос"
@@ -18457,7 +18446,6 @@ msgid "Which relatives to highlight on hover"
 msgstr "Подсвечивается при наведении"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:89
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:41
 msgid "Whisker/outlier options"
 msgstr "Настройки усов/выбросов"
 
@@ -18569,7 +18557,6 @@ msgstr "Логарифмическая ось X"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:216
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:116
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:58
 msgid "X Tick Layout"
 msgstr "Расположение делений оси X"
 
@@ -19215,7 +19202,6 @@ msgstr "в"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:218
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:118
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:54
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:60
 msgid "auto"
 msgstr "Автоматически"
 
@@ -19648,7 +19634,6 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:219
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:119
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:87
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:61
 msgid "flat"
 msgstr ""
 
@@ -20098,7 +20083,6 @@ msgstr "С наполнением"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:221
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:122
-#: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/controlPanel.ts:63
 #, fuzzy
 msgid "staggered"
 msgstr "Запущен"
