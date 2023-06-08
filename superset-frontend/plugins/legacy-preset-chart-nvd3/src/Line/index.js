@@ -35,7 +35,7 @@ const metadata = new ChartMetadata({
     { url: example2 },
     { url: battery, caption: t('Battery level over time') },
   ],
-  name: t('Line Chart (legacy)'),
+  name: t('Line Chart (deprecated)'),
   supportedAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,
     ANNOTATION_TYPES.INTERVAL,
@@ -47,6 +47,9 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class LineChartPlugin extends ChartPlugin {
   constructor() {
     super({

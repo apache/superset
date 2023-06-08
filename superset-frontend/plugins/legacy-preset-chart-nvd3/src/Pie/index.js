@@ -24,11 +24,15 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   credits: ['http://nvd3.org'],
   description: '',
-  name: t('Pie Chart'),
+  name: t('Pie Chart (deprecated)'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Legacy'), t('nvd3'), t('Deprecated')],
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class PieChartPlugin extends ChartPlugin {
   constructor() {
     super({

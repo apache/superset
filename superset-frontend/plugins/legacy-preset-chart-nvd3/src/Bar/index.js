@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
     'Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.',
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
-  name: t('Time-series Bar Chart (legacy)'),
+  name: t('Time-series Bar Chart (deprecated)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
     t('Bar'),
@@ -44,11 +44,16 @@ const metadata = new ChartMetadata({
     t('Proportional'),
     t('Advanced-Analytics'),
     t('nvd3'),
+    t('Legacy'),
+    t('Deprecated'),
   ],
   thumbnail,
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class BarChartPlugin extends ChartPlugin {
   constructor() {
     super({
