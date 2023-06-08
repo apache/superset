@@ -20,7 +20,7 @@ from typing import Any, Optional
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard

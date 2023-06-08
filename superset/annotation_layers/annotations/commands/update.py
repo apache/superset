@@ -28,11 +28,10 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationUniquenessValidationError,
     AnnotationUpdateFailedError,
 )
-from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.daos.annotation import AnnotationDAO, AnnotationLayerDAO
+from superset.daos.exceptions import DAOUpdateFailedError
 from superset.models.annotations import Annotation
 
 logger = logging.getLogger(__name__)

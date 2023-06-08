@@ -19,8 +19,8 @@ from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.models.core import CssTemplate
 

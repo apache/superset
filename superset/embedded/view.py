@@ -23,7 +23,7 @@ from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
 
 from superset import event_logger, is_feature_enabled
-from superset.embedded.dao import EmbeddedDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
@@ -50,7 +50,7 @@ class EmbeddedView(BaseSupersetView):
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             abort(404)
 
-        embedded = EmbeddedDAO.find_by_id(uuid)
+        embedded = EmbeddedDashboardDAO.find_by_id(uuid)
 
         if not embedded:
             abort(404)

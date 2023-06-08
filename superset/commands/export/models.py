@@ -23,7 +23,7 @@ from flask_appbuilder import Model
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"

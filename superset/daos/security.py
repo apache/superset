@@ -16,7 +16,7 @@
 # under the License.
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 
 
 class RLSDAO(BaseDAO):

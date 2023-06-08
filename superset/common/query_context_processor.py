@@ -28,8 +28,6 @@ from pandas import DateOffset
 from typing_extensions import TypedDict
 
 from superset import app
-from superset.annotation_layers.dao import AnnotationLayerDAO
-from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
@@ -38,6 +36,8 @@ from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion, TimeGrain
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,

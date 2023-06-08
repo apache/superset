@@ -22,7 +22,7 @@ from unittest import mock
 import pytest
 
 from superset import db
-from superset.embedded.dao import EmbeddedDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 )
 def test_get_embedded_dashboard(client: FlaskClient[Any]):
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
-    embedded = EmbeddedDAO.upsert(dash, [])
+    embedded = EmbeddedDashboardDAO.upsert(dash, [])
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 200
@@ -56,7 +56,7 @@ def test_get_embedded_dashboard(client: FlaskClient[Any]):
 )
 def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
-    embedded = EmbeddedDAO.upsert(dash, ["test.example.com"])
+    embedded = EmbeddedDashboardDAO.upsert(dash, ["test.example.com"])
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 403

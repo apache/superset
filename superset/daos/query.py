@@ -16,15 +16,19 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
 from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
+from superset.queries.saved_queries.filters import SavedQueryFilter
 from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
 
@@ -95,3 +99,21 @@ class QueryDAO(BaseDAO):
         query.status = QueryStatus.STOPPED
         query.end_time = now_as_float()
         db.session.commit()
+
+
+class SavedQueryDAO(BaseDAO):
+    model_cls = SavedQuery
+    base_filter = SavedQueryFilter
+
+    @staticmethod
+    def bulk_delete(models: Optional[list[SavedQuery]], commit: bool = True) -> None:
+        item_ids = [model.id for model in models] if models else []
+        try:
+            db.session.query(SavedQuery).filter(SavedQuery.id.in_(item_ids)).delete(
+                synchronize_session="fetch"
+            )
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            raise DAODeleteFailedError() from ex
