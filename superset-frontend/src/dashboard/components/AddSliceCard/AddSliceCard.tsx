@@ -175,7 +175,7 @@ const AddSliceCard: React.FC<{
   const [sliceAddedBadge, setSliceAddedBadge] = useState<HTMLDivElement>();
   const { mountedPluginMetadata } = usePluginContext();
   const vizName = useMemo(
-    () => mountedPluginMetadata[visType].name,
+    () => mountedPluginMetadata[visType]?.name || t('Unknown type'),
     [mountedPluginMetadata, visType],
   );
 
@@ -188,15 +188,14 @@ const AddSliceCard: React.FC<{
           border-radius: ${theme.gridUnit}px;
           background: ${theme.colors.grayscale.light5};
           padding: ${theme.gridUnit * 4}px;
-          margin: 0 ${theme.gridUnit * 3}px
-            ${theme.gridUnit * 3}px
+          margin: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
             ${theme.gridUnit * 3}px;
           position: relative;
           cursor: ${isSelected ? 'not-allowed' : 'move'};
           white-space: nowrap;
           overflow: hidden;
           line-height: 1.3;
-          color: ${theme.colors.grayscale.dark1}
+          color: ${theme.colors.grayscale.dark1};
 
           &:hover {
             background: ${theme.colors.grayscale.light4};

@@ -28,6 +28,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
@@ -100,14 +101,14 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_TRUNC('second', {col})",
-        "PT1M": "DATE_TRUNC('minute', {col})",
-        "PT1H": "DATE_TRUNC('hour', {col})",
-        "P1D": "DATE_TRUNC('day', {col})",
-        "P1W": "DATE_TRUNC('week', {col})",
-        "P1M": "DATE_TRUNC('month', {col})",
-        "P3M": "DATE_TRUNC('quarter', {col})",
-        "P1Y": "DATE_TRUNC('year', {col})",
+        TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('day', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

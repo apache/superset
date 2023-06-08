@@ -25,7 +25,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.sql_lab import Query
 
@@ -42,13 +42,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1M": "TRUNC({col}, 'MI')",
-        "PT1H": "TRUNC({col}, 'HH')",
-        "P1D": "TRUNC({col}, 'DD')",
-        "P1W": "TRUNC({col}, 'WW')",
-        "P1M": "TRUNC({col}, 'MONTH')",
-        "P3M": "TRUNC({col}, 'Q')",
-        "P1Y": "TRUNC({col}, 'YYYY')",
+        TimeGrain.MINUTE: "TRUNC({col}, 'MI')",
+        TimeGrain.HOUR: "TRUNC({col}, 'HH')",
+        TimeGrain.DAY: "TRUNC({col}, 'DD')",
+        TimeGrain.WEEK: "TRUNC({col}, 'WW')",
+        TimeGrain.MONTH: "TRUNC({col}, 'MONTH')",
+        TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
+        TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
 
     @classmethod

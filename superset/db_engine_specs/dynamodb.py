@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -28,23 +29,24 @@ class DynamoDBEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
-        "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
-        "PT1H": "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
-        "P1D": "DATETIME({col}, 'start of day')",
-        "P1W": "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')",
-        "P1M": "DATETIME({col}, 'start of month')",
-        "P3M": (
+        TimeGrain.SECOND: "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
+        TimeGrain.MINUTE: "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
+        TimeGrain.HOUR: "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
+        TimeGrain.DAY: "DATETIME({col}, 'start of day')",
+        TimeGrain.WEEK: "DATETIME({col}, 'start of day', \
+            -strftime('%w', {col}) || ' days')",
+        TimeGrain.MONTH: "DATETIME({col}, 'start of month')",
+        TimeGrain.QUARTER: (
             "DATETIME({col}, 'start of month', "
             "printf('-%d month', (strftime('%m', {col}) - 1) % 3))"
         ),
-        "P1Y": "DATETIME({col}, 'start of year')",
-        "P1W/1970-01-03T00:00:00Z": "DATETIME({col}, 'start of day', 'weekday 6')",
-        "P1W/1970-01-04T00:00:00Z": "DATETIME({col}, 'start of day', 'weekday 0')",
-        "1969-12-28T00:00:00Z/P1W": (
+        TimeGrain.YEAR: "DATETIME({col}, 'start of year')",
+        TimeGrain.WEEK_ENDING_SATURDAY: "DATETIME({col}, 'start of day', 'weekday 6')",
+        TimeGrain.WEEK_ENDING_SUNDAY: "DATETIME({col}, 'start of day', 'weekday 0')",
+        TimeGrain.WEEK_STARTING_SUNDAY: (
             "DATETIME({col}, 'start of day', 'weekday 0', '-7 days')"
         ),
-        "1969-12-29T00:00:00Z/P1W": (
+        TimeGrain.WEEK_STARTING_MONDAY: (
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
