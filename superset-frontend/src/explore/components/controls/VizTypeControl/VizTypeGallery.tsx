@@ -93,7 +93,7 @@ const DEFAULT_ORDER = [
   'dual_line',
   'deck_screengrid',
   'line_multi',
-  'treemap',
+  'treemap_v2',
   'box_plot',
   'sunburst',
   'sankey',

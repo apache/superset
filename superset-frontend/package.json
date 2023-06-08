@@ -103,7 +103,6 @@
     "@superset-ui/legacy-plugin-chart-sankey": "file:./plugins/legacy-plugin-chart-sankey",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "file:./plugins/legacy-plugin-chart-sankey-loop",
     "@superset-ui/legacy-plugin-chart-sunburst": "file:./plugins/legacy-plugin-chart-sunburst",
-    "@superset-ui/legacy-plugin-chart-treemap": "file:./plugins/legacy-plugin-chart-treemap",
     "@superset-ui/legacy-plugin-chart-world-map": "file:./plugins/legacy-plugin-chart-world-map",
     "@superset-ui/legacy-preset-chart-deckgl": "file:./plugins/legacy-preset-chart-deckgl",
     "@superset-ui/legacy-preset-chart-nvd3": "file:./plugins/legacy-preset-chart-nvd3",
