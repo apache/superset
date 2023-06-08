@@ -243,6 +243,7 @@ def pivot_table_v2(
         apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
     )
 
+
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
