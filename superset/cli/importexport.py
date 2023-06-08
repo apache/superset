@@ -71,8 +71,10 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def export_assets(assets_file: Optional[str] = None) -> None:
         """Export assets from ZIP file"""
+        # pylint: disable=import-outside-toplevel
         from superset.commands.export.assets import ExportAssetsCommand
 
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.find_user(username="admin")
 
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -106,12 +108,13 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     @click.option(
         "--passwords",
-        help='DB passwords with the following format {"databases/examples.yaml": "superset"}',
+        help="DB passwords",
     )
     def import_assets(
         path: str, username: Optional[str], passwords: Optional[str] = None
     ) -> None:
         """Import assets from ZIP file"""
+        # pylint: disable=import-outside-toplevel
         from superset.commands.importers.v1.assets import ImportAssetsCommand
         from superset.commands.importers.v1.utils import get_contents_from_bundle
 
