@@ -41,6 +41,13 @@ export const TIMESERIES_CONSTANTS = {
   extraControlsOffset: 22,
 };
 
+export const BAR_CHART_CONSTANTS = {
+  zoomBottom: 30,
+  dataZoomStart: 0,
+  dataZoomEnd: 100,
+  zoomRight: 30,
+};
+
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [
   [LabelPositionEnum.Top, 'Top'],
   [LabelPositionEnum.Left, 'Left'],

@@ -1,27 +1,19 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+/* eslint-disable no-lonely-if */
+/* eslint-disable camelcase */
+// DODO was here
 import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+// DODO-changed
+import {
+  EmptyStateBig as EmptyStateBigPlugin,
+  EmptyStateSmall as EmptyStateSmallPlugin,
+} from 'src/Superstructure/components/EmptyState';
+
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { LimitWarning } from 'src/Superstructure/components/LimitWarning';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -173,7 +165,12 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, chartId } = this.props;
+    const {
+      chartAlert,
+      chartStatus,
+      chartId,
+      formData: { row_limit },
+    } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -200,6 +197,10 @@ class ChartRenderer extends React.Component {
     const currentFormData =
       chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     const vizType = currentFormData.viz_type || this.props.vizType;
+
+    const rowCount = Number(queriesResponse[0].rowcount) || 0;
+
+    const rowLimit = Number(row_limit) || 0;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
     // container. It may cause css conflicts as in the case of legacy table chart.
@@ -232,18 +233,41 @@ class ChartRenderer extends React.Component {
           )
         : undefined;
     const noResultImage = 'chart.svg';
+
+    console.log('ChartRenderer [ process.env.type => ', process.env.type, ']');
+
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
-      noResultsComponent = (
-        <EmptyStateBig
-          title={noResultTitle}
-          description={noResultDescription}
-          image={noResultImage}
-        />
-      );
+      if (process.env.type === undefined) {
+        noResultsComponent = (
+          <EmptyStateBig
+            title={noResultTitle}
+            description={noResultDescription}
+            image={noResultImage}
+          />
+        );
+      } else {
+        noResultsComponent = (
+          <EmptyStateBigPlugin
+            title={noResultTitle}
+            description={noResultDescription}
+            image={noResultImage}
+          />
+        );
+      }
     } else {
-      noResultsComponent = (
-        <EmptyStateSmall title={noResultTitle} image={noResultImage} />
-      );
+      if (process.env.type === undefined) {
+        noResultsComponent = (
+          <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+        );
+      } else {
+        noResultsComponent = (
+          <EmptyStateSmallPlugin title={noResultTitle} image={noResultImage} />
+        );
+      }
+    }
+
+    if (rowCount > 0 && rowLimit > 0 && rowCount >= rowLimit) {
+      return <LimitWarning limit={rowLimit} />;
     }
 
     return (

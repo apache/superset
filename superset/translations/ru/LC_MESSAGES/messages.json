@@ -334,6 +334,7 @@
       "Add Druid Column": ["Добавить столбец Druid"],
       "Edit Druid Column": ["Редактировать столбец Druid"],
       "Column": ["Столбец"],
+      "column ": ["Столбец"],
       "Type": ["Тип"],
       "Datasource": ["Источник данных"],
       "Groupable": ["Группируемый"],
@@ -1594,7 +1595,6 @@
       "%s Selected": ["%s Выбрано"],
       "Deselect all": ["Выберите базу данных"],
       "%s-%s of %s": [""],
-      "Settings": ["Настройки"],
       "About": [""],
       "SQL query": ["SQL-запрос"],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
@@ -1759,7 +1759,6 @@
       "Reset all": ["Сбросить текущее состояние"],
       "You have removed this filter.": ["Вы удалили фильтр."],
       "Restore filter": ["Фильтр результатов"],
-      "Filter name": ["Значение фильтра"],
       "Name is required": ["Имя обязательно"],
       "Datasource is required": ["Источники данных"],
       "Field": ["Поле"],
@@ -1767,7 +1766,6 @@
       "None": [""],
       "Apply changes instantly": ["Мгновенно применять изменения"],
       "Allow multiple selections": ["Разрешить множественный фильтр"],
-      "Inverse selection": ["Инвертировать выбор"],
       "Required": ["Обязательно"],
       "Are you sure you want to cancel?": ["Вы уверены, что хотите отменить?"],
       "will not be saved.": ["не будет сохранён."],
@@ -1775,7 +1773,6 @@
       "Add filter": ["Добавить фильтр"],
       "(Removed)": ["(Удалено)"],
       "Undo?": ["Отменить?"],
-      "Scoping": [""],
       "Apply to all panels": ["Применить ко всем панелям"],
       "Apply to specific panels": ["Применить к выбранным панелям"],
       "Only selected panels will be affected by this filter": [
@@ -1886,9 +1883,9 @@
       "Confirm save": ["Подтвердить сохранение"],
       "Edit Dataset ": ["Редактировать датасет "],
       "Use legacy datasource editor": ["Использовать старый редактор"],
-      "Time range": ["Период времени"],
-      "Time column": ["Столбец с временем"],
-      "Time grain": ["Гранулярность времени"],
+      "Time range": ["Фильтр по времени"],
+      "Time column": ["Столбец с датой и временем"],
+      "Time grain": ["Единица времени"],
       "Origin": ["Источник"],
       "Time granularity": ["Гранулярность времени"],
       "A reference to the [Time] configuration, taking granularity into account": [
@@ -2057,7 +2054,6 @@
       "Metric to sort the results by": [
         "Показатель, по которому сортировать результаты"
       ],
-      "Sort ascending": ["Направление сортировки"],
       "Check for sorting ascending": [
         "Сортировка по убыванию или по возрастанию"
       ],
@@ -2067,9 +2063,6 @@
       "Search all filter options": ["Поиск / Фильтр"],
       "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
         "По-умолчанию, каждый фильтр загружает не больше 1000 элементов выбора при начальной загрузке страницы. Установите этот флаг, если у вас больше 1000 значений фильтра и вы хотите включить динамический поиск, который загружает значения по мере их ввода пользователем (может увеличить нагрузку на вашу базу данных)."
-      ],
-      "User must select a value for this filter": [
-        "Пользователю нужно будет выбрать значение для этого фильтра"
       ],
       "Filter configuration": ["Фильтруемые срезы"],
       "Error while fetching data": ["Возникла ошибка при получение данных"],
@@ -2098,18 +2091,37 @@
       "Failed to verify select options: %s": [
         "Ошибка при проверке опций выбора: %s"
       ],
-      "RANGE TYPE": ["ТИП ИНТЕРВАЛА"],
-      "Actual time range": [""],
+      "RANGE TYPE": ["ТИП ФИЛЬТРА ПО ВРЕМЕНИ"],
+      "Actual time range": ["Текущие настройки фильтрации времени"],
       "CANCEL": ["ОТМЕНИТЬ"],
       "APPLY": ["ПРИМЕНИТЬ"],
       "Edit time range": ["Изменить параметры шаблона"],
-      "Configure advanced time range": ["Особый временной интервал"],
       "START": ["НАЧАЛО"],
       "END": ["КОНЕЦ"],
+      "Before": ["До"],
+      "Seconds %s": ["Секунд %s"],
+      "Minutes %s": ["Минут %s"],
+      "Hours %s": ["Часов %s"],
+      "Days %s": ["Дней %s"],
+      "Weeks %s": ["Недель %s"],
+      "Months %s": ["Месяцев %s"],
+      "Quarters %s": ["Кварталов %s"],
+      "Years %s": ["Лет %s"],
+      "START (INCLUSIVE)": ["НАЧАЛО (ВКЛЮЧИТЕЛЬНО)"],
+      "END (EXCLUSIVE)": ["КОНЕЦ (НЕВКЛЮЧИТЕЛЬНО)"],
+      "Specific Date/Time": ["Точные дата и время"],
+      "Relative Date/Time": ["Относительные дата и время"],
+      "Midnight": ["Полночь"],
+      "Now": ["Сейчас"],
       "Configure Time Range: Previous...": ["Предыдущие…"],
       "Configure Time Range: Last...": ["Последние…"],
+      "Configure Advanced Time Range": [
+        "Настройка дополнительного фильтра по времени"
+      ],
       "Configure custom time range": ["Изменить параметры шаблона"],
       "Relative quantity": ["Относительное количество"],
+      "Start date included in time range": ["Первый день включительно"],
+      "End date excluded from time range": ["Последний день невключительно"],
       "Anchor to": ["Привязать к"],
       "NOW": ["СЕЙЧАС"],
       "Date/Time": ["Формат даты"],
@@ -2171,7 +2183,6 @@
       "Time range endpoints": ["Период времени"],
       "Time range endpoints (SIP-15)": [""],
       "Annotations and layers": ["Аннотация"],
-      "Sort descending": ["Сортировать"],
       "Whether to sort descending or ascending": [
         "Сортировка по убыванию или по возрастанию"
       ],
@@ -2298,7 +2309,7 @@
       "Alert name": ["Имя оповещения"],
       "Alert condition": ["Условие оповещения"],
       "Trigger Alert If...": ["Сделать оповещение, если…"],
-      "Value": ["Подписи"],
+      "Value": ["Значение"],
       "Report schedule": ["Область просмотра"],
       "Alert condition schedule": ["Расписание условия оповещения"],
       "Schedule settings": ["Настройки расписания"],
@@ -2605,7 +2616,6 @@
       ],
       "Search by query text": ["Поиск по тексту запроса"],
       "Query preview": ["Предпросмотр данных"],
-      "Previous": ["Предпросмотр %s"],
       "Next": ["След"],
       "Open in SQL Lab": ["Открыть в SQL редакторе"],
       "User query": ["Скопировать запрос"],
@@ -2683,7 +2693,72 @@
       ],
       "Limit selector values": [""],
       "These filters apply to the values available in the dropdowns": [""],
-      "Time-series Table": ["Таблица временных рядов"]
+      "Time-series Table": ["Таблица временных рядов"],
+      "last day": ["Последний сутки"],
+      "last week": ["Последняя неделя"],
+      "last month": ["Последний месяц"],
+      "last quarter": ["Последний квартал"],
+      "last year": ["Последний год"],
+      "previous calendar week": ["Предыдущая календарная неделя"],
+      "previous calendar month": ["Предыдущий календарный месяц"],
+      "previous calendar year": ["Предыдущий календарный год"],
+      "No filter": ["Без фильтра"],
+      "Last": ["Последнее"],
+      "Previous": ["Предыдущий"],
+      "Custom": ["Пользовательский"],
+      "Add/Edit Filters": ["Создать/Изменить фильтры"],
+      "Add filters and dividers": ["Добавить фильтр/разделитель"],
+      "Settings": ["Настройки"],
+      "Scoping": ["Влияние"],
+      "Filter": ["Фильтр"],
+      "Filter Type": ["Тип фильтра"],
+      "Filter Configuration": ["Конфигурация фильтра"],
+      "Filter Settings": ["Параметры фильтра"],
+      "Filter name": ["Название фильтра"],
+      "Filter has default value": ["Значение по умолчанию"],
+      "Filter value is required": ["Обязателен для заполнения"],
+      "Filter is hierarchical": ["Фильтр иерархический"],
+      "User must select a value before applying the filter": [
+        "Пользователь обязан указать значение для применения фильтра"
+      ],
+      "User must select a value for this filter": [
+        "Пользователю нужно будет выбрать значение для этого фильтра"
+      ],
+      "Pre-filter available values": ["Предв. фильтрация доступных значений"],
+      "Pre-filter": ["Предв. фильтр"],
+      "Pre-filter is required": ["Укажите предв. фильтрацию"],
+      "Sort filter values": ["Сортировать значения фильтра "],
+      "Sort type": ["Направление сортировки"],
+      "Sort ascending": ["Сортировать по возрастанию"],
+      "Sort descending": ["Сортировать по убыванию"],
+      "Sort Metric": ["Показатель для сортировки"],
+      "Select first filter value by default": [
+        "Первое значение фильтра по умолчанию"
+      ],
+      "Can select multiple values": ["Разрешить выбор нескольких значений"],
+      "Dynamically search all filter values": [
+        "Динамический поиск доступных значений"
+      ],
+      "Inverse selection": ["Инвертировать"],
+      "When using this option, default value can’t be set": [
+        "Значение по умолчанию не может быть установлено, если включена данная опция"
+      ],
+      "Exclude selected values": ["Исключить указанные значения"],
+      "Default Value": ["Значение по умолчанию"],
+      "Values are dependent on other filters": [
+        "Значения зависят от других фильтров"
+      ],
+      "Numerical range": ["Цифровой диапазон"],
+      "Add and edit filters": ["Создать/изменить фильтры"],
+      "Fill all required fields to enable \"Default Value\"": [
+        "Укажите все необходимые поля"
+      ],
+      "Single Value": ["Одиночное значение"],
+      "Single value type": ["Тип одиночного значения"],
+      "Minimum": ["Минимум"],
+      "Exact": ["Точное"],
+      "Maximum": ["Максимум"],
+      "Values dependent on": ["Значения зависят от"]
     }
   }
 }

@@ -1,22 +1,6 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import React, { useCallback } from 'react';
+// DODO was here
+import React, { useCallback, useEffect, useState } from 'react';
+import { ECBasicOption } from 'echarts/types/src/util/types';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -35,6 +19,8 @@ export default function EchartsMixedTimeseries({
   formData,
   seriesBreakdown,
 }: EchartsMixedTimeseriesChartTransformedProps) {
+  const { showValue, showValueB } = formData;
+
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
     [seriesBreakdown],
@@ -107,13 +93,78 @@ export default function EchartsMixedTimeseries({
     },
   };
 
+  const getCurrentLabelState = (
+    series: Array<{ label?: { show: boolean; position: string } }>,
+  ) => series.map(s => s && s.label && s?.label.show);
+
+  const [alteredEchartsOptions, setEchartsOptions] = useState(echartOptions);
+  const [isVisibleNow, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    console.log('Mixed time-series echartOptions', echartOptions);
+    setEchartsOptions(echartOptions);
+    const current = getCurrentLabelState(
+      echartOptions.series as Array<{
+        label?: { show: boolean; position: string };
+      }>,
+    );
+
+    const currentValue = current.length > 0 ? current[0] : false;
+    console.log('Current Show/Hide value', current, currentValue);
+    setIsVisible(!currentValue);
+  }, [echartOptions]);
+
+  const showHideHandler = () => {
+    const { series } = alteredEchartsOptions as ECBasicOption & {
+      series: Array<{ label: { show: boolean; position: string } }>;
+    };
+    setIsVisible(!isVisibleNow);
+
+    const echartsOpts = {
+      ...alteredEchartsOptions,
+      series: series.map(s => ({
+        ...s,
+        label: {
+          ...s.label,
+          show: isVisibleNow,
+        },
+      })),
+    };
+    setEchartsOptions(echartsOpts);
+  };
+
   return (
-    <Echart
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      selectedValues={selectedValues}
-    />
+    <>
+      {(showValue || showValueB) && (
+        <div
+          style={{
+            position: 'absolute',
+            marginTop: '5px',
+            zIndex: 1,
+            bottom: '0',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '10px',
+              marginTop: '5px',
+              fontStyle: 'italic',
+            }}
+            role="button"
+            tabIndex={0}
+            onClick={showHideHandler}
+          >
+            {isVisibleNow ? 'Show' : 'Hide'} values
+          </span>
+        </div>
+      )}
+      <Echart
+        height={height}
+        width={width}
+        echartOptions={alteredEchartsOptions}
+        eventHandlers={eventHandlers}
+        selectedValues={selectedValues}
+      />
+    </>
   );
 }

@@ -1,22 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
+// DODO was here
 import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
@@ -35,6 +17,8 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { API_HANDLER } from 'src/Superstructure/api';
+import FileSaver from 'file-saver';
 import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
@@ -235,7 +219,36 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = ({
+const generateFileName = (filename, extension) =>
+  `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
+
+// DODO-changed (added)
+export const getCSV = async (url, payload, isLegacy) => {
+  if (isLegacy) {
+    const response = await API_HANDLER.SupersetClientNoApi({
+      method: 'post',
+      url,
+      body: payload,
+    });
+
+    if (response && response.result) {
+      return response.result[0];
+    }
+  } else {
+    const response = await API_HANDLER.SupersetClient({
+      method: 'post',
+      url,
+      body: payload,
+    });
+
+    if (response) return response;
+  }
+
+  return null;
+};
+
+// DODO-changed (added)
+export const exportChartPlugin = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
@@ -244,6 +257,9 @@ export const exportChart = ({
 }) => {
   let url;
   let payload;
+
+  // TODO: DODO check how this workds in plugin
+  console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
   if (shouldUseLegacyApi(formData)) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
     url = getExploreUrl({
@@ -252,18 +268,83 @@ export const exportChart = ({
       allowDomainSharding: false,
     });
     payload = formData;
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-    });
+
+    const fixedUrl =
+      url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
+
+    console.groupCollapsed('EXPORT CSV legacy');
+    console.log('url', url);
+    console.log('fixedUrl', fixedUrl);
+    console.log('payload', payload);
+    console.groupEnd();
+
+    return getCSV(fixedUrl, payload, true);
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  url = '/api/v1/chart/data';
+  payload = buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+  });
+
+  console.groupCollapsed('EXPORT CSV');
+  console.log('url', url);
+  console.log('payload', payload);
+  console.groupEnd();
+
+  return getCSV(url, payload, false);
+};
+
+// DODO-changed
+export const exportChart = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+  ownState = {},
+  slice = {},
+}) => {
+  const exportResultPromise = exportChartPlugin({
+    formData,
+    resultFormat,
+    resultType,
+    force,
+    ownState,
+  });
+
+  const sliceName = slice?.slice_name || 'viz_type';
+  const vizType = slice?.viz_type || 'viz_type';
+  const timeGrain =
+    slice?.form_data?.time_grain_sqla ||
+    slice?.form_data?.time_range ||
+    'time_grain_sqla';
+
+  return exportResultPromise
+    .then(csvExportResult => {
+      if (csvExportResult) {
+        const universalBOM = '\uFEFF';
+        const alteredResult = universalBOM + csvExportResult;
+        const csvFile = new Blob([alteredResult], {
+          type: 'text/csv;charset=utf-8;',
+        });
+
+        FileSaver.saveAs(
+          csvFile,
+          generateFileName(
+            `${sliceName}__${timeGrain}__${vizType}-chart`,
+            'csv',
+          ),
+        );
+      } else {
+        console.log('csvExportResult error', csvExportResult);
+      }
+    })
+    .catch(csvExportError => {
+      console.log('csvExportError', csvExportError);
+    });
 };
 
 export const exploreChart = formData => {

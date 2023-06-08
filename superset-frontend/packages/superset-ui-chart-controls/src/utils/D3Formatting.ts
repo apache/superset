@@ -1,27 +1,25 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { t, smartDateFormatter, NumberFormats } from '@superset-ui/core';
+// DODO was here
+import {
+  t,
+  smartDateFormatter,
+  NumberFormats,
+  getNumberFormatterRegistry,
+  PREVIEW_VALUE,
+  SUPPORTED_LOCALES_ARRAY,
+  D3_LOCALES,
+} from '@superset-ui/core';
 
 // D3 specific formatting config
 export const D3_FORMAT_DOCS = t(
   'D3 format syntax: https://github.com/d3/d3-format',
 );
+
+const d3Currencies = (): [string, string][] =>
+  SUPPORTED_LOCALES_ARRAY.map(localeName => {
+    const { id, code } = D3_LOCALES[localeName];
+    const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
+    return [id, `${code} (${PREVIEW_VALUE} => ${preview})`];
+  });
 
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
@@ -38,7 +36,7 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   [',.2f', ',.2f (12345.432 => 12,345.43)'],
   [',.3f', ',.3f (12345.432 => 12,345.432)'],
   ['+,', '+, (12345.432 => +12,345.432)'],
-  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ...d3Currencies(),
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
 ];

@@ -307,6 +307,7 @@ export default class Chart extends React.Component {
       resultFormat: 'csv',
       force: true,
       ownState: this.props.ownState,
+      slice: this.props.slice,
     });
   }
 
