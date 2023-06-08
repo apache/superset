@@ -51,7 +51,7 @@ FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    FLASK_ENV=production \
+    FLASK_DEBUG=true \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
