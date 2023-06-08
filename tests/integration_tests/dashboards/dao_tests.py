@@ -156,6 +156,34 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.dao.g")
+    def test_copy_dashboard_copies_native_filters(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        original_dash = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
+        # Give the original dash a "native filter"
+        original_dash_params = original_dash.params_dict
+        original_dash_params["native_filter_configuration"] = [{"mock": "filter"}]
+        original_dash.json_metadata = json.dumps(original_dash_params)
+
+        metadata = json.loads(original_dash.json_metadata)
+        metadata["positions"] = original_dash.position
+        dash_data = {
+            "dashboard_title": "copied dash",
+            "json_metadata": json.dumps(metadata),
+            "css": "<css>",
+            "duplicate_slices": False,
+        }
+        dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
+        self.assertEqual(
+            dash.params_dict["native_filter_configuration"], [{"mock": "filter"}]
+        )
+
+        db.session.delete(dash)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.dao.g")
     def test_copy_dashboard_duplicate_slices(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (
