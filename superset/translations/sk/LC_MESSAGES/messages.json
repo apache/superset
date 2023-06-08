@@ -160,6 +160,9 @@
         ""
       ],
       "A database with the same name already exists.": [""],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -233,7 +236,7 @@
       "Add Log": [""],
       "Add Metric": [""],
       "Add Report": [""],
-      "Add Row level security filter": [""],
+      "Add Rule": [""],
       "Add Saved Query": [""],
       "Add a Plugin": [""],
       "Add a dataset": [""],
@@ -249,6 +252,7 @@
         ""
       ],
       "Add cross-filter": [""],
+      "Add custom scoping": [""],
       "Add delivery method": [""],
       "Add extra connection information.": [""],
       "Add filter": [""],
@@ -303,6 +307,7 @@
       "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale": [
         ""
       ],
+      "Aggregation": [""],
       "Aggregation function": [""],
       "Alert": [""],
       "Alert Triggered, In Grace Period": [""],
@@ -330,6 +335,7 @@
       "All Entities": [""],
       "All Text": [""],
       "All charts": [""],
+      "All charts/global scoping": [""],
       "All filters": [""],
       "All filters (%(filterCount)d)": [""],
       "All panels": [""],
@@ -418,6 +424,7 @@
         ""
       ],
       "An error occurred while importing %s: %s": [""],
+      "An error occurred while loading dashboard information.": [""],
       "An error occurred while loading the SQL": [""],
       "An error occurred while opening Explore": [""],
       "An error occurred while parsing the key.": [""],
@@ -510,6 +517,7 @@
         ""
       ],
       "Apply": [""],
+      "Apply conditional color formatting to metric": [""],
       "Apply conditional color formatting to metrics": [""],
       "Apply conditional color formatting to numeric columns": [""],
       "Apply filters": [""],
@@ -529,6 +537,7 @@
       "Are you sure you want to delete the selected datasets?": [""],
       "Are you sure you want to delete the selected layers?": [""],
       "Are you sure you want to delete the selected queries?": [""],
+      "Are you sure you want to delete the selected rules?": [""],
       "Are you sure you want to delete the selected tags?": [""],
       "Are you sure you want to delete the selected templates?": [""],
       "Are you sure you want to overwrite this dataset?": [""],
@@ -596,6 +605,12 @@
         ""
       ],
       "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the primary Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n                bounds are enabled. When left empty, the bounds are dynamically defined\n                based on the min/max of the data. Note that this feature will only expand\n                the axis range. It won't narrow the data's extent.": [
         ""
       ],
       "Box Plot": [""],
@@ -779,7 +794,6 @@
       "Choose a source": [""],
       "Choose a source and a target": [""],
       "Choose a target": [""],
-      "Choose a unique name": [""],
       "Choose chart type": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose one or more charts for left axis": [""],
@@ -823,7 +837,6 @@
       ],
       "Click to cancel sorting": [""],
       "Click to edit": [""],
-      "Click to edit %s in a new tab": [""],
       "Click to edit %s.": [""],
       "Click to edit chart.": [""],
       "Click to edit label": [""],
@@ -862,6 +875,7 @@
         ""
       ],
       "Column Configuration": [""],
+      "Column Data Types": [""],
       "Column Formatting": [""],
       "Column Label(s)": [""],
       "Column containing ISO 3166-2 codes of region/province/department in your table.": [
@@ -869,6 +883,7 @@
       ],
       "Column containing latitude data": [""],
       "Column containing longitude data": [""],
+      "Column datatype": [""],
       "Column header tooltip": [""],
       "Column is required": [""],
       "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
@@ -904,7 +919,6 @@
       "Columns to group by on the columns": [""],
       "Columns to group by on the rows": [""],
       "Columns to show": [""],
-      "Combine Metrics": [""],
       "Combine metrics": [""],
       "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.": [
         ""
@@ -932,6 +946,7 @@
       "Compose multiple layers together to form complex visuals.": [""],
       "Compute the contribution to the total": [""],
       "Condition": [""],
+      "Conditional Formatting": [""],
       "Conditional formatting": [""],
       "Confidence interval": [""],
       "Confidence interval must be between 0 and 1 (exclusive)": [""],
@@ -987,12 +1002,14 @@
       "Copy to clipboard": [""],
       "Correlation": [""],
       "Cost estimate": [""],
+      "Could not connect to database: \"%(database)s\"": [""],
       "Could not determine datasource type": [""],
       "Could not fetch all saved charts": [""],
       "Could not find viz object": [""],
       "Could not load database driver": [""],
       "Could not load database driver: %(driver_name)s": [""],
       "Could not load database driver: {}": [""],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count": [""],
       "Count Unique Values": [""],
       "Count as Fraction of Columns": [""],
@@ -1030,6 +1047,8 @@
         ""
       ],
       "Cross-filtering is not enabled for this dashboard.": [""],
+      "Cross-filtering is not enabled in this dashboard": [""],
+      "Cross-filtering scoping": [""],
       "Cross-filters": [""],
       "Cumulative": [""],
       "Currently rendered: %s": [""],
@@ -1174,6 +1193,7 @@
       "Deactivate": [""],
       "December": [""],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": [""],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1247,6 +1267,7 @@
       "Delete query": [""],
       "Delete template": [""],
       "Delete this container and save to remove this message.": [""],
+      "Deleted": [""],
       "Deleted %(num)d annotation": [
         "",
         "Deleted %(num)d annotations",
@@ -1287,6 +1308,7 @@
         "Deleted %(num)d saved queries",
         "Deleted %(num)d saved queries"
       ],
+      "Deleted %s": [""],
       "Deleted: %s": [""],
       "Deleting a tab will remove all content within it. You may still reverse this action with the": [
         ""
@@ -1334,7 +1356,6 @@
       ],
       "Display row level total": [""],
       "Display settings": [""],
-      "Display total row/column": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
       ],
@@ -1372,10 +1393,7 @@
       ],
       "Drill to detail: %s": [""],
       "Drop a temporal column here or click": [""],
-      "Drop columns here": [""],
-      "Drop columns or metrics here": [""],
       "Drop columns/metrics here or click": [""],
-      "Drop temporal column here": [""],
       "Dual Line Chart": [""],
       "Duplicate": [""],
       "Duplicate column name(s): %(columns)s": [""],
@@ -1435,7 +1453,7 @@
       "Edit Metric": [""],
       "Edit Plugin": [""],
       "Edit Report": [""],
-      "Edit Row level security filter": [""],
+      "Edit Rule": [""],
       "Edit Saved Query": [""],
       "Edit Table": [""],
       "Edit annotation": [""],
@@ -1550,6 +1568,7 @@
       ],
       "Excel to Database configuration": [""],
       "Exclude selected values": [""],
+      "Excluded roles": [""],
       "Executed SQL": [""],
       "Executed query": [""],
       "Execution ID": [""],
@@ -1608,9 +1627,12 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to retrieve advanced type": [""],
+      "Failed to save cross-filter scoping": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
       "Failed to verify select options: %s": [""],
@@ -1634,7 +1656,7 @@
       "Filter List": [""],
       "Filter Settings": [""],
       "Filter Type": [""],
-      "Filter box": [""],
+      "Filter box (deprecated)": [""],
       "Filter configuration": [""],
       "Filter configuration for the filter box": [""],
       "Filter has default value": [""],
@@ -1743,8 +1765,8 @@
       "Grid Size": [""],
       "Group By": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [""],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
+      "Group Key": [""],
       "Group by": [""],
       "Groupable": [""],
       "Handlebars": [""],
@@ -1848,6 +1870,11 @@
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": [""],
       "Intensity": [""],
+      "Intensity Radius": [""],
+      "Intensity Radius is the radius at which the weight is distributed": [""],
+      "Intensity is the value multiplied by the weight to obtain the final weight": [
+        ""
+      ],
       "Interpret Datetime Format Automatically": [""],
       "Interpret the datetime format automatically": [""],
       "Interval": [""],
@@ -1856,6 +1883,10 @@
       "Interval colors": [""],
       "Interval start column": [""],
       "Intervals": [""],
+      "Intesity": [""],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": [""],
       "Invalid advanced data type: %(advanced_data_type)s": [""],
       "Invalid certificate": [""],
@@ -1882,6 +1913,7 @@
       "Invalid numpy function: %(operator)s": [""],
       "Invalid options for %(rolling_type)s: %(options)s": [""],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [""],
       "Invalid rolling_type: %(type)s": [""],
       "Invalid spatial point encountered: %s": [""],
@@ -2257,7 +2289,6 @@
       "No database tables found": [""],
       "No databases match your search": [""],
       "No description available.": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [""],
       "No favorite dashboards yet, go click on stars!": [""],
       "No filter": [""],
@@ -2402,7 +2433,6 @@
       "Optional d3 number format string": [""],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Options": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
@@ -2508,9 +2538,7 @@
       "Pie Chart": [""],
       "Pie shape": [""],
       "Pin": [""],
-      "Pivot Options": [""],
       "Pivot Table": [""],
-      "Pivot Table (legacy)": [""],
       "Pivot operation must include at least one aggregate": [""],
       "Pivot operation requires at least one index": [""],
       "Pivoted": [""],
@@ -2531,9 +2559,7 @@
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
       ],
-      "Please choose at least one 'Group by' field": [""],
       "Please choose at least one groupby": [""],
-      "Please choose at least one metric": [""],
       "Please choose different metrics on left and right axis": [""],
       "Please confirm": [""],
       "Please confirm the overwrite values.": [""],
@@ -2578,6 +2604,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": [""],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2601,6 +2628,7 @@
       "Primary Metric": [""],
       "Primary key": [""],
       "Primary or secondary y-axis": [""],
+      "Primary y-axis Bounds": [""],
       "Primary y-axis format": [""],
       "Private Key": [""],
       "Private Key & Password": [""],
@@ -2641,6 +2669,8 @@
       "Query was stopped.": [""],
       "RANGE TYPE": [""],
       "RGB Color": [""],
+      "RLS Rule could not be deleted.": [""],
+      "RLS Rule not found.": [""],
       "Radar": [""],
       "Radar Chart": [""],
       "Radar render type, whether to display 'circle' shape.": [""],
@@ -2696,7 +2726,8 @@
       "Refreshing charts": [""],
       "Refreshing columns": [""],
       "Regex": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relational": [""],
@@ -2810,13 +2841,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": [""],
       "Row limit": [""],
       "Rows": [""],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": [""],
       "Rule": [""],
+      "Rule added": [""],
       "Run": [""],
       "Run a query to display query history": [""],
       "Run a query to display results": [""],
@@ -2937,6 +2968,7 @@
       "Second": [""],
       "Secondary": [""],
       "Secondary Metric": [""],
+      "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
       "Seconds %s": [""],
@@ -2994,6 +3026,12 @@
       "Select subject": [""],
       "Select table or type to search tables": [""],
       "Select the Annotation Layer you would like to use.": [""],
+      "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
+      "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
       "Select the geojson column": [""],
       "Select the number of bins for the histogram": [""],
       "Select the numeric columns to draw the histogram": [""],
@@ -3056,7 +3094,6 @@
       "Show Metric": [""],
       "Show Metric Names": [""],
       "Show Range Filter": [""],
-      "Show Row level security filter": [""],
       "Show Saved Query": [""],
       "Show Table": [""],
       "Show Timestamp": [""],
@@ -3276,7 +3313,6 @@
       "Superset encountered an unexpected error.": [""],
       "Supported databases": [""],
       "Survey Responses": [""],
-      "Swap Groups and Columns": [""],
       "Swap rows and columns": [""],
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
@@ -3289,6 +3325,9 @@
       "Symbol size": [""],
       "Sync columns from source": [""],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": [""],
       "TEMPORAL X-AXIS": [""],
       "TEMPORAL_RANGE": [""],
@@ -3312,6 +3351,7 @@
       "Table loading": [""],
       "Table name cannot contain a schema": [""],
       "Table name undefined": [""],
+      "Table or View \"%(table)s\" does not exist.": [""],
       "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
         ""
       ],
@@ -3588,6 +3628,9 @@
       "The type of visualization to display": [""],
       "The unit of measure for the specified point radius": [""],
       "The user seems to have been deleted": [""],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [""],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
@@ -3613,12 +3656,14 @@
       "There was an error fetching tables": [""],
       "There was an error fetching the favorite status: %s": [""],
       "There was an error fetching your recent activity:": [""],
+      "There was an error loading the chart data": [""],
       "There was an error loading the dataset metadata": [""],
       "There was an error loading the schemas": [""],
       "There was an error loading the tables": [""],
       "There was an error saving the favorite status: %s": [""],
       "There was an error with your request": [""],
       "There was an issue deleting %s: %s": [""],
+      "There was an issue deleting rules: %s": [""],
       "There was an issue deleting the selected %s: %s": [""],
       "There was an issue deleting the selected annotations: %s": [""],
       "There was an issue deleting the selected charts: %s": [""],
@@ -3659,7 +3704,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [""],
@@ -3851,7 +3896,6 @@
       "Title or Slug": [""],
       "To filter on a metric, use Custom SQL tab.": [""],
       "To get a readable URL for your dashboard": [""],
-      "Too many columns to filter": [""],
       "Tools": [""],
       "Tooltip": [""],
       "Tooltip sort by metric": [""],
@@ -3867,7 +3911,6 @@
       "Track job": [""],
       "Transformable": [""],
       "Transparent": [""],
-      "Transpose Pivot": [""],
       "Transpose pivot": [""],
       "Tree Chart": [""],
       "Tree layout": [""],
@@ -3917,6 +3960,8 @@
         ""
       ],
       "Unable to create chart without a query id.": [""],
+      "Unable to decode value": [""],
+      "Unable to encode value": [""],
       "Unable to find such a holiday: [%(holiday)s]": [""],
       "Unable to load columns for the selected table. Please select a different table.": [
         ""
@@ -4002,9 +4047,6 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         ""
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
-        ""
-      ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         ""
       ],
@@ -4015,6 +4057,9 @@
       "User must select a value for this filter": [""],
       "User query": [""],
       "Username": [""],
+      "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
+        ""
+      ],
       "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
         ""
       ],
@@ -4439,6 +4484,7 @@
       "`width` must be greater or equal to 0": [""],
       "aggregate": [""],
       "alert": [""],
+      "alert dark": [""],
       "alerts": [""],
       "all": [""],
       "also copy (duplicate) charts": [""],
@@ -4517,6 +4563,8 @@
       "e.g., a \"user id\" column": [""],
       "edit mode": [""],
       "entries": [""],
+      "error": [""],
+      "error dark": [""],
       "error_message": [""],
       "every": [""],
       "every day of the month": [""],
@@ -4536,7 +4584,6 @@
       "for more information on how to structure your URI.": [""],
       "function type icon": [""],
       "geohash (square)": [""],
-      "green": [""],
       "heatmap": [""],
       "heatmap: values are normalized across the entire heatmap": [""],
       "here": [""],
@@ -4616,7 +4663,6 @@
       "reboot": [""],
       "recent": [""],
       "recents": [""],
-      "red": [""],
       "report": [""],
       "reports": [""],
       "restore zoom": [""],
@@ -4637,6 +4683,7 @@
       "stream": [""],
       "string type icon": [""],
       "success": [""],
+      "success dark": [""],
       "sum": [""],
       "syntax.": [""],
       "tag": [""],
@@ -4666,7 +4713,6 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": [""],
-      "yellow": [""],
       "zoom area": [""]
     }
   }

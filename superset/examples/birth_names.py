@@ -509,12 +509,12 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Pivot Table",
-            viz_type="pivot_table",
+            viz_type="pivot_table_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="pivot_table",
-                groupby=["name"],
-                columns=["state"],
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
                 metrics=metrics,
             ),
         ),

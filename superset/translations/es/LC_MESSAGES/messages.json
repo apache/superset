@@ -121,6 +121,9 @@
       "A comma separated list of columns that should be parsed as dates.": [
         "Una lista separada por comas de columnas que deben ser parseadas como fechas."
       ],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         ""
       ],
@@ -186,9 +189,6 @@
       "Add Database": ["Añadir Base de Datos"],
       "Add Log": ["Agregar Registro"],
       "Add Metric": ["Añadir Métrica"],
-      "Add Row level security filter": [
-        "Añadir filtro de seguridad de nivel de fila"
-      ],
       "Add Saved Query": ["Añadir Consulta Guardada"],
       "Add a Plugin": ["Añadir Columna"],
       "Add a new tab to create SQL Query": [""],
@@ -198,6 +198,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add custom scoping": [""],
       "Add delivery method": ["Agregar método de entrega"],
       "Add filter": ["Añadir filtro"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
@@ -275,6 +276,7 @@
       "All": [""],
       "All Text": ["Todo el Texto"],
       "All charts": ["Todos los gráficos"],
+      "All charts/global scoping": [""],
       "All filters": ["Todos los filtros"],
       "All filters (%(filterCount)d)": [""],
       "All panels with this column will be affected by this filter": [""],
@@ -558,6 +560,12 @@
       "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
         ""
       ],
+      "Bounds for the primary Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n                bounds are enabled. When left empty, the bounds are dynamically defined\n                based on the min/max of the data. Note that this feature will only expand\n                the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
       "Box Plot": ["Diagrama de Caja"],
       "Bubble Chart": ["Gráfico de Burbujas"],
       "Bubble size": ["Tamaño burbuja"],
@@ -728,7 +736,6 @@
       "Choose a metric for right axis": [
         "Elige una métrica para el eje derecho"
       ],
-      "Choose a unique name": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": ["Capas de Anotación"],
       "Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette": [
@@ -925,6 +932,7 @@
       "Could not load database driver: {}": [
         "No se ha podido cargar el controlador de la base de datos: {}"
       ],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1088,6 +1096,7 @@
       "Db engine did not return all queried columns": [""],
       "December": ["Diciembre"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["Caracter Decimal"],
       "Deck.gl - 3D Grid": [""],
       "Deck.gl - 3D HEX": [""],
@@ -1210,7 +1219,6 @@
         ""
       ],
       "Display row level total": [""],
-      "Display total row/column": [""],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
       ],
@@ -1241,9 +1249,7 @@
       ],
       "Drill to detail: %s": [""],
       "Drop a temporal column here or click": [""],
-      "Drop columns here": [""],
       "Drop columns/metrics here or click": [""],
-      "Drop temporal column here": [""],
       "Duplicate column name(s): %(columns)s": [""],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
         ""
@@ -1293,9 +1299,6 @@
       "Edit Log": ["Editar Registro"],
       "Edit Metric": ["Editar Métrica"],
       "Edit Plugin": ["Editar Columna"],
-      "Edit Row level security filter": [
-        "Editar filtro de seguridad de nivel de fila"
-      ],
       "Edit Saved Query": ["Editar Consulta Guardada"],
       "Edit Table": ["Esitar Tabla"],
       "Edit annotation": ["Editar anotación"],
@@ -1398,6 +1401,7 @@
       "Excel to Database configuration": [
         "Configuración de Excel a base de datos"
       ],
+      "Excluded roles": [""],
       "Executed query": ["Consulta ejecutada"],
       "Execution log": ["Registro de ejecución"],
       "Expand all": ["Expandir todo"],
@@ -1446,8 +1450,10 @@
       "Failed at stopping query. %s": [""],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": [""],
       "Failed to update report": [""],
       "Failed to verify select options: %s": [
@@ -1466,7 +1472,6 @@
       "File": ["Archivo"],
       "Fill all required fields to enable \"Default Value\"": [""],
       "Filter List": ["Filtrar lista"],
-      "Filter box": ["Caja de filtro"],
       "Filter configuration": ["Configuración de filtros"],
       "Filter configuration for the filter box": [
         "Configuración de filtros en caja de filtros"
@@ -1544,9 +1549,6 @@
       "Graph layout": [""],
       "Gravity": [""],
       "Group By filter plugin": [""],
-      "Group By' and 'Columns' can't overlap": [
-        "'Group By' y 'Columns' no pueden solaparse"
-      ],
       "Group By, Metrics or Percentage Metrics must have a value": [""],
       "Group by": ["Agrupar por"],
       "Groupable": ["Agrupable"],
@@ -1626,6 +1628,13 @@
       "Inner radius of donut hole": [""],
       "Input field supports custom rotation. e.g. 30 for 30°": [""],
       "Instant filtering": ["Filtrado Instantáneo"],
+      "Intensity Radius is the radius at which the weight is distributed": [""],
+      "Intensity is the value multiplied by the weight to obtain the final weight": [
+        ""
+      ],
+      "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.": [
+        ""
+      ],
       "Invalid JSON": ["JSON inválido"],
       "Invalid certificate": ["Certificado Inválido"],
       "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
@@ -1662,6 +1671,7 @@
         "Opciones inválidas para %(rolling_type)s: %(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid rolling_type: %(type)s": ["rolling_type inválido: %(type)s"],
       "Invalid spatial point encountered: %s": [
         "Punto espacial inválido encontrado: %s"
@@ -1939,7 +1949,6 @@
       ],
       "No data in file": ["No hay datos en el archivo"],
       "No databases match your search": [""],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "No hay gráficos favoritos aun, clica en la estrella!"
       ],
@@ -2069,7 +2078,6 @@
       ],
       "Optional name of the data column.": [""],
       "Optional warning about use of this metric": [""],
-      "Optionally add a detailed description": [""],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
       "Order results by selected columns": [""],
@@ -2167,7 +2175,6 @@
         "Elige tu idioma favorito de markup"
       ],
       "Pivot Table": ["Tabla Dinámica"],
-      "Pivot Table (legacy)": [""],
       "Pivot operation must include at least one aggregate": [
         "La operación de pivote debe incluir al menos un agregado"
       ],
@@ -2190,9 +2197,6 @@
       ],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
         ""
-      ],
-      "Please choose at least one metric": [
-        "Por favor elige al menos una métrica"
       ],
       "Please choose different metrics on left and right axis": [
         "Por favor, elige diferentes métricas en el eje izquierdo y derecho"
@@ -2238,6 +2242,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         ""
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["Posición JSON"],
       "Position of child node label on tree": [""],
       "Position of column level subtotal": [""],
@@ -2253,6 +2258,7 @@
       "Preview: `%s`": ["Previsualizar: `%s`"],
       "Previous": ["Anterior"],
       "Primary or secondary y-axis": [""],
+      "Primary y-axis Bounds": [""],
       "Primary y-axis format": [""],
       "Private Key": [""],
       "Private Key & Password": [""],
@@ -2327,7 +2333,8 @@
       "Refresh interval": ["Intérvalo de actualización"],
       "Refresh table list": [""],
       "Refresh the default values": [""],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
+      "Regular": [""],
+      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
       "Relationships between community channels": [""],
@@ -2433,13 +2440,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Row level security filter": ["Filtro de seguridad de nivel de fila"],
       "Row limit": ["Límite filas"],
       "Rows": ["Filas"],
       "Rows per page, 0 means no pagination": [""],
       "Rows subtotal position": [""],
       "Rows to Read": ["Filas a Leer"],
       "Rule": ["Regla"],
+      "Rule added": [""],
       "Run": ["Ejecutar"],
       "Run in SQL Lab": ["Ejecutar en Laboratiorio SQL"],
       "Run query": ["Ejecutar consulta"],
@@ -2526,6 +2533,7 @@
       "Search all filter options": ["Buscar / Filtrar"],
       "Search by query text": ["Buscar por texto"],
       "Search...": ["Buscar..."],
+      "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
       "Secure Extra": [""],
@@ -2549,6 +2557,12 @@
       "Select first filter value by default": [""],
       "Select start and end date": ["Seleciona fecha de inicio y de fin"],
       "Select subject": [""],
+      "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
+      "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
       "Select the number of bins for the histogram": [""],
       "Select the numeric columns to draw the histogram": [""],
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
@@ -2602,9 +2616,6 @@
       "Show Log": ["Mostrar Registro"],
       "Show Markers": [""],
       "Show Metric": ["Mostrar Métrica"],
-      "Show Row level security filter": [
-        "Mostrar filtro de seguridad de nivel de fila"
-      ],
       "Show Saved Query": ["Mostrar Consulta Guardada"],
       "Show Table": ["Mostrar Tabla"],
       "Show Timestamp": [""],
@@ -2765,7 +2776,6 @@
       "Superset chart": ["Gráfico Superset"],
       "Superset dashboard": ["Dashboard Superset"],
       "Survey Responses": [""],
-      "Swap Groups and Columns": [""],
       "Swap rows and columns": [""],
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
@@ -2776,6 +2786,9 @@
       "Symbol of two ends of edge line": [""],
       "Sync columns from source": ["Sincronizar las columnas desde la fuente"],
       "Syntax": [""],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["TABLAS"],
       "THU": ["JUE"],
       "TUE": ["MAR"],
@@ -3044,6 +3057,9 @@
       "The user seems to have been deleted": [
         "El usuario parece haber sido eliminado"
       ],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username provided when connecting to a database is not valid.": [""],
       "The way the ticks are laid out on the X-axis": [""],
       "There are associated alerts or reports": [
@@ -3140,7 +3156,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         ""
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [""],
@@ -3325,7 +3341,6 @@
       "Track job": ["Seguir trabajo"],
       "Transformable": ["Transformable"],
       "Transparent": ["Transparente"],
-      "Transpose Pivot": [""],
       "Transpose pivot": ["Transponer pivot"],
       "Tree layout": [""],
       "Treemap": ["Mapa de Árbol"],
@@ -3369,6 +3384,8 @@
         ""
       ],
       "Unable to create chart without a query id.": [""],
+      "Unable to decode value": [""],
+      "Unable to encode value": [""],
       "Unable to load columns for the selected table. Please select a different table.": [
         ""
       ],
@@ -3469,9 +3486,6 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         ""
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
-        ""
-      ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         ""
       ],
@@ -3481,6 +3495,9 @@
         "El usuario debe elegir un valor para este filtro"
       ],
       "User query": ["Ver consulta"],
+      "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
+        ""
+      ],
       "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
         ""
       ],
@@ -3939,6 +3956,7 @@
       "e.g. sql/protocolv1/o/12345": [""],
       "e.g. world_population": [""],
       "e.g. xy12345.us-east-2.aws": [""],
+      "error dark": [""],
       "every": ["cada"],
       "every day of the month": ["todos los días del mes"],
       "every day of the week": ["todos los días de la semana"],
@@ -3950,7 +3968,6 @@
       ],
       "function type icon": [""],
       "geohash (square)": [""],
-      "green": [""],
       "heatmap: values are normalized across the entire heatmap": [""],
       "hour": ["hora"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
@@ -4030,7 +4047,6 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": ["año"],
-      "yellow": [""],
       "zoom area": [""]
     }
   }

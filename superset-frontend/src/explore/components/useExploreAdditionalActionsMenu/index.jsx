@@ -56,7 +56,7 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = ['pivot_table_v2'];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
