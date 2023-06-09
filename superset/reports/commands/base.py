@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from marshmallow import ValidationError
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseReportScheduleCommand(BaseCommand):
-    _properties: Dict[str, Any]
+    _properties: dict[str, Any]
 
     def run(self) -> Any:
         pass
@@ -45,7 +45,7 @@ class BaseReportScheduleCommand(BaseCommand):
         pass
 
     def validate_chart_dashboard(
-        self, exceptions: List[ValidationError], update: bool = False
+        self, exceptions: list[ValidationError], update: bool = False
     ) -> None:
         """Validate chart or dashboard relation"""
         chart_id = self._properties.get("chart")

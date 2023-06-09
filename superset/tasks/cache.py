@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
 
@@ -71,7 +71,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         pass
 
-    def get_payloads(self) -> List[Dict[str, int]]:
+    def get_payloads(self) -> list[dict[str, int]]:
         raise NotImplementedError("Subclasses must implement get_payloads!")
 
 
@@ -93,7 +93,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dummy"
 
-    def get_payloads(self) -> List[Dict[str, int]]:
+    def get_payloads(self) -> list[dict[str, int]]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
@@ -125,7 +125,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
-    def get_payloads(self) -> List[Dict[str, int]]:
+    def get_payloads(self) -> list[dict[str, int]]:
         payloads = []
         session = db.create_scoped_session()
 
@@ -164,11 +164,11 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dashboard_tags"
 
-    def __init__(self, tags: Optional[List[str]] = None) -> None:
+    def __init__(self, tags: Optional[list[str]] = None) -> None:
         super().__init__()
         self.tags = tags or []
 
-    def get_payloads(self) -> List[Dict[str, int]]:
+    def get_payloads(self) -> list[dict[str, int]]:
         payloads = []
         session = db.create_scoped_session()
 
@@ -215,7 +215,7 @@ strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="fetch_url")
-def fetch_url(data: str, headers: Dict[str, str]) -> Dict[str, str]:
+def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     Celery job to fetch url
     """
@@ -252,7 +252,7 @@ def fetch_url(data: str, headers: Dict[str, str]) -> Dict[str, str]:
 @celery_app.task(name="cache-warmup")
 def cache_warmup(
     strategy_name: str, *args: Any, **kwargs: Any
-) -> Union[Dict[str, List[str]], str]:
+) -> Union[dict[str, list[str]], str]:
     """
     Warm up cache.
 
@@ -285,7 +285,7 @@ def cache_warmup(
         "Content-Type": "application/json",
     }
 
-    results: Dict[str, List[str]] = {"scheduled": [], "errors": []}
+    results: dict[str, list[str]] = {"scheduled": [], "errors": []}
     for payload in strategy.get_payloads():
         try:
             payload = json.dumps(payload)

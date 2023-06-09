@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast
 
 from flask_babel import gettext as __
 
@@ -40,14 +40,14 @@ logger = logging.getLogger(__name__)
 
 class SqlExecutionResultsCommand(BaseCommand):
     _key: str
-    _rows: Optional[int]
+    _rows: int | None
     _blob: Any
     _query: Query
 
     def __init__(
         self,
         key: str,
-        rows: Optional[int] = None,
+        rows: int | None = None,
     ) -> None:
         self._key = key
         self._rows = rows
@@ -100,7 +100,7 @@ class SqlExecutionResultsCommand(BaseCommand):
 
     def run(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Runs arbitrary sql and returns data as json"""
         self.validate()
         payload = utils.zlib_decompress(

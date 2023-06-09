@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -56,14 +56,14 @@ class QueryDAO(BaseDAO):
             db.session.commit()
 
     @staticmethod
-    def save_metadata(query: Query, payload: Dict[str, Any]) -> None:
+    def save_metadata(query: Query, payload: dict[str, Any]) -> None:
         # pull relevant data from payload and store in extra_json
         columns = payload.get("columns", {})
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
 
     @staticmethod
-    def get_queries_changed_after(last_updated_ms: Union[float, int]) -> List[Query]:
+    def get_queries_changed_after(last_updated_ms: Union[float, int]) -> list[Query]:
         # UTC date time, same that is stored in the DB.
         last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
 

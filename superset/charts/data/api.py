@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING
 
 import simplejson
 from flask import current_app, g, make_response, request, Response
@@ -315,7 +315,7 @@ class ChartDataRestApi(ChartRestApi):
         return self._get_data_response(command, True)
 
     def _run_async(
-        self, form_data: Dict[str, Any], command: ChartDataCommand
+        self, form_data: dict[str, Any], command: ChartDataCommand
     ) -> Response:
         """
         Execute command as an async query.
@@ -344,9 +344,9 @@ class ChartDataRestApi(ChartRestApi):
 
     def _send_chart_response(
         self,
-        result: Dict[Any, Any],
-        form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[Union[BaseDatasource, Query]] = None,
+        result: dict[Any, Any],
+        form_data: dict[str, Any] | None = None,
+        datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -408,8 +408,8 @@ class ChartDataRestApi(ChartRestApi):
         self,
         command: ChartDataCommand,
         force_cached: bool = False,
-        form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[Union[BaseDatasource, Query]] = None,
+        form_data: dict[str, Any] | None = None,
+        datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -421,12 +421,12 @@ class ChartDataRestApi(ChartRestApi):
         return self._send_chart_response(result, form_data, datasource)
 
     # pylint: disable=invalid-name, no-self-use
-    def _load_query_context_form_from_cache(self, cache_key: str) -> Dict[str, Any]:
+    def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
     # pylint: disable=no-self-use
     def _create_query_context_from_form(
-        self, form_data: Dict[str, Any]
+        self, form_data: dict[str, Any]
     ) -> QueryContext:
         try:
             return ChartDataQueryContextSchema().load(form_data)

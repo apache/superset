@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Any, Callable, Dict, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
@@ -68,7 +68,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.superset_app = app
         self.config = app.config
-        self.manifest: Dict[Any, Any] = {}
+        self.manifest: dict[Any, Any] = {}
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
@@ -597,7 +597,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     self.app = app
 
                 def __call__(
-                    self, environ: Dict[str, Any], start_response: Callable[..., Any]
+                    self, environ: dict[str, Any], start_response: Callable[..., Any]
                 ) -> Any:
                     # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
                     # content-length and read the stream till the end.

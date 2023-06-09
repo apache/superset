@@ -21,8 +21,6 @@ from . import (
     base,
     core,
     css_templates,
-    dashboard,
-    datasource,
     dynamic_plugins,
     health,
     redirects,

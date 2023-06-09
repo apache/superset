@@ -17,7 +17,7 @@
 # pylint: disable=arguments-renamed
 import logging
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -39,7 +39,7 @@ class ChartDAO(BaseDAO):
     base_filter = ChartFilter
 
     @staticmethod
-    def bulk_delete(models: Optional[List[Slice]], commit: bool = True) -> None:
+    def bulk_delete(models: Optional[list[Slice]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
         if models:
@@ -71,7 +71,7 @@ class ChartDAO(BaseDAO):
             db.session.commit()
 
     @staticmethod
-    def favorited_ids(charts: List[Slice]) -> List[FavStar]:
+    def favorited_ids(charts: list[Slice]) -> list[FavStar]:
         ids = [chart.id for chart in charts]
         return [
             star.obj_id

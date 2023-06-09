@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from superset.dao.base import BaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -31,7 +31,7 @@ class SSHTunnelDAO(BaseDAO):
     def update(
         cls,
         model: SSHTunnel,
-        properties: Dict[str, Any],
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> SSHTunnel:
         """

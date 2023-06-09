@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
@@ -47,7 +47,7 @@ stats_logger = current_app.config["STATS_LOGGER"]
 
 
 class CreateDatabaseCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -128,7 +128,7 @@ class CreateDatabaseCommand(BaseCommand):
         return database
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         database_name: Optional[str] = self._properties.get("database_name")
         if not sqlalchemy_uri:

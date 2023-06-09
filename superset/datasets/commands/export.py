@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Iterator, Tuple
+from collections.abc import Iterator
 
 import yaml
 
@@ -43,7 +43,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: SqlaTable, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
+    ) -> Iterator[tuple[str, str]]:
         db_file_name = get_filename(
             model.database.database_name, model.database.id, skip_id=True
         )

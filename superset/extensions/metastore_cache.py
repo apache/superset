@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from uuid import UUID, uuid3
 
 from flask import Flask
@@ -37,7 +37,7 @@ class SupersetMetastoreCache(BaseCache):
 
     @classmethod
     def factory(
-        cls, app: Flask, config: Dict[str, Any], args: List[Any], kwargs: Dict[str, Any]
+        cls, app: Flask, config: dict[str, Any], args: list[Any], kwargs: dict[str, Any]
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
         kwargs["namespace"] = get_uuid_namespace(seed)

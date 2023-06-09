@@ -65,7 +65,6 @@ import { NotificationMethod } from './components/NotificationMethod';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table',
   'pivot_table_v2',
   'table',
   'paired_ttest',

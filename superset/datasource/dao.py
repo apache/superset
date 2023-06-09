@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-from typing import Dict, Type, Union
+from typing import Union
 
 from sqlalchemy.orm import Session
 
@@ -34,7 +34,7 @@ Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO):
-    sources: Dict[Union[DatasourceType, str], Type[Datasource]] = {
+    sources: dict[Union[DatasourceType, str], type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
-    def __init__(self, database_id: int, data: Dict[str, Any]):
+    def __init__(self, database_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id
 
@@ -61,7 +61,7 @@ class CreateSSHTunnelCommand(BaseCommand):
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost
         # using the config.SSH_TUNNEL_MANAGER
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         database_id: Optional[int] = self._properties.get("database_id")
         server_address: Optional[str] = self._properties.get("server_address")
         server_port: Optional[int] = self._properties.get("server_port")

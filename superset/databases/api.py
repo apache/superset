@@ -19,7 +19,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -1328,13 +1328,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
+        preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:
                 continue
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),

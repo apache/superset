@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 
 import pyarrow as pa
 
@@ -22,8 +22,8 @@ from superset.common.db_query_status import QueryStatus
 
 
 def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name
-    sql_results: Dict[str, Any], max_rows_in_result: int
-) -> Dict[str, Any]:
+    sql_results: dict[str, Any], max_rows_in_result: int
+) -> dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
 

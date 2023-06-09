@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateAnnotationLayerCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[AnnotationLayer] = None
@@ -50,7 +50,7 @@ class UpdateAnnotationLayerCommand(BaseCommand):
         return annotation_layer
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         name = self._properties.get("name", "")
         self._model = AnnotationLayerDAO.find_by_id(self._model_id)
 

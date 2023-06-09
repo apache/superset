@@ -23,7 +23,6 @@ import html
 import io
 import json
 import logging
-from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
@@ -37,7 +36,6 @@ from sqlalchemy import Table
 import pytest
 import pytz
 import random
-import re
 import unittest
 from unittest import mock
 
@@ -496,7 +494,7 @@ class TestCore(SupersetTestCase):
         assert response.headers["Content-Type"] == "application/json"
         response_body = json.loads(response.data.decode("utf-8"))
         expected_body = {"error": "Could not load database driver: broken"}
-        assert response_body == expected_body, "%s != %s" % (
+        assert response_body == expected_body, "{} != {}".format(
             response_body,
             expected_body,
         )
@@ -515,7 +513,7 @@ class TestCore(SupersetTestCase):
         assert response.headers["Content-Type"] == "application/json"
         response_body = json.loads(response.data.decode("utf-8"))
         expected_body = {"error": "Could not load database driver: mssql+pymssql"}
-        assert response_body == expected_body, "%s != %s" % (
+        assert response_body == expected_body, "{} != {}".format(
             response_body,
             expected_body,
         )
@@ -563,7 +561,7 @@ class TestCore(SupersetTestCase):
         self.login(username=username)
         database = superset.utils.database.get_example_database()
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
-        url = "databaseview/edit/{}".format(database.id)
+        url = f"databaseview/edit/{database.id}"
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
@@ -582,7 +580,7 @@ class TestCore(SupersetTestCase):
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
-        data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
+        data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
         )
@@ -609,7 +607,7 @@ class TestCore(SupersetTestCase):
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
-        self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(girls_slice.id))
+        self.get_json_resp(f"/superset/warm_up_cache?slice_id={girls_slice.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
@@ -650,7 +648,7 @@ class TestCore(SupersetTestCase):
         kv_value = kv.value
         self.assertEqual(json.loads(value), json.loads(kv_value))
 
-        resp = self.client.get("/kv/{}/".format(kv.id))
+        resp = self.client.get(f"/kv/{kv.id}/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(json.loads(value), json.loads(resp.data.decode("utf-8")))
 
@@ -662,7 +660,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_endpoint(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         get_name_sql = """
                     SELECT name
                     FROM birth_names
@@ -676,17 +674,17 @@ class TestCore(SupersetTestCase):
             WHERE name = '{name}'
             LIMIT 1
         """
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
-        resp = self.get_resp("/superset/csv/{}".format(client_id))
+        resp = self.get_resp(f"/superset/csv/{client_id}")
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
-        resp = self.get_resp("/superset/csv/{}".format(client_id))
+        resp = self.get_resp(f"/superset/csv/{client_id}")
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
@@ -704,7 +702,7 @@ class TestCore(SupersetTestCase):
 
     def test_required_params_in_sql_json(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"client_id": client_id}
         rv = self.client.post(
@@ -876,12 +874,12 @@ class TestCore(SupersetTestCase):
         self.get_resp(slc.slice_url)
         self.assertEqual(1, qry.count())
 
-    def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
+    def create_sample_csvfile(self, filename: str, content: list[str]) -> None:
         with open(filename, "w+") as test_file:
             for l in content:
                 test_file.write(f"{l}\n")
 
-    def create_sample_excelfile(self, filename: str, content: Dict[str, str]) -> None:
+    def create_sample_excelfile(self, filename: str, content: dict[str, str]) -> None:
         pd.DataFrame(content).to_excel(filename)
 
     def enable_csv_upload(self, database: models.Database) -> None:

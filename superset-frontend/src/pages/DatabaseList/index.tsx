@@ -53,6 +53,9 @@ const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
   'database.delete.related',
 );
+const dbConfigExtraExtension = extensionsRegistry.get(
+  'databaseconnection.extraOption',
+);
 
 const PAGE_SIZE = 25;
 
@@ -160,13 +163,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
       );
 
-  function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
+  function handleDatabaseDelete(database: DatabaseObject) {
+    const { id, database_name: dbName } = database;
     SupersetClient.delete({
       endpoint: `/api/v1/database/${id}`,
     }).then(
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Remove any extension-related data
+        if (dbConfigExtraExtension?.onDelete) {
+          dbConfigExtraExtension.onDelete(database);
+        }
 
         // Delete user-selected db from local storage
         setItem(LocalStorageKeys.db, null);

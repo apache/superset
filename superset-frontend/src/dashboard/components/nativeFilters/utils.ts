@@ -154,7 +154,12 @@ const findTabsWithChartsInScopeHelper = (
   componentId: string,
   tabIds: string[],
   tabsToHighlight: Set<string>,
+  visited: Set<string>,
 ) => {
+  if (visited.has(componentId)) {
+    return;
+  }
+  visited.add(componentId);
   if (
     dashboardLayout?.[componentId]?.type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
@@ -175,6 +180,7 @@ const findTabsWithChartsInScopeHelper = (
       childId,
       isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
       tabsToHighlight,
+      visited,
     ),
   );
 };
@@ -187,6 +193,7 @@ export const findTabsWithChartsInScope = (
   const rootChildId = dashboardRoot.children[0];
   const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
   const tabsInScope = new Set<string>();
+  const visited = new Set<string>();
   if (hasTopLevelTabs) {
     dashboardLayout[rootChildId]?.children?.forEach(tabId =>
       findTabsWithChartsInScopeHelper(
@@ -195,6 +202,7 @@ export const findTabsWithChartsInScope = (
         tabId,
         [tabId],
         tabsInScope,
+        visited,
       ),
     );
   } else {
@@ -207,6 +215,7 @@ export const findTabsWithChartsInScope = (
           element.id,
           [element.id],
           tabsInScope,
+          visited,
         ),
       );
   }

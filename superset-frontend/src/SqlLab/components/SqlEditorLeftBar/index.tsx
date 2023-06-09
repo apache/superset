@@ -29,7 +29,6 @@ import querystring from 'query-string';
 
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
@@ -142,7 +141,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(

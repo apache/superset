@@ -67,11 +67,6 @@ ROLE_ALL_PERM_DATA = {
             "name": "examples",
             "schema": [{"name": "", "datasources": ["birth_names"]}],
         },
-        {
-            "datasource_type": "druid",
-            "name": "druid_test",
-            "schema": [{"name": "", "datasources": ["druid_ds_1", "druid_ds_2"]}],
-        },
     ],
 }
 
@@ -516,7 +511,7 @@ class TestRequestAccess(SupersetTestCase):
             )
             self.assertEqual(
                 access_request3.roles_with_datasource,
-                "<ul><li>{}</li></ul>".format(approve_link_3),
+                f"<ul><li>{approve_link_3}</li></ul>",
             )
 
             # cleanup

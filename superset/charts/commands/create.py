@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateChartCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -56,7 +56,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         datasource_type = self._properties["datasource_type"]
         datasource_id = self._properties["datasource_id"]
         dashboard_ids = self._properties.get("dashboards", [])
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate datasource
         try:

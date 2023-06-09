@@ -34,7 +34,7 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
-export { Dashboard } from 'src/types/Dashboard';
+export type { Dashboard } from 'src/types/Dashboard';
 
 export type ChartReducerInitialState = typeof chart;
 

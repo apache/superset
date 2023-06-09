@@ -359,7 +359,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
 
         data = self.get_json_resp(
-            "/superset/queries/{}".format(float(datetime_to_epoch(now)) - 1000)
+            f"/superset/queries/{float(datetime_to_epoch(now)) - 1000}"
         )
         self.assertEqual(1, len(data))
 
@@ -391,13 +391,13 @@ class TestSqlLab(SupersetTestCase):
 
         # Test search queries on user Id
         user_id = security_manager.find_user("admin").id
-        data = self.get_json_resp("/superset/search_queries?user_id={}".format(user_id))
+        data = self.get_json_resp(f"/superset/search_queries?user_id={user_id}")
         self.assertEqual(2, len(data))
         user_ids = {k["userId"] for k in data}
-        self.assertEqual(set([user_id]), user_ids)
+        self.assertEqual({user_id}, user_ids)
 
         user_id = security_manager.find_user("gamma_sqllab").id
-        resp = self.get_resp("/superset/search_queries?user_id={}".format(user_id))
+        resp = self.get_resp(f"/superset/search_queries?user_id={user_id}")
         data = json.loads(resp)
         self.assertEqual(1, len(data))
         self.assertEqual(data[0]["userId"], user_id)
@@ -451,7 +451,7 @@ class TestSqlLab(SupersetTestCase):
 
         self.assertEqual(1, len(data))
         user_ids = {k["userId"] for k in data}
-        self.assertEqual(set([user_id]), user_ids)
+        self.assertEqual({user_id}, user_ids)
 
     def test_alias_duplicate(self):
         self.run_sql(
@@ -593,7 +593,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(len(data["data"]), test_limit)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            f"SELECT * FROM birth_names LIMIT {test_limit}",
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
@@ -601,7 +601,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.QUERY)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
+            f"SELECT * FROM birth_names LIMIT {test_limit + 1}",
             client_id="sql_limit_4",
             query_limit=test_limit,
         )
@@ -609,7 +609,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.DROPDOWN)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            f"SELECT * FROM birth_names LIMIT {test_limit}",
             client_id="sql_limit_5",
             query_limit=test_limit,
         )

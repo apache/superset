@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from collections import Counter
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
@@ -52,7 +52,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def __init__(
         self,
         model_id: int,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         override_columns: Optional[bool] = False,
     ):
         self._model_id = model_id
@@ -76,8 +76,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
@@ -125,14 +125,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             raise DatasetInvalidError(exceptions=exceptions)
 
     def _validate_columns(
-        self, columns: List[Dict[str, Any]], exceptions: List[ValidationError]
+        self, columns: list[dict[str, Any]], exceptions: list[ValidationError]
     ) -> None:
         # Validate duplicates on data
         if self._get_duplicates(columns, "column_name"):
             exceptions.append(DatasetColumnsDuplicateValidationError())
         else:
             # validate invalid id's
-            columns_ids: List[int] = [
+            columns_ids: list[int] = [
                 column["id"] for column in columns if "id" in column
             ]
             if not DatasetDAO.validate_columns_exist(self._model_id, columns_ids):
@@ -140,7 +140,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
             # validate new column names uniqueness
             if not self.override_columns:
-                columns_names: List[str] = [
+                columns_names: list[str] = [
                     column["column_name"] for column in columns if "id" not in column
                 ]
                 if not DatasetDAO.validate_columns_uniqueness(
@@ -149,26 +149,26 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     exceptions.append(DatasetColumnsExistsValidationError())
 
     def _validate_metrics(
-        self, metrics: List[Dict[str, Any]], exceptions: List[ValidationError]
+        self, metrics: list[dict[str, Any]], exceptions: list[ValidationError]
     ) -> None:
         if self._get_duplicates(metrics, "metric_name"):
             exceptions.append(DatasetMetricsDuplicateValidationError())
         else:
             # validate invalid id's
-            metrics_ids: List[int] = [
+            metrics_ids: list[int] = [
                 metric["id"] for metric in metrics if "id" in metric
             ]
             if not DatasetDAO.validate_metrics_exist(self._model_id, metrics_ids):
                 exceptions.append(DatasetMetricsNotFoundValidationError())
             # validate new metric names uniqueness
-            metric_names: List[str] = [
+            metric_names: list[str] = [
                 metric["metric_name"] for metric in metrics if "id" not in metric
             ]
             if not DatasetDAO.validate_metrics_uniqueness(self._model_id, metric_names):
                 exceptions.append(DatasetMetricsExistsValidationError())
 
     @staticmethod
-    def _get_duplicates(data: List[Dict[str, Any]], key: str) -> List[str]:
+    def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:
         duplicates = [
             name
             for name, count in Counter([item[key] for item in data]).items()

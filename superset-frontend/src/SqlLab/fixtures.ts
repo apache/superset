@@ -185,7 +185,6 @@ export const defaultQueryEditor = {
   name: 'Untitled Query 1',
   schema: 'main',
   remoteId: null,
-  functionNames: [],
   hideLeftBar: false,
   templateParams: '{}',
 };

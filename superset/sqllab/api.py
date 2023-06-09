@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Optional
 from urllib import parse
 
 import simplejson as json
@@ -326,7 +326,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     @staticmethod
     def _create_sql_json_command(
-        execution_context: SqlJsonExecutionContext, log_params: Optional[Dict[str, Any]]
+        execution_context: SqlJsonExecutionContext, log_params: Optional[dict[str, Any]]
     ) -> ExecuteSqlCommand:
         query_dao = QueryDAO()
         sql_json_executor = SqlLabRestApi._create_sql_json_executor(

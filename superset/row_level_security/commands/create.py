@@ -17,7 +17,7 @@
 
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateRLSRuleCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
         self._roles = self._properties.get("roles", [])

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
@@ -47,7 +47,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     dao = DashboardDAO
     model_name = "dashboard"
     prefix = "dashboards/"
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -59,11 +59,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: dict[str, Any], overwrite: bool = False
     ) -> None:
         # discover charts and datasets associated with dashboards
-        chart_uuids: Set[str] = set()
-        dataset_uuids: Set[str] = set()
+        chart_uuids: set[str] = set()
+        dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
@@ -77,20 +77,20 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
-        database_uuids: Set[str] = set()
+        database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
                 database = import_database(session, config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
-        dataset_info: Dict[str, Dict[str, Any]] = {}
+        dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("datasets/")
@@ -105,7 +105,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 }
 
         # import charts with the correct parent ref
-        chart_ids: Dict[str, int] = {}
+        chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("charts/")
@@ -129,7 +129,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         ).fetchall()
 
         # import dashboards
-        dashboard_chart_ids: List[Tuple[int, int]] = []
+        dashboard_chart_ids: list[tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)

@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
@@ -57,8 +57,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         return report_schedule
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         report_type = self._properties.get("type", ReportScheduleType.ALERT)
 
         name = self._properties.get("name", "")

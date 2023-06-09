@@ -16,7 +16,6 @@
 # under the License.
 
 import logging
-from typing import List
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
@@ -31,9 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class BulkDeleteRLSRuleCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: List[ReportSchedule] = []
+        self._models: list[ReportSchedule] = []
 
     def run(self) -> None:
         self.validate()

@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import sys
 import unittest.mock as mock
 
 import pytest
@@ -95,7 +94,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         """
 
         # Mock a google.cloud.bigquery.table.Row
-        class Row(object):
+        class Row:
             def __init__(self, value):
                 self._value = value
 

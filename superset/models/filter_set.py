@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask import current_app
 from flask_appbuilder import Model
@@ -75,7 +75,7 @@ class FilterSet(Model, AuditMixinNullable):
             return ""
         return f"/superset/profile/{self.changed_by.username}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -105,7 +105,7 @@ class FilterSet(Model, AuditMixinNullable):
         return qry.all()
 
     @property
-    def params(self) -> Dict[str, Any]:
+    def params(self) -> dict[str, Any]:
         if self.json_metadata:
             return json.loads(self.json_metadata)
         return {}

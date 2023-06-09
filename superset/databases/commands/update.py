@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDatabaseCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[Database] = None
@@ -78,7 +78,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 raise DatabaseConnectionFailedError() from ex
 
             # Update database schema permissions
-            new_schemas: List[str] = []
+            new_schemas: list[str] = []
 
             for schema in schemas:
                 old_view_menu_name = security_manager.get_schema_perm(
@@ -164,7 +164,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 chart.schema_perm = new_view_menu_name
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         # Validate/populate model exists
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:

@@ -17,7 +17,7 @@
 import logging
 import sqlite3
 from contextlib import closing
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import current_app as app
 from flask_babel import gettext as _
@@ -64,7 +64,7 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
