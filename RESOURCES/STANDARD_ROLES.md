@@ -197,30 +197,6 @@
 |can add on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
 |can delete on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
 |muldelete on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|can edit on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can list on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can show on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can delete on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|muldelete on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|yaml export on DruidDatasourceModelView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can edit on DruidClusterModelView|:heavy_check_mark:|O|O|O|
-|can list on DruidClusterModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can show on DruidClusterModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add on DruidClusterModelView|:heavy_check_mark:|O|O|O|
-|can delete on DruidClusterModelView|:heavy_check_mark:|O|O|O|
-|muldelete on DruidClusterModelView|:heavy_check_mark:|O|O|O|
-|yaml export on DruidClusterModelView|:heavy_check_mark:|O|O|O|
-|can list on DruidMetricInlineView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add on DruidMetricInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can delete on DruidMetricInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can edit on DruidMetricInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can list on DruidColumnInlineView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add on DruidColumnInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can delete on DruidColumnInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can edit on DruidColumnInlineView|:heavy_check_mark:|:heavy_check_mark:|O|O|
-|can refresh datasources on Druid|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can scan new datasources on Druid|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Row Level Security|:heavy_check_mark:|O|O|O|
 |menu access on Access requests|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Home|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -229,10 +205,7 @@
 |menu access on Chart Emails|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Alerts|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Alerts & Report|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|menu access on Druid Datasources|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|menu access on Druid Clusters|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Scan New Datasources|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|menu access on Refresh Druid Metadata|:heavy_check_mark:|O|O|O|
 |can share dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can share chart on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can list on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
