@@ -244,7 +244,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = True if str(os.environ.get("FLASK_DEBUG")).lower() in ("true", "1") else False
+DEBUG = str(os.environ.get("FLASK_DEBUG")).lower() in ("true", "1")
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
