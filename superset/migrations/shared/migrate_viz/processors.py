@@ -80,13 +80,15 @@ class MigratePivotTable(MigrateViz):
     def _pre_action(self) -> None:
         if pivot_margins := self.data.get("pivot_margins"):
             self.data["colTotals"] = pivot_margins
-            self.data["rowTotals"] = pivot_margins
 
         if pandas_aggfunc := self.data.get("pandas_aggfunc"):
             self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
 
+        self.data["rowOrder"] = "value_z_to_a"
+
 
 class MigrateDualLine(MigrateViz):
+    has_x_axis_control = True
     source_viz_type = "dual_line"
     target_viz_type = "mixed_timeseries"
     rename_keys = {
