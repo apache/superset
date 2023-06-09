@@ -20,7 +20,6 @@ import json
 import logging
 from typing import Any
 
-from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship

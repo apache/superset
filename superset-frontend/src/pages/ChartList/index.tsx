@@ -68,7 +68,6 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import { loadTags } from 'src/components/Tags/utils';
 import ChartCard from 'src/features/charts/ChartCard';
@@ -155,8 +154,6 @@ interface ChartListProps {
 const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
-
-const bootstrapData = getBootstrapData();
 
 function ChartList(props: ChartListProps) {
   const {

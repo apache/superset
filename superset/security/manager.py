@@ -59,7 +59,6 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -2005,6 +2004,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
+        from superset.extensions import feature_flag_manager
+
         if not get_user_id() or (
             not feature_flag_manager.is_feature_enabled("ENABLE_BROAD_ACTIVITY_ACCESS")
             and user_id != get_user_id()

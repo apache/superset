@@ -24,7 +24,6 @@ from functools import partial
 from typing import Any, Callable
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User

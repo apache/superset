@@ -54,7 +54,6 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 
@@ -100,8 +99,6 @@ interface Dashboard {
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
-
-const bootstrapData = getBootstrapData();
 
 function DashboardList(props: DashboardListProps) {
   const {

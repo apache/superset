@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from flask import current_app, escape, Markup
+from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
