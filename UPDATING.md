@@ -33,6 +33,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [24330](https://github.com/apache/superset/pull/24330) Removes `getUiOverrideRegistry` from `ExtensionsRegistry`.
 - [23933](https://github.com/apache/superset/pull/23933) Removes the deprecated Multiple Line Charts.
 - [23741](https://github.com/apache/superset/pull/23741) Migrates the TreeMap chart and removes the legacy Treemap code.
 - [23712](https://github.com/apache/superset/pull/23712) Migrates the Pivot Table v1 chart to v2 and removes v1 code.
