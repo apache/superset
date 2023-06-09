@@ -2004,6 +2004,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
         if not get_user_id() or (
