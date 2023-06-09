@@ -57,7 +57,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
-        logger.info("DB ENGINE==", db_engine_spec)
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
         # sql_query_mutator = config["SQL_QUERY_MUTATOR"]
@@ -84,8 +83,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
         try:
             db_engine_spec.execute(cursor, sql)
-            logger.info("CURSOR", str(cursor))
-            logger.info("ENGINE INSIDE", str(db_engine_spec))
             db_engine_spec.fetch_data(cursor, MAX_ERROR_ROWS)
             return None
         except DatabaseError as db_error:
@@ -144,7 +141,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 end_column=end_column,
             )
         except TrinoUserError as db_error:
-            logger.info("database error==", str(db_error))
             if db_error.args and isinstance(db_error.args[0], str):
                 raise TrinoSQLValidationError(db_error.args[0]) from db_error
             if not db_error.args or not isinstance(db_error.args[0], dict):
@@ -161,43 +157,17 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 return SQLValidationAnnotation(
                     message=message, line_number=1, start_column=1, end_column=1
                 )
-            # pylint: disable=invalid-sequence-index
-            message = error_args["message"]
-            err_loc = error_args["errorLocation"]
-            line_number = err_loc.get("lineNumber", None)
-            start_column = err_loc.get("columnNumber", None)
-            end_column = err_loc.get("columnNumber", None)
-
-            return SQLValidationAnnotation(
-                message=message,
-                line_number=line_number,
-                start_column=start_column,
-                end_column=end_column,
-            )
+            return cls.construct_annotations(error_args)
         except DbError or Error as db_error :
-            logger.info("database error==", str(db_error))
-            logger.info("database error args==", str(db_error.args[1]))
             if db_error.args and isinstance(db_error.args[0], str):
                 raise MySqlSQLValidationError(db_error.args[0]) from db_error
             error_args: Dict[str, Any] = { "message": db_error.args[1]}
             if "errorLocation" not in error_args:
-                message = error_args["message"] + "\n(Error location unknown)"
+                message = error_args["message"]
                 return SQLValidationAnnotation(
                     message=message, line_number=1, start_column=1, end_column=1
                 )
-            # pylint: disable=invalid-sequence-index
-            message = error_args["message"]
-            err_loc = error_args["errorLocation"]
-            line_number = err_loc.get("lineNumber", None)
-            start_column = err_loc.get("columnNumber", None)
-            end_column = err_loc.get("columnNumber", None)
-
-            return SQLValidationAnnotation(
-                message=message,
-                line_number=line_number,
-                start_column=start_column,
-                end_column=end_column,
-            )
+            return cls.construct_annotations(error_args)
         except Exception as ex:
             logger.exception("Unexpected error running validation query: %s", str(ex))
             raise ex
@@ -224,10 +194,24 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             for statement in parsed_query.get_statements():
-                logger.info("CURSOR IN PRESTO==",cursor)
                 annotation = cls.validate_statement(statement, database, cursor)
                 if annotation:
                     annotations.append(annotation)
         logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations
+
+    def construct_annotations(error_args: Any) -> SQLValidationAnnotation:
+            # pylint: disable=invalid-sequence-index
+            message = error_args["message"]
+            err_loc = error_args["errorLocation"]
+            line_number = err_loc.get("lineNumber", None)
+            start_column = err_loc.get("columnNumber", None)
+            end_column = err_loc.get("columnNumber", None)
+
+            return SQLValidationAnnotation(
+                message=message,
+                line_number=line_number,
+                start_column=start_column,
+                end_column=end_column,
+            )
