@@ -39,15 +39,6 @@ describe('buildQueryObject', () => {
     expect(query.granularity).toEqual('ds');
   });
 
-  it('should build granularity for druid datasources', () => {
-    query = buildQueryObject({
-      datasource: '5__druid',
-      granularity: 'ds',
-      viz_type: 'table',
-    });
-    expect(query.granularity).toEqual('ds');
-  });
-
   it('should build metrics based on default queryFields', () => {
     query = buildQueryObject({
       datasource: '5__table',

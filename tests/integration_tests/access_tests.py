@@ -67,11 +67,6 @@ ROLE_ALL_PERM_DATA = {
             "name": "examples",
             "schema": [{"name": "", "datasources": ["birth_names"]}],
         },
-        {
-            "datasource_type": "druid",
-            "name": "druid_test",
-            "schema": [{"name": "", "datasources": ["druid_ds_1", "druid_ds_2"]}],
-        },
     ],
 }
 

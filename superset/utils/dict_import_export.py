@@ -40,7 +40,7 @@ def export_schema_to_dict(back_references: bool) -> dict[str, Any]:
 def export_to_dict(
     session: Session, recursive: bool, back_references: bool, include_defaults: bool
 ) -> dict[str, Any]:
-    """Exports databases and druid clusters to a dictionary"""
+    """Exports databases to a dictionary"""
     logger.info("Starting export")
     dbs = session.query(Database)
     databases = [
