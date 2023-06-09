@@ -1354,6 +1354,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   initialValue={resource?.sql}
                   key={currentAlert?.id}
                 />
+                <div className="helper">Only select statements are allowed</div>
               </StyledInputContainer>
               <div className="inline-container wrap">
                 <StyledInputContainer>

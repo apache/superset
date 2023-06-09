@@ -82,6 +82,7 @@ PRESTO_SQL_VALIDATORS_BY_ENGINE = {
     "sqlite": "PrestoDBSQLValidator",
     "postgresql": "PrestoDBSQLValidator",
     "mysql": "PrestoDBSQLValidator",
+    "trino" : "PrestoDBSQLValidator"
 }
 
 
