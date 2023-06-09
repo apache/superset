@@ -130,12 +130,7 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import (
-    apply_max_row_limit,
-    DatasourceType,
-    get_user_id,
-    ReservedUrlParameters,
-)
+from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
