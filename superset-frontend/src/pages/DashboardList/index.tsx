@@ -143,8 +143,9 @@ function DashboardList(props: DashboardListProps) {
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const enableBroadUserAccess =
-    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
+  const enableBroadUserAccess = isFeatureEnabled(
+    FeatureFlag.ENABLE_BROAD_ACTIVITY_ACCESS,
+  );
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
     string[]
   >([]);

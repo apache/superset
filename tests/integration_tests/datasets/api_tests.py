@@ -43,7 +43,7 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -1358,6 +1358,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
     def test_dataset_activity_access_enabled(self):
         """
         Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
@@ -1365,8 +1366,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         table_data = {"description": "changed_description"}
@@ -1381,10 +1380,10 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(current_dataset["description"], "changed_description")
         self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(dataset)
         db.session.commit()
 
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
     def test_dataset_activity_access_disabled(self):
         """
         Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = Fase
@@ -1392,8 +1391,6 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         table_data = {"description": "changed_description"}
@@ -1408,7 +1405,6 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(current_dataset["description"], "changed_description")
         self.assertEqual(current_dataset["changed_by_url"], "")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(dataset)
         db.session.commit()
 

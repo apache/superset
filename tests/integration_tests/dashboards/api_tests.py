@@ -39,6 +39,7 @@ from superset.models.slice import Slice
 from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -1405,12 +1406,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
     def test_dashboard_activity_access_disabled(self):
         """
         Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
         """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         admin = self.get_user("admin")
         admin_role = self.get_role("Admin")
         dashboard_id = self.insert_dashboard(
@@ -1426,16 +1426,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.dashboard_title, "title2")
         self.assertEqual(model.changed_by_url, "")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
     def test_dashboard_activity_access_enabled(self):
         """
         Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
         """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
         admin = self.get_user("admin")
         admin_role = self.get_role("Admin")
         dashboard_id = self.insert_dashboard(
@@ -1451,7 +1449,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.dashboard_title, "title2")
         self.assertEqual(model.changed_by_url, "/superset/profile/admin")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 
