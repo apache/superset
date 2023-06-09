@@ -34,7 +34,6 @@ from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
-    DTTM_ALIAS,
     extract_dataframe_dtypes,
     get_column_names,
     get_metric_names,
@@ -230,8 +229,6 @@ def pivot_table_v2(
     Pivot table v2.
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
-    if form_data.get("granularity_sqla") == "all" and DTTM_ALIAS in df:
-        del df[DTTM_ALIAS]
 
     return pivot_df(
         df,
