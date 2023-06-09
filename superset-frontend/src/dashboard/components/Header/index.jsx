@@ -26,7 +26,7 @@ import {
   FeatureFlag,
   t,
   getSharedLabelColor,
-  getUiOverrideRegistry,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { isFeatureEnabled } from 'src/featureFlags';
@@ -58,7 +58,7 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
 import OverwriteConfirm from '../OverwriteConfirm';
 
-const uiOverrideRegistry = getUiOverrideRegistry();
+const extensionsRegistry = getExtensionsRegistry();
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -495,7 +495,7 @@ class Header extends React.PureComponent {
       dashboardTitleChanged(updates.title);
     };
 
-    const NavExtension = uiOverrideRegistry.get('dashboard.nav.right');
+    const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
     return (
       <div
