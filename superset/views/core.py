@@ -212,22 +212,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access_api
     @event_logger.log_this
-    @expose("/datasources/")
-    @deprecated(new_target="api/v1/dataset/")
-    def datasources(self) -> FlaskResponse:
-        return self.json_response(
-            sorted(
-                [
-                    datasource.short_data
-                    for datasource in security_manager.get_user_datasources()
-                    if datasource.short_data.get("name")
-                ],
-                key=lambda datasource: datasource["name"],
-            )
-        )
-
-    @has_access_api
-    @event_logger.log_this
     @expose("/override_role_permissions/", methods=("POST",))
     @deprecated()
     def override_role_permissions(self) -> FlaskResponse:
