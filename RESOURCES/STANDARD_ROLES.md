@@ -191,12 +191,6 @@
 |can show on AlertLogModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can list on AlertObservationModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can show on AlertObservationModelView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can edit on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|can list on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|can show on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|can add on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|can delete on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
-|muldelete on AccessRequestsModelView|:heavy_check_mark:|O|O|O|
 |menu access on Row Level Security|:heavy_check_mark:|O|O|O|
 |menu access on Access requests|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Home|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

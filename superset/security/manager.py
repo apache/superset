@@ -164,7 +164,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
-        "AccessRequestsModelView",
         "Action Log",
         "Log",
         "List Users",
@@ -195,8 +194,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_override_role_permissions",
-        "can_approve",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
@@ -767,7 +764,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Admin", self._is_admin_pvm)
         self.set_role("Alpha", self._is_alpha_pvm)
         self.set_role("Gamma", self._is_gamma_pvm)
-        self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
         # Configure public role
@@ -980,19 +976,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
-
-    def _is_granter_pvm(  # pylint: disable=no-self-use
-        self, pvm: PermissionView
-    ) -> bool:
-        """
-        Return True if the user can grant the FAB permission/view, False
-        otherwise.
-
-        :param pvm: The FAB permission/view
-        :returns: Whether the user can grant the FAB permission/view
-        """
-
-        return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
     def database_after_insert(
         self,

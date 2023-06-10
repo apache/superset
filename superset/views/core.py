@@ -39,7 +39,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
-from sqlalchemy.orm.session import Session
 
 from superset import (
     app,
@@ -99,7 +98,6 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
@@ -175,7 +173,6 @@ from superset.viz import BaseViz
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
-DAR = DatasourceAccessRequest
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
@@ -225,207 +222,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 key=lambda datasource: datasource["name"],
             )
         )
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/override_role_permissions/", methods=("POST",))
-    @deprecated()
-    def override_role_permissions(self) -> FlaskResponse:
-        """Updates the role with the give datasource permissions.
-
-          Permissions not in the request will be revoked. This endpoint should
-          be available to admins only. Expects JSON in the format:
-           {
-            'role_name': '{role_name}',
-            'database': [{
-                'datasource_type': '{table}',
-                'name': '{database_name}',
-                'schema': [{
-                    'name': '{schema_name}',
-                    'datasources': ['{datasource name}, {datasource name}']
-                }]
-            }]
-        }
-        """
-        data = request.get_json(force=True)
-        role_name = data["role_name"]
-        databases = data["database"]
-
-        db_ds_names = set()
-        for dbs in databases:
-            for schema in dbs["schema"]:
-                for ds_name in schema["datasources"]:
-                    fullname = utils.get_datasource_full_name(
-                        dbs["name"], ds_name, schema=schema["name"]
-                    )
-                    db_ds_names.add(fullname)
-
-        existing_datasources = SqlaTable.get_all_datasources(db.session)
-        datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
-        role = security_manager.find_role(role_name)
-        # remove all permissions
-        role.permissions = []
-        # grant permissions to the list of datasources
-        granted_perms = []
-        for datasource in datasources:
-            view_menu_perm = security_manager.find_permission_view_menu(
-                view_menu_name=datasource.perm, permission_name="datasource_access"
-            )
-            # prevent creating empty permissions
-            if view_menu_perm and view_menu_perm.view_menu:
-                role.permissions.append(view_menu_perm)
-                granted_perms.append(view_menu_perm.view_menu.name)
-        db.session.commit()
-        return self.json_response(
-            {"granted": granted_perms, "requested": list(db_ds_names)}, status=201
-        )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/request_access/", methods=("POST",))
-    @deprecated()
-    def request_access(self) -> FlaskResponse:
-        datasources = set()
-        dashboard_id = request.args.get("dashboard_id")
-        if dashboard_id:
-            dash = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).one()
-            datasources |= dash.datasources
-        datasource_id = request.args.get("datasource_id")
-        datasource_type = request.args.get("datasource_type")
-        if datasource_id and datasource_type:
-            ds_class = DatasourceDAO.sources.get(datasource_type)
-            datasource = (
-                db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
-            )
-            datasources.add(datasource)
-
-        has_access_ = all(
-            datasource and security_manager.can_access_datasource(datasource)
-            for datasource in datasources
-        )
-        if has_access_:
-            return redirect(f"/superset/dashboard/{dashboard_id}")
-
-        if request.args.get("action") == "go":
-            for datasource in datasources:
-                access_request = DAR(
-                    datasource_id=datasource.id, datasource_type=datasource.type
-                )
-                db.session.add(access_request)
-                db.session.commit()
-            flash(__("Access was requested"), "info")
-            return redirect("/")
-
-        return self.render_template(
-            "superset/request_access.html",
-            datasources=datasources,
-            datasource_names=", ".join([o.name for o in datasources]),
-        )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/approve", methods=("POST",))
-    @deprecated()
-    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
-        def clean_fulfilled_requests(session: Session) -> None:
-            for dar in session.query(DAR).all():
-                datasource = DatasourceDAO.get_datasource(
-                    session, DatasourceType(dar.datasource_type), dar.datasource_id
-                )
-                if not datasource or security_manager.can_access_datasource(datasource):
-                    # Dataset does not exist anymore
-                    session.delete(dar)
-            session.commit()
-
-        datasource_type = request.args["datasource_type"]
-        datasource_id = request.args["datasource_id"]
-        created_by_username = request.args.get("created_by")
-        role_to_grant = request.args.get("role_to_grant")
-        role_to_extend = request.args.get("role_to_extend")
-
-        session = db.session
-        datasource = DatasourceDAO.get_datasource(
-            session, DatasourceType(datasource_type), int(datasource_id)
-        )
-
-        if not datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
-            return json_error_response(DATASOURCE_MISSING_ERR)
-
-        requested_by = security_manager.find_user(username=created_by_username)
-        if not requested_by:
-            flash(USER_MISSING_ERR, "alert")
-            return json_error_response(USER_MISSING_ERR)
-
-        requests = (
-            session.query(DAR)
-            .filter(  # pylint: disable=comparison-with-callable
-                DAR.datasource_id == datasource_id,
-                DAR.datasource_type == datasource_type,
-                DAR.created_by_fk == requested_by.id,
-            )
-            .all()
-        )
-
-        if not requests:
-            err = __("The access requests seem to have been deleted")
-            flash(err, "alert")
-            return json_error_response(err)
-
-        # check if you can approve
-        if security_manager.can_access_all_datasources() or security_manager.is_owner(
-            datasource
-        ):
-            # can by done by admin only
-            if role_to_grant:
-                role = security_manager.find_role(role_to_grant)
-                requested_by.roles.append(role)
-                msg = __(
-                    "%(user)s was granted the role %(role)s that gives access "
-                    "to the %(datasource)s",
-                    user=requested_by.username,
-                    role=role_to_grant,
-                    datasource=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_granted.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-
-            if role_to_extend:
-                perm_view = security_manager.find_permission_view_menu(
-                    "email/datasource_access", datasource.perm
-                )
-                role = security_manager.find_role(role_to_extend)
-                security_manager.add_permission_role(role, perm_view)
-                msg = __(
-                    "Role %(r)s was extended to provide the access to "
-                    "the datasource %(ds)s",
-                    r=role_to_extend,
-                    ds=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_extended.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-            clean_fulfilled_requests(session)
-        else:
-            flash(__("You have no permission to approve this request"), "danger")
-            return redirect("/accessrequestsmodelview/list/")
-        for request_ in requests:
-            session.delete(request_)
-        session.commit()
-        return redirect("/accessrequestsmodelview/list/")
 
     @has_access
     @event_logger.log_this
@@ -888,21 +684,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except DatasetNotFoundError:
                 pass
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
-
-        if datasource:
-            if config["ENABLE_ACCESS_REQUEST"] and (
-                not security_manager.can_access_datasource(datasource)
-            ):
-                flash(
-                    __(security_manager.get_datasource_access_error_msg(datasource)),
-                    "danger",
-                )
-                return redirect(
-                    "superset/request_access/?"
-                    f"datasource_type={datasource_type}&"
-                    f"datasource_id={datasource_id}&"
-                )
-
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
@@ -1892,15 +1673,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource=datasource,
             ):
                 has_access_ = True
-
-            if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
-                flash(
-                    __(security_manager.get_datasource_access_error_msg(datasource)),
-                    "danger",
-                )
-                return redirect(
-                    f"/superset/request_access/?dashboard_id={dashboard.id}"
-                )
 
             if has_access_:
                 break
