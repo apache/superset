@@ -983,7 +983,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               content:
                 application/json:
                   schema:
-                    $ref: "#/components/schemas/CacheWarmUpResponseSchema"
+                    $ref: "#/components/schemas/ChartCacheWarmUpResponseSchema"
             400:
               $ref: '#/components/responses/400'
             404:
