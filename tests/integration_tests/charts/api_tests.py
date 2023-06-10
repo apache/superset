@@ -1806,17 +1806,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.login()
         rv = self.client.put(
             "/api/v1/chart/warm_up_cache",
-            json={"chart_id": "id", "table_name": 2, "db_name": 4},
+            json={"chart_id": "id", "dashboard_id": "id", "extra_filters": 4},
         )
         self.assertEqual(rv.status_code, 400)
         data = json.loads(rv.data.decode("utf-8"))
+        print(data)
         self.assertEqual(
             data,
             {
                 "message": {
                     "chart_id": ["Not a valid integer."],
-                    "db_name": ["Not a valid string."],
-                    "table_name": ["Not a valid string."],
+                    "dashboard_id": ["Not a valid integer."],
+                    "extra_filters": ["Not a valid string."],
                 }
             },
         )

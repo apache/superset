@@ -60,8 +60,8 @@ from superset.charts.filters import (
     ChartTagFilter,
 )
 from superset.charts.schemas import (
-    ChartCacheWarmUpRequestSchema,
     CHART_SCHEMAS,
+    ChartCacheWarmUpRequestSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
