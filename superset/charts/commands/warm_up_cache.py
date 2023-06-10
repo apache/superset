@@ -43,7 +43,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
     def run(self) -> dict[str, Any]:
         self.validate()
-        chart: Slice = self._chart_or_id
+        chart: Slice = self._chart_or_id  # type: ignore
         try:
             form_data = get_form_data(chart.id, use_slice_data=True)[0]
             if self._dashboard_id:
