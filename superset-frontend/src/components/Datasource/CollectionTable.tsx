@@ -23,12 +23,14 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
   allowDeletes?: boolean;
   collection: Array<object>;
   columnLabels?: object;
+  columnLabelTooltips?: object;
   emptyMessage?: ReactNode;
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
@@ -222,6 +224,11 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
+  getTooltip(col: any) {
+    const { columnLabelTooltips } = this.props;
+    return columnLabelTooltips?.[col];
+  }
+
   changeCollection(collection: any, newItem?: object) {
     this.setState({ collection });
     if (this.props.onChange) {
@@ -310,6 +317,24 @@ export default class CRUDCollection extends React.PureComponent<
     }
     return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
   }
+  renderTH(col, sortColumns) {
+    const tooltip = this.getTooltip(col);
+    return (
+      <th key={col}>
+        {this.getLabel(col)}
+        {tooltip && (
+          <>
+            {' '}
+            <InfoTooltipWithTrigger
+              label={t('description')}
+              tooltip={tooltip}
+            />
+          </>
+        )}
+        {sortColumns?.includes(col) && this.renderSortIcon(col)}
+      </th>
+    );
+  }
 
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
@@ -319,12 +344,7 @@ export default class CRUDCollection extends React.PureComponent<
       <thead>
         <tr>
           {expandFieldset && <th aria-label="Expand" className="tiny-cell" />}
-          {cols.map(col => (
-            <th key={col}>
-              {this.getLabel(col)}
-              {sortColumns?.includes(col) && this.renderSortIcon(col)}
-            </th>
-          ))}
+          {cols.map(col => this.renderTH(col, sortColumns))}
           {extraButtons}
           {allowDeletes && (
             <th key="delete-item" aria-label="Delete" className="tiny-cell" />

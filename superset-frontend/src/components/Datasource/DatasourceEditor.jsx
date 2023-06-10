@@ -1194,9 +1194,16 @@ class DatasourceEditor extends React.PureComponent {
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
-          metric_name: t('Metric'),
+          metric_name: t('Metric Key'),
           verbose_name: t('Label'),
           expression: t('SQL expression'),
+        }}
+        columnLabelTooltips={{
+          metric_name: t(
+            'This field is used as a unique identifier to attach ' +
+              'the metric to charts. It is also used as the alias in the ' +
+              'SQL query.',
+          ),
         }}
         expandFieldset={
           <FormContainer>
