@@ -47,7 +47,7 @@ from superset.charts.commands.exceptions import (
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.commands.warm_up_cache import WarmUpCacheCommand
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import (
     ChartAllTextFilter,
@@ -60,7 +60,7 @@ from superset.charts.filters import (
     ChartTagFilter,
 )
 from superset.charts.schemas import (
-    CacheWarmUpRequestSchema,
+    ChartCacheWarmUpRequestSchema,
     CHART_SCHEMAS,
     ChartPostSchema,
     ChartPutSchema,
@@ -962,22 +962,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         put:
           summary: >-
-            Warms up the cache for the slice or table
+            Warms up the cache for the chart
           description: >-
-            Warms up the cache for the slice or table.
+            Warms up the cache for the chart.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
             encoded `logs.json` column associated with the `explore_json` action.
           requestBody:
             description: >-
-              Identifies charts to warm up cache for, and any additional dashboard or
-              filter context to use. Either a chart id or a table name and a database
-              name can be passed.
+              Identifies the chart to warm up cache for, and any additional dashboard or
+              filter context to use.
             required: true
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/CacheWarmUpRequestSchema"
+                  $ref: "#/components/schemas/ChartCacheWarmUpRequestSchema"
           responses:
             200:
               description: Each chart's warmup status
@@ -993,18 +992,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            body = CacheWarmUpRequestSchema().load(request.json)
+            body = ChartCacheWarmUpRequestSchema().load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            payload = WarmUpCacheCommand(
-                body.get("chart_id"),
+            result = ChartWarmUpCacheCommand(
+                body["chart_id"],
                 body.get("dashboard_id"),
-                body.get("table_name"),
-                body.get("db_name"),
                 body.get("extra_filters"),
             ).run()
-            return self.response(200, result=payload)
+            return self.response(200, result=[result])
         except CommandException as ex:
             return self.response(ex.status, message=ex.message)
 

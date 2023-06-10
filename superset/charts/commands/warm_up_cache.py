@@ -16,101 +16,69 @@
 # under the License.
 
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, Union
 
 import simplejson as json
 from flask import g
 
-from superset.charts.commands.exceptions import (
-    WarmUpCacheChartNotFoundError,
-    WarmUpCacheParametersExpectedError,
-    WarmUpCacheTableNotFoundError,
-)
+from superset.charts.commands.exceptions import WarmUpCacheChartNotFoundError
 from superset.commands.base import BaseCommand
-from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
-from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils.core import error_msg_from_exception
 from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
 
 
-class WarmUpCacheCommand(BaseCommand):
+class ChartWarmUpCacheCommand(BaseCommand):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        chart_id: Optional[int],
+        chart_or_id: Union[int, Slice],
         dashboard_id: Optional[int],
-        table_name: Optional[str],
-        db_name: Optional[str],
         extra_filters: Optional[str],
     ):
-        self._chart_id = chart_id
+        self._chart_or_id = chart_or_id
         self._dashboard_id = dashboard_id
-        self._table_name = table_name
-        self._db_name = db_name
         self._extra_filters = extra_filters
-        self._charts: List[Slice] = []
 
-    def run(self) -> List[Dict[str, Any]]:
+    def run(self) -> dict[str, Any]:
         self.validate()
-        result: List[Dict[str, Any]] = []
-        for chart in self._charts:
-            try:
-                form_data = get_form_data(chart.id, use_slice_data=True)[0]
-                if self._dashboard_id:
-                    form_data["extra_filters"] = (
-                        json.loads(self._extra_filters)
-                        if self._extra_filters
-                        else get_dashboard_extra_filters(chart.id, self._dashboard_id)
-                    )
-
-                if not chart.datasource:
-                    raise Exception("Chart's datasource does not exist")
-
-                obj = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                    force=True,
+        chart: Slice = self._chart_or_id
+        try:
+            form_data = get_form_data(chart.id, use_slice_data=True)[0]
+            if self._dashboard_id:
+                form_data["extra_filters"] = (
+                    json.loads(self._extra_filters)
+                    if self._extra_filters
+                    else get_dashboard_extra_filters(chart.id, self._dashboard_id)
                 )
 
-                # pylint: disable=assigning-non-slot
-                g.form_data = form_data
-                payload = obj.get_payload()
-                delattr(g, "form_data")
-                error = payload["errors"] or None
-                status = payload["status"]
-            except Exception as ex:  # pylint: disable=broad-except
-                error = error_msg_from_exception(ex)
-                status = None
+            if not chart.datasource:
+                raise Exception("Chart's datasource does not exist")
 
-            result.append(
-                {"chart_id": chart.id, "viz_error": error, "viz_status": status}
+            obj = get_viz(
+                datasource_type=chart.datasource.type,
+                datasource_id=chart.datasource.id,
+                form_data=form_data,
+                force=True,
             )
 
-        return result
+            # pylint: disable=assigning-non-slot
+            g.form_data = form_data
+            payload = obj.get_payload()
+            delattr(g, "form_data")
+            error = payload["errors"] or None
+            status = payload["status"]
+        except Exception as ex:  # pylint: disable=broad-except
+            error = error_msg_from_exception(ex)
+            status = None
+
+        return {"chart_id": chart.id, "viz_error": error, "viz_status": status}
 
     def validate(self) -> None:
-        if not self._chart_id and not (self._table_name and self._db_name):
-            raise WarmUpCacheParametersExpectedError()
-        if self._chart_id:
-            self._charts = db.session.query(Slice).filter_by(id=self._chart_id).all()
-            if not self._charts:
-                raise WarmUpCacheChartNotFoundError()
-        elif self._table_name and self._db_name:
-            table = (
-                db.session.query(SqlaTable)
-                .join(Database)
-                .filter(
-                    Database.database_name == self._db_name,
-                    SqlaTable.table_name == self._table_name,
-                )
-            ).one_or_none()
-            if not table:
-                raise WarmUpCacheTableNotFoundError()
-            self._charts = (
-                db.session.query(Slice)
-                .filter_by(datasource_id=table.id, datasource_type=table.type)
-                .all()
-            )
+        if isinstance(self._chart_or_id, Slice):
+            return
+        chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
+        if not chart:
+            raise WarmUpCacheChartNotFoundError()
+        self._chart_or_id = chart

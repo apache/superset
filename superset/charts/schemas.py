@@ -1557,27 +1557,22 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
-class CacheWarmUpRequestSchema(Schema):
+class ChartCacheWarmUpRequestSchema(Schema):
     chart_id = fields.Integer(
-        metadata={"description": "The ID of the chart to warm up cache for"}
+        required=True,
+        metadata={"description": "The ID of the chart to warm up cache for"},
     )
     dashboard_id = fields.Integer(
         metadata={
             "description": "The ID of the dashboard to get filters for when warming cache"
         }
     )
-    table_name = fields.String(
-        metadata={"description": "The name of the table to warm up cache for"}
-    )
-    db_name = fields.String(
-        metadata={"description": "The name of the database where the table is located"}
-    )
     extra_filters = fields.String(
         metadata={"description": "Extra filters to apply when warming up cache"}
     )
 
 
-class CacheWarmUpResponseSingleSchema(Schema):
+class ChartCacheWarmUpResponseSingleSchema(Schema):
     chart_id = fields.Integer(
         metadata={"description": "The ID of the chart the status belongs to"}
     )
@@ -1589,9 +1584,9 @@ class CacheWarmUpResponseSingleSchema(Schema):
     )
 
 
-class CacheWarmUpResponseSchema(Schema):
+class ChartCacheWarmUpResponseSchema(Schema):
     result = fields.List(
-        fields.Nested(CacheWarmUpResponseSingleSchema),
+        fields.Nested(ChartCacheWarmUpResponseSingleSchema),
         metadata={
             "description": "A list of each chart's warmup status and errors if any"
         },
@@ -1599,8 +1594,8 @@ class CacheWarmUpResponseSchema(Schema):
 
 
 CHART_SCHEMAS = (
-    CacheWarmUpRequestSchema,
-    CacheWarmUpResponseSchema,
+    ChartCacheWarmUpRequestSchema,
+    ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,

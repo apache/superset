@@ -1755,18 +1755,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
-        rv = self.client.put(
-            "/api/v1/chart/warm_up_cache",
-            json={
-                "table_name": "energy_usage",
-                "db_name": get_example_database().database_name,
-            },
-        )
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert len(data["result"]) > 0
-
         dashboard = self.get_dash_by_slug("births")
 
         rv = self.client.put(
@@ -1797,16 +1785,14 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
         )
 
-    def test_warm_up_cache_required_params_missing(self):
+    def test_warm_up_cache_chart_id_required(self):
         self.login()
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"dashboard_id": 1})
         self.assertEqual(rv.status_code, 400)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             data,
-            {
-                "message": "Malformed request. slice_id or table_name and db_name arguments are expected"
-            },
+            {"message": {"chart_id": ["Missing data for required field."]}},
         )
 
     def test_warm_up_cache_chart_not_found(self):
@@ -1815,19 +1801,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 404)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data, {"message": "Chart not found"})
-
-    def test_warm_up_cache_table_not_found(self):
-        self.login()
-        rv = self.client.put(
-            "/api/v1/chart/warm_up_cache",
-            json={"table_name": "not_here", "db_name": "abc"},
-        )
-        self.assertEqual(rv.status_code, 404)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data,
-            {"message": "The provided table was not found in the provided database"},
-        )
 
     def test_warm_up_cache_payload_validation(self):
         self.login()
