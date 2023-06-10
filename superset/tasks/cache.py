@@ -37,7 +37,7 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> Dict[str, int]:
+def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> dict[str, int]:
     """Return payload for warming up a given chart/table cache."""
     payload = {"chart_id": chart.id}
     if dashboard:
