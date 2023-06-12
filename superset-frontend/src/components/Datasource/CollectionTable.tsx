@@ -323,7 +323,7 @@ export default class CRUDCollection extends React.PureComponent<
   renderTH(col: string, sortColumns: Array<string>) {
     const tooltip = this.getTooltip(col);
     return (
-      <th key={col}>
+      <th key={col} className="no-wrap">
         {this.getLabel(col)}
         {tooltip && (
           <>
