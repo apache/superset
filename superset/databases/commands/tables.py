@@ -17,6 +17,8 @@
 import logging
 from typing import Any, cast
 
+from sqlalchemy.orm import lazyload, load_only
+
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
@@ -74,9 +76,17 @@ class TablesDatabaseCommand(BaseCommand):
             extra_dict_by_name = {
                 table.name: table.extra_dict
                 for table in (
-                    db.session.query(SqlaTable).filter(
+                    db.session.query(SqlaTable)
+                    .filter(
                         SqlaTable.database_id == self._model.id,
                         SqlaTable.schema == self._schema_name,
+                    )
+                    .options(
+                        load_only(
+                            SqlaTable.schema, SqlaTable.table_name, SqlaTable.extra
+                        ),
+                        lazyload(SqlaTable.columns),
+                        lazyload(SqlaTable.metrics),
                     )
                 ).all()
             }
