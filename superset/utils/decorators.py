@@ -19,13 +19,10 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
-from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app, Response
 
-from superset import is_feature_enabled
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
@@ -114,27 +111,3 @@ def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
 
 def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
-
-
-# noinspection PyPackageRequirements
-def check_dashboard_access(on_error: Callable[[str], Any]) -> Callable[..., Any]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(f)
-        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            # pylint: disable=import-outside-toplevel
-            from superset.models.dashboard import Dashboard
-
-            dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
-            if is_feature_enabled("DASHBOARD_RBAC"):
-                try:
-                    current_app.appbuilder.sm.raise_for_dashboard_access(dashboard)
-                except DashboardAccessDeniedError as ex:
-                    return on_error(str(ex))
-                except Exception as exception:
-                    raise exception
-
-            return f(self, *args, dashboard=dashboard, **kwargs)
-
-        return wrapper
-
-    return decorator
