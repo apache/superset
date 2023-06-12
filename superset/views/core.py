@@ -129,12 +129,7 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import (
-    apply_max_row_limit,
-    DatasourceType,
-    get_user_id,
-    ReservedUrlParameters,
-)
+from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -781,43 +776,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             title=title.__str__(),
             standalone_mode=standalone_mode,
         )
-
-    @api
-    @handle_api_exception
-    @has_access_api
-    @event_logger.log_this
-    @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
-    @deprecated(
-        new_target="/api/v1/datasource/<datasource_type>/"
-        "<datasource_id>/column/<column_name>/values/"
-    )
-    def filter(  # pylint: disable=no-self-use
-        self, datasource_type: str, datasource_id: int, column: str
-    ) -> FlaskResponse:
-        """
-        Endpoint to retrieve values for specified column.
-
-        :param datasource_type: Type of datasource e.g. table
-        :param datasource_id: Datasource id
-        :param column: Column name to retrieve values for
-        :returns: The Flask response
-        :raises SupersetSecurityException: If the user cannot access the resource
-        """
-        # TODO: Cache endpoint by user, datasource and column
-        datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
-        )
-        if not datasource:
-            return json_error_response(DATASOURCE_MISSING_ERR)
-
-        datasource.raise_for_access()
-        row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
-        payload = json.dumps(
-            datasource.values_for_column(column_name=column, limit=row_limit),
-            default=utils.json_int_dttm_ser,
-            ignore_nan=True,
-        )
-        return json_success(payload)
 
     @staticmethod
     def save_or_overwrite_slice(
