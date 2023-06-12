@@ -29,7 +29,6 @@ import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
     has_access,
     has_access_api,
@@ -39,7 +38,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
-from sqlalchemy.orm import lazyload, load_only
 
 from superset import (
     app,
@@ -73,7 +71,6 @@ from superset.dashboards.permalink.commands.get import GetDashboardPermalinkComm
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
-from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
@@ -886,111 +883,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             response.update({"dashboard": dash.url})
 
         return json_success(json.dumps(response))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/tables/<int:db_id>/<schema>/")
-    @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
-    @deprecated(new_target="api/v1/database/<int:pk>/tables/")
-    def tables(  # pylint: disable=no-self-use
-        self,
-        db_id: int,
-        schema: str,
-        force_refresh: str = "false",
-    ) -> FlaskResponse:
-        """Endpoint to fetch the list of tables for given database"""
-
-        force_refresh_parsed = force_refresh.lower() == "true"
-        schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-
-        if not schema_parsed:
-            return json_error_response(_("Schema undefined"), status=422)
-
-        # Guarantees database filtering by security access
-        database = (
-            DatabaseFilter("id", SQLAInterface(Database, db.session))
-            .apply(
-                db.session.query(Database),
-                None,
-            )
-            .filter_by(id=db_id)
-            .one_or_none()
-        )
-
-        if not database:
-            return json_error_response(
-                __("Database not found: %(id)s", id=db_id), status=404
-            )
-
-        try:
-            tables = security_manager.get_datasources_accessible_by_user(
-                database=database,
-                schema=schema_parsed,
-                datasource_names=sorted(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_table_names_in_schema(
-                        schema=schema_parsed,
-                        force=force_refresh_parsed,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                ),
-            )
-
-            views = security_manager.get_datasources_accessible_by_user(
-                database=database,
-                schema=schema_parsed,
-                datasource_names=sorted(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_view_names_in_schema(
-                        schema=schema_parsed,
-                        force=force_refresh_parsed,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                ),
-            )
-        except SupersetException as ex:
-            return json_error_response(ex.message, ex.status)
-
-        extra_dict_by_name = {
-            table.name: table.extra_dict
-            for table in (
-                db.session.query(SqlaTable)
-                .filter(
-                    SqlaTable.database_id == database.id,
-                    SqlaTable.schema == schema_parsed,
-                )
-                .options(
-                    load_only(SqlaTable.schema, SqlaTable.table_name, SqlaTable.extra),
-                    lazyload(SqlaTable.columns),
-                    lazyload(SqlaTable.metrics),
-                )
-            ).all()
-        }
-
-        options = sorted(
-            [
-                {
-                    "value": table.table,
-                    "type": "table",
-                    "extra": extra_dict_by_name.get(table.table, None),
-                }
-                for table in tables
-            ]
-            + [
-                {
-                    "value": view.table,
-                    "type": "view",
-                }
-                for view in views
-            ],
-            key=lambda item: item["value"],
-        )
-
-        payload = {"tableLength": len(tables) + len(views), "options": options}
-        return json_success(json.dumps(payload))
 
     @api
     @has_access_api

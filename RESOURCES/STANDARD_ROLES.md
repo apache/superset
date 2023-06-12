@@ -78,7 +78,6 @@
 |can sync druid source on Superset|:heavy_check_mark:|O|O|O|
 |can explore on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can tables on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can slice json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can approve on Superset|:heavy_check_mark:|O|O|O|
 |can explore json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
