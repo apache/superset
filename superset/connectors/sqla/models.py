@@ -232,7 +232,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         the ORM) depending on the context.
         """
 
-        self._database: Optional[Database] = kwargs.pop("database", None)
+        self._database: Database | None = kwargs.pop("database", None)
         super().__init__(**kwargs)
 
     @reconstructor
