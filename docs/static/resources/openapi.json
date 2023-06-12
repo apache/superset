@@ -850,13 +850,6 @@
             "description": "HAVING clause to be added to aggregate queries using AND operator.",
             "type": "string"
           },
-          "having_druid": {
-            "description": "HAVING filters to be added to legacy Druid datasource queries. This field is deprecated",
-            "items": {
-              "$ref": "#/components/schemas/ChartDataFilter"
-            },
-            "type": "array"
-          },
           "relative_end": {
             "description": "End time for relative time deltas. Default: `config[\"DEFAULT_RELATIVE_START_TIME\"]`",
             "enum": ["today", "now"],
@@ -1228,11 +1221,6 @@
             ],
             "nullable": true
           },
-          "druid_time_origin": {
-            "description": "Starting point for time grain counting on legacy Druid datasources. Used to change e.g. Monday/Sunday first-day-of-week. This field is deprecated and should be passed to `extras` as `druid_time_origin`.",
-            "nullable": true,
-            "type": "string"
-          },
           "extras": {
             "allOf": [
               {
@@ -1250,7 +1238,7 @@
             "type": "array"
           },
           "granularity": {
-            "description": "Name of temporal column used for time filtering. For legacy Druid datasources this defines the time grain.",
+            "description": "Name of temporal column used for time filtering.
             "nullable": true,
             "type": "string"
           },
@@ -1269,14 +1257,6 @@
             "description": "HAVING clause to be added to aggregate queries using AND operator. This field is deprecated and should be passed to `extras`.",
             "nullable": true,
             "type": "string"
-          },
-          "having_filters": {
-            "description": "HAVING filters to be added to legacy Druid datasource queries. This field is deprecated and should be passed to `extras` as `having_druid`.",
-            "items": {
-              "$ref": "#/components/schemas/ChartDataFilter"
-            },
-            "nullable": true,
-            "type": "array"
           },
           "is_rowcount": {
             "description": "Should the rowcount of the actual query be returned",

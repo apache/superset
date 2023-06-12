@@ -167,7 +167,6 @@ EXTRA_FORM_DATA_APPEND_KEYS = {
 }
 
 EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
-    "granularity": "granularity",
     "granularity_sqla": "granularity",
     "time_column": "time_column",
     "time_grain": "time_grain",

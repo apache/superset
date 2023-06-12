@@ -34,6 +34,8 @@ assists people when migrating to a new version.
 ### Breaking Changes
 
 - [24345](https://github.com/apache/superset/pull/24345) Converts `ENABLE_BROAD_ACTIVITY_ACCESS` and `MENU_HIDE_USER_INFO` into feature flags and changes the value of `ENABLE_BROAD_ACTIVITY_ACCESS` to `False` as it's more secure.
+- [24333](https://github.com/apache/superset/pull/24333): Removed deprecated API `/superset/datasources`
+- [24266](https://github.com/apache/superset/pull/24266) Remove the `ENABLE_ACCESS_REQUEST` config parameter and the associated request/approval workflows.
 - [24330](https://github.com/apache/superset/pull/24330) Removes `getUiOverrideRegistry` from `ExtensionsRegistry`.
 - [23933](https://github.com/apache/superset/pull/23933) Removes the deprecated Multiple Line Charts.
 - [23741](https://github.com/apache/superset/pull/23741) Migrates the TreeMap chart and removes the legacy Treemap code.

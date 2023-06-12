@@ -765,7 +765,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
             applied_time_extras: {},
             where: '',
             having: '',
-            having_filters: [],
             filters: [],
           },
           is_cached: false,
@@ -3131,7 +3130,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
             applied_time_extras: {},
             where: '',
             having: '',
-            having_filters: [],
             filters: [],
           },
           is_cached: false,
@@ -16668,7 +16666,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
             applied_time_extras: {},
             where: '',
             having: '',
-            having_filters: [],
             filters: [
               {
                 col: 'rank',
@@ -17723,7 +17720,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
             applied_time_extras: {},
             where: '',
             having: '',
-            having_filters: [],
             filters: [],
           },
           is_cached: false,
