@@ -300,6 +300,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
+          allowHTML
         />
       </Resizable>
     );
