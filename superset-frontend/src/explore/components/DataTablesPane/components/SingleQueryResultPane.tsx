@@ -44,6 +44,8 @@ export const SingleQueryResultPane = ({
     data,
     datasourceId,
     isVisible,
+    null, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 
