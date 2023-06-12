@@ -34,6 +34,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [24342](https://github.com/apache/superset/pull/24342): Removed deprecated API `/superset/tables/<int:db_id>/<schema>/...`
 - [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
 - [24333](https://github.com/apache/superset/pull/24333): Removed deprecated API `/superset/datasources`
 - [24266](https://github.com/apache/superset/pull/24266) Remove the `ENABLE_ACCESS_REQUEST` config parameter and the associated request/approval workflows.
