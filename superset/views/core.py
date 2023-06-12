@@ -67,7 +67,6 @@ from superset.connectors.sqla.models import (
 from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.commands.exceptions import DatabaseInvalidError
