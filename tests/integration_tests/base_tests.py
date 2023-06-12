@@ -504,6 +504,48 @@ class SupersetTestCase(TestCase):
     def get_dttm(cls):
         return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
+    def insert_dashboard(
+        self,
+        dashboard_title: str,
+        slug: Optional[str],
+        owners: list[int],
+        roles: list[int] = [],
+        created_by=None,
+        slices: Optional[list[Slice]] = None,
+        position_json: str = "",
+        css: str = "",
+        json_metadata: str = "",
+        published: bool = False,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
+    ) -> Dashboard:
+        obj_owners = list()
+        obj_roles = list()
+        slices = slices or []
+        for owner in owners:
+            user = db.session.query(security_manager.user_model).get(owner)
+            obj_owners.append(user)
+        for role in roles:
+            role_obj = db.session.query(security_manager.role_model).get(role)
+            obj_roles.append(role_obj)
+        dashboard = Dashboard(
+            dashboard_title=dashboard_title,
+            slug=slug,
+            owners=obj_owners,
+            roles=obj_roles,
+            position_json=position_json,
+            css=css,
+            json_metadata=json_metadata,
+            slices=slices,
+            published=published,
+            created_by=created_by,
+            certified_by=certified_by,
+            certification_details=certification_details,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        return dashboard
+
 
 @contextmanager
 def db_insert_temp_object(obj: DeclarativeMeta):
