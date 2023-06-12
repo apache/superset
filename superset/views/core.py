@@ -1551,7 +1551,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         dash_edit_perm = security_manager.is_owner(
             dashboard
-        ) and security_manager.can_access("can_save_dash", "Superset")
+        ) and security_manager.can_access("can_write", "Dashboard")
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
