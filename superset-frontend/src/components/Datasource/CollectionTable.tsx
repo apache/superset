@@ -18,12 +18,14 @@
  */
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
+
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
+
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
@@ -317,6 +319,7 @@ export default class CRUDCollection extends React.PureComponent<
     }
     return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
   }
+
   renderTH(col, sortColumns) {
     const tooltip = this.getTooltip(col);
     return (
