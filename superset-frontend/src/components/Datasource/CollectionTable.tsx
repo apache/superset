@@ -320,7 +320,7 @@ export default class CRUDCollection extends React.PureComponent<
     return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
   }
 
-  renderTH(col, sortColumns) {
+  renderTH(col: string, sortColumns: Array<string>) {
     const tooltip = this.getTooltip(col);
     return (
       <th key={col}>
