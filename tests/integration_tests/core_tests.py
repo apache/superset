@@ -151,85 +151,6 @@ class TestCore(SupersetTestCase):
 
         self.assertEqual(cache_key_with_groupby, viz.cache_key(qobj))
 
-    def test_get_superset_tables_not_allowed(self):
-        example_db = superset.utils.database.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_get_superset_tables_allowed(self):
-        session = db.session
-        table_name = "energy_usage"
-        role_name = "dummy_role"
-        self.logout()
-        self.login(username="gamma")
-        gamma_user = security_manager.find_user(username="gamma")
-        security_manager.add_role(role_name)
-        dummy_role = security_manager.find_role(role_name)
-        gamma_user.roles.append(dummy_role)
-
-        tbl_id = self.table_ids.get(table_name)
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id).first()
-        table_perm = table.perm
-
-        security_manager.add_permission_role(
-            dummy_role,
-            security_manager.find_permission_view_menu("datasource_access", table_perm),
-        )
-
-        session.commit()
-
-        example_db = utils.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-
-        # cleanup
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.remove(security_manager.find_role(role_name))
-        session.commit()
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_get_superset_tables_not_allowed_with_out_permissions(self):
-        session = db.session
-        role_name = "dummy_role_no_table_access"
-        self.logout()
-        self.login(username="gamma")
-        gamma_user = security_manager.find_user(username="gamma")
-        security_manager.add_role(role_name)
-        dummy_role = security_manager.find_role(role_name)
-        gamma_user.roles.append(dummy_role)
-
-        session.commit()
-
-        example_db = utils.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-        # cleanup
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.remove(security_manager.find_role(role_name))
-        session.commit()
-
-    def test_get_superset_tables_database_not_found(self):
-        self.login(username="admin")
-        uri = f"superset/tables/invalid/public/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-    def test_get_superset_tables_schema_undefined(self):
-        example_db = superset.utils.database.get_example_database()
-        self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/undefined/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 422)
-
     def test_admin_only_menu_views(self):
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
@@ -307,19 +228,6 @@ class TestCore(SupersetTestCase):
         for slc in slices:
             db.session.delete(slc)
         db.session.commit()
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_filter_endpoint(self):
-        self.login(username="admin")
-        tbl_id = self.table_ids.get("energy_usage")
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
-        table.filter_select_enabled = True
-        url = "/superset/filter/table/{}/target/"
-
-        # Changing name
-        resp = self.get_resp(url.format(tbl_id))
-        assert len(resp) > 0
-        assert "energy_target0" in resp
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
@@ -718,39 +626,36 @@ class TestCore(SupersetTestCase):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
 
-    def test_user_profile_optional_access(self):
+    def test_user_profile_default_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
+    def test_user_profile_broad_access(self):
         self.login(username="gamma")
         resp = self.client.get(f"/superset/profile/admin/")
         self.assertEqual(resp.status_code, 200)
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
-        resp = self.client.get(f"/superset/profile/admin/")
-        self.assertEqual(resp.status_code, 403)
-
-        # Restore config
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_user_activity_access(self, username="gamma"):
+    def test_user_activity_default_access(self, username="gamma"):
         self.login(username=username)
 
-        # accessing own and other users' activity is allowed by default
-        for user in ("admin", "gamma"):
-            for endpoint in self._get_user_activity_endpoints(user):
-                resp = self.client.get(endpoint)
-                assert resp.status_code == 200
-
-        # disabling flag will block access to other users' activity data
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         for user in ("admin", "gamma"):
             for endpoint in self._get_user_activity_endpoints(user):
                 resp = self.client.get(endpoint)
                 expected_status_code = 200 if user == username else 403
                 assert resp.status_code == expected_status_code
 
-        # restore flag
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
+    def test_user_activity_broad_access(self, username="gamma"):
+        self.login(username=username)
+
+        for user in ("admin", "gamma"):
+            for endpoint in self._get_user_activity_endpoints(user):
+                resp = self.client.get(endpoint)
+                assert resp.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):

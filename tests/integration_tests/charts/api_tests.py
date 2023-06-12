@@ -34,6 +34,7 @@ from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -605,12 +606,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
     def test_chart_activity_access_disabled(self):
         """
         Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
         """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         admin = self.get_user("admin")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
@@ -626,17 +626,15 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.slice_name, new_name)
         self.assertEqual(model.changed_by_url, "")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
     def test_chart_activity_access_enabled(self):
         """
         Chart API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
         """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
         admin = self.get_user("admin")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
@@ -652,7 +650,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.slice_name, new_name)
         self.assertEqual(model.changed_by_url, "/superset/profile/admin")
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 
