@@ -57,7 +57,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
-        logger.info("QUERYY==",sql)
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
