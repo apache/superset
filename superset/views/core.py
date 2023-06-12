@@ -39,6 +39,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
+from sqlalchemy.orm import lazyload, load_only
 
 from superset import (
     app,
@@ -1014,9 +1015,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         extra_dict_by_name = {
             table.name: table.extra_dict
             for table in (
-                db.session.query(SqlaTable).filter(
+                db.session.query(SqlaTable)
+                .filter(
                     SqlaTable.database_id == database.id,
                     SqlaTable.schema == schema_parsed,
+                )
+                .options(
+                    load_only(SqlaTable.schema, SqlaTable.table_name, SqlaTable.extra),
+                    lazyload(SqlaTable.columns),
+                    lazyload(SqlaTable.metrics),
                 )
             ).all()
         }
