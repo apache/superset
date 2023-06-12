@@ -192,18 +192,17 @@ class Query(
             TableColumn,
         )
 
-        columns = []
-        for col in self.extra.get("columns", []):
-            columns.append(
-                TableColumn(
-                    column_name=col["name"],
-                    type=col["type"],
-                    is_dttm=col["is_dttm"],
-                    groupby=True,
-                    filterable=True,
-                )
+        return [
+            TableColumn(
+                column_name=col["name"],
+                database=self.database,
+                is_dttm=col["is_dttm"],
+                filterable=True,
+                groupby=True,
+                type=col["type"],
             )
-        return columns
+            for col in self.extra.get("columns", [])
+        ]
 
     @property
     def db_extra(self) -> Optional[dict[str, Any]]:
