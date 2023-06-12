@@ -42,7 +42,6 @@ from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -267,18 +266,6 @@ class SupersetTestCase(TestCase):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.get_resp(url, data, follow_redirects, raise_on_error, json_)
         return json.loads(resp)
-
-    def get_access_requests(self, username, ds_type, ds_id):
-        DAR = DatasourceAccessRequest
-        return (
-            db.session.query(DAR)
-            .filter(
-                DAR.created_by == security_manager.find_user(username=username),
-                DAR.datasource_type == ds_type,
-                DAR.datasource_id == ds_id,
-            )
-            .first()
-        )
 
     def logout(self):
         self.client.get("/logout/", follow_redirects=True)

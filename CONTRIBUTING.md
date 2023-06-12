@@ -1403,13 +1403,11 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Time
 
-| Field               | Type     | Notes                                 |
-| ------------------- | -------- | ------------------------------------- |
-| `druid_time_origin` | _string_ | The Druid **Origin** widget           |
-| `granularity`       | _string_ | The Druid **Time Granularity** widget |
-| `granularity_sqla`  | _string_ | The SQLA **Time Column** widget       |
-| `time_grain_sqla`   | _string_ | The SQLA **Time Grain** widget        |
-| `time_range`        | _string_ | The **Time range** widget             |
+| Field              | Type     | Notes                                 |
+| ------------------ | -------- | ------------------------------------- |
+| `granularity_sqla` | _string_ | The SQLA **Time Column** widget       |
+| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget        |
+| `time_range`       | _string_ | The **Time range** widget             |
 
 ### GROUP BY
 

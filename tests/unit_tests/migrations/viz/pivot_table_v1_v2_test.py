@@ -45,7 +45,7 @@ TARGET_FORM_DATA = {
     "granularity_sqla": "ds",
     "groupbyColumns": ["state"],
     "groupbyRows": ["name"],
-    "rowTotals": True,
+    "rowOrder": "value_z_to_a",
     "series_limit_metric": "count",
     "time_range": "100 years ago : now",
     "transposePivot": True,
