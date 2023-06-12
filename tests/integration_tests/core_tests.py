@@ -436,98 +436,6 @@ class TestCore(SupersetTestCase):
         assert self.get_resp("/healthcheck") == "OK"
         assert self.get_resp("/ping") == "OK"
 
-    def test_testconn(self, username="admin"):
-        # need to temporarily allow sqlite dbs, teardown will undo this
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
-        self.login(username=username)
-        database = superset.utils.database.get_example_database()
-        # validate that the endpoint works with the password-masked sqlalchemy uri
-        data = json.dumps(
-            {
-                "uri": database.safe_sqlalchemy_uri(),
-                "name": "examples",
-                "impersonate_user": False,
-            }
-        )
-        response = self.client.post(
-            "/superset/testconn", data=data, content_type="application/json"
-        )
-        assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/json"
-
-        # validate that the endpoint works with the decrypted sqlalchemy uri
-        data = json.dumps(
-            {
-                "uri": database.sqlalchemy_uri_decrypted,
-                "name": "examples",
-                "impersonate_user": False,
-            }
-        )
-        response = self.client.post(
-            "/superset/testconn", data=data, content_type="application/json"
-        )
-        assert response.status_code == 200
-        assert response.headers["Content-Type"] == "application/json"
-
-    def test_testconn_failed_conn(self, username="admin"):
-        self.login(username=username)
-
-        data = json.dumps(
-            {"uri": "broken://url", "name": "examples", "impersonate_user": False}
-        )
-        response = self.client.post(
-            "/superset/testconn", data=data, content_type="application/json"
-        )
-        assert response.status_code == 400
-        assert response.headers["Content-Type"] == "application/json"
-        response_body = json.loads(response.data.decode("utf-8"))
-        expected_body = {"error": "Could not load database driver: broken"}
-        assert response_body == expected_body, "{} != {}".format(
-            response_body,
-            expected_body,
-        )
-
-        data = json.dumps(
-            {
-                "uri": "mssql+pymssql://url",
-                "name": "examples",
-                "impersonate_user": False,
-            }
-        )
-        response = self.client.post(
-            "/superset/testconn", data=data, content_type="application/json"
-        )
-        assert response.status_code == 400
-        assert response.headers["Content-Type"] == "application/json"
-        response_body = json.loads(response.data.decode("utf-8"))
-        expected_body = {"error": "Could not load database driver: mssql+pymssql"}
-        assert response_body == expected_body, "{} != {}".format(
-            response_body,
-            expected_body,
-        )
-
-    def test_testconn_unsafe_uri(self, username="admin"):
-        self.login(username=username)
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
-
-        response = self.client.post(
-            "/superset/testconn",
-            data=json.dumps(
-                {
-                    "uri": "sqlite:///home/superset/unsafe.db",
-                    "name": "unsafe",
-                    "impersonate_user": False,
-                }
-            ),
-            content_type="application/json",
-        )
-        self.assertEqual(400, response.status_code)
-        response_body = json.loads(response.data.decode("utf-8"))
-        expected_body = {
-            "error": "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
-        }
-        self.assertEqual(expected_body, response_body)
-
     def test_custom_password_store(self):
         database = superset.utils.database.get_example_database()
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
@@ -1196,30 +1104,6 @@ class TestCore(SupersetTestCase):
 
         self.assertEqual(rv.status_code, 404)
         self.assertEqual(data["error"], "Cached data not found")
-
-    @mock.patch(
-        "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
-    )
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_all_datasources")
-    def test_schemas_access_for_csv_upload_endpoint(
-        self,
-        mock_can_access_all_datasources,
-        mock_can_access_database,
-        mock_schemas_accessible,
-    ):
-        self.login(username="admin")
-        dbobj = self.create_fake_db()
-        mock_can_access_all_datasources.return_value = False
-        mock_can_access_database.return_value = False
-        mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
-        data = self.get_json_resp(
-            url="/superset/schemas_access_for_file_upload?db_id={db_id}".format(
-                db_id=dbobj.id
-            )
-        )
-        assert data == ["this_schema_is_allowed_too"]
-        self.delete_fake_db()
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     def test_display_limit(self):
