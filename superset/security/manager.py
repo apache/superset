@@ -1980,8 +1980,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import feature_flag_manager
+
         if not get_user_id() or (
-            not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+            not feature_flag_manager.is_feature_enabled("ENABLE_BROAD_ACTIVITY_ACCESS")
             and user_id != get_user_id()
         ):
             raise SupersetSecurityException(

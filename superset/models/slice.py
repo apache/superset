@@ -22,7 +22,6 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -340,9 +339,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
+        if not self.changed_by or not is_feature_enabled(
+            "ENABLE_BROAD_ACTIVITY_ACCESS"
         ):
             return ""
         return f"/superset/profile/{self.changed_by.username}"
