@@ -69,7 +69,6 @@ describe('Chart', () => {
     isExpanded: false,
     supersetCanExplore: false,
     supersetCanCSV: false,
-    sliceCanEdit: false,
   };
 
   function setup(overrideProps) {

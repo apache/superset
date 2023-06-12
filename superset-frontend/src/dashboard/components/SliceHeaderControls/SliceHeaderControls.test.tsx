@@ -86,7 +86,6 @@ const createProps = (viz_type = 'sunburst') =>
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
     supersetCanCSV: true,
-    sliceCanEdit: false,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
@@ -136,8 +135,6 @@ test('Should render default props', () => {
   delete props.isCached;
   // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   renderWrapper(props);
   expect(

@@ -28,9 +28,9 @@ import logging
 import math
 import re
 from collections import defaultdict, OrderedDict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from itertools import product
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import geohash
 import numpy as np
@@ -40,7 +40,7 @@ import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import request
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
@@ -76,14 +76,12 @@ from superset.utils.core import (
     get_column_names,
     get_column_names_from_columns,
     get_metric_names,
-    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -361,9 +359,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
 
-        granularity = self.form_data.get("granularity") or self.form_data.get(
-            "granularity_sqla"
-        )
+        granularity = self.form_data.get("granularity_sqla")
         limit = int(self.form_data.get("limit") or 0)
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
 
@@ -774,12 +770,8 @@ class TableViz(BaseViz):
     @deprecated(deprecated_in="3.0")
     def should_be_timeseries(self) -> bool:
         # TODO handle datasource-type-specific code in datasource
-        conditions_met = (
-            self.form_data.get("granularity")
-            and self.form_data.get("granularity") != "all"
-        ) or (
-            self.form_data.get("granularity_sqla")
-            and self.form_data.get("time_grain_sqla")
+        conditions_met = self.form_data.get("granularity_sqla") and self.form_data.get(
+            "time_grain_sqla"
         )
         if self.form_data.get("include_time") and not conditions_met:
             raise QueryObjectValidationError(
@@ -908,196 +900,6 @@ class TimeTableViz(BaseViz):
         )
 
 
-class PivotTableViz(BaseViz):
-
-    """A pivot table view, define your rows, columns and metrics"""
-
-    viz_type = "pivot_table"
-    verbose_name = _("Pivot Table")
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    is_timeseries = False
-    enforce_numerical_metrics = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        groupby = self.form_data.get("groupby")
-        columns = self.form_data.get("columns")
-        metrics = self.form_data.get("metrics")
-        transpose = self.form_data.get("transpose_pivot")
-        if not columns:
-            columns = []
-        if not groupby:
-            groupby = []
-        if not groupby:
-            raise QueryObjectValidationError(
-                _("Please choose at least one 'Group by' field")
-            )
-        if transpose and not columns:
-            raise QueryObjectValidationError(
-                _(
-                    "Please choose at least one 'Columns' field when "
-                    "select 'Transpose Pivot' option"
-                )
-            )
-        if not metrics:
-            raise QueryObjectValidationError(_("Please choose at least one metric"))
-        deduped_cols = self.dedup_columns(groupby, columns)
-
-        if len(deduped_cols) < (len(groupby) + len(columns)):
-            raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
-        if sort_by := self.form_data.get("timeseries_limit_metric"):
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                query_obj["orderby"] = [
-                    (sort_by, not self.form_data.get("order_desc", True))
-                ]
-        return query_obj
-
-    @staticmethod
-    @deprecated(deprecated_in="3.0")
-    def get_aggfunc(
-        metric: str, df: pd.DataFrame, form_data: dict[str, Any]
-    ) -> str | Callable[[Any], Any]:
-        aggfunc = form_data.get("pandas_aggfunc") or "sum"
-        if pd.api.types.is_numeric_dtype(df[metric]):
-            # Ensure that Pandas's sum function mimics that of SQL.
-            if aggfunc == "sum":
-                return lambda x: x.sum(min_count=1)
-        # only min and max work properly for non-numerics
-        return aggfunc if aggfunc in ("min", "max") else "max"
-
-    @staticmethod
-    @deprecated(deprecated_in="3.0")
-    def _format_datetime(value: pd.Timestamp | datetime | date | str) -> str:
-        """
-        Format a timestamp in such a way that the viz will be able to apply
-        the correct formatting in the frontend.
-
-        :param value: the value of a temporal column
-        :return: formatted timestamp if it is a valid timestamp, otherwise
-                 the original value
-        """
-        tstamp: pd.Timestamp | None = None
-        if isinstance(value, pd.Timestamp):
-            tstamp = value
-        if isinstance(value, (date, datetime)):
-            tstamp = pd.Timestamp(value)
-        if isinstance(value, str):
-            try:
-                tstamp = pd.Timestamp(value)
-            except ValueError:
-                pass
-        if tstamp:
-            return f"__timestamp:{datetime_to_epoch(tstamp)}"
-        # fallback in case something incompatible is returned
-        return cast(str, value)
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-
-        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
-        aggfuncs: dict[str, str | Callable[[Any], Any]] = {}
-        for metric in metrics:
-            aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
-
-        groupby = self.form_data.get("groupby") or []
-        columns = self.form_data.get("columns") or []
-
-        for column in groupby + columns:
-            if is_adhoc_column(column):
-                # TODO: check data type
-                pass
-            else:
-                column_obj = self.datasource.get_column(column)
-                if column_obj and column_obj.is_temporal:
-                    ts = df[column].apply(self._format_datetime)
-                    df[column] = ts
-
-        if self.form_data.get("transpose_pivot"):
-            groupby, columns = columns, groupby
-
-        df = df.pivot_table(
-            index=get_column_names(groupby),
-            columns=get_column_names(columns),
-            values=metrics,
-            aggfunc=aggfuncs,
-            margins=self.form_data.get("pivot_margins"),
-            margins_name=__("Total"),
-        )
-
-        # Re-order the columns adhering to the metric ordering.
-        df = df[metrics]
-
-        # Display metrics side by side with each column
-        if self.form_data.get("combine_metric"):
-            df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
-        return dict(
-            columns=list(df.columns),
-            html=df.to_html(
-                na_rep="null",
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed table-hover"
-                ).split(" "),
-            ),
-        )
-
-
-class TreemapViz(BaseViz):
-
-    """Tree map visualisation for hierarchical data."""
-
-    viz_type = "treemap"
-    verbose_name = _("Treemap")
-    credits = '<a href="https://d3js.org">d3.js</a>'
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        if sort_by := self.form_data.get("timeseries_limit_metric"):
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                query_obj["orderby"] = [
-                    (sort_by, not self.form_data.get("order_desc", True))
-                ]
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def _nest(self, metric: str, df: pd.DataFrame) -> list[dict[str, Any]]:
-        nlevels = df.index.nlevels
-        if nlevels == 1:
-            result = [{"name": n, "value": v} for n, v in zip(df.index, df[metric])]
-        else:
-            result = [
-                {"name": l, "children": self._nest(metric, df.loc[l])}
-                for l in df.index.levels[0]
-            ]
-        return result
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        df = df.set_index(get_column_names(self.form_data.get("groupby")))
-        chart_data = [
-            {"name": metric, "children": self._nest(metric, df)}
-            for metric in df.columns
-        ]
-        return chart_data
-
-
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
@@ -1173,11 +975,9 @@ class CalHeatmapViz(BaseViz):
             "month": "P1M",
             "year": "P1Y",
         }
-        time_grain = mapping[self.form_data.get("subdomain_granularity", "min")]
-        if self.datasource.type == "druid":
-            query_obj["granularity"] = time_grain
-        else:
-            query_obj["extras"]["time_grain_sqla"] = time_grain
+        query_obj["extras"]["time_grain_sqla"] = mapping[
+            self.form_data.get("subdomain_granularity", "min")
+        ]
         return query_obj
 
 
@@ -1423,11 +1223,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     @deprecated(deprecated_in="3.0")
     def process_data(self, df: pd.DataFrame, aggregate: bool = False) -> VizData:
-        if self.form_data.get("granularity") == "all":
-            raise QueryObjectValidationError(
-                _("Pick a time granularity for your time series")
-            )
-
         if df.empty:
             return df
 
@@ -1543,162 +1338,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if not self.sort_series:
             chart_data = sorted(chart_data, key=lambda x: tuple(x["key"]))
-        return chart_data
-
-
-class MultiLineViz(NVD3Viz):
-
-    """Pile on multiple line charts"""
-
-    viz_type = "line_multi"
-    verbose_name = _("Time Series - Multiple Line Charts")
-
-    is_timeseries = True
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        return {}
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        # pylint: disable=import-outside-toplevel,too-many-locals
-        multiline_fd = self.form_data
-        # Late import to avoid circular import issues
-        from superset.charts.dao import ChartDAO
-
-        axis1_chart_ids = multiline_fd.get("line_charts", [])
-        axis2_chart_ids = multiline_fd.get("line_charts_2", [])
-        all_charts = {
-            chart.id: chart
-            for chart in ChartDAO.find_by_ids(axis1_chart_ids + axis2_chart_ids)
-        }
-        axis1_charts = [all_charts[chart_id] for chart_id in axis1_chart_ids]
-        axis2_charts = [all_charts[chart_id] for chart_id in axis2_chart_ids]
-
-        filters = multiline_fd.get("filters", [])
-        add_prefix = multiline_fd.get("prefix_metric_with_slice_name", False)
-        data = []
-        min_x, max_x = None, None
-
-        for chart, y_axis in [(chart, 1) for chart in axis1_charts] + [
-            (chart, 2) for chart in axis2_charts
-        ]:
-            prefix = f"{chart.chart}: " if add_prefix else ""
-            chart_fd = chart.form_data
-            chart_fd["filters"] = chart_fd.get("filters", []) + filters
-            if "extra_filters" in multiline_fd:
-                chart_fd["extra_filters"] = multiline_fd["extra_filters"]
-            if "time_range" in multiline_fd:
-                chart_fd["time_range"] = multiline_fd["time_range"]
-            viz_obj = viz_types[chart.viz_type](
-                chart.datasource,
-                form_data=chart_fd,
-                force=self.force,
-                force_cached=self.force_cached,
-            )
-            df = viz_obj.get_df_payload()["df"]
-            chart_series = viz_obj.get_data(df) or []
-            for series in chart_series:
-                x_values = [value["x"] for value in series["values"]]
-                min_x = min(x_values + ([min_x] if min_x is not None else []))
-                max_x = max(x_values + ([max_x] if max_x is not None else []))
-                series_key = (
-                    series["key"]
-                    if isinstance(series["key"], (list, tuple))
-                    else [series["key"]]
-                )
-                data.append(
-                    {
-                        "key": prefix + ", ".join(series_key),
-                        "type": "line",
-                        "values": series["values"],
-                        "yAxis": y_axis,
-                    }
-                )
-        bounds = []
-        if min_x is not None:
-            bounds.append({"x": min_x, "y": None})
-        if max_x is not None:
-            bounds.append({"x": max_x, "y": None})
-
-        for series in data:
-            series["values"].extend(bounds)
-        return data
-
-
-class NVD3DualLineViz(NVD3Viz):
-
-    """A rich line chart with dual axis"""
-
-    viz_type = "dual_line"
-    verbose_name = _("Time Series - Dual Axis Line Chart")
-    sort_series = False
-    is_timeseries = True
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        m1 = self.form_data.get("metric")
-        m2 = self.form_data.get("metric_2")
-        if not m1:
-            raise QueryObjectValidationError(_("Pick a metric for left axis!"))
-        if not m2:
-            raise QueryObjectValidationError(_("Pick a metric for right axis!"))
-        if m1 == m2:
-            raise QueryObjectValidationError(
-                _("Please choose different metrics" " on left and right axis")
-            )
-        query_obj["metrics"] = [m1, m2]
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def to_series(self, df: pd.DataFrame, classed: str = "") -> list[dict[str, Any]]:
-        cols = []
-        for col in df.columns:
-            if col == "":
-                cols.append("N/A")
-            elif col is None:
-                cols.append("NULL")
-            else:
-                cols.append(col)
-        df.columns = cols
-        series = df.to_dict("series")
-        chart_data = []
-        metrics = [self.form_data["metric"], self.form_data["metric_2"]]
-        for i, metric in enumerate(metrics):
-            metric_name = utils.get_metric_name(metric)
-            ys = series[metric_name]
-            if df[metric_name].dtype.kind not in "biufc":
-                continue
-            series_title = metric_name
-            chart_data.append(
-                {
-                    "key": series_title,
-                    "classed": classed,
-                    "values": [
-                        {"x": ds, "y": ys[ds] if ds in ys else None} for ds in df.index
-                    ],
-                    "yAxis": i + 1,
-                    "type": "line",
-                }
-            )
-        return chart_data
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        if self.form_data.get("granularity") == "all":
-            raise QueryObjectValidationError(
-                _("Pick a time granularity for your time series")
-            )
-
-        metric = utils.get_metric_name(self.form_data["metric"])
-        metric_2 = utils.get_metric_name(self.form_data["metric_2"])
-        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
-
-        chart_data = self.to_series(df)
         return chart_data
 
 
@@ -2746,9 +2385,7 @@ class DeckScatterViz(BaseDeckGLViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         self.point_radius_fixed = self.form_data.get("point_radius_fixed") or {
             "type": "fix",
             "value": 500,
@@ -2801,9 +2438,7 @@ class DeckScreengrid(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")
@@ -2874,9 +2509,7 @@ class DeckPathViz(BaseDeckGLViz):
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         query_obj = super().query_obj()
         self.metric = self.form_data.get("metric")
         line_col = self.form_data.get("line_column")
@@ -3023,9 +2656,7 @@ class DeckArc(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        self.is_timeseries = bool(
-            self.form_data.get("time_grain_sqla") or self.form_data.get("granularity")
-        )
+        self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")

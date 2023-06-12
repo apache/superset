@@ -334,7 +334,6 @@ export type SharedSectionAlias =
   | 'annotations'
   | 'colorScheme'
   | 'datasourceAndVizType'
-  | 'druidTimeSeries'
   | 'sqlaTimeSeries'
   | 'NVD3TimeSeries';
 

@@ -513,7 +513,8 @@ def execute_sql_statements(
                 )
                 return payload
         # Commit the connection so CTA queries will create the table.
-        conn.commit()
+        if apply_ctas:
+            conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size

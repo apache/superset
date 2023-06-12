@@ -84,9 +84,6 @@ export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 
-export const START_QUERY_VALIDATION = 'START_QUERY_VALIDATION';
-export const QUERY_VALIDATION_RETURNED = 'QUERY_VALIDATION_RETURNED';
-export const QUERY_VALIDATION_FAILED = 'QUERY_VALIDATION_FAILED';
 export const COST_ESTIMATE_STARTED = 'COST_ESTIMATE_STARTED';
 export const COST_ESTIMATE_RETURNED = 'COST_ESTIMATE_RETURNED';
 export const COST_ESTIMATE_FAILED = 'COST_ESTIMATE_FAILED';
@@ -137,21 +134,6 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
 
 export function resetState() {
   return { type: RESET_STATE };
-}
-
-export function startQueryValidation(query) {
-  Object.assign(query, {
-    id: query.id ? query.id : shortid.generate(),
-  });
-  return { type: START_QUERY_VALIDATION, query };
-}
-
-export function queryValidationReturned(query, results) {
-  return { type: QUERY_VALIDATION_RETURNED, query, results };
-}
-
-export function queryValidationFailed(query, message, error) {
-  return { type: QUERY_VALIDATION_FAILED, query, message, error };
 }
 
 export function updateQueryEditor(alterations) {
@@ -437,49 +419,6 @@ export function reRunQuery(query) {
   // run Query with a new id
   return function (dispatch) {
     dispatch(runQuery({ ...query, id: shortid.generate() }));
-  };
-}
-
-export function validateQuery(queryEditor, sql) {
-  return function (dispatch, getState) {
-    const {
-      sqlLab: { unsavedQueryEditor },
-    } = getState();
-    const qe = {
-      ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-    };
-
-    const query = {
-      dbId: qe.dbId,
-      sql,
-      sqlEditorId: qe.id,
-      schema: qe.schema,
-      templateParams: qe.templateParams,
-    };
-    dispatch(startQueryValidation(query));
-
-    const postPayload = {
-      schema: query.schema,
-      sql: query.sql,
-      template_params: query.templateParams,
-    };
-
-    return SupersetClient.post({
-      endpoint: `/api/v1/database/${query.dbId}/validate_sql/`,
-      body: JSON.stringify(postPayload),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(({ json }) => dispatch(queryValidationReturned(query, json.result)))
-      .catch(response =>
-        getClientErrorObject(response.result).then(error => {
-          let message = error.error || error.statusText || t('Unknown error');
-          if (message.includes('CSRF token')) {
-            message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
-          }
-          dispatch(queryValidationFailed(query, message, error));
-        }),
-      );
   };
 }
 
