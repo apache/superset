@@ -39,6 +39,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
+from sqlalchemy.orm import lazyload, load_only
 
 from superset import (
     app,
@@ -201,22 +202,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/datasources/")
-    @deprecated(new_target="api/v1/dataset/")
-    def datasources(self) -> FlaskResponse:
-        return self.json_response(
-            sorted(
-                [
-                    datasource.short_data
-                    for datasource in security_manager.get_user_datasources()
-                    if datasource.short_data.get("name")
-                ],
-                key=lambda datasource: datasource["name"],
-            )
-        )
 
     @has_access
     @event_logger.log_this
@@ -972,9 +957,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         extra_dict_by_name = {
             table.name: table.extra_dict
             for table in (
-                db.session.query(SqlaTable).filter(
+                db.session.query(SqlaTable)
+                .filter(
                     SqlaTable.database_id == database.id,
                     SqlaTable.schema == schema_parsed,
+                )
+                .options(
+                    load_only(SqlaTable.schema, SqlaTable.table_name, SqlaTable.extra),
+                    lazyload(SqlaTable.columns),
+                    lazyload(SqlaTable.metrics),
                 )
             ).all()
         }

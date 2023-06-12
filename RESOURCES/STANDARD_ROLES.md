@@ -72,7 +72,6 @@
 |can copy dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can publish on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csv on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can datasources on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave dashboards by username on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sql json on Superset|:heavy_check_mark:|O|O|:heavy_check_mark:|
 |can slice on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
