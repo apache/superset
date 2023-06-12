@@ -69,7 +69,6 @@
 |can sqllab viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can schemas on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab history on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can copy dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can publish on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csv on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can datasources on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -91,9 +90,7 @@
 |can created slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can testconn on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can annotation json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can save dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can recent activity on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can select star on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
