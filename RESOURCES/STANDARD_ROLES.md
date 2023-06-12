@@ -71,14 +71,12 @@
 |can sqllab history on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can publish on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csv on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can datasources on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave dashboards by username on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sql json on Superset|:heavy_check_mark:|O|O|:heavy_check_mark:|
 |can slice on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sync druid source on Superset|:heavy_check_mark:|O|O|O|
 |can explore on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can tables on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can slice json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can approve on Superset|:heavy_check_mark:|O|O|O|
 |can explore json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -102,7 +100,6 @@
 |can queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can filter on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can results on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
