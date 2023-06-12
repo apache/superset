@@ -102,7 +102,6 @@
 |can queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can filter on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can expanded on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
