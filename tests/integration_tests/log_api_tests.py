@@ -28,9 +28,9 @@ from unittest.mock import patch
 from superset import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
-
 from .base_tests import SupersetTestCase
 
 
@@ -159,6 +159,7 @@ class TestLogApi(SupersetTestCase):
         db.session.delete(log)
         db.session.commit()
 
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
     def test_get_recent_activity_no_broad_access(self):
         """
         Log API: Test recent activity not visible for other users without
@@ -166,12 +167,10 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         self.login(username="admin")
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
 
         uri = f"api/v1/log/recent_activity/{admin_user.id + 1}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 403)
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
 
     def test_get_recent_activity(self):
         """
