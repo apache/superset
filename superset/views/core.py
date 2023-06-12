@@ -2306,7 +2306,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Prevent returning 404 when user is not found to prevent username scanning
         user_id = -1 if not user else user.id
         # Prevent unauthorized access to other user's profiles,
-        # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
+        # unless configured to do so with ENABLE_BROAD_ACTIVITY_ACCESS
         if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
