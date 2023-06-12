@@ -128,7 +128,6 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -183,7 +182,6 @@ DATABASE_KEYS = [
     "disable_data_preview",
 ]
 
-DASHBOARD_LIST_URL = "/dashboard/list/"
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 PARAMETER_MISSING_ERR = __(
@@ -1482,76 +1480,57 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
-    @check_dashboard_access(
-        on_error=lambda msg: redirect_with_flash(DASHBOARD_LIST_URL, msg, "danger")
-    )
     def dashboard(
         self,
-        dashboard_id_or_slug: str,  # pylint: disable=unused-argument
+        dashboard_id_or_slug: str,
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
-        dashboard: Dashboard | None = None,
     ) -> FlaskResponse:
         """
-        Server side rendering for a dashboard
-        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        Server side rendering for a dashboard.
+
+        :param dashboard_id_or_slug: identifier for dashboard
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
-        :param dashboard: added by `check_dashboard_access`
         """
+
+        dashboard = Dashboard.get(dashboard_id_or_slug)
+
         if not dashboard:
             abort(404)
 
-        assert dashboard is not None
-
-        has_access_ = False
-        for datasource in dashboard.datasources:
-            datasource = DatasourceDAO.get_datasource(
-                datasource_type=DatasourceType(datasource.type),
-                datasource_id=datasource.id,
-                session=db.session(),
+        try:
+            security_manager.raise_for_dashboard_access(dashboard)
+        except DashboardAccessDeniedError as ex:
+            return redirect_with_flash(
+                url="/dashboard/list/",
+                message=utils.error_msg_from_exception(ex),
+                category="danger",
             )
-            if datasource and security_manager.can_access_datasource(
-                datasource=datasource,
-            ):
-                has_access_ = True
-
-            if has_access_:
-                break
-
-        if dashboard.datasources and not has_access_:
-            flash(DashboardAccessDeniedError.message, "danger")
-            return redirect(DASHBOARD_LIST_URL)
-
-        dash_edit_perm = security_manager.is_owner(
-            dashboard
-        ) and security_manager.can_access("can_save_dash", "Superset")
-        edit_mode = (
-            request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
-        )
-
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
 
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
-            dash_edit_perm=dash_edit_perm,
-            edit_mode=edit_mode,
+            dash_edit_perm=(
+                security_manager.is_owner(dashboard)
+                and security_manager.can_access("can_save_dash", "Superset")
+            ),
+            edit_mode=(
+                request.args.get(ReservedUrlParameters.EDIT_MODE.value) == "true"
+            ),
         )
-
-        bootstrap_data = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
-        }
 
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            # dashboard title is always visible
-            title=dashboard.dashboard_title,
+            title=dashboard.dashboard_title,  # dashboard title is always visible
             bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                {
+                    "user": bootstrap_user_data(g.user, include_perms=True),
+                    "common": common_bootstrap_payload(g.user),
+                },
+                default=utils.pessimistic_json_iso_dttm_ser,
             ),
-            standalone_mode=standalone_mode,
+            standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
     @has_access
