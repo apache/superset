@@ -58,6 +58,7 @@ from sqlalchemy.orm import (
     backref,
     Mapped,
     Query,
+    reconstructor,
     relationship,
     RelationshipProperty,
     Session,
@@ -218,6 +219,30 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
 
+    def __init__(self, **kwargs: Any) -> None:
+        """
+        Construct a TableColumn object.
+
+        Historically a TableColumn object (from an ORM perspective) was tighly bound to
+        a SqlaTable object, however with the introduction of the Query datasource this
+        is no longer true, i.e., the SqlaTable relationship is optional.
+
+        Now the TableColumn is either directly associated with the Database object (
+        which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
+        the ORM) depending on the context.
+        """
+
+        self._database: Database | None = kwargs.pop("database", None)
+        super().__init__(**kwargs)
+
+    @reconstructor
+    def init_on_load(self) -> None:
+        """
+        Construct a TableColumn object when invoked via the SQLAlchemy ORM.
+        """
+
+        self._database = None
+
     @property
     def is_boolean(self) -> bool:
         """
@@ -252,50 +277,32 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.type_generic == GenericDataType.TEMPORAL
 
     @property
+    def database(self) -> Database:
+        return self.table.database if self.table else self._database
+
+    @property
     def db_engine_spec(self) -> type[BaseEngineSpec]:
-        return self.table.db_engine_spec
+        return self.database.db_engine_spec
 
     @property
     def db_extra(self) -> dict[str, Any]:
-        return self.table.database.get_extra()
+        return self.database.get_extra()
 
     @property
     def type_generic(self) -> utils.GenericDataType | None:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
 
-        bool_types = ("BOOL",)
-        num_types = (
-            "DOUBLE",
-            "FLOAT",
-            "INT",
-            "BIGINT",
-            "NUMBER",
-            "LONG",
-            "REAL",
-            "NUMERIC",
-            "DECIMAL",
-            "MONEY",
+        return (
+            column_spec.generic_type  # pylint: disable=used-before-assignment
+            if (
+                column_spec := self.db_engine_spec.get_column_spec(
+                    self.type,
+                    db_extra=self.db_extra,
+                )
+            )
+            else None
         )
-        date_types = ("DATE", "TIME")
-        str_types = ("VARCHAR", "STRING", "CHAR")
-
-        if self.table is None:
-            # Query.TableColumns don't have a reference to a table.db_engine_spec
-            # reference so this logic will manage rendering types
-            if self.type and any(map(lambda t: t in self.type.upper(), str_types)):
-                return GenericDataType.STRING
-            if self.type and any(map(lambda t: t in self.type.upper(), bool_types)):
-                return GenericDataType.BOOLEAN
-            if self.type and any(map(lambda t: t in self.type.upper(), num_types)):
-                return GenericDataType.NUMERIC
-            if self.type and any(map(lambda t: t in self.type.upper(), date_types)):
-                return GenericDataType.TEMPORAL
-
-        column_spec = self.db_engine_spec.get_column_spec(
-            self.type, db_extra=self.db_extra
-        )
-        return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(
         self,
@@ -312,7 +319,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        col = self.table.make_sqla_column_compatible(col, label)
+        col = self.database.make_sqla_column_compatible(col, label)
         return col
 
     @property
@@ -343,7 +350,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
-            return self.table.make_sqla_column_compatible(sqla_col, label)
+            return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
@@ -351,7 +358,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         else:
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
-        return self.table.make_sqla_column_compatible(time_expr, label)
+        return self.database.make_sqla_column_compatible(time_expr, label)
 
     @property
     def data(self) -> dict[str, Any]:
@@ -423,7 +430,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
             expression = template_processor.process_template(expression)
 
         sqla_col: ColumnClause = literal_column(expression)
-        return self.table.make_sqla_column_compatible(sqla_col, label)
+        return self.table.database.make_sqla_column_compatible(sqla_col, label)
 
     @property
     def perm(self) -> str | None:
@@ -1007,23 +1014,6 @@ class SqlaTable(
                 time_grain=time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)
-
-    def make_sqla_column_compatible(
-        self, sqla_col: ColumnElement, label: str | None = None
-    ) -> ColumnElement:
-        """Takes a sqlalchemy column object and adds label info if supported by engine.
-        :param sqla_col: sqlalchemy column instance
-        :param label: alias/label that column is expected to have
-        :return: either a sql alchemy column or label instance if supported by engine
-        """
-        label_expected = label or sqla_col.name
-        db_engine_spec = self.db_engine_spec
-        # add quotes to tables
-        if db_engine_spec.allows_alias_in_select:
-            label = db_engine_spec.make_label_compatible(label_expected)
-            sqla_col = sqla_col.label(label)
-        sqla_col.key = label_expected
-        return sqla_col
 
     def make_orderby_compatible(
         self, select_exprs: list[ColumnElement], orderby_exprs: list[ColumnElement]

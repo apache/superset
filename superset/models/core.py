@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,too-many-lines
 """A collection of ORM sqlalchemy models for Superset"""
 import builtins
 import enum
@@ -53,7 +53,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import expression, Select
+from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db_engine_specs
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
@@ -952,6 +952,22 @@ class Database(
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()
+
+    def make_sqla_column_compatible(
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
+        """
+        label_expected = label or sqla_col.name
+        # add quotes to tables
+        if self.db_engine_spec.allows_alias_in_select:
+            label = self.db_engine_spec.make_label_compatible(label_expected)
+            sqla_col = sqla_col.label(label)
+        sqla_col.key = label_expected
+        return sqla_col
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

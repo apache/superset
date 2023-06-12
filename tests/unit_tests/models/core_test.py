@@ -207,3 +207,8 @@ def test_dttm_sql_literal(
     result: str,
 ) -> None:
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
+
+
+def test_table_column_database() -> None:
+    database = Database(database_name="db")
+    assert TableColumn(database=database).database is database
