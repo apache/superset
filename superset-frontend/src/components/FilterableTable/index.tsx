@@ -22,6 +22,7 @@ import { JSONTree } from 'react-json-tree';
 import {
   getMultipleTextDimensions,
   t,
+  safeHtmlSpan,
   styled,
   useTheme,
 } from '@superset-ui/core';
@@ -128,6 +129,7 @@ const FilterableTable = ({
   height,
   filterText = '',
   expandedColumns = [],
+  allowHTML = true,
 }: FilterableTableProps) => {
   const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
     data.map(row => {
@@ -351,6 +353,8 @@ const FilterableTable = ({
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return renderJsonModal(cellNode, jsonObject, cellData);
+    } else if (allowHTML) {
+      return safeHtmlSpan(cellData);
     }
     return content;
   };
