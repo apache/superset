@@ -86,7 +86,6 @@
 |can fetch datasource metadata on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can override role permissions on Superset|:heavy_check_mark:|O|O|O|
 |can created dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can extra table metadata on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csrf token on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can created slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can annotation json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

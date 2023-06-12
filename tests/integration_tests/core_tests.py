@@ -587,15 +587,6 @@ class TestCore(SupersetTestCase):
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_extra_table_metadata(self):
-        self.login()
-        example_db = superset.utils.database.get_example_database()
-        schema = "default" if example_db.backend in {"presto", "hive"} else "superset"
-        self.get_json_resp(
-            f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
-        )
-
     def test_required_params_in_sql_json(self):
         self.login()
         client_id = f"{random.getrandbits(64)}"[:10]

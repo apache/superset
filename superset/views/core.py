@@ -1775,23 +1775,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
 
-    @has_access
-    @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
-    @event_logger.log_this
-    @deprecated(
-        new_target="api/v1/database/<int:pk>/table_extra/<table_name>/<schema_name>/"
-    )
-    def extra_table_metadata(  # pylint: disable=no-self-use
-        self, database_id: int, table_name: str, schema: str
-    ) -> FlaskResponse:
-        parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
-        mydb = db.session.query(Database).filter_by(id=database_id).one()
-        payload = mydb.db_engine_spec.extra_table_metadata(
-            mydb, table_name, parsed_schema
-        )
-        return json_success(json.dumps(payload))
-
     @has_access_api
     @expose("/estimate_query_cost/<int:database_id>/", methods=("POST",))
     @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=("POST",))
