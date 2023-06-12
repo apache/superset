@@ -38,9 +38,9 @@ from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
-from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
+from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
 
@@ -286,17 +286,6 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
 FAB_API_SWAGGER_UI = True
-
-# Druid query timezone
-# tz.tzutc() : Using utc timezone
-# tz.tzlocal() : Using local timezone
-# tz.gettz('Asia/Shanghai') : Using the time zone with specific name
-# [TimeZone List]
-# See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-# other tz can be overridden by providing a local_config
-DRUID_TZ = tz.tzutc()
-DRUID_ANALYSIS_TYPES = ["cardinality"]
-
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -773,6 +762,17 @@ TIME_GRAIN_ADDONS: dict[str, str] = {}
 # }
 TIME_GRAIN_ADDON_EXPRESSIONS: dict[str, dict[str, str]] = {}
 
+# Map of custom time grains and artificial join column producers used
+# when generating the join key between results and time shifts.
+# See supeset/common/query_context_processor.get_aggregated_join_column
+#
+# Example of a join column producer that aggregates by fiscal year
+# def join_producer(row: Series, column_index: int) -> str:
+#    return row[index].strftime("%F")
+#
+# TIME_GRAIN_JOIN_COLUMN_PRODUCERS = {"P1F": join_producer}
+TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
+
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
 # For example: Disable pivot table and treemap:
@@ -1070,10 +1070,6 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # in whatever way.
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
 FLASK_APP_MUTATOR = None
-
-# Set this to false if you don't want users to be able to request/grant
-# datasource access requests from/to other users.
-ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun

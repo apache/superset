@@ -143,7 +143,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
-    READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -164,12 +164,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
-        "AccessRequestsModelView",
         "Action Log",
         "Log",
         "List Users",
         "List Roles",
-        "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
         "Row Level Security",
@@ -196,9 +194,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_sync_druid_source",
-        "can_override_role_permissions",
-        "can_approve",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
@@ -375,8 +370,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
-        Note for Druid the database is akin to the Druid cluster.
-
         :param database: The Superset database
         :returns: Whether the user can fully access the Superset database
         """
@@ -391,9 +384,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Return True if the user can fully access the schema associated with the Superset
         datasource, False otherwise.
-
-        Note for Druid datasources the database and schema are akin to the Druid cluster
-        and datasource name prefix respectively, i.e., [schema.]datasource.
 
         :param datasource: The Superset datasource
         :returns: Whether the user can fully access the datasource's schema
@@ -774,7 +764,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Admin", self._is_admin_pvm)
         self.set_role("Alpha", self._is_alpha_pvm)
         self.set_role("Gamma", self._is_gamma_pvm)
-        self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
         # Configure public role
@@ -987,19 +976,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
-
-    def _is_granter_pvm(  # pylint: disable=no-self-use
-        self, pvm: PermissionView
-    ) -> bool:
-        """
-        Return True if the user can grant the FAB permission/view, False
-        otherwise.
-
-        :param pvm: The FAB permission/view
-        :returns: Whether the user can grant the FAB permission/view
-        """
-
-        return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
     def database_after_insert(
         self,

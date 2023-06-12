@@ -348,7 +348,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
-            "uid": "2__table",
+            "uid": ANY,
             "datasource_name": "energy_usage",
             "name": f"{get_example_default_schema()}.energy_usage",
             "column_formats": {},

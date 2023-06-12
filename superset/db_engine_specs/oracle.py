@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
@@ -31,14 +32,14 @@ class OracleEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST({col} as DATE)",
-        "PT1M": "TRUNC(CAST({col} as DATE), 'MI')",
-        "PT1H": "TRUNC(CAST({col} as DATE), 'HH')",
-        "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
-        "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
-        "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
-        "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
+        TimeGrain.SECOND: "CAST({col} as DATE)",
+        TimeGrain.MINUTE: "TRUNC(CAST({col} as DATE), 'MI')",
+        TimeGrain.HOUR: "TRUNC(CAST({col} as DATE), 'HH')",
+        TimeGrain.DAY: "TRUNC(CAST({col} as DATE), 'DDD')",
+        TimeGrain.WEEK: "TRUNC(CAST({col} as DATE), 'WW')",
+        TimeGrain.MONTH: "TRUNC(CAST({col} as DATE), 'MONTH')",
+        TimeGrain.QUARTER: "TRUNC(CAST({col} as DATE), 'Q')",
+        TimeGrain.YEAR: "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
