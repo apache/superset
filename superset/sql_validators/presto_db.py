@@ -57,16 +57,19 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         db_engine_spec = database.db_engine_spec
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
+        logger.info("QUERYY==",sql)
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        # sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        # if sql_query_mutator:
-        #     sql = sql_query_mutator(
-        #         sql,
-        #         user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
-        #         security_manager=security_manager,
-        #         database=database,
-        #     )
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        if sql_query_mutator:
+            sql = sql_query_mutator(
+                sql,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+                security_manager=security_manager,
+                database=database,
+                query_source = "Sql Lab" or None,
+                query_id = None
+            )
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
@@ -127,19 +130,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     message=message, line_number=1, start_column=1, end_column=1
                 )
 
-            # pylint: disable=invalid-sequence-index
-            message = error_args["message"]
-            err_loc = error_args["errorLocation"]
-            line_number = err_loc.get("lineNumber", None)
-            start_column = err_loc.get("columnNumber", None)
-            end_column = err_loc.get("columnNumber", None)
-
-            return SQLValidationAnnotation(
-                message=message,
-                line_number=line_number,
-                start_column=start_column,
-                end_column=end_column,
-            )
+            return cls.construct_annotations(error_args)
         except TrinoUserError as db_error:
             if db_error.args and isinstance(db_error.args[0], str):
                 raise TrinoSQLValidationError(db_error.args[0]) from db_error
