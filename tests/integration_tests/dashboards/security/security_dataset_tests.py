@@ -22,6 +22,7 @@ import pytest
 from flask import escape
 
 from superset import app
+from superset.dashboards.dao import DashboardDAO
 from superset.models import core as models
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *
@@ -223,7 +224,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         """
         admin = self.get_user("admin")
         title = f"title{random_str()}"
-        create_dashboard_to_db(title, "slug1", owners=[admin])
+        dashboard = create_dashboard_to_db(title, "slug1", owners=[admin])
 
         self.login(username="gamma")
         arguments = {
@@ -234,3 +235,4 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
+        DashboardDAO.delete(dashboard)

@@ -472,6 +472,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
     "AVOID_COLORS_COLLISION": True,
+    # Set to False to only allow viewing own recent activity
+    # or to disallow users from viewing other users profile page
+    "ENABLE_BROAD_ACTIVITY_ACCESS": False,
+    # Do not show user info or profile in the menu
+    "MENU_HIDE_USER_INFO": False,
 }
 
 # ------------------------------
@@ -1476,13 +1481,6 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 #            cache_manager.cache.set(name, code, timeout=0)
 #
 DATASET_HEALTH_CHECK: Callable[[SqlaTable], str] | None = None
-
-# Do not show user info or profile in the menu
-MENU_HIDE_USER_INFO = False
-
-# Set to False to only allow viewing own recent activity
-# or to disallow users from viewing other users profile page
-ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # the advanced data type key should correspond to that set in the column metadata
 ADVANCED_DATA_TYPES: dict[str, AdvancedDataType] = {
