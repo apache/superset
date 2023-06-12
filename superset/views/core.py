@@ -38,7 +38,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
-from sqlalchemy.orm import lazyload, load_only
 
 from superset import (
     app,
