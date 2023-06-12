@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from textwrap import dedent
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
 from sqlalchemy import types
@@ -130,8 +130,8 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:

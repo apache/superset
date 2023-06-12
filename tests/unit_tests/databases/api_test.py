@@ -77,6 +77,7 @@ def test_password_mask(
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
 
     database = Database(
+        uuid=UUID("02feae18-2dd6-4bb4-a9c0-49e9d4f29d58"),
         database_name="my_database",
         sqlalchemy_uri="gsheets://",
         encrypted_extra=json.dumps(
@@ -103,12 +104,159 @@ def test_password_mask(
     mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
     mocker.patch("superset.utils.log.DBEventLogger.log")
 
-    response = client.get("/api/v1/database/1")
+    response = client.get("/api/v1/database/1/connection")
+
+    # check that private key is masked
     assert (
         response.json["result"]["parameters"]["service_account_info"]["private_key"]
         == "XXXXXXXXXX"
     )
     assert "encrypted_extra" not in response.json["result"]
+
+
+def test_database_connection(
+    mocker: MockFixture,
+    app: Any,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that connection info is only returned in ``api/v1/database/${id}/connection``.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel.session = session
+
+    # create table for databases
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(
+        uuid=UUID("02feae18-2dd6-4bb4-a9c0-49e9d4f29d58"),
+        database_name="my_database",
+        sqlalchemy_uri="gsheets://",
+        encrypted_extra=json.dumps(
+            {
+                "service_account_info": {
+                    "type": "service_account",
+                    "project_id": "black-sanctum-314419",
+                    "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                    "private_key": "SECRET",
+                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                    "client_id": "114567578578109757129",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                },
+            }
+        ),
+    )
+    session.add(database)
+    session.commit()
+
+    # mock the lookup so that we don't need to include the driver
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.json == {
+        "id": 1,
+        "result": {
+            "allow_ctas": False,
+            "allow_cvas": False,
+            "allow_dml": False,
+            "allow_file_upload": False,
+            "allow_run_async": False,
+            "backend": "gsheets",
+            "cache_timeout": None,
+            "configuration_method": "sqlalchemy_form",
+            "database_name": "my_database",
+            "driver": "gsheets",
+            "engine_information": {
+                "disable_ssh_tunneling": True,
+                "supports_file_upload": False,
+            },
+            "expose_in_sqllab": True,
+            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',
+            "force_ctas_schema": None,
+            "id": 1,
+            "impersonate_user": False,
+            "is_managed_externally": False,
+            "masked_encrypted_extra": json.dumps(
+                {
+                    "service_account_info": {
+                        "type": "service_account",
+                        "project_id": "black-sanctum-314419",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key": "XXXXXXXXXX",
+                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                        "client_id": "114567578578109757129",
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                    }
+                }
+            ),
+            "parameters": {
+                "service_account_info": {
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                    "client_id": "114567578578109757129",
+                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                    "private_key": "XXXXXXXXXX",
+                    "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                    "project_id": "black-sanctum-314419",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "type": "service_account",
+                }
+            },
+            "parameters_schema": {
+                "properties": {
+                    "catalog": {"type": "object"},
+                    "service_account_info": {
+                        "description": "Contents of GSheets JSON credentials.",
+                        "type": "string",
+                        "x-encrypted-extra": True,
+                    },
+                },
+                "type": "object",
+            },
+            "server_cert": None,
+            "sqlalchemy_uri": "gsheets://",
+            "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
+        },
+    }
+
+    response = client.get("/api/v1/database/1")
+    assert response.json == {
+        "id": 1,
+        "result": {
+            "allow_ctas": False,
+            "allow_cvas": False,
+            "allow_dml": False,
+            "allow_file_upload": False,
+            "allow_run_async": False,
+            "backend": "gsheets",
+            "cache_timeout": None,
+            "configuration_method": "sqlalchemy_form",
+            "database_name": "my_database",
+            "driver": "gsheets",
+            "engine_information": {
+                "disable_ssh_tunneling": True,
+                "supports_file_upload": False,
+            },
+            "expose_in_sqllab": True,
+            "force_ctas_schema": None,
+            "id": 1,
+            "impersonate_user": False,
+            "is_managed_externally": False,
+            "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
+        },
+    }
 
 
 @pytest.mark.skip(reason="Works locally but fails on CI")

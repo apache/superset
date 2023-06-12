@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from pandas import DataFrame
 from sqlalchemy.inspection import inspect
@@ -63,12 +63,11 @@ class PandasDataLoader(DataLoader):
             schema=self._detect_schema_name(),
         )
 
-    def _detect_schema_name(self) -> Optional[str]:
+    def _detect_schema_name(self) -> str | None:
         return inspect(self._db_engine).default_schema_name
 
-    def _take_data_types(self, table: Table) -> Optional[Dict[str, str]]:
-        metadata_table = table.table_metadata
-        if metadata_table:
+    def _take_data_types(self, table: Table) -> dict[str, str] | None:
+        if metadata_table := table.table_metadata:
             types = metadata_table.types
             if types:
                 return types

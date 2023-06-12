@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
-from typing import Any, Dict, List
+from typing import Any
 
 from sqlalchemy import Column
 
@@ -26,7 +26,7 @@ from superset.advanced_data_type.types import (
 )
 from superset.utils.core import FilterOperator, FilterStringOperators
 
-port_conversion_dict: Dict[str, List[int]] = {
+port_conversion_dict: dict[str, list[int]] = {
     "http": [80],
     "ssh": [22],
     "https": [443],
@@ -100,7 +100,7 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
 
 
 def port_translate_filter_func(
-    col: Column, operator: FilterOperator, values: List[Any]
+    col: Column, operator: FilterOperator, values: list[Any]
 ) -> Any:
     """
     Convert a passed in column, FilterOperator

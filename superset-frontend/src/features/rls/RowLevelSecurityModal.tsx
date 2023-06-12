@@ -401,7 +401,9 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {t('Roles')}{' '}
+              {currentRule.filter_type === FilterType.BASE
+                ? t('Excluded roles')
+                : t('Roles')}{' '}
               <InfoTooltip
                 tooltip={t(
                   'For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',

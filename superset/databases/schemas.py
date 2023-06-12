@@ -19,7 +19,7 @@
 
 import inspect
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -263,8 +263,8 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
     @pre_load
     def build_sqlalchemy_uri(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Build SQLAlchemy URI from separate parameters.
 
@@ -325,9 +325,9 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
 def rename_encrypted_extra(
     self: Schema,
-    data: Dict[str, Any],
+    data: dict[str, Any],
     **kwargs: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Rename ``encrypted_extra`` to ``masked_encrypted_extra``.
 
@@ -707,8 +707,8 @@ class DatabaseFunctionNamesResponse(Schema):
 class ImportV1DatabaseExtraSchema(Schema):
     @pre_load
     def fix_schemas_allowed_for_csv_upload(  # pylint: disable=invalid-name
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Fixes for ``schemas_allowed_for_csv_upload``.
         """
@@ -744,8 +744,8 @@ class ImportV1DatabaseExtraSchema(Schema):
 class ImportV1DatabaseSchema(Schema):
     @pre_load
     def fix_allow_csv_upload(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Fix for ``allow_csv_upload`` .
         """
@@ -775,7 +775,7 @@ class ImportV1DatabaseSchema(Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
     @validates_schema
-    def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
+    def validate_password(self, data: dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
         uuid = data["uuid"]
         existing = db.session.query(Database).filter_by(uuid=uuid).first()
@@ -789,7 +789,7 @@ class ImportV1DatabaseSchema(Schema):
 
     @validates_schema
     def validate_ssh_tunnel_credentials(
-        self, data: Dict[str, Any], **kwargs: Any
+        self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """If ssh_tunnel has a masked credentials, credentials are required"""
         uuid = data["uuid"]
@@ -829,7 +829,7 @@ class ImportV1DatabaseSchema(Schema):
                 # or there're times where it's masked.
                 # If both are masked, we need to return a list of errors
                 # so the UI ask for both fields at the same time if needed
-                exception_messages: List[str] = []
+                exception_messages: list[str] = []
                 if private_key is None or private_key == PASSWORD_MASK:
                     # If we get here we need to ask for the private key
                     exception_messages.append(
@@ -864,7 +864,7 @@ class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 
-def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
+def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
         if self.openapi_version.major > 2:
@@ -879,4 +879,87 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
             "description": "The list of schemas allowed for the database to upload "
             "information"
         },
+    )
+
+
+class DatabaseConnectionSchema(Schema):
+    """
+    Schema with database connection information.
+
+    This is only for admins (who have ``can_create`` on ``Database``).
+    """
+
+    allow_ctas = fields.Boolean(metadata={"description": allow_ctas_description})
+    allow_cvas = fields.Boolean(metadata={"description": allow_cvas_description})
+    allow_dml = fields.Boolean(metadata={"description": allow_dml_description})
+    allow_file_upload = fields.Boolean(
+        metadata={"description": allow_file_upload_description}
+    )
+    allow_run_async = fields.Boolean(
+        metadata={"description": allow_run_async_description}
+    )
+    backend = fields.String(
+        allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
+    )
+    cache_timeout = fields.Integer(
+        metadata={"description": cache_timeout_description}, allow_none=True
+    )
+    configuration_method = fields.String(
+        metadata={"description": configuration_method_description},
+    )
+    database_name = fields.String(
+        metadata={"description": database_name_description},
+        allow_none=True,
+        validate=Length(1, 250),
+    )
+    driver = fields.String(
+        allow_none=True, metadata={"description": "SQLAlchemy driver to use"}
+    )
+    engine_information = fields.Dict(keys=fields.String(), values=fields.Raw())
+    expose_in_sqllab = fields.Boolean(
+        metadata={"description": expose_in_sqllab_description}
+    )
+    extra = fields.String(
+        metadata={"description": extra_description}, validate=extra_validator
+    )
+    force_ctas_schema = fields.String(
+        metadata={"description": force_ctas_schema_description},
+        allow_none=True,
+        validate=Length(0, 250),
+    )
+    id = fields.Integer(metadata={"description": "Database ID (for updates)"})
+    impersonate_user = fields.Boolean(
+        metadata={"description": impersonate_user_description}
+    )
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    server_cert = fields.String(
+        metadata={"description": server_cert_description},
+        allow_none=True,
+        validate=server_cert_validator,
+    )
+    uuid = fields.String(required=False)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    masked_encrypted_extra = fields.String(
+        metadata={"description": encrypted_extra_description},
+        validate=encrypted_extra_validator,
+        allow_none=True,
+    )
+    parameters = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(),
+        metadata={"description": "DB-specific parameters for configuration"},
+    )
+    parameters_schema = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(),
+        metadata={
+            "description": (
+                "JSONSchema for configuring the database by "
+                "parameters instead of SQLAlchemy URI"
+            ),
+        },
+    )
+    sqlalchemy_uri = fields.String(
+        metadata={"description": sqlalchemy_uri_description},
+        validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )

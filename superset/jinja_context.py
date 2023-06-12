@@ -18,17 +18,7 @@
 import json
 import re
 from functools import lru_cache, partial
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
@@ -71,14 +61,14 @@ COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
-def context_addons() -> Dict[str, Any]:
+def context_addons() -> dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
 
 class Filter(TypedDict):
     op: str  # pylint: disable=C0103
     col: str
-    val: Union[None, Any, List[Any]]
+    val: Union[None, Any, list[Any]]
 
 
 class ExtraCache:
@@ -100,9 +90,9 @@ class ExtraCache:
 
     def __init__(
         self,
-        extra_cache_keys: Optional[List[Any]] = None,
-        applied_filters: Optional[List[str]] = None,
-        removed_filters: Optional[List[str]] = None,
+        extra_cache_keys: Optional[list[Any]] = None,
+        applied_filters: Optional[list[str]] = None,
+        removed_filters: Optional[list[str]] = None,
         dialect: Optional[Dialect] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
@@ -206,7 +196,7 @@ class ExtraCache:
 
     def filter_values(
         self, column: str, default: Optional[str] = None, remove_filter: bool = False
-    ) -> List[Any]:
+    ) -> list[Any]:
         """Gets a values for a particular filter as a list
 
         This is useful if:
@@ -230,7 +220,7 @@ class ExtraCache:
             only apply to the inner query
         :return: returns a list of filter values
         """
-        return_val: List[Any] = []
+        return_val: list[Any] = []
         filters = self.get_filters(column, remove_filter)
         for flt in filters:
             val = flt.get("val")
@@ -245,7 +235,7 @@ class ExtraCache:
 
         return return_val
 
-    def get_filters(self, column: str, remove_filter: bool = False) -> List[Filter]:
+    def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
         """Get the filters applied to the given column. In addition
            to returning values like the filter_values function
            the get_filters function returns the operator specified in the explorer UI.
@@ -316,10 +306,10 @@ class ExtraCache:
         convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
 
-        filters: List[Filter] = []
+        filters: list[Filter] = []
 
         for flt in form_data.get("adhoc_filters", []):
-            val: Union[Any, List[Any]] = flt.get("comparator")
+            val: Union[Any, list[Any]] = flt.get("comparator")
             op: str = flt["operator"].upper() if flt.get("operator") else None
             # fltOpName: str = flt.get("filterOptionName")
             if (
@@ -370,7 +360,7 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return return_value
 
 
-def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
+def validate_context_types(context: dict[str, Any]) -> dict[str, Any]:
     for key in context:
         arg_type = type(context[key]).__name__
         if arg_type not in ALLOWED_TYPES and key not in context_addons():
@@ -395,8 +385,8 @@ def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def validate_template_context(
-    engine: Optional[str], context: Dict[str, Any]
-) -> Dict[str, Any]:
+    engine: Optional[str], context: dict[str, Any]
+) -> dict[str, Any]:
     if engine and engine in context:
         # validate engine context separately to allow for engine-specific methods
         engine_context = validate_context_types(context.pop(engine))
@@ -407,7 +397,7 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-def where_in(values: List[Any], mark: str = "'") -> str:
+def where_in(values: list[Any], mark: str = "'") -> str:
     """
     Given a list of values, build a parenthesis list suitable for an IN expression.
 
@@ -439,9 +429,9 @@ class BaseTemplateProcessor:
         database: "Database",
         query: Optional["Query"] = None,
         table: Optional["SqlaTable"] = None,
-        extra_cache_keys: Optional[List[Any]] = None,
-        removed_filters: Optional[List[str]] = None,
-        applied_filters: Optional[List[str]] = None,
+        extra_cache_keys: Optional[list[Any]] = None,
+        removed_filters: Optional[list[str]] = None,
+        applied_filters: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> None:
         self._database = database
@@ -454,7 +444,7 @@ class BaseTemplateProcessor:
         self._extra_cache_keys = extra_cache_keys
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
-        self._context: Dict[str, Any] = {}
+        self._context: dict[str, Any] = {}
         self._env = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
@@ -530,7 +520,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     @staticmethod
     def _schema_table(
         table_name: str, schema: Optional[str]
-    ) -> Tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str]]:
         if "." in table_name:
             schema, table_name = table_name.split(".")
         return table_name, schema
@@ -547,7 +537,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         latest_partitions = self.latest_partitions(table_name)
         return latest_partitions[0] if latest_partitions else None
 
-    def latest_partitions(self, table_name: str) -> Optional[List[str]]:
+    def latest_partitions(self, table_name: str) -> Optional[list[str]]:
         """
         Gets the array of all latest partitions
 
@@ -603,7 +593,7 @@ DEFAULT_PROCESSORS = {
 
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
-def get_template_processors() -> Dict[str, Any]:
+def get_template_processors() -> dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
@@ -631,7 +621,7 @@ def get_template_processor(
 def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
-    columns: Optional[List[str]] = None,
+    columns: Optional[list[str]] = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.

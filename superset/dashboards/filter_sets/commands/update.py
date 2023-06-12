@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateFilterSetCommand(BaseFilterSetCommand):
-    def __init__(self, dashboard_id: int, filter_set_id: int, data: Dict[str, Any]):
+    def __init__(self, dashboard_id: int, filter_set_id: int, data: dict[str, Any]):
         super().__init__(dashboard_id)
         self._filter_set_id = filter_set_id
         self._properties = data.copy()

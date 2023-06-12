@@ -17,7 +17,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Optional
 from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
@@ -100,7 +100,7 @@ pytestmark = pytest.mark.usefixtures(
 )
 
 
-def get_target_from_report_schedule(report_schedule: ReportSchedule) -> List[str]:
+def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
     return [
         json.loads(recipient.recipient_config_json)["target"]
         for recipient in report_schedule.recipients
@@ -1976,9 +1976,7 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 
     assert excinfo.errisinstance(SupersetException)
     logger_mock.warning.assert_called_with(
-        (
-            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
-        )
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
     )
 
 
@@ -2021,7 +2019,5 @@ def test__send_with_server_errors(notification_mock, logger_mock):
     assert excinfo.errisinstance(SupersetException)
     # it logs the error
     logger_mock.warning.assert_called_with(
-        (
-            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
-        )
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
     )

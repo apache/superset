@@ -115,7 +115,7 @@ class TestDashboard(SupersetTestCase):
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
         for i, slc in enumerate(dash.slices):
-            id = "DASHBOARD_CHART_TYPE-{}".format(i)
+            id = f"DASHBOARD_CHART_TYPE-{i}"
             d = {
                 "type": "CHART",
                 "id": id,
@@ -167,7 +167,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -189,7 +189,7 @@ class TestDashboard(SupersetTestCase):
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -217,7 +217,7 @@ class TestDashboard(SupersetTestCase):
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
@@ -239,7 +239,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertEqual(updatedDash.dashboard_title, "new title")
@@ -264,7 +264,7 @@ class TestDashboard(SupersetTestCase):
             # set a further modified_time for unit test
             "last_modified_time": datetime.now().timestamp() + 1000,
         }
-        url = "/superset/save_dash/{}/".format(dash.id)
+        url = f"/superset/save_dash/{dash.id}/"
         self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertIn("color_namespace", updatedDash.json_metadata)
@@ -301,13 +301,13 @@ class TestDashboard(SupersetTestCase):
 
         # Save changes to Births dashboard and retrieve updated dash
         dash_id = dash.id
-        url = "/superset/save_dash/{}/".format(dash_id)
+        url = f"/superset/save_dash/{dash_id}/"
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
         orig_json_data = dash.data
 
         # Verify that copy matches original
-        url = "/superset/copy_dash/{}/".format(dash_id)
+        url = f"/superset/copy_dash/{dash_id}/"
         resp = self.get_json_resp(url, data=dict(data=json.dumps(data)))
         self.assertEqual(resp["dashboard_title"], "Copy Of Births")
         self.assertEqual(resp["position_json"], orig_json_data["position_json"])
@@ -334,7 +334,7 @@ class TestDashboard(SupersetTestCase):
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
         }
-        url = "/superset/add_slices/{}/".format(dash.id)
+        url = f"/superset/add_slices/{dash.id}/"
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SLICES ADDED" in resp.data.decode("utf-8")
 
@@ -375,7 +375,7 @@ class TestDashboard(SupersetTestCase):
 
         # save dash
         dash_id = dash.id
-        url = "/superset/save_dash/{}/".format(dash_id)
+        url = f"/superset/save_dash/{dash_id}/"
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
 

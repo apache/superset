@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,7 +32,7 @@ class AnnotationLayerDAO(BaseDAO):
 
     @staticmethod
     def bulk_delete(
-        models: Optional[List[AnnotationLayer]], commit: bool = True
+        models: Optional[list[AnnotationLayer]], commit: bool = True
     ) -> None:
         item_ids = [model.id for model in models] if models else []
         try:
@@ -46,7 +46,7 @@ class AnnotationLayerDAO(BaseDAO):
             raise DAODeleteFailedError() from ex
 
     @staticmethod
-    def has_annotations(model_id: Union[int, List[int]]) -> bool:
+    def has_annotations(model_id: Union[int, list[int]]) -> bool:
         if isinstance(model_id, list):
             return (
                 db.session.query(AnnotationLayer)

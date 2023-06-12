@@ -36,7 +36,6 @@ const metadata = new ChartMetadata({
   name: t('Big Number with Trendline'),
   tags: [
     t('Advanced-Analytics'),
-    t('Formattable'),
     t('Line'),
     t('Percentages'),
     t('Popular'),

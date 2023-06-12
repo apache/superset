@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -37,9 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 class BulkDeleteChartCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[Slice]] = None
+        self._models: Optional[list[Slice]] = None
 
     def run(self) -> None:
         self.validate()
@@ -55,8 +55,7 @@ class BulkDeleteChartCommand(BaseCommand):
         if not self._models or len(self._models) != len(self._model_ids):
             raise ChartNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_chart_ids(self._model_ids)
-        if reports:
+        if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise ChartBulkDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))

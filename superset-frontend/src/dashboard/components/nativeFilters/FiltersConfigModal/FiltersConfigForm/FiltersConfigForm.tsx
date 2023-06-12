@@ -54,6 +54,7 @@ import { Input, TextArea } from 'src/components/Input';
 import { Select, FormInstance } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { FormItem } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
@@ -72,7 +73,10 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
   getFormData,
@@ -345,7 +349,7 @@ const FiltersConfigForm = (
   ref: React.RefObject<any>,
 ) => {
   const isRemoved = !!removedFilters[filterId];
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -440,11 +444,11 @@ const FiltersConfigForm = (
 
   const setNativeFilterFieldValuesWrapper = (values: object) => {
     setNativeFilterFieldValues(form, filterId, values);
-    setError('');
+    setError(undefined);
     forceUpdate();
   };
 
-  const setErrorWrapper = (error: string) => {
+  const setErrorWrapper = (error: ClientErrorObject) => {
     setNativeFilterFieldValues(form, filterId, {
       defaultValueQueriesData: null,
     });
@@ -506,10 +510,10 @@ const FiltersConfigForm = (
                     defaultValueQueriesData: asyncResult,
                   });
                 })
-                .catch((error: ClientErrorObject) => {
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
+                .catch((error: Response) => {
+                  getClientErrorObject(error).then(clientErrorObject => {
+                    setErrorWrapper(clientErrorObject);
+                  });
                 });
             } else {
               throw new Error(
@@ -523,10 +527,8 @@ const FiltersConfigForm = (
           }
         })
         .catch((error: Response) => {
-          error.json().then(body => {
-            setErrorWrapper(
-              body.message || error.statusText || t('Check configuration'),
-            );
+          getClientErrorObject(error).then(clientErrorObject => {
+            setError(clientErrorObject);
           });
         });
     },
@@ -1224,10 +1226,15 @@ const FiltersConfigForm = (
                     {error || showDefaultValue ? (
                       <DefaultValueContainer>
                         {error ? (
-                          <BasicErrorAlert
-                            title={t('Cannot load filter')}
-                            body={error}
-                            level="error"
+                          <ErrorMessageWithStackTrace
+                            error={error.errors?.[0]}
+                            fallback={
+                              <BasicErrorAlert
+                                title={t('Cannot load filter')}
+                                body={error.error}
+                                level="error"
+                              />
+                            }
                           />
                         ) : (
                           <DefaultValue

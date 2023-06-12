@@ -16,8 +16,6 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset cache warmup"""
-import datetime
-import json
 from unittest.mock import MagicMock
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

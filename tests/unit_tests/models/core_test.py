@@ -18,7 +18,7 @@
 # pylint: disable=import-outside-toplevel
 import json
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 from pytest_mock import MockFixture
@@ -54,7 +54,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
             inspector: Inspector,
             table_name: str,
             schema: Optional[str],
-        ) -> List[MetricType]:
+        ) -> list[MetricType]:
             return [
                 {
                     "expression": "COUNT(DISTINCT user_id)",

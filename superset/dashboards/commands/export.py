@@ -20,7 +20,8 @@ import json
 import logging
 import random
 import string
-from typing import Any, Dict, Iterator, Optional, Set, Tuple
+from typing import Any, Optional
+from collections.abc import Iterator
 
 import yaml
 
@@ -52,7 +53,7 @@ def suffix(length: int = 8) -> str:
     )
 
 
-def get_default_position(title: str) -> Dict[str, Any]:
+def get_default_position(title: str) -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
@@ -66,7 +67,7 @@ def get_default_position(title: str) -> Dict[str, Any]:
     }
 
 
-def append_charts(position: Dict[str, Any], charts: Set[Slice]) -> Dict[str, Any]:
+def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
     chart_hashes = [f"CHART-{suffix()}" for _ in charts]
 
     # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
@@ -109,7 +110,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: Dashboard, export_related: bool = True
-    ) -> Iterator[Tuple[str, str]]:
+    ) -> Iterator[tuple[str, str]]:
         file_name = get_filename(model.dashboard_title, model.id)
         file_path = f"dashboards/{file_name}.yaml"
 

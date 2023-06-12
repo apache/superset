@@ -23,7 +23,6 @@ import html
 import io
 import json
 import logging
-from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
@@ -37,7 +36,6 @@ from sqlalchemy import Table
 import pytest
 import pytz
 import random
-import re
 import unittest
 from unittest import mock
 
@@ -68,7 +66,6 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -89,7 +86,6 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(scope="module")
 def cleanup():
     db.session.query(Query).delete()
-    db.session.query(DatasourceAccessRequest).delete()
     db.session.query(models.Log).delete()
     db.session.commit()
     yield
@@ -154,95 +150,6 @@ class TestCore(SupersetTestCase):
         qobj["inner_from_dttm"] = datetime.datetime(1901, 1, 1)
 
         self.assertEqual(cache_key_with_groupby, viz.cache_key(qobj))
-
-    def test_get_superset_tables_not_allowed(self):
-        example_db = superset.utils.database.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_get_superset_tables_allowed(self):
-        session = db.session
-        table_name = "energy_usage"
-        role_name = "dummy_role"
-        self.logout()
-        self.login(username="gamma")
-        gamma_user = security_manager.find_user(username="gamma")
-        security_manager.add_role(role_name)
-        dummy_role = security_manager.find_role(role_name)
-        gamma_user.roles.append(dummy_role)
-
-        tbl_id = self.table_ids.get(table_name)
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id).first()
-        table_perm = table.perm
-
-        security_manager.add_permission_role(
-            dummy_role,
-            security_manager.find_permission_view_menu("datasource_access", table_perm),
-        )
-
-        session.commit()
-
-        example_db = utils.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-
-        # cleanup
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.remove(security_manager.find_role(role_name))
-        session.commit()
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_get_superset_tables_not_allowed_with_out_permissions(self):
-        session = db.session
-        role_name = "dummy_role_no_table_access"
-        self.logout()
-        self.login(username="gamma")
-        gamma_user = security_manager.find_user(username="gamma")
-        security_manager.add_role(role_name)
-        dummy_role = security_manager.find_role(role_name)
-        gamma_user.roles.append(dummy_role)
-
-        session.commit()
-
-        example_db = utils.get_example_database()
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-        # cleanup
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.remove(security_manager.find_role(role_name))
-        session.commit()
-
-    def test_get_superset_tables_database_not_found(self):
-        self.login(username="admin")
-        uri = f"superset/tables/invalid/public/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
-
-    def test_get_superset_tables_schema_undefined(self):
-        example_db = superset.utils.database.get_example_database()
-        self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/undefined/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 422)
-
-    def test_admin_only_permissions(self):
-        def assert_admin_permission_in(role_name, assert_func):
-            role = security_manager.find_role(role_name)
-            permissions = [p.permission.name for p in role.permissions]
-            assert_func("can_approve", permissions)
-
-        assert_admin_permission_in("Admin", self.assertIn)
-        assert_admin_permission_in("Alpha", self.assertNotIn)
-        assert_admin_permission_in("Gamma", self.assertNotIn)
 
     def test_admin_only_menu_views(self):
         def assert_admin_view_menus_in(role_name, assert_func):
@@ -321,19 +228,6 @@ class TestCore(SupersetTestCase):
         for slc in slices:
             db.session.delete(slc)
         db.session.commit()
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_filter_endpoint(self):
-        self.login(username="admin")
-        tbl_id = self.table_ids.get("energy_usage")
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
-        table.filter_select_enabled = True
-        url = "/superset/filter/table/{}/target/"
-
-        # Changing name
-        resp = self.get_resp(url.format(tbl_id))
-        assert len(resp) > 0
-        assert "energy_target0" in resp
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
@@ -496,7 +390,7 @@ class TestCore(SupersetTestCase):
         assert response.headers["Content-Type"] == "application/json"
         response_body = json.loads(response.data.decode("utf-8"))
         expected_body = {"error": "Could not load database driver: broken"}
-        assert response_body == expected_body, "%s != %s" % (
+        assert response_body == expected_body, "{} != {}".format(
             response_body,
             expected_body,
         )
@@ -515,7 +409,7 @@ class TestCore(SupersetTestCase):
         assert response.headers["Content-Type"] == "application/json"
         response_body = json.loads(response.data.decode("utf-8"))
         expected_body = {"error": "Could not load database driver: mssql+pymssql"}
-        assert response_body == expected_body, "%s != %s" % (
+        assert response_body == expected_body, "{} != {}".format(
             response_body,
             expected_body,
         )
@@ -563,7 +457,7 @@ class TestCore(SupersetTestCase):
         self.login(username=username)
         database = superset.utils.database.get_example_database()
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
-        url = "databaseview/edit/{}".format(database.id)
+        url = f"databaseview/edit/{database.id}"
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
@@ -582,7 +476,7 @@ class TestCore(SupersetTestCase):
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
-        data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
+        data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
         )
@@ -609,7 +503,7 @@ class TestCore(SupersetTestCase):
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
-        self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(girls_slice.id))
+        self.get_json_resp(f"/superset/warm_up_cache?slice_id={girls_slice.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
@@ -650,7 +544,7 @@ class TestCore(SupersetTestCase):
         kv_value = kv.value
         self.assertEqual(json.loads(value), json.loads(kv_value))
 
-        resp = self.client.get("/kv/{}/".format(kv.id))
+        resp = self.client.get(f"/kv/{kv.id}/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(json.loads(value), json.loads(resp.data.decode("utf-8")))
 
@@ -662,7 +556,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_endpoint(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         get_name_sql = """
                     SELECT name
                     FROM birth_names
@@ -676,17 +570,17 @@ class TestCore(SupersetTestCase):
             WHERE name = '{name}'
             LIMIT 1
         """
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
-        resp = self.get_resp("/superset/csv/{}".format(client_id))
+        resp = self.get_resp(f"/superset/csv/{client_id}")
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
-        resp = self.get_resp("/superset/csv/{}".format(client_id))
+        resp = self.get_resp(f"/superset/csv/{client_id}")
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
@@ -704,7 +598,7 @@ class TestCore(SupersetTestCase):
 
     def test_required_params_in_sql_json(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"client_id": client_id}
         rv = self.client.post(
@@ -833,39 +727,36 @@ class TestCore(SupersetTestCase):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
 
-    def test_user_profile_optional_access(self):
+    def test_user_profile_default_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
+    def test_user_profile_broad_access(self):
         self.login(username="gamma")
         resp = self.client.get(f"/superset/profile/admin/")
         self.assertEqual(resp.status_code, 200)
 
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
-        resp = self.client.get(f"/superset/profile/admin/")
-        self.assertEqual(resp.status_code, 403)
-
-        # Restore config
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_user_activity_access(self, username="gamma"):
+    def test_user_activity_default_access(self, username="gamma"):
         self.login(username=username)
 
-        # accessing own and other users' activity is allowed by default
-        for user in ("admin", "gamma"):
-            for endpoint in self._get_user_activity_endpoints(user):
-                resp = self.client.get(endpoint)
-                assert resp.status_code == 200
-
-        # disabling flag will block access to other users' activity data
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
         for user in ("admin", "gamma"):
             for endpoint in self._get_user_activity_endpoints(user):
                 resp = self.client.get(endpoint)
                 expected_status_code = 200 if user == username else 403
                 assert resp.status_code == expected_status_code
 
-        # restore flag
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
+    def test_user_activity_broad_access(self, username="gamma"):
+        self.login(username=username)
+
+        for user in ("admin", "gamma"):
+            for endpoint in self._get_user_activity_endpoints(user):
+                resp = self.client.get(endpoint)
+                assert resp.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
@@ -876,12 +767,12 @@ class TestCore(SupersetTestCase):
         self.get_resp(slc.slice_url)
         self.assertEqual(1, qry.count())
 
-    def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
+    def create_sample_csvfile(self, filename: str, content: list[str]) -> None:
         with open(filename, "w+") as test_file:
             for l in content:
                 test_file.write(f"{l}\n")
 
-    def create_sample_excelfile(self, filename: str, content: Dict[str, str]) -> None:
+    def create_sample_excelfile(self, filename: str, content: dict[str, str]) -> None:
         pd.DataFrame(content).to_excel(filename)
 
     def enable_csv_upload(self, database: models.Database) -> None:

@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -57,7 +57,7 @@ from tests.unit_tests.fixtures.common import dttm
         ),
     ],
 )
-def test_get_extra_params(extra: Dict[str, Any], expected: Dict[str, Any]) -> None:
+def test_get_extra_params(extra: dict[str, Any], expected: dict[str, Any]) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     database = Mock()
@@ -95,7 +95,7 @@ def test_auth_basic(mock_auth: Mock) -> None:
         {"auth_method": "basic", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -117,7 +117,7 @@ def test_auth_kerberos(mock_auth: Mock) -> None:
         {"auth_method": "kerberos", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -134,7 +134,7 @@ def test_auth_certificate(mock_auth: Mock) -> None:
         {"auth_method": "certificate", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -152,7 +152,7 @@ def test_auth_jwt(mock_auth: Mock) -> None:
         {"auth_method": "jwt", "auth_params": auth_params}
     )
 
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
     connect_args = params.setdefault("connect_args", {})
     assert connect_args.get("http_scheme") == "https"
@@ -176,7 +176,7 @@ def test_auth_custom_auth() -> None:
         {"trino": {"custom_auth": auth_class}},
         clear=True,
     ):
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
 
         connect_args = params.setdefault("connect_args", {})
@@ -243,8 +243,8 @@ def test_auth_custom_auth_denied() -> None:
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -324,8 +324,8 @@ def test_cancel_query_failed(engine_mock: Mock) -> None:
     ],
 )
 def test_prepare_cancel_query(
-    initial_extra: Dict[str, Any],
-    final_extra: Dict[str, Any],
+    initial_extra: dict[str, Any],
+    final_extra: dict[str, Any],
     mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec

@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,7 +47,7 @@ class ReportScheduleDAO(BaseDAO):
     base_filter = ReportScheduleFilter
 
     @staticmethod
-    def find_by_chart_id(chart_id: int) -> List[ReportSchedule]:
+    def find_by_chart_id(chart_id: int) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.chart_id == chart_id)
@@ -55,7 +55,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_by_chart_ids(chart_ids: List[int]) -> List[ReportSchedule]:
+    def find_by_chart_ids(chart_ids: list[int]) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.chart_id.in_(chart_ids))
@@ -63,7 +63,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_by_dashboard_id(dashboard_id: int) -> List[ReportSchedule]:
+    def find_by_dashboard_id(dashboard_id: int) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.dashboard_id == dashboard_id)
@@ -71,7 +71,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_by_dashboard_ids(dashboard_ids: List[int]) -> List[ReportSchedule]:
+    def find_by_dashboard_ids(dashboard_ids: list[int]) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.dashboard_id.in_(dashboard_ids))
@@ -79,7 +79,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_by_database_id(database_id: int) -> List[ReportSchedule]:
+    def find_by_database_id(database_id: int) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.database_id == database_id)
@@ -87,7 +87,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_by_database_ids(database_ids: List[int]) -> List[ReportSchedule]:
+    def find_by_database_ids(database_ids: list[int]) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.database_id.in_(database_ids))
@@ -96,7 +96,7 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def bulk_delete(
-        models: Optional[List[ReportSchedule]], commit: bool = True
+        models: Optional[list[ReportSchedule]], commit: bool = True
     ) -> None:
         item_ids = [model.id for model in models] if models else []
         try:
@@ -156,7 +156,7 @@ class ReportScheduleDAO(BaseDAO):
         return found_id is None or found_id == expect_id
 
     @classmethod
-    def create(cls, properties: Dict[str, Any], commit: bool = True) -> ReportSchedule:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> ReportSchedule:
         """
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
@@ -187,7 +187,7 @@ class ReportScheduleDAO(BaseDAO):
 
     @classmethod
     def update(
-        cls, model: Model, properties: Dict[str, Any], commit: bool = True
+        cls, model: Model, properties: dict[str, Any], commit: bool = True
     ) -> ReportSchedule:
         """
         create a report schedule and nested recipients
@@ -219,7 +219,7 @@ class ReportScheduleDAO(BaseDAO):
             raise DAOCreateFailedError(str(ex)) from ex
 
     @staticmethod
-    def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
+    def find_active(session: Optional[Session] = None) -> list[ReportSchedule]:
         """
         Find all active reports. If session is passed it will be used instead of the
         default `db.session`, this is useful when on a celery worker session context

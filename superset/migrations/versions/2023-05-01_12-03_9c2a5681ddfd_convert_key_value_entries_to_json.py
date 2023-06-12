@@ -17,14 +17,14 @@
 """convert key-value entries to json
 
 Revision ID: 9c2a5681ddfd
-Revises: 7e67aecbf3f1
+Revises: f3c2d8ec8595
 Create Date: 2023-05-01 12:03:17.079862
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "9c2a5681ddfd"
-down_revision = "7e67aecbf3f1"
+down_revision = "f3c2d8ec8595"
 
 import io
 import json

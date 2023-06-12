@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from operator import and_
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -45,7 +45,7 @@ class TagDAO(BaseDAO):
 
     @staticmethod
     def create_custom_tagged_objects(
-        object_type: ObjectTypes, object_id: int, tag_names: List[str]
+        object_type: ObjectTypes, object_id: int, tag_names: list[str]
     ) -> None:
         tagged_objects = []
         for name in tag_names:
@@ -95,7 +95,7 @@ class TagDAO(BaseDAO):
             raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def delete_tags(tag_names: List[str]) -> None:
+    def delete_tags(tag_names: list[str]) -> None:
         """
         deletes tags from a list of tag names
         """
@@ -158,8 +158,8 @@ class TagDAO(BaseDAO):
 
     @staticmethod
     def get_tagged_objects_for_tags(
-        tags: Optional[List[str]] = None, obj_types: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        tags: Optional[list[str]] = None, obj_types: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
         """
         returns a list of tagged objects filtered by tag names and object types
         if no filters applied returns all tagged objects
@@ -174,7 +174,7 @@ class TagDAO(BaseDAO):
 
         # filter types
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         # dashboards
         if (not obj_types) or ("dashboard" in obj_types):

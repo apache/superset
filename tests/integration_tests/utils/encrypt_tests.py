@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy import String, TypeDecorator
 from sqlalchemy_utils import EncryptedType
@@ -28,9 +28,9 @@ from tests.integration_tests.base_tests import SupersetTestCase
 class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
     def create(
         self,
-        app_config: Optional[Dict[str, Any]],
-        *args: List[Any],
-        **kwargs: Optional[Dict[str, Any]]
+        app_config: Optional[dict[str, Any]],
+        *args: list[Any],
+        **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
         if app_config:
             return StringEncryptedType(*args, app_config["SECRET_KEY"], **kwargs)

@@ -18,7 +18,7 @@
 import importlib
 import logging
 import pkgutil
-from typing import Any, Dict
+from typing import Any
 
 import click
 from colorama import Fore, Style
@@ -40,7 +40,7 @@ def superset() -> None:
     """This is a management script for the Superset application."""
 
     @app.shell_context_processor
-    def make_shell_context() -> Dict[str, Any]:
+    def make_shell_context() -> dict[str, Any]:
         return dict(app=app, db=db)
 
 
@@ -79,5 +79,5 @@ def version(verbose: bool) -> None:
     )
     print(Fore.BLUE + "-=" * 15)
     if verbose:
-        print("[DB] : " + "{}".format(db.engine))
+        print("[DB] : " + f"{db.engine}")
     print(Style.RESET_ALL)

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
@@ -86,13 +85,11 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                         )
                     )
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):
-    def __init__(self, tags: List[str]):
+    def __init__(self, tags: list[str]):
         self._tags = tags
 
     def run(self) -> None:
@@ -110,6 +107,4 @@ class DeleteTagsCommand(DeleteMixin, BaseCommand):
             if not TagDAO.find_by_name(tag):
                 exceptions.append(TagNotFoundError(tag))
         if exceptions:
-            exception = TagInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise TagInvalidError(exceptions=exceptions)

@@ -111,13 +111,15 @@ const processColumns = memoizeOne(function processColumns(
         !(rawPercentMetricsSet.has(key) && !metricsSet.has(key)),
     )
     .map((key: string, i) => {
-      const label = verboseMap?.[key] || key;
       const dataType = coltypes[i];
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
+      const label = isPercentMetric
+        ? `%${verboseMap?.[key.replace('%', '')] || key}`
+        : verboseMap?.[key] || key;
       const isTime = dataType === GenericDataType.TEMPORAL;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const savedFormat = columnFormats?.[key];

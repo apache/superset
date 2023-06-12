@@ -573,6 +573,7 @@ export const StyledStickyHeader = styled.div`
   top: 0;
   z-index: ${({ theme }) => theme.zIndex.max};
   background: ${({ theme }) => theme.colors.grayscale.light5};
+  height: auto;
 `;
 
 export const StyledCatalogTable = styled.div`

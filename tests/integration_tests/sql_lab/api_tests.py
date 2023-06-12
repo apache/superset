@@ -112,7 +112,7 @@ class TestSqlLabApi(SupersetTestCase):
     @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"client_id": client_id}
         rv = self.client.post(
@@ -157,7 +157,7 @@ class TestSqlLabApi(SupersetTestCase):
         core.results_backend.get.return_value = {}
 
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
         rv = self.client.post(

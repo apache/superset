@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -31,9 +31,9 @@ from superset.utils.pandas_postprocessing.utils import (
 def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     rolling_type: str,
-    columns: Dict[str, str],
+    columns: dict[str, str],
     window: Optional[int] = None,
-    rolling_type_options: Optional[Dict[str, Any]] = None,
+    rolling_type_options: Optional[dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
     min_periods: Optional[int] = None,
@@ -62,7 +62,7 @@ def rolling(  # pylint: disable=too-many-arguments
     rolling_type_options = rolling_type_options or {}
     df_rolling = df.loc[:, columns.keys()]
 
-    kwargs: Dict[str, Union[str, int]] = {}
+    kwargs: dict[str, Union[str, int]] = {}
     if window is None:
         raise InvalidPostProcessingError(_("Undefined window for rolling operation"))
     if window == 0:
