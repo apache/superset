@@ -348,30 +348,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_all_datasources(self) -> bool:
         """
-        Return True if the user can fully access all the Superset datasources, False
-        otherwise.
+        Return True if the user can access all the datasources, False otherwise.
 
-        :returns: Whether the user can fully access all Superset datasources
+        :returns: Whether the user can access all the datasources
         """
 
         return self.can_access("all_datasource_access", "all_datasource_access")
 
     def can_access_all_databases(self) -> bool:
         """
-        Return True if the user can fully access all the Superset databases, False
-        otherwise.
+        Return True if the user can access all the databases, False otherwise.
 
-        :returns: Whether the user can fully access all Superset databases
+        :returns: Whether the user can access all the databases
         """
 
         return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: "Database") -> bool:
         """
-        Return True if the user can fully access the Superset database, False otherwise.
+        Return True if the user can access the specified database, False otherwise.
 
-        :param database: The Superset database
-        :returns: Whether the user can fully access the Superset database
+        :param database: The database
+        :returns: Whether the user can access the database
         """
 
         return (
@@ -382,11 +380,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_schema(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can fully access the schema associated with the Superset
+        Return True if the user can access the schema associated with specified
         datasource, False otherwise.
 
-        :param datasource: The Superset datasource
-        :returns: Whether the user can fully access the datasource's schema
+        :param datasource: The datasource
+        :returns: Whether the user can access the datasource's schema
         """
 
         return (
@@ -397,16 +395,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can fully access of the Superset datasource, False
-        otherwise.
+        Return True if the user can access the specified datasource, False otherwise.
 
-        :param datasource: The Superset datasource
-        :returns: Whether the user can fully access the Superset datasource
+        :param datasource: The datasource
+        :returns: Whether the user can access the datasource
         """
 
         try:
             self.raise_for_access(datasource=datasource)
         except SupersetSecurityException:
+            return False
+
+        return True
+
+    def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
+        """
+        Return True if the user can access the specified dashboard, False otherwise.
+
+        :param dashboard: The dashboard
+        :returns: Whether the user can access the dashboard
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+
+        try:
+            self.raise_for_dashboard_access(dashboard)
+        except DashboardAccessDeniedError:
             return False
 
         return True
@@ -1998,38 +2013,42 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
-        This does not check for the required role/permission pairs,
-        it only concerns itself with entity relationships.
+
+        This does not check for the required role/permission pairs, it only concerns
+        itself with entity relationships.
 
         :param dashboard: Dashboard the user wants access to
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
+
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
-        def has_rbac_access() -> bool:
-            if not is_feature_enabled("DASHBOARD_RBAC") or not dashboard.roles:
-                return True
-
-            return any(
-                dashboard_role.id
-                in [user_role.id for user_role in self.get_user_roles()]
-                for dashboard_role in dashboard.roles
-            )
-
         if self.is_guest_user() and dashboard.embedded:
-            can_access = self.has_guest_access(dashboard)
+            if self.has_guest_access(dashboard):
+                return
         else:
-            can_access = (
-                self.is_admin()
-                or self.is_owner(dashboard)
-                or (dashboard.published and has_rbac_access())
-                or (not dashboard.published and not dashboard.roles)
-            )
+            if self.is_admin() or self.is_owner(dashboard):
+                return
 
-        if not can_access:
-            raise DashboardAccessDeniedError()
+            # RBAC and legacy (datasource inferred) access controls.
+            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+                if dashboard.published and {role.id for role in dashboard.roles} & {
+                    role.id for role in self.get_user_roles()
+                }:
+                    return
+            elif (
+                not dashboard.published
+                or not dashboard.datasources
+                or any(
+                    self.can_access_datasource(datasource)
+                    for datasource in dashboard.datasources
+                )
+            ):
+                return
+
+        raise DashboardAccessDeniedError()
 
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
