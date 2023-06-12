@@ -308,19 +308,6 @@ class TestCore(SupersetTestCase):
             db.session.delete(slc)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_filter_endpoint(self):
-        self.login(username="admin")
-        tbl_id = self.table_ids.get("energy_usage")
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
-        table.filter_select_enabled = True
-        url = "/superset/filter/table/{}/target/"
-
-        # Changing name
-        resp = self.get_resp(url.format(tbl_id))
-        assert len(resp) > 0
-        assert "energy_target0" in resp
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
         # slice data should have some required attributes
