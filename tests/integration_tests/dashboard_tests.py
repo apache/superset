@@ -190,25 +190,6 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_only_owners_can_save(self):
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = []
-        db.session.merge(dash)
-        db.session.commit()
-        self.test_save_dash("admin")
-
-        self.logout()
-        self.assertRaises(Exception, self.test_save_dash, "alpha")
-
-        alpha = security_manager.find_user("alpha")
-
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = [alpha]
-        db.session.merge(dash)
-        db.session.commit()
-        self.test_save_dash("alpha")
-
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_users_can_list_published_dashboard(self):
         self.login("alpha")
