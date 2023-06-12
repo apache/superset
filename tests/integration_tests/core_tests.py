@@ -66,7 +66,6 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -87,7 +86,6 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(scope="module")
 def cleanup():
     db.session.query(Query).delete()
-    db.session.query(DatasourceAccessRequest).delete()
     db.session.query(models.Log).delete()
     db.session.commit()
     yield
@@ -231,16 +229,6 @@ class TestCore(SupersetTestCase):
         uri = f"superset/tables/{example_db.id}/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 422)
-
-    def test_admin_only_permissions(self):
-        def assert_admin_permission_in(role_name, assert_func):
-            role = security_manager.find_role(role_name)
-            permissions = [p.permission.name for p in role.permissions]
-            assert_func("can_approve", permissions)
-
-        assert_admin_permission_in("Admin", self.assertIn)
-        assert_admin_permission_in("Alpha", self.assertNotIn)
-        assert_admin_permission_in("Gamma", self.assertNotIn)
 
     def test_admin_only_menu_views(self):
         def assert_admin_view_menus_in(role_name, assert_func):

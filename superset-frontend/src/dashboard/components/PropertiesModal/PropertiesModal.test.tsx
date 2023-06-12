@@ -59,11 +59,6 @@ fetchMock.get(
           extra: {},
         },
         {
-          text: 'granter',
-          value: 5,
-          extra: {},
-        },
-        {
           text: 'Public',
           value: 2,
           extra: {},
@@ -393,7 +388,7 @@ test('should show all roles', async () => {
 
   const options = await findAllSelectOptions();
 
-  expect(options).toHaveLength(6);
+  expect(options).toHaveLength(5);
   expect(options[0]).toHaveTextContent('Admin');
 });
 
