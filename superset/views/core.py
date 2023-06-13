@@ -61,7 +61,6 @@ from superset.connectors.sqla.models import (
 from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.dao import DatabaseDAO
@@ -847,137 +846,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/copy_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="api/v1/dashboard/<dash_id>/copy/")
-    def copy_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Copy dashboard"""
-        session = db.session()
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        # remove it to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        dash = Dashboard()
-        original_dash = session.query(Dashboard).get(dashboard_id)
-
-        dash.owners = [g.user] if g.user else []
-        dash.dashboard_title = data["dashboard_title"]
-        dash.css = data.get("css")
-
-        old_to_new_slice_ids: dict[int, int] = {}
-        if data["duplicate_slices"]:
-            # Duplicating slices as well, mapping old ids to new ones
-            for slc in original_dash.slices:
-                new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
-                session.add(new_slice)
-                session.flush()
-                new_slice.dashboards.append(dash)
-                old_to_new_slice_ids[slc.id] = new_slice.id
-
-            # update chartId of layout entities
-            for value in data["positions"].values():
-                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
-                    old_id = value["meta"]["chartId"]
-                    new_id = old_to_new_slice_ids.get(old_id)
-                    value["meta"]["chartId"] = new_id
-        else:
-            dash.slices = original_dash.slices
-
-        dash.params = original_dash.params
-
-        DashboardDAO.set_dash_metadata(dash, data, old_to_new_slice_ids)
-        session.add(dash)
-        session.commit()
-        dash_json = json.dumps(dash.data)
-        session.close()
-        return json_success(dash_json)
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/save_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated()
-    def save_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Save a dashboard's metadata"""
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        remote_last_modified_time = data.get("last_modified_time")
-        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        if (
-            remote_last_modified_time
-            and remote_last_modified_time < current_last_modified_time
-        ):
-            return json_error_response(
-                __(
-                    "This dashboard was changed recently. "
-                    "Please reload dashboard to get latest version."
-                ),
-                412,
-            )
-        # remove to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        if data.get("css") is not None:
-            dash.css = data["css"]
-        if data.get("dashboard_title") is not None:
-            dash.dashboard_title = data["dashboard_title"]
-        DashboardDAO.set_dash_metadata(dash, data)
-        session.merge(dash)
-        session.commit()
-
-        # get updated changed_on
-        dash = session.query(Dashboard).get(dashboard_id)
-        last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        session.close()
-        return json_success(
-            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time})
-        )
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
-    @deprecated(new_target="api/v1/chart/<chart_id>")
-    def add_slices(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Add and save slices to a dashboard"""
-        data = json.loads(request.form["data"])
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
-        dash.slices += new_slices
-        session.merge(dash)
-        session.commit()
-        session.close()
-        return "SLICES ADDED"
-
     @staticmethod
     def get_user_activity_access_error(user_id: int) -> FlaskResponse | None:
         try:
@@ -1372,13 +1240,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 message=utils.error_msg_from_exception(ex),
                 category="danger",
             )
-
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=(
                 security_manager.is_owner(dashboard)
-                and security_manager.can_access("can_save_dash", "Superset")
+                and security_manager.can_access("can_write", "Dashboard")
             ),
             edit_mode=(
                 request.args.get(ReservedUrlParameters.EDIT_MODE.value) == "true"
