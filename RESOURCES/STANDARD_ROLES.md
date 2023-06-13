@@ -82,10 +82,8 @@
 |can fetch datasource metadata on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can override role permissions on Superset|:heavy_check_mark:|O|O|O|
 |can created dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can extra table metadata on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csrf token on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can created slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can testconn on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can annotation json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can add slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can fave dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -96,7 +94,6 @@
 |can warm up cache on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab table viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can profile on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can validate sql json on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can available domains on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -202,7 +199,6 @@
 |can edit on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can this form get on ColumnarToDatabaseView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can this form post on ColumnarToDatabaseView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can schemas access for file upload on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Upload a Columnar file|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can export on Chart|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can write on DashboardFilterStateRestApi|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

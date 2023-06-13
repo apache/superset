@@ -34,6 +34,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [24354](https://github.com/apache/superset/pull/24354): Removed deprecated APIs `/superset/testconn`, `/superset/validate_sql_json/`, `/superset/schemas_access_for_file_upload`, `/superset/extra_table_metadata`
 - [24381](https://github.com/apache/superset/pull/24381): Removed deprecated API `/superset/available_domains/`
 - [24359](https://github.com/apache/superset/pull/24359): Removed deprecated APIs `/superset/estimate_query_cost/..`, `/superset/results/..`, `/superset/sql_json/..`, `/superset/csv/..`
 - [24345](https://github.com/apache/superset/pull/24345) Converts `ENABLE_BROAD_ACTIVITY_ACCESS` and `MENU_HIDE_USER_INFO` into feature flags and changes the value of `ENABLE_BROAD_ACTIVITY_ACCESS` to `False` as it's more secure.

@@ -18,8 +18,6 @@
 from __future__ import annotations
 
 import logging
-import re
-from contextlib import closing
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
@@ -36,7 +34,7 @@ from flask_appbuilder.security.decorators import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
     app,
@@ -66,15 +64,12 @@ from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
-from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
-    CertificateException,
     DatabaseNotFound,
     SupersetCancelQueryException,
     SupersetErrorException,
@@ -93,9 +88,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_parse import ParsedQuery
-from superset.sql_validators import get_validator_by_name
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
@@ -985,90 +978,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.close()
         return "SLICES ADDED"
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/testconn",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )  # pylint: disable=no-self-use
-    @deprecated(new_target="/api/v1/database/test_connection/")
-    def testconn(self) -> FlaskResponse:
-        """Tests a sqla connection"""
-        db_name = request.json.get("name")
-        uri = request.json.get("uri")
-        try:
-            if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(make_url_safe(uri))
-            # if the database already exists in the database, only its safe
-            # (password-masked) URI would be shown in the UI and would be passed in the
-            # form data so if the database already exists and the form was submitted
-            # with the safe URI, we assume we should retrieve the decrypted URI to test
-            # the connection.
-            if db_name:
-                existing_database = (
-                    db.session.query(Database)
-                    .filter_by(database_name=db_name)
-                    .one_or_none()
-                )
-                if existing_database and uri == existing_database.safe_sqlalchemy_uri():
-                    uri = existing_database.sqlalchemy_uri_decrypted
-
-            # This is the database instance that will be tested. Note the extra fields
-            # are represented as JSON encoded strings in the model.
-            database = Database(
-                server_cert=request.json.get("server_cert"),
-                extra=json.dumps(request.json.get("extra", {})),
-                impersonate_user=request.json.get("impersonate_user"),
-                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
-            )
-            database.set_sqlalchemy_uri(uri)
-            database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            with database.get_sqla_engine_with_context() as engine:
-                with closing(engine.raw_connection()) as conn:
-                    if engine.dialect.do_ping(conn):
-                        return json_success('"OK"')
-
-                raise DBAPIError(None, None, None)
-        except CertificateException as ex:
-            logger.info("Certificate exception")
-            return json_error_response(ex.message)
-        except (NoSuchModuleError, ModuleNotFoundError):
-            logger.info("Invalid driver")
-            driver_name = make_url_safe(uri).drivername
-            return json_error_response(
-                _(
-                    "Could not load database driver: %(driver_name)s",
-                    driver_name=driver_name,
-                ),
-                400,
-            )
-        except DatabaseInvalidError:
-            logger.info("Invalid URI")
-            return json_error_response(
-                _(
-                    "Invalid connection string, a valid string usually follows:\n"
-                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                )
-            )
-        except DBAPIError:
-            logger.warning("Connection failed")
-            return json_error_response(
-                _("Connection failed, please check your connection settings"), 400
-            )
-        except SupersetSecurityException as ex:
-            logger.warning("Stopped an unsafe database connection")
-            return json_error_response(_(str(ex)), 400)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unexpected error %s", type(ex).__name__)
-            return json_error_response(
-                _("Unexpected error occurred, please check your logs for details"), 400
-            )
-
     @staticmethod
     def get_user_activity_access_error(user_id: int) -> FlaskResponse | None:
         try:
@@ -1695,84 +1604,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.json_response("OK")
 
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/validate_sql_json/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/api/v1/database/<pk>/validate_sql/")
-    def validate_sql_json(
-        # pylint: disable=too-many-locals,no-self-use
-        self,
-    ) -> FlaskResponse:
-        """Validates that arbitrary sql is acceptable for the given database.
-        Returns a list of error/warning annotations as json.
-        """
-        sql = request.form["sql"]
-        database_id = request.form["database_id"]
-        schema = request.form.get("schema") or None
-        template_params = json.loads(request.form.get("templateParams") or "{}")
-
-        if template_params is not None and len(template_params) > 0:
-            # TODO: factor the Database object out of template rendering
-            #       or provide it as mydb so we can render template params
-            #       without having to also persist a Query ORM object.
-            return json_error_response(
-                "SQL validation does not support template parameters", status=400
-            )
-
-        session = db.session()
-        mydb = session.query(Database).filter_by(id=database_id).one_or_none()
-        if not mydb:
-            return json_error_response(
-                f"Database with id {database_id} is missing.", status=400
-            )
-
-        spec = mydb.db_engine_spec
-        validators_by_engine = app.config["SQL_VALIDATORS_BY_ENGINE"]
-        if not validators_by_engine or spec.engine not in validators_by_engine:
-            return json_error_response(
-                f"no SQL validator is configured for {spec.engine}", status=400
-            )
-        validator_name = validators_by_engine[spec.engine]
-        validator = get_validator_by_name(validator_name)
-        if not validator:
-            return json_error_response(
-                "No validator named {} found (configured for the {} engine)".format(
-                    validator_name, spec.engine
-                )
-            )
-
-        try:
-            timeout = config["SQLLAB_VALIDATION_TIMEOUT"]
-            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                errors = validator.validate(sql, schema, mydb)
-            payload = json.dumps(
-                [err.to_dict() for err in errors],
-                default=utils.pessimistic_json_iso_dttm_ser,
-                ignore_nan=True,
-                encoding=None,
-            )
-            return json_success(payload)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            msg = _(
-                "%(validator)s was unable to check your query.\n"
-                "Please recheck your query.\n"
-                "Exception: %(ex)s",
-                validator=validator.name,
-                ex=ex,
-            )
-            # Return as a 400 if the database error message says we got a 4xx error
-            if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
-                return json_error_response(f"{msg}", status=400)
-            return json_error_response(f"{msg}")
-
     @api
     @handle_api_exception
     @has_access
@@ -2042,38 +1873,3 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     def sqllab_history(self) -> FlaskResponse:
         return super().render_app_template()
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/schemas_access_for_file_upload")
-    @deprecated(new_target="api/v1/database/{pk}/schemas_access_for_file_upload/")
-    def schemas_access_for_file_upload(self) -> FlaskResponse:
-        """
-        This method exposes an API endpoint to
-        get the schema access control settings for file upload in this database
-        """
-        if not request.args.get("db_id"):
-            return json_error_response("No database is allowed for your file upload")
-
-        db_id = int(request.args["db_id"])
-        database = db.session.query(Database).filter_by(id=db_id).one()
-        try:
-            schemas_allowed = database.get_schema_access_for_file_upload()
-            if security_manager.can_access_database(database):
-                return self.json_response(schemas_allowed)
-            # the list schemas_allowed should not be empty here
-            # and the list schemas_allowed_processed returned from security_manager
-            # should not be empty either,
-            # otherwise the database should have been filtered out
-            # in CsvToDatabaseForm
-            schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
-                database, schemas_allowed, False
-            )
-            return self.json_response(schemas_allowed_processed)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            return json_error_response(
-                "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact your Superset Admin!"
-            )
