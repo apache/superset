@@ -55,7 +55,7 @@ export default function Tooltip(props: TooltipProps) {
   }
 
   const { x, y, content } = tooltip;
-  let safeContent =
+  const safeContent =
     typeof content === 'string' ? safeHtmlSpan(content) : content;
 
   return (

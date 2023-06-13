@@ -353,7 +353,8 @@ const FilterableTable = ({
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return renderJsonModal(cellNode, jsonObject, cellData);
-    } else if (allowHTML) {
+    }
+    if (allowHTML) {
       return safeHtmlSpan(cellData);
     }
     return content;
