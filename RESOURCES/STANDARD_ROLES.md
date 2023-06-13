@@ -63,7 +63,6 @@
 |can schemas access for csv upload on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can user slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can favstar on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can estimate query cost on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can import dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can search queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can sqllab viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -73,7 +72,6 @@
 |can publish on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can csv on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can fave dashboards by username on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can sql json on Superset|:heavy_check_mark:|O|O|:heavy_check_mark:|
 |can slice on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sync druid source on Superset|:heavy_check_mark:|O|O|O|
 |can explore on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -104,7 +102,6 @@
 |can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can results on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can expanded on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can delete on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
