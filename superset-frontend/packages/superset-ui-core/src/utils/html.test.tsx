@@ -21,6 +21,7 @@ import {
   isProbablyHTML,
   sanitizeHtmlIfNeeded,
   safeHtmlSpan,
+  removeHTMLTags,
 } from './html';
 
 describe('sanitizeHtml', () => {
@@ -75,5 +76,37 @@ describe('safeHtmlSpan', () => {
     const plainText = 'Just a plain text';
     const result = safeHtmlSpan(plainText);
     expect(result).toEqual(plainText);
+  });
+});
+
+describe('removeHTMLTags', () => {
+  test('should remove HTML tags from the string', () => {
+    const input = '<p>Hello, <strong>World!</strong></p>';
+    const output = removeHTMLTags(input);
+    expect(output).toBe('Hello, World!');
+  });
+
+  test('should return the same string when no HTML tags are present', () => {
+    const input = 'This is a plain text.';
+    const output = removeHTMLTags(input);
+    expect(output).toBe('This is a plain text.');
+  });
+
+  test('should remove nested HTML tags and return combined text content', () => {
+    const input = '<div><h1>Title</h1><p>Content</p></div>';
+    const output = removeHTMLTags(input);
+    expect(output).toBe('TitleContent');
+  });
+
+  test('should handle self-closing tags and return an empty string', () => {
+    const input = '<img src="image.png" alt="Image">';
+    const output = removeHTMLTags(input);
+    expect(output).toBe('');
+  });
+
+  test('should handle malformed HTML tags and remove only well-formed tags', () => {
+    const input = '<div><h1>Unclosed tag';
+    const output = removeHTMLTags(input);
+    expect(output).toBe('<div>Unclosed tag');
   });
 });

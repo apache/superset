@@ -47,3 +47,7 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
   }
   return possiblyHtmlString;
 }
+
+export function removeHTMLTags(str: string): string {
+  return str.replace(/<[^>]*>/g, '');
+}
