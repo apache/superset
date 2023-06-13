@@ -47,7 +47,7 @@ function setTooltipContent(o) {
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Weight') + ': '}
-        value={`${o.object.cellWeight}`}
+        value={o.object.cellWeight}
       />
     </div>
   );

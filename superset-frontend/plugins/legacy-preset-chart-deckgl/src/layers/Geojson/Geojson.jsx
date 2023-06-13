@@ -86,7 +86,7 @@ function setTooltipContent(o) {
           <TooltipRow
             key={`prop-${index}`}
             label={`${prop}: `}
-            value={`${o.object.extraProps[prop]}`}
+            value={o.object.extraProps[prop]}
           />
         ))}
       </div>

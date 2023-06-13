@@ -25,6 +25,7 @@ import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
 
+// @ts-ignore
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
@@ -117,7 +118,11 @@ const LabeledErrorBoundInput = ({
         {label}
       </StyledFormLabel>
       {hasTooltip && (
-        <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -1 24 24" />
+        <InfoTooltip
+          // @ts-ignore
+          tooltip={tooltipText}
+          viewBox="0 -1 24 24"
+        />
       )}
     </StyledAlignment>
     <FormItem

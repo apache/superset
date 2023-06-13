@@ -112,12 +112,15 @@ export default function makeApi<
         endpoint,
       };
       if (requestType === 'search') {
+        // @ts-ignore TS2322
         requestConfig.searchParams = payload;
       } else if (requestType === 'rison') {
         requestConfig.endpoint = `${endpoint}?q=${rison.encode(payload)}`;
       } else if (requestType === 'form') {
+        // @ts-ignore TS2322
         requestConfig.postPayload = payload;
       } else {
+        // @ts-ignore TS2322
         requestConfig.jsonPayload = payload;
       }
 

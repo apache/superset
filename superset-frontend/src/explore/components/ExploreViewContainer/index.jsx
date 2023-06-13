@@ -70,6 +70,7 @@ import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 const propTypes = {
+  // eslint-disable-next-line react/forbid-foreign-prop-types
   ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,

@@ -30,6 +30,7 @@ import { extractExtraMetrics } from './utils';
 
 export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   formData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   queryObject,
 ) => {
   // the sortOperator only used in the barchart v2

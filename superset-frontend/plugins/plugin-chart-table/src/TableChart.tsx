@@ -531,9 +531,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
           };
+          /* eslint-disable react/no-danger */
           if (html) {
             if (truncateLongCells) {
-              // eslint-disable-next-line react/no-danger
               return (
                 <StyledCell {...cellProps}>
                   <div
@@ -544,7 +544,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 </StyledCell>
               );
             }
-            // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renders textContent already, then we don't have to

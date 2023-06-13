@@ -20,6 +20,8 @@ import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { table, initialState as mockState } from '../fixtures';
 
+/* eslint-disable jest/expect-expect */
+
 const initialState = mockState.sqlLab;
 
 describe('sqlLabReducer', () => {

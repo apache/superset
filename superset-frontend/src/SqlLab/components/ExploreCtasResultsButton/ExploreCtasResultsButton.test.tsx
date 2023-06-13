@@ -55,7 +55,7 @@ describe('ExploreCtasResultsButton', () => {
   it('renders', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
-    expect(queryByText('Explore')).toBeTruthy();
+    expect(queryByText('Explore')).toBeInTheDocument();
   });
 
   it('visualize results', async () => {

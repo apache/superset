@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// /superset/sqllab_viz
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SqlLabPostRequest {
   data: {
     schema: string;

@@ -65,7 +65,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
   });
   userEvent.hover(screen.getByText('Copy'));
   const tooltip = screen.queryByRole('tooltip');
-  expect(tooltip).toBe(null);
+  expect(tooltip).not.toBeInTheDocument();
 });
 
 test('triggers onCopyEnd', async () => {

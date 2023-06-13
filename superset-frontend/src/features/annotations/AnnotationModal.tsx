@@ -179,9 +179,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
 
     const data = {
       ...currentAnnotation,
-      end_dttm: currentAnnotation ? currentAnnotation.end_dttm : '',
-      short_descr: currentAnnotation ? currentAnnotation.short_descr : '',
-      start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
+      end_dttm: currentAnnotation?.end_dttm ?? '',
+      short_descr: currentAnnotation?.short_descr ?? '',
+      start_dttm: currentAnnotation?.start_dttm ?? '',
     };
 
     data[target.name] = target.value;
@@ -232,18 +232,13 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     if (
       isEditMode &&
       (!currentAnnotation?.id ||
-        (annotation && annotation.id !== currentAnnotation.id) ||
+        (annotation?.id && annotation?.id !== currentAnnotation?.id) ||
         show)
     ) {
       if (annotation?.id !== null && !loading) {
-        const id = annotation.id || 0;
-
-        fetchResource(id);
+        fetchResource(annotation?.id ?? 0);
       }
-    } else if (
-      !isEditMode &&
-      (!currentAnnotation || currentAnnotation.id || show)
-    ) {
+    } else if (!isEditMode && (!currentAnnotation?.id || show)) {
       resetAnnotation();
     }
   }, [annotation]);

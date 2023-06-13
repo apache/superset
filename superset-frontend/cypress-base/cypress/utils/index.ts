@@ -42,11 +42,17 @@ export function clearAllInputs() {
 }
 
 const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
-  slice_id: parseInt($chart.attr('data-test-chart-id')!, 10),
+  slice_id: parseInt($chart.attr('data-test-chart-id') ?? '0', 10),
   form_data: {
-    viz_type: $chart.attr('data-test-viz-type')!,
+    viz_type: $chart.attr('data-test-viz-type') ?? '',
   },
 });
+
+export function getChartGridComponent({ name, viz }: ChartSpec) {
+  return cy
+    .get(`[data-test-chart-name="${name}"]`)
+    .should('have.attr', 'data-test-viz-type', viz);
+}
 
 export function getChartAliasBySpec(chart: ChartSpec) {
   return getChartGridComponent(chart).then($chart =>
@@ -65,12 +71,6 @@ export function getChartAliasesBySpec(charts: readonly ChartSpec[]) {
   // That way callers can chain off this function
   // and actually get the list of aliases.
   return cy.wrap(aliases);
-}
-
-export function getChartGridComponent({ name, viz }: ChartSpec) {
-  return cy
-    .get(`[data-test-chart-name="${name}"]`)
-    .should('have.attr', 'data-test-viz-type', viz);
 }
 
 export function waitForChartLoad(chart: ChartSpec) {

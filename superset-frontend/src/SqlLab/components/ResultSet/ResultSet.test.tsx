@@ -241,7 +241,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -251,7 +251,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).toBe(null);
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders on the first call', () => {
@@ -261,11 +261,11 @@ describe('ResultSet', () => {
       screen.queryByRole('button', {
         name: /fetch data preview/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
         name: /refetch results/i,
       }),
-    ).toBe(null);
+    ).not.toBeInTheDocument();
   });
 });

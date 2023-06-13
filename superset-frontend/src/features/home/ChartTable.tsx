@@ -215,7 +215,7 @@ function ChartTable({
         <CardContainer showThumbnails={showThumbnails}>
           {charts.map(e => (
             <ChartCard
-              key={`${e.id}`}
+              key={e.id}
               openChartEditModal={openChartEditModal}
               chartFilter={activeTab}
               chart={e}

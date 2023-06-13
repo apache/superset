@@ -44,11 +44,11 @@ function setTooltipContent(formData, verboseMap) {
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('Category') + ': '}
-            value={`${o.object.cat_color}`}
+            value={o.object.cat_color}
           />
         )}
         {o.object.metric && (
-          <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />
+          <TooltipRow label={`${label}: `} value={o.object.metric} />
         )}
       </div>
     );

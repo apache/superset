@@ -38,6 +38,8 @@ import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
+/* eslint-disable no-console */
+
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
@@ -109,6 +111,7 @@ describe('DashboardBuilder', () => {
     (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function setup(overrideState = {}, overrideStore?: Store) {
     return render(<DashboardBuilder />, {
       useRedux: true,
@@ -138,7 +141,7 @@ describe('DashboardBuilder', () => {
   it('should render a DragDroppable DashboardHeader', () => {
     const { queryByTestId } = setup();
     const header = queryByTestId('dashboard-header-container');
-    expect(header).toBeTruthy();
+    expect(header).toBeInTheDocument();
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {

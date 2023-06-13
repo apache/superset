@@ -33,6 +33,8 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
+/* eslint-disable jest/no-disabled-tests */
+
 jest.useFakeTimers();
 // @ts-ignore
 mockCore.makeApi = jest.fn();

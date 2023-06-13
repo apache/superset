@@ -409,7 +409,7 @@ export default class CRUDCollection extends React.PureComponent<
       )),
     );
     if (allowAddItem) {
-      tds.push(<td key="add" />);
+      tds.push(<td key="add" aria-label="Add" />);
     }
     if (allowDeletes) {
       tds.push(

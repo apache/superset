@@ -21,9 +21,9 @@ import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface HoverMenuProps {
-  position: 'left' | 'top';
-  innerRef: RefObject<HTMLDivElement>;
-  children: React.ReactNode;
+  position?: 'left' | 'top';
+  innerRef?: RefObject<HTMLDivElement>;
+  children?: React.ReactNode;
 }
 
 const HoverStyleOverrides = styled.div`

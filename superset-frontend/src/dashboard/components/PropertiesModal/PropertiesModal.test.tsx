@@ -25,6 +25,8 @@ import * as FF from 'src/featureFlags';
 import * as SupersetCore from '@superset-ui/core';
 import PropertiesModal from '.';
 
+/* eslint-disable no-console */
+
 const spyIsFeatureEnabled = jest.spyOn(FF, 'isFeatureEnabled');
 const spyColorSchemeControlWrapper = jest.spyOn(
   ColorSchemeControlWrapper,
@@ -364,9 +366,9 @@ test('should show all roles', async () => {
   const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
-  const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
     screen.getByRole('combobox', { name: SupersetCore.t('Roles') });
+  const open = () => waitFor(() => userEvent.click(getSelect()));
 
   const getElementsByClassName = (className: string) =>
     document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
@@ -397,9 +399,9 @@ test('should show active owners with dashboard rbac', async () => {
   const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
-  const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
     screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+  const open = () => waitFor(() => userEvent.click(getSelect()));
 
   const getElementsByClassName = (className: string) =>
     document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
@@ -430,9 +432,9 @@ test('should show active owners without dashboard rbac', async () => {
   const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
-  const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
     screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
+  const open = () => waitFor(() => userEvent.click(getSelect()));
 
   const getElementsByClassName = (className: string) =>
     document.querySelectorAll(className)! as NodeListOf<HTMLElement>;

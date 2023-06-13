@@ -21,24 +21,22 @@ import React from 'react';
 import { formatTime } from '@superset-ui/core';
 
 class TimeFormatValidator extends React.PureComponent {
-  state: {
-    formatString: string;
-    testValues: (Date | number | null | undefined)[];
-  } = {
-    formatString: '%Y-%m-%d %H:%M:%S',
-    testValues: [
-      new Date(Date.UTC(1986, 5, 14, 8, 30, 53)),
-      new Date(Date.UTC(2001, 9, 27, 13, 45, 2, 678)),
-      new Date(Date.UTC(2009, 1, 1, 0, 0, 0)),
-      new Date(Date.UTC(2018, 1, 1, 10, 20, 33)),
-      0,
-      null,
-      undefined,
-    ],
-  };
-
   constructor(props) {
     super(props);
+
+    this.state = {
+      formatString: '%Y-%m-%d %H:%M:%S',
+      testValues: [
+        new Date(Date.UTC(1986, 5, 14, 8, 30, 53)),
+        new Date(Date.UTC(2001, 9, 27, 13, 45, 2, 678)),
+        new Date(Date.UTC(2009, 1, 1, 0, 0, 0)),
+        new Date(Date.UTC(2018, 1, 1, 10, 20, 33)),
+        0,
+        null,
+        undefined,
+      ],
+    };
+
     this.handleFormatChange = this.handleFormatChange.bind(this);
   }
 

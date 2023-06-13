@@ -39,7 +39,10 @@ export const ThemeColors = () => {
               <td>
                 <code>{hex}</code>
               </td>
-              <td style={{ width: '150px', backgroundColor: hex }} />
+              <td
+                style={{ width: '150px', backgroundColor: hex }}
+                aria-label="Hex"
+              />
             </tr>
           );
         })}

@@ -60,7 +60,7 @@ export const configureCORS = () => {
         host={host}
         endpoint={endpoint}
         method={method as VerifyCORSProps['method']}
-        postPayload={`${postPayload}`}
+        postPayload={postPayload}
       >
         {({ payload }) => (
           <>

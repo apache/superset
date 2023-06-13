@@ -75,6 +75,7 @@ module.exports = {
     'translation-vars',
   ],
   overrides: [
+    // Typescript overrides
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -92,13 +93,13 @@ module.exports = {
         '@typescript-eslint/ban-types': 0, // disabled temporarily
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
-        '@typescript-eslint/prefer-optional-chain': 2,
+        '@typescript-eslint/prefer-optional-chain': 0, // disabled temporarily
         camelcase: 0,
         'class-methods-use-this': 0,
+        'cypress/unsafe-to-chain-command': 0,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -112,8 +113,8 @@ module.exports = {
         ],
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
+        'jest/expect-expect': 0,
         indent: 0,
-        'jsx-a11y/anchor-is-valid': 1,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
         'max-classes-per-file': 0,
@@ -134,19 +135,19 @@ module.exports = {
         'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
-        'react/jsx-fragments': 1,
         'react/jsx-no-bind': 0,
         'react/jsx-props-no-spreading': 0, // re-enable up for discussion
         'react/no-array-index-key': 0,
         'react/no-string-refs': 0,
         'react/no-unescaped-entities': 0,
+        'react/no-unknown-property': ['error', { ignore: ['css'] }],
         'react/no-unused-prop-types': 0,
         'react/prop-types': 0,
         'react/require-default-props': 0,
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
+        'react-hooks/exhaustive-deps': 0, // disabled temporarily
         'prettier/prettier': 'error',
-        'file-progress/activate': 1,
       },
       settings: {
         'import/resolver': {
@@ -157,6 +158,7 @@ module.exports = {
         },
       },
     },
+    // Overrides for tests and storybooks that are not cypress
     {
       files: [
         '*.test.ts',
@@ -189,8 +191,11 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
+        'jest/no-disabled-tests': 0,
+        'jest/expect-expect': 0,
       },
     },
+    // Overrides for all tests and storybooks
     {
       files: [
         '*.test.ts',
@@ -208,6 +213,16 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
+      },
+    },
+    // Specific for generator-superset package
+    {
+      files: [
+        'packages/generator-superset/**/*.js',
+        'packages/generator-superset/**/*.ts',
+      ],
+      rules: {
+        'import/no-unresolved': 'off',
       },
     },
   ],
@@ -238,7 +253,6 @@ module.exports = {
     'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
     'import/prefer-default-export': 0,
     indent: 0,
-    'jsx-a11y/anchor-is-valid': 1,
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'new-cap': 0,
@@ -271,22 +285,22 @@ module.exports = {
     'no-shadow': 0, // re-enable up for discussion
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
-    'prefer-object-spread': 1,
     'prefer-destructuring': ['error', { object: true, array: false }],
     'react/destructuring-assignment': 0, // re-enable up for discussion
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
-    'react/jsx-fragments': 1,
     'react/jsx-no-bind': 0,
     'react/jsx-props-no-spreading': 0, // re-enable up for discussion
     'react/no-array-index-key': 0,
     'react/no-string-refs': 0,
     'react/no-unescaped-entities': 0,
     'react/no-unused-prop-types': 0,
+    'react/no-unknown-property': ['error', { ignore: ['css'] }],
     'react/prop-types': 0,
     'react/require-default-props': 0,
     'react/sort-comp': 0, // TODO: re-enable in separate PR
     'react/static-property-placement': 0, // disabled temporarily
+    'react-hooks/exhaustive-deps': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
   ignorePatterns,

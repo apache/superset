@@ -175,6 +175,7 @@ export class Switchboard {
   /**
    * Defines a method that can be "called" from the other side by sending an event.
    */
+  // @ts-ignore TS2344
   defineMethod<A = any, R = any>(methodName: string, executor: Method<A, R>) {
     this.methods[methodName] = executor;
   }
@@ -259,11 +260,13 @@ export class Switchboard {
 
   private log(...args: unknown[]) {
     if (this.debugMode) {
+      // eslint-disable-next-line no-console
       console.debug(`[${this.name}]`, ...args);
     }
   }
 
   private logError(...args: unknown[]) {
+    // eslint-disable-next-line no-console
     console.error(`[${this.name}]`, ...args);
   }
 

@@ -41,20 +41,20 @@ type SaveModalProps = {
   dashboardInfo: Record<string, any>;
   expandedSlices: Record<string, any>;
   layout: Record<string, any>;
-  saveType: SaveType;
+  saveType?: SaveType;
   triggerNode: JSX.Element;
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;
-  onSave: (data: any, id: number | string, saveType: SaveType) => void;
+  onSave: (data: any, id: number | string, saveType?: SaveType) => void;
   canOverwrite: boolean;
-  shouldPersistRefreshFrequency: boolean;
+  shouldPersistRefreshFrequency?: boolean;
   refreshFrequency: number;
   lastModifiedTime: number;
 };
 
 type SaveModalState = {
-  saveType: SaveType;
+  saveType?: SaveType;
   newDashName: string;
   duplicateSlices: boolean;
 };
@@ -74,7 +74,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
   onSave: (
     data: Record<string, any>,
     dashboardId: number | string,
-    saveType: SaveType,
+    saveType?: SaveType,
   ) => Promise<JsonResponse>;
 
   constructor(props: SaveModalProps) {

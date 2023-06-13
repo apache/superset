@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint no-unused-expressions: 0 */
+/* eslint jest/no-disabled-tests: 0 */
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';

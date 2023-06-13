@@ -25,6 +25,8 @@ import setupColors from 'src/setup/setupColors';
 import { ANNOTATION_TYPES_METADATA } from 'src/modules/AnnotationTypes';
 import AnnotationLayer from './AnnotationLayer';
 
+/* eslint-disable no-console */
+
 const defaultProps = {
   value: '',
   vizType: 'table',

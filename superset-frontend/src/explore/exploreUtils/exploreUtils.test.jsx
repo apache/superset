@@ -30,6 +30,8 @@ import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry, SupersetClient } from '@superset-ui/core';
 
+/* eslint-disable jest/expect-expect */
+
 describe('exploreUtils', () => {
   const { location } = window;
   const formData = {

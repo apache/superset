@@ -26,14 +26,14 @@ type ShouldFocusContainer = HTMLDivElement & {
 
 interface WithPopoverMenuProps {
   children: React.ReactNode;
-  disableClick: Boolean;
-  menuItems: React.ReactNode[];
+  disableClick?: Boolean;
+  menuItems?: React.ReactNode[];
   onChangeFocus: (focus: Boolean) => void;
-  isFocused: Boolean;
+  isFocused?: Boolean;
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
-  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
+  shouldFocus?: (event: any, container: ShouldFocusContainer) => Boolean;
   editMode: Boolean;
   style: React.CSSProperties;
 }
@@ -109,17 +109,14 @@ export default class WithPopoverMenu extends React.PureComponent<
 > {
   container: ShouldFocusContainer;
 
-  static defaultProps = {
-    children: null,
+  static defaultProps: Partial<WithPopoverMenuProps> = {
     disableClick: false,
-    onChangeFocus: null,
     menuItems: [],
     isFocused: false,
     shouldFocus: (event: any, container: ShouldFocusContainer) =>
       container?.contains(event.target) ||
       event.target.id === 'menu-item' ||
       event.target.parentNode?.id === 'menu-item',
-    style: null,
   };
 
   constructor(props: WithPopoverMenuProps) {
@@ -161,7 +158,7 @@ export default class WithPopoverMenu extends React.PureComponent<
       shouldFocus: shouldFocusFunc,
       disableClick,
     } = this.props;
-
+    //  @ts-ignore
     const shouldFocus = shouldFocusFunc(event, this.container);
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
@@ -199,8 +196,10 @@ export default class WithPopoverMenu extends React.PureComponent<
         style={style}
       >
         {children}
-        {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
+        {/* @ts-ignore: TS18048 */}
+        {editMode && isFocused && (menuItems.length ?? 0) > 0 && (
           <PopoverMenuStyles>
+            {/* @ts-ignore: TS18048 */}
             {menuItems.map((node: React.ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}

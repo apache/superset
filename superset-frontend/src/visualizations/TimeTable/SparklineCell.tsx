@@ -191,7 +191,7 @@ const SparklineCell = ({
             })}
             width={innerWidth}
             strokeDasharray="3 3"
-            stroke={`${theme.colors.grayscale.light1}`}
+            stroke={theme.colors.grayscale.light1}
             tickValues={[min, max]}
           />
         )}

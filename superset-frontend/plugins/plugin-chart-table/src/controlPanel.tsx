@@ -189,6 +189,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          // @ts-ignore TS2774
           hasGenericChartAxes && isAggMode
             ? {
                 name: 'time_grain_sqla',
@@ -217,6 +218,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
+          // @ts-ignore TS2774
           hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
         ],
         [

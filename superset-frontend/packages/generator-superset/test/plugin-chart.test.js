@@ -18,6 +18,8 @@
  */
 
 /* eslint-env node */
+/* eslint-disable jest/expect-expect */
+
 const path = require('path');
 const assert = require('yeoman-assert');
 const helpers = require('yeoman-test');

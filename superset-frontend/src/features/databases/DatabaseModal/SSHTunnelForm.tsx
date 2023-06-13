@@ -158,10 +158,14 @@ const SSHTunnelForm = ({
                 iconRender={visible =>
                   visible ? (
                     <Tooltip title="Hide password.">
+                      {/*
+                      // @ts-ignore */}
                       <EyeInvisibleOutlined />
                     </Tooltip>
                   ) : (
                     <Tooltip title="Show password.">
+                      {/*
+                      // @ts-ignore */}
                       <EyeOutlined />
                     </Tooltip>
                   )
@@ -206,10 +210,14 @@ const SSHTunnelForm = ({
                   iconRender={visible =>
                     visible ? (
                       <Tooltip title="Hide password.">
+                        {/*
+												// @ts-ignore */}
                         <EyeInvisibleOutlined />
                       </Tooltip>
                     ) : (
                       <Tooltip title="Show password.">
+                        {/*
+												// @ts-ignore */}
                         <EyeOutlined />
                       </Tooltip>
                     )

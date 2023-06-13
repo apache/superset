@@ -224,7 +224,7 @@ export function Menu({
           }
           if (typeof child !== 'string') {
             return (
-              <DropdownMenu.Item key={`${child.label}`}>
+              <DropdownMenu.Item key={child.label}>
                 {child.isFrontendRoute ? (
                   <Link to={child.url || ''}>{child.label}</Link>
                 ) : (

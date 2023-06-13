@@ -42,7 +42,7 @@ const CacheLabel: React.FC<CacheLabelProps> = ({
       id="cache-desc-tooltip"
     >
       <Label
-        className={`${className}`}
+        className={className}
         type={labelType}
         onClick={onClick}
         onMouseOver={() => setHovered(true)}

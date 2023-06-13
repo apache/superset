@@ -65,6 +65,7 @@ describe('safeHtmlSpan', () => {
   test('should return a safe HTML span when the input is HTML', () => {
     const htmlString = '<div>Some <b>HTML</b> content</div>';
     const safeSpan = safeHtmlSpan(htmlString);
+    /* eslint react/no-danger: 0 */
     expect(safeSpan).toEqual(
       <span
         className="safe-html-wrapper"

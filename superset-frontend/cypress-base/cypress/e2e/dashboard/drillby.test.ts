@@ -31,6 +31,8 @@ import {
   interceptFormDataKey,
 } from '../explore/utils';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const closeModal = () => {
   cy.get('body').then($body => {
     if ($body.find('[data-test="close-drill-by-modal"]').length) {

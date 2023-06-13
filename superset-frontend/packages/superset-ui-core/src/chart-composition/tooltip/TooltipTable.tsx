@@ -34,7 +34,7 @@ const defaultProps = {
 
 type Props = {
   className?: string;
-  data: TooltipRowData[];
+  data?: TooltipRowData[];
 } & Readonly<typeof defaultProps>;
 
 const VALUE_CELL_STYLE: CSSProperties = { paddingLeft: 8, textAlign: 'right' };

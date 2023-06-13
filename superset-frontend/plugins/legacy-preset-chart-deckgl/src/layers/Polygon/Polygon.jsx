@@ -61,19 +61,19 @@ function setTooltipContent(formData) {
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('name') + ': '}
-            value={`${o.object.name}`}
+            value={o.object.name}
           />
         )}
         {o.object[formData.line_column] && (
           <TooltipRow
             label={`${formData.line_column}: `}
-            value={`${o.object[formData.line_column]}`}
+            value={o.object[formData.line_column]}
           />
         )}
         {formData.metric && (
           <TooltipRow
             label={`${metricLabel}: `}
-            value={`${o.object[metricLabel]}`}
+            value={o.object[metricLabel]}
           />
         )}
       </div>

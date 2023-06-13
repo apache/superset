@@ -37,7 +37,7 @@ function setTooltipContent(o) {
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Height') + ': '}
-        value={`${o.object.elevationValue}`}
+        value={o.object.elevationValue}
       />
     </div>
   );

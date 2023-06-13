@@ -19,6 +19,8 @@
 
 import SingletonSwitchboard, { Switchboard } from './switchboard';
 
+/* eslint-disable no-console */
+
 type EventHandler = (event: MessageEvent) => void;
 
 // A note on these fakes:

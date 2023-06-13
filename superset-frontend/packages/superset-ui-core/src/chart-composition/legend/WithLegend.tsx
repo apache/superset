@@ -28,12 +28,12 @@ const defaultProps = {
 };
 
 type Props = {
-  className: string;
+  className?: string;
   debounceTime?: number;
-  width: number | string;
-  height: number | string;
+  width?: number | string;
+  height?: number | string;
   legendJustifyContent?: 'center' | 'flex-start' | 'flex-end';
-  position: 'top' | 'left' | 'bottom' | 'right';
+  position?: 'top' | 'left' | 'bottom' | 'right';
   renderChart: (dim: { width: number; height: number }) => ReactNode;
   renderLegend?: (params: { direction: string }) => ReactNode;
 } & Readonly<typeof defaultProps>;

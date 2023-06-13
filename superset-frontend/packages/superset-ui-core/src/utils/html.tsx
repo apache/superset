@@ -38,6 +38,7 @@ export function sanitizeHtmlIfNeeded(htmlString: string) {
 export function safeHtmlSpan(possiblyHtmlString: string) {
   const isHtml = isProbablyHTML(possiblyHtmlString);
   if (isHtml) {
+    /* eslint react/no-danger: 0 */
     return (
       <span
         className="safe-html-wrapper"

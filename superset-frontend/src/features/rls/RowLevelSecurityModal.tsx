@@ -149,15 +149,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     }
   }, [rule]);
 
-  useEffect(() => {
-    if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
-    }
-  }, [resource]);
-
   // find selected tables and roles
   const getSelectedData = useCallback(() => {
     if (!resource) {
@@ -187,23 +178,45 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     return { tables, roles };
   }, [resource?.tables, resource?.roles]);
 
+  // * state validators *
+  const validate = () => {
+    if (
+      currentRule?.name &&
+      currentRule?.clause &&
+      currentRule.tables?.length
+    ) {
+      setDisableSave(false);
+    } else {
+      setDisableSave(true);
+    }
+  };
+
   // validate
   const currentRuleSafe = currentRule || {};
   useEffect(() => {
     validate();
   }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
 
-  // * event handlers *
-  type SelectValue = {
-    value: string;
-    label: string;
-  };
-
   const updateRuleState = (name: string, value: any) => {
     setCurrentRule(currentRuleData => ({
       ...currentRuleData,
       [name]: value,
     }));
+  };
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentRule({ ...resource, id: rule?.id });
+      const selectedTableAndRoles = getSelectedData();
+      updateRuleState('tables', selectedTableAndRoles?.tables || []);
+      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+    }
+  }, [resource]);
+
+  // * event handlers *
+  type SelectValue = {
+    value: string;
+    label: string;
   };
 
   const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
@@ -302,19 +315,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       },
     [],
   );
-
-  // * state validators *
-  const validate = () => {
-    if (
-      currentRule?.name &&
-      currentRule?.clause &&
-      currentRule.tables?.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
 
   return (
     <StyledModal

@@ -33,6 +33,8 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
 import { EmbeddedDashboard } from '../types';
 
+/* eslint-disable no-console */
+
 const extensionsRegistry = getExtensionsRegistry();
 
 type Props = {

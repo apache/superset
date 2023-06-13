@@ -34,8 +34,10 @@ export interface LoadableRenderer<Props>
     Loadable.LoadableComponent {}
 
 export default function createLoadableRenderer<Props, Exports>(
+  // @ts-ignore TS2344
   options: Loadable.OptionsWithMap<Props, Exports>,
 ): LoadableRenderer<Props> {
+  // @ts-ignore TS2345
   const LoadableRenderer = Loadable.Map(options) as LoadableRenderer<Props>;
 
   // Extends the behavior of LoadableComponent to provide post-render listeners

@@ -25,6 +25,8 @@ import Icons from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
+/* eslint-disable jsx-a11y/anchor-is-valid */
+
 export interface QueryLimitSelectProps {
   queryEditorId: string;
   maxRow: number;
@@ -69,7 +71,7 @@ function renderQueryLimit(
   return (
     <Menu>
       {[...new Set(LIMIT_DROPDOWN)].map(limit => (
-        <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
+        <Menu.Item key={limit} onClick={() => setQueryLimit(limit)}>
           {/* // eslint-disable-line no-use-before-define */}
           <a role="button">{convertToNumWithSpaces(limit)}</a>{' '}
         </Menu.Item>

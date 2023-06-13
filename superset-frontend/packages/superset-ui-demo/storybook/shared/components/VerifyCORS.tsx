@@ -111,7 +111,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
           This example requires CORS requests from this domain. <br />
           <br />
           1) enable CORS requests in your Superset App from{' '}
-          {`${window.location.origin}`}
+          {window.location.origin}
           <br />
           2) configure your Superset App host name below <br />
           3) click below to verify authentication. You may debug CORS further

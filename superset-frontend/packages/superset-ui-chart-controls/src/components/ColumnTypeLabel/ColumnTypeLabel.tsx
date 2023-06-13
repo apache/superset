@@ -52,6 +52,7 @@ const TypeIconWrapper = styled.div`
 
 export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
   let typeIcon: ReactNode = (
+    // @ts-ignore
     <QuestionOutlined aria-label={t('unknown type icon')} />
   );
 
@@ -64,6 +65,7 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
   } else if (type === GenericDataType.BOOLEAN) {
     typeIcon = <BooleanSvg aria-label={t('boolean type icon')} />;
   } else if (type === GenericDataType.TEMPORAL) {
+    // @ts-ignore
     typeIcon = <ClockCircleOutlined aria-label={t('temporal type icon')} />;
   }
 

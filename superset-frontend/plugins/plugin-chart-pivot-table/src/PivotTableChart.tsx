@@ -457,7 +457,9 @@ export default function PivotTableChart(props: PivotTableProps) {
     () => ({
       colSubtotalDisplay: { displayOnTop: colSubtotalPosition },
       rowSubtotalDisplay: { displayOnTop: rowSubtotalPosition },
+      // @ts-ignore
       arrowCollapsed: <StyledPlusSquareOutlined />,
+      // @ts-ignore
       arrowExpanded: <StyledMinusSquareOutlined />,
     }),
     [colSubtotalPosition, rowSubtotalPosition],

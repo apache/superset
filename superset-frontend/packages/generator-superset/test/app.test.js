@@ -17,6 +17,8 @@
  * under the License.
  */
 
+/* eslint-disable jest/expect-expect */
+
 const assert = require('yeoman-assert');
 const helpers = require('yeoman-test');
 const appModule = require('../generators/app');

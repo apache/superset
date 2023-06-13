@@ -19,6 +19,9 @@
 import mockConsole from 'jest-mock-console';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console */
+
 it('returns false and raises console error if feature flags have not been initialized', () => {
   mockConsole();
   Object.defineProperty(window, 'featureFlags', {

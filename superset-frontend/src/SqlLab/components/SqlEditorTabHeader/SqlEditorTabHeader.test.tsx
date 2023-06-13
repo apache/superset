@@ -63,9 +63,9 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
 describe('SqlEditorTabHeader', () => {
   it('renders name', () => {
     const { queryByText } = setup(defaultQueryEditor, mockStore(initialState));
-    expect(queryByText(defaultQueryEditor.name)).toBeTruthy();
-    expect(queryByText(extraQueryEditor1.name)).toBeFalsy();
-    expect(queryByText(extraQueryEditor2.name)).toBeFalsy();
+    expect(queryByText(defaultQueryEditor.name)).toBeInTheDocument();
+    expect(queryByText(extraQueryEditor1.name)).not.toBeInTheDocument();
+    expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
   it('renders name from unsaved changes', () => {
@@ -83,10 +83,10 @@ describe('SqlEditorTabHeader', () => {
         },
       }),
     );
-    expect(queryByText(expectedTitle)).toBeTruthy();
-    expect(queryByText(defaultQueryEditor.name)).toBeFalsy();
-    expect(queryByText(extraQueryEditor1.name)).toBeFalsy();
-    expect(queryByText(extraQueryEditor2.name)).toBeFalsy();
+    expect(queryByText(expectedTitle)).toBeInTheDocument();
+    expect(queryByText(defaultQueryEditor.name)).not.toBeInTheDocument();
+    expect(queryByText(extraQueryEditor1.name)).not.toBeInTheDocument();
+    expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
   it('renders current name for unrelated unsaved changes', () => {
@@ -104,10 +104,10 @@ describe('SqlEditorTabHeader', () => {
         },
       }),
     );
-    expect(queryByText(defaultQueryEditor.name)).toBeTruthy();
-    expect(queryByText(unrelatedTitle)).toBeFalsy();
-    expect(queryByText(extraQueryEditor1.name)).toBeFalsy();
-    expect(queryByText(extraQueryEditor2.name)).toBeFalsy();
+    expect(queryByText(defaultQueryEditor.name)).toBeInTheDocument();
+    expect(queryByText(unrelatedTitle)).not.toBeInTheDocument();
+    expect(queryByText(extraQueryEditor1.name)).not.toBeInTheDocument();
+    expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
   describe('with dropdown menus', () => {

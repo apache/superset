@@ -47,7 +47,7 @@ function setTooltipContent(formData) {
       {formData.dimension && (
         <TooltipRow
           label={`${formData.dimension}: `}
-          value={`${o.object.cat_color}`}
+          value={o.object.cat_color}
         />
       )}
     </div>

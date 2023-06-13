@@ -89,6 +89,7 @@ export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error(`Failed to query feature flag ${feature}`);
   }
   return false;

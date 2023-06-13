@@ -19,6 +19,8 @@
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 require('cy-verify-downloads').addCustomCommand();
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';

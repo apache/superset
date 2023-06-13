@@ -29,6 +29,7 @@ interface RecentActivityProps {
   user: BootstrapUser;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function RecentActivity({ user }: RecentActivityProps) {
   const rowLimit = 50;
   const mutator = function (data: ActivityResult) {

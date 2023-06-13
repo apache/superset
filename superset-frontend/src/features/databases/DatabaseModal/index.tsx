@@ -1049,7 +1049,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
-            key={`${database.name}`}
+            key={database.name}
           />
         ))}
     </div>

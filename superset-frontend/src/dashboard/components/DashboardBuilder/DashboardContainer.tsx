@@ -53,6 +53,8 @@ import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModa
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
 
+/* eslint-disable no-console */
+
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };

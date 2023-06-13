@@ -158,7 +158,7 @@ test('renders chart in standalone mode', () => {
       explore: { ...reduxState.explore, standalone: true },
     },
   });
-  expect(queryByTestId('standalone-app')).toBeTruthy();
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {

@@ -26,8 +26,8 @@ interface FieldsetProps {
   children: React.ReactNode;
   onChange: Function;
   item: Record<string, any>;
-  title: React.ReactNode;
-  compact: boolean;
+  title?: React.ReactNode;
+  compact?: boolean;
 }
 
 type fieldKeyType = string | number;

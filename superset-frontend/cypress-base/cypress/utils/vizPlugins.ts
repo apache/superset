@@ -49,6 +49,7 @@ export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isLegacyResponse(response: any): boolean {
   return !response.result;
 }

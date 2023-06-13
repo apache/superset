@@ -29,6 +29,8 @@ import Icons from 'src/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 interface TagCardProps {
   tag: Tag;
   hasPerm: (name: string) => boolean;

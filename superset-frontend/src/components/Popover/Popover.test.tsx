@@ -31,12 +31,12 @@ test('should render', () => {
 
 test('should render a title when visible', () => {
   render(<Popover title="Popover title" visible />);
-  expect(screen.getByText('Popover title')).toBeTruthy();
+  expect(screen.getByText('Popover title')).toBeInTheDocument();
 });
 
 test('should render some content when visible', () => {
   render(<Popover content="Content sample" visible />);
-  expect(screen.getByText('Content sample')).toBeTruthy();
+  expect(screen.getByText('Content sample')).toBeInTheDocument();
 });
 
 test('it should not render a title or content when not visible', () => {

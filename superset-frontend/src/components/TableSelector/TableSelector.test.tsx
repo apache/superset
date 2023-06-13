@@ -111,7 +111,9 @@ test('skips select all options', async () => {
   expect(
     await screen.findByRole('option', { name: 'table_a' }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole('option', { name: /Select All/i })).toBeFalsy();
+  expect(
+    screen.queryByRole('option', { name: /Select All/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('renders table options without Select All option', async () => {

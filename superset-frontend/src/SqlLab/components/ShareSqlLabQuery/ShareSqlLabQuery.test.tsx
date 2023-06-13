@@ -30,6 +30,8 @@ import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 const mockStore = configureStore([thunk]);
 const defaultProps = {
   queryEditorId: 'qe1',

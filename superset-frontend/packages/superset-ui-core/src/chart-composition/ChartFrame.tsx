@@ -28,7 +28,7 @@ type Props = {
   contentWidth?: number;
   contentHeight?: number;
   height: number;
-  renderContent: ({
+  renderContent?: ({
     height,
     width,
   }: {
@@ -60,6 +60,7 @@ export default class ChartFrame extends PureComponent<Props, {}> {
             width,
           }}
         >
+          {/* @ts-ignore TS2722 */}
           {renderContent({
             height: Math.max(contentHeight ?? 0, height),
             width: Math.max(contentWidth ?? 0, width),
@@ -68,6 +69,7 @@ export default class ChartFrame extends PureComponent<Props, {}> {
       );
     }
 
+    // @ts-ignore TS2722
     return renderContent({ height, width });
   }
 }

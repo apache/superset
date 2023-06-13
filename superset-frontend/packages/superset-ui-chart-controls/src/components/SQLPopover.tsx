@@ -64,6 +64,8 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
       title={t('SQL expression')}
       {...props}
     >
+      {/*
+      // @ts-ignore */}
       <StyledCalculatorIcon />
     </Popover>
   );

@@ -440,7 +440,7 @@ const RightMenu = ({
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
           {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+            <Menu.ItemGroup key={section.label} title={section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
                   const menuItemDisplay = RightMenuItemIconExtension ? (
@@ -452,7 +452,7 @@ const RightMenu = ({
                     child.label
                   );
                   return (
-                    <Menu.Item key={`${child.label}`}>
+                    <Menu.Item key={child.label}>
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
@@ -580,10 +580,20 @@ const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
-  state = {
-    hasError: false,
-  };
+interface RightMenuState {
+  hasError: boolean;
+}
+
+class RightMenuErrorWrapper extends React.PureComponent<
+  RightMenuProps,
+  RightMenuState
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = {
+      hasError: false,
+    };
+  }
 
   static getDerivedStateFromError() {
     return { hasError: true };

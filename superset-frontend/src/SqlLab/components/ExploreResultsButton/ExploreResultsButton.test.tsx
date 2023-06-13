@@ -38,14 +38,14 @@ describe('ExploreResultsButton', () => {
       database: { allows_subquery: true },
     });
 
-    expect(queryByText('Create Chart')).toBeTruthy();
+    expect(queryByText('Create Chart')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Chart' })).toBeEnabled();
   });
 
   it('renders disabled if subquery not allowed', async () => {
     const { queryByText } = setup(jest.fn());
 
-    expect(queryByText('Create Chart')).toBeTruthy();
+    expect(queryByText('Create Chart')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Chart' })).toBeDisabled();
   });
 });

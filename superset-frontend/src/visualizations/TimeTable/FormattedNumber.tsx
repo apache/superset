@@ -27,7 +27,7 @@ interface FormattedNumberProps {
 function FormattedNumber({ num = 0, format }: FormattedNumberProps) {
   if (format) {
     // @ts-expect-error formatNumber can actually accept strings, even though it's not typed as such
-    return <span title={`${num}`}>{formatNumber(format, num)}</span>;
+    return <span title={num}>{formatNumber(format, num)}</span>;
   }
   return <span>{num}</span>;
 }

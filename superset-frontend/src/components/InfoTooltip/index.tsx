@@ -24,6 +24,7 @@ import Icons from 'src/components/Icons';
 
 export interface InfoTooltipProps {
   className?: string;
+  // @ts-ignore
   tooltip: string;
   placement?:
     | 'bottom'

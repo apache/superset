@@ -18,6 +18,8 @@
  */
 import { JsonObject } from '@superset-ui/core';
 
+/* eslint-disable no-console */
+
 type TestWithIdType<T> = T extends string ? string : { 'data-test': string };
 
 // Using bem standard

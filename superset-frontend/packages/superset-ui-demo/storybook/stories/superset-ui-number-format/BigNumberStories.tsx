@@ -21,32 +21,31 @@ import React from 'react';
 import { formatNumber } from '@superset-ui/core';
 
 class NumberFormatValidator extends React.PureComponent {
-  state: { formatString: string; testValues: (number | null | undefined)[] } = {
-    formatString: '.3~s',
-    testValues: [
-      987654321,
-      12345.6789,
-      3000,
-      400.14,
-      70.00002,
-      1,
-      0,
-      -1,
-      -70.00002,
-      -400.14,
-      -3000,
-      -12345.6789,
-      -987654321,
-      Number.POSITIVE_INFINITY,
-      Number.NEGATIVE_INFINITY,
-      NaN,
-      null,
-      undefined,
-    ],
-  };
-
   constructor(props) {
     super(props);
+    this.state = {
+      formatString: '.3~s',
+      testValues: [
+        987654321,
+        12345.6789,
+        3000,
+        400.14,
+        70.00002,
+        1,
+        0,
+        -1,
+        -70.00002,
+        -400.14,
+        -3000,
+        -12345.6789,
+        -987654321,
+        Number.POSITIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+        NaN,
+        null,
+        undefined,
+      ],
+    };
 
     this.handleFormatChange = this.handleFormatChange.bind(this);
   }
@@ -115,7 +114,7 @@ class NumberFormatValidator extends React.PureComponent {
                 {testValues.map((v, index) => (
                   <tr key={index}>
                     <td>
-                      <code>{`${v}`}</code>
+                      <code>{v}</code>
                     </td>
                     <td>
                       <code>&quot;{formatNumber(formatString, v)}&quot;</code>
