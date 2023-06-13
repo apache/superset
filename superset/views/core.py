@@ -22,7 +22,6 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import backoff
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
@@ -44,13 +43,11 @@ from superset import (
     event_logger,
     is_feature_enabled,
     security_manager,
-    sql_lab,
     viz,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
@@ -58,7 +55,6 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -70,7 +66,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
-    SupersetCancelQueryException,
     SupersetErrorException,
     SupersetException,
     SupersetGenericErrorException,
@@ -94,7 +89,6 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
-from superset.utils.dates import now_as_float
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -1433,44 +1427,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def theme(self) -> FlaskResponse:
         return self.render_template("superset/theme.html")
 
-    @has_access_api
-    @handle_api_exception
-    @expose("/stop_query/", methods=("POST",))
-    @event_logger.log_this
-    @backoff.on_exception(
-        backoff.constant,
-        Exception,
-        interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
-        max_tries=5,
-    )
-    @deprecated(new_target="/api/v1/query/stop")
-    def stop_query(self) -> FlaskResponse:
-        client_id = request.form.get("client_id")
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-        if query.status in [
-            QueryStatus.FAILED,
-            QueryStatus.SUCCESS,
-            QueryStatus.TIMED_OUT,
-        ]:
-            logger.warning(
-                "Query with client_id could not be stopped: query already complete",
-            )
-            return self.json_response("OK")
-
-        if not sql_lab.cancel_query(query):
-            raise SupersetCancelQueryException("Could not cancel query")
-
-        query.status = QueryStatus.STOPPED
-        # Add the stop identity attribute because the sqlalchemy thread is unsafe
-        # because of multiple updates to the status in the query table
-        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-        query.end_time = now_as_float()
-        db.session.commit()
-
-        return self.json_response("OK")
-
     @api
     @handle_api_exception
     @has_access
@@ -1494,102 +1450,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/queries/<float:last_updated_ms>")
-    @expose("/queries/<int:last_updated_ms>")
-    @deprecated(new_target="api/v1/query/updated_since")
-    def queries(self, last_updated_ms: float | int) -> FlaskResponse:
-        """
-        Get the updated queries.
-
-        :param last_updated_ms: Unix time (milliseconds)
-        """
-
-        return self.queries_exec(last_updated_ms)
-
-    @staticmethod
-    def queries_exec(last_updated_ms: float | int) -> FlaskResponse:
-        stats_logger.incr("queries")
-        if not get_user_id():
-            return json_error_response(
-                "Please login to access the queries.", status=403
-            )
-
-        # UTC date time, same that is stored in the DB.
-        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
-
-        sql_queries = (
-            db.session.query(Query)
-            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
-            .all()
-        )
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-        return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
-
-    @has_access
-    @event_logger.log_this
-    @expose("/search_queries")
-    @deprecated(new_target="api/v1/query/")
-    def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """
-        Search for previously run sqllab queries. Used for Sqllab Query Search
-        page /superset/sqllab#search.
-
-        Custom permission can_only_search_queries_owned restricts queries
-        to only queries run by current user.
-
-        :returns: Response with list of sql query dicts
-        """
-        if security_manager.can_access_all_queries():
-            search_user_id = request.args.get("user_id")
-        elif request.args.get("user_id") is not None:
-            try:
-                search_user_id = int(cast(int, request.args.get("user_id")))
-            except ValueError:
-                return Response(status=400, mimetype="application/json")
-            if search_user_id != get_user_id():
-                return Response(status=403, mimetype="application/json")
-        else:
-            search_user_id = get_user_id()
-        database_id = request.args.get("database_id")
-        search_text = request.args.get("search_text")
-        # From and To time stamp should be Epoch timestamp in seconds
-
-        query = db.session.query(Query)
-        if search_user_id:
-            # Filter on user_id
-            query = query.filter(Query.user_id == search_user_id)
-
-        if database_id:
-            # Filter on db Id
-            query = query.filter(Query.database_id == database_id)
-
-        if status := request.args.get("status"):
-            # Filter on status
-            query = query.filter(Query.status == status)
-
-        if search_text:
-            # Filter on search text
-            query = query.filter(Query.sql.like(f"%{search_text}%"))
-
-        if from_time := request.args.get("from"):
-            query = query.filter(Query.start_time > int(from_time))
-
-        if to_time := request.args.get("to"):
-            query = query.filter(Query.start_time < int(to_time))
-
-        query_limit = config["QUERY_SEARCH_LIMIT"]
-        sql_queries = query.order_by(Query.start_time.asc()).limit(query_limit).all()
-
-        dict_queries = [q.to_dict() for q in sql_queries]
-
-        return Response(
-            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-            status=200,
-            mimetype="application/json",
-        )
 
     @app.errorhandler(500)
     def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use

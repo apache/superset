@@ -64,7 +64,6 @@
 |can user slices on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can favstar on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can import dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can search queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can sqllab viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can schemas on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab history on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -92,8 +91,6 @@
 |can sqllab table viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can profile on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can available domains on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can stop query on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can post on TableSchemaView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
