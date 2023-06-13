@@ -22,7 +22,6 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-import backoff
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
@@ -44,13 +43,11 @@ from superset import (
     event_logger,
     is_feature_enabled,
     security_manager,
-    sql_lab,
     viz,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
@@ -58,7 +55,6 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
@@ -71,7 +67,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
-    SupersetCancelQueryException,
     SupersetErrorException,
     SupersetException,
     SupersetGenericErrorException,
@@ -95,7 +90,6 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
-from superset.utils.dates import now_as_float
 from superset.views.base import (
     api,
     BaseSupersetView,
