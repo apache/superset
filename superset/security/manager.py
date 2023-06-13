@@ -175,6 +175,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "RowLevelSecurityFiltersModelView",
         "Security",
         "SQL Lab",
+        "User Registrations",
+        "User's Statistics",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
