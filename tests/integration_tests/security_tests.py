@@ -1500,7 +1500,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
         self.assertIn(("can_read", "Database"), sql_lab_set)
         self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
-        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
         self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
         self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
         self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
