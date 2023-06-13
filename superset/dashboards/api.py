@@ -195,6 +195,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "static_image"
     ]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
