@@ -50,13 +50,6 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
-from superset.constants import QUERY_EARLY_CANCEL_KEY
-from superset.connectors.sqla.models import (
-    AnnotationDatasource,
-    SqlaTable,
-    SqlMetric,
-    TableColumn,
-)
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -67,8 +60,6 @@ from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
-    SupersetCancelQueryException,
-    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
