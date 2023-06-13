@@ -26,6 +26,7 @@ import {
   extractQueryFields,
   getChartMetadataRegistry,
   QueryFormData,
+  removeHTMLTags,
   styled,
   t,
 } from '@superset-ui/core';
@@ -49,8 +50,14 @@ const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
     </div>
   </Menu.Item>
 );
-
-const Filter = styled.span`
+const Filter = ({ children, stripHTML = false }) => {
+  const content =
+    stripHTML && typeof children == 'string'
+      ? removeHTMLTags(children)
+      : children;
+  return <span>{content}</span>;
+};
+const StyledFilter = styled(Filter)`
   ${({ theme }) => `
      font-weight: ${theme.typography.weights.bold};
      color: ${theme.colors.primary.base};
@@ -191,7 +198,7 @@ const DrillDetailMenuItems = ({
               onClick={openModal.bind(null, [filter])}
             >
               {`${DRILL_TO_DETAIL_TEXT} `}
-              <Filter>{filter.formattedVal}</Filter>
+              <StyledFilter stripHTML>{filter.formattedVal}</StyledFilter>
             </MenuItemWithTruncation>
           ))}
           {filters.length > 1 && (
@@ -202,7 +209,7 @@ const DrillDetailMenuItems = ({
             >
               <div>
                 {`${DRILL_TO_DETAIL_TEXT} `}
-                <Filter>{t('all')}</Filter>
+                <StyledFilter>{t('all')}</StyledFilter>
               </div>
             </Menu.Item>
           )}
