@@ -66,7 +66,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=database,
-                query_source = "Sql Lab" or None,
+                query_source = "Validator",
                 query_id = None
             )
 
