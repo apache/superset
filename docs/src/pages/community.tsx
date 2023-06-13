@@ -201,7 +201,7 @@ const Community = () => {
         <BlurredSection>
           <SectionHeader level="h2" title="Newsletter Archive" />
           <StyledNewsletterIframe
-            src="https://presetsandbox.gatsbyjs.io/embed/newsletter/"
+            src="https://preset.io/embed/newsletter/"
             frameBorder="0"
             scrolling="no"
           />
