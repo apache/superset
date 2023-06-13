@@ -17,14 +17,14 @@
 """drop access_request
 
 Revision ID: 83e1abbe777f
-Revises: ae58e1e58e5c
+Revises: 4ea966691069
 Create Date: 2023-06-01 13:13:18.147362
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "83e1abbe777f"
-down_revision = "ae58e1e58e5c"
+down_revision = "4ea966691069"
 
 import sqlalchemy as sa
 from alembic import op

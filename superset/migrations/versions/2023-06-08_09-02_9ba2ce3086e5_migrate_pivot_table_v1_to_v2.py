@@ -17,7 +17,7 @@
 """migrate-pivot-table-v1-to-v2
 
 Revision ID: 9ba2ce3086e5
-Revises: 4ea966691069
+Revises: 83e1abbe777f
 Create Date: 2023-08-06 09:02:10.148992
 
 """
@@ -25,7 +25,7 @@ from superset.migrations.shared.migrate_viz import MigratePivotTable
 
 # revision identifiers, used by Alembic.
 revision = "9ba2ce3086e5"
-down_revision = "4ea966691069"
+down_revision = "83e1abbe777f"
 
 
 def upgrade():
