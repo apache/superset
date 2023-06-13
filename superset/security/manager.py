@@ -237,8 +237,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_export_csv", "SQLLab"),
         ("can_sql_json", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab_history", "Superset"),
-        ("can_sqllab_viz", "Superset"),
-        ("can_sqllab_table_viz", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab", "Superset"),
         ("can_stop_query", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
