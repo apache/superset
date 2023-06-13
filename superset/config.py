@@ -498,7 +498,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 # ----------------------------------------------------------------------
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
+#: Timeout (seconds) for tunnel connection (open_channel timeout)
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
+#: Timeout (seconds) for transport socket (``socket.settimeout``)
+SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
