@@ -390,7 +390,6 @@ export function Table<RecordType extends object>(
     bordered,
   };
 
-  console.log('YO--HTML:', allowHTML);
   return (
     <ConfigProvider renderEmpty={renderEmpty}>
       <div ref={wrapperRef}>
