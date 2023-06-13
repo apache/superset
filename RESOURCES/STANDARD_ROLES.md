@@ -66,7 +66,6 @@
 |can estimate query cost on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can import dashboards on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can search queries on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can sqllab viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can schemas on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab history on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can copy dash on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
