@@ -1103,21 +1103,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/available_domains/", methods=("GET",))
-    @deprecated(new_target="/api/v1/available_domains/")
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """
-        Returns the list of available Superset Webserver domains (if any)
-        defined in config. This enables charts embedded in other apps to
-        leverage domain sharding if appropriately configured.
-        """
-        return Response(
-            json.dumps(conf.get("SUPERSET_WEBSERVER_DOMAINS")), mimetype="text/json"
-        )
-
-    @api
-    @has_access_api
-    @event_logger.log_this
     @expose("/fave_dashboards_by_username/<username>/", methods=("GET",))
     @deprecated(new_target="api/v1/dashboard/favorite_status/")
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
