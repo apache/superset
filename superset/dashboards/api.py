@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+import binascii
 import functools
 import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast, Optional
+import os
+from typing import Any, Callable, List, cast, Optional
 from zipfile import is_zipfile, ZipFile
+from werkzeug.utils import secure_filename
 
 from flask import make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
@@ -30,6 +33,7 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
+from superset.config import UPLOAD_FOLDER
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -557,7 +561,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @requires_json
+    @requires_form_data
     def put(self, pk: int) -> Response:
         """Changes a Dashboard
         ---
@@ -603,8 +607,20 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        data = {}
+        owners_list = request.form.getlist("owners[]")
+        data["owners"] = [] if owners_list == [''] else owners_list
+        data.update({key: request.form.get(key) for key in request.form if key != "owners[]"})
+        import_file = request.files.get('thumbnail')
+        if import_file:
+            filename = secure_filename(import_file.filename)
+            image_path = os.path.join(UPLOAD_FOLDER, filename)
+            import_file.save(image_path)
+            with open(image_path, 'rb') as file:
+                thumbnail_data = file.read()
+            data['static_image'] = binascii.hexlify(thumbnail_data).decode()
         try:
-            item = self.edit_model_schema.load(request.json)
+            item = self.edit_model_schema.load(data)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)

@@ -160,6 +160,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
+    # static_image = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
     embedded = relationship(
         "EmbeddedDashboard",

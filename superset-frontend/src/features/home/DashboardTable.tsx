@@ -136,7 +136,7 @@ function DashboardTable({
       ({ json = {} }) => {
         setDashboards(
           dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
+            if (dashboard.id === json.result.id) {
               return json.result;
             }
             return dashboard;

@@ -353,6 +353,7 @@ const PropertiesModal = ({
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
+    let image = '';
 
     // validate currentJsonMetadata
     let metadata;
@@ -429,6 +430,12 @@ const PropertiesModal = ({
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
+
+    const fileInput = document.getElementById('file-input');
+    if (fileInput.files[0]) {
+      image = fileInput.files[0];
+    }
+
     const onSubmitProps = {
       id: dashboardId,
       title,
@@ -439,6 +446,7 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
+      image,
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
@@ -446,19 +454,24 @@ const PropertiesModal = ({
       onHide();
       addSuccessToast(t('Dashboard properties updated'));
     } else {
+      const formData = new FormData();
+      image && formData.append('thumbnail', image);
+      formData.append('dashboard_title', title);
+      formData.append('slug', slug || null);
+      formData.append('json_metadata', currentJsonMetadata || null);
+      owners.forEach(owner => formData.append('owners[]', owner.id));
+      formData.append('certified_by', certifiedBy || null);
+      formData.append(
+        'certification_details',
+        certifiedBy && certificationDetails ? certificationDetails : null,
+      );
+      if (owners.length === 0) {
+        formData.append('owners[]', []);
+      }
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dashboard_title: title,
-          slug: slug || null,
-          json_metadata: currentJsonMetadata || null,
-          owners: (owners || []).map(o => o.id),
-          certified_by: certifiedBy || null,
-          certification_details:
-            certifiedBy && certificationDetails ? certificationDetails : null,
-          ...morePutProps,
-        }),
+        headers: { Accept: 'multipart/form-data' },
+        body: formData,
       }).then(() => {
         onSubmit(onSubmitProps);
         onHide();
@@ -672,6 +685,7 @@ const PropertiesModal = ({
     >
       <AntdForm
         form={form}
+        encType="multipart/form-data"
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
@@ -728,6 +742,25 @@ const PropertiesModal = ({
             <p className="help-block">
               {t('Any additional detail to show in the certification tooltip.')}
             </p>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={24} md={24}>
+            <h3>{t('Thumbnail')}</h3>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <StyledFormItem label={t('Upload Thumbnail')}>
+              <Input
+                id="file-input"
+                data-test="dashboard-file-input"
+                type="file"
+                accept="image/*"
+                disabled={isLoading}
+                name="image"
+              />
+            </StyledFormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (

@@ -145,3 +145,14 @@ export const isSafari = () => {
 
   return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
 };
+
+export const isImageUrl = (url) =>
+/^\/api\/v1\/chart\/\d+\/thumbnail\/[a-fA-F0-9]+\/$/.test(url);
+
+export const hexToBinary = (hex) => {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.substr(i, 2), 16));
+  }
+  return new Uint8Array(bytes);
+};

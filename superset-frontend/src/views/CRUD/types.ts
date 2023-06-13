@@ -67,6 +67,7 @@ export interface Dashboard {
   thumbnail_url: string;
   owners: Owner[];
   loading?: boolean;
+  static_image?: string;
 }
 
 export type SavedQueryObject = {

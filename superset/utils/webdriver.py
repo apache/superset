@@ -130,7 +130,9 @@ class WebDriverProxy:
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
-            kwargs = dict(options=options)
+            kwargs = dict(options=options, executable_path='/usr/bin/chromedriver')
+            console.log(kwargs);
+            # kwargs = dict(options=options)
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init

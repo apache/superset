@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { styled, logging } from '@superset-ui/core';
+import { isImageUrl, hexToBinary } from 'src/utils/common';
 
 export type BackgroundPosition = 'top' | 'bottom';
 interface ImageContainerProps {
@@ -54,20 +55,36 @@ export default function ImageLoader({
 }: ImageLoaderProps) {
   const [imgSrc, setImgSrc] = useState<string>(fallback);
 
+  const createDataUrl = (binaryData: Uint8Array) => {
+    const blob = new Blob([binaryData], { type: 'image/jpeg' });
+    return URL.createObjectURL(blob);
+  };
+
   useEffect(() => {
     if (src) {
-      fetch(src)
-        .then(response => response.blob())
-        .then(blob => {
-          if (/image/.test(blob.type)) {
-            const imgURL = URL.createObjectURL(blob);
-            setImgSrc(imgURL);
-          }
-        })
-        .catch(errMsg => {
-          logging.error(errMsg);
+      if (isImageUrl(src)) {
+        fetch(src)
+          .then(response => response.blob())
+          .then(blob => {
+            if (/image/.test(blob.type)) {
+              const imgURL = URL.createObjectURL(blob);
+              setImgSrc(imgURL);
+            }
+          })
+          .catch(errMsg => {
+            logging.error(errMsg);
+            setImgSrc(fallback);
+          });
+      } else {
+        try {
+          const binaryData = hexToBinary(src);
+          const dataUrl = createDataUrl(binaryData);
+          setImgSrc(dataUrl);
+        } catch (error) {
+          logging.error(error);
           setImgSrc(fallback);
-        });
+        }
+      }
     }
 
     return () => {

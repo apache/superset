@@ -203,6 +203,7 @@ class DashboardGetResponseSchema(Schema):
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    static_image = fields.String(allow_none=True)
 
 
 class DatabaseSchema(Schema):
@@ -352,6 +353,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    static_image = fields.String(allow_none=True)
 
 
 class ChartFavStarResponseResult(Schema):

@@ -192,7 +192,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # or use `SUPERSET_SECRET_KEY` environment variable.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
+SECRET_KEY = "jqfrMqLNrWwfrve1TaWzB2zr+qVgg4jVXK+7koNU2HRHFkSwo0xmmpvB"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -436,13 +436,13 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # and doesn't work with all nested types.
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
-    "THUMBNAILS": False,
+    "THUMBNAILS": True,
     "DASHBOARD_CACHE": False,  # deprecated
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
-    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    "LISTVIEWS_DEFAULT_CARD_VIEW": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
@@ -645,8 +645,10 @@ THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
 THUMBNAIL_CHART_DIGEST_FUNC: Optional[Callable[[Slice, ExecutorType, str], str]] = None
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "NullCache",
-    "CACHE_NO_NULL_WARNING": True,
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60*7,
+    'CACHE_KEY_PREFIX': 'thumbnail_',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/1'
 }
 
 # Time before selenium times out after trying to locate an element on the page and wait
@@ -1296,7 +1298,7 @@ SLACK_PROXY = None
 # chrome:
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "firefox"
+WEBDRIVER_TYPE = "chrome"
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {
@@ -1317,7 +1319,7 @@ WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 WEBDRIVER_OPTION_ARGS = ["--headless"]
 
 # The base URL to query for accessing the user interface
-WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
+WEBDRIVER_BASEURL = "http://localhost:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time selenium will wait for the page to load and render for the email report.

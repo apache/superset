@@ -95,6 +95,7 @@ interface Dashboard {
   owners: Owner[];
   tags: Tag[];
   created_by: object;
+  static_image: string;
 }
 
 const Actions = styled.div`
@@ -206,6 +207,7 @@ function DashboardList(props: DashboardListProps) {
                 certification_details = '',
                 owners,
                 tags,
+                static_image,
               } = json.result;
               return {
                 ...dashboard,
@@ -221,6 +223,7 @@ function DashboardList(props: DashboardListProps) {
                 certification_details,
                 owners,
                 tags,
+                static_image,
               };
             }
             return dashboard;
