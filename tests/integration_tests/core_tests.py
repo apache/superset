@@ -16,11 +16,9 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import csv
 import datetime
 import doctest
 import html
-import io
 import json
 import logging
 from urllib.parse import quote
@@ -554,40 +552,6 @@ class TestCore(SupersetTestCase):
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_csv_endpoint(self):
-        self.login()
-        client_id = f"{random.getrandbits(64)}"[:10]
-        get_name_sql = """
-                    SELECT name
-                    FROM birth_names
-                    LIMIT 1
-                """
-        resp = self.run_sql(get_name_sql, client_id, raise_on_error=True)
-        name = resp["data"][0]["name"]
-        sql = f"""
-            SELECT name
-            FROM birth_names
-            WHERE name = '{name}'
-            LIMIT 1
-        """
-        client_id = f"{random.getrandbits(64)}"[:10]
-        self.run_sql(sql, client_id, raise_on_error=True)
-
-        resp = self.get_resp(f"/superset/csv/{client_id}")
-        data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
-
-        client_id = f"{random.getrandbits(64)}"[:10]
-        self.run_sql(sql, client_id, raise_on_error=True)
-
-        resp = self.get_resp(f"/superset/csv/{client_id}")
-        data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
-
-        self.assertEqual(list(expected_data), list(data))
-        self.logout()
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extra_table_metadata(self):
         self.login()
         example_db = superset.utils.database.get_example_database()
@@ -595,52 +559,6 @@ class TestCore(SupersetTestCase):
         self.get_json_resp(
             f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
-
-    def test_required_params_in_sql_json(self):
-        self.login()
-        client_id = f"{random.getrandbits(64)}"[:10]
-
-        data = {"client_id": client_id}
-        rv = self.client.post(
-            "/superset/sql_json/",
-            json=data,
-        )
-        failed_resp = {
-            "sql": ["Missing data for required field."],
-            "database_id": ["Missing data for required field."],
-        }
-        resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
-
-        data = {"sql": "SELECT 1", "client_id": client_id}
-        rv = self.client.post(
-            "/superset/sql_json/",
-            json=data,
-        )
-        failed_resp = {"database_id": ["Missing data for required field."]}
-        resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
-
-        data = {"database_id": 1, "client_id": client_id}
-        rv = self.client.post(
-            "/superset/sql_json/",
-            json=data,
-        )
-        failed_resp = {"sql": ["Missing data for required field."]}
-        resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertDictEqual(resp_data, failed_resp)
-        self.assertEqual(rv.status_code, 400)
-
-        data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
-        rv = self.client.post(
-            "/superset/sql_json/",
-            json=data,
-        )
-        resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(resp_data.get("status"), "success")
-        self.assertEqual(rv.status_code, 200)
 
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
@@ -650,32 +568,6 @@ class TestCore(SupersetTestCase):
         sql = "SELECT '{{ 1+1 }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2")
-
-    @mock.patch(
-        "tests.integration_tests.superset_test_custom_template_processors.datetime"
-    )
-    @mock.patch("superset.views.core.get_sql_results")
-    def test_custom_templated_sql_json(self, sql_lab_mock, mock_dt) -> None:
-        """Test sqllab receives macros expanded query."""
-        mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
-        self.login()
-        sql = "SELECT '$DATE()' as test"
-        resp = {
-            "status": QueryStatus.SUCCESS,
-            "query": {"rows": 1},
-            "data": [{"test": "'1970-01-01'"}],
-        }
-        sql_lab_mock.return_value = resp
-
-        dbobj = self.create_fake_db_for_macros()
-        json_payload = dict(database_id=dbobj.id, sql=sql)
-        self.get_json_resp(
-            "/superset/sql_json/", raise_on_error=False, json_=json_payload
-        )
-        assert sql_lab_mock.called
-        self.assertEqual(sql_lab_mock.call_args[0][1], "SELECT '1970-01-01' as test")
-
-        self.delete_fake_db_for_macros()
 
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")
@@ -1125,54 +1017,6 @@ class TestCore(SupersetTestCase):
         )
         assert data == ["this_schema_is_allowed_too"]
         self.delete_fake_db()
-
-    @mock.patch("superset.views.core.results_backend_use_msgpack", False)
-    def test_display_limit(self):
-        from superset.views import core
-
-        core.results_backend = mock.Mock()
-        self.login()
-
-        data = [{"col_0": i} for i in range(100)]
-        payload = {
-            "status": QueryStatus.SUCCESS,
-            "query": {"rows": 100},
-            "data": data,
-        }
-        # limit results to 1
-        expected_key = {"status": "success", "query": {"rows": 100}, "data": data}
-        limited_data = data[:1]
-        expected_limited = {
-            "status": "success",
-            "query": {"rows": 100},
-            "data": limited_data,
-            "displayLimitReached": True,
-        }
-
-        query_mock = mock.Mock()
-        query_mock.sql = "SELECT *"
-        query_mock.database = 1
-        query_mock.schema = "superset"
-
-        # do not apply msgpack serialization
-        use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
-        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
-        serialized_payload = sql_lab._serialize_payload(payload, False)
-        compressed = utils.zlib_compress(serialized_payload)
-        core.results_backend.get.return_value = compressed
-
-        with mock.patch("superset.views.core.db") as mock_superset_db:
-            mock_superset_db.session.query().filter_by().one_or_none.return_value = (
-                query_mock
-            )
-            # get all results
-            result_key = json.loads(self.get_resp("/superset/results/key/"))
-            result_limited = json.loads(self.get_resp("/superset/results/key/?rows=1"))
-
-        self.assertEqual(result_key, expected_key)
-        self.assertEqual(result_limited, expected_limited)
-
-        app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False
