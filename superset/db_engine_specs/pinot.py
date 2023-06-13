@@ -18,6 +18,7 @@ from typing import Optional
 
 from sqlalchemy.sql.expression import ColumnClause
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 
@@ -30,19 +31,19 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_alias_in_orderby = False
 
     # Pinot does its own conversion below
-    _time_grain_expressions: dict[Optional[str], str] = {
-        "PT1S": "1:SECONDS",
-        "PT1M": "1:MINUTES",
-        "PT5M": "5:MINUTES",
-        "PT10M": "10:MINUTES",
-        "PT15M": "15:MINUTES",
-        "PT30M": "30:MINUTES",
-        "PT1H": "1:HOURS",
-        "P1D": "1:DAYS",
-        "P1W": "week",
-        "P1M": "month",
-        "P3MY": "quarter",
-        "P1Y": "year",
+    _time_grain_expressions = {
+        TimeGrain.SECOND: "1:SECONDS",
+        TimeGrain.MINUTE: "1:MINUTES",
+        TimeGrain.FIVE_MINUTES: "5:MINUTES",
+        TimeGrain.TEN_MINUTES: "10:MINUTES",
+        TimeGrain.FIFTEEN_MINUTES: "15:MINUTES",
+        TimeGrain.THIRTY_MINUTES: "30:MINUTES",
+        TimeGrain.HOUR: "1:HOURS",
+        TimeGrain.DAY: "1:DAYS",
+        TimeGrain.WEEK: "week",
+        TimeGrain.MONTH: "month",
+        TimeGrain.QUARTER: "quarter",
+        TimeGrain.YEAR: "year",
     }
 
     _python_to_java_time_patterns: dict[str, str] = {
@@ -55,18 +56,18 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     _use_date_trunc_function: dict[str, bool] = {
-        "PT1S": False,
-        "PT1M": False,
-        "PT5M": False,
-        "PT10M": False,
-        "PT15M": False,
-        "PT30M": False,
-        "PT1H": False,
-        "P1D": False,
-        "P1W": True,
-        "P1M": True,
-        "P3M": True,
-        "P1Y": True,
+        TimeGrain.SECOND: False,
+        TimeGrain.MINUTE: False,
+        TimeGrain.FIVE_MINUTES: False,
+        TimeGrain.TEN_MINUTES: False,
+        TimeGrain.FIFTEEN_MINUTES: False,
+        TimeGrain.THIRTY_MINUTES: False,
+        TimeGrain.HOUR: False,
+        TimeGrain.DAY: False,
+        TimeGrain.WEEK: True,
+        TimeGrain.MONTH: True,
+        TimeGrain.QUARTER: True,
+        TimeGrain.YEAR: True,
     }
 
     @classmethod

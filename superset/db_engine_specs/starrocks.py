@@ -22,9 +22,7 @@ from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
-from sqlalchemy import Integer, Numeric, types
-from sqlalchemy.engine import Inspector
-from sqlalchemy.engine.result import Row as ResultRow
+from sqlalchemy import Float, Integer, Numeric, types
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -45,8 +43,24 @@ class TINYINT(Integer):
     __visit_name__ = "TINYINT"
 
 
-class DOUBLE(Numeric):
+class LARGEINT(Integer):
+    __visit_name__ = "LARGEINT"
+
+
+class DOUBLE(Float):
     __visit_name__ = "DOUBLE"
+
+
+class HLL(Numeric):
+    __visit_name__ = "HLL"
+
+
+class BITMAP(Numeric):
+    __visit_name__ = "BITMAP"
+
+
+class PERCENTILE(Numeric):
+    __visit_name__ = "PERCENTILE"
 
 
 class ARRAY(TypeEngine):  # pylint: disable=no-init
@@ -89,6 +103,11 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r"^largeint", re.IGNORECASE),
+            LARGEINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
             re.compile(r"^decimal.*", re.IGNORECASE),
             types.DECIMAL(),
             GenericDataType.NUMERIC,
@@ -109,10 +128,22 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             GenericDataType.STRING,
         ),
         (
+            re.compile(r"^json", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
+        (
             re.compile(r"^binary.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^percentile", re.IGNORECASE),
+            PERCENTILE(),
+            GenericDataType.STRING,
+        ),
+        (re.compile(r"^hll", re.IGNORECASE), HLL(), GenericDataType.STRING),
+        (re.compile(r"^bitmap", re.IGNORECASE), BITMAP(), GenericDataType.STRING),
         (re.compile(r"^array.*", re.IGNORECASE), ARRAY(), GenericDataType.STRING),
         (re.compile(r"^map.*", re.IGNORECASE), MAP(), GenericDataType.STRING),
         (re.compile(r"^struct.*", re.IGNORECASE), STRUCT(), GenericDataType.STRING),
@@ -145,61 +176,10 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             if "." in database:
                 database = database.split(".")[0] + "." + schema
             else:
-                database += "." + schema
+                database = "default_catalog." + schema
             uri = uri.set(database=database)
 
         return uri, connect_args
-
-    @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> list[dict[str, Any]]:
-        columns = cls._show_columns(inspector, table_name, schema)
-        result: list[dict[str, Any]] = []
-        for column in columns:
-            column_spec = cls.get_column_spec(column.Type)
-            column_type = column_spec.sqla_type if column_spec else None
-            if column_type is None:
-                column_type = types.String()
-                logger.info(
-                    "Did not recognize starrocks type %s of column %s",
-                    str(column.Type),
-                    str(column.Field),
-                )
-            column_info = cls._create_column_info(column.Field, column_type)
-            column_info["nullable"] = getattr(column, "Null", True)
-            column_info["default"] = None
-            result.append(column_info)
-        return result
-
-    @classmethod
-    def _show_columns(
-        cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> list[ResultRow]:
-        """
-        Show starrocks column names
-        :param inspector: object that performs database schema inspection
-        :param table_name: table name
-        :param schema: schema name
-        :return: list of column objects
-        """
-        quote = inspector.engine.dialect.identifier_preparer.quote_identifier
-        full_table = quote(table_name)
-        if schema:
-            full_table = f"{quote(schema)}.{full_table}"
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
-
-    @classmethod
-    def _create_column_info(
-        cls, name: str, data_type: types.TypeEngine
-    ) -> dict[str, Any]:
-        """
-        Create column info object
-        :param name: column name
-        :param data_type: column data type
-        :return: column info object
-        """
-        return {"name": name, "type": f"{data_type}"}
 
     @classmethod
     def get_schema_from_engine_params(

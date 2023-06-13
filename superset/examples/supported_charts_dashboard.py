@@ -407,17 +407,6 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         ),
         Slice(
             **slice_kwargs,
-            slice_name="Treemap Chart",
-            viz_type="treemap",
-            params=get_slice_json(
-                defaults,
-                viz_type="treemap",
-                metrics=["sum__num"],
-                groupby=["gender"],
-            ),
-        ),
-        Slice(
-            **slice_kwargs,
             slice_name="Treemap V2 Chart",
             viz_type="treemap_v2",
             params=get_slice_json(

@@ -18,18 +18,13 @@
 from __future__ import annotations
 
 import logging
-import re
-from contextlib import closing
 from datetime import datetime
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast
 from urllib import parse
 
-import backoff
-import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
     has_access,
     has_access_api,
@@ -38,8 +33,7 @@ from flask_appbuilder.security.decorators import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
-from sqlalchemy.orm.session import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
     app,
@@ -48,16 +42,12 @@ from superset import (
     db,
     event_logger,
     is_feature_enabled,
-    results_backend,
-    results_backend_use_msgpack,
     security_manager,
-    sql_lab,
     viz,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
@@ -65,30 +55,21 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
-from superset.databases.filters import DatabaseFilter
-from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
-    CertificateException,
     DatabaseNotFound,
-    SerializationError,
-    SupersetCancelQueryException,
     SupersetErrorException,
     SupersetException,
     SupersetGenericErrorException,
     SupersetSecurityException,
-    SupersetTimeoutException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
@@ -96,48 +77,18 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
-from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.queries.dao import QueryDAO
-from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery
-from superset.sql_validators import get_validator_by_name
-from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
-from superset.sqllab.exceptions import (
-    QueryIsForbiddenToAccessException,
-    SqlLabException,
-)
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
-from superset.sqllab.limiting_factor import LimitingFactor
-from superset.sqllab.query_render import SqlQueryRenderImpl
-from superset.sqllab.sql_json_executer import (
-    ASynchronousSqlJsonExecutor,
-    SqlJsonExecutor,
-    SynchronousSqlJsonExecutor,
-)
-from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-from superset.sqllab.utils import apply_display_max_row_configuration_if_require
-from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.utils import core as utils, csv
+from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import (
-    apply_max_row_limit,
-    DatasourceType,
-    get_user_id,
-    ReservedUrlParameters,
-)
-from superset.utils.dates import now_as_float
-from superset.utils.decorators import check_dashboard_access
+from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -154,9 +105,7 @@ from superset.views.base import (
     validate_sqlatable,
 )
 from superset.views.log.dao import LogDAO
-from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
-    _deserialize_results_payload,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -175,7 +124,6 @@ from superset.viz import BaseViz
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
 stats_logger = config["STATS_LOGGER"]
-DAR = DatasourceAccessRequest
 logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
@@ -193,7 +141,6 @@ DATABASE_KEYS = [
     "disable_data_preview",
 ]
 
-DASHBOARD_LIST_URL = "/dashboard/list/"
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 PARAMETER_MISSING_ERR = __(
@@ -209,223 +156,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/datasources/")
-    @deprecated(new_target="api/v1/dataset/")
-    def datasources(self) -> FlaskResponse:
-        return self.json_response(
-            sorted(
-                [
-                    datasource.short_data
-                    for datasource in security_manager.get_user_datasources()
-                    if datasource.short_data.get("name")
-                ],
-                key=lambda datasource: datasource["name"],
-            )
-        )
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/override_role_permissions/", methods=("POST",))
-    @deprecated()
-    def override_role_permissions(self) -> FlaskResponse:
-        """Updates the role with the give datasource permissions.
-
-          Permissions not in the request will be revoked. This endpoint should
-          be available to admins only. Expects JSON in the format:
-           {
-            'role_name': '{role_name}',
-            'database': [{
-                'datasource_type': '{table|druid}',
-                'name': '{database_name}',
-                'schema': [{
-                    'name': '{schema_name}',
-                    'datasources': ['{datasource name}, {datasource name}']
-                }]
-            }]
-        }
-        """
-        data = request.get_json(force=True)
-        role_name = data["role_name"]
-        databases = data["database"]
-
-        db_ds_names = set()
-        for dbs in databases:
-            for schema in dbs["schema"]:
-                for ds_name in schema["datasources"]:
-                    fullname = utils.get_datasource_full_name(
-                        dbs["name"], ds_name, schema=schema["name"]
-                    )
-                    db_ds_names.add(fullname)
-
-        existing_datasources = SqlaTable.get_all_datasources(db.session)
-        datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
-        role = security_manager.find_role(role_name)
-        # remove all permissions
-        role.permissions = []
-        # grant permissions to the list of datasources
-        granted_perms = []
-        for datasource in datasources:
-            view_menu_perm = security_manager.find_permission_view_menu(
-                view_menu_name=datasource.perm, permission_name="datasource_access"
-            )
-            # prevent creating empty permissions
-            if view_menu_perm and view_menu_perm.view_menu:
-                role.permissions.append(view_menu_perm)
-                granted_perms.append(view_menu_perm.view_menu.name)
-        db.session.commit()
-        return self.json_response(
-            {"granted": granted_perms, "requested": list(db_ds_names)}, status=201
-        )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/request_access/", methods=("POST",))
-    @deprecated()
-    def request_access(self) -> FlaskResponse:
-        datasources = set()
-        dashboard_id = request.args.get("dashboard_id")
-        if dashboard_id:
-            dash = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).one()
-            datasources |= dash.datasources
-        datasource_id = request.args.get("datasource_id")
-        datasource_type = request.args.get("datasource_type")
-        if datasource_id and datasource_type:
-            ds_class = DatasourceDAO.sources.get(datasource_type)
-            datasource = (
-                db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
-            )
-            datasources.add(datasource)
-
-        has_access_ = all(
-            datasource and security_manager.can_access_datasource(datasource)
-            for datasource in datasources
-        )
-        if has_access_:
-            return redirect(f"/superset/dashboard/{dashboard_id}")
-
-        if request.args.get("action") == "go":
-            for datasource in datasources:
-                access_request = DAR(
-                    datasource_id=datasource.id, datasource_type=datasource.type
-                )
-                db.session.add(access_request)
-                db.session.commit()
-            flash(__("Access was requested"), "info")
-            return redirect("/")
-
-        return self.render_template(
-            "superset/request_access.html",
-            datasources=datasources,
-            datasource_names=", ".join([o.name for o in datasources]),
-        )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/approve", methods=("POST",))
-    @deprecated()
-    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
-        def clean_fulfilled_requests(session: Session) -> None:
-            for dar in session.query(DAR).all():
-                datasource = DatasourceDAO.get_datasource(
-                    session, DatasourceType(dar.datasource_type), dar.datasource_id
-                )
-                if not datasource or security_manager.can_access_datasource(datasource):
-                    # Dataset does not exist anymore
-                    session.delete(dar)
-            session.commit()
-
-        datasource_type = request.args["datasource_type"]
-        datasource_id = request.args["datasource_id"]
-        created_by_username = request.args.get("created_by")
-        role_to_grant = request.args.get("role_to_grant")
-        role_to_extend = request.args.get("role_to_extend")
-
-        session = db.session
-        datasource = DatasourceDAO.get_datasource(
-            session, DatasourceType(datasource_type), int(datasource_id)
-        )
-
-        if not datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
-            return json_error_response(DATASOURCE_MISSING_ERR)
-
-        requested_by = security_manager.find_user(username=created_by_username)
-        if not requested_by:
-            flash(USER_MISSING_ERR, "alert")
-            return json_error_response(USER_MISSING_ERR)
-
-        requests = (
-            session.query(DAR)
-            .filter(  # pylint: disable=comparison-with-callable
-                DAR.datasource_id == datasource_id,
-                DAR.datasource_type == datasource_type,
-                DAR.created_by_fk == requested_by.id,
-            )
-            .all()
-        )
-
-        if not requests:
-            err = __("The access requests seem to have been deleted")
-            flash(err, "alert")
-            return json_error_response(err)
-
-        # check if you can approve
-        if security_manager.can_access_all_datasources() or security_manager.is_owner(
-            datasource
-        ):
-            # can by done by admin only
-            if role_to_grant:
-                role = security_manager.find_role(role_to_grant)
-                requested_by.roles.append(role)
-                msg = __(
-                    "%(user)s was granted the role %(role)s that gives access "
-                    "to the %(datasource)s",
-                    user=requested_by.username,
-                    role=role_to_grant,
-                    datasource=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_granted.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-
-            if role_to_extend:
-                perm_view = security_manager.find_permission_view_menu(
-                    "email/datasource_access", datasource.perm
-                )
-                role = security_manager.find_role(role_to_extend)
-                security_manager.add_permission_role(role, perm_view)
-                msg = __(
-                    "Role %(r)s was extended to provide the access to "
-                    "the datasource %(ds)s",
-                    r=role_to_extend,
-                    ds=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_extended.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-            clean_fulfilled_requests(session)
-        else:
-            flash(__("You have no permission to approve this request"), "danger")
-            return redirect("/accessrequestsmodelview/list/")
-        for request_ in requests:
-            session.delete(request_)
-        session.commit()
-        return redirect("/accessrequestsmodelview/list/")
 
     @has_access
     @event_logger.log_this
@@ -888,21 +618,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except DatasetNotFoundError:
                 pass
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
-
-        if datasource:
-            if config["ENABLE_ACCESS_REQUEST"] and (
-                not security_manager.can_access_datasource(datasource)
-            ):
-                flash(
-                    __(security_manager.get_datasource_access_error_msg(datasource)),
-                    "danger",
-                )
-                return redirect(
-                    "superset/request_access/?"
-                    f"datasource_type={datasource_type}&"
-                    f"datasource_id={datasource_id}&"
-                )
-
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
@@ -982,7 +697,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         bootstrap_data = {
             "can_add": slice_add_perm,
-            "can_download": slice_download_perm,
             "datasource": sanitize_datasource_data(datasource_data),
             "form_data": form_data,
             "datasource_id": datasource_id,
@@ -1015,43 +729,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             title=title.__str__(),
             standalone_mode=standalone_mode,
         )
-
-    @api
-    @handle_api_exception
-    @has_access_api
-    @event_logger.log_this
-    @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
-    @deprecated(
-        new_target="/api/v1/datasource/<datasource_type>/"
-        "<datasource_id>/column/<column_name>/values/"
-    )
-    def filter(  # pylint: disable=no-self-use
-        self, datasource_type: str, datasource_id: int, column: str
-    ) -> FlaskResponse:
-        """
-        Endpoint to retrieve values for specified column.
-
-        :param datasource_type: Type of datasource e.g. table
-        :param datasource_id: Datasource id
-        :param column: Column name to retrieve values for
-        :returns: The Flask response
-        :raises SupersetSecurityException: If the user cannot access the resource
-        """
-        # TODO: Cache endpoint by user, datasource and column
-        datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
-        )
-        if not datasource:
-            return json_error_response(DATASOURCE_MISSING_ERR)
-
-        datasource.raise_for_access()
-        row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
-        payload = json.dumps(
-            datasource.values_for_column(column_name=column, limit=row_limit),
-            default=utils.json_int_dttm_ser,
-            ignore_nan=True,
-        )
-        return json_success(payload)
 
     @staticmethod
     def save_or_overwrite_slice(
@@ -1163,320 +840,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/tables/<int:db_id>/<schema>/")
-    @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
-    @deprecated(new_target="api/v1/database/<int:pk>/tables/")
-    def tables(  # pylint: disable=no-self-use
-        self,
-        db_id: int,
-        schema: str,
-        force_refresh: str = "false",
-    ) -> FlaskResponse:
-        """Endpoint to fetch the list of tables for given database"""
-
-        force_refresh_parsed = force_refresh.lower() == "true"
-        schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-
-        if not schema_parsed:
-            return json_error_response(_("Schema undefined"), status=422)
-
-        # Guarantees database filtering by security access
-        database = (
-            DatabaseFilter("id", SQLAInterface(Database, db.session))
-            .apply(
-                db.session.query(Database),
-                None,
-            )
-            .filter_by(id=db_id)
-            .one_or_none()
-        )
-
-        if not database:
-            return json_error_response(
-                __("Database not found: %(id)s", id=db_id), status=404
-            )
-
-        try:
-            tables = security_manager.get_datasources_accessible_by_user(
-                database=database,
-                schema=schema_parsed,
-                datasource_names=sorted(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_table_names_in_schema(
-                        schema=schema_parsed,
-                        force=force_refresh_parsed,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                ),
-            )
-
-            views = security_manager.get_datasources_accessible_by_user(
-                database=database,
-                schema=schema_parsed,
-                datasource_names=sorted(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_view_names_in_schema(
-                        schema=schema_parsed,
-                        force=force_refresh_parsed,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                ),
-            )
-        except SupersetException as ex:
-            return json_error_response(ex.message, ex.status)
-
-        extra_dict_by_name = {
-            table.name: table.extra_dict
-            for table in (
-                db.session.query(SqlaTable).filter(
-                    SqlaTable.database_id == database.id,
-                    SqlaTable.schema == schema_parsed,
-                )
-            ).all()
-        }
-
-        options = sorted(
-            [
-                {
-                    "value": table.table,
-                    "type": "table",
-                    "extra": extra_dict_by_name.get(table.table, None),
-                }
-                for table in tables
-            ]
-            + [
-                {
-                    "value": view.table,
-                    "type": "view",
-                }
-                for view in views
-            ],
-            key=lambda item: item["value"],
-        )
-
-        payload = {"tableLength": len(tables) + len(views), "options": options}
-        return json_success(json.dumps(payload))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/copy_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="api/v1/dashboard/<dash_id>/copy/")
-    def copy_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Copy dashboard"""
-        session = db.session()
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        # remove it to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        dash = Dashboard()
-        original_dash = session.query(Dashboard).get(dashboard_id)
-
-        dash.owners = [g.user] if g.user else []
-        dash.dashboard_title = data["dashboard_title"]
-        dash.css = data.get("css")
-
-        old_to_new_slice_ids: dict[int, int] = {}
-        if data["duplicate_slices"]:
-            # Duplicating slices as well, mapping old ids to new ones
-            for slc in original_dash.slices:
-                new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
-                session.add(new_slice)
-                session.flush()
-                new_slice.dashboards.append(dash)
-                old_to_new_slice_ids[slc.id] = new_slice.id
-
-            # update chartId of layout entities
-            for value in data["positions"].values():
-                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
-                    old_id = value["meta"]["chartId"]
-                    new_id = old_to_new_slice_ids.get(old_id)
-                    value["meta"]["chartId"] = new_id
-        else:
-            dash.slices = original_dash.slices
-
-        dash.params = original_dash.params
-
-        DashboardDAO.set_dash_metadata(dash, data, old_to_new_slice_ids)
-        session.add(dash)
-        session.commit()
-        dash_json = json.dumps(dash.data)
-        session.close()
-        return json_success(dash_json)
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/save_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated()
-    def save_dash(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Save a dashboard's metadata"""
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        data = json.loads(request.form["data"])
-        # client-side send back last_modified_time which was set when
-        # the dashboard was open. it was use to avoid mid-air collision.
-        remote_last_modified_time = data.get("last_modified_time")
-        current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        if (
-            remote_last_modified_time
-            and remote_last_modified_time < current_last_modified_time
-        ):
-            return json_error_response(
-                __(
-                    "This dashboard was changed recently. "
-                    "Please reload dashboard to get latest version."
-                ),
-                412,
-            )
-        # remove to avoid confusion.
-        data.pop("last_modified_time", None)
-
-        if data.get("css") is not None:
-            dash.css = data["css"]
-        if data.get("dashboard_title") is not None:
-            dash.dashboard_title = data["dashboard_title"]
-        DashboardDAO.set_dash_metadata(dash, data)
-        session.merge(dash)
-        session.commit()
-
-        # get updated changed_on
-        dash = session.query(Dashboard).get(dashboard_id)
-        last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        session.close()
-        return json_success(
-            json.dumps({"status": "SUCCESS", "last_modified_time": last_modified_time})
-        )
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
-    @deprecated(new_target="api/v1/chart/<chart_id>")
-    def add_slices(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Add and save slices to a dashboard"""
-        data = json.loads(request.form["data"])
-        session = db.session()
-        dash = session.query(Dashboard).get(dashboard_id)
-        security_manager.raise_for_ownership(dash)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
-        dash.slices += new_slices
-        session.merge(dash)
-        session.commit()
-        session.close()
-        return "SLICES ADDED"
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/testconn",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )  # pylint: disable=no-self-use
-    @deprecated(new_target="/api/v1/database/test_connection/")
-    def testconn(self) -> FlaskResponse:
-        """Tests a sqla connection"""
-        db_name = request.json.get("name")
-        uri = request.json.get("uri")
-        try:
-            if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(make_url_safe(uri))
-            # if the database already exists in the database, only its safe
-            # (password-masked) URI would be shown in the UI and would be passed in the
-            # form data so if the database already exists and the form was submitted
-            # with the safe URI, we assume we should retrieve the decrypted URI to test
-            # the connection.
-            if db_name:
-                existing_database = (
-                    db.session.query(Database)
-                    .filter_by(database_name=db_name)
-                    .one_or_none()
-                )
-                if existing_database and uri == existing_database.safe_sqlalchemy_uri():
-                    uri = existing_database.sqlalchemy_uri_decrypted
-
-            # This is the database instance that will be tested. Note the extra fields
-            # are represented as JSON encoded strings in the model.
-            database = Database(
-                server_cert=request.json.get("server_cert"),
-                extra=json.dumps(request.json.get("extra", {})),
-                impersonate_user=request.json.get("impersonate_user"),
-                encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
-            )
-            database.set_sqlalchemy_uri(uri)
-            database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            with database.get_sqla_engine_with_context() as engine:
-                with closing(engine.raw_connection()) as conn:
-                    if engine.dialect.do_ping(conn):
-                        return json_success('"OK"')
-
-                raise DBAPIError(None, None, None)
-        except CertificateException as ex:
-            logger.info("Certificate exception")
-            return json_error_response(ex.message)
-        except (NoSuchModuleError, ModuleNotFoundError):
-            logger.info("Invalid driver")
-            driver_name = make_url_safe(uri).drivername
-            return json_error_response(
-                _(
-                    "Could not load database driver: %(driver_name)s",
-                    driver_name=driver_name,
-                ),
-                400,
-            )
-        except DatabaseInvalidError:
-            logger.info("Invalid URI")
-            return json_error_response(
-                _(
-                    "Invalid connection string, a valid string usually follows:\n"
-                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
-                )
-            )
-        except DBAPIError:
-            logger.warning("Connection failed")
-            return json_error_response(
-                _("Connection failed, please check your connection settings"), 400
-            )
-        except SupersetSecurityException as ex:
-            logger.warning("Stopped an unsafe database connection")
-            return json_error_response(_(str(ex)), 400)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unexpected error %s", type(ex).__name__)
-            return json_error_response(
-                _("Unexpected error occurred, please check your logs for details"), 400
-            )
-
     @staticmethod
     def get_user_activity_access_error(user_id: int) -> FlaskResponse | None:
         try:
@@ -1507,21 +870,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = LogDAO.get_recent_activity(user_id, actions, distinct, 0, limit)
 
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/available_domains/", methods=("GET",))
-    @deprecated(new_target="/api/v1/available_domains/")
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """
-        Returns the list of available Superset Webserver domains (if any)
-        defined in config. This enables charts embedded in other apps to
-        leverage domain sharding if appropriately configured.
-        """
-        return Response(
-            json.dumps(conf.get("SUPERSET_WEBSERVER_DOMAINS")), mimetype="text/json"
-        )
 
     @api
     @has_access_api
@@ -1860,85 +1208,56 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
-    @check_dashboard_access(
-        on_error=lambda msg: redirect_with_flash(DASHBOARD_LIST_URL, msg, "danger")
-    )
     def dashboard(
         self,
-        dashboard_id_or_slug: str,  # pylint: disable=unused-argument
+        dashboard_id_or_slug: str,
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
-        dashboard: Dashboard | None = None,
     ) -> FlaskResponse:
         """
-        Server side rendering for a dashboard
-        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        Server side rendering for a dashboard.
+
+        :param dashboard_id_or_slug: identifier for dashboard
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
-        :param dashboard: added by `check_dashboard_access`
         """
+
+        dashboard = Dashboard.get(dashboard_id_or_slug)
+
         if not dashboard:
             abort(404)
 
-        assert dashboard is not None
-
-        has_access_ = False
-        for datasource in dashboard.datasources:
-            datasource = DatasourceDAO.get_datasource(
-                datasource_type=DatasourceType(datasource.type),
-                datasource_id=datasource.id,
-                session=db.session(),
+        try:
+            security_manager.raise_for_dashboard_access(dashboard)
+        except DashboardAccessDeniedError as ex:
+            return redirect_with_flash(
+                url="/dashboard/list/",
+                message=utils.error_msg_from_exception(ex),
+                category="danger",
             )
-            if datasource and security_manager.can_access_datasource(
-                datasource=datasource,
-            ):
-                has_access_ = True
-
-            if has_access_ is False and config["ENABLE_ACCESS_REQUEST"]:
-                flash(
-                    __(security_manager.get_datasource_access_error_msg(datasource)),
-                    "danger",
-                )
-                return redirect(
-                    f"/superset/request_access/?dashboard_id={dashboard.id}"
-                )
-
-            if has_access_:
-                break
-
-        if dashboard.datasources and not has_access_:
-            flash(DashboardAccessDeniedError.message, "danger")
-            return redirect(DASHBOARD_LIST_URL)
-
-        dash_edit_perm = security_manager.is_owner(
-            dashboard
-        ) and security_manager.can_access("can_save_dash", "Superset")
-        edit_mode = (
-            request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
-        )
-
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
-
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
-            dash_edit_perm=dash_edit_perm,
-            edit_mode=edit_mode,
+            dash_edit_perm=(
+                security_manager.is_owner(dashboard)
+                and security_manager.can_access("can_write", "Dashboard")
+            ),
+            edit_mode=(
+                request.args.get(ReservedUrlParameters.EDIT_MODE.value) == "true"
+            ),
         )
-
-        bootstrap_data = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
-        }
 
         return self.render_template(
             "superset/spa.html",
             entry="spa",
-            # dashboard title is always visible
-            title=dashboard.dashboard_title,
+            title=dashboard.dashboard_title,  # dashboard title is always visible
             bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                {
+                    "user": bootstrap_user_data(g.user, include_perms=True),
+                    "common": common_bootstrap_payload(g.user),
+                },
+                default=utils.pessimistic_json_iso_dttm_ser,
             ),
-            standalone_mode=standalone_mode,
+            standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
     @has_access
@@ -2104,426 +1423,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return json_success(json.dumps(payload))
 
-    @has_access_api
-    @expose("/estimate_query_cost/<int:database_id>/", methods=("POST",))
-    @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/estimate/")
-    def estimate_query_cost(  # pylint: disable=no-self-use
-        self, database_id: int, schema: str | None = None
-    ) -> FlaskResponse:
-        mydb = db.session.query(Database).get(database_id)
-
-        sql = json.loads(request.form.get("sql", '""'))
-        if template_params := json.loads(request.form.get("templateParams") or "{}"):
-            template_processor = get_template_processor(mydb)
-            sql = template_processor.process_template(sql, **template_params)
-
-        timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
-        timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
-        try:
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                cost = mydb.db_engine_spec.estimate_query_cost(
-                    mydb, schema, sql, utils.QuerySource.SQL_LAB
-                )
-        except SupersetTimeoutException as ex:
-            logger.exception(ex)
-            return json_errors_response([ex.error])
-        except Exception as ex:  # pylint: disable=broad-except
-            return json_error_response(utils.error_msg_from_exception(ex))
-
-        spec = mydb.db_engine_spec
-        query_cost_formatters: dict[str, Any] = app.config[
-            "QUERY_COST_FORMATTERS_BY_ENGINE"
-        ]
-        query_cost_formatter = query_cost_formatters.get(
-            spec.engine, spec.query_cost_formatter
-        )
-        cost = query_cost_formatter(cost)
-
-        return json_success(json.dumps(cost))
-
     @expose("/theme/")
     def theme(self) -> FlaskResponse:
         return self.render_template("superset/theme.html")
-
-    @has_access_api
-    @expose("/results/<key>/")
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/results/")
-    def results(self, key: str) -> FlaskResponse:
-        return self.results_exec(key)
-
-    @staticmethod
-    def results_exec(key: str) -> FlaskResponse:
-        """Serves a key off of the results backend
-
-        It is possible to pass the `rows` query argument to limit the number
-        of rows returned.
-        """
-        if not results_backend:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("Results backend is not configured."),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
-        read_from_results_backend_start = now_as_float()
-        blob = results_backend.get(key)
-        stats_logger.timing(
-            "sqllab.query.results_backend_read",
-            now_as_float() - read_from_results_backend_start,
-        )
-        if not blob:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "Data could not be retrieved from the results backend. You "
-                        "need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=410,
-            )
-
-        query = db.session.query(Query).filter_by(results_key=key).one_or_none()
-        if query is None:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "The query associated with these results could not be found. "
-                        "You need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            )
-
-        try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "You are not authorized to see this query. If you think this "
-                        "is an error, please reach out to your administrator."
-                    ),
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=403,
-            ) from ex
-
-        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        try:
-            obj = _deserialize_results_payload(
-                payload, query, cast(bool, results_backend_use_msgpack)
-            )
-        except SerializationError as ex:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "Data could not be deserialized from the results backend. The "
-                        "storage format might have changed, rendering the old data "
-                        "stake. You need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            ) from ex
-
-        if "rows" in request.args:
-            try:
-                rows = int(request.args["rows"])
-            except ValueError as ex:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "The provided `rows` argument is not a valid integer."
-                        ),
-                        error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    status=400,
-                ) from ex
-
-            obj = apply_display_max_row_configuration_if_require(obj, rows)
-
-        return json_success(
-            json.dumps(
-                obj, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
-            )
-        )
-
-    @has_access_api
-    @handle_api_exception
-    @expose("/stop_query/", methods=("POST",))
-    @event_logger.log_this
-    @backoff.on_exception(
-        backoff.constant,
-        Exception,
-        interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
-        max_tries=5,
-    )
-    @deprecated(new_target="/api/v1/query/stop")
-    def stop_query(self) -> FlaskResponse:
-        client_id = request.form.get("client_id")
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-        if query.status in [
-            QueryStatus.FAILED,
-            QueryStatus.SUCCESS,
-            QueryStatus.TIMED_OUT,
-        ]:
-            logger.warning(
-                "Query with client_id could not be stopped: query already complete",
-            )
-            return self.json_response("OK")
-
-        if not sql_lab.cancel_query(query):
-            raise SupersetCancelQueryException("Could not cancel query")
-
-        query.status = QueryStatus.STOPPED
-        # Add the stop identity attribute because the sqlalchemy thread is unsafe
-        # because of multiple updates to the status in the query table
-        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-        query.end_time = now_as_float()
-        db.session.commit()
-
-        return self.json_response("OK")
-
-    @has_access_api
-    @event_logger.log_this
-    @expose(
-        "/validate_sql_json/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/api/v1/database/<pk>/validate_sql/")
-    def validate_sql_json(
-        # pylint: disable=too-many-locals,no-self-use
-        self,
-    ) -> FlaskResponse:
-        """Validates that arbitrary sql is acceptable for the given database.
-        Returns a list of error/warning annotations as json.
-        """
-        sql = request.form["sql"]
-        database_id = request.form["database_id"]
-        schema = request.form.get("schema") or None
-        template_params = json.loads(request.form.get("templateParams") or "{}")
-
-        if template_params is not None and len(template_params) > 0:
-            # TODO: factor the Database object out of template rendering
-            #       or provide it as mydb so we can render template params
-            #       without having to also persist a Query ORM object.
-            return json_error_response(
-                "SQL validation does not support template parameters", status=400
-            )
-
-        session = db.session()
-        mydb = session.query(Database).filter_by(id=database_id).one_or_none()
-        if not mydb:
-            return json_error_response(
-                f"Database with id {database_id} is missing.", status=400
-            )
-
-        spec = mydb.db_engine_spec
-        validators_by_engine = app.config["SQL_VALIDATORS_BY_ENGINE"]
-        if not validators_by_engine or spec.engine not in validators_by_engine:
-            return json_error_response(
-                f"no SQL validator is configured for {spec.engine}", status=400
-            )
-        validator_name = validators_by_engine[spec.engine]
-        validator = get_validator_by_name(validator_name)
-        if not validator:
-            return json_error_response(
-                "No validator named {} found (configured for the {} engine)".format(
-                    validator_name, spec.engine
-                )
-            )
-
-        try:
-            timeout = config["SQLLAB_VALIDATION_TIMEOUT"]
-            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                errors = validator.validate(sql, schema, mydb)
-            payload = json.dumps(
-                [err.to_dict() for err in errors],
-                default=utils.pessimistic_json_iso_dttm_ser,
-                ignore_nan=True,
-                encoding=None,
-            )
-            return json_success(payload)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            msg = _(
-                "%(validator)s was unable to check your query.\n"
-                "Please recheck your query.\n"
-                "Exception: %(ex)s",
-                validator=validator.name,
-                ex=ex,
-            )
-            # Return as a 400 if the database error message says we got a 4xx error
-            if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
-                return json_error_response(f"{msg}", status=400)
-            return json_error_response(f"{msg}")
-
-    @has_access_api
-    @handle_api_exception
-    @event_logger.log_this
-    @expose("/sql_json/", methods=("POST",))
-    @deprecated(new_target="/api/v1/sqllab/execute/")
-    def sql_json(self) -> FlaskResponse:
-        if errors := SqlJsonPayloadSchema().validate(request.json):
-            return json_error_response(status=400, payload=errors)
-
-        try:
-            log_params = {
-                "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
-            }
-            execution_context = SqlJsonExecutionContext(request.json)
-            command = self._create_sql_json_command(execution_context, log_params)
-            command_result: CommandResult = command.run()
-            return self._create_response_from_execution_context(command_result)
-        except SqlLabException as ex:
-            logger.error(ex.message)
-            self._set_http_status_into_Sql_lab_exception(ex)
-            payload = {"errors": [ex.to_dict()]}
-            return json_error_response(status=ex.status, payload=payload)
-
-    @staticmethod
-    def _create_sql_json_command(
-        execution_context: SqlJsonExecutionContext, log_params: dict[str, Any] | None
-    ) -> ExecuteSqlCommand:
-        query_dao = QueryDAO()
-        sql_json_executor = Superset._create_sql_json_executor(
-            execution_context, query_dao
-        )
-        execution_context_convertor = ExecutionContextConvertor()
-        execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))
-        )
-        return ExecuteSqlCommand(
-            execution_context,
-            query_dao,
-            DatabaseDAO(),
-            CanAccessQueryValidatorImpl(),
-            SqlQueryRenderImpl(get_template_processor),
-            sql_json_executor,
-            execution_context_convertor,
-            config["SQLLAB_CTAS_NO_LIMIT"],
-            log_params,
-        )
-
-    @staticmethod
-    def _create_sql_json_executor(
-        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
-    ) -> SqlJsonExecutor:
-        sql_json_executor: SqlJsonExecutor
-        if execution_context.is_run_asynchronous():
-            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
-        else:
-            sql_json_executor = SynchronousSqlJsonExecutor(
-                query_dao,
-                get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
-            )
-        return sql_json_executor
-
-    @staticmethod
-    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
-        if isinstance(ex, QueryIsForbiddenToAccessException):
-            ex.status = 403
-
-    def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
-        self,
-        command_result: CommandResult,
-    ) -> FlaskResponse:
-        status_code = 200
-        if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
-            status_code = 202
-        return json_success(command_result["payload"], status_code)
-
-    @has_access
-    @event_logger.log_this
-    @expose("/csv/<client_id>")
-    @deprecated(new_target="api/v1/sqllab/export/")
-    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Download the query results as csv."""
-        logger.info("Exporting CSV file [%s]", client_id)
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-
-        try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            flash(ex.error.message)
-            return redirect("/")
-
-        blob = None
-        if results_backend and query.results_key:
-            logger.info("Fetching CSV from results backend [%s]", query.results_key)
-            blob = results_backend.get(query.results_key)
-        if blob:
-            logger.info("Decompressing")
-            payload = utils.zlib_decompress(
-                blob, decode=not results_backend_use_msgpack
-            )
-            obj = _deserialize_results_payload(
-                payload, query, cast(bool, results_backend_use_msgpack)
-            )
-
-            df = pd.DataFrame(
-                data=obj["data"],
-                dtype=object,
-                columns=[c["name"] for c in obj["columns"]],
-            )
-
-            logger.info("Using pandas to convert to CSV")
-        else:
-            logger.info("Running a query to turn into CSV")
-            if query.select_sql:
-                sql = query.select_sql
-                limit = None
-            else:
-                sql = query.executed_sql
-                limit = ParsedQuery(sql).limit
-            if limit is not None and query.limiting_factor in {
-                LimitingFactor.QUERY,
-                LimitingFactor.DROPDOWN,
-                LimitingFactor.QUERY_AND_DROPDOWN,
-            }:
-                # remove extra row from `increased_limit`
-                limit -= 1
-            df = query.database.get_df(sql, query.schema)[:limit]
-
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
-        quoted_csv_name = parse.quote(query.name)
-        response = CsvResponse(
-            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
-        )
-        event_info = {
-            "event_type": "data_export",
-            "client_id": client_id,
-            "row_count": len(df.index),
-            "database": query.database.name,
-            "schema": query.schema,
-            "sql": query.sql,
-            "exported_format": "csv",
-        }
-        event_rep = repr(event_info)
-        logger.debug(
-            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
-        )
-        return response
 
     @api
     @handle_api_exception
@@ -2548,102 +1450,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
-
-    @has_access_api
-    @event_logger.log_this
-    @expose("/queries/<float:last_updated_ms>")
-    @expose("/queries/<int:last_updated_ms>")
-    @deprecated(new_target="api/v1/query/updated_since")
-    def queries(self, last_updated_ms: float | int) -> FlaskResponse:
-        """
-        Get the updated queries.
-
-        :param last_updated_ms: Unix time (milliseconds)
-        """
-
-        return self.queries_exec(last_updated_ms)
-
-    @staticmethod
-    def queries_exec(last_updated_ms: float | int) -> FlaskResponse:
-        stats_logger.incr("queries")
-        if not get_user_id():
-            return json_error_response(
-                "Please login to access the queries.", status=403
-            )
-
-        # UTC date time, same that is stored in the DB.
-        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
-
-        sql_queries = (
-            db.session.query(Query)
-            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
-            .all()
-        )
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-        return json_success(json.dumps(dict_queries, default=utils.json_int_dttm_ser))
-
-    @has_access
-    @event_logger.log_this
-    @expose("/search_queries")
-    @deprecated(new_target="api/v1/query/")
-    def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """
-        Search for previously run sqllab queries. Used for Sqllab Query Search
-        page /superset/sqllab#search.
-
-        Custom permission can_only_search_queries_owned restricts queries
-        to only queries run by current user.
-
-        :returns: Response with list of sql query dicts
-        """
-        if security_manager.can_access_all_queries():
-            search_user_id = request.args.get("user_id")
-        elif request.args.get("user_id") is not None:
-            try:
-                search_user_id = int(cast(int, request.args.get("user_id")))
-            except ValueError:
-                return Response(status=400, mimetype="application/json")
-            if search_user_id != get_user_id():
-                return Response(status=403, mimetype="application/json")
-        else:
-            search_user_id = get_user_id()
-        database_id = request.args.get("database_id")
-        search_text = request.args.get("search_text")
-        # From and To time stamp should be Epoch timestamp in seconds
-
-        query = db.session.query(Query)
-        if search_user_id:
-            # Filter on user_id
-            query = query.filter(Query.user_id == search_user_id)
-
-        if database_id:
-            # Filter on db Id
-            query = query.filter(Query.database_id == database_id)
-
-        if status := request.args.get("status"):
-            # Filter on status
-            query = query.filter(Query.status == status)
-
-        if search_text:
-            # Filter on search text
-            query = query.filter(Query.sql.like(f"%{search_text}%"))
-
-        if from_time := request.args.get("from"):
-            query = query.filter(Query.start_time > int(from_time))
-
-        if to_time := request.args.get("to"):
-            query = query.filter(Query.start_time < int(to_time))
-
-        query_limit = config["QUERY_SEARCH_LIMIT"]
-        sql_queries = query.order_by(Query.start_time.asc()).limit(query_limit).all()
-
-        dict_queries = [q.to_dict() for q in sql_queries]
-
-        return Response(
-            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-            status=200,
-            mimetype="application/json",
-        )
 
     @app.errorhandler(500)
     def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -2693,7 +1499,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Prevent returning 404 when user is not found to prevent username scanning
         user_id = -1 if not user else user.id
         # Prevent unauthorized access to other user's profiles,
-        # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
+        # unless configured to do so with ENABLE_BROAD_ACTIVITY_ACCESS
         if error_obj := self.get_user_activity_access_error(user_id):
             return error_obj
 
@@ -2794,38 +1600,3 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     def sqllab_history(self) -> FlaskResponse:
         return super().render_app_template()
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/schemas_access_for_file_upload")
-    @deprecated(new_target="api/v1/database/{pk}/schemas_access_for_file_upload/")
-    def schemas_access_for_file_upload(self) -> FlaskResponse:
-        """
-        This method exposes an API endpoint to
-        get the schema access control settings for file upload in this database
-        """
-        if not request.args.get("db_id"):
-            return json_error_response("No database is allowed for your file upload")
-
-        db_id = int(request.args["db_id"])
-        database = db.session.query(Database).filter_by(id=db_id).one()
-        try:
-            schemas_allowed = database.get_schema_access_for_file_upload()
-            if security_manager.can_access_database(database):
-                return self.json_response(schemas_allowed)
-            # the list schemas_allowed should not be empty here
-            # and the list schemas_allowed_processed returned from security_manager
-            # should not be empty either,
-            # otherwise the database should have been filtered out
-            # in CsvToDatabaseForm
-            schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
-                database, schemas_allowed, False
-            )
-            return self.json_response(schemas_allowed_processed)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            return json_error_response(
-                "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact your Superset Admin!"
-            )

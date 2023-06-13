@@ -17,6 +17,7 @@
  * under the License.
  */
 import { configureStore, ConfigureStoreOptions, Store } from '@reduxjs/toolkit';
+import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
@@ -74,6 +75,22 @@ const userReducer = (
   }
   return user;
 };
+
+const getMiddleware: ConfigureStoreOptions['middleware'] =
+  getDefaultMiddleware =>
+    process.env.REDUX_DEFAULT_MIDDLEWARE
+      ? getDefaultMiddleware({
+          immutableCheck: {
+            warnAfter: 200,
+          },
+          serializableCheck: {
+            // Ignores AbortController instances
+            ignoredActionPaths: [/queryController/g],
+            ignoredPaths: [/queryController/g],
+            warnAfter: 200,
+          },
+        }).concat(logger, api.middleware)
+      : [thunk, logger, api.middleware];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
@@ -137,18 +154,7 @@ export function setupStore({
       [api.reducerPath]: api.reducer,
       ...rootReducers,
     },
-    middleware: getDefaultMiddleware =>
-      getDefaultMiddleware({
-        immutableCheck: {
-          warnAfter: 200,
-        },
-        serializableCheck: {
-          // Ignores AbortController instances
-          ignoredActionPaths: [/queryController/g],
-          ignoredPaths: [/queryController/g],
-          warnAfter: 200,
-        },
-      }).concat(logger, api.middleware),
+    middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
     ...overrides,
   });
