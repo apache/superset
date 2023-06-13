@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t ,css, styled } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -47,6 +47,9 @@ import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 import FlashType from '../FlashType/FlashType';
+import InitialPile from 'src/components/Initials';
+import { Tooltip } from 'src/components/Tooltip';
+
 
 const PAGE_SIZE = 25;
 
@@ -59,6 +62,18 @@ interface FlashListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
+
+const StyledFlashInitials = styled.span`
+  ${({ theme }) => css`
+    color: white;
+    padding: 3px;
+    font-weight: 800;
+    border: block;
+    border-radius: 5px;
+    background: darkblue;
+    opacity: 0.7
+  `}
+`;
 
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
@@ -234,6 +249,21 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   const isDeletedFlash = (flashStatus: string) => flashStatus === 'Deleted';
 
+  const getColor = (type:string) => {
+    if(type == FlashTypes.ONE_TIME){
+      return 'green'
+    }
+    else if(type == FlashTypes.SHORT_TERM){
+      return 'blue'
+    }
+    else if(type == FlashTypes.LONG_TERM){
+      return 'red'
+    }
+    else{
+      return 'grey'
+    }
+  }
+
   const initialSort = [{ id: 'status', desc: true }];
   const columns = useMemo(
     () => [
@@ -253,19 +283,48 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         size: 'l',
       },
       {
+        Header: t('Flash Type: (Flash Name)'),
+        size: 'm',
+        Cell: ({
+          row: {
+            original: { flashType = '', tableName = '' },
+          },
+        }: any) =>
+        {
+          let flash_type = flashType.replace(/([A-Z])/g, ' $1').trim()
+          let flashContent = flash_type.split(" ")
+          let flashInititals = flashContent.map((content:string) => content[0].toLocaleUpperCase()).join('')
+
+          return tableName &&  (
+            <>
+            <Tooltip title={`${flash_type}`} placement="top">
+              <StyledFlashInitials style={{background: getColor(flash_type)}}>{`${flashInititals}`}</StyledFlashInitials>
+            </Tooltip>
+
+             <Tooltip title={`${flashType}:(${tableName})`} placement="top">
+              {`(${tableName})`}
+             </Tooltip>
+            </>
+          )
+        }
+      },
+
+      {
         accessor: 'tableName',
         Header: t('Flash Name'),
         size: 'l',
+        hidden: true
       },
       {
-        Cell: ({
-          row: {
-            original: { flashType: flash_Type },
-          },
-        }: any) => flash_Type.replace(/([A-Z])/g, ' $1').trim(),
+        // Cell: ({
+        //   row: {
+        //     original: { flashType: flash_Type },
+        //   },
+        // }: any) => flash_Type.replace(/([A-Z])/g, ' $1').trim(),
         Header: t('Flash Type'),
         accessor: 'flashType',
-        size: 'l',
+        size: 'sm',
+        hidden: true
       },
       {
         accessor: 'scheduleType',
@@ -288,9 +347,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { owner : owner},
+          },
+        }: any) => <InitialPile email={owner} />,
         Header: t('Owner'),
-        accessor: 'owner',
-        size: 'l',
+        id: 'owner',
+        disableSortBy: true,
+        size: 'sm',
       },
       {
         Header: t('Status'),
