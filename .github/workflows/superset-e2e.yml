@@ -12,7 +12,7 @@ on:
 jobs:
   cypress-matrix:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: read
