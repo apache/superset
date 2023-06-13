@@ -62,12 +62,10 @@ from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailed
 from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
     SupersetCancelQueryException,
-    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -82,7 +80,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.sql_parse import ParsedQuery
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
@@ -101,7 +98,6 @@ from superset.views.base import (
     get_error_msg,
     handle_api_exception,
     json_error_response,
-    json_errors_response,
     json_success,
 )
 from superset.views.log.dao import LogDAO
