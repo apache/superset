@@ -222,7 +222,7 @@ const VirtualTable = <RecordType extends object>(
             content = render(content, data, rowIndex);
           }
 
-          if (allowHTML && typeof content == 'string') {
+          if (allowHTML && typeof content === 'string') {
             content = safeHtmlSpan(content);
           }
 
