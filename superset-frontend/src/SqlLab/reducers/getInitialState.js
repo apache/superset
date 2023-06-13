@@ -116,7 +116,7 @@ export default function getInitialState({
     activeTab.table_schemas
       .filter(tableSchema => tableSchema.description !== null)
       .forEach(tableSchema => {
-        const { dataPreviewQueryId } = tableSchema.description;
+        const { dataPreviewQueryId, ...persistData } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
           queryEditorId: tableSchema.tab_state_id.toString(),
@@ -125,7 +125,7 @@ export default function getInitialState({
           expanded: tableSchema.expanded,
           id: tableSchema.id,
           dataPreviewQueryId,
-          persistData: tableSchema.description,
+          persistData,
           initialized: true,
         };
         tables = {
