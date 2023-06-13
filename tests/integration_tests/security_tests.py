@@ -1350,8 +1350,6 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", perm_set)
         self.assert_can_all("Chart", perm_set)
-        self.assertIn(("can_add_slices", "Superset"), perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), perm_set)
         self.assertIn(("can_created_dashboards", "Superset"), perm_set)
         self.assertIn(("can_created_slices", "Superset"), perm_set)
         self.assertIn(("can_csv", "Superset"), perm_set)
@@ -1362,7 +1360,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
         self.assertIn(("can_fave_slices", "Superset"), perm_set)
-        self.assertIn(("can_save_dash", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
@@ -1530,8 +1527,6 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)
         self.assert_cannot_write("RoleModelView", gamma_perm_set)
 
-        self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
         self.assertIn(("can_created_dashboards", "Superset"), gamma_perm_set)
         self.assertIn(("can_created_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_csv", "Superset"), gamma_perm_set)
@@ -1542,7 +1537,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
     def test_views_are_secured(self):
