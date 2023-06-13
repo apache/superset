@@ -226,7 +226,7 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
-  getTooltip(col: any) {
+  getTooltip(col: string) {
     const { columnLabelTooltips } = this.props;
     return columnLabelTooltips?.[col];
   }
