@@ -1243,29 +1243,6 @@ class TestCore(SupersetTestCase):
         data = self.get_resp(url)
         self.assertIn("Error message", data)
 
-    @mock.patch("superset.sql_lab.cancel_query")
-    @mock.patch("superset.views.core.db.session")
-    def test_stop_query_not_implemented(
-        self, mock_superset_db_session, mock_sql_lab_cancel_query
-    ):
-        """
-        Handles stop query when the DB engine spec does not
-        have a cancel query method.
-        """
-        form_data = {"client_id": "foo"}
-        query_mock = mock.Mock()
-        query_mock.client_id = "foo"
-        query_mock.status = QueryStatus.RUNNING
-        self.login(username="admin")
-        mock_superset_db_session.query().filter_by().one().return_value = query_mock
-        mock_sql_lab_cancel_query.return_value = False
-        rv = self.client.post(
-            "/superset/stop_query/",
-            data={"form_data": json.dumps(form_data)},
-        )
-
-        assert rv.status_code == 422
-
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
     def test_explore_redirect(self, mock_command: mock.Mock):
