@@ -18,7 +18,6 @@
  */
 
 import { css, styled, t } from '@superset-ui/core';
-import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
@@ -27,6 +26,7 @@ import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { convertTolllDatetime } from 'src/utils/commonHelper';
 import { FlashAuditLogs } from '../../types';
 import ErrorStackTrace from './ErrorStackTrace';
 import JsonDifference from './JsonDiff';
@@ -98,7 +98,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           row: {
             original: { timestamp: timeStamp },
           },
-        }: any) => moment(new Date(timeStamp)).format('LLLL'),
+        }: any) => convertTolllDatetime(timeStamp),
         Header: t('Time Stamp'),
         accessor: 'timestamp',
       },
