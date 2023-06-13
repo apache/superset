@@ -648,7 +648,7 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     'CACHE_TYPE': 'redis',
     'CACHE_DEFAULT_TIMEOUT': 24*60*60*7,
     'CACHE_KEY_PREFIX': 'thumbnail_',
-    'CACHE_REDIS_URL': 'redis://localhost:6379/1'
+    'CACHE_REDIS_URL': 'ADD_REDIS_URL_HERE'
 }
 
 # Time before selenium times out after trying to locate an element on the page and wait
