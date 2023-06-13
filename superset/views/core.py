@@ -21,11 +21,10 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast
 from urllib import parse
 
 import backoff
-import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
@@ -46,8 +45,6 @@ from superset import (
     db,
     event_logger,
     is_feature_enabled,
-    results_backend,
-    results_backend_use_msgpack,
     security_manager,
     sql_lab,
     viz,
@@ -79,13 +76,11 @@ from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
-    SerializationError,
     SupersetCancelQueryException,
     SupersetErrorException,
     SupersetException,
     SupersetGenericErrorException,
     SupersetSecurityException,
-    SupersetTimeoutException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
@@ -93,37 +88,17 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
-from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
-from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
-from superset.sqllab.exceptions import (
-    QueryIsForbiddenToAccessException,
-    SqlLabException,
-)
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
-from superset.sqllab.limiting_factor import LimitingFactor
-from superset.sqllab.query_render import SqlQueryRenderImpl
-from superset.sqllab.sql_json_executer import (
-    ASynchronousSqlJsonExecutor,
-    SqlJsonExecutor,
-    SynchronousSqlJsonExecutor,
-)
-from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-from superset.sqllab.utils import apply_display_max_row_configuration_if_require
-from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.utils import core as utils, csv
+from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
@@ -144,9 +119,7 @@ from superset.views.base import (
     validate_sqlatable,
 )
 from superset.views.log.dao import LogDAO
-from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
-    _deserialize_results_payload,
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
@@ -738,7 +711,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         bootstrap_data = {
             "can_add": slice_add_perm,
-            "can_download": slice_download_perm,
             "datasource": sanitize_datasource_data(datasource_data),
             "form_data": form_data,
             "datasource_id": datasource_id,
@@ -1696,161 +1668,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return json_success(json.dumps(payload))
 
-    @has_access_api
-    @expose("/estimate_query_cost/<int:database_id>/", methods=("POST",))
-    @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/estimate/")
-    def estimate_query_cost(  # pylint: disable=no-self-use
-        self, database_id: int, schema: str | None = None
-    ) -> FlaskResponse:
-        mydb = db.session.query(Database).get(database_id)
-
-        sql = json.loads(request.form.get("sql", '""'))
-        if template_params := json.loads(request.form.get("templateParams") or "{}"):
-            template_processor = get_template_processor(mydb)
-            sql = template_processor.process_template(sql, **template_params)
-
-        timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
-        timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
-        try:
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                cost = mydb.db_engine_spec.estimate_query_cost(
-                    mydb, schema, sql, utils.QuerySource.SQL_LAB
-                )
-        except SupersetTimeoutException as ex:
-            logger.exception(ex)
-            return json_errors_response([ex.error])
-        except Exception as ex:  # pylint: disable=broad-except
-            return json_error_response(utils.error_msg_from_exception(ex))
-
-        spec = mydb.db_engine_spec
-        query_cost_formatters: dict[str, Any] = app.config[
-            "QUERY_COST_FORMATTERS_BY_ENGINE"
-        ]
-        query_cost_formatter = query_cost_formatters.get(
-            spec.engine, spec.query_cost_formatter
-        )
-        cost = query_cost_formatter(cost)
-
-        return json_success(json.dumps(cost))
-
     @expose("/theme/")
     def theme(self) -> FlaskResponse:
         return self.render_template("superset/theme.html")
-
-    @has_access_api
-    @expose("/results/<key>/")
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/results/")
-    def results(self, key: str) -> FlaskResponse:
-        return self.results_exec(key)
-
-    @staticmethod
-    def results_exec(key: str) -> FlaskResponse:
-        """Serves a key off of the results backend
-
-        It is possible to pass the `rows` query argument to limit the number
-        of rows returned.
-        """
-        if not results_backend:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("Results backend is not configured."),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
-        read_from_results_backend_start = now_as_float()
-        blob = results_backend.get(key)
-        stats_logger.timing(
-            "sqllab.query.results_backend_read",
-            now_as_float() - read_from_results_backend_start,
-        )
-        if not blob:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "Data could not be retrieved from the results backend. You "
-                        "need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=410,
-            )
-
-        query = db.session.query(Query).filter_by(results_key=key).one_or_none()
-        if query is None:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "The query associated with these results could not be found. "
-                        "You need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            )
-
-        try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "You are not authorized to see this query. If you think this "
-                        "is an error, please reach out to your administrator."
-                    ),
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=403,
-            ) from ex
-
-        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        try:
-            obj = _deserialize_results_payload(
-                payload, query, cast(bool, results_backend_use_msgpack)
-            )
-        except SerializationError as ex:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "Data could not be deserialized from the results backend. The "
-                        "storage format might have changed, rendering the old data "
-                        "stake. You need to re-run the original query."
-                    ),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            ) from ex
-
-        if "rows" in request.args:
-            try:
-                rows = int(request.args["rows"])
-            except ValueError as ex:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "The provided `rows` argument is not a valid integer."
-                        ),
-                        error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    status=400,
-                ) from ex
-
-            obj = apply_display_max_row_configuration_if_require(obj, rows)
-
-        return json_success(
-            json.dumps(
-                obj, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
-            )
-        )
 
     @has_access_api
     @handle_api_exception
@@ -1967,155 +1787,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
                 return json_error_response(f"{msg}", status=400)
             return json_error_response(f"{msg}")
-
-    @has_access_api
-    @handle_api_exception
-    @event_logger.log_this
-    @expose("/sql_json/", methods=("POST",))
-    @deprecated(new_target="/api/v1/sqllab/execute/")
-    def sql_json(self) -> FlaskResponse:
-        if errors := SqlJsonPayloadSchema().validate(request.json):
-            return json_error_response(status=400, payload=errors)
-
-        try:
-            log_params = {
-                "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
-            }
-            execution_context = SqlJsonExecutionContext(request.json)
-            command = self._create_sql_json_command(execution_context, log_params)
-            command_result: CommandResult = command.run()
-            return self._create_response_from_execution_context(command_result)
-        except SqlLabException as ex:
-            logger.error(ex.message)
-            self._set_http_status_into_Sql_lab_exception(ex)
-            payload = {"errors": [ex.to_dict()]}
-            return json_error_response(status=ex.status, payload=payload)
-
-    @staticmethod
-    def _create_sql_json_command(
-        execution_context: SqlJsonExecutionContext, log_params: dict[str, Any] | None
-    ) -> ExecuteSqlCommand:
-        query_dao = QueryDAO()
-        sql_json_executor = Superset._create_sql_json_executor(
-            execution_context, query_dao
-        )
-        execution_context_convertor = ExecutionContextConvertor()
-        execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))
-        )
-        return ExecuteSqlCommand(
-            execution_context,
-            query_dao,
-            DatabaseDAO(),
-            CanAccessQueryValidatorImpl(),
-            SqlQueryRenderImpl(get_template_processor),
-            sql_json_executor,
-            execution_context_convertor,
-            config["SQLLAB_CTAS_NO_LIMIT"],
-            log_params,
-        )
-
-    @staticmethod
-    def _create_sql_json_executor(
-        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
-    ) -> SqlJsonExecutor:
-        sql_json_executor: SqlJsonExecutor
-        if execution_context.is_run_asynchronous():
-            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
-        else:
-            sql_json_executor = SynchronousSqlJsonExecutor(
-                query_dao,
-                get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
-            )
-        return sql_json_executor
-
-    @staticmethod
-    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
-        if isinstance(ex, QueryIsForbiddenToAccessException):
-            ex.status = 403
-
-    def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
-        self,
-        command_result: CommandResult,
-    ) -> FlaskResponse:
-        status_code = 200
-        if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
-            status_code = 202
-        return json_success(command_result["payload"], status_code)
-
-    @has_access
-    @event_logger.log_this
-    @expose("/csv/<client_id>")
-    @deprecated(new_target="api/v1/sqllab/export/")
-    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Download the query results as csv."""
-        logger.info("Exporting CSV file [%s]", client_id)
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
-
-        try:
-            query.raise_for_access()
-        except SupersetSecurityException as ex:
-            flash(ex.error.message)
-            return redirect("/")
-
-        blob = None
-        if results_backend and query.results_key:
-            logger.info("Fetching CSV from results backend [%s]", query.results_key)
-            blob = results_backend.get(query.results_key)
-        if blob:
-            logger.info("Decompressing")
-            payload = utils.zlib_decompress(
-                blob, decode=not results_backend_use_msgpack
-            )
-            obj = _deserialize_results_payload(
-                payload, query, cast(bool, results_backend_use_msgpack)
-            )
-
-            df = pd.DataFrame(
-                data=obj["data"],
-                dtype=object,
-                columns=[c["name"] for c in obj["columns"]],
-            )
-
-            logger.info("Using pandas to convert to CSV")
-        else:
-            logger.info("Running a query to turn into CSV")
-            if query.select_sql:
-                sql = query.select_sql
-                limit = None
-            else:
-                sql = query.executed_sql
-                limit = ParsedQuery(sql).limit
-            if limit is not None and query.limiting_factor in {
-                LimitingFactor.QUERY,
-                LimitingFactor.DROPDOWN,
-                LimitingFactor.QUERY_AND_DROPDOWN,
-            }:
-                # remove extra row from `increased_limit`
-                limit -= 1
-            df = query.database.get_df(sql, query.schema)[:limit]
-
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
-        quoted_csv_name = parse.quote(query.name)
-        response = CsvResponse(
-            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
-        )
-        event_info = {
-            "event_type": "data_export",
-            "client_id": client_id,
-            "row_count": len(df.index),
-            "database": query.database.name,
-            "schema": query.schema,
-            "sql": query.sql,
-            "exported_format": "csv",
-        }
-        event_rep = repr(event_info)
-        logger.debug(
-            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
-        )
-        return response
 
     @api
     @handle_api_exception
