@@ -35,7 +35,7 @@ import debounce from 'lodash/debounce';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { propertyComparator } from 'src/components/Select/utils';
+import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { uniqWith, isEqual } from 'lodash';
 import { SelectOptionsType } from 'src/components/Select/types';
@@ -244,15 +244,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         value,
       });
     });
-    if (!multiSelect && search) {
-      const found = selectOptions.find(option => option.label === search);
-      if (!found) {
-        selectOptions.unshift({
-          label: search,
-          value: search,
-          isNewOption: true,
-        });
-      }
+    if (search && !multiSelect && !hasOption(search, selectOptions, true)) {
+      selectOptions.unshift({
+        label: search,
+        value: search,
+        isNewOption: true,
+      });
     }
     return selectOptions;
   }, [data, datatype, groupby, labelFormatter, multiSelect, search]);
