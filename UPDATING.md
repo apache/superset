@@ -34,6 +34,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [24375](https://github.com/apache/superset/pull/24375): Removed deprecated API `/superset/get_or_create_table/...`, `/superset/sqllab_viz`
 - [24360](https://github.com/apache/superset/pull/24360): Removed deprecated APIs `/superset/stop_query/...`, `/superset/queries/...`, `/superset/search_queries`
 - [24353](https://github.com/apache/superset/pull/24353): Removed deprecated APIs `/copy_dash/int:dashboard_id/`, `/save_dash/int:dashboard_id/`, `/add_slices/int:dashboard_id/`.
 - [24198](https://github.com/apache/superset/pull/24198) The FAB views `User Registrations` and `User's Statistics` have been changed to Admin only. To re-enable them for non-admin users, please add the following perms to your custom role: `menu access on User's Statistics` and `menu access on User Registrations`.

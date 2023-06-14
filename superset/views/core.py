@@ -49,12 +49,7 @@ from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import (
-    AnnotationDatasource,
-    SqlaTable,
-    SqlMetric,
-    TableColumn,
-)
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -62,13 +57,10 @@ from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailed
 from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     DatabaseNotFound,
-    SupersetErrorException,
     SupersetException,
-    SupersetGenericErrorException,
     SupersetSecurityException,
 )
 from superset.explore.form_data.commands.create import CreateFormDataCommand
@@ -82,7 +74,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.sql_parse import ParsedQuery
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
@@ -100,9 +91,7 @@ from superset.views.base import (
     get_error_msg,
     handle_api_exception,
     json_error_response,
-    json_errors_response,
     json_success,
-    validate_sqlatable,
 )
 from superset.views.log.dao import LogDAO
 from superset.views.utils import (
@@ -1289,122 +1278,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/log/", methods=("POST",))
     def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
         return Response(status=200)
-
-    @has_access
-    @expose("/get_or_create_table/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/dataset/get_or_create/")
-    def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Gets or creates a table object with attributes passed to the API.
-
-        It expects the json with params:
-        * datasourceName - e.g. table name, required
-        * dbId - database id, required
-        * schema - table schema, optional
-        * templateParams - params for the Jinja templating syntax, optional
-        :return: Response
-        """
-        data = json.loads(request.form["data"])
-        table_name = data["datasourceName"]
-        database_id = data["dbId"]
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, table_name=table_name)
-            .one_or_none()
-        )
-        if not table:
-            # Create table if doesn't exist.
-            with db.session.no_autoflush:
-                table = SqlaTable(table_name=table_name, owners=[g.user])
-                table.database_id = database_id
-                table.database = (
-                    db.session.query(Database).filter_by(id=database_id).one()
-                )
-                table.schema = data.get("schema")
-                table.template_params = data.get("templateParams")
-                # needed for the table validation.
-                # fn can be deleted when this endpoint is removed
-                validate_sqlatable(table)
-
-            db.session.add(table)
-            table.fetch_metadata()
-            db.session.commit()
-
-        return json_success(json.dumps({"table_id": table.id}))
-
-    @has_access
-    @expose("/sqllab_viz/", methods=("POST",))
-    @event_logger.log_this
-    @deprecated(new_target="api/v1/dataset/")
-    def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        data = json.loads(request.form["data"])
-        try:
-            table_name = data["datasourceName"]
-            database_id = data["dbId"]
-        except KeyError as ex:
-            raise SupersetGenericErrorException(
-                __(
-                    "One or more required fields are missing in the request. Please try "
-                    "again, and if the problem persists contact your administrator."
-                ),
-                status=400,
-            ) from ex
-        database = db.session.query(Database).get(database_id)
-        if not database:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("The database was not found."),
-                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            )
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, table_name=table_name)
-            .one_or_none()
-        )
-
-        if table:
-            return json_errors_response(
-                [
-                    SupersetError(
-                        message=f"Dataset [{table_name}] already exists",
-                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                        level=ErrorLevel.WARNING,
-                    )
-                ],
-                status=422,
-            )
-
-        table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database = database
-        table.schema = data.get("schema")
-        table.template_params = data.get("templateParams")
-        table.is_sqllab_view = True
-        table.sql = ParsedQuery(data.get("sql")).stripped()
-        db.session.add(table)
-        cols = []
-        for config_ in data.get("columns"):
-            column_name = config_.get("column_name") or config_.get("name")
-            col = TableColumn(
-                column_name=column_name,
-                filterable=True,
-                groupby=True,
-                is_dttm=config_.get("is_dttm", False),
-                type=config_.get("type", False),
-            )
-            cols.append(col)
-
-        table.columns = cols
-        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
-        db.session.commit()
-
-        return json_success(
-            json.dumps(
-                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
-            )
-        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
