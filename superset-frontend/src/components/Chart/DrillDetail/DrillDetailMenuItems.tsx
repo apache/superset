@@ -50,7 +50,13 @@ const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
     </div>
   </Menu.Item>
 );
-const Filter = ({ children: ReactNode, stripHTML = false }) => {
+const Filter = ({
+  children,
+  stripHTML = false,
+}: {
+  children: ReactNode;
+  stripHTML: boolean;
+}) => {
   const content =
     stripHTML && typeof children === 'string'
       ? removeHTMLTags(children)

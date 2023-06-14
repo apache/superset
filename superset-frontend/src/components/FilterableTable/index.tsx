@@ -349,14 +349,15 @@ const FilterableTable = ({
 
   const renderTableCell = (cellData: CellDataType, columnKey: string) => {
     const cellNode = getCellContent({ cellData, columnKey });
-    const content =
-      cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
+    if (cellData === null) {
+      return <i className="text-muted">{cellNode}</i>;
+    }
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
       return renderJsonModal(cellNode, jsonObject, cellData);
     }
-    if (allowHTML) {
-      return safeHtmlSpan(cellData);
+    if (allowHTML && typeof cellData === 'string') {
+      return safeHtmlSpan(cellNode);
     }
     return content;
   };
