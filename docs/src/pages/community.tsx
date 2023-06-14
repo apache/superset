@@ -30,6 +30,8 @@ const communityLinks = [
     title: 'Slack',
     description: 'Interact with other Superset users and community members.',
     image: 'slack-symbol.jpg',
+    ariaLabel:
+      'Interact with other Superset users and community members on Slack',
   },
   {
     url: 'https://github.com/apache/superset',
@@ -37,6 +39,8 @@ const communityLinks = [
     description:
       'Create tickets to report issues, report bugs, and suggest new features.',
     image: 'github-symbol.jpg',
+    ariaLabel:
+      'Create tickets to report issues, report bugs, and suggest new features on Superset GitHub repo',
   },
   {
     url: 'https://lists.apache.org/list.html?dev@superset.apache.org',
@@ -44,12 +48,15 @@ const communityLinks = [
     description:
       'Participate in conversations with committers and contributors.',
     image: 'email-symbol.png',
+    ariaLabel:
+      'Participate in conversations with committers and contributors on Superset mailing list',
   },
   {
     url: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
     title: 'Stack Overflow',
     description: 'Our growing knowledge base.',
     image: 'stackoverflow-symbol.jpg',
+    ariaLabel: 'See Superset issues on Stack Overflow',
   },
   {
     url: 'https://www.meetup.com/Global-Apache-Superset-Community-Meetup/',
@@ -57,6 +64,8 @@ const communityLinks = [
     description:
       'Join our monthly virtual meetups and register for any upcoming events.',
     image: 'coffee-symbol.png',
+    ariaLabel:
+      'Join our monthly virtual meetups and register for any upcoming events on Meetup',
   },
   {
     url: 'https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md',
@@ -64,6 +73,7 @@ const communityLinks = [
     description:
       'A list of some of the organizations using Superset in production.',
     image: 'note-symbol.png',
+    ariaLabel: 'See a list of the organizations using Superset in production',
   },
   {
     url: 'https://github.com/apache-superset/awesome-apache-superset',
@@ -71,6 +81,7 @@ const communityLinks = [
     description:
       'Interested in contributing? Learn how to contribute and best practices.',
     image: 'writing-symbol.png',
+    ariaLabel: 'Learn how to contribute and best practices on Superset GitHub',
   },
 ];
 
@@ -167,11 +178,16 @@ const Community = () => {
             className="list"
             itemLayout="horizontal"
             dataSource={communityLinks}
-            renderItem={({ url, title, description, image }) => (
+            renderItem={({ url, title, description, image, ariaLabel }) => (
               <List.Item className="item">
                 <List.Item.Meta
                   avatar={
-                    <a className="title" href={url} target="_blank">
+                    <a
+                      className="title"
+                      href={url}
+                      target="_blank"
+                      aria-label={ariaLabel}
+                    >
                       <img className="icon" src={`/img/community/${image}`} />
                     </a>
                   }
@@ -181,6 +197,8 @@ const Community = () => {
                     </a>
                   }
                   description={<p className="description">{description}</p>}
+                  role="group"
+                  aria-label="Community link"
                 />
               </List.Item>
             )}
