@@ -60,7 +60,8 @@
     "reselect": "^4.0.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
-    "whatwg-fetch": "^3.0.0"
+    "whatwg-fetch": "^3.0.0",
+    "xss": "^1.0.14"
   },
   "devDependencies": {
     "@emotion/styled": "^11.3.0",

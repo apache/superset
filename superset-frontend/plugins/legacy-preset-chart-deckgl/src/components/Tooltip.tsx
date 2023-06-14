@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { styled } from '@superset-ui/core';
-import React, { useMemo } from 'react';
-import { filterXSS } from 'xss';
+import { styled, safeHtmlSpan } from '@superset-ui/core';
+import React from 'react';
 
 export type TooltipProps = {
   tooltip:
@@ -55,28 +54,12 @@ export default function Tooltip(props: TooltipProps) {
   }
 
   const { x, y, content } = tooltip;
-
-  if (typeof content === 'string') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const contentHtml = useMemo(
-      () => ({
-        __html: filterXSS(content, { stripIgnoreTag: true }),
-      }),
-      [content],
-    );
-    return (
-      <StyledDiv top={y} left={x}>
-        <div
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={contentHtml}
-        />
-      </StyledDiv>
-    );
-  }
+  const safeContent =
+    typeof content === 'string' ? safeHtmlSpan(content) : content;
 
   return (
     <StyledDiv top={y} left={x}>
-      {content}
+      {safeContent}
     </StyledDiv>
   );
 }
