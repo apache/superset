@@ -27,8 +27,7 @@ import { Avatar } from 'src/components';
 import { getRandomColor } from '../FacePile/utils';
 
 interface InitialPileProps {
-  name?: string;
-  email?: string
+  email: string;
 }
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
@@ -51,12 +50,12 @@ const StyledGroup = styled(Avatar.Group)`
   }
 `;
 
-function extractInitials(email:string) {
+function extractInitials(email: string) {
   let initials = '';
   const name = email.split('@')[0];
   if (name.includes('.')) {
-    let nameParts = name.split('.');
-    initials = nameParts.map((part:any) => part[0].toUpperCase()).join('');
+    const nameParts = name.split('.');
+    initials = nameParts.map((part: any) => part[0].toUpperCase()).join('');
   } else {
     initials = name.slice(0, 2).toUpperCase();
   }
@@ -64,35 +63,28 @@ function extractInitials(email:string) {
   return initials;
 }
 
-const InitialPile = ({name,email}: InitialPileProps)  => {
-  let nameInitials = ''
-  if(email){
-    nameInitials = extractInitials(email)
+const InitialPile = ({ email }: InitialPileProps) => {
+  let nameInitials = '';
+  if (email) {
+    nameInitials = extractInitials(email);
   }
-  if(name){
-    const nameParts = name.split(' ');
-    nameInitials = nameParts[0][0] + nameParts[1][0]
-  }
-  const uniqueKey = email ? `${email}` : `${name}`;
+  const uniqueKey = `${email}`;
   const color = getRandomColor(uniqueKey, colorList);
-    return (
+  return (
+    <StyledGroup>
+      <Tooltip key={email} title={email} placement="top">
+        <StyledAvatar
+          key={email}
+          style={{
+            backgroundColor: color,
+            borderColor: color,
+          }}
+        >
+          {nameInitials.toLocaleUpperCase()}
+        </StyledAvatar>
+      </Tooltip>
+    </StyledGroup>
+  );
+};
 
-      <StyledGroup>
-          <Tooltip key={email || name} title={email || name} placement="top">
-            <StyledAvatar
-              key={email || name}
-              style={{
-                backgroundColor: color,
-                borderColor: color,
-              }}
-            >
-              {nameInitials.toLocaleUpperCase()}
-            </StyledAvatar>
-          </Tooltip>
-
-
-    </StyledGroup>)
-
-}
-
-export default InitialPile
+export default InitialPile;

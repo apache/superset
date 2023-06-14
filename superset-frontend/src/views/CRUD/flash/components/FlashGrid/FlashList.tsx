@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t ,css, styled } from '@superset-ui/core';
+import { t, css, styled } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -32,6 +32,10 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import ConfirmationModal from 'src/components/ConfirmationModal';
+import InitialPile from 'src/components/Initials';
+import { Tooltip } from 'src/components/Tooltip';
+import { Space } from 'antd';
+import { Theme } from '@emotion/react';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -47,9 +51,6 @@ import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 import FlashType from '../FlashType/FlashType';
-import InitialPile from 'src/components/Initials';
-import { Tooltip } from 'src/components/Tooltip';
-
 
 const PAGE_SIZE = 25;
 
@@ -63,17 +64,6 @@ interface FlashListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-const StyledFlashInitials = styled.span`
-  ${({ theme }) => css`
-    color: white;
-    padding: 3px;
-    font-weight: 800;
-    border: block;
-    border-radius: 5px;
-    background: darkblue;
-    opacity: 0.7
-  `}
-`;
 
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
@@ -249,20 +239,18 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   const isDeletedFlash = (flashStatus: string) => flashStatus === 'Deleted';
 
-  const getColor = (type:string) => {
-    if(type == FlashTypes.ONE_TIME){
-      return 'green'
+  const getColor = (type: string, theme: Theme) => {
+    if (type === FlashTypes.ONE_TIME) {
+      return theme.colors.error.light1;
     }
-    else if(type == FlashTypes.SHORT_TERM){
-      return 'blue'
+    if (type === FlashTypes.SHORT_TERM) {
+      return theme.colors.warning.light1;
     }
-    else if(type == FlashTypes.LONG_TERM){
-      return 'red'
+    if (type === FlashTypes.LONG_TERM) {
+      return theme.colors.success.light1;
     }
-    else{
-      return 'grey'
-    }
-  }
+    return theme.colors.grayscale.light1;
+  };
 
   const initialSort = [{ id: 'status', desc: true }];
   const columns = useMemo(
@@ -283,53 +271,59 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         size: 'l',
       },
       {
-        Header: t('Flash Type: (Flash Name)'),
-        size: 'm',
+        Header: t('Flash Type: Flash Name'),
+        size: 'l',
         Cell: ({
           row: {
             original: { flashType = '', tableName = '' },
           },
-        }: any) =>
-        {
-          let flash_type = flashType.replace(/([A-Z])/g, ' $1').trim()
-          let flashContent = flash_type.split(" ")
-          let flashInititals = flashContent.map((content:string) => content[0].toLocaleUpperCase()).join('')
-
-          return tableName &&  (
-            <>
-            <Tooltip title={`${flash_type}`} placement="top">
-              <StyledFlashInitials style={{background: getColor(flash_type)}}>{`${flashInititals}`}</StyledFlashInitials>
-            </Tooltip>
-
-             <Tooltip title={`${flashType}:(${tableName})`} placement="top">
-              {`(${tableName})`}
-             </Tooltip>
-            </>
-          )
-        }
+        }: any) => {
+          const flash_type = flashType.replace(/([A-Z])/g, ' $1').trim();
+          const flashContent = flash_type.split(' ');
+          // const flashInititals = flashContent
+          //   .map((content: string) => content[0].toLocaleUpperCase())
+          //   .join('');
+          const flashInititals = flashContent[0][0];
+          return (
+            tableName && (
+              <Space>
+                <Tooltip title={`${flash_type}`} placement="top">
+                  <span
+                    css={(theme: Theme) => css`
+                    color: ${theme.colors.grayscale.light5};
+                      padding: 6px;
+                      font-weight: 800;
+                      font-size: 10px
+                      border: block;
+                      background: ${getColor(flash_type, theme)};
+                    `}
+                  >{`${flashInititals}`}</span>
+                </Tooltip>
+                <Tooltip title={`${flashType}:(${tableName})`} placement="top">
+                  {`${tableName}`}
+                </Tooltip>
+              </Space>
+            )
+          );
+        },
       },
 
       {
         accessor: 'tableName',
         Header: t('Flash Name'),
-        size: 'l',
-        hidden: true
+        size: 'sm',
+        hidden: true,
       },
       {
-        // Cell: ({
-        //   row: {
-        //     original: { flashType: flash_Type },
-        //   },
-        // }: any) => flash_Type.replace(/([A-Z])/g, ' $1').trim(),
         Header: t('Flash Type'),
         accessor: 'flashType',
         size: 'sm',
-        hidden: true
+        hidden: true,
       },
       {
         accessor: 'scheduleType',
         Header: t('Schedule Type'),
-        size: 'l',
+        size: 'm',
       },
       {
         accessor: 'ttl',
@@ -349,7 +343,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {
         Cell: ({
           row: {
-            original: { owner : owner},
+            original: { owner },
           },
         }: any) => <InitialPile email={owner} />,
         Header: t('Owner'),
