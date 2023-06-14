@@ -246,7 +246,6 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = os.environ.get("FLASK_ENV") == "development"
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -1507,8 +1506,12 @@ WELCOME_PAGE_LAST_TAB: (
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
-    "variable": "FLASK_ENV",
+    "variable": "SUPERSET_ENV",
     "values": {
+        "debug": {
+            "color": "error.base",
+            "text": "flask-debug",
+        },
         "development": {
             "color": "error.base",
             "text": "Development",
@@ -1572,7 +1575,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

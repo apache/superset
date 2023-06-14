@@ -346,17 +346,23 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
-    try:
-        environment_tag = (
-            appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
-                os.environ.get(
-                    appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"]
-                )
-            ]
-            or {}
-        )
-    except KeyError:
-        environment_tag = {}
+
+    # Whether flask is in debug mode (--debug)
+    DEBUG = appbuilder.app.config.get("DEBUG")
+
+    # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
+    ENV_TAG_CONFIG = appbuilder.app.config.get("ENVIRONMENT_TAG_CONFIG")
+
+    # These are the predefined templates define in the config
+    ENV_TAG_TEMPLATES = ENV_TAG_CONFIG.get("values")
+
+    # This is the environment variable name from which to select the template
+    # default is SUPERSET_ENV (from FLASK_ENV in previous versions)
+    ENV_ENVVAR = ENV_TAG_CONFIG.get("variable")
+
+    # this is the actual name we want to use
+    ENV_NAME = os.environ.get(ENV_ENVVAR) or "debug" if DEBUG else None
+    environment_tag = ENV_TAG_TEMPLATES.get(ENV_NAME) or {}
 
     return {
         "menu": menu,
