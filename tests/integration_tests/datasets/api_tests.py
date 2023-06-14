@@ -207,7 +207,6 @@ class TestDatasetApi(SupersetTestCase):
         expected_columns = [
             "changed_by",
             "changed_by_name",
-            "changed_by_url",
             "changed_on_delta_humanized",
             "changed_on_utc",
             "database",
@@ -1378,7 +1377,6 @@ class TestDatasetApi(SupersetTestCase):
 
         current_dataset = [d for d in res if d["id"] == dataset.id][0]
         self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
 
         db.session.delete(dataset)
         db.session.commit()
@@ -1403,7 +1401,6 @@ class TestDatasetApi(SupersetTestCase):
 
         current_dataset = [d for d in res if d["id"] == dataset.id][0]
         self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "")
 
         db.session.delete(dataset)
         db.session.commit()

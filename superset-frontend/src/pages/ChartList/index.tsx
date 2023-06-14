@@ -231,9 +231,6 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const enableBroadUserAccess = isFeatureEnabled(
-    FeatureFlag.ENABLE_BROAD_ACTIVITY_ACCESS,
-  );
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -415,17 +412,9 @@ function ChartList(props: ChartListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              last_saved_by: lastSavedBy,
-              changed_by_url: changedByUrl,
-            },
+            original: { last_saved_by: lastSavedBy },
           },
-        }: any) =>
-          enableBroadUserAccess ? (
-            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
-          ) : (
-            <>{changedByName(lastSavedBy)}</>
-          ),
+        }: any) => <>{changedByName(lastSavedBy)}</>,
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
         size: 'xl',

@@ -624,7 +624,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         model = db.session.query(Slice).get(chart_id)
 
         self.assertEqual(model.slice_name, new_name)
-        self.assertEqual(model.changed_by_url, "")
 
         db.session.delete(model)
         db.session.commit()
@@ -648,7 +647,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         model = db.session.query(Slice).get(chart_id)
 
         self.assertEqual(model.slice_name, new_name)
-        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
 
         db.session.delete(model)
         db.session.commit()

@@ -515,9 +515,9 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "page_size": 100,
         }
         url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        raw_data = self.client.get(url)
-        assert raw_data.json["count"] == 1
-        assert raw_data.json["result"][0]["dashboard_title"] == "USA Births Names"
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["dashboard_title"] == "USA Births Names"
 
         # Get Favorite Charts
         request_query = {
@@ -528,16 +528,16 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "page_size": 25,
         }
         url = f"api/v1/chart/?q={prison.dumps(request_query)}"
-        raw_data = self.client.get(url)
-        assert raw_data.json["count"] == 1
-        assert raw_data.json["result"][0]["id"] == slc.id
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["id"] == slc.id
 
         # Get recent activity
-        url = "/api/v1/log/recent_activity/1/?q=(page_size:50)"
-        raw_data = self.client.get(url)
+        url = "/api/v1/log/recent_activity/?q=(page_size:50)"
+        resp = self.client.get(url)
         # TODO data for recent activity varies for sqlite, we should be able to assert
         # the returned data
-        assert raw_data.status == 200
+        assert resp.status_code == 200
 
         # Get dashboards created by the user
         request_query = {
@@ -552,8 +552,8 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "page_size": 100,
         }
         url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
-        raw_data = self.client.get(url)
-        assert raw_data.json["result"][0]["dashboard_title"] == "create_title_test"
+        resp = self.client.get(url)
+        assert resp.json["result"][0]["dashboard_title"] == "create_title_test"
 
         # Get charts created by the user
         request_query = {
@@ -568,9 +568,9 @@ class TestCore(SupersetTestCase, InsertChartMixin):
             "page_size": 100,
         }
         url = f"/api/v1/chart/?q={prison.dumps(request_query)}"
-        raw_data = self.client.get(url)
-        assert raw_data.json["count"] == 1
-        assert raw_data.json["result"][0]["slice_name"] == "create_title_test"
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["slice_name"] == "create_title_test"
 
         resp = self.get_resp(f"/superset/profile/")
         self.assertIn('"app"', resp)

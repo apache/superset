@@ -368,7 +368,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "certification_details": None,
                 "changed_by": None,
                 "changed_by_name": "",
-                "changed_by_url": "",
                 "charts": [],
                 "created_by": {
                     "id": 1,
@@ -1344,7 +1343,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         model = db.session.query(Dashboard).get(dashboard_id)
 
         self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "")
 
         db.session.delete(model)
         db.session.commit()
@@ -1367,7 +1365,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         model = db.session.query(Dashboard).get(dashboard_id)
 
         self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
 
         db.session.delete(model)
         db.session.commit()

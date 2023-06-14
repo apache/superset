@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 import humanize
 from sqlalchemy import and_, or_
@@ -34,7 +34,11 @@ class LogDAO(BaseDAO):
 
     @staticmethod
     def get_recent_activity(
-        user_id: int, actions: list[str], distinct: bool, page: int, page_size: int
+        user_id: Optional[int],
+        actions: list[str],
+        distinct: bool,
+        page: int,
+        page_size: int,
     ) -> list[dict[str, Any]]:
         has_subject_title = or_(
             and_(
