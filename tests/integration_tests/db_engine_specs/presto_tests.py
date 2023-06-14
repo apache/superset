@@ -175,16 +175,16 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
     def test_presto_get_fields(self):
         cols = [
-            {"name": "column"},
-            {"name": "column.nested_obj"},
-            {"name": 'column."quoted.nested obj"'},
+            {"column_name": "column"},
+            {"column_name": "column.nested_obj"},
+            {"column_name": 'column."quoted.nested obj"'},
         ]
         actual_results = PrestoEngineSpec._get_fields(cols)
         expected_results = [
-            {"name": '"column"', "label": "column"},
-            {"name": '"column"."nested_obj"', "label": "column.nested_obj"},
+            {"column_name": '"column"', "label": "column"},
+            {"column_name": '"column"."nested_obj"', "label": "column.nested_obj"},
             {
-                "name": '"column"."quoted.nested obj"',
+                "column_name": '"column"."quoted.nested obj"',
                 "label": 'column."quoted.nested obj"',
             },
         ]
