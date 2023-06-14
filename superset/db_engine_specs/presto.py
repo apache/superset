@@ -488,7 +488,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         schema: str | None,
         database: Database,
         query: Select,
-        columns: list[dict[str, Any]] | None = None,
+        columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
             col_names, values = cls.latest_partition(
@@ -819,14 +819,19 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def _create_column_info(
         cls, name: str, data_type: types.TypeEngine
-    ) -> dict[str, Any]:
+    ) -> ResultSetColumnType:
         """
         Create column info object
         :param name: column name
         :param data_type: column data type
         :return: column info object
         """
-        return {"name": name, "type": f"{data_type}"}
+        return {
+            "column_name": name,
+            "type": f"{data_type}",
+            "is_dttm": None,
+            "type_generic": None,
+        }
 
     @classmethod
     def _get_full_name(cls, names: list[tuple[str, str]]) -> str:
@@ -869,7 +874,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         cls,
         parent_column_name: str,
         parent_data_type: str,
-        result: list[dict[str, Any]],
+        result: list[ResultSetColumnType],
     ) -> None:
         """
         Parse a row or array column
@@ -947,7 +952,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # Unquote the column name if necessary
         if formatted_parent_column_name != parent_column_name:
             for index in range(original_result_len, len(result)):
-                result[index]["name"] = result[index]["name"].replace(
+                result[index]["column_name"] = result[index]["column_name"].replace(
                     formatted_parent_column_name, parent_column_name
                 )
 
@@ -971,7 +976,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def get_columns(
         cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ResultSetColumnType]:
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
@@ -982,7 +987,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 (i.e. column name and data type)
         """
         columns = cls._show_columns(inspector, table_name, schema)
-        result: list[dict[str, Any]] = []
+        result: list[ResultSetColumnType] = []
         for column in columns:
             # parse column if it is a row or array
             if is_feature_enabled("PRESTO_EXPAND_DATA") and (
@@ -1023,7 +1028,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return column_name.startswith('"') and column_name.endswith('"')
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[ColumnClause]:
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[ColumnClause]:
         """
         Format column clauses where names are in quotes and labels are specified
         :param cols: columns
@@ -1041,7 +1046,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         dot_regex = re.compile(dot_pattern, re.VERBOSE)
         for col in cols:
             # get individual column names
-            col_names = re.split(dot_regex, col["name"])
+            col_names = re.split(dot_regex, col["column_name"])
             # quote each column name if it is not already quoted
             for index, col_name in enumerate(col_names):
                 if not cls._is_column_name_quoted(col_name):
@@ -1051,7 +1056,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 for col_name in col_names
             )
             # create column clause in the format "name"."name" AS "name.name"
-            column_clause = literal_column(quoted_col_name).label(col["name"])
+            column_clause = literal_column(quoted_col_name).label(col["column_name"])
             column_clauses.append(column_clause)
         return column_clauses
 
@@ -1066,7 +1071,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: list[dict[str, Any]] | None = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
         Include selecting properties of row objects. We cannot easily break arrays into

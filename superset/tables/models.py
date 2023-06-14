@@ -43,6 +43,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 from superset.sql_parse import Table as TableName
+from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     from superset.datasets.models import Dataset
@@ -131,8 +132,8 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         existing_columns = {column.name: column for column in self.columns}
         quote_identifier = self.database.quote_identifier
 
-        def update_or_create_column(column_meta: dict[str, Any]) -> Column:
-            column_name: str = column_meta["name"]
+        def update_or_create_column(column_meta: ResultSetColumnType) -> Column:
+            column_name: str = column_meta["column_name"]
             if column_name in existing_columns:
                 column = existing_columns[column_name]
             else:

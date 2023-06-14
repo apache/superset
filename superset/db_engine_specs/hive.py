@@ -40,12 +40,13 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -405,23 +406,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[dict[str, Any]]:
-        columns = []
-        for col in inspector.get_columns(table_name, schema):
-            col["column_name"] = col.pop("name")
-            columns.append(col)
-        return columns
-
-    @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
         schema: str | None,
         database: Database,
         query: Select,
-        columns: list[dict[str, Any]] | None = None,
+        columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
             col_names, values = cls.latest_partition(
@@ -440,7 +431,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[ColumnClause]:
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[ColumnClause]:
         return BaseEngineSpec._get_fields(cols)  # pylint: disable=protected-access
 
     @classmethod
@@ -485,7 +476,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: list[dict[str, Any]] | None = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         return super(  # pylint: disable=bad-super-call
             PrestoEngineSpec, cls

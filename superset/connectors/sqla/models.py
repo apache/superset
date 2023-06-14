@@ -105,7 +105,13 @@ from superset.models.helpers import (
     validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, MediumText
 
@@ -708,10 +714,10 @@ class SqlaTable(
     def sql_url(self) -> str:
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
-    def external_metadata(self) -> list[dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
-            return get_virtual_table_metadata(dataset=self)  # type: ignore
+            return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
             table_name=self.table_name,
@@ -1003,7 +1009,7 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, sql)
-                    is_dttm = col_desc[0]["is_dttm"]
+                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
