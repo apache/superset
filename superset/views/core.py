@@ -30,9 +30,7 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
     permission_name,
 )
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
@@ -69,7 +67,7 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
-from superset.models.core import Database, FavStar
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
@@ -93,7 +91,6 @@ from superset.views.base import (
     json_error_response,
     json_success,
 )
-from superset.views.log.dao import LogDAO
 from superset.views.utils import (
     bootstrap_user_data,
     check_datasource_perms,
