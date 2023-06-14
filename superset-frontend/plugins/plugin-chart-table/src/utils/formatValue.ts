@@ -16,40 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FilterXSS, getDefaultWhiteList } from 'xss';
 import {
   DataRecordValue,
   GenericDataType,
   getNumberFormatter,
+  isProbablyHTML,
+  sanitizeHtml,
 } from '@superset-ui/core';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
-
-const xss = new FilterXSS({
-  whiteList: {
-    ...getDefaultWhiteList(),
-    span: ['style', 'class', 'title'],
-    div: ['style', 'class'],
-    a: ['style', 'class', 'href', 'title', 'target'],
-    img: ['style', 'class', 'src', 'alt', 'title', 'width', 'height'],
-    video: [
-      'autoplay',
-      'controls',
-      'loop',
-      'preload',
-      'src',
-      'height',
-      'width',
-      'muted',
-    ],
-  },
-  stripIgnoreTag: true,
-  css: false,
-});
-
-function isProbablyHTML(text: string) {
-  return /<[^>]+>/.test(text);
-}
 
 /**
  * Format text for cell value.
@@ -76,7 +51,7 @@ function formatValue(
     return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
-    return isProbablyHTML(value) ? [true, xss.process(value)] : [false, value];
+    return isProbablyHTML(value) ? [true, sanitizeHtml(value)] : [false, value];
   }
   return [false, value.toString()];
 }
