@@ -85,7 +85,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         results = PrestoEngineSpec.get_columns(inspector, "", "")
         self.assertEqual(len(expected_results), len(results))
         for expected_result, result in zip(expected_results, results):
-            self.assertEqual(expected_result[0], result["name"])
+            self.assertEqual(expected_result[0], result["column_name"])
             self.assertEqual(expected_result[1], str(result["type"]))
 
     def test_presto_get_column(self):
