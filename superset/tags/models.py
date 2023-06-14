@@ -77,8 +77,8 @@ class Tag(Model, AuditMixinNullable):
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
-    tagged_objects = relationship(
-        "TaggedObject", back_populates="tag", overlaps="tagged_objects,tags"
+    objects = relationship(
+        "TaggedObject", back_populates="tag", overlaps="objects,tags"
     )
 
 
@@ -97,7 +97,7 @@ class TaggedObject(Model, AuditMixinNullable):
     )
     object_type = Column(Enum(ObjectTypes))
 
-    tag = relationship("Tag", back_populates="tagged_objects", overlaps="tags")
+    tag = relationship("Tag", back_populates="objects", overlaps="tags")
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
