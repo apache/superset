@@ -18,7 +18,6 @@ import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
-from io import BytesIO
 from uuid import UUID
 
 import pandas as pd
