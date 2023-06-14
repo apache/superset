@@ -25,7 +25,7 @@ from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import generic_relationship
 
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.models.helpers import AuditMixinNullable
 
 metadata = Model.metadata  # pylint: disable=no-member
