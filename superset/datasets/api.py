@@ -163,7 +163,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type",
         "columns.uuid",
         "columns.verbose_name",
-        "metrics",  # TODO(john-bodley): Deprecate in 3.0.
         "metrics.changed_on",
         "metrics.created_on",
         "metrics.d3format",
