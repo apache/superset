@@ -189,7 +189,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             },
         ]
         for actual_result, expected_result in zip(actual_results, expected_results):
-            self.assertEqual(actual_result.element.name, expected_result["name"])
+            self.assertEqual(actual_result.element.name, expected_result["column_name"])
             self.assertEqual(actual_result.name, expected_result["label"])
 
     @mock.patch.dict(
