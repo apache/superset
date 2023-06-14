@@ -74,7 +74,7 @@ class ResultSetColumnType(TypedDict):
     column_name: str
     type: Optional[str]
     is_dttm: Optional[bool]
-    type_generic: NotRequired[Optional[GenericDataType]]
+    type_generic: NotRequired[Optional["GenericDataType"]]
 
     nullable: NotRequired[Any]
     default: NotRequired[Any]
