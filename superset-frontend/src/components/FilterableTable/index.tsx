@@ -359,7 +359,7 @@ const FilterableTable = ({
     if (allowHTML && typeof cellData === 'string') {
       return safeHtmlSpan(cellNode);
     }
-    return content;
+    return cellNode;
   };
 
   // exclude the height of the horizontal scroll bar from the height of the table

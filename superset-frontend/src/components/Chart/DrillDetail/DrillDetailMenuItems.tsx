@@ -50,6 +50,7 @@ const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
     </div>
   </Menu.Item>
 );
+
 const Filter = ({
   children,
   stripHTML = false,
@@ -63,6 +64,7 @@ const Filter = ({
       : children;
   return <span>{content}</span>;
 };
+
 const StyledFilter = styled(Filter)`
   ${({ theme }) => `
      font-weight: ${theme.typography.weights.bold};
@@ -215,7 +217,7 @@ const DrillDetailMenuItems = ({
             >
               <div>
                 {`${DRILL_TO_DETAIL_TEXT} `}
-                <StyledFilter>{t('all')}</StyledFilter>
+                <StyledFilter stripHTML={false}>{t('all')}</StyledFilter>
               </div>
             </Menu.Item>
           )}
