@@ -36,6 +36,7 @@ import InitialPile from 'src/components/Initials';
 import { Tooltip } from 'src/components/Tooltip';
 import { Space } from 'antd';
 import { Theme } from '@emotion/react';
+import { convertTolllDate, convertTolllDatetime } from 'src/utils/commonHelper';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -326,18 +327,33 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         size: 'm',
       },
       {
-        accessor: 'ttl',
+        Cell: ({
+          row: {
+            original: { ttl },
+          },
+        }: any) => convertTolllDate(ttl),
         Header: t('TTL'),
+        accessor: 'ttl',
         disableSortBy: true,
       },
       {
-        accessor: 'lastRefreshTime',
+        Cell: ({
+          row: {
+            original: { lastRefreshTime },
+          },
+        }: any) => convertTolllDatetime(lastRefreshTime),
         Header: t('Last Refresh Time'),
+        accessor: 'lastRefreshTime',
         disableSortBy: true,
       },
       {
-        accessor: 'nextRefreshTime',
+        Cell: ({
+          row: {
+            original: { nextRefreshTime },
+          },
+        }: any) => convertTolllDatetime(nextRefreshTime),
         Header: t('Next Refresh Time'),
+        accessor: 'nextRefreshTime',
         disableSortBy: true,
       },
       {
