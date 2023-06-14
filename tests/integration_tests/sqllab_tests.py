@@ -22,7 +22,6 @@ from datetime import datetime
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
-from random import random
 from unittest import mock
 import prison
 
@@ -357,102 +356,6 @@ class TestSqlLab(SupersetTestCase):
 
         self.assertEqual(len(data), results.size)
         self.assertEqual(len(cols), len(results.columns))
-
-    def test_sqllab_viz(self):
-        self.login("admin")
-        examples_dbid = get_example_database().id
-        payload = {
-            "chartType": "dist_bar",
-            "datasourceName": f"test_viz_flow_table_{random()}",
-            "schema": "superset",
-            "columns": [
-                {
-                    "is_dttm": False,
-                    "type": "STRING",
-                    "column_name": f"viz_type_{random()}",
-                },
-                {
-                    "is_dttm": False,
-                    "type": "OBJECT",
-                    "column_name": f"ccount_{random()}",
-                },
-            ],
-            "sql": """\
-                SELECT *
-                FROM birth_names
-                LIMIT 10""",
-            "dbId": examples_dbid,
-        }
-        data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
-        self.assertIn("table_id", resp)
-
-        # ensure owner is set correctly
-        table_id = resp["table_id"]
-        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
-        view_menu = security_manager.find_view_menu(table.get_perm())
-        assert view_menu is not None
-
-        # Cleanup
-        db.session.delete(table)
-        db.session.commit()
-
-    def test_sqllab_viz_bad_payload(self):
-        self.login("admin")
-        payload = {
-            "chartType": "dist_bar",
-            "schema": "superset",
-            "columns": [
-                {
-                    "is_dttm": False,
-                    "type": "STRING",
-                    "column_name": f"viz_type_{random()}",
-                },
-                {
-                    "is_dttm": False,
-                    "type": "OBJECT",
-                    "column_name": f"ccount_{random()}",
-                },
-            ],
-            "sql": """\
-                SELECT *
-                FROM birth_names
-                LIMIT 10""",
-        }
-        data = {"data": json.dumps(payload)}
-        url = "/superset/sqllab_viz/"
-        response = self.client.post(url, data=data, follow_redirects=True)
-        assert response.status_code == 400
-
-    def test_sqllab_table_viz(self):
-        self.login("admin")
-        examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_sqllab_table_viz")
-            engine.execute("CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col")
-
-        examples_dbid = examples_db.id
-
-        payload = {
-            "datasourceName": "test_sqllab_table_viz",
-            "columns": [],
-            "dbId": examples_dbid,
-        }
-
-        data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/get_or_create_table/", data=data)
-        self.assertIn("table_id", resp)
-
-        # ensure owner is set correctly
-        table_id = resp["table_id"]
-        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
-        db.session.delete(table)
-
-        with get_example_database().get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE test_sqllab_table_viz")
-        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_limit(self):
