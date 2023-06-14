@@ -335,25 +335,25 @@ class BaseSupersetView(BaseView):
 
 def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
-    DEBUG = appbuilder.app.config.get("DEBUG")
+    debug = appbuilder.app.config.get("DEBUG")
 
     # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
-    ENV_TAG_CONFIG = appbuilder.app.config.get("ENVIRONMENT_TAG_CONFIG")
+    env_tag_config = appbuilder.app.config.get("ENVIRONMENT_TAG_CONFIG")
 
     # These are the predefined templates define in the config
-    ENV_TAG_TEMPLATES = ENV_TAG_CONFIG.get("values")
+    env_tag_templates = env_tag_config.get("values")
 
     # This is the environment variable name from which to select the template
     # default is SUPERSET_ENV (from FLASK_ENV in previous versions)
-    ENV_ENVVAR = ENV_TAG_CONFIG.get("variable")
+    env_envvar = env_tag_config.get("variable")
 
     # this is the actual name we want to use
-    ENV_NAME = os.environ.get(ENV_ENVVAR) or ("debug" if DEBUG else None)
+    env_name = os.environ.get(env_envvar)
 
-    if not ENV_NAME or ENV_NAME not in ENV_TAG_TEMPLATES.keys():
-        ENV_NAME = "debug" if DEBUG else None
+    if not env_name or env_name not in env_tag_templates.keys():
+        env_name = "debug" if debug else None
 
-    env_tag = ENV_TAG_TEMPLATES.get(ENV_NAME)
+    env_tag = env_tag_templates.get(env_name)
     return env_tag or {}
 
 
