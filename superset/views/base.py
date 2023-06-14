@@ -348,7 +348,10 @@ def get_environment_tag() -> dict[str, Any]:
     ENV_ENVVAR = ENV_TAG_CONFIG.get("variable")
 
     # this is the actual name we want to use
-    ENV_NAME = os.environ.get(ENV_ENVVAR) or "debug" if DEBUG else None
+    ENV_NAME = os.environ.get(ENV_ENVVAR) or ("debug" if DEBUG else None)
+
+    if not ENV_NAME or ENV_NAME not in ENV_TAG_TEMPLATES.keys():
+        ENV_NAME = "debug" if DEBUG else None
 
     env_tag = ENV_TAG_TEMPLATES.get(ENV_NAME)
     return env_tag or {}
