@@ -333,20 +333,7 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data(user: User) -> dict[str, Any]:
-    menu = appbuilder.menu.get_data()
-
-    languages = {}
-    for lang in appbuilder.languages:
-        languages[lang] = {
-            **appbuilder.languages[lang],
-            "url": appbuilder.get_url_for_locale(lang),
-        }
-    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
-    if callable(brand_text):
-        brand_text = brand_text()
-    build_number = appbuilder.app.config["BUILD_NUMBER"]
-
+def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
     DEBUG = appbuilder.app.config.get("DEBUG")
 
@@ -362,7 +349,24 @@ def menu_data(user: User) -> dict[str, Any]:
 
     # this is the actual name we want to use
     ENV_NAME = os.environ.get(ENV_ENVVAR) or "debug" if DEBUG else None
-    environment_tag = ENV_TAG_TEMPLATES.get(ENV_NAME) or {}
+
+    env_tag = ENV_TAG_TEMPLATES.get(ENV_NAME)
+    return env_tag or {}
+
+
+def menu_data(user: User) -> dict[str, Any]:
+    menu = appbuilder.menu.get_data()
+
+    languages = {}
+    for lang in appbuilder.languages:
+        languages[lang] = {
+            **appbuilder.languages[lang],
+            "url": appbuilder.get_url_for_locale(lang),
+        }
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
+        brand_text = brand_text()
+    build_number = appbuilder.app.config["BUILD_NUMBER"]
 
     return {
         "menu": menu,
@@ -373,7 +377,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
-        "environment_tag": environment_tag,
+        "environment_tag": get_environment_tag(),
         "navbar_right": {
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
