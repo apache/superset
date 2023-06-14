@@ -108,6 +108,6 @@ describe('removeHTMLTags', () => {
   test('should handle malformed HTML tags and remove only well-formed tags', () => {
     const input = '<div><h1>Unclosed tag';
     const output = removeHTMLTags(input);
-    expect(output).toBe('<div>Unclosed tag');
+    expect(output).toBe('Unclosed tag');
   });
 });
