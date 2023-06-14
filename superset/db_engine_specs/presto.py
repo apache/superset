@@ -502,7 +502,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             return None
 
         column_type_by_name = {
-            column.get("name"): column.get("type") for column in columns or []
+            column.get("column_name"): column.get("type") for column in columns or []
         }
 
         for col_name, value in zip(col_names, values):
