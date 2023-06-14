@@ -92,6 +92,8 @@ export const SamplesPane = ({
     data,
     datasourceId,
     isVisible,
+    {}, // moreConfig
+    true, // allowHTML
   );
   const filteredData = useFilteredTableData(filterText, data);
 
