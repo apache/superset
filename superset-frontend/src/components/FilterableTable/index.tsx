@@ -121,6 +121,7 @@ export interface FilterableTableProps {
   // need antd 5.0 to support striped color pattern
   striped?: boolean;
   expandedColumns?: string[];
+  allowHTML?: boolean;
 }
 
 const FilterableTable = ({

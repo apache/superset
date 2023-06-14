@@ -264,7 +264,7 @@ export const useTableColumns = (
   datasourceId?: string,
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
-  allowHTML? = false,
+  allowHTML?: boolean,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));

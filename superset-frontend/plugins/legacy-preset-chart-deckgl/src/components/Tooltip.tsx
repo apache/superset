@@ -18,8 +18,7 @@
  */
 
 import { styled, safeHtmlSpan } from '@superset-ui/core';
-import React, { useMemo } from 'react';
-import { filterXSS } from 'xss';
+import React from 'react';
 
 export type TooltipProps = {
   tooltip:
