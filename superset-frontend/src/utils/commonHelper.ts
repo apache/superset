@@ -37,9 +37,17 @@ export const convertToLocalDateTime = (date?: Date) => {
   return newDate ? new Date(newDate).toISOString() : new Date().toISOString();
 };
 
-export const convertTolllDatetime = (datetime: string) =>
-  datetime ? moment(new Date(datetime)).format('llll') : null;
+export const convertTolllDatetime = (datetime: string) => {
+  if (datetime) {
+    if (datetime.includes('T') && datetime.includes('Z')) {
+      return moment(new Date(datetime)).format('llll');
+    }
 
+    return datetime;
+  }
+
+  return null;
+};
 export const convertTolllDate = (date: string) =>
   date ? moment(new Date(date)).format('ll') : null;
 
