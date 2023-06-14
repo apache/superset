@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t, css, styled } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -37,6 +37,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Space } from 'antd';
 import { Theme } from '@emotion/react';
 import { convertTolllDate, convertTolllDatetime } from 'src/utils/commonHelper';
+import { Row, Col } from 'src/components';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -64,7 +65,6 @@ interface FlashListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
 
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
@@ -269,22 +269,20 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         },
         Header: t('Database Name'),
         accessor: 'datastoreId',
-        size: 'l',
       },
       {
-        Header: t('Flash Type: Flash Name'),
-        size: 'l',
+        Header: t('Flash Type: Flash Name (Schedule Type)'),
         Cell: ({
           row: {
-            original: { flashType = '', tableName = '' },
+            original: { flashType = '', tableName = '', scheduleType = '' },
           },
         }: any) => {
           const flash_type = flashType.replace(/([A-Z])/g, ' $1').trim();
           const flashContent = flash_type.split(' ');
-          // const flashInititals = flashContent
-          //   .map((content: string) => content[0].toLocaleUpperCase())
-          //   .join('');
           const flashInititals = flashContent[0][0];
+          const tooltipTitle = `${flash_type}: ${tableName}${
+            scheduleType ? ` (${scheduleType})` : ''
+          }`;
           return (
             tableName && (
               <Space>
@@ -292,7 +290,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                   <span
                     css={(theme: Theme) => css`
                     color: ${theme.colors.grayscale.light5};
-                      padding: 6px;
+                      padding: 5px 8px 5px 8px;
+
                       font-weight: 800;
                       font-size: 10px
                       border: block;
@@ -300,8 +299,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                     `}
                   >{`${flashInititals}`}</span>
                 </Tooltip>
-                <Tooltip title={`${flashType}:(${tableName})`} placement="top">
-                  {`${tableName}`}
+                <Tooltip title={tooltipTitle} placement="top">
+                  {`${tableName}`}{' '}
+                  {scheduleType ? <strong>{`(${scheduleType})`}</strong> : null}
                 </Tooltip>
               </Space>
             )
@@ -312,19 +312,20 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {
         accessor: 'tableName',
         Header: t('Flash Name'),
-        size: 'sm',
+        size: 'xs',
         hidden: true,
       },
       {
         Header: t('Flash Type'),
         accessor: 'flashType',
-        size: 'sm',
+        size: 'xs',
         hidden: true,
       },
       {
         accessor: 'scheduleType',
         Header: t('Schedule Type'),
-        size: 'm',
+        size: 'xs',
+        hidden: true,
       },
       {
         Cell: ({
@@ -339,23 +340,47 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {
         Cell: ({
           row: {
-            original: { lastRefreshTime },
+            original: { lastRefreshTime = '', nextRefreshTime = '' },
           },
-        }: any) => convertTolllDatetime(lastRefreshTime),
-        Header: t('Last Refresh Time'),
-        accessor: 'lastRefreshTime',
+        }: any) => (
+          <Row>
+            <Col sm={6} md={11}>
+              ({lastRefreshTime ? convertTolllDatetime(lastRefreshTime) : 'N/A'}
+              )
+            </Col>
+            <Col> &nbsp;- &nbsp;</Col>
+            <Col sm={6} md={11}>
+              {' '}
+              ({nextRefreshTime ? convertTolllDatetime(nextRefreshTime) : 'N/A'}
+              )
+            </Col>
+          </Row>
+        ),
+        Header: t('(Last Refresh - Next Refresh) Time'),
         disableSortBy: true,
       },
-      {
-        Cell: ({
-          row: {
-            original: { nextRefreshTime },
-          },
-        }: any) => convertTolllDatetime(nextRefreshTime),
-        Header: t('Next Refresh Time'),
-        accessor: 'nextRefreshTime',
-        disableSortBy: true,
-      },
+      // {
+      //   Cell: ({
+      //     row: {
+      //       original: { lastRefreshTime },
+      //     },
+      //   }: any) => convertTolllDatetime(lastRefreshTime),
+      //   Header: t('Last Refresh Time'),
+      //   accessor: 'lastRefreshTime',
+      //   disableSortBy: true,
+      //   size:'m'
+      // },
+      // {
+      //   Cell: ({
+      //     row: {
+      //       original: { nextRefreshTime },
+      //     },
+      //   }: any) => convertTolllDatetime(nextRefreshTime),
+      //   Header: t('Next Refresh Time'),
+      //   accessor: 'nextRefreshTime',
+      //   disableSortBy: true,
+      //   size:'m'
+      // },
       {
         Cell: ({
           row: {
@@ -365,12 +390,10 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         Header: t('Owner'),
         id: 'owner',
         disableSortBy: true,
-        size: 'sm',
       },
       {
         Header: t('Status'),
         accessor: 'status',
-        size: 'l',
       },
       {
         Cell: ({ row: { original } }: any) => {
