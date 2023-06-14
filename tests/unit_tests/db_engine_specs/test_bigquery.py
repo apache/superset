@@ -27,6 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
+from superset.superset_typing import ResultSetColumnType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
@@ -64,7 +65,11 @@ def test_get_fields() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    columns = [{"name": "limit"}, {"name": "name"}, {"name": "project.name"}]
+    columns: list[ResultSetColumnType] = [
+        {"column_name": "limit", "type": "STRING", "is_dttm": False},
+        {"column_name": "name", "type": "STRING", "is_dttm": False},
+        {"column_name": "project.name", "type": "STRING", "is_dttm": False},
+    ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
     query = select(fields)
@@ -84,9 +89,9 @@ def test_select_star(mocker: MockFixture) -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    cols = [
+    cols: list[ResultSetColumnType] = [
         {
-            "name": "trailer",
+            "column_name": "trailer",
             "type": sqltypes.ARRAY(sqltypes.JSON()),
             "nullable": True,
             "comment": None,
@@ -94,9 +99,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
-            "name": "trailer.key",
+            "column_name": "trailer.key",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,
@@ -104,9 +110,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
-            "name": "trailer.value",
+            "column_name": "trailer.value",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,
@@ -114,9 +121,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
-            "name": "trailer.email",
+            "column_name": "trailer.email",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,
@@ -124,6 +132,7 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
     ]
 

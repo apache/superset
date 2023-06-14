@@ -78,6 +78,10 @@ class ResultSetColumnType(TypedDict):
 
     nullable: NotRequired[Any]
     default: NotRequired[Any]
+    comment: NotRequired[Any]
+    precision: NotRequired[Any]
+    scale: NotRequired[Any]
+    max_length: NotRequired[Any]
 
 
 CacheConfig = dict[str, Any]
