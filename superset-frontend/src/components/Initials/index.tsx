@@ -63,7 +63,7 @@ function extractInitials(email: string) {
   return initials;
 }
 
-const InitialPile = ({ email }: InitialPileProps) => {
+const InitialsPile = ({ email }: InitialPileProps) => {
   let nameInitials = '';
   if (email) {
     nameInitials = extractInitials(email);
@@ -87,4 +87,4 @@ const InitialPile = ({ email }: InitialPileProps) => {
   );
 };
 
-export default InitialPile;
+export default InitialsPile;

@@ -32,7 +32,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import ConfirmationModal from 'src/components/ConfirmationModal';
-import InitialPile from 'src/components/Initials';
+import InitialsPile from 'src/components/Initials';
 import { Tooltip } from 'src/components/Tooltip';
 import { Space } from 'antd';
 import { Theme } from '@emotion/react';
@@ -367,7 +367,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { owner },
           },
-        }: any) => <InitialPile email={owner} />,
+        }: any) => <InitialsPile email={owner} />,
         Header: t('Owner'),
         id: 'owner',
         disableSortBy: true,
