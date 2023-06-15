@@ -159,19 +159,6 @@ class TestLogApi(SupersetTestCase):
         db.session.delete(log)
         db.session.commit()
 
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
-    def test_get_recent_activity_no_broad_access(self):
-        """
-        Log API: Test recent activity not visible for other users without
-        ENABLE_BROAD_ACTIVITY_ACCESS flag on
-        """
-        admin_user = self.get_user("admin")
-        self.login(username="admin")
-
-        uri = f"api/v1/log/recent_activity/{admin_user.id + 1}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 403)
-
     def test_get_recent_activity(self):
         """
         Log API: Test recent activity endpoint
@@ -182,7 +169,7 @@ class TestLogApi(SupersetTestCase):
         log1 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
 
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/"
+        uri = f"api/v1/log/recent_activity/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
@@ -219,7 +206,7 @@ class TestLogApi(SupersetTestCase):
         log2 = self.insert_log("explore", admin_user, dashboard_id=dash.id)
 
         arguments = {"actions": ["dashboard"]}
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -244,7 +231,7 @@ class TestLogApi(SupersetTestCase):
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
 
         arguments = {"distinct": False}
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -274,7 +261,7 @@ class TestLogApi(SupersetTestCase):
         log.dttm = now - timedelta(days=2)
 
         arguments = {"page": 0, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         self.assertEqual(rv.status_code, 200)
@@ -304,7 +291,7 @@ class TestLogApi(SupersetTestCase):
         )
 
         arguments = {"page": 1, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)

@@ -26,6 +26,7 @@ from superset.dao.base import BaseDAO
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import get_user_id
 from superset.utils.dates import datetime_to_epoch
 
 
@@ -34,8 +35,12 @@ class LogDAO(BaseDAO):
 
     @staticmethod
     def get_recent_activity(
-        user_id: int, actions: list[str], distinct: bool, page: int, page_size: int
+        actions: list[str],
+        distinct: bool,
+        page: int,
+        page_size: int,
     ) -> list[dict[str, Any]]:
+        user_id = get_user_id()
         has_subject_title = or_(
             and_(
                 Dashboard.dashboard_title is not None,

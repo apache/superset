@@ -23,8 +23,10 @@ import json
 import logging
 from urllib.parse import quote
 
+import prison
 import superset.utils.database
 from superset.utils.core import backend
+from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -47,6 +49,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
 )
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
 import superset.views.utils
 from superset import (
@@ -89,7 +92,7 @@ def cleanup():
     yield
 
 
-class TestCore(SupersetTestCase):
+class TestCore(SupersetTestCase, InsertChartMixin):
     def setUp(self):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
@@ -99,6 +102,50 @@ class TestCore(SupersetTestCase):
     def tearDown(self):
         db.session.query(Query).delete()
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
+
+    def insert_dashboard_created_by(self, username: str) -> Dashboard:
+        user = self.get_user(username)
+        dashboard = self.insert_dashboard(
+            f"create_title_test",
+            f"create_slug_test",
+            [user.id],
+            created_by=user,
+        )
+        return dashboard
+
+    def insert_chart_created_by(self, username: str) -> Slice:
+        user = self.get_user(username)
+        dataset = db.session.query(SqlaTable).first()
+        chart = self.insert_chart(
+            f"create_title_test",
+            [user.id],
+            dataset.id,
+            created_by=user,
+        )
+        return chart
+
+    @pytest.fixture()
+    def insert_dashboard_created_by_admin(self):
+        with self.create_app().app_context():
+            dashboard = self.insert_dashboard_created_by("admin")
+            yield dashboard
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.fixture()
+    def insert_dashboard_created_by_gamma(self):
+        dashboard = self.insert_dashboard_created_by("gamma")
+        yield dashboard
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.fixture()
+    def insert_chart_created_by_admin(self):
+        with self.create_app().app_context():
+            chart = self.insert_chart_created_by("admin")
+            yield chart
+            db.session.delete(chart)
+            db.session.commit()
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -261,43 +308,6 @@ class TestCore(SupersetTestCase):
         url = "/chart/add"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_user_slices_for_owners(self):
-        self.login(username="alpha")
-        user = security_manager.find_user("alpha")
-        slice_name = "Girls"
-
-        # ensure user is not owner of any slices
-        url = f"/superset/user_slices/{user.id}/"
-        resp = self.client.get(url)
-        data = json.loads(resp.data)
-        self.assertEqual(data, [])
-
-        # make user owner of slice and verify that endpoint returns said slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
-        slc.owners = [user]
-        db.session.merge(slc)
-        db.session.commit()
-        url = f"/superset/user_slices/{user.id}/"
-        resp = self.client.get(url)
-        data = json.loads(resp.data)
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["title"], slice_name)
-
-        # remove ownership and ensure user no longer gets slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
-        slc.owners = []
-        db.session.merge(slc)
-        db.session.commit()
-        url = f"/superset/user_slices/{user.id}/"
-        resp = self.client.get(url)
-        data = json.loads(resp.data)
-        self.assertEqual(data, [])
 
     def test_get_user_slices(self):
         self.login(username="admin")
@@ -483,71 +493,99 @@ class TestCore(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
-    @staticmethod
-    def _get_user_activity_endpoints(user: str):
-        userid = security_manager.find_user(user).id
-        return (
-            f"/superset/recent_activity/{userid}/",
-            f"/superset/created_slices/{userid}/",
-            f"/superset/created_dashboards/{userid}/",
-            f"/superset/fave_slices/{userid}/",
-            f"/superset/fave_dashboards/{userid}/",
-            f"/superset/user_slices/{userid}/",
-            f"/superset/fave_dashboards_by_username/{user}/",
-        )
-
+    @pytest.mark.usefixtures("insert_dashboard_created_by_admin")
+    @pytest.mark.usefixtures("insert_chart_created_by_admin")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_profile(self, username="admin"):
         self.login(username=username)
         slc = self.get_slice("Girls", db.session)
+        dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
+        # Set a favorite dashboard
+        self.client.post(f"/api/v1/dashboard/{dashboard.id}/favorites/", json={})
+        # Set a favorite chart
+        self.client.post(f"/api/v1/chart/{slc.id}/favorites/", json={})
 
-        # Setting some faves
-        url = f"/superset/favstar/Slice/{slc.id}/select/"
-        resp = self.get_json_resp(url)
-        self.assertEqual(resp["count"], 1)
+        # Get favorite dashboards:
+        request_query = {
+            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
+            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": True}],
+            "keys": ["none"],
+            "order_column": "changed_on",
+            "order_direction": "desc",
+            "page": 0,
+            "page_size": 100,
+        }
+        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["dashboard_title"] == "USA Births Names"
 
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        url = f"/superset/favstar/Dashboard/{dash.id}/select/"
-        resp = self.get_json_resp(url)
-        self.assertEqual(resp["count"], 1)
+        # Get Favorite Charts
+        request_query = {
+            "filters": [{"col": "id", "opr": "chart_is_favorite", "value": True}],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "page": 0,
+            "page_size": 25,
+        }
+        url = f"api/v1/chart/?q={prison.dumps(request_query)}"
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["id"] == slc.id
 
-        resp = self.get_resp(f"/superset/profile/{username}/")
+        # Get recent activity
+        url = "/api/v1/log/recent_activity/?q=(page_size:50)"
+        resp = self.client.get(url)
+        # TODO data for recent activity varies for sqlite, we should be able to assert
+        # the returned data
+        assert resp.status_code == 200
+
+        # Get dashboards created by the user
+        request_query = {
+            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
+            "filters": [
+                {"col": "created_by", "opr": "dashboard_created_by_me", "value": "me"}
+            ],
+            "keys": ["none"],
+            "order_column": "changed_on",
+            "order_direction": "desc",
+            "page": 0,
+            "page_size": 100,
+        }
+        url = f"/api/v1/dashboard/?q={prison.dumps(request_query)}"
+        resp = self.client.get(url)
+        assert resp.json["result"][0]["dashboard_title"] == "create_title_test"
+
+        # Get charts created by the user
+        request_query = {
+            "columns": ["created_on_delta_humanized", "slice_name", "url"],
+            "filters": [
+                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
+            ],
+            "keys": ["none"],
+            "order_column": "changed_on_delta_humanized",
+            "order_direction": "desc",
+            "page": 0,
+            "page_size": 100,
+        }
+        url = f"/api/v1/chart/?q={prison.dumps(request_query)}"
+        resp = self.client.get(url)
+        assert resp.json["count"] == 1
+        assert resp.json["result"][0]["slice_name"] == "create_title_test"
+
+        resp = self.get_resp(f"/superset/profile/")
         self.assertIn('"app"', resp)
 
-        for endpoint in self._get_user_activity_endpoints(username):
-            data = self.get_json_resp(endpoint)
-            self.assertNotIn("message", data)
-
-    def test_user_profile_default_access(self):
+    def test_user_profile_gamma(self):
         self.login(username="gamma")
-        resp = self.client.get(f"/superset/profile/admin/")
-        self.assertEqual(resp.status_code, 403)
+        resp = self.get_resp(f"/superset/profile/")
+        self.assertIn('"app"', resp)
 
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
-    def test_user_profile_broad_access(self):
-        self.login(username="gamma")
-        resp = self.client.get(f"/superset/profile/admin/")
-        self.assertEqual(resp.status_code, 200)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_user_activity_default_access(self, username="gamma"):
-        self.login(username=username)
-
-        for user in ("admin", "gamma"):
-            for endpoint in self._get_user_activity_endpoints(user):
-                resp = self.client.get(endpoint)
-                expected_status_code = 200 if user == username else 403
-                assert resp.status_code == expected_status_code
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
-    def test_user_activity_broad_access(self, username="gamma"):
-        self.login(username=username)
-
-        for user in ("admin", "gamma"):
-            for endpoint in self._get_user_activity_endpoints(user):
-                resp = self.client.get(endpoint)
-                assert resp.status_code == 200
+    @pytest.mark.usefixtures("public_role_like_gamma")
+    def test_user_profile_anonymous(self):
+        self.logout()
+        resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
@@ -1025,7 +1063,7 @@ class TestCore(SupersetTestCase):
             "/superset/sqllab",
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
-            "/superset/profile/admin/",
+            "/superset/profile/",
             f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
