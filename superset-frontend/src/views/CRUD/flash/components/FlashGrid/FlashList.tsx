@@ -271,7 +271,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         accessor: 'datastoreId',
       },
       {
-        Header: t('Flash Type: Flash Name (Schedule Type)'),
+        Header: t('Flash Type: Flash Name (Schedule Frequency)'),
         Cell: ({
           row: {
             original: { flashType = '', tableName = '', scheduleType = '' },
@@ -323,7 +323,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       },
       {
         accessor: 'scheduleType',
-        Header: t('Schedule Type'),
+        Header: t('Schedule Frequency'),
         size: 'xs',
         hidden: true,
       },
@@ -333,7 +333,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             original: { ttl },
           },
         }: any) => convertTolllDate(ttl),
-        Header: t('TTL'),
+        Header: t('Expiry'),
         accessor: 'ttl',
         disableSortBy: true,
       },
@@ -362,28 +362,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         Header: t('(Last Refresh - Next Refresh) Time'),
         disableSortBy: true,
       },
-      // {
-      //   Cell: ({
-      //     row: {
-      //       original: { lastRefreshTime },
-      //     },
-      //   }: any) => convertTolllDatetime(lastRefreshTime),
-      //   Header: t('Last Refresh Time'),
-      //   accessor: 'lastRefreshTime',
-      //   disableSortBy: true,
-      //   size:'m'
-      // },
-      // {
-      //   Cell: ({
-      //     row: {
-      //       original: { nextRefreshTime },
-      //     },
-      //   }: any) => convertTolllDatetime(nextRefreshTime),
-      //   Header: t('Next Refresh Time'),
-      //   accessor: 'nextRefreshTime',
-      //   disableSortBy: true,
-      //   size:'m'
-      // },
       {
         Cell: ({
           row: {
