@@ -720,7 +720,7 @@ export default function Home(): JSX.Element {
               {Databases.map(({ title, href, imgName }) => (
                 <div className="item" key={title}>
                   {href ? (
-                    <a href={href}>
+                    <a href={href} aria-label={`Go to ${title} page`}>
                       <img src={`/img/databases/${imgName}`} title={title} />
                     </a>
                   ) : (
