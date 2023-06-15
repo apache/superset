@@ -335,10 +335,10 @@ class BaseSupersetView(BaseView):
 
 def get_environment_tag() -> dict[str, Any]:
     # Whether flask is in debug mode (--debug)
-    debug = appbuilder.app.config.get("DEBUG")
+    debug = appbuilder.app.config["DEBUG"]
 
     # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
-    env_tag_config = appbuilder.app.config.get("ENVIRONMENT_TAG_CONFIG")
+    env_tag_config = appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]
 
     # These are the predefined templates define in the config
     env_tag_templates = env_tag_config.get("values")
