@@ -48,9 +48,9 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "column_name": "a"},
-                {"is_dttm": False, "type": "STRING", "column_name": "b"},
-                {"is_dttm": False, "type": "STRING", "column_name": "c"},
+                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "STRING", "column_name": "b", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
             ],
         )
 
@@ -61,8 +61,8 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "STRING", "column_name": "a"},
-                {"is_dttm": False, "type": "INT", "column_name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
             ],
         )
 
@@ -76,11 +76,11 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_dttm": False, "type": "FLOAT", "column_name": "a"},
-                {"is_dttm": False, "type": "INT", "column_name": "b"},
-                {"is_dttm": False, "type": "STRING", "column_name": "c"},
-                {"is_dttm": True, "type": "DATETIME", "column_name": "d"},
-                {"is_dttm": False, "type": "BOOL", "column_name": "e"},
+                {"is_dttm": False, "type": "FLOAT", "column_name": "a", "name": "a"},
+                {"is_dttm": False, "type": "INT", "column_name": "b", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "column_name": "c", "name": "c"},
+                {"is_dttm": True, "type": "DATETIME", "column_name": "d", "name": "d"},
+                {"is_dttm": False, "type": "BOOL", "column_name": "e", "name": "e"},
             ],
         )
 

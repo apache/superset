@@ -146,11 +146,19 @@ def test_get_column_spec(
     [
         (
             [SQLAColumnType(name="John", type="integer", is_dttm=False)],
-            [ResultSetColumnType(column_name="John", type="integer", is_dttm=False)],
+            [
+                ResultSetColumnType(
+                    column_name="John", name="John", type="integer", is_dttm=False
+                )
+            ],
         ),
         (
             [SQLAColumnType(name="hugh", type="integer", is_dttm=False)],
-            [ResultSetColumnType(column_name="hugh", type="integer", is_dttm=False)],
+            [
+                ResultSetColumnType(
+                    column_name="hugh", name="hugh", type="integer", is_dttm=False
+                )
+            ],
         ),
     ],
 )

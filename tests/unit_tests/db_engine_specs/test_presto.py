@@ -133,7 +133,12 @@ def test_where_latest_partition(
 
     query = sql.select(text("* FROM table"))
     columns: list[ResultSetColumnType] = [
-        {"column_name": "partition_key", "type": column_type, "is_dttm": False}
+        {
+            "column_name": "partition_key",
+            "name": "partition_key",
+            "type": column_type,
+            "is_dttm": False,
+        }
     ]
 
     expected = f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""

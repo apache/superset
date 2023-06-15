@@ -66,9 +66,14 @@ def test_get_fields() -> None:
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     columns: list[ResultSetColumnType] = [
-        {"column_name": "limit", "type": "STRING", "is_dttm": False},
-        {"column_name": "name", "type": "STRING", "is_dttm": False},
-        {"column_name": "project.name", "type": "STRING", "is_dttm": False},
+        {"column_name": "limit", "name": "limit", "type": "STRING", "is_dttm": False},
+        {"column_name": "name", "name": "name", "type": "STRING", "is_dttm": False},
+        {
+            "column_name": "project.name",
+            "name": "project.name",
+            "type": "STRING",
+            "is_dttm": False,
+        },
     ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
@@ -92,6 +97,7 @@ def test_select_star(mocker: MockFixture) -> None:
     cols: list[ResultSetColumnType] = [
         {
             "column_name": "trailer",
+            "name": "trailer",
             "type": sqltypes.ARRAY(sqltypes.JSON()),
             "nullable": True,
             "comment": None,
@@ -103,6 +109,7 @@ def test_select_star(mocker: MockFixture) -> None:
         },
         {
             "column_name": "trailer.key",
+            "name": "trailer.key",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,
@@ -114,6 +121,7 @@ def test_select_star(mocker: MockFixture) -> None:
         },
         {
             "column_name": "trailer.value",
+            "name": "trailer.value",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,
@@ -125,6 +133,7 @@ def test_select_star(mocker: MockFixture) -> None:
         },
         {
             "column_name": "trailer.email",
+            "name": "trailer.email",
             "type": sqltypes.String(),
             "nullable": True,
             "comment": None,

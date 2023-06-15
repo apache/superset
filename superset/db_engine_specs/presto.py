@@ -129,6 +129,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
         return [
             {
                 "column_name": column["column_name"],
+                "name": column["column_name"],
                 "type": children_type,
                 "is_dttm": False,
             }
@@ -148,6 +149,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
                 nameless_columns += 1
             _column: ResultSetColumnType = {
                 "column_name": f"{column['column_name']}.{name.lower()}",
+                "name": f"{column['column_name']}.{name.lower()}",
                 "type": type_,
                 "is_dttm": False,
             }
@@ -828,6 +830,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         return {
             "column_name": name,
+            "name": name,
             "type": f"{data_type}",
             "is_dttm": None,
             "type_generic": None,

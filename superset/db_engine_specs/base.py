@@ -76,7 +76,7 @@ logger = logging.getLogger()
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.pop("name"), **col})  # type: ignore
+        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
     return result_set_columns
 
 
