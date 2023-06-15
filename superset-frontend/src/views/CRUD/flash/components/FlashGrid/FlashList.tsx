@@ -344,12 +344,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           },
         }: any) => (
           <Row>
-            <Col sm={6} md={11}>
+            <Col sm={6} md={24} lg={11}>
               ({lastRefreshTime ? convertTolllDatetime(lastRefreshTime) : 'N/A'}
               )
             </Col>
-            <Col> &nbsp;- &nbsp;</Col>
-            <Col sm={6} md={11}>
+            <Col sm={2} md={2} lg={2}>
+              {' '}
+              -{' '}
+            </Col>
+            <Col sm={6} md={24} lg={11}>
               {' '}
               ({nextRefreshTime ? convertTolllDatetime(nextRefreshTime) : 'N/A'}
               )
