@@ -21,7 +21,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppSection,
   DataMask,
-  DataRecordValue,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
@@ -36,7 +35,7 @@ import debounce from 'lodash/debounce';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { propertyComparator } from 'src/components/Select/utils';
+import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { uniqWith, isEqual } from 'lodash';
 import { PluginFilterSelectProps, SelectValue } from './types';
@@ -109,6 +108,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
+  const [search, setSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -168,29 +168,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
-  const debouncedOwnStateFunc = useCallback(
-    debounce((val: string) => {
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: {
-          coltypeMap: initialColtypeMap,
-          search: val,
-        },
-      });
-    }, SLOW_DEBOUNCE),
-    [],
-  );
-
-  const searchWrapper = useCallback(
-    (val: string) => {
-      if (searchAllOptions) {
-        debouncedOwnStateFunc(val);
-      }
-    },
-    [debouncedOwnStateFunc, searchAllOptions],
+  const onSearch = useMemo(
+    () =>
+      debounce((search: string) => {
+        setSearch(search);
+        if (searchAllOptions) {
+          dispatchDataMask({
+            type: 'ownState',
+            ownState: {
+              coltypeMap: initialColtypeMap,
+              search,
+            },
+          });
+        }
+      }, SLOW_DEBOUNCE),
+    [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 
   const clearSuggestionSearch = useCallback(() => {
+    setSearch('');
     if (searchAllOptions) {
       dispatchDataMask({
         type: 'ownState',
@@ -236,19 +232,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  const options = useMemo(() => {
+  const uniqueOptions = useMemo(() => {
     const allOptions = [...data];
-    const uniqueOptions = uniqWith(allOptions, isEqual);
-    const selectOptions: { label: string; value: DataRecordValue }[] = [];
-    uniqueOptions.forEach(row => {
+    return uniqWith(allOptions, isEqual).map(row => {
       const [value] = groupby.map(col => row[col]);
-      selectOptions.push({
+      return {
         label: labelFormatter(value, datatype),
         value,
-      });
+        isNewOption: false,
+      };
     });
-    return selectOptions;
   }, [data, datatype, groupby, labelFormatter]);
+
+  const options = useMemo(() => {
+    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
+      uniqueOptions.unshift({
+        label: search,
+        value: search,
+        isNewOption: true,
+      });
+    }
+    return uniqueOptions;
+  }, [multiSelect, search, uniqueOptions]);
 
   const sortComparator = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) => {
@@ -317,7 +322,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
           placeholder={placeholderText}
-          onSearch={searchWrapper}
+          onSearch={onSearch}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
           onFocus={setFocusedFilter}
@@ -329,7 +334,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           loading={isRefreshing}
           oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
           invertSelection={inverseSelection}
-          // @ts-ignore
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
