@@ -332,20 +332,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         return Markup(f'<a href="{self.url}">{name}</a>')
 
     @property
-    def created_by_url(self) -> str:
-        if not self.created_by:
-            return ""
-        return f"/superset/profile/{self.created_by.username}"
-
-    @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by or not is_feature_enabled(
-            "ENABLE_BROAD_ACTIVITY_ACCESS"
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
-
-    @property
     def icons(self) -> str:
         return f"""
         <a

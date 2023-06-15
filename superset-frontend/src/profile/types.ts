@@ -31,7 +31,6 @@ export type Chart = {
   slice_name: string;
   slice_url: string;
   created_by_name?: string;
-  created_by_url?: string;
   changed_on_dttm: number;
 };
 

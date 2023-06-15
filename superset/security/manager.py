@@ -1991,23 +1991,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_str
 
-    @staticmethod
-    def raise_for_user_activity_access(user_id: int) -> None:
-        # pylint: disable=import-outside-toplevel
-        from superset.extensions import feature_flag_manager
-
-        if not get_user_id() or (
-            not feature_flag_manager.is_feature_enabled("ENABLE_BROAD_ACTIVITY_ACCESS")
-            and user_id != get_user_id()
-        ):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
-                    message="Access to user's activity data is restricted",
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.

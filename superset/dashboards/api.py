@@ -174,7 +174,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "changed_by.id",
         "changed_by_name",
-        "changed_by_url",
         "changed_on_utc",
         "changed_on_delta_humanized",
         "created_on_delta_humanized",

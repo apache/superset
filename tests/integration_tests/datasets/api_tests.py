@@ -207,7 +207,6 @@ class TestDatasetApi(SupersetTestCase):
         expected_columns = [
             "changed_by",
             "changed_by_name",
-            "changed_by_url",
             "changed_on_delta_humanized",
             "changed_on_utc",
             "database",
@@ -1354,56 +1353,6 @@ class TestDatasetApi(SupersetTestCase):
 
         self.assertEqual(res["description"], "changed_description")
         self.assertNotIn("username", res["changed_by"].keys())
-
-        db.session.delete(dataset)
-        db.session.commit()
-
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
-    def test_dataset_activity_access_enabled(self):
-        """
-        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
-        """
-        if backend() == "sqlite":
-            return
-
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        table_data = {"description": "changed_description"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
-        self.assertEqual(rv.status_code, 200)
-
-        response = self.get_assert_metric("api/v1/dataset/", "get_list")
-        res = json.loads(response.data.decode("utf-8"))["result"]
-
-        current_dataset = [d for d in res if d["id"] == dataset.id][0]
-        self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
-
-        db.session.delete(dataset)
-        db.session.commit()
-
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
-    def test_dataset_activity_access_disabled(self):
-        """
-        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = Fase
-        """
-        if backend() == "sqlite":
-            return
-
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        table_data = {"description": "changed_description"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.put_assert_metric(uri, table_data, "put")
-        self.assertEqual(rv.status_code, 200)
-
-        response = self.get_assert_metric("api/v1/dataset/", "get_list")
-        res = json.loads(response.data.decode("utf-8"))["result"]
-
-        current_dataset = [d for d in res if d["id"] == dataset.id][0]
-        self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "")
 
         db.session.delete(dataset)
         db.session.commit()
