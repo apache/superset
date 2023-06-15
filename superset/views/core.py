@@ -77,7 +77,12 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import DatasourceType, get_user_id, ReservedUrlParameters
+from superset.utils.core import (
+    DatasourceType,
+    get_user_id,
+    get_username,
+    ReservedUrlParameters,
+)
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -826,17 +831,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return json_success(json.dumps(response))
 
-    @staticmethod
-    def get_user_activity_access_error(user_id: int) -> FlaskResponse | None:
-        try:
-            security_manager.raise_for_user_activity_access(user_id)
-        except SupersetSecurityException as ex:
-            return json_error_response(
-                ex.message,
-                status=403,
-            )
-        return None
-
     @event_logger.log_this
     @api
     @has_access_api
@@ -1090,14 +1084,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/profile/")
     def profile(self) -> FlaskResponse:
         """User profile page"""
+        user = g.user if hasattr(g, "user") and g.user else None
+        if not user or security_manager.is_guest_user(user) or user.is_anonymous:
+            abort(404)
         payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "user": bootstrap_user_data(user, include_perms=True),
+            "common": common_bootstrap_payload(user),
         }
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=g.user.username).__str__(),
+            title=_("%(user)s's profile", user=get_username()).__str__(),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser

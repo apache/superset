@@ -125,15 +125,11 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        user_id = get_user_id()
-
         args = kwargs["rison"]
         page, page_size = self._sanitize_page_args(*self._handle_page_args(args))
         actions = args.get("actions", ["explore", "dashboard"])
         distinct = args.get("distinct", True)
 
-        payload = LogDAO.get_recent_activity(
-            user_id, actions, distinct, page, page_size
-        )
+        payload = LogDAO.get_recent_activity(actions, distinct, page, page_size)
 
         return self.response(200, result=payload)

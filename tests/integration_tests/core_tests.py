@@ -26,6 +26,7 @@ from urllib.parse import quote
 import prison
 import superset.utils.database
 from superset.utils.core import backend
+from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -579,6 +580,12 @@ class TestCore(SupersetTestCase, InsertChartMixin):
         self.login(username="gamma")
         resp = self.get_resp(f"/superset/profile/")
         self.assertIn('"app"', resp)
+
+    @pytest.mark.usefixtures("public_role_like_gamma")
+    def test_user_profile_anonymous(self):
+        self.logout()
+        resp = self.client.get("/superset/profile/")
+        assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
