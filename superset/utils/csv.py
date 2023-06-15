@@ -80,10 +80,6 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     return df.to_csv(**kwargs)
 
 
-def df_to_csv(df: pd.DataFrame, **kwargs: Any) -> bytes:
-    return bytes(df.to_csv(**kwargs), "utf-8")
-
-
 def get_chart_csv_data(
     chart_url: str, auth_cookies: Optional[dict[str, str]] = None
 ) -> Optional[bytes]:

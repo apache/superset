@@ -17,6 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, Optional, Union
 from uuid import UUID
 
@@ -38,6 +39,8 @@ from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
+    ReportScheduleCsvFailedError,
+    ReportScheduleCsvTimeout,
     ReportScheduleDataFrameFailedError,
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
@@ -70,8 +73,7 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
-from superset.utils.csv import df_to_csv, get_chart_dataframe
-from superset.utils.excel import df_to_excel
+from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -233,7 +235,33 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return [image]
 
-    def _get_data(self) -> pd.DataFrame:
+    def _get_csv_data(self) -> bytes:
+        url = self._get_url(result_format=ChartDataResultFormat.CSV)
+        _, username = get_executor(
+            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+
+        if self._report_schedule.chart.query_context is None:
+            logger.warning("No query context found, taking a screenshot to generate it")
+            self._update_query_context()
+
+        try:
+            logger.info("Getting chart from %s as user %s", url, user.username)
+            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleCsvTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleCsvFailedError(
+                f"Failed generating csv {str(ex)}"
+            ) from ex
+        if not csv_data:
+            raise ReportScheduleCsvFailedError()
+        return csv_data
+
+    def _get_embedded_data(self) -> pd.DataFrame:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
@@ -251,7 +279,7 @@ class BaseReportState:
 
         try:
             logger.info("Getting chart from %s as user %s", url, user.username)
-            dataframe = get_chart_dataframe(chart_url=url, auth_cookies=auth_cookies)
+            dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
@@ -259,7 +287,7 @@ class BaseReportState:
                 f"Failed generating dataframe {str(ex)}"
             ) from ex
         if dataframe is None:
-            raise ReportScheduleDataFrameFailedError()
+            raise ReportScheduleCsvFailedError()
         return dataframe
 
     def _update_query_context(self) -> None:
@@ -277,7 +305,7 @@ class BaseReportState:
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
         ) as ex:
-            raise ReportScheduleDataFrameFailedError(
+            raise ReportScheduleCsvFailedError(
                 "Unable to fetch data because the chart has no query context "
                 "saved, and an error occurred when fetching it via a screenshot. "
                 "Please try loading the chart and saving it again."
@@ -304,6 +332,18 @@ class BaseReportState:
         }
         return log_data
 
+    def _get_xlsx_data(self) -> bytes:
+        csv_data = self._get_csv_data()
+
+        df = pd.read_csv(BytesIO(csv_data))
+        bio = BytesIO()
+
+        # pylint: disable=abstract-class-instantiated
+        with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+
+        return bio.getvalue()
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -324,17 +364,20 @@ class BaseReportState:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
-            elif self._report_schedule.report_format in ReportDataFormat.table_like():
-                df = self._get_data()
-                data = None
-                if self._report_schedule.report_format == ReportDataFormat.CSV:
-                    data = df_to_csv(df)
-                elif self._report_schedule.report_format == ReportDataFormat.XLSX:
-                    data = df_to_excel(df)
-
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.CSV
+            ):
+                data = self._get_csv_data()
                 if not data:
-                    error_text = "Unexpected missing data"
-
+                    error_text = "Unexpected missing csv file"
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.XLSX
+            ):
+                data = self._get_xlsx_data()
+                if not data:
+                    error_text = "Unexpected missing csv data for xlsx"
             if error_text:
                 return NotificationContent(
                     name=self._report_schedule.name,
@@ -346,7 +389,7 @@ class BaseReportState:
             self._report_schedule.chart
             and self._report_schedule.report_format == ReportDataFormat.TEXT
         ):
-            embedded_data = self._get_data()
+            embedded_data = self._get_embedded_data()
 
         if self._report_schedule.chart:
             name = (
@@ -702,8 +745,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    # pylint: disable=arguments-differ
-    def validate(self, session: Session = None) -> None:
+    def validate(  # pylint: disable=arguments-differ
+        self, session: Session = None
+    ) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",
