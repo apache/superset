@@ -65,6 +65,7 @@ const MENU_KEYS = {
   EXPORT_CSV: 'export_csv',
   EXPORT_FULL_CSV: 'export_full_csv',
   EXPORT_XLSX: 'export_xlsx',
+  EXPORT_FULL_XLSX: 'export_full_xlsx',
   FORCE_REFRESH: 'force_refresh',
   FULLSCREEN: 'fullscreen',
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
@@ -146,6 +147,7 @@ export interface SliceHeaderControlsProps {
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
+  exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -294,6 +296,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
+        break;
+      case MENU_KEYS.EXPORT_FULL_XLSX:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullXLSX?.(props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_XLSX:
         // eslint-disable-next-line no-unused-expressions
@@ -485,25 +491,33 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           >
             {t('Export to .CSV')}
           </Menu.Item>
-
-          {props.slice.viz_type !== 'filter_box' &&
-            isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
-            props.supersetCanCSV &&
-            isTable && (
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_FULL_CSV}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to full .CSV')}
-              </Menu.Item>
-            )}
-
           <Menu.Item
             key={MENU_KEYS.EXPORT_XLSX}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
             {t('Export to Excel')}
           </Menu.Item>
+
+          {props.slice.viz_type !== 'filter_box' &&
+            isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+            props.supersetCanCSV &&
+            isTable && (
+              <>
+                <Menu.Item
+                  key={MENU_KEYS.EXPORT_FULL_CSV}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                >
+                  {t('Export to full .CSV')}
+                </Menu.Item>
+                <Menu.Item
+                  key={MENU_KEYS.EXPORT_FULL_XLSX}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                >
+                  {t('Export to full Excel')}
+                </Menu.Item>
+              </>
+            )}
+
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
