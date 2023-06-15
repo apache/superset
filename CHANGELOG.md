@@ -38,14 +38,14 @@ under the License.
 - [23888](https://github.com/apache/superset/pull/23888) chore(key-value): use json serialization for main resources (@villebro)
 
 **Fixes**
-- [#23723](https://github.com/apache/superset/pull/23723) add enforce URI query params with a specific for MySQL (@dpgaspar)
-- [#23600](https://github.com/apache/superset/pull/23600) fix: load examples as anon user (@betodealmeida)
+- [#23865](https://github.com/apache/superset/pull/23865) fix: Native time range filter in legacy charts (@kgabryje)
 - [#24054](https://github.com/apache/superset/pull/24054) fix: handle temporal columns in presto partitions (@giftig)
 - [#23882](https://github.com/apache/superset/pull/23882) fix: handle comments in `has_table_query` (@betodealmeida)
 - [#24256](https://github.com/apache/superset/pull/24256) fix: enable strong session protection by default (@dpgaspar)
 - [#24137](https://github.com/apache/superset/pull/24137) fix: disable SHOW_STACKTRACE by default (@dpgaspar)
 - [#24185](https://github.com/apache/superset/pull/24185) fix: db validate parameters permission (@dpgaspar)
 - [#23769](https://github.com/apache/superset/pull/23769) fix: allow db driver distinction on enforced URI params (@dpgaspar)
+- [#23600](https://github.com/apache/superset/pull/23600) fix: load examples as anon user (@betodealmeida)
 - [#23200](https://github.com/apache/superset/pull/23200) fix: permission checks on import (@betodealmeida)
 - [#23901](https://github.com/apache/superset/pull/23901) fix: check sqlalchemy_uri (@dpgaspar)
 - [#23751](https://github.com/apache/superset/pull/23751) fix(mssql): apply top after distinct (@villebro)
@@ -58,6 +58,7 @@ under the License.
 - [#22851](https://github.com/apache/superset/pull/22851) fix: Validate jinja rendered query (@geido)
 
 **Others**
+- [#23723](https://github.com/apache/superset/pull/23723) chore: add enforce URI query params with a specific for MySQL (@dpgaspar)
 - [#24294](https://github.com/apache/superset/pull/24294) chore: update UPDATING for 2.1.0 (@eschutho)
 - [#24056](https://github.com/apache/superset/pull/24056) chore: Remove unnecessary information from response (@geido)
 
