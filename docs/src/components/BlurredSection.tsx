@@ -22,7 +22,7 @@ import { mq } from '../utils';
 
 const StyledBlurredSection = styled('section')`
   text-align: center;
-  border-bottom: 1px solid #ededed;
+  border-bottom: 1px solid var(--ifm-border-color);
   overflow: hidden;
   .blur {
     max-width: 635px;

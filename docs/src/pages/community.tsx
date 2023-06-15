@@ -86,8 +86,8 @@ const communityLinks = [
 ];
 
 const StyledJoinCommunity = styled('section')`
-  background-color: #fbfbfb;
-  border-bottom: 1px solid #ededed;
+  background-color: var(--ifm-off-section-background);
+  border-bottom: 1px solid var(--ifm-border-color);
   .list {
     max-width: 540px;
     margin: 0 auto;
@@ -118,13 +118,13 @@ const StyledJoinCommunity = styled('section')`
   .description {
     font-size: 14px;
     line-height: 20px;
-    color: #5f5f5f;
+    color: var(--ifm-secondary-text);
     margin-top: -8px;
     margin-bottom: 23px;
     ${mq[1]} {
       font-size: 17px;
       line-height: 22px;
-      color: #484848;
+      color: var(--ifm-primary-text);
       margin-bottom: 35px;
       margin-top: 0;
     }

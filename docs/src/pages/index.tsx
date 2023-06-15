@@ -82,7 +82,7 @@ const StyledTitleContainer = styled('div')`
     line-height: 37px;
     max-width: 720px;
     margin: 24px auto 10px;
-    color: #f8fdff;
+    color: var(--ifm-font-base-color-inverse);
     ${mq[1]} {
       font-size: 25px;
       line-height: 30px;
@@ -203,8 +203,8 @@ const StyledFeaturesList = styled('ul')`
   }
   .item {
     text-align: left;
-    border: 1px solid #ededed;
-    background-color: #fff;
+    border: 1px solid var(--ifm-border-color);
+    background-color: #ffffff;
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -227,7 +227,7 @@ const StyledFeaturesList = styled('ul')`
     }
     .title {
       font-size: 24px;
-      color: #484848;
+      color: var(--ifm-primary-text);
       margin: 10px 0 0;
       ${mq[1]} {
         font-size: 23px;
@@ -237,7 +237,7 @@ const StyledFeaturesList = styled('ul')`
     .description {
       font-size: 17px;
       line-height: 23px;
-      color: #5f5f5f;
+      color: var(--ifm-secondary-text);
       margin: 5px 0 0;
       ${mq[1]} {
         font-size: 16px;
@@ -314,7 +314,7 @@ const StyledSliderSection = styled('div')`
       }
       &.active {
         font-weight: 700;
-        color: #ffffff;
+        color: var(--ifm-font-base-color-inverse);
       }
       &.active::before {
         background-color: var(--ifm-color-primary);
@@ -334,10 +334,6 @@ const StyledSliderSection = styled('div')`
         font-size: 17px;
         line-height: 23px;
       }
-    }
-    & > img {
-      border-radius: 10px;
-      border: 1px solid #f3f3f3;
     }
   }
   video {
@@ -430,7 +426,7 @@ const StyledIntegrations = styled('div')`
       grid-template-columns: repeat(1, minmax(0, 1fr));
     }
     & > .item {
-      border: 1px solid #ededed;
+      border: 1px solid var(--ifm-border-color);
       border-radius: 10px;
       overflow: hidden;
       height: 120px;
@@ -440,10 +436,10 @@ const StyledIntegrations = styled('div')`
       justify-content: center;
       & > a {
         height: 100%;
-        & > img {
-          height: 100%;
-          object-fit: contain;
-        }
+      }
+      & img {
+        height: 100%;
+        object-fit: contain;
       }
     }
   }
