@@ -46,7 +46,9 @@ embedDashboard({
           expanded: true,
       },
       urlParams: {
-          customParamName: 'customParamValue',
+          foo: 'value1',
+          bar: 'value2',
+          // ...
       }
   },
 });
