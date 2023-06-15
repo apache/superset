@@ -40,10 +40,13 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
       hideTitle: true,
       filters: {
           expanded: true,
+      },
+      urlParams: {
+          'customParamName': 'customParamValue',
       }
   },
 });

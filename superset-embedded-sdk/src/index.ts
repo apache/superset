@@ -42,6 +42,9 @@ export type UiConfigType = {
     visible?: boolean
     expanded?: boolean
   }
+  urlParams?: {
+    [key: string]: any
+  }
 }
 
 export type EmbedDashboardParams = {
@@ -116,6 +119,8 @@ export async function embedDashboard({
         + filterConfigKeys
           .map(key => DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key] + '=' + filterConfig[key]).join('&')
         : ""
+      const extraUrlParamsString = new URLSearchParams(dashboardUiConfig?.urlParams).toString()
+      const extraUrlParams = extraUrlParamsString ? "&" + extraUrlParamsString : ""
 
       // set up the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
@@ -149,7 +154,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}${extraUrlParams}`;
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
