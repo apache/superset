@@ -476,7 +476,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AVOID_COLORS_COLLISION": True,
     # Set to False to only allow viewing own recent activity
     # or to disallow users from viewing other users profile page
-    "ENABLE_BROAD_ACTIVITY_ACCESS": False,
     # Do not show user info or profile in the menu
     "MENU_HIDE_USER_INFO": False,
 }

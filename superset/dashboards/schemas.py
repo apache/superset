@@ -194,7 +194,6 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
     changed_by_name = fields.String()
-    changed_by_url = fields.String()
     changed_by = fields.Nested(UserSchema(exclude=(["username"])))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))

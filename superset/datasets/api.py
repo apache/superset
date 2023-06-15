@@ -101,7 +101,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.id",
         "database.database_name",
         "changed_by_name",
-        "changed_by_url",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_utc",
