@@ -233,26 +233,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  const options = useMemo(() => {
+  const uniqueOptions = useMemo(() => {
     const allOptions = [...data];
-    const uniqueOptions = uniqWith(allOptions, isEqual);
-    const selectOptions: SelectOptionsType = [];
-    uniqueOptions.forEach(row => {
+    return uniqWith(allOptions, isEqual).map(row => {
       const [value] = groupby.map(col => row[col]);
-      selectOptions.push({
+      return {
         label: labelFormatter(value, datatype),
         value,
-      });
+        isNewOption: false,
+      };
     });
-    if (search && !multiSelect && !hasOption(search, selectOptions, true)) {
-      selectOptions.unshift({
+  }, [data, datatype, groupby, labelFormatter]);
+
+  const options = useMemo(() => {
+    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
+      uniqueOptions.unshift({
         label: search,
         value: search,
         isNewOption: true,
       });
     }
-    return selectOptions;
-  }, [data, datatype, groupby, labelFormatter, multiSelect, search]);
+    return uniqueOptions;
+  }, [multiSelect, search, uniqueOptions]);
 
   const sortComparator = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) => {
