@@ -122,4 +122,18 @@ describe('Select buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.filters).toEqual([{ col: 'my_col', op: '>=', val: 123 }]);
   });
+
+  it('should add big numeric search parameter to query filter', () => {
+    const queryContext = buildQuery(formData, {
+      ownState: {
+        search: '123436775936632786',
+        coltypeMap: { my_col: GenericDataType.NUMERIC },
+      },
+    });
+    expect(queryContext.queries.length).toEqual(1);
+    const [query] = queryContext.queries;
+    expect(query.filters).toEqual([
+      { col: 'my_col', op: '>=', val: '123436775936632786' },
+    ]);
+  });
 });

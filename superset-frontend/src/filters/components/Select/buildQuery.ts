@@ -49,12 +49,21 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
           coltypeMap[label] === GenericDataType.NUMERIC &&
           !Number.isNaN(Number(search))
         ) {
-          // for numeric columns we apply a >= where clause
-          extraFilters.push({
-            col: column,
-            op: '>=',
-            val: Number(search),
-          });
+          if (search === `${Number(search)}`) {
+            // for numeric columns we apply a >= where clause
+            extraFilters.push({
+              col: column,
+              op: '>=',
+              val: Number(search),
+            });
+          } else {
+            // for big number case
+            extraFilters.push({
+              col: column,
+              op: '>=',
+              val: search,
+            });
+          }
         }
       });
     }
