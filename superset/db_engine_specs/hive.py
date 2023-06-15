@@ -406,6 +406,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
+    def get_columns(
+        cls, inspector: Inspector, table_name: str, schema: str | None
+    ) -> list[ResultSetColumnType]:
+        return BaseEngineSpec.get_columns(inspector, table_name, schema)
+
+    @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
