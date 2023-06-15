@@ -26,7 +26,6 @@ from superset import event_logger, security_manager
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import get_user_id
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 from superset.views.log import LogMixin
 from superset.views.log.dao import LogDAO

@@ -55,12 +55,7 @@ from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailed
 from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasource.dao import DatasourceDAO
-from superset.exceptions import (
-    CacheLoadError,
-    DatabaseNotFound,
-    SupersetException,
-    SupersetSecurityException,
-)
+from superset.exceptions import CacheLoadError, DatabaseNotFound, SupersetException
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
