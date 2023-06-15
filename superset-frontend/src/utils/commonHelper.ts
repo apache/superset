@@ -20,6 +20,10 @@
 import moment from 'moment';
 import { FilterDropdown } from 'src/views/CRUD/flash/types';
 
+const DATE_FORMATS = {
+  UTC: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+};
+
 export const removeUnnecessaryProperties = (
   formObject: Object,
   properties: Array<string>,
@@ -39,10 +43,9 @@ export const convertToLocalDateTime = (date?: Date) => {
 
 export const convertTolllDatetime = (datetime: string) => {
   if (datetime) {
-    if (datetime.includes('T') && datetime.includes('Z')) {
+    if (validateDateFormat(datetime)) {
       return moment(new Date(datetime)).format('llll');
     }
-
     return datetime;
   }
 
@@ -50,6 +53,12 @@ export const convertTolllDatetime = (datetime: string) => {
 };
 export const convertTolllDate = (date: string) =>
   date ? moment(new Date(date)).format('ll') : null;
+
+const validateDateFormat = (dateString: string) => {
+  const format = DATE_FORMATS.UTC;
+  const isValidFormat = moment(dateString, format, true).isValid();
+  return isValidFormat;
+};
 
 export const convertValueToLabel = (
   id: string,
