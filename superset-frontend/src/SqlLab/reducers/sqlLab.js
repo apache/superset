@@ -614,8 +614,9 @@ export default function sqlLabReducer(state = {}, action) {
           (state.queries[id].state !== QueryState.STOPPED &&
             state.queries[id].state !== QueryState.FAILED)
         ) {
-          if (changedQuery.changedOn > queriesLastUpdate) {
-            queriesLastUpdate = changedQuery.changedOn;
+          const changedOn = Date.parse(changedQuery.changed_on);
+          if (changedOn > queriesLastUpdate) {
+            queriesLastUpdate = changedOn;
           }
           const prevState = state.queries[id]?.state;
           const currentState = changedQuery.state;
