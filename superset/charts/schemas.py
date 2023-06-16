@@ -164,7 +164,7 @@ class ChartEntityResponseSchema(Schema):
     id = fields.Integer(metadata={"description": id_description})
     slice_name = fields.String(metadata={"description": slice_name_description})
     cache_timeout = fields.Integer(metadata={"description": cache_timeout_description})
-    changed_on = fields.String(metadata={"description": changed_on_description})
+    changed_on = fields.DateTime(metadata={"description": changed_on_description})
     description = fields.String(metadata={"description": description_description})
     description_markeddown = fields.String(
         metadata={"description": description_markeddown_description}
