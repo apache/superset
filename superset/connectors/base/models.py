@@ -152,6 +152,7 @@ class BaseDatasource(
     def slices(self) -> RelationshipProperty:
         return relationship(
             "Slice",
+            overlaps="table",
             primaryjoin=lambda: and_(
                 foreign(Slice.datasource_id) == self.id,
                 foreign(Slice.datasource_type) == self.type,
