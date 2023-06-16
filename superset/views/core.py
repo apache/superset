@@ -41,13 +41,12 @@ from superset import (
     event_logger,
     is_feature_enabled,
     security_manager,
-    viz,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
+from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -96,7 +95,6 @@ from superset.views.utils import (
     check_datasource_perms,
     check_explore_cache_perms,
     check_resource_permissions,
-    check_slice_perms,
     get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
@@ -215,65 +213,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
-
-    @event_logger.log_this
-    @api
-    @has_access_api
-    @expose("/slice_json/<int:slice_id>")
-    @etag_cache()
-    @check_resource_permissions(check_slice_perms)
-    @deprecated(new_target="/api/v1/chart/<int:id>/data/")
-    def slice_json(self, slice_id: int) -> FlaskResponse:
-        form_data, slc = get_form_data(slice_id, use_slice_data=True)
-        if not slc:
-            return json_error_response("The slice does not exist")
-
-        if not slc.datasource:
-            return json_error_response("The slice's datasource does not exist")
-
-        try:
-            viz_obj = get_viz(
-                datasource_type=slc.datasource.type,
-                datasource_id=slc.datasource.id,
-                form_data=form_data,
-                force=False,
-            )
-            return self.generate_json(viz_obj)
-        except SupersetException as ex:
-            return json_error_response(utils.error_msg_from_exception(ex))
-
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/annotation_json/<int:layer_id>")
-    @deprecated(new_target="/api/v1/chart/<int:id>/data/")
-    def annotation_json(  # pylint: disable=no-self-use
-        self, layer_id: int
-    ) -> FlaskResponse:
-        form_data = get_form_data()[0]
-        force = utils.parse_boolean_string(request.args.get("force"))
-
-        form_data["layer_id"] = layer_id
-        form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
-        # Set all_columns to ensure the TableViz returns the necessary columns to the
-        # frontend.
-        form_data["all_columns"] = [
-            "created_on",
-            "changed_on",
-            "id",
-            "start_dttm",
-            "end_dttm",
-            "layer_id",
-            "short_descr",
-            "long_descr",
-            "json_metadata",
-            "created_by_fk",
-            "changed_by_fk",
-        ]
-        datasource = AnnotationDatasource()
-        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=force)
-        payload = viz_obj.get_payload()
-        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @event_logger.log_this
     @api
