@@ -74,7 +74,7 @@ const IconCheck = styled(Icons.Check)`
 `;
 
 const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const Actions = styled.div`
