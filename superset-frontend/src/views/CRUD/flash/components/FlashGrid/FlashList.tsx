@@ -277,9 +277,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             original: { flashType = '', tableName = '', scheduleType = '' },
           },
         }: any) => {
-          const flash_type = flashType.replace(/([A-Z])/g, ' $1').trim();
-          const flashContent = flash_type.split(' ');
-          const flashInititals = flashContent[0][0];
+          const flash_type = flashType?.replace(/([A-Z])/g, ' $1').trim();
+          const flashContent = flash_type ? flash_type.split(' ')[0][0] : '';
           const tooltipTitle = `${flash_type}: ${tableName}${
             scheduleType ? ` (${scheduleType})` : ''
           }`;
@@ -297,7 +296,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                       border: block;
                       background: ${getColor(flash_type, theme)};
                     `}
-                  >{`${flashInititals}`}</span>
+                  >{`${flashContent}`}</span>
                 </Tooltip>
                 <Tooltip title={tooltipTitle} placement="top">
                   {`${tableName}`}{' '}
