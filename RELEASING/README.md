@@ -366,7 +366,49 @@ Once 3+ binding votes (by PMC members) have been cast and at
 least 72 hours have past, you can post a [RESULT] thread:
 https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71394d78b45f9a8@%3Cdev.superset.apache.org%3E
 
-To easily send the result email, still on the `superset/RELEASING` directory:
+
+### Publish an RC testing Convenience Pre-Release to PyPI
+
+Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
+
+```bash
+mkdir -p /tmp/superset_dev && cd /tmp/superset_dev
+tar xfvz ~/svn/superset_dev/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}
+```
+
+Create a virtual environment and install the dependencies
+
+```bash
+cd ${SUPERSET_RELEASE_RC}/
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements/base.txt
+pip install twine
+```
+
+Create the distribution
+
+```bash
+cd superset-frontend/
+npm ci && npm run build
+cd ../
+flask fab babel-compile --target superset/translations
+python setup.py sdist --version=${SUPERSET_VERSION_RC}
+```
+
+Publish to PyPI
+
+You may need to ask a fellow committer to grant
+you access to it if you don't have access already. Make sure to create
+an account first if you don't have one, and reference your username
+while requesting access to push packages.
+
+```bash
+twine upload dist/${SUPERSET_RELEASE_RC}.tar.gz
+```
+
+## Sending the result email
+To easily send the result email, on the `superset/RELEASING` directory:
 
 ```bash
 # Note: use Superset's virtualenv

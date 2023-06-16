@@ -16,15 +16,37 @@
 # under the License.
 import json
 import os
+import re
 import subprocess
+import sys
 
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
-with open(PACKAGE_JSON) as package_file:
-    version_string = json.load(package_file)["version"]
+parameters = {}
+
+# Regex pattern to match arguments in the form --param=value
+pattern = re.compile(r"^--(\w+)=(.+)$")
+
+# Check for custom parameters in sys.argv
+for arg in sys.argv:
+    match = pattern.match(arg)
+    if match:
+        key = match.group(1)
+        value = match.group(2)
+        parameters[key] = value
+
+# Access the passed parameters and their values
+version_string = parameters.get("version")
+
+# Remove custom parameters from sys.argv to allow other commands to be processed
+sys.argv = [arg for arg in sys.argv if not pattern.match(arg)]
+
+if not version_string:
+    with open(PACKAGE_JSON) as package_file:
+        version_string = json.load(package_file)["version"] or ""
 
 with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
