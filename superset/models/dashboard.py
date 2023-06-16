@@ -149,6 +149,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     tags = relationship(
         "Tag",
+        overlaps="objects,tag,tags,tags",
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
