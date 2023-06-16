@@ -99,6 +99,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="objects,tag,tags",
         primaryjoin="and_(Slice.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'chart')",
@@ -106,6 +107,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     table = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
+        overlaps="table",
         primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",

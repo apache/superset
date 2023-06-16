@@ -1611,6 +1611,9 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     tables = relationship(
-        SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
+        SqlaTable,
+        overlaps="table",
+        secondary=RLSFilterTables,
+        backref="row_level_security_filters",
     )
     clause = Column(Text, nullable=False)
