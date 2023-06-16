@@ -114,7 +114,7 @@ class SliceSchema(Schema):
     certified_by = fields.String(
         metadata={"description": "Person or group that has certified this dashboard."}
     )
-    changed_on = fields.String(
+    changed_on = fields.DateTime(
         metadata={"description": "Timestamp of the last modification."}
     )
     changed_on_humanized = fields.String(
