@@ -236,7 +236,6 @@ class FilterOperator(str, Enum):
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"
     NOT_IN = "NOT IN"
-    REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
@@ -253,7 +252,6 @@ class FilterStringOperators(str, Enum):
     NOT_IN = ("NOT_IN",)
     ILIKE = ("ILIKE",)
     LIKE = ("LIKE",)
-    REGEX = ("REGEX",)
     IS_NOT_NULL = ("IS_NOT_NULL",)
     IS_NULL = ("IS_NULL",)
     LATEST_PARTITION = ("LATEST_PARTITION",)
