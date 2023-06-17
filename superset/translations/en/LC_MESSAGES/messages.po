@@ -12973,7 +12973,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
-msgid "Send as "
+msgid "Send as CSV"
 msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
