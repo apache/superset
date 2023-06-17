@@ -39,7 +39,6 @@ export enum Operators {
   NOT_IN = 'NOT_IN',
   LIKE = 'LIKE',
   ILIKE = 'ILIKE',
-  REGEX = 'REGEX',
   IS_NOT_NULL = 'IS_NOT_NULL',
   IS_NULL = 'IS_NULL',
   LATEST_PARTITION = 'LATEST_PARTITION',
@@ -75,7 +74,6 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
     display: t('Like (case insensitive)'),
     operation: 'ILIKE',
   },
-  [Operators.REGEX]: { display: t('Regex'), operation: 'REGEX' },
   [Operators.IS_NOT_NULL]: {
     display: t('Is not null'),
     operation: 'IS NOT NULL',
