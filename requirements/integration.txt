@@ -60,7 +60,7 @@ tomli==2.0.1
 toposort==1.10
     # via pip-compile-multi
 tox==4.6.1
-    # via -r integration.in
+    # via -r requirements/integration.in
 virtualenv==20.23.0
     # via
     #   pre-commit
