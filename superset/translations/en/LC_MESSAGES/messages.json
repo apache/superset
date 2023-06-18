@@ -201,7 +201,7 @@
         ""
       ],
       "A timeout occurred while executing the query.": [""],
-      "A timeout occurred while generating a csv.": [""],
+      "A timeout occurred while generating a CSV.": [""],
       "A timeout occurred while generating a dataframe.": [""],
       "A timeout occurred while taking a screenshot.": [""],
       "A valid color scheme is required": [""],
@@ -346,7 +346,7 @@
       "Allow CREATE TABLE AS option in SQL Lab": [""],
       "Allow CREATE VIEW AS": [""],
       "Allow CREATE VIEW AS option in SQL Lab": [""],
-      "Allow Csv Upload": [""],
+      "Allow CSV Upload": [""],
       "Allow DML": [""],
       "Allow columns to be rearranged": [""],
       "Allow creation of new tables based on queries": [""],
@@ -1139,7 +1139,7 @@
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for columnar uploads. Please contact your Superset Admin.": [
         ""
       ],
-      "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": [
+      "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for CSV uploads. Please contact your Superset Admin.": [
         ""
       ],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
@@ -1825,7 +1825,7 @@
       "If duplicate columns are not overridden, they will be presented as \"X.1, X.2 ...X.x\"": [
         ""
       ],
-      "If selected, please set the schemas allowed for csv upload in Extra.": [
+      "If selected, please set the schemas allowed for CSV upload in Extra.": [
         ""
       ],
       "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
@@ -2758,7 +2758,7 @@
       "Report Schedule could not be deleted.": [""],
       "Report Schedule could not be updated.": [""],
       "Report Schedule delete failed.": [""],
-      "Report Schedule execution failed when generating a csv.": [""],
+      "Report Schedule execution failed when generating a CSV.": [""],
       "Report Schedule execution failed when generating a dataframe.": [""],
       "Report Schedule execution failed when generating a screenshot.": [""],
       "Report Schedule execution got an unexpected error.": [""],
@@ -3513,10 +3513,10 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         ""
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to CSV to see more rows up to the %(limit)d limit.": [
         ""
       ],
-      "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
+      "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to CSV, or contact an admin to see more rows up to the %(limit)d limit.": [
         ""
       ],
       "The number of rows displayed is limited to %(rows)d by the dropdown.": [
@@ -4424,7 +4424,7 @@
       "You don't have the rights to alter this title.": [""],
       "You don't have the rights to create a chart": [""],
       "You don't have the rights to create a dashboard": [""],
-      "You don't have the rights to download as csv": [""],
+      "You don't have the rights to download as CSV": [""],
       "You have no permission to approve this request": [""],
       "You have removed this filter.": [""],
       "You have unsaved changes.": [""],
