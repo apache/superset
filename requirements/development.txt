@@ -76,7 +76,7 @@ pickleshare==0.7.5
     # via ipython
 pillow==9.5.0
     # via apache-superset
-platformdirs==3.5.1
+platformdirs==3.5.3
     # via pylint
 progress==1.6
     # via -r requirements/development.in
