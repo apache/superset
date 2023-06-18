@@ -500,7 +500,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         selects: FLASH_TYPES,
       },
       {
-        Header: t('TTL'),
+        Header: t('Expiry'),
         id: 'ttl',
         input: 'date',
       },
