@@ -2,6 +2,7 @@
 const API_V1 = '/api/v1';
 const SUPERSET_ENDPOINT = '/superset';
 const PLUGIN_SELECTOR = 'single-spa-application:supersetDashboardPlugin';
+const ALERT_PREFIX = '[ALERT]';
 
 const DODOPIZZA_THEME = {
   colors: {
@@ -88,6 +89,22 @@ const MESSAGES = {
       'No CSRF token was returned from Superset. Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
     OTHER:
       'While getting CSRF unexected error happened. Проверьте, что в Вашей учетной записи Dodo IS заполнены e-mail, имя и фамилия. При отсутствии этих данных, авторизация в сервисе невозможна',
+  },
+  GET_ANNOTATION_LAYERS: {
+    CONFIG: {
+      stackTrace: 'GET_ANNOTATION_LAYERS',
+      title: 'Getting annotation layers from Superset',
+    },
+    NO_ANNOTATION_LAYERS: 'No annotation layers found',
+    OTHER: 'While getting annotation layers unexected error happened',
+  },
+  GET_ANNOTATION: {
+    CONFIG: {
+      stackTrace: 'GET_ANNOTATION',
+      title: 'Getting annotation from Superset',
+    },
+    NO_ANNOTATION: 'No annotations found',
+    OTHER: 'While getting annotations unexected error happened',
   },
 };
 
@@ -346,4 +363,5 @@ export {
   DODOPIZZA_KNOWLEDGEBASE_URL,
   DODOPIZZA_ANALYTICS_URL,
   KNOWN_CERTIFICATAION_DETAILS,
+  ALERT_PREFIX,
 };

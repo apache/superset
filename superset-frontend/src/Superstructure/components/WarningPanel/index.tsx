@@ -16,32 +16,40 @@ const WarningPanel = ({
   body,
   extra,
   children,
+  colors,
 }: WarningMsgParams) => (
   <WarningPanelWrapper>
-    <Alert>
+    <Alert style={{ backgroundColor: colors?.backgroundColor || '#fff3cd' }}>
       <RowWrapper>
-        <ColumnWrapper classes="col-md-1 tinycolumn">
-          <InfoIcon color="#856404" />
-        </ColumnWrapper>
-
         {title && (
-          <ColumnWrapper classes="col-md-11">
-            <StyledH4>{title || ''}</StyledH4>
-          </ColumnWrapper>
+          <div>
+            <ColumnWrapper classes="col-md-1 tinycolumn">
+              <InfoIcon color={colors?.textColor || '#856404'} />
+            </ColumnWrapper>
+            <ColumnWrapper classes="col-md-11">
+              <StyledH4 style={{ color: colors?.textColor || '#856404' }}>
+                {title || ''}
+              </StyledH4>
+            </ColumnWrapper>
+          </div>
         )}
 
         {subTitle && (
           <ColumnWrapper classes="col-md-11">
-            <StyledP>{subTitle || ''}</StyledP>
+            <StyledP style={{ color: colors?.textColor || '#856404' }}>
+              {subTitle || ''}
+            </StyledP>
           </ColumnWrapper>
         )}
       </RowWrapper>
 
       {body && (
-        <div style={{ marginTop: '20px' }}>
+        <div style={{ marginTop: title ? '20px 0' : '0 0 20px 0' }}>
           <RowWrapper>
             <ColumnWrapper classes="col-md-11 offset-md-1">
-              <StyledP>{body || ''}</StyledP>
+              <StyledP style={{ color: colors?.textColor || '#856404' }}>
+                {body || ''}
+              </StyledP>
             </ColumnWrapper>
           </RowWrapper>
         </div>

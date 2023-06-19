@@ -1,7 +1,10 @@
 // DODO was here
 import { formatLocale } from 'd3-format';
 import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
-import { D3_LOCALES, SUPPORTED_LOCALES_ARRAY } from './D3FormatConfig';
+import {
+  D3_CURRENCIES_LOCALES,
+  SUPPORTED_CURRENCIES_LOCALES_ARRAY,
+} from './D3FormatConfig';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
 import createSmartNumberFormatter from './factories/createSmartNumberFormatter';
 import NumberFormats from './NumberFormats';
@@ -27,13 +30,13 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
       createSmartNumberFormatter({ signed: true }),
     );
 
-    SUPPORTED_LOCALES_ARRAY.forEach(localeName => {
+    SUPPORTED_CURRENCIES_LOCALES_ARRAY.forEach(localeName => {
       this.registerValue(
-        D3_LOCALES[localeName].id,
+        D3_CURRENCIES_LOCALES[localeName].id,
         new NumberFormatter({
-          id: D3_LOCALES[localeName].id,
+          id: D3_CURRENCIES_LOCALES[localeName].id,
           formatFunc: v => {
-            const locale = formatLocale(D3_LOCALES[localeName]);
+            const locale = formatLocale(D3_CURRENCIES_LOCALES[localeName]);
 
             return locale.format('$,')(v);
           },

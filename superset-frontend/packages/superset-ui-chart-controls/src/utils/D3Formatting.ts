@@ -5,7 +5,9 @@ import {
   NumberFormats,
   getNumberFormatterRegistry,
   PREVIEW_VALUE,
+  SUPPORTED_CURRENCIES_LOCALES_ARRAY,
   SUPPORTED_LOCALES_ARRAY,
+  D3_CURRENCIES_LOCALES,
   D3_LOCALES,
 } from '@superset-ui/core';
 
@@ -15,16 +17,26 @@ export const D3_FORMAT_DOCS = t(
 );
 
 const d3Currencies = (): [string, string][] =>
+  SUPPORTED_CURRENCIES_LOCALES_ARRAY.map(localeName => {
+    const { id, code } = D3_CURRENCIES_LOCALES[localeName];
+    const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
+    return [id, `${code} (${PREVIEW_VALUE} => ${preview})`];
+  });
+
+const d3Locales = (): [string, string][] =>
   SUPPORTED_LOCALES_ARRAY.map(localeName => {
     const { id, code } = D3_LOCALES[localeName];
     const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
     return [id, `${code} (${PREVIEW_VALUE} => ${preview})`];
   });
 
+console.log(d3Locales());
+
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
+  // ...d3Locales(),
   [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
   ['.3s', '.3s (12345.432 => 12.3k)'],

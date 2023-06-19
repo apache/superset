@@ -27,7 +27,7 @@ const Alert = styled.div`
   background-color: #fff3cd;
   border: 1px solid #ffeeba;
   border-radius: 4px;
-  padding: 30px;
+  padding: 25px;
 `;
 
 export { StyledH4, StyledP, LimitWarningWrapper, Alert };

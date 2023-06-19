@@ -1,9 +1,18 @@
-import { GET_LOGIN_TOKEN, GET_CSRF_TOKEN, GET_DASHBOARDS } from '../api/init';
+import {
+  GET_LOGIN_TOKEN,
+  GET_CSRF_TOKEN,
+  GET_DASHBOARDS,
+  GET_ANNOTATION_LAYERS,
+  GET_SINGLE_ANNOTATION_LAYER_IDS,
+  GET_SINGLE_ANNOTATION,
+} from '../api/init';
 import { KNOWN_CERTIFICATAION_DETAILS, MESSAGES } from '../constants';
 import {
   InitializedResponse,
   DashboardFiltered,
+  AnnotationLayersFiltered,
   RouteFromDashboard,
+  SingleAnnotation,
 } from '../types/global';
 import {
   handleAxiosError,
@@ -72,6 +81,91 @@ const getCsrfToken = async ({
   return handleDefaultCaseReturn({
     errorObject: MESSAGES.CSRF,
     errorMessage: 'NO_TOKEN',
+  });
+};
+
+const getSingleAnnotationData = async (
+  layerId: number,
+  annotationId: number,
+): Promise<InitializedResponse<{ result: SingleAnnotation } | null>> => {
+  const singleAnnotationResponse = await GET_SINGLE_ANNOTATION(
+    layerId,
+    annotationId,
+  );
+
+  if ('code' in singleAnnotationResponse) {
+    return handleAxiosError({
+      response: singleAnnotationResponse,
+      errorObject: MESSAGES.GET_ANNOTATION,
+    });
+  }
+
+  if ('result' in singleAnnotationResponse) {
+    return handleCorrectCaseReturn<{ result: SingleAnnotation }>({
+      response: {
+        result: singleAnnotationResponse.result,
+      },
+      errorObject: MESSAGES.GET_ANNOTATION,
+    });
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.GET_ANNOTATION,
+    errorMessage: 'NO_ANNOTATION',
+  });
+};
+
+const getSingleAnnotationLayerIdsData = async (
+  layerId: number,
+): Promise<InitializedResponse<{ ids: number[]; layerId: number } | null>> => {
+  const singleAnnotationLayerIdsResponse =
+    await GET_SINGLE_ANNOTATION_LAYER_IDS(layerId);
+
+  if ('code' in singleAnnotationLayerIdsResponse) {
+    return handleAxiosError({
+      response: singleAnnotationLayerIdsResponse,
+      errorObject: MESSAGES.GET_ANNOTATION,
+    });
+  }
+
+  if ('ids' in singleAnnotationLayerIdsResponse) {
+    return handleCorrectCaseReturn<{ ids: number[]; layerId: number }>({
+      response: {
+        layerId,
+        ids: singleAnnotationLayerIdsResponse.ids,
+      },
+      errorObject: MESSAGES.GET_ANNOTATION,
+    });
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.GET_ANNOTATION,
+    errorMessage: 'NO_ANNOTATION',
+  });
+};
+
+const getAnnotationLayersData = async (): Promise<
+  InitializedResponse<AnnotationLayersFiltered[] | null>
+> => {
+  const annotationLayersResponse = await GET_ANNOTATION_LAYERS();
+
+  if ('code' in annotationLayersResponse) {
+    return handleAxiosError({
+      response: annotationLayersResponse,
+      errorObject: MESSAGES.GET_ANNOTATION_LAYERS,
+    });
+  }
+
+  if ('result' in annotationLayersResponse) {
+    return handleCorrectCaseReturn<AnnotationLayersFiltered[]>({
+      response: annotationLayersResponse.result,
+      errorObject: MESSAGES.GET_ANNOTATION_LAYERS,
+    });
+  }
+
+  return handleDefaultCaseReturn({
+    errorObject: MESSAGES.GET_ANNOTATION_LAYERS,
+    errorMessage: 'NO_ANNOTATION_LAYERS',
   });
 };
 
@@ -146,6 +240,9 @@ export {
   getLoginToken,
   getCsrfToken,
   getDashboardsData,
+  getAnnotationLayersData,
+  getSingleAnnotationLayerIdsData,
+  getSingleAnnotationData,
   dirtyHackDodoIs,
   defineNavigation,
   validCertifiedBy,

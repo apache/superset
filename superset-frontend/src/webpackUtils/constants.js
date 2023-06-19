@@ -132,7 +132,7 @@ const getHtmlTemplate = htmlWebpackPlugin => `<!DOCTYPE html>
             </li>
             <li class="navigation_item navigation_link--active">
               <a href="#" class="navigation_link">
-                <span class="navigation_linkBorderBlock">Аналитика (бета)</span>
+                <span class="navigation_linkBorderBlock">Аналитика</span>
               </a>
             </li>
           </ul>

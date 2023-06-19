@@ -12,6 +12,9 @@ import {
   MicrofrontendParams,
   FullConfiguration,
   Dashboard,
+  AnnotationLayer,
+  SingleAnnotation,
+  InitializedResponse,
 } from '../types/global';
 import { composeAPIConfig } from '../config';
 
@@ -25,6 +28,9 @@ import {
   getLoginToken,
   getCsrfToken,
   getDashboardsData,
+  getAnnotationLayersData,
+  getSingleAnnotationLayerIdsData,
+  getSingleAnnotationData,
   dirtyHackDodoIs,
   defineNavigation,
   validCertifiedBy,
@@ -47,6 +53,7 @@ import {
   STYLES_DODOPIZZA,
   STYLES_DRINKIT,
   STYLES_DONER42,
+  ALERT_PREFIX,
 } from '../constants';
 
 setupClient();
@@ -67,6 +74,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   } as FullConfiguration);
   const [isFullConfigReady, setFullConfigReady] = useState(false);
   const [stylesConfig, setStylesConfig] = useState(STYLES_DODOPIZZA);
+  const [annotationsObjects, setAnnotationsObjects] = useState(null) as any;
 
   /**
    * Helper functions
@@ -122,6 +130,60 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
     return csrfResponse;
   };
+
+  const handleAnnotationLayersRequest = async () => {
+    const annotationsResponse = await getAnnotationLayersData();
+
+    if (annotationsResponse.loaded && annotationsResponse.data) {
+      const filteredAnnotationLayers = annotationsResponse.data.filter(
+        (layer: AnnotationLayer) => layer.name.includes(ALERT_PREFIX),
+      );
+
+      const foundAnnotationLayer = filteredAnnotationLayers[0] || null;
+
+      if (foundAnnotationLayer) {
+        const idsResponse = await getSingleAnnotationLayerIdsData(
+          foundAnnotationLayer.id,
+        );
+
+        if (
+          idsResponse &&
+          idsResponse.loaded &&
+          idsResponse.data?.ids &&
+          idsResponse.data?.ids.length
+        ) {
+          const dataWithIds = {
+            layerId: idsResponse.data.layerId,
+            ids: idsResponse.data.ids,
+          };
+
+          return dataWithIds;
+        }
+
+        return null;
+      }
+
+      return null;
+    }
+
+    return null;
+  };
+
+  const handleAnnotationsRequest = async ({
+    layerId,
+    ids,
+  }: {
+    layerId: number;
+    ids: number[];
+  }): Promise<InitializedResponse<{ result: SingleAnnotation } | null>[]> =>
+    Promise.all(
+      ids.map(
+        async (
+          id,
+        ): Promise<InitializedResponse<{ result: SingleAnnotation } | null>> =>
+          getSingleAnnotationData(layerId, id),
+      ),
+    );
 
   const handleDashboardsRequest = async (business: string) => {
     const dashboardsResponse = await getDashboardsData();
@@ -286,6 +348,18 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
         if (csrf && csrf.data && csrf.data.result) {
           const dashboards = await handleDashboardsRequest(params.business);
+          const annotationIds = await handleAnnotationLayersRequest();
+          if (annotationIds) {
+            const annotations = await handleAnnotationsRequest(annotationIds);
+            if (annotations && annotations.length) {
+              const filteredAnnotations = annotations.filter(
+                annotation =>
+                  annotation &&
+                  annotation?.data?.result.short_descr.includes(ALERT_PREFIX),
+              );
+              setAnnotationsObjects(filteredAnnotations);
+            }
+          }
 
           if (dashboards && dashboards.data && dashboards.data.length) {
             const navConfigFull = getNavigationConfig(
@@ -319,6 +393,10 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
 
     initializeLoginAndMenu();
   }, [params]);
+
+  useEffect(() => {
+    console.log('annotationsObjects', annotationsObjects);
+  }, [annotationsObjects]);
 
   logConfigs(FULL_CONFIG, incomingParams, params);
 
@@ -359,6 +437,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                   store={store}
                   basename={FULL_CONFIG.basename}
                   stylesConfig={stylesConfig}
+                  annotationMessages={annotationsObjects}
                 />
               </DashboardComponentWrapper>
             </Router>

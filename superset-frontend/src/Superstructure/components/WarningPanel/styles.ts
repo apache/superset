@@ -24,7 +24,7 @@ const Alert = styled.div`
   background-color: #fff3cd;
   border: 1px solid #ffeeba;
   border-radius: 2px;
-  padding: 30px;
+  padding: 25px;
   width: 100%;
 `;
 

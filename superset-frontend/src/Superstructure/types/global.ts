@@ -38,12 +38,17 @@ export interface StylesConfig {
   };
 }
 
+export type AnnotationMessages = InitializedResponse<{
+  result: SingleAnnotation;
+}>[];
+
 export interface MainComponentProps {
   navigation: MicrofrontendNavigation;
   store: any;
   theme?: any;
   basename: string;
   stylesConfig: StylesConfig;
+  annotationMessages: AnnotationMessages;
 }
 
 export interface InitConfig {
@@ -60,6 +65,10 @@ export interface WarningMsgParams {
   body?: string;
   extra?: string;
   children?: React.ReactNode;
+  colors?: {
+    backgroundColor: string;
+    textColor: string;
+  };
 }
 
 export interface PanelMsgParams {
@@ -108,6 +117,33 @@ export interface DashboardFiltered {
   certified_by: string;
   status: string;
   url: string;
+}
+
+export interface AnnotationLayersFiltered {
+  changed_on: string;
+  changed_on_delta_humanized: string;
+  created_on: string;
+  descr: string;
+  id: number;
+  name: string;
+}
+
+export interface AnnotationLayer {
+  changed_on: string;
+  changed_on_delta_humanized: string;
+  created_on: string;
+  descr: string;
+  id: number;
+  name: string;
+}
+
+export interface SingleAnnotation {
+  end_dttm: string;
+  start_dttm: string;
+  id: number;
+  json_metadata: string;
+  long_descr: string;
+  short_descr: string;
 }
 
 export interface RouteFromDashboard {

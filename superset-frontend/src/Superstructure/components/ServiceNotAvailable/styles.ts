@@ -24,7 +24,7 @@ const Alert = styled.div`
   line-height: 22px;
   color: #1b1e21;
   border-radius: 2px;
-  padding: 30px;
+  padding: 25px;
   width: 100%;
 `;
 

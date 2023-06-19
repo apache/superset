@@ -6,7 +6,7 @@ interface ExtendedFormatLocaleDefinition extends FormatLocaleDefinition {
   code: string;
 }
 
-type SUPPORTED_LOCALES =
+type SUPPORTED_CURRENCIES_LOCALES =
   | 'DEFAULT_2f'
   | 'RUB_2f'
   | 'EUR_2f'
@@ -21,9 +21,13 @@ type SUPPORTED_LOCALES =
   | 'AMD_2f'
   | 'GEL_2f'
   | 'IDR_2f'
-  | 'AZN_2f';
+  | 'AZN_2f'
+  | 'BGN_2f'
+  | 'AED_2f';
 
-export const SUPPORTED_LOCALES_ARRAY = [
+type SUPPORTED_LOCALES = 'DEFAULT_d' | 'RUS_d';
+
+export const SUPPORTED_CURRENCIES_LOCALES_ARRAY = [
   'DEFAULT_2f',
   'RUB_2f',
   'EUR_2f',
@@ -39,7 +43,11 @@ export const SUPPORTED_LOCALES_ARRAY = [
   'GEL_2f',
   'IDR_2f',
   'AZN_2f',
+  'BGN_2f',
+  'AED_2f',
 ];
+
+export const SUPPORTED_LOCALES_ARRAY = ['DEFAULT_d', 'RUS_d'];
 
 const UNICODE = {
   SPACE: '\u00a0',
@@ -61,6 +69,8 @@ const UNICODE = {
     GEL: '\u20be',
     IDR: '\u0052\u0070',
     AZN: '\u20bc',
+    BGN: '\u043b\u0432\u002e',
+    AED: '\u0064\u0068',
   },
 };
 
@@ -71,8 +81,8 @@ export const DEFAULT_D3_FORMAT: FormatLocaleDefinition = {
   currency: [UNICODE.SYM.USD, ''],
 };
 
-export const D3_LOCALES: Record<
-  SUPPORTED_LOCALES,
+export const D3_CURRENCIES_LOCALES: Record<
+  SUPPORTED_CURRENCIES_LOCALES,
   ExtendedFormatLocaleDefinition
 > = {
   DEFAULT_2f: {
@@ -191,5 +201,37 @@ export const D3_LOCALES: Record<
     grouping: [3],
     currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.AZN}`],
     code: 'AZN',
+  },
+  BGN_2f: {
+    id: `${UNICODE.SYM.BGN},.2f`,
+    decimal: UNICODE.COMMA,
+    thousands: UNICODE.SPACE,
+    grouping: [3],
+    currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.BGN}`],
+    code: 'BGN',
+  },
+  AED_2f: {
+    id: `${UNICODE.SYM.AED},.2f`,
+    decimal: UNICODE.COMMA,
+    thousands: UNICODE.SPACE,
+    grouping: [3],
+    currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.AED}`],
+    code: 'AED',
+  },
+};
+
+export const D3_LOCALES: Record<SUPPORTED_LOCALES, any> = {
+  DEFAULT_d: {
+    ...DEFAULT_D3_FORMAT,
+    id: `${UNICODE.SYM.USD},.2f`,
+    code: 'DEFAULT_d',
+  },
+  RUS_d: {
+    id: `RUS,.2f`,
+    decimal: UNICODE.COMMA,
+    thousands: UNICODE.SPACE,
+    grouping: [3],
+    // currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.RUB}${UNICODE.POINT}`],
+    code: 'RUS_d',
   },
 };
