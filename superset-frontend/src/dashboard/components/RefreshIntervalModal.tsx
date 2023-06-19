@@ -122,9 +122,9 @@ class RefreshIntervalModal extends React.PureComponent<
               onChange={this.handleFrequencyChange}
               sortComparator={propertyComparator('value')}
             />
-            <br></br>
-            <FormLabel>{t('CUSTOM')}</FormLabel> <br></br>
-            <FormLabel>{t('HOUR')}</FormLabel> <br></br>
+            <br />
+            <FormLabel>{t('CUSTOM')}</FormLabel> <br />
+            <FormLabel>{t('HOUR')}</FormLabel> <br />
             <input
               type="number"
               min="0"
@@ -135,9 +135,9 @@ class RefreshIntervalModal extends React.PureComponent<
                 paddingLeft: '10px',
               }}
               id="custom_refresh_frequency_hour"
-            ></input>
-            <br></br>
-            <FormLabel>{t('MINUTE')}</FormLabel> <br></br>
+            />
+            <br />
+            <FormLabel>{t('MINUTE')}</FormLabel> <br />
             <input
               type="number"
               min="0"
@@ -148,9 +148,9 @@ class RefreshIntervalModal extends React.PureComponent<
                 paddingLeft: '10px',
               }}
               id="custom_refresh_frequency_minute"
-            ></input>
-            <br></br>
-            <FormLabel>{t('SECOND')}</FormLabel> <br></br>
+            />
+            <br />
+            <FormLabel>{t('SECOND')}</FormLabel> <br />
             <input
               type="number"
               min="0"
@@ -161,8 +161,8 @@ class RefreshIntervalModal extends React.PureComponent<
                 paddingLeft: '10px',
               }}
               id="custom_refresh_frequency_second"
-            ></input>
-            <br></br>
+            />
+            <br />
             <Button
               buttonStyle="primary"
               buttonSize="small"
