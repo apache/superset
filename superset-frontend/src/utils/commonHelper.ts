@@ -41,7 +41,7 @@ export const convertToLocalDateTime = (date?: Date) => {
   return newDate ? new Date(newDate).toISOString() : new Date().toISOString();
 };
 
-export const convertTolllDatetime = (datetime: string) => {
+export const convertTollllDatetime = (datetime: string) => {
   if (datetime) {
     if (validateDateFormat(datetime)) {
       return moment(new Date(datetime)).format('llll');
@@ -51,13 +51,12 @@ export const convertTolllDatetime = (datetime: string) => {
 
   return null;
 };
-export const convertTolllDate = (date: string) =>
+export const convertTollDate = (date: string) =>
   date ? moment(new Date(date)).format('ll') : null;
 
 const validateDateFormat = (dateString: string) => {
   const format = DATE_FORMATS.UTC;
-  const isValidFormat = moment(dateString, format, true).isValid();
-  return isValidFormat;
+  return moment(dateString, format, true).isValid();
 };
 
 export const convertValueToLabel = (

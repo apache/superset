@@ -32,7 +32,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import ConfirmationModal from 'src/components/ConfirmationModal';
-import { convertTolllDate, convertTolllDatetime } from 'src/utils/commonHelper';
+import { convertTollDate, convertTollllDatetime } from 'src/utils/commonHelper';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -278,7 +278,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { ttl },
           },
-        }: any) => convertTolllDate(ttl),
+        }: any) => convertTollDate(ttl),
         Header: t('TTL'),
         accessor: 'ttl',
         disableSortBy: true,
@@ -288,7 +288,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { lastRefreshTime },
           },
-        }: any) => convertTolllDatetime(lastRefreshTime),
+        }: any) => convertTollllDatetime(lastRefreshTime),
         Header: t('Last Refresh Time'),
         accessor: 'lastRefreshTime',
         disableSortBy: true,
@@ -298,7 +298,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { nextRefreshTime },
           },
-        }: any) => convertTolllDatetime(nextRefreshTime),
+        }: any) => convertTollllDatetime(nextRefreshTime),
         Header: t('Next Refresh Time'),
         accessor: 'nextRefreshTime',
         disableSortBy: true,
