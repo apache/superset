@@ -26,9 +26,9 @@ import withToasts, {
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import {
-  convertTolllDatetime,
+  convertTollllDatetime,
   convertValueToLabel,
-  convertTolllDate,
+  convertTollDate,
 } from 'src/utils/commonHelper';
 
 import Button from 'src/components/Button';
@@ -134,7 +134,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Label>TTL:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.ttl ? convertTolllDate(flash?.ttl) : 'NIL'}</Value>
+          <Value>{flash?.ttl ? convertTollDate(flash?.ttl) : 'NIL'}</Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>Schedule Type:</Label>
@@ -148,7 +148,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.scheduleStartTime
-              ? convertTolllDatetime(flash?.scheduleStartTime)
+              ? convertTollllDatetime(flash?.scheduleStartTime)
               : 'NIL'}
           </Value>
         </StyledCol>
@@ -179,7 +179,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.createdAt ? convertTolllDatetime(flash?.createdAt) : 'NIL'}
+            {flash?.createdAt ? convertTollllDatetime(flash?.createdAt) : 'NIL'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -187,7 +187,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.updatedAt ? convertTolllDatetime(flash?.updatedAt) : 'NIL'}
+            {flash?.updatedAt ? convertTollllDatetime(flash?.updatedAt) : 'NIL'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -196,7 +196,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.lastRefreshTime
-              ? convertTolllDatetime(flash?.lastRefreshTime)
+              ? convertTollllDatetime(flash?.lastRefreshTime)
               : 'NIL'}
           </Value>
         </StyledCol>
@@ -206,7 +206,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.nextRefreshTime
-              ? convertTolllDatetime(flash?.nextRefreshTime)
+              ? convertTollllDatetime(flash?.nextRefreshTime)
               : 'NIL'}
           </Value>
         </StyledCol>

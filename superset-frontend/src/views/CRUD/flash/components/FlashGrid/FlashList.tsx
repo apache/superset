@@ -36,7 +36,7 @@ import InitialsPile from 'src/components/Initials';
 import { Tooltip } from 'src/components/Tooltip';
 import { Space } from 'antd';
 import { Theme } from '@emotion/react';
-import { convertTolllDate, convertTolllDatetime } from 'src/utils/commonHelper';
+import { convertTollDate, convertTollllDatetime } from 'src/utils/commonHelper';
 import { Row, Col } from 'src/components';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
@@ -331,7 +331,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { ttl },
           },
-        }: any) => convertTolllDate(ttl),
+        }: any) => convertTollDate(ttl),
         Header: t('Expiry'),
         accessor: 'ttl',
         disableSortBy: true,
@@ -344,7 +344,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         }: any) => (
           <Row>
             <Col sm={6} md={24} lg={11}>
-              ({lastRefreshTime ? convertTolllDatetime(lastRefreshTime) : 'N/A'}
+              (
+              {lastRefreshTime ? convertTollllDatetime(lastRefreshTime) : 'N/A'}
               )
             </Col>
             <Col sm={2} md={2} lg={2}>
@@ -353,7 +354,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             </Col>
             <Col sm={6} md={24} lg={11}>
               {' '}
-              ({nextRefreshTime ? convertTolllDatetime(nextRefreshTime) : 'N/A'}
+              (
+              {nextRefreshTime ? convertTollllDatetime(nextRefreshTime) : 'N/A'}
               )
             </Col>
           </Row>

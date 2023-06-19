@@ -26,7 +26,7 @@ import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { convertTolllDatetime } from 'src/utils/commonHelper';
+import { convertTollllDatetime } from 'src/utils/commonHelper';
 import { FlashAuditLogs } from '../../types';
 import ErrorStackTrace from './ErrorStackTrace';
 import JsonDifference from './JsonDiff';
@@ -98,7 +98,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
           row: {
             original: { timestamp: timeStamp },
           },
-        }: any) => convertTolllDatetime(timeStamp),
+        }: any) => convertTollllDatetime(timeStamp),
         Header: t('Time Stamp'),
         accessor: 'timestamp',
       },
