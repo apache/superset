@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
 
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
