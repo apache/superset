@@ -31,6 +31,7 @@ import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
+import AlertRunbook from 'src/components/AlertRunbook';
 import { AlertObject, LogObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -48,6 +49,10 @@ const StyledHeader = styled.div`
       text-decoration: underline;
     }
   `}
+`;
+
+const StyledDiv = styled.div`
+  margin: 0px 14px 0px 0px;
 `;
 
 interface ExecutionLogProps {
@@ -173,6 +178,11 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           </StyledHeader>
         }
       />
+      <StyledDiv>
+        <AlertRunbook
+          title={isReportEnabled ? 'Reports Run book' : 'Alerts Run book'}
+        />
+      </StyledDiv>
       <ListView<LogObject>
         className="execution-log-list-view"
         columns={columns}

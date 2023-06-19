@@ -34,8 +34,9 @@ const RunbookContainer = styled.div`
 `;
 
 export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
+  const RUNBOOK_URL = '';
   const routeToRunbook = () => {
-    const url = '';
+    const url = RUNBOOK_URL;
     window.open(url, '_blank', 'noreferrer');
   };
 
