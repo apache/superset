@@ -122,55 +122,96 @@ class RefreshIntervalModal extends React.PureComponent<
               onChange={this.handleFrequencyChange}
               sortComparator={propertyComparator('value')}
             />
-            
             <br></br>
             <FormLabel>{t('CUSTOM')}</FormLabel> <br></br>
-            
             <FormLabel>{t('HOUR')}</FormLabel> <br></br>
-            <input type="number" min="0" style={{width: "50%", border: "1px solid #ccc", borderRadius: "3px", paddingLeft: "10px"}} id="custom_refresh_frequency_hour"></input>
+            <input
+              type="number"
+              min="0"
+              style={{
+                width: '50%',
+                border: '1px solid #ccc',
+                borderRadius: '3px',
+                paddingLeft: '10px',
+              }}
+              id="custom_refresh_frequency_hour"
+            ></input>
             <br></br>
-            
             <FormLabel>{t('MINUTE')}</FormLabel> <br></br>
-            <input type="number" min="0" style={{width: "50%", border: "1px solid #ccc", borderRadius: "3px", paddingLeft: "10px"}} id="custom_refresh_frequency_minute"></input>
+            <input
+              type="number"
+              min="0"
+              style={{
+                width: '50%',
+                border: '1px solid #ccc',
+                borderRadius: '3px',
+                paddingLeft: '10px',
+              }}
+              id="custom_refresh_frequency_minute"
+            ></input>
             <br></br>
-
             <FormLabel>{t('SECOND')}</FormLabel> <br></br>
-            <input type="number" min="0" style={{width: "50%", border: "1px solid #ccc", borderRadius: "3px", paddingLeft: "10px"}} id="custom_refresh_frequency_second"></input>
+            <input
+              type="number"
+              min="0"
+              style={{
+                width: '50%',
+                border: '1px solid #ccc',
+                borderRadius: '3px',
+                paddingLeft: '10px',
+              }}
+              id="custom_refresh_frequency_second"
+            ></input>
             <br></br>
-
             <Button
               buttonStyle="primary"
               buttonSize="small"
-              style={{marginTop: "4px"}}
-              onClick={
-                ()=>{
-                  // Get hour value
-                  const hour = document.getElementById('custom_refresh_frequency_hour')
-                  const hour_value = Number((hour as HTMLInputElement).value)
-                  
-                  // Get minutes value
-                  const minute = document.getElementById('custom_refresh_frequency_minute')
-                  const minute_value = Number((minute as HTMLInputElement).value)
+              style={{ marginTop: '4px' }}
+              onClick={() => {
+                // Get hour value
+                const hour = document.getElementById(
+                  'custom_refresh_frequency_hour',
+                );
+                const hour_value = Number(
+                  (hour as HTMLInputElement).value || 0,
+                );
 
-                  // Get seconds value
-                  const second = document.getElementById('custom_refresh_frequency_second')
-                  const second_value = Number((second as HTMLInputElement).value)
-                  
-                  if(hour_value<0 || minute_value<0 || second_value<0){
-                    document.getElementById('custom_refresh_frequency_hour').value = ''
-                    document.getElementById('custom_refresh_frequency_minute').value = ''
-                    document.getElementById('custom_refresh_frequency_second').value = ''
-                    return
-                  }
-                  // Convert given input to seconds
-                  const value = hour_value * 60 * 60 + minute_value * 60 + second_value
-                  this.handleFrequencyChange(value)
+                // Get minutes value
+                const minute = document.getElementById(
+                  'custom_refresh_frequency_minute',
+                );
+                const minute_value = Number(
+                  (minute as HTMLInputElement).value || 0,
+                );
+
+                // Get seconds value
+                const second = document.getElementById(
+                  'custom_refresh_frequency_second',
+                );
+                const second_value = Number(
+                  (second as HTMLInputElement).value || 0,
+                );
+
+                if (hour_value < 0 || minute_value < 0 || second_value < 0) {
+                  document.getElementById(
+                    'custom_refresh_frequency_hour',
+                  ).value = '';
+                  document.getElementById(
+                    'custom_refresh_frequency_minute',
+                  ).value = '';
+                  document.getElementById(
+                    'custom_refresh_frequency_second',
+                  ).value = '';
+                  return;
                 }
-              }
-              >
+                // Convert given input to seconds
+                const value =
+                  hour_value * 60 * 60 + minute_value * 60 + second_value;
+                this.handleFrequencyChange(value);
+              }}
+            >
               USE CUSTOM REFRESH INTERVAL
             </Button>
-
             {showRefreshWarning && (
               <RefreshWarningContainer>
                 <Alert
