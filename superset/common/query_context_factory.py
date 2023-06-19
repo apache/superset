@@ -19,12 +19,12 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from superset import app, db
-from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceDict, DatasourceType
 

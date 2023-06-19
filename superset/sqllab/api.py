@@ -25,11 +25,11 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.query import QueryDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
-from superset.queries.dao import QueryDAO
 from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.commands.estimate import QueryEstimationCommand

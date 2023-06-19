@@ -43,17 +43,17 @@ from superset import (
     security_manager,
 )
 from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import CacheLoadError, DatabaseNotFound, SupersetException
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand

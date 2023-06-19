@@ -630,7 +630,7 @@ def dataset_macro(
     the user can also request metrics to be included, and columns to group by.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.datasets.dao import DatasetDAO
+    from superset.daos.dataset import DatasetDAO
 
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:

@@ -25,7 +25,8 @@ from marshmallow import ValidationError
 from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAOUpdateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseChangeValidationError,
     DatasetColumnNotFoundValidationError,
@@ -41,7 +42,6 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
     DatasetUpdateFailedError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.utils.urls import is_safe_url
 

@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import (
     DashboardAccessDeniedError,
     DashboardNotFoundError,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,

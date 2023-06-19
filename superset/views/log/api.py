@@ -24,11 +24,11 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 import superset.models.core as models
 from superset import event_logger, security_manager
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.daos.log import LogDAO
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 from superset.views.log import LogMixin
-from superset.views.log.dao import LogDAO
 from superset.views.log.schemas import (
     get_recent_activity_schema,
     RecentActivityResponseSchema,

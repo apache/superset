@@ -17,10 +17,10 @@
 import logging
 
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.tag import TagDAO
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.commands.utils import to_object_type
-from superset.tags.dao import TagDAO
 from superset.tags.models import ObjectTypes
 
 logger = logging.getLogger(__name__)

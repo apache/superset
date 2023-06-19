@@ -27,16 +27,15 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelingNotEnabledError,
 )
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType

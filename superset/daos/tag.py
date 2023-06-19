@@ -20,8 +20,8 @@ from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

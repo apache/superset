@@ -21,14 +21,14 @@ from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.commands.exceptions import (
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule
 
 logger = logging.getLogger(__name__)

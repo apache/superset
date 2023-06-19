@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
@@ -26,6 +26,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -135,3 +136,28 @@ class DatabaseDAO(BaseDAO):
         )
 
         return ssh_tunnel
+
+
+class SSHTunnelDAO(BaseDAO):
+    model_cls = SSHTunnel
+
+    @classmethod
+    def update(
+        cls,
+        model: SSHTunnel,
+        properties: dict[str, Any],
+        commit: bool = True,
+    ) -> SSHTunnel:
+        """
+        Unmask ``password``, ``private_key`` and ``private_key_password`` before updating.
+
+        When a database is edited the user sees a masked version of
+        the aforementioned fields.
+
+        The masked values should be unmasked before the ssh tunnel is updated.
+        """
+        # ID cannot be updated so we remove it if present in the payload
+        properties.pop("id", None)
+        properties = unmask_password_info(properties, model)
+
+        return super().update(model, properties, commit)

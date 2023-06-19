@@ -21,8 +21,8 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
+from superset.daos.datasource import DatasourceDAO
 from superset.datasets.commands.exceptions import DatasetSamplesFailedError
-from superset.datasource.dao import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 

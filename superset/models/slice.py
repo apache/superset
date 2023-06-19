@@ -137,7 +137,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def cls_model(self) -> type[BaseDatasource]:
         # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 

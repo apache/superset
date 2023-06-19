@@ -24,6 +24,7 @@ from sqlalchemy.sql import select
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
@@ -31,7 +32,6 @@ from superset.dashboards.commands.importers.v1.utils import (
     import_dashboard,
     update_id_refs,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
