@@ -46,7 +46,7 @@ pluggy==1.0.0
     # via tox
 pre-commit==3.3.2
     # via -r integration.in
-pyproject-api==1.5.1
+pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
     # via build
@@ -54,9 +54,9 @@ pyyaml==5.4.1
     # via pre-commit
 toposort==1.10
     # via pip-compile-multi
-tox==4.6.1
+tox==4.6.2
     # via -r integration.in
-virtualenv==20.23.0
+virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
