@@ -46,6 +46,16 @@ export const FLASH_STATUS: FilterDropdown[] = [
   { label: 'Marked For Deletion', value: 'MarkedForDeletion' },
 ];
 
+export const FLASH_STATUS_ENUMS = {
+  NEW: 'New',
+  IN_PROGRESS: 'InProgress',
+  MATERIALIZED: 'Materialized',
+  MATERIALIZED_FAILED: 'Materialized_Failed',
+  UPDATED: 'Updated',
+  DELETED: 'Deleted',
+  MARKED_FOR_DELETION: 'MarkedForDeletion',
+};
+
 export const UPDATE_TYPES = {
   SQL: 'sql',
   TTL: 'ttl',

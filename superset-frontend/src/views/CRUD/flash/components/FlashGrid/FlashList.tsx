@@ -37,7 +37,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Space } from 'antd';
 import { Theme } from '@emotion/react';
 import { convertTollDate, convertTollllDatetime } from 'src/utils/commonHelper';
-import { Row, Col } from 'src/components';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -53,6 +52,7 @@ import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 import FlashType from '../FlashType/FlashType';
+import { getFlashStatusColor, getFlashTypeColor } from '../helper';
 
 const PAGE_SIZE = 25;
 
@@ -240,19 +240,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
   const isDeletedFlash = (flashStatus: string) => flashStatus === 'Deleted';
 
-  const getColor = (type: string, theme: Theme) => {
-    if (type === FlashTypes.ONE_TIME) {
-      return theme.colors.error.light1;
-    }
-    if (type === FlashTypes.SHORT_TERM) {
-      return theme.colors.warning.light1;
-    }
-    if (type === FlashTypes.LONG_TERM) {
-      return theme.colors.success.light1;
-    }
-    return theme.colors.grayscale.light1;
-  };
-
   const initialSort = [{ id: 'status', desc: true }];
   const columns = useMemo(
     () => [
@@ -294,7 +281,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                       font-weight: 800;
                       font-size: 10px
                       border: block;
-                      background: ${getColor(flash_type, theme)};
+                      background: ${getFlashTypeColor(flash_type, theme)};
                     `}
                   >{`${flashContent}`}</span>
                 </Tooltip>
@@ -339,28 +326,21 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {
         Cell: ({
           row: {
-            original: { lastRefreshTime = '', nextRefreshTime = '' },
+            original: { lastRefreshTime },
           },
-        }: any) => (
-          <Row>
-            <Col sm={6} md={24} lg={11}>
-              (
-              {lastRefreshTime ? convertTollllDatetime(lastRefreshTime) : 'N/A'}
-              )
-            </Col>
-            <Col sm={2} md={2} lg={2}>
-              {' '}
-              -{' '}
-            </Col>
-            <Col sm={6} md={24} lg={11}>
-              {' '}
-              (
-              {nextRefreshTime ? convertTollllDatetime(nextRefreshTime) : 'N/A'}
-              )
-            </Col>
-          </Row>
-        ),
-        Header: t('(Last Refresh - Next Refresh) Time'),
+        }: any) => convertTollllDatetime(lastRefreshTime),
+        Header: t('Last Refresh Time'),
+        accessor: 'lastRefreshTime',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { nextRefreshTime },
+          },
+        }: any) => convertTollllDatetime(nextRefreshTime),
+        Header: t('Next Refresh Time'),
+        accessor: 'nextRefreshTime',
         disableSortBy: true,
       },
       {
@@ -374,6 +354,24 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { status },
+          },
+        }: any) => (
+          <span
+            css={(theme: Theme) => css`
+              color: ${theme.colors.grayscale.light5};
+              padding: 4px 6px 4px 6px;
+              font-weight: 700;
+              border: block;
+              opacity: 0.8;
+              background: ${getFlashStatusColor(status, theme)};
+            `}
+          >
+            {status}
+          </span>
+        ),
         Header: t('Status'),
         accessor: 'status',
       },
