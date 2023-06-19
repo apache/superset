@@ -23,8 +23,8 @@ from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from superset.dao.base import BaseDAO
-from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
+from superset.daos.base import BaseDAO
+from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (

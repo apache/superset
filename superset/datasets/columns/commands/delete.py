@@ -22,13 +22,13 @@ from flask_appbuilder.models.sqla import Model
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import TableColumn
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.datasets.columns.commands.exceptions import (
     DatasetColumnDeleteFailedError,
     DatasetColumnForbiddenError,
     DatasetColumnNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 
 logger = logging.getLogger(__name__)

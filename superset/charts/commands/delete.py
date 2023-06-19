@@ -27,13 +27,13 @@ from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.chart import ChartDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 

@@ -2071,7 +2071,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.embedded.dao import EmbeddedDAO
+        from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.embedded_dashboard.commands.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
@@ -2082,7 +2082,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # TODO (embedded): remove this check once uuids are rolled out
                 dashboard = Dashboard.get(str(resource["id"]))
                 if not dashboard:
-                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
 

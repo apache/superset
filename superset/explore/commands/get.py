@@ -27,8 +27,8 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DatasourceNotFound
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
 from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import WrongEndpointError

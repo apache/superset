@@ -22,7 +22,8 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
@@ -30,7 +31,6 @@ from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,

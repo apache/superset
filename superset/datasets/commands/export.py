@@ -24,9 +24,9 @@ import yaml
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.datasets.dao import DatasetDAO
+from superset.daos.dataset import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils.ssh_tunnel import mask_password_info

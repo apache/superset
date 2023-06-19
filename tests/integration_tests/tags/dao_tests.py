@@ -18,17 +18,17 @@
 from operator import and_
 from unittest.mock import patch
 import pytest
-from superset.dao.exceptions import DAOCreateFailedError, DAOException
+from superset.daos.exceptions import DAOCreateFailedError, DAOException
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.dao import TagDAO
+from superset.daos.tag import TagDAO
 from superset.tags.exceptions import InvalidTagNameError
 from superset.tags.models import ObjectTypes, Tag, TaggedObject
 from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
 from superset import db, security_manager
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (

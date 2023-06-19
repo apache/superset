@@ -22,7 +22,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.charts.filters import ChartFilter
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
