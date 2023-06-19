@@ -30,7 +30,7 @@ from sqlalchemy.sql import func
 
 from superset import app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.exceptions import (
+from superset.daos.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
@@ -827,7 +827,7 @@ class TestDatasetApi(SupersetTestCase):
             rv = self.client.delete(uri)
             assert rv.status_code == 200
 
-    @patch("superset.datasets.dao.DatasetDAO.create")
+    @patch("superset.daos.dataset.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
         """
         Dataset API: Test create dataset sqlalchemy error
@@ -1440,7 +1440,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.datasets.dao.DatasetDAO.update")
+    @patch("superset.daos.dataset.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):
         """
         Dataset API: Test update dataset sqlalchemy error
@@ -1512,7 +1512,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_sqlalchemy_error(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset sqlalchemy error
@@ -1589,7 +1589,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_column_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset column
@@ -1669,7 +1669,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_metric_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset metric

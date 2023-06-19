@@ -27,11 +27,11 @@ from superset.charts.commands.exceptions import (
     ChartInvalidError,
     DashboardsNotFoundValidationError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.utils import get_datasource_by_id
-from superset.dao.exceptions import DAOCreateFailedError
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAOCreateFailedError
 
 logger = logging.getLogger(__name__)
 

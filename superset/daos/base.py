@@ -23,7 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.orm import Session
 
-from superset.dao.exceptions import (
+from superset.daos.exceptions import (
     DAOConfigError,
     DAOCreateFailedError,
     DAODeleteFailedError,

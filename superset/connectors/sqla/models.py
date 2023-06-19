@@ -1439,8 +1439,8 @@ class SqlaTable(
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.dataset import DatasetDAO
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-        from superset.datasets.dao import DatasetDAO
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member

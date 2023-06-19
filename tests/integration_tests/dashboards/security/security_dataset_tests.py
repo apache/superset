@@ -22,7 +22,7 @@ import pytest
 from flask import escape
 
 from superset import app
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.models import core as models
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *

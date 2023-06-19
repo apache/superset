@@ -26,9 +26,9 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerNotFoundError,
     AnnotationLayerUpdateFailedError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAOUpdateFailedError
 from superset.models.annotations import AnnotationLayer
 
 logger = logging.getLogger(__name__)

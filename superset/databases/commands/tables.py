@@ -21,11 +21,11 @@ from sqlalchemy.orm import lazyload, load_only
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseTablesUnexpectedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetException
 from superset.extensions import db, security_manager
 from superset.models.core import Database

@@ -25,14 +25,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDuplicateFailedError,
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.extensions import db

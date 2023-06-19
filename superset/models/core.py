@@ -387,7 +387,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
+        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
 
