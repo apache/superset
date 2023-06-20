@@ -18,9 +18,9 @@ import json
 
 
 def test_column_attributes_on_query():
+    from superset.daos.query import QueryDAO
     from superset.models.core import Database
     from superset.models.sql_lab import Query
-    from superset.queries.dao import QueryDAO
 
     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     query_obj = Query(
