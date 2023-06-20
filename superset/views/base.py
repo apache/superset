@@ -58,6 +58,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
+    is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
@@ -89,7 +90,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
-    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -119,6 +119,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)
@@ -383,13 +384,13 @@ def menu_data(user: User) -> dict[str, Any]:
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
-            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            if is_feature_enabled("MENU_HIDE_USER_INFO")
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{user.username}",
+            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
+            else "/superset/profile/",
             "locale": session.get("locale", "en"),
         },
     }

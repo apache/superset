@@ -146,6 +146,8 @@ DEFAULT_VIZ_TYPE = "table"
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
+# default row limit for native filters
+NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 # default time filter in explore
@@ -472,6 +474,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
     "AVOID_COLORS_COLLISION": True,
+    # Set to False to only allow viewing own recent activity
+    # or to disallow users from viewing other users profile page
+    # Do not show user info or profile in the menu
+    "MENU_HIDE_USER_INFO": False,
 }
 
 # ------------------------------
@@ -491,7 +497,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 # ----------------------------------------------------------------------
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
+#: Timeout (seconds) for tunnel connection (open_channel timeout)
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
+#: Timeout (seconds) for transport socket (``socket.settimeout``)
+SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -1071,10 +1081,6 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
 FLASK_APP_MUTATOR = None
 
-# Set this to false if you don't want users to be able to request/grant
-# datasource access requests from/to other users.
-ENABLE_ACCESS_REQUEST = False
-
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
 SMTP_HOST = "localhost"
@@ -1480,13 +1486,6 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 #            cache_manager.cache.set(name, code, timeout=0)
 #
 DATASET_HEALTH_CHECK: Callable[[SqlaTable], str] | None = None
-
-# Do not show user info or profile in the menu
-MENU_HIDE_USER_INFO = False
-
-# Set to False to only allow viewing own recent activity
-# or to disallow users from viewing other users profile page
-ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # the advanced data type key should correspond to that set in the column metadata
 ADVANCED_DATA_TYPES: dict[str, AdvancedDataType] = {

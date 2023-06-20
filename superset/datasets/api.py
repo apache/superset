@@ -35,6 +35,7 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
@@ -55,7 +56,6 @@ from superset.datasets.commands.importers.dispatcher import ImportDatasetsComman
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
-from superset.datasets.dao import DatasetDAO
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
@@ -107,7 +107,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.id",
         "database.database_name",
         "changed_by_name",
-        "changed_by_url",
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_on_utc",
@@ -169,7 +168,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type",
         "columns.uuid",
         "columns.verbose_name",
-        "metrics",  # TODO(john-bodley): Deprecate in 3.0.
         "metrics.changed_on",
         "metrics.created_on",
         "metrics.d3format",

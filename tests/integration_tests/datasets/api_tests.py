@@ -30,7 +30,7 @@ from sqlalchemy.sql import func
 
 from superset import app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.exceptions import (
+from superset.daos.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
@@ -44,7 +44,7 @@ from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME, with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -208,7 +208,6 @@ class TestDatasetApi(SupersetTestCase):
         expected_columns = [
             "changed_by",
             "changed_by_name",
-            "changed_by_url",
             "changed_on_delta_humanized",
             "changed_on_utc",
             "database",
@@ -349,7 +348,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
-            "uid": "2__table",
+            "uid": ANY,
             "datasource_name": "energy_usage",
             "name": f"{get_example_default_schema()}.energy_usage",
             "column_formats": {},
@@ -830,7 +829,7 @@ class TestDatasetApi(SupersetTestCase):
             rv = self.client.delete(uri)
             assert rv.status_code == 200
 
-    @patch("superset.datasets.dao.DatasetDAO.create")
+    @patch("superset.daos.dataset.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
         """
         Dataset API: Test create dataset sqlalchemy error
@@ -1360,60 +1359,6 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_dataset_activity_access_enabled(self):
-        """
-        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
-        """
-        if backend() == "sqlite":
-            return
-
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        table_data = {"description": "changed_description"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
-        self.assertEqual(rv.status_code, 200)
-
-        response = self.get_assert_metric("api/v1/dataset/", "get_list")
-        res = json.loads(response.data.decode("utf-8"))["result"]
-
-        current_dataset = [d for d in res if d["id"] == dataset.id][0]
-        self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "/superset/profile/admin")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
-        db.session.delete(dataset)
-        db.session.commit()
-
-    def test_dataset_activity_access_disabled(self):
-        """
-        Dataset API: Test ENABLE_BROAD_ACTIVITY_ACCESS = Fase
-        """
-        if backend() == "sqlite":
-            return
-
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
-        dataset = self.insert_default_dataset()
-        self.login(username="admin")
-        table_data = {"description": "changed_description"}
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.put_assert_metric(uri, table_data, "put")
-        self.assertEqual(rv.status_code, 200)
-
-        response = self.get_assert_metric("api/v1/dataset/", "get_list")
-        res = json.loads(response.data.decode("utf-8"))["result"]
-
-        current_dataset = [d for d in res if d["id"] == dataset.id][0]
-        self.assertEqual(current_dataset["description"], "changed_description")
-        self.assertEqual(current_dataset["changed_by_url"], "")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
-        db.session.delete(dataset)
-        db.session.commit()
-
     def test_update_dataset_item_not_owned(self):
         """
         Dataset API: Test update dataset item not owned
@@ -1497,7 +1442,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.datasets.dao.DatasetDAO.update")
+    @patch("superset.daos.dataset.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):
         """
         Dataset API: Test update dataset sqlalchemy error
@@ -1569,7 +1514,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_sqlalchemy_error(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset sqlalchemy error
@@ -1646,7 +1591,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_column_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset column
@@ -1726,7 +1671,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
-    @patch("superset.datasets.dao.DatasetDAO.delete")
+    @patch("superset.daos.dataset.DatasetDAO.delete")
     def test_delete_dataset_metric_fail(self, mock_dao_delete):
         """
         Dataset API: Test delete dataset metric

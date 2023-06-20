@@ -21,8 +21,8 @@ import pytest
 from flask import g
 
 from superset import db, security_manager
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-from superset.embedded.dao import EmbeddedDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType
@@ -100,7 +100,7 @@ class TestGuestUserSecurity(SupersetTestCase):
 class TestGuestUserDashboardAccess(SupersetTestCase):
     def setUp(self) -> None:
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        self.embedded = EmbeddedDAO.upsert(self.dash, [])
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.authorized_guest = security_manager.get_guest_user_from_token(
             {
                 "user": {},

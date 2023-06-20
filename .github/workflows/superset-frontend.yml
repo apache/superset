@@ -41,7 +41,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run lint
+          npm run lint -- --quiet
           npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outcome == 'failure'
@@ -60,7 +60,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run test -- --coverage
+          npm run test -- --coverage --silent
       # todo: remove this step when fix generator as a project in root jest.config.js
       - name: generator-superset unit tests
         if: steps.check.outcome == 'failure'

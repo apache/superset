@@ -48,7 +48,6 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
-from superset.charts.dao import ChartDAO
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -78,6 +77,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.chart import ChartDAO
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -161,7 +161,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_by.last_name",
         "changed_by_name",
-        "changed_by_url",
         "changed_on_delta_humanized",
         "changed_on_dttm",
         "changed_on_utc",
@@ -169,7 +168,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by.id",
         "created_by.last_name",
         "created_by_name",
-        "created_by_url",
         "created_on_delta_humanized",
         "datasource_id",
         "datasource_name_text",

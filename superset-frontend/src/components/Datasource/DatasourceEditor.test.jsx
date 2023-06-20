@@ -29,6 +29,12 @@ const props = {
   addSuccessToast: () => {},
   addDangerToast: () => {},
   onChange: () => {},
+  columnLabels: {
+    state: 'State',
+  },
+  columnLabelTooltips: {
+    state: 'This is a tooltip for `state`',
+  },
 };
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 

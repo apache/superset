@@ -21,7 +21,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "superset.name" . }}-init-db
+  name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
@@ -29,7 +29,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: {{ template "superset.name" . }}-init-db
+      name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}

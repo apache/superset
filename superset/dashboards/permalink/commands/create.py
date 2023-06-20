@@ -18,7 +18,7 @@ import logging
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState

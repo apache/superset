@@ -21,12 +21,12 @@ from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.datasets.commands.exceptions import (
     DatasetBulkDeleteFailedError,
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 

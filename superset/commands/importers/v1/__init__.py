@@ -30,7 +30,7 @@ from superset.commands.importers.v1.utils import (
     METADATA_FILE_NAME,
     validate_metadata_type,
 )
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.models.core import Database
 
 

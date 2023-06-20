@@ -336,7 +336,7 @@ export const hydrateDashboard =
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: findPermission('can_write', 'Dashboard', roles),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',

@@ -25,9 +25,9 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerInvalidError,
     AnnotationLayerNameUniquenessValidationError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAOCreateFailedError
 
 logger = logging.getLogger(__name__)
 

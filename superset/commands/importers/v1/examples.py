@@ -27,7 +27,7 @@ from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.dashboards.commands.importers.v1 import ImportDashboardsCommand
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,

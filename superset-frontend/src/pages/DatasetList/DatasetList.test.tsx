@@ -50,7 +50,6 @@ const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
-  changed_by_url: 'changed_by_url',
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,

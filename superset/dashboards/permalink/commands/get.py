@@ -19,8 +19,8 @@ from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
