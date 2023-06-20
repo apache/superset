@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
@@ -43,7 +45,7 @@ from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.filter_set import FilterSet
 from superset.models.slice import Slice
-from superset.utils.core import get_user_id
+from superset.utils.core import get_iterable, get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
 
     @classmethod
-    def get_by_id_or_slug(cls, id_or_slug: Union[int, str]) -> Dashboard:
+    def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
@@ -88,9 +90,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
-    def get_dashboard_changed_on(
-        id_or_slug_or_dashboard: Union[str, Dashboard]
-    ) -> datetime:
+    def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
         """
         Get latest changed datetime for a dashboard.
 
@@ -108,7 +108,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def get_dashboard_and_slices_changed_on(  # pylint: disable=invalid-name
-        id_or_slug_or_dashboard: Union[str, Dashboard]
+        id_or_slug_or_dashboard: str | Dashboard,
     ) -> datetime:
         """
         Get latest changed datetime for a dashboard. The change could be a dashboard
@@ -134,7 +134,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def get_dashboard_and_datasets_changed_on(  # pylint: disable=invalid-name
-        id_or_slug_or_dashboard: Union[str, Dashboard]
+        id_or_slug_or_dashboard: str | Dashboard,
     ) -> datetime:
         """
         Get latest changed datetime for a dashboard. The change could be a dashboard
@@ -166,7 +166,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
-    def validate_update_slug_uniqueness(dashboard_id: int, slug: Optional[str]) -> bool:
+    def validate_update_slug_uniqueness(dashboard_id: int, slug: str | None) -> bool:
         if slug is not None:
             dashboard_query = db.session.query(Dashboard).filter(
                 Dashboard.slug == slug, Dashboard.id != dashboard_id
@@ -183,16 +183,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
             db.session.commit()
         return model
 
-    @staticmethod
-    def bulk_delete(models: Optional[list[Dashboard]], commit: bool = True) -> None:
-        item_ids = [model.id for model in models] if models else []
+    @classmethod
+    def delete(cls, items: Dashboard | list[Dashboard], commit: bool = True) -> None:
+        item_ids = [item.id for item in get_iterable(items)]
         # bulk delete, first delete related data
-        if models:
-            for model in models:
-                model.slices = []
-                model.owners = []
-                model.embedded = []
-                db.session.merge(model)
+        for item in get_iterable(items):
+            item.slices = []
+            item.owners = []
+            item.embedded = []
+            db.session.merge(item)
         # bulk delete itself
         try:
             db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
@@ -208,7 +207,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def set_dash_metadata(  # pylint: disable=too-many-locals
         dashboard: Dashboard,
         data: dict[Any, Any],
-        old_to_new_slice_ids: Optional[dict[int, int]] = None,
+        old_to_new_slice_ids: dict[int, int] | None = None,
         commit: bool = False,
     ) -> Dashboard:
         new_filter_scopes = {}
