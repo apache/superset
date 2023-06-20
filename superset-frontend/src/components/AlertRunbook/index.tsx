@@ -34,7 +34,7 @@ const RunbookContainer = styled.div`
 `;
 
 export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
-  const RUNBOOK_URL = '';
+  const RUNBOOK_URL = 'https://example.com/runbook';
   const routeToRunbook = () => {
     const url = RUNBOOK_URL;
     window.open(url, '_blank', 'noreferrer');
@@ -43,7 +43,11 @@ export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
   return (
     <RunbookContainer>
       <Tooltip title="Please refer to Alerts & Reports Run book for further understanding of errors being faced while its execution">
-        <Button data-test="runbook-action" buttonStyle="dashed" onClick={routeToRunbook}>
+        <Button
+          data-test="runbook-action"
+          buttonStyle="dashed"
+          onClick={routeToRunbook}
+        >
           {t(title)}
         </Button>
       </Tooltip>

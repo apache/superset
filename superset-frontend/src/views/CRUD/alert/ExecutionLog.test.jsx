@@ -27,7 +27,6 @@ import ListView from 'src/components/ListView';
 import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
 import AlertRunbook from 'src/components/AlertRunbook';
 
-
 // store needed for withToasts(ExecutionLog)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

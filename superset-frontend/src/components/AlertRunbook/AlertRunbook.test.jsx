@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import AlertRunbook from '.';
@@ -29,24 +28,33 @@ describe('AlertRunbook', () => {
 
   it('renders the component with title Reports Runbook', () => {
     const wrapper = mount(<AlertRunbook title={title} />);
-    expect(wrapper.text()).toEqual(title)
+    expect(wrapper.text()).toEqual(title);
   });
 
-  it.only('renders the component with title Alerts Runbook', () => {
-    title = 'Alerts Run book'
+  it('renders the component with title Alerts Runbook', () => {
+    title = 'Alerts Run book';
     const wrapper = mount(<AlertRunbook title={title} />);
-    expect(wrapper.text()).toEqual(title)
+    expect(wrapper.text()).toEqual(title);
   });
 
   it('renders a refresh action', async () => {
-    // const mockAction = jest.fn();
+    const RUNBOOK_URL = 'https://example.com/runbook';
+    const mockAction = jest.fn();
+    Object.defineProperty(window, 'open', {
+      value: mockAction,
+      writable: true,
+    });
     wrapper = mount(<AlertRunbook title={title} />);
     await waitForComponentToPaint(wrapper);
-    const props = wrapper.find('[aria-label="refresh"]').first().props();
-    console.log("PROPS==", props)
+    const props = wrapper.find('[data-test="runbook-action"]').first().props();
+    console.log('PROPS==', props);
     if (props.onClick) {
       props.onClick();
     }
-    // expect(mockAction).toHaveBeenCalled();
+    expect(mockAction).toHaveBeenCalledWith(
+      RUNBOOK_URL,
+      '_blank',
+      'noreferrer',
+    );
   });
 });
