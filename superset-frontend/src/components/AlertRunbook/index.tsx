@@ -43,7 +43,7 @@ export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
   return (
     <RunbookContainer>
       <Tooltip title="Please refer to Alerts & Reports Run book for further understanding of errors being faced while its execution">
-        <Button buttonStyle="dashed" onClick={routeToRunbook}>
+        <Button data-test="runbook-action" buttonStyle="dashed" onClick={routeToRunbook}>
           {t(title)}
         </Button>
       </Tooltip>

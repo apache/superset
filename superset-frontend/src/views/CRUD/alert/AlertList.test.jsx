@@ -29,6 +29,7 @@ import SubMenu from 'src/views/components/SubMenu';
 import AlertList from 'src/views/CRUD/alert/AlertList';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { act } from 'react-dom/test-utils';
+import AlertRunbook from 'src/components/AlertRunbook';
 
 // store needed for withToasts(AlertList)
 const mockStore = configureStore([thunk]);
@@ -180,5 +181,9 @@ describe('AlertList', () => {
       reportWrapper.find('[data-test="alert-list"]').hasClass('active'),
     ).toBe(false);
     expect(reportWrapper.find(IndeterminateCheckbox)).toHaveLength(0);
+  });
+
+  it('renders a Alert Runbook', async () => {
+    expect(wrapper.find(AlertRunbook)).toExist();
   });
 });

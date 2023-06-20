@@ -25,6 +25,8 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import ListView from 'src/components/ListView';
 import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
+import AlertRunbook from 'src/components/AlertRunbook';
+
 
 // store needed for withToasts(ExecutionLog)
 const mockStore = configureStore([thunk]);
@@ -102,5 +104,10 @@ describe('ExecutionLog', () => {
     expect(callsQ[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/report/1/log/?q=(order_column:start_dttm,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+
+  // ALERTS RUNBOOK UNIT TEST
+  it('renders a Alert Runbook', async () => {
+    expect(wrapper.find(AlertRunbook)).toExist();
   });
 });
