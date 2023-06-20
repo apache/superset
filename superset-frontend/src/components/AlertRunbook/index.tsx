@@ -20,6 +20,7 @@ import React, { FunctionComponent } from 'react';
 import { t, styled } from '@superset-ui/core';
 import Button from '../Button';
 import { Tooltip } from '../Tooltip';
+import { ALERT_RUNBOOK_URL } from '../../views/CRUD/alert/constants';
 
 interface RunbookProps {
   title: string;
@@ -34,9 +35,8 @@ const RunbookContainer = styled.div`
 `;
 
 export const AlertRunbook: FunctionComponent<RunbookProps> = ({ title }) => {
-  const RUNBOOK_URL = 'https://example.com/runbook';
   const routeToRunbook = () => {
-    const url = RUNBOOK_URL;
+    const url = ALERT_RUNBOOK_URL;
     window.open(url, '_blank', 'noreferrer');
   };
 

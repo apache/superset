@@ -21,6 +21,7 @@ import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import AlertRunbook from '.';
+import { ALERT_RUNBOOK_URL } from '../../views/CRUD/alert/constants';
 
 describe('AlertRunbook', () => {
   let wrapper;
@@ -38,7 +39,7 @@ describe('AlertRunbook', () => {
   });
 
   it('renders a refresh action', async () => {
-    const RUNBOOK_URL = 'https://example.com/runbook';
+    const RUNBOOK_URL = ALERT_RUNBOOK_URL;
     const mockAction = jest.fn();
     Object.defineProperty(window, 'open', {
       value: mockAction,

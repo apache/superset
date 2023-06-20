@@ -34,3 +34,6 @@ export const CRON_SCHEDULE = {
   EVERY_MIN: '*',
   EVERY_HOUR: '0',
 };
+
+export const ALERT_RUNBOOK_URL =
+  '';
