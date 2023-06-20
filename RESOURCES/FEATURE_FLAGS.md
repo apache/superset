@@ -28,7 +28,6 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ENABLE_ADVANCED_DATA_TYPES
-- ENABLE_TEMPLATE_REMOVE_FILTERS
 - KV_STORE
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
@@ -56,7 +55,6 @@ These features are **finished** but currently being tested. They are usable, but
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
-- VERSIONED_EXPORT
 
 ## Stable
 
@@ -95,5 +93,7 @@ These features flags currently default to True and **will be removed in a future
 - DISABLE_DATASET_SOURCE_EDIT
 - ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
+- ENABLE_TEMPLATE_REMOVE_FILTERS
 - GENERIC_CHART_AXES
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
+- VERSIONED_EXPORT

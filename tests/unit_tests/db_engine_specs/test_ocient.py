@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable
 
 import pytest
 
@@ -33,7 +33,7 @@ def ocient_is_installed() -> bool:
 
 
 # (msg,expected)
-MARSHALED_OCIENT_ERRORS: List[Tuple[str, SupersetError]] = [
+MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
     (
         "The referenced user does not exist (User 'mj' not found)",
         SupersetError(
@@ -224,7 +224,7 @@ def test_connection_errors(msg: str, expected: SupersetError) -> None:
 
 
 def _generate_gis_type_sanitization_test_cases() -> (
-    List[Tuple[str, int, Any, Dict[str, Any]]]
+    list[tuple[str, int, Any, dict[str, Any]]]
 ):
     if not ocient_is_installed():
         return []

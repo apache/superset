@@ -75,7 +75,6 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table',
   'pivot_table_v2',
   'table',
   'paired_ttest',

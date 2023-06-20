@@ -23,16 +23,24 @@ from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.charts.commands.exceptions import (
+    ChartNotFoundError,
+    WarmUpCacheChartNotFoundError,
+)
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
@@ -442,3 +450,23 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+
+class TestChartWarmUpCacheCommand(SupersetTestCase):
+    def test_warm_up_cache_command_chart_not_found(self):
+        with self.assertRaises(WarmUpCacheChartNotFoundError):
+            ChartWarmUpCacheCommand(99999, None, None).run()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self):
+        slc = self.get_slice("Girls", db.session)
+        result = ChartWarmUpCacheCommand(slc.id, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )
+
+        # can just pass in chart as well
+        result = ChartWarmUpCacheCommand(slc, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )

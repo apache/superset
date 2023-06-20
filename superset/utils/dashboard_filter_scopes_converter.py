@@ -17,7 +17,7 @@
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 from shortid import ShortId
 
@@ -27,11 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 def convert_filter_scopes(
-    json_metadata: Dict[Any, Any], filter_boxes: List[Slice]
-) -> Dict[int, Dict[str, Dict[str, Any]]]:
+    json_metadata: dict[Any, Any], filter_boxes: list[Slice]
+) -> dict[int, dict[str, dict[str, Any]]]:
     filter_scopes = {}
-    immuned_by_id: List[int] = json_metadata.get("filter_immune_slices") or []
-    immuned_by_column: Dict[str, List[int]] = defaultdict(list)
+    immuned_by_id: list[int] = json_metadata.get("filter_immune_slices") or []
+    immuned_by_column: dict[str, list[int]] = defaultdict(list)
     for slice_id, columns in json_metadata.get(
         "filter_immune_slice_fields", {}
     ).items():
@@ -39,7 +39,7 @@ def convert_filter_scopes(
             immuned_by_column[column].append(int(slice_id))
 
     def add_filter_scope(
-        filter_fields: Dict[str, Dict[str, Any]], filter_field: str, filter_id: int
+        filter_fields: dict[str, dict[str, Any]], filter_field: str, filter_id: int
     ) -> None:
         # in case filter field is invalid
         if isinstance(filter_field, str):
@@ -54,7 +54,7 @@ def convert_filter_scopes(
             logging.info("slice [%i] has invalid field: %s", filter_id, filter_field)
 
     for filter_box in filter_boxes:
-        filter_fields: Dict[str, Dict[str, Any]] = {}
+        filter_fields: dict[str, dict[str, Any]] = {}
         filter_id = filter_box.id
         slice_params = json.loads(filter_box.params or "{}")
         configs = slice_params.get("filter_configs") or []
@@ -75,10 +75,10 @@ def convert_filter_scopes(
 
 
 def copy_filter_scopes(
-    old_to_new_slc_id_dict: Dict[int, int],
-    old_filter_scopes: Dict[int, Dict[str, Dict[str, Any]]],
-) -> Dict[str, Dict[Any, Any]]:
-    new_filter_scopes: Dict[str, Dict[Any, Any]] = {}
+    old_to_new_slc_id_dict: dict[int, int],
+    old_filter_scopes: dict[int, dict[str, dict[str, Any]]],
+) -> dict[str, dict[Any, Any]]:
+    new_filter_scopes: dict[str, dict[Any, Any]] = {}
     for filter_id, scopes in old_filter_scopes.items():
         new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
         if new_filter_key:
@@ -93,10 +93,10 @@ def copy_filter_scopes(
 
 
 def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too-many-branches,too-many-locals,too-many-nested-blocks,too-many-statements
-    json_metadata: Dict[str, Any],
-    position_json: Dict[str, Any],
-    filter_boxes: List[Slice],
-) -> List[Dict[str, Any]]:
+    json_metadata: dict[str, Any],
+    position_json: dict[str, Any],
+    filter_boxes: list[Slice],
+) -> list[dict[str, Any]]:
     """
     Convert the legacy filter scopes et al. to the native filter configuration.
 
@@ -121,11 +121,11 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     filter_scopes = json_metadata.get("filter_scopes", {})
     filter_box_ids = {filter_box.id for filter_box in filter_boxes}
 
-    filter_scope_by_key_and_field: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(
+    filter_scope_by_key_and_field: dict[str, dict[str, dict[str, Any]]] = defaultdict(
         dict
     )
 
-    filter_by_key_and_field: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(dict)
+    filter_by_key_and_field: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
 
     # Dense representation of filter scopes, falling back to chart level filter configs
     # if the respective filter scope is not defined at the dashboard level.
@@ -150,7 +150,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
         for field, filter_scope in filter_scope_by_key_and_field[key].items():
             default = default_filters.get(key, {}).get(field)
 
-            fltr: Dict[str, Any] = {
+            fltr: dict[str, Any] = {
                 "cascadeParentIds": [],
                 "id": f"NATIVE_FILTER-{shortid.generate()}",
                 "scope": {

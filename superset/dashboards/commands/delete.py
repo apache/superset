@@ -22,17 +22,17 @@ from flask_babel import lazy_gettext as _
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.commands.exceptions import (
     DashboardDeleteFailedError,
     DashboardDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 

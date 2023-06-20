@@ -21,8 +21,8 @@ from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
 from superset.common.not_authorized_object import NotAuthorizedException
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetForbiddenError,
     FilterSetNotFoundError,

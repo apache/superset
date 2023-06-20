@@ -35,6 +35,7 @@ class SSHManager:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
         sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
+        sshtunnel.SSH_TIMEOUT = app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"]
 
     def build_sqla_url(  # pylint: disable=no-self-use
         self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder

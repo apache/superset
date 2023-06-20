@@ -14,21 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import io
 import json
 import os
 import subprocess
-import sys
 
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
-with open(PACKAGE_JSON, "r") as package_file:
+with open(PACKAGE_JSON) as package_file:
     version_string = json.load(package_file)["version"]
 
-with io.open("README.md", "r", encoding="utf-8") as f:
+with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -83,7 +81,7 @@ setup(
         "cryptography>=39.0.1, <40",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.0, <5.0.0",
+        "flask-appbuilder>=4.3.2, <5.0.0",
         "flask-caching>=1.10.1, <1.11",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",

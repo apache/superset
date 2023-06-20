@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import date, datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -74,8 +74,8 @@ def mock_parse_human_datetime(s: str) -> Optional[datetime]:
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_get_since_until() -> None:
-    result: Tuple[Optional[datetime], Optional[datetime]]
-    expected: Tuple[Optional[datetime], Optional[datetime]]
+    result: tuple[Optional[datetime], Optional[datetime]]
+    expected: tuple[Optional[datetime], Optional[datetime]]
 
     result = get_since_until()
     expected = None, datetime(2016, 11, 7)

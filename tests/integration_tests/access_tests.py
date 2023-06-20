@@ -26,7 +26,7 @@ from pytest_mock import MockFixture
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.models import core as models
 from superset.utils.core import get_user_id, get_username, override_user
 
 from .base_tests import SupersetTestCase
@@ -50,11 +50,6 @@ ROLE_ALL_PERM_DATA = {
             "name": "examples",
             "schema": [{"name": "", "datasources": ["birth_names"]}],
         },
-        {
-            "datasource_type": "druid",
-            "name": "druid_test",
-            "schema": [{"name": "", "datasources": ["druid_ds_1", "druid_ds_2"]}],
-        },
     ],
 }
 
@@ -62,29 +57,6 @@ TEST_ROLE_1 = "test_role1"
 TEST_ROLE_2 = "test_role2"
 DB_ACCESS_ROLE = "db_access_role"
 SCHEMA_ACCESS_ROLE = "schema_access_role"
-
-
-def create_access_request(session, ds_type, ds_name, role_name, username):
-    # TODO: generalize datasource names
-    if ds_type == "table":
-        ds = session.query(SqlaTable).filter(SqlaTable.table_name == ds_name).first()
-    else:
-        # This function will only work for ds_type == "table"
-        raise NotImplementedError()
-    ds_perm_view = security_manager.find_permission_view_menu(
-        "datasource_access", ds.perm
-    )
-    security_manager.add_permission_role(
-        security_manager.find_role(role_name), ds_perm_view
-    )
-    access_request = DatasourceAccessRequest(
-        datasource_id=ds.id,
-        datasource_type=ds_type,
-        created_by_fk=security_manager.find_user(username=username).id,
-    )
-    session.add(access_request)
-    session.commit()
-    return access_request
 
 
 class TestRequestAccess(SupersetTestCase):

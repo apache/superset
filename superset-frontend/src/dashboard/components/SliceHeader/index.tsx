@@ -147,8 +147,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
-  sliceCanEdit = false,
   exportFullCSV,
+  exportFullXLSX,
   slice,
   componentId,
   dashboardId,
@@ -266,10 +266,10 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 exportXLSX={exportXLSX}
+                exportFullXLSX={exportFullXLSX}
                 supersetCanExplore={supersetCanExplore}
                 supersetCanShare={supersetCanShare}
                 supersetCanCSV={supersetCanCSV}
-                sliceCanEdit={sliceCanEdit}
                 componentId={componentId}
                 dashboardId={dashboardId}
                 addSuccessToast={addSuccessToast}

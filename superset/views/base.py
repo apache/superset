@@ -20,7 +20,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Optional, Union
 
 import simplejson as json
 import yaml
@@ -58,6 +58,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
+    is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
@@ -89,7 +90,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
-    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -119,6 +119,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)
@@ -140,11 +141,11 @@ def get_error_msg() -> str:
 def json_error_response(
     msg: Optional[str] = None,
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     link: Optional[str] = None,
 ) -> FlaskResponse:
     if not payload:
-        payload = {"error": "{}".format(msg)}
+        payload = {"error": f"{msg}"}
     if link:
         payload["link"] = link
 
@@ -156,9 +157,9 @@ def json_error_response(
 
 
 def json_errors_response(
-    errors: List[SupersetError],
+    errors: list[SupersetError],
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {}
@@ -182,7 +183,7 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 def generate_download_headers(
     extension: str, filename: Optional[str] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
@@ -332,7 +333,7 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data(user: User) -> Dict[str, Any]:
+def menu_data(user: User) -> dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
     languages = {}
@@ -383,20 +384,20 @@ def menu_data(user: User) -> Dict[str, Any]:
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
-            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            if is_feature_enabled("MENU_HIDE_USER_INFO")
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{user.username}",
+            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
+            else "/superset/profile/",
             "locale": session.get("locale", "en"),
         },
     }
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
+def cached_common_bootstrap_data(user: User) -> dict[str, Any]:
     """Common data always sent to the client
 
     The function is memoized as the return value only changes when user permissions
@@ -439,7 +440,7 @@ def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     return bootstrap_data
 
 
-def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+def common_bootstrap_payload(user: User) -> dict[str, Any]:
     return {
         **(cached_common_bootstrap_data(user)),
         "flash_messages": get_flashed_messages(with_categories=True),
@@ -548,7 +549,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 
 
 @superset_app.context_processor
-def get_common_bootstrap_data() -> Dict[str, Any]:
+def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
             {"common": common_bootstrap_payload(g.user)},
@@ -606,7 +607,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportExportMixin, List[ImportExportMixin]]
+        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
@@ -663,7 +664,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
     @action(
         "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False
     )
-    def muldelete(self: BaseView, items: List[Model]) -> FlaskResponse:
+    def muldelete(self: BaseView, items: list[Model]) -> FlaskResponse:
         if not items:
             abort(404)
         for item in items:
@@ -709,7 +710,7 @@ class XlsxResponse(Response):
 
 
 def bind_field(
-    _: Any, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+    _: Any, form: DynamicForm, unbound_field: UnboundField, options: dict[Any, Any]
 ) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.

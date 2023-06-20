@@ -31,6 +31,8 @@ import {
 } from 'src/SqlLab/fixtures';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
   ...jest.requireActual('src/components/AsyncAceEditor'),
@@ -245,5 +247,19 @@ describe('SqlEditor', () => {
     const { findByText } = setup(updatedProps, store);
     fireEvent.click(await findByText('LIMIT:'));
     expect(await findByText('10 000')).toBeInTheDocument();
+  });
+
+  it('renders an Extension if provided', async () => {
+    const extensionsRegistry = getExtensionsRegistry();
+
+    extensionsRegistry.set('sqleditor.extension.form', () => (
+      <>sqleditor.extension.form extension component</>
+    ));
+
+    setupExtensions();
+    const { findByText } = setup(mockedProps, store);
+    expect(
+      await findByText('sqleditor.extension.form extension component'),
+    ).toBeInTheDocument();
   });
 });

@@ -33,7 +33,7 @@ import pkgutil
 from collections import defaultdict
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any, Optional
 
 import sqlalchemy.databases
 import sqlalchemy.dialects
@@ -58,11 +58,11 @@ def is_engine_spec(obj: Any) -> bool:
     )
 
 
-def load_engine_specs() -> List[Type[BaseEngineSpec]]:
+def load_engine_specs() -> list[type[BaseEngineSpec]]:
     """
     Load all engine specs, native and 3rd party.
     """
-    engine_specs: List[Type[BaseEngineSpec]] = []
+    engine_specs: list[type[BaseEngineSpec]] = []
 
     # load standard engines
     db_engine_spec_dir = str(Path(__file__).parent)
@@ -85,7 +85,7 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
     return engine_specs
 
 
-def get_engine_spec(backend: str, driver: Optional[str] = None) -> Type[BaseEngineSpec]:
+def get_engine_spec(backend: str, driver: Optional[str] = None) -> type[BaseEngineSpec]:
     """
     Return the DB engine spec associated with a given SQLAlchemy URL.
 
@@ -120,11 +120,11 @@ backend_replacements = {
 }
 
 
-def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
+def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
     """
     Return available engine specs and installed drivers for them.
     """
-    drivers: Dict[str, Set[str]] = defaultdict(set)
+    drivers: dict[str, set[str]] = defaultdict(set)
 
     # native SQLAlchemy dialects
     for attr in sqlalchemy.databases.__all__:

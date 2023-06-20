@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument
 
-from typing import Any, Dict
+from typing import Any
 
 
 def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
@@ -59,7 +59,7 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
         },
     }
     chart_ids = {"uuid1": 1, "uuid2": 2}
-    dataset_info: Dict[str, Dict[str, Any]] = {}  # not used
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
 
     fixed = update_id_refs(config, chart_ids, dataset_info)
     assert fixed == {
@@ -103,7 +103,7 @@ def test_update_native_filter_config_scope_excluded():
         },
     }
     chart_ids = {"uuid1": 1, "uuid2": 2}
-    dataset_info: Dict[str, Dict[str, Any]] = {}  # not used
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
 
     fixed = update_id_refs(config, chart_ids, dataset_info)
     assert fixed == {

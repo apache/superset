@@ -15,20 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Set
+from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.query import SavedQueryDAO
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.queries.saved_queries.commands.importers.v1.utils import (
     import_saved_query,
 )
-from superset.queries.saved_queries.dao import SavedQueryDAO
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 
 
@@ -38,7 +38,7 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     dao = SavedQueryDAO
     model_name = "saved_queries"
     prefix = "queries/"
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "databases/": ImportV1DatabaseSchema(),
         "queries/": ImportV1SavedQuerySchema(),
     }
@@ -46,16 +46,16 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: dict[str, Any], overwrite: bool = False
     ) -> None:
         # discover databases associated with saved queries
-        database_uuids: Set[str] = set()
+        database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("queries/"):
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
                 database = import_database(session, config, overwrite=False)

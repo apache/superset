@@ -62,6 +62,7 @@ export type ExploreQuery = QueryResponse & {
 
 export interface ISimpleColumn {
   column_name?: string | null;
+  name?: string | null;
   type?: string | null;
   is_dttm?: boolean | null;
 }
@@ -199,14 +200,15 @@ export const SaveDatasetModal = ({
       return;
     }
     setLoading(true);
+
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
         datasetToOverwrite?.datasetid,
         datasource?.sql,
         datasource?.columns?.map(
-          (d: { name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.name,
+          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.column_name,
             type: d.type,
             is_dttm: d.is_dttm,
           }),
@@ -292,12 +294,10 @@ export const SaveDatasetModal = ({
 
     dispatch(
       createDatasource({
-        schema: datasource.schema,
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
         templateParams,
         datasourceName: datasetName,
-        columns: selectedColumns,
       }),
     )
       .then((data: { id: number }) =>

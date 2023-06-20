@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role, User
@@ -27,8 +27,8 @@ from superset.commands.exceptions import (
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
 )
-from superset.dao.exceptions import DatasourceNotFound
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.extensions import db
 from superset.utils.core import DatasourceType, get_user_id
 
@@ -37,9 +37,9 @@ if TYPE_CHECKING:
 
 
 def populate_owners(
-    owner_ids: Optional[List[int]],
+    owner_ids: list[int] | None,
     default_to_user: bool,
-) -> List[User]:
+) -> list[User]:
     """
     Helper function for commands, will fetch all users from owners id's
 
@@ -63,13 +63,13 @@ def populate_owners(
     return owners
 
 
-def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
+def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
     """
     Helper function for commands, will fetch all roles from roles id's
      :raises RolesNotFoundValidationError: If a role in the input list is not found
     :param role_ids: A List of roles by id's
     """
-    roles: List[Role] = []
+    roles: list[Role] = []
     if role_ids:
         roles = security_manager.find_roles_by_id(role_ids)
         if len(roles) != len(role_ids):

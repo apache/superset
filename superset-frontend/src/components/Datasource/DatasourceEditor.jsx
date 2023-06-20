@@ -182,10 +182,10 @@ function ColumnCollectionTable({
   allowAddItem,
   allowEditDataType,
   itemGenerator,
+  columnLabelTooltips,
 }) {
   return (
     <CollectionTable
-      collection={columns}
       tableColumns={
         isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? [
@@ -229,6 +229,8 @@ function ColumnCollectionTable({
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
+      collection={columns}
+      columnLabelTooltips={columnLabelTooltips}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -686,8 +688,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   updateColumns(cols) {
+    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
     const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.name);
+    const databaseColumnNames = cols.map(col => col.column_name);
     const currentCols = databaseColumns.reduce(
       (agg, col) => ({
         ...agg,
@@ -704,18 +707,18 @@ class DatasourceEditor extends React.PureComponent {
         .filter(col => !databaseColumnNames.includes(col)),
     };
     cols.forEach(col => {
-      const currentCol = currentCols[col.name];
+      const currentCol = currentCols[col.column_name];
       if (!currentCol) {
         // new column
         finalColumns.push({
           id: shortid.generate(),
-          column_name: col.name,
+          column_name: col.column_name,
           type: col.type,
           groupby: true,
           filterable: true,
           is_dttm: col.is_dttm,
         });
-        results.added.push(col.name);
+        results.added.push(col.column_name);
       } else if (
         currentCol.type !== col.type ||
         (!currentCol.is_dttm && col.is_dttm)
@@ -726,7 +729,7 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           is_dttm: currentCol.is_dttm || col.is_dttm,
         });
-        results.modified.push(col.name);
+        results.modified.push(col.column_name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
@@ -1194,9 +1197,16 @@ class DatasourceEditor extends React.PureComponent {
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
-          metric_name: t('Metric'),
+          metric_name: t('Metric Key'),
           verbose_name: t('Label'),
           expression: t('SQL expression'),
+        }}
+        columnLabelTooltips={{
+          metric_name: t(
+            'This field is used as a unique identifier to attach ' +
+              'the metric to charts. It is also used as the alias in the ' +
+              'SQL query.',
+          ),
         }}
         expandFieldset={
           <FormContainer>
@@ -1417,6 +1427,13 @@ class DatasourceEditor extends React.PureComponent {
                 onColumnsChange={calculatedColumns =>
                   this.setColumns({ calculatedColumns })
                 }
+                columnLabelTooltips={{
+                  column_name: t(
+                    'This field is used as a unique identifier to attach ' +
+                      'the calculated dimension to charts. It is also used ' +
+                      'as the alias in the SQL query.',
+                  ),
+                }}
                 onDatasourceChange={this.onDatasourceChange}
                 datasource={datasource}
                 editableColumnName
