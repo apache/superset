@@ -33,6 +33,7 @@ from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -199,7 +200,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_warm_up_cache",
+        }
 
     def create_chart_import(self):
         buf = BytesIO()
@@ -1682,3 +1688,85 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         assert data["result"][0]["slice_name"] == "name0"
         assert data["result"][0]["datasource_id"] == 1
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
+    def test_warm_up_cache(self):
+        self.login()
+        slc = self.get_slice("Girls", db.session)
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        dashboard = self.get_dash_by_slug("births")
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": slc.id, "dashboard_id": dashboard.id},
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={
+                "chart_id": slc.id,
+                "dashboard_id": dashboard.id,
+                "extra_filters": json.dumps(
+                    [{"col": "name", "op": "in", "val": ["Jennifer"]}]
+                ),
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"],
+            [{"chart_id": slc.id, "viz_error": None, "viz_status": "success"}],
+        )
+
+    def test_warm_up_cache_chart_id_required(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"dashboard_id": 1})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {"message": {"chart_id": ["Missing data for required field."]}},
+        )
+
+    def test_warm_up_cache_chart_not_found(self):
+        self.login()
+        rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": 99999})
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data, {"message": "Chart not found"})
+
+    def test_warm_up_cache_payload_validation(self):
+        self.login()
+        rv = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": "id", "dashboard_id": "id", "extra_filters": 4},
+        )
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        print(data)
+        self.assertEqual(
+            data,
+            {
+                "message": {
+                    "chart_id": ["Not a valid integer."],
+                    "dashboard_id": ["Not a valid integer."],
+                    "extra_filters": ["Not a valid string."],
+                }
+            },
+        )
