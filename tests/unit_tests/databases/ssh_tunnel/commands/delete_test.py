@@ -54,7 +54,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
 def test_delete_ssh_tunnel_command(
     mocker: MockFixture, session_with_data: Session
 ) -> None:
-    from superset.databases.dao import DatabaseDAO
+    from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
 

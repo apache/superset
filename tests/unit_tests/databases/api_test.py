@@ -356,8 +356,8 @@ def test_delete_ssh_tunnel(
     Test that we can delete SSH Tunnel
     """
     with app.app_context():
+        from superset.daos.database import DatabaseDAO
         from superset.databases.api import DatabaseRestApi
-        from superset.databases.dao import DatabaseDAO
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
@@ -432,8 +432,8 @@ def test_delete_ssh_tunnel_not_found(
     Test that we cannot delete a tunnel that does not exist
     """
     with app.app_context():
+        from superset.daos.database import DatabaseDAO
         from superset.databases.api import DatabaseRestApi
-        from superset.databases.dao import DatabaseDAO
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 

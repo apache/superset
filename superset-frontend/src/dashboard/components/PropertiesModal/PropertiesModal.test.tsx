@@ -99,7 +99,6 @@ const dashboardInfo = {
   certification_details: 'Sample certification',
   changed_by: null,
   changed_by_name: '',
-  changed_by_url: '',
   changed_on: '2021-03-30T19:30:14.020942',
   charts: [
     'Vaccine Candidates per Country & Stage',

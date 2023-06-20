@@ -58,7 +58,6 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   url: 'url',
   dashboard_title: `title ${i}`,
   changed_by_name: 'user',
-  changed_by_url: 'changed_by_url',
   changed_by_fk: 1,
   published: true,
   changed_on_utc: new Date().toISOString(),

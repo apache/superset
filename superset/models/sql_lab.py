@@ -135,7 +135,6 @@ class Query(
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
             "db": self.database.database_name if self.database else None,
@@ -384,6 +383,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="tags",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'query')",

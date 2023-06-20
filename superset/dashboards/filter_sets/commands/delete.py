@@ -18,14 +18,14 @@ import logging
 
 from flask_appbuilder.models.sqla import Model
 
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.dashboard import FilterSetDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetDeleteFailedError,
     FilterSetForbiddenError,
     FilterSetNotFoundError,
 )
-from superset.dashboards.filter_sets.dao import FilterSetDAO
 
 logger = logging.getLogger(__name__)
 

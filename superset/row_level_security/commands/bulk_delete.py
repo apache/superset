@@ -18,13 +18,13 @@
 import logging
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.security import RLSDAO
 from superset.reports.models import ReportSchedule
 from superset.row_level_security.commands.exceptions import (
     RLSRuleNotFoundError,
     RuleBulkDeleteFailedError,
 )
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 

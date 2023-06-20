@@ -23,7 +23,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.connectors.sqla.models import SqlMetric
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
@@ -31,7 +32,6 @@ from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.extensions import db
 
 logger = logging.getLogger(__name__)

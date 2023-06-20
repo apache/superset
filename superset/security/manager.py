@@ -238,8 +238,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_estimate_query_cost", "SQL Lab"),
         ("can_export_csv", "SQLLab"),
         ("can_sqllab_history", "Superset"),
-        ("can_sqllab_viz", "Superset"),
-        ("can_sqllab_table_viz", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab", "Superset"),
         ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_activate", "TabStateView"),
@@ -1993,23 +1991,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_str
 
-    @staticmethod
-    def raise_for_user_activity_access(user_id: int) -> None:
-        # pylint: disable=import-outside-toplevel
-        from superset.extensions import feature_flag_manager
-
-        if not get_user_id() or (
-            not feature_flag_manager.is_feature_enabled("ENABLE_BROAD_ACTIVITY_ACCESS")
-            and user_id != get_user_id()
-        ):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
-                    message="Access to user's activity data is restricted",
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
@@ -2090,7 +2071,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.embedded.dao import EmbeddedDAO
+        from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.embedded_dashboard.commands.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
@@ -2101,7 +2082,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # TODO (embedded): remove this check once uuids are rolled out
                 dashboard = Dashboard.get(str(resource["id"]))
                 if not dashboard:
-                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
 

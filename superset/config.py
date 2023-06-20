@@ -476,7 +476,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AVOID_COLORS_COLLISION": True,
     # Set to False to only allow viewing own recent activity
     # or to disallow users from viewing other users profile page
-    "ENABLE_BROAD_ACTIVITY_ACCESS": False,
     # Do not show user info or profile in the menu
     "MENU_HIDE_USER_INFO": False,
 }
@@ -1364,12 +1363,42 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = False
+TALISMAN_ENABLED = True
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
-    "content_security_policy": None,
-    "force_https": True,
-    "force_https_permanent": False,
+    "content_security_policy": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+        ],
+        "object-src": "'none'",
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", "'strict-dynamic'"],
+    },
+    "content_security_policy_nonce_in": ["script-src"],
+    "force_https": False,
+}
+# React requires `eval` to work correctly in dev mode
+TALISMAN_DEV_CONFIG = {
+    "content_security_policy": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+        ],
+        "object-src": "'none'",
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    },
+    "content_security_policy_nonce_in": ["script-src"],
+    "force_https": False,
 }
 
 #

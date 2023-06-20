@@ -21,9 +21,9 @@ from superset.annotation_layers.annotations.commands.exceptions import (
     AnnotationBulkDeleteFailedError,
     AnnotationNotFoundError,
 )
-from superset.annotation_layers.annotations.dao import AnnotationDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.annotation import AnnotationDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.annotations import Annotation
 
 logger = logging.getLogger(__name__)

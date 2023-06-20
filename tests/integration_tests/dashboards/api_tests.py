@@ -368,7 +368,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "certification_details": None,
                 "changed_by": None,
                 "changed_by_name": "",
-                "changed_by_url": "",
                 "charts": [],
                 "created_by": {
                     "id": 1,
@@ -1322,52 +1321,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
         self.assertEqual(model.roles, [admin_role])
-
-        db.session.delete(model)
-        db.session.commit()
-
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=False)
-    def test_dashboard_activity_access_disabled(self):
-        """
-        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
-        """
-        admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"dashboard_title": "title2"}
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Dashboard).get(dashboard_id)
-
-        self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "")
-
-        db.session.delete(model)
-        db.session.commit()
-
-    @with_feature_flags(ENABLE_BROAD_ACTIVITY_ACCESS=True)
-    def test_dashboard_activity_access_enabled(self):
-        """
-        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
-        """
-        admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"dashboard_title": "title2"}
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Dashboard).get(dashboard_id)
-
-        self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
 
         db.session.delete(model)
         db.session.commit()

@@ -26,7 +26,7 @@ from superset import app, db
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
@@ -433,7 +433,7 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceNotFound,
@@ -445,7 +445,7 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(resp.get("error"), "Datasource does not exist")
 
     def test_get_datasource_invalid_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceTypeNotSupportedError,

@@ -22,13 +22,13 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.utils import populate_roles
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
 )
-from superset.dashboards.dao import DashboardDAO
 
 logger = logging.getLogger(__name__)
 

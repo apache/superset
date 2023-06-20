@@ -27,8 +27,8 @@ from superset.commands.exceptions import (
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
 )
-from superset.dao.exceptions import DatasourceNotFound
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.extensions import db
 from superset.utils.core import DatasourceType, get_user_id
 

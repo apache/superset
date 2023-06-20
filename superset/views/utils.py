@@ -33,7 +33,7 @@ from werkzeug.wrappers.response import Response
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -514,39 +514,6 @@ def check_datasource_perms(
         ) from ex
 
     viz_obj.raise_for_access()
-
-
-def check_slice_perms(_self: Any, slice_id: int) -> None:
-    """
-    Check if user can access a cached response from slice_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param slice_id: The slice ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data, slc = get_form_data(slice_id, use_slice_data=True)
-
-    if slc and slc.datasource:
-        try:
-            viz_obj = get_viz(
-                datasource_type=slc.datasource.type,
-                datasource_id=slc.datasource.id,
-                form_data=form_data,
-                force=False,
-            )
-        except NoResultFound as ex:
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                    level=ErrorLevel.ERROR,
-                    message="Could not find viz object",
-                )
-            ) from ex
-
-        viz_obj.raise_for_access()
 
 
 def _deserialize_results_payload(

@@ -19,9 +19,9 @@ from typing import Any
 
 from marshmallow import ValidationError
 
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,

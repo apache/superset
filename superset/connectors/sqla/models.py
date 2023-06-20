@@ -606,14 +606,6 @@ class SqlaTable(
         return str(self.changed_by)
 
     @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by or not is_feature_enabled(
-            "ENABLE_BROAD_ACTIVITY_ACCESS"
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
-
-    @property
     def connection(self) -> str:
         return str(self.database)
 
@@ -1453,8 +1445,8 @@ class SqlaTable(
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.dataset import DatasetDAO
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-        from superset.datasets.dao import DatasetDAO
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
@@ -1625,6 +1617,9 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     tables = relationship(
-        SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
+        SqlaTable,
+        overlaps="table",
+        secondary=RLSFilterTables,
+        backref="row_level_security_filters",
     )
     clause = Column(Text, nullable=False)
