@@ -96,6 +96,7 @@ little bit helps, and credit will always be given.
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
     - [Async Chart Queries](#async-chart-queries)
+    - [Data Access Object (DAO)](#data-access-object-dao)
   - [Chart Parameters](#chart-parameters)
     - [Datasource \& Chart Type](#datasource--chart-type)
     - [Time](#time)
@@ -1381,6 +1382,24 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).
+
+### Data Access Object (DAO)
+
+A Data Access Object (DAO) is a pattern that provides an abstract interface to the SQLAlchemy Object Relational Mapper (ORM). The DAOs are critical as they form the building block of the application which are wrapped by the associated commands and RESTful API endpoints. 
+
+Currently there are numerous inconsistencies and violation of the DRY principal within the codebase as it relates to DAOs and ORMs—unnecessary commits, non-ACID transactions, etc.—which makes the code unncessarily complex and convoluted. Addressing the underlying issues with the DAOs _should_ help simplify the downstream operations and improve the developer experience.
+
+To ensure consistency the following rules should be adhered to:
+
+1. All database operations (including testing) shoudl be defined within a DAO, i.e., there should not be any explicit `db.session.add`, `db.session.merge`, etc. calls outside of a DAO. 
+2. A DAO should use `create`, `update`, `delete`, `upsert` terms—typical database operations which ensure consistency with commands—rather than action based terms like `save`, `saveas`, `override`, etc.
+3. Sessions should be managed via a [context manager](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#begin-once) which auto-commits on success and rolls back on failure, i.e., there should be no explicit `db.session.commit` or `db.session.rollback` calls within the DAO.
+4. There should be a single atomic transaction representing the entirety of the operation, i.e., when creating a dataset with associated columns and metrics either all the changes succeed when the transaction is commited, or all the changes are undone when the transaction is rolled back. SQLAlchemy supportes [nested transactions](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#nested-transaction) via the `begin_nested` method which can be nested—inline with how DAOs are invoked.
+5. The database layer should adopt a "shift left" mentality i.e., uniqueness/foreign key constraints, relationships, cascades, etc. should all be defined in the underlying database model where possible. Note there are times where this isn’t possible, i.e., MySQL and PosgreSQL treat` NULL` values differently from a uniqueness perspective. If modeled correctly the ORM should implicitly delete all associations and thus one should not need to preemptively undefine relationships, etc.
+6. Avoid validation logic, i.e., ask for forgiveness rather than permission. This is akin to a try/except block where the exception is the exception rather than the rule. Thus instead of than first checking whether something is defined before adding, simply try adding it (and per 5) and rely on the database to verify wheter the model is acceptable. This removes potential race conditions, reduces the number of database operations, and reduces the code footprint.
+7. Provide bulk create, update, delete, etc. methods (if possible) for performance reasons.
+8. By default updates should be sparse in nature, i.e., only those attributes which are explicitly defined are updated.
+9. Tests should leverage nested transaction which should be rolled back on teardown. This is cleaner than deleting objects. See [here](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#joining-a-session-into-an-external-transaction-such-as-for-test-suites) for details.
 
 ## Chart Parameters
 
