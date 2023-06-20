@@ -26,10 +26,11 @@ import withToasts, {
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import {
-  convertDateToReqFormat,
+  convertTollllDatetime,
   convertValueToLabel,
+  convertTollDate,
 } from 'src/utils/commonHelper';
-import moment from 'moment';
+
 import Button from 'src/components/Button';
 
 interface FlashViewButtonProps extends ToastProps {
@@ -126,20 +127,20 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Value>
             {flash?.datastoreId
               ? convertValueToLabel(flash.datastoreId, databaseDropdown)
-              : 'NIL'}
+              : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>TTL:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.ttl}</Value>
+          <Value>{flash?.ttl ? convertTollDate(flash?.ttl) : 'N/A'}</Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>Schedule Type:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.scheduleType ? flash?.scheduleType : 'NIL'}</Value>
+          <Value>{flash?.scheduleType ? flash?.scheduleType : 'N/A'}</Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>Schedule Start Time:</Label>
@@ -147,8 +148,8 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.scheduleStartTime
-              ? convertDateToReqFormat(flash?.scheduleStartTime)
-              : 'NIL'}
+              ? convertTollllDatetime(flash?.scheduleStartTime)
+              : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -156,7 +157,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.teamSlackChannel ? flash?.teamSlackChannel : 'NIL'}
+            {flash?.teamSlackChannel ? flash?.teamSlackChannel : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -164,7 +165,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.teamSlackHandle ? flash?.teamSlackHandle : 'NIL'}
+            {flash?.teamSlackHandle ? flash?.teamSlackHandle : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -178,9 +179,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.createdAt
-              ? moment(flash?.createdAt).format('DD/MM/YYYY hh:mm:ss A')
-              : 'NIL'}
+            {flash?.createdAt ? convertTollllDatetime(flash?.createdAt) : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -188,9 +187,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.updatedAt
-              ? convertDateToReqFormat(flash?.updatedAt)
-              : 'NIL'}
+            {flash?.updatedAt ? convertTollllDatetime(flash?.updatedAt) : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -199,8 +196,8 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.lastRefreshTime
-              ? moment(flash?.lastRefreshTime).format('DD/MM/YYYY hh:mm:ss A')
-              : 'NIL'}
+              ? convertTollllDatetime(flash?.lastRefreshTime)
+              : 'N/A'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -209,8 +206,8 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.nextRefreshTime
-              ? moment(flash?.nextRefreshTime).format('DD/MM/YYYY hh:mm:ss A')
-              : 'NIL'}
+              ? convertTollllDatetime(flash?.nextRefreshTime)
+              : 'N/A'}
           </Value>
         </StyledCol>
       </Row>

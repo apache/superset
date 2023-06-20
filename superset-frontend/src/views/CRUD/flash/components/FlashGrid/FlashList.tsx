@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -32,6 +32,11 @@ import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import ConfirmationModal from 'src/components/ConfirmationModal';
+import InitialsPile from 'src/components/Initials';
+import { Tooltip } from 'src/components/Tooltip';
+import { Space } from 'antd';
+import { Theme } from '@emotion/react';
+import { convertTollDate, convertTollllDatetime } from 'src/utils/commonHelper';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -47,6 +52,7 @@ import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 import FlashType from '../FlashType/FlashType';
+import { getFlashStatusColor, getFlashTypeColor } from '../helper';
 
 const PAGE_SIZE = 25;
 
@@ -250,52 +256,124 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         },
         Header: t('Database Name'),
         accessor: 'datastoreId',
-        size: 'l',
       },
+      {
+        Header: t('Flash Type: Flash Name (Schedule Frequency)'),
+        Cell: ({
+          row: {
+            original: { flashType = '', tableName = '', scheduleType = '' },
+          },
+        }: any) => {
+          const flash_type = flashType?.replace(/([A-Z])/g, ' $1').trim();
+          const flashContent = flash_type ? flash_type.split(' ')[0][0] : '';
+          const tooltipTitle = `${flash_type}: ${tableName}${
+            scheduleType ? ` (${scheduleType})` : ''
+          }`;
+          return (
+            tableName && (
+              <Space>
+                <Tooltip title={`${flash_type}`} placement="top">
+                  <span
+                    css={(theme: Theme) => css`
+                    color: ${theme.colors.grayscale.light5};
+                      padding: 5px 8px 5px 8px;
+
+                      font-weight: 800;
+                      font-size: 10px
+                      border: block;
+                      background: ${getFlashTypeColor(flash_type, theme)};
+                    `}
+                  >{`${flashContent}`}</span>
+                </Tooltip>
+                <Tooltip title={tooltipTitle} placement="top">
+                  {`${tableName}`}{' '}
+                  {scheduleType ? <strong>{`(${scheduleType})`}</strong> : null}
+                </Tooltip>
+              </Space>
+            )
+          );
+        },
+      },
+
       {
         accessor: 'tableName',
         Header: t('Flash Name'),
-        size: 'l',
+        size: 'xs',
+        hidden: true,
+      },
+      {
+        Header: t('Flash Type'),
+        accessor: 'flashType',
+        size: 'xs',
+        hidden: true,
+      },
+      {
+        accessor: 'scheduleType',
+        Header: t('Schedule Frequency'),
+        size: 'xs',
+        hidden: true,
       },
       {
         Cell: ({
           row: {
-            original: { flashType: flash_Type },
+            original: { ttl },
           },
-        }: any) => flash_Type.replace(/([A-Z])/g, ' $1').trim(),
-        Header: t('Flash Type'),
-        accessor: 'flashType',
-        size: 'l',
-      },
-      {
-        accessor: 'scheduleType',
-        Header: t('Schedule Type'),
-        size: 'l',
-      },
-      {
+        }: any) => convertTollDate(ttl),
+        Header: t('Expiry'),
         accessor: 'ttl',
-        Header: t('TTL'),
         disableSortBy: true,
       },
       {
-        accessor: 'lastRefreshTime',
+        Cell: ({
+          row: {
+            original: { lastRefreshTime },
+          },
+        }: any) => convertTollllDatetime(lastRefreshTime),
         Header: t('Last Refresh Time'),
+        accessor: 'lastRefreshTime',
         disableSortBy: true,
       },
       {
-        accessor: 'nextRefreshTime',
+        Cell: ({
+          row: {
+            original: { nextRefreshTime },
+          },
+        }: any) => convertTollllDatetime(nextRefreshTime),
         Header: t('Next Refresh Time'),
+        accessor: 'nextRefreshTime',
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { owner },
+          },
+        }: any) => <InitialsPile email={owner} />,
         Header: t('Owner'),
-        accessor: 'owner',
-        size: 'l',
+        id: 'owner',
+        disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { status },
+          },
+        }: any) => (
+          <span
+            css={(theme: Theme) => css`
+              color: ${theme.colors.grayscale.light5};
+              padding: 4px 6px 4px 6px;
+              font-weight: 700;
+              border: block;
+              opacity: 0.8;
+              background: ${getFlashStatusColor(status, theme)};
+            `}
+          >
+            {status}
+          </span>
+        ),
         Header: t('Status'),
         accessor: 'status',
-        size: 'l',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -422,7 +500,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         selects: FLASH_TYPES,
       },
       {
-        Header: t('TTL'),
+        Header: t('Expiry'),
         id: 'ttl',
         input: 'date',
       },
