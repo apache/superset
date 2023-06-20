@@ -86,7 +86,7 @@ export const getSlicePayload = (
   if (
     isEmpty(adhocFilters?.adhoc_filters) &&
     isEmpty(formDataFromSlice) &&
-    formDataWithNativeFilters.adhoc_filters.length > 0
+    formDataWithNativeFilters?.adhoc_filters?.length > 0
   ) {
     adhocFilters.adhoc_filters = [
       {
