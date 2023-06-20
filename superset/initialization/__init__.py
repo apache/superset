@@ -613,7 +613,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Talisman
         talisman_enabled = self.config["TALISMAN_ENABLED"]
-        talisman_config = self.config["TALISMAN_CONFIG"]
+        talisman_config = (
+            self.config["TALISMAN_DEV_CONFIG"]
+            if self.superset_app.debug
+            else self.config["TALISMAN_CONFIG"]
+        )
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
 
         if talisman_enabled:
