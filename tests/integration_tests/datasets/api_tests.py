@@ -791,7 +791,7 @@ class TestDatasetApi(SupersetTestCase):
 
         mock_get_columns.return_value = [
             {
-                "name": "col",
+                "column_name": "col",
                 "type": "VARCHAR",
                 "type_generic": None,
                 "is_dttm": None,

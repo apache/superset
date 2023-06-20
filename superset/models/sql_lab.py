@@ -193,7 +193,7 @@ class Query(
 
         return [
             TableColumn(
-                column_name=col["name"],
+                column_name=col["column_name"],
                 database=self.database,
                 is_dttm=col["is_dttm"],
                 filterable=True,
