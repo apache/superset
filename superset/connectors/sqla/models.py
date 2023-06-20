@@ -105,7 +105,13 @@ from superset.models.helpers import (
     validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, MediumText
 
@@ -700,10 +706,10 @@ class SqlaTable(
     def sql_url(self) -> str:
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
-    def external_metadata(self) -> list[dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
-            return get_virtual_table_metadata(dataset=self)  # type: ignore
+            return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
             table_name=self.table_name,
@@ -995,7 +1001,7 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, sql)
-                    is_dttm = col_desc[0]["is_dttm"]
+                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1260,18 +1266,18 @@ class SqlaTable(
             removed=[
                 col
                 for col in old_columns_by_name
-                if col not in {col["name"] for col in new_columns}
+                if col not in {col["column_name"] for col in new_columns}
             ]
         )
 
         # clear old columns before adding modified columns back
         columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.pop(col["name"], None)
+            old_column = old_columns_by_name.pop(col["column_name"], None)
             if not old_column:
-                results.added.append(col["name"])
+                results.added.append(col["column_name"])
                 new_column = TableColumn(
-                    column_name=col["name"],
+                    column_name=col["column_name"],
                     type=col["type"],
                     table=self,
                 )
@@ -1280,14 +1286,14 @@ class SqlaTable(
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
-                    results.modified.append(col["name"])
+                    results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
-                any_date_col = col["name"]
+                any_date_col = col["column_name"]
 
         # add back calculated (virtual) columns
         columns.extend([col for col in old_columns if col.expression])

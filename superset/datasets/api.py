@@ -311,7 +311,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         try:
             new_model = CreateDatasetCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, data=new_model.data)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:

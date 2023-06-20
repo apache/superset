@@ -63,6 +63,9 @@ class QueryDAO(BaseDAO):
     def save_metadata(query: Query, payload: dict[str, Any]) -> None:
         # pull relevant data from payload and store in extra_json
         columns = payload.get("columns", {})
+        for col in columns:
+            if "name" in col:
+                col["column_name"] = col.get("name")
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
 

@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from functools import lru_cache
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
@@ -49,7 +49,7 @@ def get_physical_table_metadata(
     database: Database,
     table_name: str,
     schema_name: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[ResultSetColumnType]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()

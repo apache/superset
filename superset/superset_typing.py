@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, Optional, TYPE_CHECKING, Union
 
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
@@ -60,14 +60,29 @@ class AdhocColumn(TypedDict, total=False):
     timeGrain: Optional[str]
 
 
+class SQLAColumnType(TypedDict):
+    name: str
+    type: Optional[str]
+    is_dttm: bool
+
+
 class ResultSetColumnType(TypedDict):
     """
     Superset virtual dataset column interface
     """
 
-    name: str
+    name: str  # legacy naming convention keeping this for backwards compatibility
+    column_name: str
     type: Optional[str]
-    is_dttm: bool
+    is_dttm: Optional[bool]
+    type_generic: NotRequired[Optional["GenericDataType"]]
+
+    nullable: NotRequired[Any]
+    default: NotRequired[Any]
+    comment: NotRequired[Any]
+    precision: NotRequired[Any]
+    scale: NotRequired[Any]
+    max_length: NotRequired[Any]
 
 
 CacheConfig = dict[str, Any]

@@ -24,6 +24,7 @@ from pyhive.sqlalchemy_presto import PrestoDialect
 from sqlalchemy import sql, text, types
 from sqlalchemy.engine.url import make_url
 
+from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -131,7 +132,14 @@ def test_where_latest_partition(
     mock_latest_partition.return_value = (["partition_key"], [column_value])
 
     query = sql.select(text("* FROM table"))
-    columns = [{"name": "partition_key", "type": column_type}]
+    columns: list[ResultSetColumnType] = [
+        {
+            "column_name": "partition_key",
+            "name": "partition_key",
+            "type": column_type,
+            "is_dttm": False,
+        }
+    ]
 
     expected = f"""SELECT * FROM table \nWHERE "partition_key" = {expected_value}"""
     result = spec.where_latest_partition(

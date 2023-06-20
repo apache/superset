@@ -79,10 +79,10 @@ def get_table_metadata(
         dtype = get_col_type(col)
         payload_columns.append(
             {
-                "name": col["name"],
+                "name": col["column_name"],
                 "type": dtype.split("(")[0] if "(" in dtype else dtype,
                 "longType": dtype,
-                "keys": [k for k in keys if col["name"] in k["column_names"]],
+                "keys": [k for k in keys if col["column_name"] in k["column_names"]],
                 "comment": col.get("comment"),
             }
         )
