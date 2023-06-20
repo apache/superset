@@ -130,7 +130,7 @@ class RefreshIntervalModal extends React.PureComponent<
               min="0"
               style={{
                 width: '50%',
-                border: '1px solid #ccc',
+                border: '1px solid lightgrey',
                 borderRadius: '3px',
                 paddingLeft: '10px',
               }}
@@ -143,7 +143,7 @@ class RefreshIntervalModal extends React.PureComponent<
               min="0"
               style={{
                 width: '50%',
-                border: '1px solid #ccc',
+                border: '1px solid lightgrey',
                 borderRadius: '3px',
                 paddingLeft: '10px',
               }}
@@ -156,7 +156,7 @@ class RefreshIntervalModal extends React.PureComponent<
               min="0"
               style={{
                 width: '50%',
-                border: '1px solid #ccc',
+                border: '1px solid lightgrey',
                 borderRadius: '3px',
                 paddingLeft: '10px',
               }}
@@ -193,15 +193,15 @@ class RefreshIntervalModal extends React.PureComponent<
                 );
 
                 if (hour_value < 0 || minute_value < 0 || second_value < 0) {
-                  document.getElementById(
-                    'custom_refresh_frequency_hour',
-                  ).value = '';
-                  document.getElementById(
-                    'custom_refresh_frequency_minute',
-                  ).value = '';
-                  document.getElementById(
-                    'custom_refresh_frequency_second',
-                  ).value = '';
+                  if (hour) {
+                    (hour as HTMLInputElement).value = '';
+                  }
+                  if (minute) {
+                    (minute as HTMLInputElement).value = '';
+                  }
+                  if (second) {
+                    (second as HTMLInputElement).value = '';
+                  }
                   return;
                 }
                 // Convert given input to seconds
