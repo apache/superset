@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from .base import MigrateViz
 
 
@@ -21,6 +23,7 @@ class MigrateTreeMap(MigrateViz):
     source_viz_type = "treemap"
     target_viz_type = "treemap_v2"
     remove_keys = {"metrics"}
+    rename_keys = {"order_desc": "sort_by_metric"}
 
     def _pre_action(self) -> None:
         if (
@@ -105,3 +108,7 @@ class MigrateDualLine(MigrateViz):
         self.data["truncateYAxis"] = True
         self.data["metrics"] = [self.data.get("metric")]
         self.data["metrics_b"] = [self.data.get("metric_2")]
+
+    def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
+        super()._migrate_temporal_filter(rv_data)
+        rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []
