@@ -42,6 +42,8 @@ class DeleteSSHTunnelCommand(BaseCommand):
         if not is_feature_enabled("SSH_TUNNELING"):
             raise SSHTunnelingNotEnabledError()
         self.validate()
+        assert self._model
+
         try:
             ssh_tunnel = SSHTunnelDAO.delete(self._model)
         except DAODeleteFailedError as ex:

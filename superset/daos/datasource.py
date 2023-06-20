@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
-class DatasourceDAO(BaseDAO):
+class DatasourceDAO(BaseDAO[Datasource]):
     sources: dict[Union[DatasourceType, str], type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,

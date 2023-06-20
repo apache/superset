@@ -39,6 +39,8 @@ class DeleteAnnotationLayerCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             annotation_layer = AnnotationLayerDAO.delete(self._model)
         except DAODeleteFailedError as ex:

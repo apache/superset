@@ -48,6 +48,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             if self._properties.get("json_metadata"):

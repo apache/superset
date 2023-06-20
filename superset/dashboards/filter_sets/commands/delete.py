@@ -36,8 +36,10 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         self._filter_set_id = filter_set_id
 
     def run(self) -> Model:
+        self.validate()
+        assert self._filter_set
+
         try:
-            self.validate()
             return FilterSetDAO.delete(self._filter_set, commit=True)
         except DAODeleteFailedError as err:
             raise FilterSetDeleteFailedError(str(self._filter_set_id), "") from err

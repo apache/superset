@@ -27,9 +27,7 @@ from superset.models.annotations import Annotation, AnnotationLayer
 logger = logging.getLogger(__name__)
 
 
-class AnnotationDAO(BaseDAO):
-    model_cls = Annotation
-
+class AnnotationDAO(BaseDAO[Annotation]):
     @staticmethod
     def bulk_delete(models: Optional[list[Annotation]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
@@ -64,9 +62,7 @@ class AnnotationDAO(BaseDAO):
         return not db.session.query(query.exists()).scalar()
 
 
-class AnnotationLayerDAO(BaseDAO):
-    model_cls = AnnotationLayer
-
+class AnnotationLayerDAO(BaseDAO[AnnotationLayer]):
     @staticmethod
     def bulk_delete(
         models: Optional[list[AnnotationLayer]], commit: bool = True
