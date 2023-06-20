@@ -170,7 +170,7 @@
     "react-draggable": "^4.4.3",
     "react-gravatar": "^2.6.1",
     "react-hot-loader": "^4.12.20",
-    "react-js-cron": "^1.2.0",
+    "react-js-cron": "^2.0.0",
     "react-json-tree": "^0.11.2",
     "react-json-view": "^1.21.3",
     "react-jsonschema-form": "^1.8.1",

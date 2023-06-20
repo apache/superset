@@ -20,6 +20,7 @@ import React from 'react';
 import { ConfigProvider } from 'antd';
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
+import 'react-js-cron/dist/styles.css';
 
 export * from 'react-js-cron';
 

@@ -154,9 +154,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            url={
-              canExplore && chartStatus !== 'failed' ? exploreUrl : undefined
-            }
+            url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -207,7 +205,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            {!uiConfig.hideChartControls && chartStatus !== 'failed' && (
+            {!uiConfig.hideChartControls && (
               <SliceHeaderControls
                 slice={slice}
                 isCached={isCached}

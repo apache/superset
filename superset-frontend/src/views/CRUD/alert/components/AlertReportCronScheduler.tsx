@@ -22,16 +22,17 @@ import { t, useTheme } from '@superset-ui/core';
 import { AntdInput, RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
-import { CronPicker, CronError } from 'src/components/CronPicker';
+import { CronPicker, CronError, PeriodType } from 'src/components/CronPicker';
 import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
   value: string;
   onChange: (change: string) => any;
+  allowedPeriods?: PeriodType[];
 }
 
 export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
-  ({ value, onChange }) => {
+  ({ value, onChange, allowedPeriods }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
     const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
@@ -76,6 +77,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
               disabled={scheduleFormat !== 'picker'}
               displayError={scheduleFormat === 'picker'}
               onError={onError}
+              allowedPeriods={allowedPeriods}
             />
           </div>
           <div className="inline-container add-margin">
