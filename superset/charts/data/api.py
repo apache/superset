@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
-from flask_babel import gettext as _
+from flask_babel import get_locale, gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled, security_manager
@@ -339,7 +339,14 @@ class ChartDataRestApi(ChartRestApi):
         except AsyncQueryTokenException:
             return self.response_401()
 
-        result = async_command.run(form_data, get_user_id())
+        result = cast(
+            dict[str, Any],
+            async_command.run(
+                form_data=form_data,
+                user_id=get_user_id(),
+                locale=get_locale(),
+            ),
+        )
         return self.response(202, **result)
 
     def _send_chart_response(

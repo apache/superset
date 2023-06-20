@@ -18,9 +18,11 @@ import logging
 from typing import Any, Optional
 
 from flask import Request
+from flask_babel import Locale
 
 from superset.extensions import async_query_manager
 from superset.tasks.async_queries import load_chart_data_into_cache
+from superset.utils.async_query_manager import JobMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,16 @@ class CreateAsyncChartDataJobCommand:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
 
-    def run(self, form_data: dict[str, Any], user_id: Optional[int]) -> dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
+    def run(
+        self,
+        form_data: dict[str, Any],
+        user_id: Optional[int],
+        locale: Optional[Locale],
+    ) -> JobMetadata:
+        job_metadata = async_query_manager.init_job(
+            self._async_channel_id,
+            user_id,
+            str(locale) if locale else None,
+        )
         load_chart_data_into_cache.delay(job_metadata, form_data)
         return job_metadata

@@ -30,7 +30,7 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
     permission_name,
 )
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import (
@@ -340,7 +340,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         request
                     )["channel"]
                     job_metadata = async_query_manager.init_job(
-                        async_channel_id, get_user_id()
+                        channel_id=async_channel_id,
+                        user_id=get_user_id(),
+                        locale=get_locale(),
                     )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force

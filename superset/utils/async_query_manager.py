@@ -14,15 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import uuid
-from typing import Any, Literal, Optional
+from enum import Enum
+from typing import Any, Literal, Optional, TypedDict
 
 import jwt
 import redis
-from flask import Flask, request, Request, Response, session
+from flask import Flask, json, request, Request, Response, session
+from flask_babel import Locale
 
+from superset.errors import SupersetError
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -36,16 +38,31 @@ class AsyncQueryJobException(Exception):
     pass
 
 
+class JobMetadata(TypedDict):
+    channel_id: str
+    errors: list[SupersetError]
+    job_id: str
+    locale: Optional[str]
+    result_url: Optional[str]
+    status: Optional[str]
+    user_id: Optional[int]
+
+
 def build_job_metadata(
-    channel_id: str, job_id: str, user_id: Optional[int], **kwargs: Any
-) -> dict[str, Any]:
+    channel_id: str,
+    job_id: str,
+    user_id: Optional[int],
+    locale: Optional[str],
+    **kwargs: Any,
+) -> JobMetadata:
     return {
         "channel_id": channel_id,
-        "job_id": job_id,
-        "user_id": user_id,
-        "status": kwargs.get("status"),
         "errors": kwargs.get("errors", []),
+        "job_id": job_id,
+        "locale": locale,
         "result_url": kwargs.get("result_url"),
+        "status": kwargs.get("status"),
+        "user_id": user_id,
     }
 
 
@@ -64,12 +81,15 @@ def increment_id(redis_id: str) -> str:
         return redis_id
 
 
+class Status(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    ERROR = "error"
+    DONE = "done"
+
+
 class AsyncQueryManager:
     MAX_EVENT_COUNT = 100
-    STATUS_PENDING = "pending"
-    STATUS_RUNNING = "running"
-    STATUS_ERROR = "error"
-    STATUS_DONE = "done"
 
     def __init__(self) -> None:
         super().__init__()
@@ -160,10 +180,19 @@ class AsyncQueryManager:
             logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
 
-    def init_job(self, channel_id: str, user_id: Optional[int]) -> dict[str, Any]:
+    @staticmethod
+    def init_job(
+        channel_id: str,
+        user_id: Optional[int],
+        locale: Optional[str],
+    ) -> JobMetadata:
         job_id = str(uuid.uuid4())
         return build_job_metadata(
-            channel_id, job_id, user_id, status=self.STATUS_PENDING
+            channel_id=channel_id,
+            job_id=job_id,
+            user_id=user_id,
+            status=Status.PENDING,
+            locale=locale,
         )
 
     def read_events(
@@ -175,7 +204,7 @@ class AsyncQueryManager:
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
-        self, job_metadata: dict[str, Any], status: str, **kwargs: Any
+        self, job_metadata: JobMetadata, status: Status, **kwargs: Any
     ) -> None:
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")
@@ -183,7 +212,7 @@ class AsyncQueryManager:
         if "job_id" not in job_metadata:
             raise AsyncQueryJobException("No job ID specified")
 
-        updates = {"status": status, **kwargs}
+        updates = {"status": status.value, **kwargs}
         event_data = {"data": json.dumps({**job_metadata, **updates})}
 
         full_stream_name = f"{self._stream_prefix}full"
@@ -194,3 +223,10 @@ class AsyncQueryManager:
 
         self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
         self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+
+
+def get_async_locale(job_metadata: JobMetadata) -> Optional[Locale]:
+    if locale_str := job_metadata["locale"]:
+        return Locale.parse(locale_str)
+
+    return None
