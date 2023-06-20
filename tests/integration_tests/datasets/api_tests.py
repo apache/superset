@@ -39,6 +39,7 @@ from superset.datasets.commands.exceptions import DatasetCreateFailedError
 from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
+from superset.models.slice import Slice
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
@@ -514,6 +515,7 @@ class TestDatasetApi(SupersetTestCase):
             "can_export",
             "can_duplicate",
             "can_get_or_create_dataset",
+            "can_warm_up_cache",
         }
 
     def test_create_dataset_item(self):
@@ -2501,3 +2503,117 @@ class TestDatasetApi(SupersetTestCase):
         with examples_db.get_sqla_engine_with_context() as engine:
             engine.execute("DROP TABLE test_create_sqla_table_api")
         db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
+    def test_warm_up_cache(self):
+        """
+        Dataset API: Test warm up cache endpoint
+        """
+        self.login()
+        energy_table = self.get_energy_usage_dataset()
+        energy_charts = (
+            db.session.query(Slice)
+            .filter(
+                Slice.datasource_id == energy_table.id, Slice.datasource_type == "table"
+            )
+            .all()
+        )
+        rv = self.client.put(
+            "/api/v1/dataset/warm_up_cache",
+            json={
+                "table_name": "energy_usage",
+                "db_name": get_example_database().database_name,
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            len(data["result"]),
+            len(energy_charts),
+        )
+        for chart_result in data["result"]:
+            assert "chart_id" in chart_result
+            assert "viz_error" in chart_result
+            assert "viz_status" in chart_result
+
+        # With dashboard id
+        dashboard = self.get_dash_by_slug("births")
+        birth_table = self.get_birth_names_dataset()
+        birth_charts = (
+            db.session.query(Slice)
+            .filter(
+                Slice.datasource_id == birth_table.id, Slice.datasource_type == "table"
+            )
+            .all()
+        )
+        rv = self.client.put(
+            "/api/v1/dataset/warm_up_cache",
+            json={
+                "table_name": "birth_names",
+                "db_name": get_example_database().database_name,
+                "dashboard_id": dashboard.id,
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            len(data["result"]),
+            len(birth_charts),
+        )
+        for chart_result in data["result"]:
+            assert "chart_id" in chart_result
+            assert "viz_error" in chart_result
+            assert "viz_status" in chart_result
+
+        # With extra filters
+        rv = self.client.put(
+            "/api/v1/dataset/warm_up_cache",
+            json={
+                "table_name": "birth_names",
+                "db_name": get_example_database().database_name,
+                "dashboard_id": dashboard.id,
+                "extra_filters": json.dumps(
+                    [{"col": "name", "op": "in", "val": ["Jennifer"]}]
+                ),
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            len(data["result"]),
+            len(birth_charts),
+        )
+        for chart_result in data["result"]:
+            assert "chart_id" in chart_result
+            assert "viz_error" in chart_result
+            assert "viz_status" in chart_result
+
+    def test_warm_up_cache_db_and_table_name_required(self):
+        self.login()
+        rv = self.client.put("/api/v1/dataset/warm_up_cache", json={"dashboard_id": 1})
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {
+                "message": {
+                    "db_name": ["Missing data for required field."],
+                    "table_name": ["Missing data for required field."],
+                }
+            },
+        )
+
+    def test_warm_up_cache_table_not_found(self):
+        self.login()
+        rv = self.client.put(
+            "/api/v1/dataset/warm_up_cache",
+            json={"table_name": "not_here", "db_name": "abc"},
+        )
+        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data,
+            {"message": "The provided table was not found in the provided database"},
+        )
