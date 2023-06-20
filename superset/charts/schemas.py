@@ -1557,7 +1557,45 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
+class ChartCacheWarmUpRequestSchema(Schema):
+    chart_id = fields.Integer(
+        required=True,
+        metadata={"description": "The ID of the chart to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class ChartCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class ChartCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )
+
+
 CHART_SCHEMAS = (
+    ChartCacheWarmUpRequestSchema,
+    ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,

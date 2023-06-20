@@ -254,3 +254,43 @@ class DatasetSchema(SQLAlchemyAutoSchema):
         model = Dataset
         load_instance = True
         include_relationships = True
+
+
+class DatasetCacheWarmUpRequestSchema(Schema):
+    db_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the database where the table is located"},
+    )
+    table_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the table to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class DatasetCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class DatasetCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(DatasetCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )

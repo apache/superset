@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -29,6 +30,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
+from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
@@ -53,8 +55,11 @@ from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
+from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
+    DatasetCacheWarmUpRequestSchema,
+    DatasetCacheWarmUpResponseSchema,
     DatasetDuplicateSchema,
     DatasetPostSchema,
     DatasetPutSchema,
@@ -95,6 +100,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "related_objects",
         "duplicate",
         "get_or_create_dataset",
+        "warm_up_cache",
     }
     list_columns = [
         "id",
@@ -244,6 +250,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_export_ids_schema": get_export_ids_schema,
     }
     openapi_spec_component_schemas = (
+        DatasetCacheWarmUpRequestSchema,
+        DatasetCacheWarmUpResponseSchema,
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
@@ -992,3 +1000,61 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=ex.message)
+
+    @expose("/warm_up_cache", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".warm_up_cache",
+        log_to_statsd=False,
+    )
+    def warm_up_cache(self) -> Response:
+        """
+        ---
+        put:
+          summary: >-
+            Warms up the cache for each chart powered by the given table
+          description: >-
+            Warms up the cache for the table.
+            Note for slices a force refresh occurs.
+            In terms of the `extra_filters` these can be obtained from records in the JSON
+            encoded `logs.json` column associated with the `explore_json` action.
+          requestBody:
+            description: >-
+              Identifies the database and table to warm up cache for, and any
+              additional dashboard or filter context to use.
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/DatasetCacheWarmUpRequestSchema"
+          responses:
+            200:
+              description: Each chart's warmup status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatasetCacheWarmUpResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = DatasetCacheWarmUpRequestSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            result = DatasetWarmUpCacheCommand(
+                body["db_name"],
+                body["table_name"],
+                body.get("dashboard_id"),
+                body.get("extra_filters"),
+            ).run()
+            return self.response(200, result=result)
+        except CommandException as ex:
+            return self.response(ex.status, message=ex.message)
