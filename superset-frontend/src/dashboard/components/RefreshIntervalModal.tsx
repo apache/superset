@@ -93,6 +93,11 @@ class RefreshIntervalModal extends React.PureComponent<
     });
   }
 
+  handleFrequencyChangeImmediately(value: number) {
+    const { refreshIntervalOptions } = this.props;
+    this.state.refreshFrequency = value || refreshIntervalOptions[0][0];
+  }
+
   render() {
     const {
       refreshLimit = 0,
@@ -111,107 +116,82 @@ class RefreshIntervalModal extends React.PureComponent<
         modalTitle={t('Refresh interval')}
         modalBody={
           <div>
-            <FormLabel>{t('Refresh frequency')}</FormLabel>
-            <Select
-              ariaLabel={t('Refresh interval')}
-              options={refreshIntervalOptions.map(option => ({
-                value: option[0],
-                label: t(option[1]),
-              }))}
-              value={refreshFrequency}
-              onChange={this.handleFrequencyChange}
-              sortComparator={propertyComparator('value')}
-            />
-            <br />
-            <FormLabel>{t('CUSTOM')}</FormLabel> <br />
-            <FormLabel>{t('HOUR')}</FormLabel> <br />
-            <input
-              type="number"
-              min="0"
-              style={{
-                width: '50%',
-                border: '1px solid lightgrey',
-                borderRadius: '3px',
-                paddingLeft: '10px',
-              }}
-              id="custom_refresh_frequency_hour"
-            />
-            <br />
-            <FormLabel>{t('MINUTE')}</FormLabel> <br />
-            <input
-              type="number"
-              min="0"
-              style={{
-                width: '50%',
-                border: '1px solid lightgrey',
-                borderRadius: '3px',
-                paddingLeft: '10px',
-              }}
-              id="custom_refresh_frequency_minute"
-            />
-            <br />
-            <FormLabel>{t('SECOND')}</FormLabel> <br />
-            <input
-              type="number"
-              min="0"
-              style={{
-                width: '50%',
-                border: '1px solid lightgrey',
-                borderRadius: '3px',
-                paddingLeft: '10px',
-              }}
-              id="custom_refresh_frequency_second"
-            />
-            <br />
+            <div id="refresh_from_dropdown">
+              <FormLabel>{t('Refresh frequency')}</FormLabel>
+              <Select
+                ariaLabel={t('Refresh interval')}
+                options={refreshIntervalOptions.map(option => ({
+                  value: option[0],
+                  label: t(option[1]),
+                }))}
+                value={refreshFrequency}
+                onChange={this.handleFrequencyChange}
+                sortComparator={propertyComparator('value')}
+              />
+            </div>
             <Button
               buttonStyle="primary"
               buttonSize="small"
               style={{ marginTop: '4px' }}
+              id="custom_refresh_view_change"
               onClick={() => {
-                // Get hour value
-                const hour = document.getElementById(
-                  'custom_refresh_frequency_hour',
+                const custom_block =
+                  document.getElementById('custom_block_view');
+                const refresh_from_dropdown = document.getElementById(
+                  'refresh_from_dropdown',
                 );
-                const hour_value = Number(
-                  (hour as HTMLInputElement).value || 0,
-                );
-
-                // Get minutes value
-                const minute = document.getElementById(
-                  'custom_refresh_frequency_minute',
-                );
-                const minute_value = Number(
-                  (minute as HTMLInputElement).value || 0,
-                );
-
-                // Get seconds value
-                const second = document.getElementById(
-                  'custom_refresh_frequency_second',
-                );
-                const second_value = Number(
-                  (second as HTMLInputElement).value || 0,
-                );
-
-                if (hour_value < 0 || minute_value < 0 || second_value < 0) {
-                  if (hour) {
-                    (hour as HTMLInputElement).value = '';
-                  }
-                  if (minute) {
-                    (minute as HTMLInputElement).value = '';
-                  }
-                  if (second) {
-                    (second as HTMLInputElement).value = '';
-                  }
-                  return;
+                if (custom_block.style.display === 'block') {
+                  custom_block.style.display = 'none';
+                  refresh_from_dropdown.style.display = 'block';
+                } else {
+                  custom_block.style.display = 'block';
+                  refresh_from_dropdown.style.display = 'none';
                 }
-                // Convert given input to seconds
-                const value =
-                  hour_value * 60 * 60 + minute_value * 60 + second_value;
-                this.handleFrequencyChange(value);
               }}
             >
-              USE CUSTOM REFRESH INTERVAL
+              {t('CUSTOM')}
             </Button>
+            <div style={{ display: 'none' }} id="custom_block_view">
+              <FormLabel>{t('HOUR')}</FormLabel> <br />
+              <input
+                type="number"
+                min="0"
+                style={{
+                  width: '50%',
+                  border: '1px solid lightgrey',
+                  borderRadius: '3px',
+                  paddingLeft: '10px',
+                }}
+                id="custom_refresh_frequency_hour"
+              />
+              <br />
+              <FormLabel>{t('MINUTE')}</FormLabel> <br />
+              <input
+                type="number"
+                min="0"
+                style={{
+                  width: '50%',
+                  border: '1px solid lightgrey',
+                  borderRadius: '3px',
+                  paddingLeft: '10px',
+                }}
+                id="custom_refresh_frequency_minute"
+              />
+              <br />
+              <FormLabel>{t('SECOND')}</FormLabel> <br />
+              <input
+                type="number"
+                min="0"
+                style={{
+                  width: '50%',
+                  border: '1px solid lightgrey',
+                  borderRadius: '3px',
+                  paddingLeft: '10px',
+                }}
+                id="custom_refresh_frequency_second"
+              />
+              <br />
+            </div>
             {showRefreshWarning && (
               <RefreshWarningContainer>
                 <Alert
@@ -233,7 +213,60 @@ class RefreshIntervalModal extends React.PureComponent<
             <Button
               buttonStyle="primary"
               buttonSize="small"
-              onClick={this.onSave}
+              onClick={() => {
+                const custom_block =
+                  document.getElementById('custom_block_view');
+                if (custom_block.style.display === 'block') {
+                  // Get hour value
+                  const hour = document.getElementById(
+                    'custom_refresh_frequency_hour',
+                  );
+                  const hour_value = Number(
+                    (hour as HTMLInputElement).value || 0,
+                  );
+
+                  // Get minutes value
+                  const minute = document.getElementById(
+                    'custom_refresh_frequency_minute',
+                  );
+                  const minute_value = Number(
+                    (minute as HTMLInputElement).value || 0,
+                  );
+
+                  // Get seconds value
+                  const second = document.getElementById(
+                    'custom_refresh_frequency_second',
+                  );
+                  const second_value = Number(
+                    (second as HTMLInputElement).value || 0,
+                  );
+
+                  if (hour_value < 0 || minute_value < 0 || second_value < 0) {
+                    this.props.addSuccessToast(t('Put positive values'));
+                    if (hour) {
+                      (hour as HTMLInputElement).value = '';
+                    }
+                    if (minute) {
+                      (minute as HTMLInputElement).value = '';
+                    }
+                    if (second) {
+                      (second as HTMLInputElement).value = '';
+                    }
+                    return;
+                  }
+                  // Convert given input to seconds
+                  const value =
+                    hour_value * 60 * 60 + minute_value * 60 + second_value;
+                  if (value === 0) {
+                    this.props.addSuccessToast(
+                      t('Put some positive value greater than 0'),
+                    );
+                    return;
+                  }
+                  this.handleFrequencyChangeImmediately(value);
+                  this.onSave();
+                } else this.onSave();
+              }}
             >
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
