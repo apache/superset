@@ -27,5 +27,4 @@ export default interface Database {
   server_cert: string;
   sqlalchemy_uri: string;
   catalog: object;
-  ssh_tunnel: object;
 }

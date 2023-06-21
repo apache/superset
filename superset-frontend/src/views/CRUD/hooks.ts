@@ -35,7 +35,8 @@ import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
-import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
+import { DatabaseObject } from 'src/features/databases/types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -753,7 +754,9 @@ export function useDatabaseValidation() {
         .catch(e => {
           if (typeof e.json === 'function') {
             return e.json().then(({ errors = [] }: JsonObject) => {
-              if (database?.ssh_tunnel) {
+              if (database?.parameters?.ssh) {
+                // when ssh tunnel is enabled we don't want to render any validation errors
+                setValidationErrors([]);
                 return [];
               }
               const parsedErrors = errors

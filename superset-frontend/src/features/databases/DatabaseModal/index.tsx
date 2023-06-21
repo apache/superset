@@ -764,7 +764,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       // only do validation for non ssh tunnel connections
-      console.log(dbToUpdate);
       if (!dbToUpdate?.ssh_tunnel) {
         // make sure that button spinner animates
         setLoading(true);
