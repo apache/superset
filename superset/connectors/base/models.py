@@ -439,7 +439,14 @@ class BaseDatasource(
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if target_generic_type == utils.GenericDataType.NUMERIC:
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and operator
+                    not in {
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
+                    }
+                ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
