@@ -42,8 +42,7 @@ logger = logging.getLogger(__name__)
 REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 
-class ReportScheduleDAO(BaseDAO):
-    model_cls = ReportSchedule
+class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     base_filter = ReportScheduleFilter
 
     @staticmethod

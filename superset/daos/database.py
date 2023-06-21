@@ -31,8 +31,7 @@ from superset.utils.ssh_tunnel import unmask_password_info
 logger = logging.getLogger(__name__)
 
 
-class DatabaseDAO(BaseDAO):
-    model_cls = Database
+class DatabaseDAO(BaseDAO[Database]):
     base_filter = DatabaseFilter
 
     @classmethod
@@ -138,9 +137,7 @@ class DatabaseDAO(BaseDAO):
         return ssh_tunnel
 
 
-class SSHTunnelDAO(BaseDAO):
-    model_cls = SSHTunnel
-
+class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod
     def update(
         cls,

@@ -27,9 +27,7 @@ from superset.models.core import CssTemplate
 logger = logging.getLogger(__name__)
 
 
-class CssTemplateDAO(BaseDAO):
-    model_cls = CssTemplate
-
+class CssTemplateDAO(BaseDAO[CssTemplate]):
     @staticmethod
     def bulk_delete(models: Optional[list[CssTemplate]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []

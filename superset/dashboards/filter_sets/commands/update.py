@@ -39,6 +39,8 @@ class UpdateFilterSetCommand(BaseFilterSetCommand):
     def run(self) -> Model:
         try:
             self.validate()
+            assert self._filter_set
+
             if (
                 OWNER_TYPE_FIELD in self._properties
                 and self._properties[OWNER_TYPE_FIELD] == "Dashboard"
