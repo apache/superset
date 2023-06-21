@@ -53,14 +53,15 @@ import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
+  calculateLowerLogTick,
   currentSeries,
   dedupSeries,
+  extractDataTotalValues,
   extractSeries,
+  extractShowValueIndexes,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
-  extractDataTotalValues,
-  extractShowValueIndexes,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -199,20 +200,23 @@ export default function transformProps(
 
   const isMultiSeries = groupby.length || metrics.length > 1;
 
-  const [rawSeries, sortedTotalValues] = extractSeries(rebasedData, {
-    fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
-    xAxis: xAxisLabel,
-    extraMetricLabels,
-    stack,
-    totalStackedValues,
-    isHorizontal,
-    sortSeriesType,
-    sortSeriesAscending,
-    xAxisSortSeries: isMultiSeries ? xAxisSortSeries : undefined,
-    xAxisSortSeriesAscending: isMultiSeries
-      ? xAxisSortSeriesAscending
-      : undefined,
-  });
+  const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
+    rebasedData,
+    {
+      fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+      xAxis: xAxisLabel,
+      extraMetricLabels,
+      stack,
+      totalStackedValues,
+      isHorizontal,
+      sortSeriesType,
+      sortSeriesAscending,
+      xAxisSortSeries: isMultiSeries ? xAxisSortSeries : undefined,
+      xAxisSortSeriesAscending: isMultiSeries
+        ? xAxisSortSeriesAscending
+        : undefined,
+    },
+  );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
@@ -358,6 +362,8 @@ export default function transformProps(
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+  } else if (logAxis && min === undefined && minPositiveValue !== undefined) {
+    min = calculateLowerLogTick(minPositiveValue);
   }
 
   const tooltipFormatter =

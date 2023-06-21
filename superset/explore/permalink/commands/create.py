@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(self, state: Dict[str, Any]):
+    def __init__(self, state: dict[str, Any]):
         self.chart_id: Optional[int] = state["formData"].get("slice_id")
         self.datasource: str = state["formData"]["datasource"]
         self.state = state

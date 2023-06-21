@@ -44,7 +44,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     (function($) {
         function checkSearchButton() {
             var hasFilter = $('.filters tr').length;

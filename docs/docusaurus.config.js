@@ -32,7 +32,7 @@ const config = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
-  favicon: 'img/favicon.ico',
+  favicon: '/img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
   themes: ['@saucelabs/theme-github-codeblock'],
@@ -177,8 +177,8 @@ const config = {
       navbar: {
         logo: {
           alt: 'Superset Logo',
-          src: 'img/superset-logo-horiz.svg',
-          srcDark: 'img/superset-logo-horiz-dark.svg',
+          src: '/img/superset-logo-horiz.svg',
+          srcDark: '/img/superset-logo-horiz-dark.svg',
         },
         items: [
           {
@@ -220,27 +220,39 @@ const config = {
             ],
           },
           {
+            href: '/docs/intro',
+            position: 'right',
+            className: 'default-button-theme get-started-button',
+            label: 'Get Started',
+          },
+          {
             href: 'https://github.com/apache/superset',
             position: 'right',
-            class: 'github-logo-container',
+            className: 'github-button',
           },
         ],
       },
       footer: {
-        style: 'dark',
         links: [],
-        copyright: `Copyright © ${new Date().getFullYear()},
-        The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
-        Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
-        <small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
-        <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small><br />
-        <small>
-        <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
-        <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
-        <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
-        <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
-        <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
-        </small>`,
+        copyright: `
+          <div class="footer__applitools">
+            We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
+          </div>
+          <p>Copyright © ${new Date().getFullYear()},
+          The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
+          Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>.</p>
+          <p><small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
+          <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small></p>
+          <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
+          <p>
+            <small>
+              <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
+              <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
+              <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
+              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+            </small>
+          </p>`,
       },
       prism: {
         theme: lightCodeTheme,
@@ -250,8 +262,7 @@ const config = {
   scripts: [
     '/script/matomo.js',
     {
-      src:
-        'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+      src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
       async: true,
     },
   ],

@@ -24,8 +24,9 @@
 #  specific language governing permissions and limitations
 #  under the License.
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Optional
 
 from sqlalchemy.types import TypeEngine
 
@@ -33,14 +34,14 @@ from sqlalchemy.types import TypeEngine
 @dataclass
 class TableMetaData:
     table_name: str
-    types: Optional[Dict[str, TypeEngine]]
+    types: Optional[dict[str, TypeEngine]]
 
 
 @dataclass
 class Table:
     table_name: str
     table_metadata: TableMetaData
-    data: Iterable[Dict[Any, Any]]
+    data: Iterable[dict[Any, Any]]
 
 
 class TableMetaDataFactory(ABC):
@@ -48,6 +49,6 @@ class TableMetaDataFactory(ABC):
     def make(self) -> TableMetaData:
         ...
 
-    def make_table(self, data: Iterable[Dict[Any, Any]]) -> Table:
+    def make_table(self, data: Iterable[dict[Any, Any]]) -> Table:
         metadata = self.make()
         return Table(metadata.table_name, metadata, data)

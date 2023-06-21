@@ -25,6 +25,7 @@ import {
   supersetTheme as theme,
 } from '@superset-ui/core';
 import {
+  calculateLowerLogTick,
   dedupSeries,
   extractGroupbyLabel,
   extractSeries,
@@ -321,6 +322,7 @@ describe('extractSeries', () => {
         },
       ],
       totalStackedValues,
+      1,
     ]);
   });
 
@@ -366,6 +368,7 @@ describe('extractSeries', () => {
         },
       ],
       totalStackedValues,
+      1,
     ]);
   });
 
@@ -435,6 +438,7 @@ describe('extractSeries', () => {
         },
       ],
       totalStackedValues,
+      1,
     ]);
   });
 });
@@ -856,4 +860,13 @@ describe('getOverMaxHiddenFormatter', () => {
     expect(formatter.format(81000)).toEqual('81000');
     expect(formatter.format(50000)).toEqual('50000');
   });
+});
+
+test('calculateLowerLogTick', () => {
+  expect(calculateLowerLogTick(1000000)).toEqual(1000000);
+  expect(calculateLowerLogTick(456)).toEqual(100);
+  expect(calculateLowerLogTick(100)).toEqual(100);
+  expect(calculateLowerLogTick(99)).toEqual(10);
+  expect(calculateLowerLogTick(2)).toEqual(1);
+  expect(calculateLowerLogTick(0.005)).toEqual(0.001);
 });

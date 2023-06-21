@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
@@ -55,7 +55,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj: Dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(
         groupby=[],
         metrics=None,
         filter=[],
@@ -542,8 +542,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
         db_tables = db.session.query(SqlaTable).all()
 
-        db_table_names = set([t.name for t in db_tables])
-        received_tables = set([table["text"] for table in result])
+        db_table_names = {t.name for t in db_tables}
+        received_tables = {table["text"] for table in result}
 
         assert data["count"] == len(db_tables)
         assert len(result) == len(db_tables)
@@ -558,8 +558,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
-        db_role_names = set([r.name for r in security_manager.get_all_roles()])
-        received_roles = set([role["text"] for role in result])
+        db_role_names = {r.name for r in security_manager.get_all_roles()}
+        received_roles = {role["text"] for role in result}
 
         assert data["count"] == len(db_role_names)
         assert len(result) == len(db_role_names)
@@ -580,7 +580,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
-        received_tables = set([table["text"].split(".")[-1] for table in result])
+        received_tables = {table["text"].split(".")[-1] for table in result}
 
         assert data["count"] == 1
         assert len(result) == 1
@@ -615,7 +615,7 @@ RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
     EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
-    query_obj: Dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(
         groupby=[],
         metrics=None,
         filter=[],
@@ -633,7 +633,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
             "clause": "name = 'Alice'",
         }
 
-    def guest_user_with_rls(self, rules: Optional[List[Any]] = None) -> GuestUser:
+    def guest_user_with_rls(self, rules: Optional[list[Any]] = None) -> GuestUser:
         if rules is None:
             rules = [self.default_rls_rule()]
         return security_manager.get_guest_user_from_token(

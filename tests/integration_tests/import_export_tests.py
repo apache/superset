@@ -115,7 +115,7 @@ class TestImportExport(SupersetTestCase):
             dashboard_title=title,
             slices=slcs,
             position_json='{"size_y": 2, "size_x": 2}',
-            slug="{}_imported".format(title.lower()),
+            slug=f"{title.lower()}_imported",
             json_metadata=json.dumps(json_metadata),
         )
 
@@ -160,12 +160,12 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
         self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
         self.assertEqual(
-            set([c.column_name for c in expected_ds.columns]),
-            set([c.column_name for c in actual_ds.columns]),
+            {c.column_name for c in expected_ds.columns},
+            {c.column_name for c in actual_ds.columns},
         )
         self.assertEqual(
-            set([m.metric_name for m in expected_ds.metrics]),
-            set([m.metric_name for m in actual_ds.metrics]),
+            {m.metric_name for m in expected_ds.metrics},
+            {m.metric_name for m in actual_ds.metrics},
         )
 
     def assert_datasource_equals(self, expected_ds, actual_ds):
@@ -174,12 +174,12 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
         self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
         self.assertEqual(
-            set([c.column_name for c in expected_ds.columns]),
-            set([c.column_name for c in actual_ds.columns]),
+            {c.column_name for c in expected_ds.columns},
+            {c.column_name for c in actual_ds.columns},
         )
         self.assertEqual(
-            set([m.metric_name for m in expected_ds.metrics]),
-            set([m.metric_name for m in actual_ds.metrics]),
+            {m.metric_name for m in expected_ds.metrics},
+            {m.metric_name for m in actual_ds.metrics},
         )
 
     def assert_slice_equals(self, expected_slc, actual_slc):
@@ -404,8 +404,8 @@ class TestImportExport(SupersetTestCase):
             {
                 "remote_id": 10003,
                 "expanded_slices": {
-                    "{}".format(e_slc.id): True,
-                    "{}".format(b_slc.id): False,
+                    f"{e_slc.id}": True,
+                    f"{b_slc.id}": False,
                 },
                 # mocked filter_scope metadata
                 "filter_scopes": {
@@ -437,8 +437,8 @@ class TestImportExport(SupersetTestCase):
                 }
             },
             "expanded_slices": {
-                "{}".format(i_e_slc.id): True,
-                "{}".format(i_b_slc.id): False,
+                f"{i_e_slc.id}": True,
+                f"{i_b_slc.id}": False,
             },
         }
         self.assertEqual(

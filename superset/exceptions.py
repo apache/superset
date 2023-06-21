@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -47,7 +47,7 @@ class SupersetException(Exception):
     def error_type(self) -> Optional[SupersetErrorType]:
         return self._error_type
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = {}
         if hasattr(self, "message"):
             rv["message"] = self.message
@@ -67,7 +67,7 @@ class SupersetErrorException(SupersetException):
         if status is not None:
             self.status = status
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.error.to_dict()
 
 
@@ -94,7 +94,7 @@ class SupersetErrorFromParamsException(SupersetErrorException):
         error_type: SupersetErrorType,
         message: str,
         level: ErrorLevel,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetError(
@@ -107,7 +107,7 @@ class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
     def __init__(
-        self, errors: List[SupersetError], status: Optional[int] = None
+        self, errors: list[SupersetError], status: Optional[int] = None
     ) -> None:
         super().__init__(str(errors))
         self.errors = errors
@@ -119,7 +119,7 @@ class SupersetSyntaxErrorException(SupersetErrorsException):
     status = 422
     error_type = SupersetErrorType.SYNTAX_ERROR
 
-    def __init__(self, errors: List[SupersetError]) -> None:
+    def __init__(self, errors: list[SupersetError]) -> None:
         super().__init__(errors)
 
 
@@ -134,7 +134,7 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         self,
         message: str,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
@@ -152,7 +152,7 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
         message: str,
         error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             error,
@@ -166,7 +166,7 @@ class SupersetSecurityException(SupersetErrorException):
     status = 403
 
     def __init__(
-        self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
+        self, error: SupersetError, payload: Optional[dict[str, Any]] = None
     ) -> None:
         super().__init__(error)
         self.payload = payload

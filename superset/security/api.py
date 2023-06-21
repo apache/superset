@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask import request, Response
 from flask_appbuilder import expose
@@ -56,8 +56,8 @@ class ResourceSchema(PermissiveSchema):
 
     @post_load
     def convert_enum_to_value(  # pylint: disable=no-self-use
-        self, data: Dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
+    ) -> dict[str, Any]:
         # we don't care about the enum, we want the value inside
         data["type"] = data["type"].value
         return data

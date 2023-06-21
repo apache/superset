@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
-from typing import List
 
 from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
@@ -44,7 +43,7 @@ config = app.config
 
 class UploadToDatabaseForm(DynamicForm):
     @staticmethod
-    def file_allowed_dbs() -> List[Database]:
+    def file_allowed_dbs() -> list[Database]:
         file_enabled_dbs = (
             db.session.query(Database).filter_by(allow_file_upload=True).all()
         )

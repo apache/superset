@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from .base import MigrateViz
 
 
@@ -21,6 +23,7 @@ class MigrateTreeMap(MigrateViz):
     source_viz_type = "treemap"
     target_viz_type = "treemap_v2"
     remove_keys = {"metrics"}
+    rename_keys = {"order_desc": "sort_by_metric"}
 
     def _pre_action(self) -> None:
         if (
@@ -51,3 +54,61 @@ class MigrateAreaChart(MigrateViz):
         if x_axis_label := self.data.get("x_axis_label"):
             self.data["x_axis_title"] = x_axis_label
             self.data["x_axis_title_margin"] = 30
+
+
+class MigratePivotTable(MigrateViz):
+    source_viz_type = "pivot_table"
+    target_viz_type = "pivot_table_v2"
+    remove_keys = {"pivot_margins"}
+    rename_keys = {
+        "columns": "groupbyColumns",
+        "combine_metric": "combineMetric",
+        "groupby": "groupbyRows",
+        "number_format": "valueFormat",
+        "pandas_aggfunc": "aggregateFunction",
+        "row_limit": "series_limit",
+        "timeseries_limit_metric": "series_limit_metric",
+        "transpose_pivot": "transposePivot",
+    }
+    aggregation_mapping = {
+        "sum": "Sum",
+        "mean": "Average",
+        "median": "Median",
+        "min": "Minimum",
+        "max": "Maximum",
+        "std": "Sample Standard Deviation",
+        "var": "Sample Variance",
+    }
+
+    def _pre_action(self) -> None:
+        if pivot_margins := self.data.get("pivot_margins"):
+            self.data["colTotals"] = pivot_margins
+
+        if pandas_aggfunc := self.data.get("pandas_aggfunc"):
+            self.data["pandas_aggfunc"] = self.aggregation_mapping[pandas_aggfunc]
+
+        self.data["rowOrder"] = "value_z_to_a"
+
+
+class MigrateDualLine(MigrateViz):
+    has_x_axis_control = True
+    source_viz_type = "dual_line"
+    target_viz_type = "mixed_timeseries"
+    rename_keys = {
+        "x_axis_format": "x_axis_time_format",
+        "y_axis_2_format": "y_axis_format_secondary",
+        "y_axis_2_bounds": "y_axis_bounds_secondary",
+    }
+    remove_keys = {"metric", "metric_2"}
+
+    def _pre_action(self) -> None:
+        self.data["yAxisIndex"] = 0
+        self.data["yAxisIndexB"] = 1
+        self.data["adhoc_filters_b"] = self.data.get("adhoc_filters")
+        self.data["truncateYAxis"] = True
+        self.data["metrics"] = [self.data.get("metric")]
+        self.data["metrics_b"] = [self.data.get("metric_2")]
+
+    def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
+        super()._migrate_temporal_filter(rv_data)
+        rv_data["adhoc_filters_b"] = rv_data.get("adhoc_filters") or []

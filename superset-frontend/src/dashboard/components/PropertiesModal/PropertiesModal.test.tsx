@@ -59,11 +59,6 @@ fetchMock.get(
           extra: {},
         },
         {
-          text: 'granter',
-          value: 5,
-          extra: {},
-        },
-        {
           text: 'Public',
           value: 2,
           extra: {},
@@ -104,7 +99,6 @@ const dashboardInfo = {
   certification_details: 'Sample certification',
   changed_by: null,
   changed_by_name: '',
-  changed_by_url: '',
   changed_on: '2021-03-30T19:30:14.020942',
   charts: [
     'Vaccine Candidates per Country & Stage',
@@ -393,7 +387,7 @@ test('should show all roles', async () => {
 
   const options = await findAllSelectOptions();
 
-  expect(options).toHaveLength(6);
+  expect(options).toHaveLength(5);
   expect(options[0]).toHaveTextContent('Admin');
 });
 

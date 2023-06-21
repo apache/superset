@@ -17,7 +17,7 @@
   under the License.
 #}
 {% macro testconn() %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     $("#sqlalchemy_uri").parent()
       .append('<button id="testconn" class="btn btn-sm btn-primary">{{ _("Test Connection") }}</button>');
     $("#testconn").click(function(e) {
@@ -72,19 +72,19 @@
 {% endmacro %}
 
 {% macro expand_extra_textarea() %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     $('#extra').attr('rows', '5');
   </script>
 {% endmacro %}
 
 {% macro expand_encrypted_extra_textarea() %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     $('#encrypted_extra').attr('rows', '5');
   </script>
 {% endmacro %}
 
 {% macro expand_server_cert_textarea() %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     $('#server_cert').attr('rows', '5');
   </script>
 {% endmacro %}

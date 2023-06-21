@@ -30,7 +30,7 @@ from superset.commands.exceptions import (
 )
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
 from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
 from superset.row_level_security.commands.create import CreateRLSRuleCommand

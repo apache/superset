@@ -26,7 +26,7 @@ from superset import app, db
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
@@ -71,7 +71,7 @@ class TestDatasource(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
-        col_names = {o.get("name") for o in resp}
+        col_names = {o.get("column_name") for o in resp}
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
@@ -91,7 +91,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(table)
         session.commit()
 
@@ -109,7 +109,7 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        col_names = {o.get("name") for o in resp}
+        col_names = {o.get("column_name") for o in resp}
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
@@ -137,7 +137,7 @@ class TestDatasource(SupersetTestCase):
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(tbl)
         session.commit()
 
@@ -155,7 +155,7 @@ class TestDatasource(SupersetTestCase):
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
-            col_names = {o.get("name") for o in resp}
+            col_names = {o.get("column_name") for o in resp}
             self.assertEqual(col_names, {"first", "second"})
 
         # No databases found
@@ -216,7 +216,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol"}
         session.delete(table)
         session.commit()
 
@@ -433,7 +433,7 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceNotFound,
@@ -445,7 +445,7 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(resp.get("error"), "Datasource does not exist")
 
     def test_get_datasource_invalid_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceTypeNotSupportedError,

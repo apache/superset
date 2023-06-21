@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from croniter import croniter
 from flask_babel import gettext as _
@@ -212,7 +212,7 @@ class ReportSchedulePostSchema(Schema):
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
-        self, data: Dict[str, Any], **kwargs: Any
+        self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         if data["type"] == ReportScheduleType.REPORT:
             if "database" in data:

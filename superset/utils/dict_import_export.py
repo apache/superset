@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,7 @@ DATABASES_KEY = "databases"
 logger = logging.getLogger(__name__)
 
 
-def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
+def export_schema_to_dict(back_references: bool) -> dict[str, Any]:
     """Exports the supported import/export schema to a dictionary"""
     databases = [
         Database.export_schema(recursive=True, include_parent_ref=back_references)
@@ -39,8 +39,8 @@ def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
 
 def export_to_dict(
     session: Session, recursive: bool, back_references: bool, include_defaults: bool
-) -> Dict[str, Any]:
-    """Exports databases and druid clusters to a dictionary"""
+) -> dict[str, Any]:
+    """Exports databases to a dictionary"""
     logger.info("Starting export")
     dbs = session.query(Database)
     databases = [

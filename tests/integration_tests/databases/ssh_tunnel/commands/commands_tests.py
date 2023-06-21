@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest import mock, skip
+from unittest import mock
 from unittest.mock import patch
 
 import pytest

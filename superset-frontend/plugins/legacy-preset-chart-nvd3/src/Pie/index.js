@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
@@ -24,11 +24,16 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   credits: ['http://nvd3.org'],
   description: '',
-  name: t('Pie Chart'),
+  label: ChartLabel.DEPRECATED,
+  name: t('Pie Chart (legacy)'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Legacy'), t('nvd3'), t('Deprecated')],
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class PieChartPlugin extends ChartPlugin {
   constructor() {
     super({

@@ -227,7 +227,7 @@ class DatabaseMixin:
                 Markup(
                     "Cannot delete a database that has tables attached. "
                     "Here's the list of associated tables: "
-                    + ", ".join("{}".format(table) for table in database.tables)
+                    + ", ".join(f"{table}" for table in database.tables)
                 )
             )
 

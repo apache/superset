@@ -51,7 +51,7 @@ def upgrade():
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
-        print("scanning dashboard ({}/{}) >>>>".format(i + 1, len(dashboards)))
+        print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         if dashboard.json_metadata:
             json_metadata = json.loads(dashboard.json_metadata)
             has_update = False
@@ -74,7 +74,7 @@ def upgrade():
                             # if user already defined __time_range,
                             # just abandon __from and __to
                             if "__time_range" not in val:
-                                val["__time_range"] = "{} : {}".format(__from, __to)
+                                val["__time_range"] = f"{__from} : {__to}"
                         json_metadata["default_filters"] = json.dumps(filters)
                         has_update = True
                 except Exception:

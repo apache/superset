@@ -19,7 +19,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -35,6 +35,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -55,7 +56,6 @@ from superset.databases.commands.test_connection import TestConnectionDatabaseCo
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.commands.validate_sql import ValidateSQLCommand
-from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
@@ -1328,13 +1328,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
+        preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:
                 continue
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
