@@ -19,6 +19,7 @@
 import {
   ColorFormatters,
   getColorFormatters,
+  Metric,
 } from '@superset-ui/chart-controls';
 import {
   getNumberFormatter,
@@ -30,12 +31,23 @@ import {
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
+import {
+  buildCustomFormatters,
+  getCustomFormatter,
+} from '../../utils/buildCustomFormatters';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
 ): BigNumberVizProps {
-  const { width, height, queriesData, formData, rawFormData, hooks } =
-    chartProps;
+  const {
+    width,
+    height,
+    queriesData,
+    formData,
+    rawFormData,
+    hooks,
+    datasource: { currencyFormats = {}, columnFormats = {} },
+  } = chartProps;
   const {
     headerFontSize,
     metric = 'value',
@@ -54,7 +66,7 @@ export default function transformProps(
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
-  let metricEntry;
+  let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricItem => metricItem.metric_name === metric,
@@ -67,12 +79,23 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter =
+    getCustomFormatter(
+      buildCustomFormatters(
+        metric,
+        currencyFormats,
+        columnFormats,
+        yAxisFormat,
+      ),
+      metric,
+    ) ?? getNumberFormatter(yAxisFormat);
+
   const headerFormatter =
     coltypes[0] === GenericDataType.TEMPORAL ||
     coltypes[0] === GenericDataType.STRING ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   const { onContextMenu } = hooks;
 

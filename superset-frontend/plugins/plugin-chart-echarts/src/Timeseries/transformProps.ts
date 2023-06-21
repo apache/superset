@@ -92,6 +92,10 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
+import {
+  buildCustomFormatters,
+  getCustomFormatter,
+} from '../utils/buildCustomFormatters';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -109,7 +113,11 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
-  const { verboseMap = {} } = datasource;
+  const {
+    verboseMap = {},
+    columnFormats = {},
+    currencyFormats = {},
+  } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map = {} } =
     queryData as TimeseriesChartDataResponseResult;
@@ -232,8 +240,17 @@ export default function transformProps(
 
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
-  const formatter = getNumberFormatter(
+
+  const defaultFormatter = getNumberFormatter(
     contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
+  );
+  const customFormatters = buildCustomFormatters(
+    metrics,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    labelMap,
+    Object.values(rawSeries).map(series => series.name as string),
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -262,7 +279,9 @@ export default function transformProps(
         seriesType,
         legendState,
         stack,
-        formatter,
+        formatter:
+          getCustomFormatter(customFormatters, metrics, seriesName) ??
+          defaultFormatter,
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -440,7 +459,9 @@ export default function transformProps(
     max,
     minorTick: { show: true },
     minorSplitLine: { show: minorSplitLine },
-    axisLabel: { formatter },
+    axisLabel: {
+      formatter: getNumberFormatter(yAxisFormat),
+    },
     scale: truncateYAxis,
     name: yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
@@ -488,7 +509,9 @@ export default function transformProps(
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter,
+            formatter:
+              getCustomFormatter(customFormatters, metrics, key) ??
+              defaultFormatter,
           });
           if (!legendState || legendState[key]) {
             rows.push(`<span style="font-weight: 700">${content}</span>`);

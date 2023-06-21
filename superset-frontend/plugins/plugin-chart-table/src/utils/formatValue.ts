@@ -47,7 +47,6 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
-    // in case percent metric can specify percent format in the future
     return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {

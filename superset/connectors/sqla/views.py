@@ -217,6 +217,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "expression",
         "table",
         "d3format",
+        "currency",
         "extra",
         "warning_text",
     ]
@@ -234,6 +235,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
             "formats",
             True,
         ),
+        "currency": utils.markdown("test", True),
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
             'metadata of the format: `{ "certification": { "certified_by": '

@@ -25,6 +25,9 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import {
+  css,
+  getCurrencySymbol,
+  ensureIsArray,
   FeatureFlag,
   styled,
   SupersetClient,
@@ -144,6 +147,11 @@ const DATA_TYPES = [
   { value: 'NUMERIC', label: t('NUMERIC') },
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
+];
+
+const CURRENCY_SYMBOL_POSITION = [
+  { value: 'prefix', label: t('Prefix') },
+  { value: 'suffix', label: t('Suffix') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -572,6 +580,43 @@ function OwnersSelector({ datasource, onChange }) {
   );
 }
 
+const CurrencyControlContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+
+    & > :first-child {
+      width: 25%;
+      margin-right: ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
+const CurrencyControl = ({ onChange, value: currency = {}, currencies }) => (
+  <CurrencyControlContainer>
+    <Select
+      ariaLabel={t('Currency prefix or suffix')}
+      options={CURRENCY_SYMBOL_POSITION}
+      placeholder={t('Prefix or suffix')}
+      onChange={symbolPosition => {
+        onChange({ ...currency, symbolPosition });
+      }}
+      value={currency?.symbolPosition}
+      allowClear
+    />
+    <Select
+      ariaLabel={t('Currency symbol')}
+      options={currencies}
+      placeholder={t('Currency symbol')}
+      onChange={symbol => {
+        onChange({ ...currency, symbol });
+      }}
+      value={currency?.symbol}
+      allowClear
+      allowNewOptions
+    />
+  </CurrencyControlContainer>
+);
+
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -628,6 +673,12 @@ class DatasourceEditor extends React.PureComponent {
     this.allowEditSource = !isFeatureEnabled(
       FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
     );
+    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
   }
 
   onChange() {
@@ -1227,6 +1278,11 @@ class DatasourceEditor extends React.PureComponent {
                 control={
                   <TextControl controlId="d3format" placeholder="%y/%m/%d" />
                 }
+              />
+              <Field
+                fieldKey="currency"
+                label={t('Metric currency')}
+                control={<CurrencyControl currencies={this.currencies} />}
               />
               <Field
                 label={t('Certified by')}

@@ -21,6 +21,7 @@ import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
   ContextMenuFilters,
+  CurrencyFormatter,
   DataRecordValue,
   NumberFormatter,
   QueryFormData,
@@ -73,7 +74,7 @@ export type BigNumberVizProps = {
   height: number;
   bigNumber?: DataRecordValue;
   bigNumberFallback?: TimeSeriesDatum;
-  headerFormatter: NumberFormatter | TimeFormatter;
+  headerFormatter: NumberFormatter | TimeFormatter | CurrencyFormatter;
   formatTime?: TimeFormatter;
   headerFontSize: number;
   kickerFontSize?: number;

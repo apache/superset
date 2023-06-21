@@ -21,6 +21,7 @@ import {
   AnnotationOpacity,
   AxisType,
   CategoricalColorScale,
+  CurrencyFormatter,
   EventAnnotationLayer,
   FilterState,
   FormulaAnnotationLayer,
@@ -158,7 +159,7 @@ export function transformSeries(
     showValue?: boolean;
     onlyTotal?: boolean;
     legendState?: LegendState;
-    formatter?: NumberFormatter;
+    formatter?: NumberFormatter | CurrencyFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
     thresholdValues?: number[];
