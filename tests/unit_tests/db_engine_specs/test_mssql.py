@@ -431,3 +431,17 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
             },
         )
     ]
+
+
+@pytest.mark.parametrize(
+    "name,expected_result",
+    [
+        ("col", "col"),
+        ("Col", "Col"),
+        ("COL", "COL"),
+    ],
+)
+def test_denormalize_name(name: str, expected_result: str):
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+
+    assert spec.denormalize_name(mssql.dialect(), name) == expected_result
