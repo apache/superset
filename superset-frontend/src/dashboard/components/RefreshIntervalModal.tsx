@@ -93,9 +93,10 @@ class RefreshIntervalModal extends React.PureComponent<
     });
   }
 
-  handleFrequencyChangeImmediately(value: number) {
-    const { refreshIntervalOptions } = this.props;
-    this.state.refreshFrequency = value || refreshIntervalOptions[0][0];
+  onSaveValue(value: number) {
+    this.props.onChange(value, this.props.editMode);
+    this.modalRef?.current?.close();
+    this.props.addSuccessToast(t('Refresh interval saved'));
   }
 
   render() {
@@ -140,10 +141,14 @@ class RefreshIntervalModal extends React.PureComponent<
                 const refresh_from_dropdown = document.getElementById(
                   'refresh_from_dropdown',
                 );
-                if (custom_block.style.display === 'block') {
+                if (
+                  custom_block &&
+                  refresh_from_dropdown &&
+                  custom_block.style.display === 'block'
+                ) {
                   custom_block.style.display = 'none';
                   refresh_from_dropdown.style.display = 'block';
-                } else {
+                } else if (custom_block && refresh_from_dropdown) {
                   custom_block.style.display = 'block';
                   refresh_from_dropdown.style.display = 'none';
                 }
@@ -216,7 +221,7 @@ class RefreshIntervalModal extends React.PureComponent<
               onClick={() => {
                 const custom_block =
                   document.getElementById('custom_block_view');
-                if (custom_block.style.display === 'block') {
+                if (custom_block && custom_block.style.display === 'block') {
                   // Get hour value
                   const hour = document.getElementById(
                     'custom_refresh_frequency_hour',
@@ -263,8 +268,8 @@ class RefreshIntervalModal extends React.PureComponent<
                     );
                     return;
                   }
-                  this.handleFrequencyChangeImmediately(value);
-                  this.onSave();
+                  this.handleFrequencyChange(value);
+                  this.onSaveValue(value);
                 } else this.onSave();
               }}
             >
