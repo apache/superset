@@ -1852,6 +1852,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ).intersection(sqlalchemy_uri.query):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
+    @classmethod
+    def denormalize_name(cls, dialect: Dialect, name: str) -> str:
+        if (
+            hasattr(dialect, "requires_name_normalize")
+            and dialect.requires_name_normalize
+        ):
+            return dialect.denormalize_name(name)
+
+        return name
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
