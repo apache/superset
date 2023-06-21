@@ -536,7 +536,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashOwnership && (
         <FlashOwnership
-          updatedBy={user?.email || ''}
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashOwnership}
           onHide={() => setShowFlashOwnership(false)}
