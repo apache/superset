@@ -53,6 +53,7 @@ const getJSONSchema = () => {
 const getUISchema = () => flashScheduleConf?.UISCHEMA;
 
 interface FlashSchedulingButtonProps {
+  updatedBy: string;
   flash: FlashServiceObject;
   show: boolean;
   onHide: () => void;
@@ -107,6 +108,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
+  updatedBy,
   flash,
   onHide,
   show,
@@ -118,6 +120,7 @@ const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
   const [formData, setFormData] = useState<FlashUpdateSchedule>({
     scheduleType: '',
     scheduleStartTime: '',
+    updatedBy,
   });
 
   useEffect(() => {

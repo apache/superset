@@ -56,6 +56,7 @@ const getJSONSchema = () => {
 const getUISchema = () => flashTypeConf?.UISCHEMA;
 
 interface FlashTypeButtonProps {
+  updatedBy: string;
   flash: FlashServiceObject;
   show: boolean;
   onHide: () => void;
@@ -110,6 +111,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
+  updatedBy,
   flash,
   onHide,
   show,
@@ -126,6 +128,7 @@ const FlashType: FunctionComponent<FlashTypeButtonProps> = ({
     ttl: '',
     scheduleType: '',
     scheduleStartTime: '',
+    updatedBy,
   });
 
   useEffect(() => {

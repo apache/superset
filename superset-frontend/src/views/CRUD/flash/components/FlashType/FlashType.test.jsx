@@ -38,6 +38,7 @@ const mockFlash = {
 };
 
 const mockedProps = {
+  updatedBy: 'xyz@xyz.com',
   addDangerToast: () => {},
   addSuccessToast: () => {},
   onHide: () => {},

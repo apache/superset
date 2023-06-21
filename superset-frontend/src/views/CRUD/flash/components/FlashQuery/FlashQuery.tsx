@@ -30,6 +30,7 @@ import { ERROR_MESSSAGES, UPDATE_TYPES } from '../../constants';
 import { updateFlash, validateSqlQuery } from '../../services/flash.service';
 
 interface FlashQueryButtonProps {
+  updatedBy: string;
   flash: FlashServiceObject;
   show: boolean;
   onHide: () => void;
@@ -56,6 +57,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
+  updatedBy,
   flash,
   onHide,
   show,
@@ -65,6 +67,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
 }) => {
   const [formData, setFormData] = useState<FlashUpdateQuery>({
     sqlQuery: flash?.sqlQuery,
+    updatedBy,
   });
 
   const handleEditorChange = (value: string) => {
@@ -105,8 +108,9 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
   const validateQueryService = (sql: string): Promise<any> => {
     const payload = {
       sql,
+      updatedBy,
     };
-    return validateSqlQuery(payload)
+    return validateSqlQuery({ sql })
       .then(({ data }) => {
         if (Boolean(data.valid) === true) {
           flashSqlQueryService(Number(flash?.id), UPDATE_TYPES.SQL, payload);
