@@ -44,7 +44,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
         try:
             # Creates SqlaTable (Dataset)
-            dataset = DatasetDAO.create(self._properties, commit=False)
+            dataset = DatasetDAO.create(attributes=self._properties, commit=False)
 
             # Updates columns and metrics from the datase
             dataset.fetch_metadata(commit=False)
