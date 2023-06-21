@@ -41,6 +41,8 @@ class DeleteReportScheduleCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             report_schedule = ReportScheduleDAO.delete(self._model)
         except DAODeleteFailedError as ex:

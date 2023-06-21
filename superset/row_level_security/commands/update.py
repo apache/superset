@@ -41,6 +41,8 @@ class UpdateRLSRuleCommand(BaseCommand):
 
     def run(self) -> Any:
         self.validate()
+        assert self._model
+
         try:
             rule = RLSDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:

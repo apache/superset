@@ -56,6 +56,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             if self._properties.get("query_context_generation") is None:
                 self._properties["last_saved_at"] = datetime.now()

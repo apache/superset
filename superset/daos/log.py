@@ -30,9 +30,7 @@ from superset.utils.core import get_user_id
 from superset.utils.dates import datetime_to_epoch
 
 
-class LogDAO(BaseDAO):
-    model_cls = Log
-
+class LogDAO(BaseDAO[Log]):
     @staticmethod
     def get_recent_activity(
         actions: list[str],

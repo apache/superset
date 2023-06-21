@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=isinstance-second-argument-not-valid-type
-from typing import Any, Optional, Union
+from typing import Any, Generic, get_args, Optional, TypeVar, Union
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -31,8 +30,10 @@ from superset.daos.exceptions import (
 )
 from superset.extensions import db
 
+T = TypeVar("T", bound=Model)  # pylint: disable=invalid-name
 
-class BaseDAO:
+
+class BaseDAO(Generic[T]):
     """
     Base DAO, implement base CRUD sqlalchemy operations
     """
@@ -47,6 +48,11 @@ class BaseDAO:
     Child classes can register base filtering to be applied to all filter methods
     """
     id_column_name = "id"
+
+    def __init_subclass__(cls) -> None:  # pylint: disable=arguments-differ
+        cls.model_cls = get_args(
+            cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
+        )[0]
 
     @classmethod
     def find_by_id(
@@ -78,7 +84,7 @@ class BaseDAO:
         model_ids: Union[list[str], list[int]],
         session: Session = None,
         skip_base_filter: bool = False,
-    ) -> list[Model]:
+    ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
@@ -95,7 +101,7 @@ class BaseDAO:
         return query.all()
 
     @classmethod
-    def find_all(cls) -> list[Model]:
+    def find_all(cls) -> list[T]:
         """
         Get all that fit the `base_filter`
         """
@@ -108,7 +114,7 @@ class BaseDAO:
         return query.all()
 
     @classmethod
-    def find_one_or_none(cls, **filter_by: Any) -> Optional[Model]:
+    def find_one_or_none(cls, **filter_by: Any) -> Optional[T]:
         """
         Get the first that fit the `base_filter`
         """
@@ -121,7 +127,7 @@ class BaseDAO:
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
-    def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> T:
         """
         Generic for creating models
         :raises: DAOCreateFailedError
@@ -141,17 +147,13 @@ class BaseDAO:
         return model
 
     @classmethod
-    def save(cls, instance_model: Model, commit: bool = True) -> Model:
+    def save(cls, instance_model: T, commit: bool = True) -> None:
         """
         Generic for saving models
         :raises: DAOCreateFailedError
         """
         if cls.model_cls is None:
             raise DAOConfigError()
-        if not isinstance(instance_model, cls.model_cls):
-            raise DAOCreateFailedError(
-                "the instance model is not a type of the model class"
-            )
         try:
             db.session.add(instance_model)
             if commit:
@@ -159,12 +161,9 @@ class BaseDAO:
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
             raise DAOCreateFailedError(exception=ex) from ex
-        return instance_model
 
     @classmethod
-    def update(
-        cls, model: Model, properties: dict[str, Any], commit: bool = True
-    ) -> Model:
+    def update(cls, model: T, properties: dict[str, Any], commit: bool = True) -> T:
         """
         Generic update a model
         :raises: DAOCreateFailedError
@@ -181,7 +180,7 @@ class BaseDAO:
         return model
 
     @classmethod
-    def delete(cls, model: Model, commit: bool = True) -> Model:
+    def delete(cls, model: T, commit: bool = True) -> T:
         """
         Generic delete a model
         :raises: DAODeleteFailedError
@@ -196,7 +195,7 @@ class BaseDAO:
         return model
 
     @classmethod
-    def bulk_delete(cls, models: list[Model], commit: bool = True) -> None:
+    def bulk_delete(cls, models: list[T], commit: bool = True) -> None:
         try:
             for model in models:
                 cls.delete(model, False)

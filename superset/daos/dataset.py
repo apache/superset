@@ -31,8 +31,7 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
-    model_cls = SqlaTable
+class DatasetDAO(BaseDAO[SqlaTable]):  # pylint: disable=too-many-public-methods
     base_filter = DatasourceFilter
 
     @staticmethod
@@ -151,7 +150,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         model: SqlaTable,
         properties: dict[str, Any],
         commit: bool = True,
-    ) -> Optional[SqlaTable]:
+    ) -> SqlaTable:
         """
         Updates a Dataset model on the metadata DB
         """
@@ -397,9 +396,9 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         )
 
 
-class DatasetColumnDAO(BaseDAO):
-    model_cls = TableColumn
+class DatasetColumnDAO(BaseDAO[TableColumn]):
+    pass
 
 
-class DatasetMetricDAO(BaseDAO):
-    model_cls = SqlMetric
+class DatasetMetricDAO(BaseDAO[SqlMetric]):
+    pass
