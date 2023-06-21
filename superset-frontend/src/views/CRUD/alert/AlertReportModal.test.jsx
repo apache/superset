@@ -52,6 +52,7 @@ const mockData = {
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
+const DATABASE_ID = 12;
 
 fetchMock.get(FETCH_REPORT_ENDPOINT, REPORT_PAYLOAD);
 
@@ -72,6 +73,7 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const sqlValidateEndpoint = `glob:*/api/v1/database/${DATABASE_ID}/validate_sql/`;
 
 fetchMock.get(ownersEndpoint, {
   result: [],
@@ -109,6 +111,11 @@ describe('AlertReportModal', () => {
 
   beforeAll(async () => {
     wrapper = await mountAndWait();
+  });
+
+  afterEach(() => {
+    fetchMock.reset();
+    fetchMock.restore();
   });
 
   it('renders', () => {
@@ -458,5 +465,67 @@ describe('AlertReportModal', () => {
       'button[data-test="modal-confirm-button"]',
     );
     expect(saveButton.props().disabled).toBe(false);
+  });
+
+  //   TEST CASES FOR SQL QUERY VALIDATION API
+
+  it('Validate Sql Query: Sql Query should be invalid with Catalog error message', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select * from abc.rst.xyz';
+    const result = [
+      {
+        end_column: 15,
+        line_number: 2,
+        message: "line 2:15: Catalog 'abc' does not exist",
+        start_column: 15,
+      },
+    ];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response[0].message).toEqual(result[0].message);
+  });
+
+  it('Validate Sql Query: Sql Query should be invalid with Schema error', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select * from abc';
+    const result = [
+      {
+        end_column: 15,
+        line_number: 2,
+        message:
+          'line 2:15: Schema must be specified when session schema is not set',
+        start_column: 15,
+      },
+    ];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response[0].message).toEqual(result[0].message);
+  });
+
+  it('Validate Sql Query: Sql Query should be valid', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+    props.alert.sql = 'select 1';
+    const result = [];
+    const fetchPost = fetchMock.post(sqlValidateEndpoint, result);
+    const route = fetchPost?.routes.filter(
+      route => route.identifier === sqlValidateEndpoint,
+    );
+    expect(route[0].response.length).toEqual(result.length);
   });
 });

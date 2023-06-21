@@ -16,8 +16,8 @@
 # under the License.
 from typing import Optional, Type
 
-from . import base, postgres, presto_db
 from .base import SQLValidationAnnotation
+from . import base, postgres, presto_db
 
 
 def get_validator_by_name(name: str) -> Optional[Type[base.BaseSQLValidator]]:
