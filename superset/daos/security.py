@@ -19,5 +19,5 @@ from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.daos.base import BaseDAO
 
 
-class RLSDAO(BaseDAO):
-    model_cls = RowLevelSecurityFilter
+class RLSDAO(BaseDAO[RowLevelSecurityFilter]):
+    pass

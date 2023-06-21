@@ -35,8 +35,7 @@ from superset.utils.dates import now_as_float
 logger = logging.getLogger(__name__)
 
 
-class QueryDAO(BaseDAO):
-    model_cls = Query
+class QueryDAO(BaseDAO[Query]):
     base_filter = QueryFilter
 
     @staticmethod
@@ -104,8 +103,7 @@ class QueryDAO(BaseDAO):
         db.session.commit()
 
 
-class SavedQueryDAO(BaseDAO):
-    model_cls = SavedQuery
+class SavedQueryDAO(BaseDAO[SavedQuery]):
     base_filter = SavedQueryFilter
 
     @staticmethod

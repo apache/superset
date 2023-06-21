@@ -49,8 +49,7 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 logger = logging.getLogger(__name__)
 
 
-class DashboardDAO(BaseDAO):
-    model_cls = Dashboard
+class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
 
     @classmethod
@@ -379,8 +378,7 @@ class DashboardDAO(BaseDAO):
             db.session.commit()
 
 
-class EmbeddedDashboardDAO(BaseDAO):
-    model_cls = EmbeddedDashboard
+class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
     # There isn't really a regular scenario where we would rather get Embedded by id
     id_column_name = "uuid"
 
@@ -407,9 +405,7 @@ class EmbeddedDashboardDAO(BaseDAO):
         raise NotImplementedError("Use EmbeddedDashboardDAO.upsert() instead.")
 
 
-class FilterSetDAO(BaseDAO):
-    model_cls = FilterSet
-
+class FilterSetDAO(BaseDAO[FilterSet]):
     @classmethod
     def create(cls, properties: dict[str, Any], commit: bool = True) -> Model:
         if cls.model_cls is None:

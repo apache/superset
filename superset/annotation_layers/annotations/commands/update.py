@@ -45,6 +45,8 @@ class UpdateAnnotationCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             annotation = AnnotationDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
