@@ -23,7 +23,7 @@ from typing import Any, ClassVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from flask_babel import _
+from flask_babel import gettext as _
 from pandas import DateOffset
 from typing_extensions import TypedDict
 
