@@ -90,10 +90,10 @@ def load_chart_data_into_cache(
             raise ex
         except Exception as ex:
             # TODO: QueryContext should support SIP-40 style errors
-            error = (
+            error = str(
                 ex.message  # pylint: disable=no-member
                 if hasattr(ex, "message")
-                else str(ex)
+                else ex
             )
             errors = [{"message": error}]
             async_query_manager.update_job(
