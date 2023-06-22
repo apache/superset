@@ -711,7 +711,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+            "message": {
+                "configuration_method": [
+                    "Must be one of: sqlalchemy_form, dynamic_form."
+                ]
+            }
         }
         assert rv.status_code == 400
 
