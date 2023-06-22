@@ -1100,65 +1100,7 @@ export function mergeTable(table, query, prepend) {
   return { type: MERGE_TABLE, table, query, prepend };
 }
 
-function getTableMetadata(table, query, dispatch) {
-  return SupersetClient.get({
-    endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/${encodeURIComponent(
-        table.name,
-      )}/${encodeURIComponent(table.schema)}/`,
-    ),
-  })
-    .then(({ json }) => {
-      const newTable = {
-        ...table,
-        ...json,
-        expanded: true,
-        isMetadataLoading: false,
-      };
-      dispatch(mergeTable(newTable)); // Merge table to tables in state
-      return newTable;
-    })
-    .catch(() =>
-      Promise.all([
-        dispatch(
-          mergeTable({
-            ...table,
-            isMetadataLoading: false,
-          }),
-        ),
-        dispatch(
-          addDangerToast(t('An error occurred while fetching table metadata')),
-        ),
-      ]),
-    );
-}
-
-function getTableExtendedMetadata(table, query, dispatch) {
-  return SupersetClient.get({
-    endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table_extra/` +
-        `${encodeURIComponent(table.name)}/${encodeURIComponent(
-          table.schema,
-        )}/`,
-    ),
-  })
-    .then(({ json }) => {
-      dispatch(
-        mergeTable({ ...table, ...json, isExtraMetadataLoading: false }),
-      );
-      return json;
-    })
-    .catch(() =>
-      Promise.all([
-        dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
-        dispatch(
-          addDangerToast(t('An error occurred while fetching table metadata')),
-        ),
-      ]),
-    );
-}
-
-export function addTable(queryEditor, database, tableName, schemaName) {
+export function addTable(queryEditor, tableName, schemaName) {
   return function (dispatch, getState) {
     const query = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
@@ -1171,67 +1113,90 @@ export function addTable(queryEditor, database, tableName, schemaName) {
       mergeTable(
         {
           ...table,
-          isMetadataLoading: true,
-          isExtraMetadataLoading: true,
+          id: shortid.generate(),
           expanded: true,
         },
         null,
         true,
       ),
     );
+  };
+}
 
-    return Promise.all([
-      getTableMetadata(table, query, dispatch),
-      getTableExtendedMetadata(table, query, dispatch),
-    ]).then(([newTable, json]) => {
-      const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-        ? SupersetClient.post({
-            endpoint: encodeURI('/tableschemaview/'),
-            postPayload: { table: { ...newTable, ...json } },
-          })
-        : Promise.resolve({ json: { id: shortid.generate() } });
+export function runTablePreviewQuery(newTable) {
+  return function (dispatch, getState) {
+    const {
+      sqlLab: { databases },
+    } = getState();
+    const database = databases[newTable.dbId];
+    const { dbId } = newTable;
 
-      if (!database.disable_data_preview && database.id === query.dbId) {
-        const dataPreviewQuery = {
-          id: shortid.generate(),
-          dbId: query.dbId,
-          sql: newTable.selectStar,
-          tableName: table.name,
-          sqlEditorId: null,
-          tab: '',
-          runAsync: database.allow_run_async,
-          ctas: false,
-          isDataPreview: true,
-        };
-        Promise.all([
-          dispatch(
-            mergeTable(
-              {
-                ...newTable,
-                dataPreviewQueryId: dataPreviewQuery.id,
-              },
-              dataPreviewQuery,
-            ),
+    if (database && !database.disable_data_preview) {
+      const dataPreviewQuery = {
+        id: shortid.generate(),
+        dbId,
+        sql: newTable.selectStar,
+        tableName: newTable.name,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: database.allow_run_async,
+        ctas: false,
+        isDataPreview: true,
+      };
+      return Promise.all([
+        dispatch(
+          mergeTable(
+            {
+              id: newTable.id,
+              dbId: newTable.dbId,
+              schema: newTable.schema,
+              name: newTable.name,
+              queryEditorId: newTable.queryEditorId,
+              dataPreviewQueryId: dataPreviewQuery.id,
+            },
+            dataPreviewQuery,
           ),
-          dispatch(runQuery(dataPreviewQuery)),
-        ]);
-      }
+        ),
+        dispatch(runQuery(dataPreviewQuery)),
+      ]);
+    }
+    return Promise.resolve();
+  };
+}
 
-      return sync
-        .then(({ json: resultJson }) =>
-          dispatch(mergeTable({ ...table, id: resultJson.id })),
-        )
-        .catch(() =>
-          dispatch(
-            addDangerToast(
-              t(
-                'An error occurred while fetching table metadata. ' +
-                  'Please contact your administrator.',
-              ),
-            ),
-          ),
+export function syncTable(table, tableMetadata) {
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.post({
+          endpoint: encodeURI('/tableschemaview/'),
+          postPayload: { table: { ...tableMetadata, ...table } },
+        })
+      : Promise.resolve({ json: { id: table.id } });
+
+    return sync
+      .then(({ json: resultJson }) => {
+        const newTable = { ...table, id: resultJson.id };
+        dispatch(
+          mergeTable({
+            ...newTable,
+            expanded: true,
+            initialized: true,
+          }),
         );
-    });
+        if (!table.dataPreviewQueryId) {
+          dispatch(runTablePreviewQuery({ ...tableMetadata, ...newTable }));
+        }
+      })
+      .catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'An error occurred while fetching table metadata. ' +
+                'Please contact your administrator.',
+            ),
+          ),
+        ),
+      );
   };
 }
 
