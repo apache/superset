@@ -7,7 +7,7 @@ import {
   NEW_FEATURES_APRIL_2023_RU,
   NEW_FEATURES_MAY_2023_RU,
   NEW_FEATURES_JUNE_2023_RU,
-} from '../../messages';
+} from '../../changelogMessages';
 
 const renderCollapse = (messagesArray: IPanelMsgObj[]) =>
   messagesArray.map((msgObj, index) => (

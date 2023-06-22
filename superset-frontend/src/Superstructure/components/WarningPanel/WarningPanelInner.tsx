@@ -7,19 +7,34 @@ const WarningPanelInner = ({ msgObj }: { msgObj: IPanelMsgObj }) => (
     <ColumnWrapper classes="col-md-11">
       <i>{msgObj.subTitle}</i>
 
-      {(msgObj.listTitle || msgObj.messages) && (
+      {(msgObj.listTitle || (msgObj.releases && msgObj.releases.length)) && (
         <div
           style={{
-            marginTop: msgObj.listTitle || msgObj.messages ? '18px' : '0',
+            marginTop:
+              msgObj.listTitle || (msgObj.releases && msgObj.releases.length)
+                ? '18px'
+                : '0',
           }}
         >
           {msgObj.listTitle && <p>{msgObj.listTitle}</p>}
-          {msgObj.messages && (
-            <ol style={{ paddingLeft: '28px' }}>
-              {msgObj.messages.map((message, key) => (
-                <li key={key}>{message}</li>
+
+          {msgObj.releases && msgObj.releases.length && (
+            <ul style={{ paddingLeft: '28px' }}>
+              {msgObj.releases.map((release, key) => (
+                <div>
+                  <li key={key}>
+                    {release.date} ({release.status})
+                  </li>
+                  {release.messages && release.messages.length && (
+                    <ol>
+                      {release.messages.map((message, key) => (
+                        <li key={key}>{message}</li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
               ))}
-            </ol>
+            </ul>
           )}
         </div>
       )}
@@ -32,11 +47,11 @@ const WarningPanelInner = ({ msgObj }: { msgObj: IPanelMsgObj }) => (
         >
           {msgObj.listTitleExtra && <p>{msgObj.listTitleExtra}</p>}
           {msgObj.messagesExtra && (
-            <ol style={{ paddingLeft: '28px' }}>
+            <ul style={{ paddingLeft: '28px' }}>
               {msgObj.messagesExtra.map((message, key) => (
                 <li key={key}>{message}</li>
               ))}
-            </ol>
+            </ul>
           )}
         </div>
       )}
