@@ -21,9 +21,9 @@ const WarningPanelInner = ({ msgObj }: { msgObj: IPanelMsgObj }) => (
           {msgObj.releases && msgObj.releases.length && (
             <ul style={{ paddingLeft: '28px' }}>
               {msgObj.releases.map((release, key) => (
-                <div>
+                <div style={{ marginBottom: '20px' }}>
                   <li key={key}>
-                    {release.date} ({release.status})
+                    <b>{release.date}</b> <i>({release.status})</i>
                   </li>
                   {release.messages && release.messages.length && (
                     <ol>

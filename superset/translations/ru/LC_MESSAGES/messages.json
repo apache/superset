@@ -281,40 +281,6 @@
       "There are associated alerts or reports: %s,": [
         "Существуют оповещения или рассылки: %s,"
       ],
-      "Database does not exist": ["База данных не существует"],
-      "Dashboards do not exist": ["Дашборды отсутствуют"],
-      "Datasource type is required when datasource_id is given": [
-        "Тип источника данных обязателен, если задан ID"
-      ],
-      "Chart parameters are invalid.": ["Параметры графика недействительны."],
-      "Chart could not be created.": ["График не может быть создан."],
-      "Chart could not be updated.": ["График не может быть обновлён."],
-      "Chart could not be deleted.": ["График не может быть удалён."],
-      "There are associated alerts or reports": [
-        "Существуют привязанные оповещения или рассылки"
-      ],
-      "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
-      "Charts could not be deleted.": ["Графики не могут быть удалены."],
-      "Import chart failed for an unknown reason": [
-        "Импорт графика не удался по неизвестной причине"
-      ],
-      "Database does not exist": ["База данных не существует"],
-      "Dashboards do not exist": ["Дашборды отсутствуют"],
-      "Datasource type is required when datasource_id is given": [
-        "Тип источника данных обязателен, если задан ID"
-      ],
-      "Chart parameters are invalid.": ["Параметры графика недействительны."],
-      "Chart could not be created.": ["График не может быть создан."],
-      "Chart could not be updated.": ["График не может быть обновлён."],
-      "Chart could not be deleted.": ["График не может быть удалён."],
-      "There are associated alerts or reports": [
-        "Существуют привязанные оповещения или рассылки"
-      ],
-      "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
-      "Charts could not be deleted.": ["Графики не могут быть удалены."],
-      "Import chart failed for an unknown reason": [
-        "Импорт графика не удался по неизвестной причине"
-      ],
       "Owners are invalid": ["Владельцы недействительны"],
       "Dataset does not exist": ["Источник данных %(name)s уже существует"],
       "`operation` property of post processing object undefined": [
