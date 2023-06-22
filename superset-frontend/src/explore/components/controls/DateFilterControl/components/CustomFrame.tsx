@@ -125,6 +125,7 @@ export function CustomFrame(props: FrameComponentProps) {
           {sinceMode === 'specific' && (
             <Row>
               <DatePicker
+                showTime
                 defaultValue={dttmToMoment(sinceDatetime)}
                 onChange={(datetime: Moment) =>
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
@@ -177,6 +178,7 @@ export function CustomFrame(props: FrameComponentProps) {
           {untilMode === 'specific' && (
             <Row>
               <DatePicker
+                showTime
                 defaultValue={dttmToMoment(untilDatetime)}
                 onChange={(datetime: Moment) =>
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
@@ -233,6 +235,7 @@ export function CustomFrame(props: FrameComponentProps) {
             {anchorMode !== 'now' && (
               <Col>
                 <DatePicker
+                  showTime
                   defaultValue={dttmToMoment(anchorValue)}
                   onChange={(datetime: Moment) =>
                     onChange('anchorValue', datetime.format(MOMENT_FORMAT))

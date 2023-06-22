@@ -103,7 +103,6 @@ const NEW_FEATURES_JUNE_2023_RU = {
       status: RELEASE_IN_TESTING,
       messages: [
         'Добавили переводы на русский язык в разных частях системы',
-        'Убрали кнопку "ОК" при выборе даты при выборе фильтра в дашборде',
         'Улучшили вид Changelog',
         'Начали перевод Superset Dashboard Plugin в DODOIS на русский язык',
       ],
