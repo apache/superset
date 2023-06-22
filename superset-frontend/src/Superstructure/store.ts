@@ -8,9 +8,33 @@ import { initEnhancer } from '../reduxUtils';
 import rootReducer from './reducers/index';
 import { SupersetPluginTranslations } from './translations';
 
+function getPageLanguage(): string | null {
+  console.log('document', document);
+  if (!document) {
+    return null;
+  }
+  const select: HTMLSelectElement | null = document.querySelector(
+    '#changeLanguage select',
+  );
+  const selectedLanguage = select ? select.value : null;
+  return selectedLanguage;
+}
+
+const getLocaleForSuperset = () => {
+  console.log('typeof window', typeof window);
+  const dodoisLanguage = getPageLanguage();
+  if (dodoisLanguage) {
+    if (dodoisLanguage === 'ru-RU') return 'ru';
+    return 'en';
+  }
+  return 'en';
+};
+
 // TODO: get data bootstrap from superset API
 // Because the roles are empty -> export in CSV is not shown
-const locale = 'ru';
+const locale = getLocaleForSuperset();
+
+console.log('getLocaleForSuperset', locale);
 
 const bootstrap = {
   user: { roles: USER_ROLES },
