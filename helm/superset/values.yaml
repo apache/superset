@@ -171,6 +171,12 @@ configOverridesFiles: {}
   # extend_timeout: extend_timeout.py
   # enable_oauth: enable_oauth.py
 
+# -- A dictionary of overrides to append at the end of CeleryConfig in superset_config.py - the name does not matter
+# WARNING: the order is not guaranteed
+celeryConfigOverrides: {}
+#  beat_schedule: |
+#    CELERY_BEAT_SCHEDULE = {'reports.scheduler': {'task': 'reports.scheduler', 'schedule': crontab(minute='*', hour='*')},'reports.prune_log': {'task': 'reports.prune_log','schedule': crontab(minute=0, hour=0)}}
+
 configMountPath: "/app/pythonpath"
 
 extraConfigMountPath: "/app/configs"

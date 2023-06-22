@@ -95,6 +95,14 @@ class CeleryConfig(object):
   CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   {{- end }}
 
+  {{ if .Values.celeryConfigOverrides }}
+  # Overrides
+  {{- range $key, $value := .Values.celeryConfigOverrides }}
+  # {{ $key }}
+  {{ tpl $value $ }}
+  {{- end }}
+  {{- end }}
+
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
