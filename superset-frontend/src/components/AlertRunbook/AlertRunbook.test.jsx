@@ -48,7 +48,6 @@ describe('AlertRunbook', () => {
     wrapper = mount(<AlertRunbook title={title} />);
     await waitForComponentToPaint(wrapper);
     const props = wrapper.find('[data-test="runbook-action"]').first().props();
-    console.log('PROPS==', props);
     if (props.onClick) {
       props.onClick();
     }
