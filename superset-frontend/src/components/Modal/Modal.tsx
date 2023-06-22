@@ -74,7 +74,7 @@ const MODAL_FOOTER_HEIGHT = 65;
 
 const RESIZABLE_MIN_HEIGHT = MODAL_HEADER_HEIGHT + MODAL_MIN_CONTENT_HEIGHT;
 const RESIZABLE_MIN_WIDTH = '380px';
-const RESIZABLE_MAX_HEIGHT = '100vh';
+const RESIZABLE_MAX_HEIGHT = '110vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
 
 const BaseModal = (props: AntdModalProps) => (
@@ -97,7 +97,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   .ant-modal-content {
     display: flex;
     flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
+    max-height: ${({ theme }) => `calc(110vh - ${theme.gridUnit * 8}px)`};
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
   }
