@@ -18,6 +18,7 @@ const bootstrap = {
       DASHBOARD_CROSS_FILTERS: true,
       DASHBOARD_NATIVE_FILTERS_SET: false,
     },
+    locale: 'ru',
   },
 };
 

@@ -1023,7 +1023,7 @@
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
         "Определяет видимость дашборда в списке всех дашбордов"
       ],
-      "Title": ["Заголовок"],
+      "Title": ["Название"],
       "Slug": ["Читаемый URL"],
       "Published": ["Опубликовано"],
       "Position JSON": ["Позиция JSON"],
