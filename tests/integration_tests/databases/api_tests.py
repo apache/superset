@@ -2873,7 +2873,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2948,7 +2947,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -3023,7 +3021,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",

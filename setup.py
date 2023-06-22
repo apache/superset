@@ -81,7 +81,7 @@ setup(
         "cryptography>=39.0.1, <40",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.2, <5.0.0",
+        "flask-appbuilder>=4.3.3, <5.0.0",
         "flask-caching>=1.10.1, <1.11",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
