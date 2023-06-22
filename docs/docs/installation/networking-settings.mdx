@@ -33,6 +33,15 @@ Add the following setting in your `superset_config.py` file:
 
 - `SUPERSET_WEBSERVER_DOMAINS`: list of allowed hostnames for domain sharding feature.
 
+Please create you domain shards as subdomain of your main domain like following for authorization to 
+work properly on new domains [Issues 23295] (https://github.com/apache/superset/issues/23295) . Example - 
+
+- `SUPERSET_WEBSERVER_DOMAINS=['dashboards.mydomain.com','1.dashboards.mydomain.com','2.dashboards.mydomain.com','3.dashboards.mydomain.com']`
+
+or Add the following setting in your `superset_config.py` file if domain shards are not subdomains of main domain.
+
+- `SESSION_COOKIE_DOMAIN = 'mydomain.com'` 
+
 ### Middleware
 
 Superset allows you to add your own middleware. To add your own middleware, update the
