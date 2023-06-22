@@ -585,8 +585,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const SSHTunnelSwitchComponent =
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
-  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
-
   let dbConfigExtraExtension = extensionsRegistry.get(
     'databaseconnection.extraOption',
   );
@@ -608,15 +606,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
-  const disableSSHTunnelingForEngine = (
-    availableDbs?.databases?.find(
-      (DB: DatabaseObject) =>
-        DB.backend === db?.engine || DB.engine === db?.engine,
-    ) as DatabaseObject
-  )?.engine_information?.disable_ssh_tunneling;
-  const isSSHTunneling =
-    isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
-    !disableSSHTunnelingForEngine;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -1277,7 +1266,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
-    if (db && isSSHTunneling) {
+    if (db && canSSHTunnel) {
       setUseSSHTunneling(!isEmpty(db?.ssh_tunnel));
     }
   }, [db, isSSHTunneling]);
@@ -1636,7 +1625,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
       />
-      {db?.parameters?.ssh && (
+      {db?.parameters?.ssh && isFeatureEnabled(FeatureFlag.SSH_TUNNELING) && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>
