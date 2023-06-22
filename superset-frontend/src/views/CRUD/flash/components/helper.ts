@@ -39,17 +39,29 @@ export const getFlashStatusColor = (status: string, theme: Theme) => {
     status === FLASH_STATUS_ENUMS.UPDATED ||
     status === FLASH_STATUS_ENUMS.IN_PROGRESS
   ) {
-    return theme.colors.warning.dark1;
+    return {
+      light: theme.colors.warning.light1,
+      dark: theme.colors.warning.dark1,
+    };
   }
   if (status === FLASH_STATUS_ENUMS.MATERIALIZED) {
-    return theme.colors.success.dark1;
+    return {
+      light: theme.colors.success.light1,
+      dark: theme.colors.success.dark2,
+    };
   }
   if (
     status === FLASH_STATUS_ENUMS.MATERIALIZED_FAILED ||
     status === FLASH_STATUS_ENUMS.DELETED ||
     status === FLASH_STATUS_ENUMS.MARKED_FOR_DELETION
   ) {
-    return theme.colors.error.dark1;
+    return {
+      light: theme.colors.error.light1,
+      dark: theme.colors.error.dark1,
+    };
   }
-  return theme.colors.grayscale.dark1;
+  return {
+    light: theme.colors.grayscale.light1,
+    dark: theme.colors.grayscale.dark1,
+  };
 };
