@@ -40,7 +40,8 @@ default-setup-command() {
 apt-get-install() {
   say "::group::apt-get install dependencies"
   sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev
+    libsasl2-dev \
+    libldap2-dev
   say "::endgroup::"
 }
 
