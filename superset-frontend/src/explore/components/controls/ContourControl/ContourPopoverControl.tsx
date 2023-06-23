@@ -32,8 +32,8 @@ import {
 } from './types';
 
 enum CONTOUR_TYPES {
-  ISOLINE = 'ISOLINE',
-  ISOBAND = 'ISOBAND',
+  Isoline = 'ISOLINE',
+  Isoband = 'ISOBAND',
 }
 
 const ContourActionsContainer = styled.div`
@@ -53,7 +53,7 @@ const isIsoband = (contour: contourType) => {
 };
 
 const getTabKey = (contour: contourType | undefined) =>
-  contour && isIsoband(contour) ? CONTOUR_TYPES.ISOBAND : CONTOUR_TYPES.ISOLINE;
+  contour && isIsoband(contour) ? CONTOUR_TYPES.Isoband : CONTOUR_TYPES.Isoline;
 
 const determineErrorMap = (contour: contourType) => {
   const type = getTabKey(contour);
