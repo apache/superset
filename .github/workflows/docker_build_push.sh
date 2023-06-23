@@ -46,7 +46,7 @@ EOF
 #
 # Build the "lean" image
 #
-docker build --target lean \
+DOCKER_BUILDKIT=1 docker build --target lean \
   -t "${REPO_NAME}:${SHA}" \
   -t "${REPO_NAME}:${REFSPEC}" \
   -t "${REPO_NAME}:${LATEST_TAG}" \
@@ -59,7 +59,7 @@ docker build --target lean \
 #
 # Build the "lean310" image
 #
-docker build --target lean \
+DOCKER_BUILDKIT=1 docker build --target lean \
   -t "${REPO_NAME}:${SHA}-py310" \
   -t "${REPO_NAME}:${REFSPEC}-py310" \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
@@ -73,7 +73,7 @@ docker build --target lean \
 #
 # Build the "websocket" image
 #
-docker build \
+DOCKER_BUILDKIT=1 docker build \
   -t "${REPO_NAME}:${SHA}-websocket" \
   -t "${REPO_NAME}:${REFSPEC}-websocket" \
   -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
@@ -86,7 +86,7 @@ docker build \
 #
 # Build the dev image
 #
-docker build --target dev \
+DOCKER_BUILDKIT=1 docker build --target dev \
   -t "${REPO_NAME}:${SHA}-dev" \
   -t "${REPO_NAME}:${REFSPEC}-dev" \
   -t "${REPO_NAME}:${LATEST_TAG}-dev" \
