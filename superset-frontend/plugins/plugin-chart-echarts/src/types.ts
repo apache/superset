@@ -26,6 +26,9 @@ import {
   PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
+  ChartPlugin,
+  SqlaFormData,
+  ChartMetadata,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
@@ -166,6 +169,23 @@ export interface TreePathInfo {
   name: string;
   dataIndex: number;
   value: number | number[];
+}
+
+export class EchartsChartPlugin<
+  T extends SqlaFormData = SqlaFormData,
+  P extends ChartProps = ChartProps,
+> extends ChartPlugin<T, P> {
+  constructor(props: any) {
+    const { metadata } = props;
+    const mergedProps = {
+      ...props,
+      metadata: new ChartMetadata({
+        parseMethod: 'json',
+        ...metadata,
+      }),
+    };
+    super(mergedProps);
+  }
 }
 
 export * from './Timeseries/types';

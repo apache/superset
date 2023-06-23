@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import { t, ChartMetadata, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
@@ -24,6 +24,7 @@ import example1 from './images/BigNumber.jpg';
 import example2 from './images/BigNumber2.jpg';
 import thumbnail from './images/thumbnail.png';
 import { BigNumberTotalChartProps, BigNumberTotalFormData } from '../types';
+import { EchartsChartPlugin } from '../../types';
 
 const metadata = new ChartMetadata({
   category: t('KPI'),
@@ -48,7 +49,7 @@ const metadata = new ChartMetadata({
   behaviors: [Behavior.DRILL_TO_DETAIL],
 });
 
-export default class BigNumberTotalChartPlugin extends ChartPlugin<
+export default class BigNumberTotalChartPlugin extends EchartsChartPlugin<
   BigNumberTotalFormData,
   BigNumberTotalChartProps
 > {
