@@ -63,7 +63,7 @@ const determineErrorMap = (contour: contourType) => {
     strokeWidth: [],
     color: [],
   };
-  if (type === CONTOUR_TYPES.ISOBAND) {
+  if (type === CONTOUR_TYPES.Isoband) {
     const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
     if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
   }
@@ -103,7 +103,7 @@ const ContourPopoverControl = ({
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    const isIsoband = currentTab === CONTOUR_TYPES.ISOBAND;
+    const isIsoband = currentTab === CONTOUR_TYPES.Isoband;
     const validLower =
       Boolean(contour.lowerThreshold) || contour.lowerThreshold === 0;
     const validUpper =
@@ -275,14 +275,14 @@ const ContourPopoverControl = ({
       >
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
-          key={CONTOUR_TYPES.ISOLINE}
+          key={CONTOUR_TYPES.Isoline}
           tab="Isoline"
         >
           {isolineSection()}
         </Tabs.TabPane>
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
-          key={CONTOUR_TYPES.ISOBAND}
+          key={CONTOUR_TYPES.Isoband}
           tab="Isoband"
         >
           {isobandSection()}
