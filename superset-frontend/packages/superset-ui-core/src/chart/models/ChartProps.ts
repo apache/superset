@@ -137,7 +137,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   filterState: FilterState;
 
-  legendState: LegendState;
+  legendState?: LegendState;
 
   queriesData: QueryData[];
 

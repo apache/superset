@@ -414,7 +414,7 @@ export function getLegendProps(
   show: boolean,
   theme: SupersetTheme,
   zoomable = false,
-  selected?: LegendState,
+  legendState?: LegendState,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -424,7 +424,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
-    selected,
+    selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.typography.families.sansSerif,
