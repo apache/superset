@@ -1852,13 +1852,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
                         where_clause_and.append(sqla_col <= eq)
                     elif op in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
+                        utils.FilterOperator.ILIKE.value,
+                        utils.FilterOperator.LIKE.value,
                     }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        if utils.FilterOperator.LIKE.value:
+                        if op == utils.FilterOperator.LIKE.value:
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))

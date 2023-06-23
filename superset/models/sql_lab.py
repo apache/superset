@@ -502,6 +502,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
+            "extra_json": self.extra,
         }
 
 
