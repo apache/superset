@@ -48,6 +48,7 @@ export interface QueryEditor {
   inLocalStorage?: boolean;
   northPercent?: number;
   southPercent?: number;
+  updatedAt?: number;
 }
 
 export type toastState = {

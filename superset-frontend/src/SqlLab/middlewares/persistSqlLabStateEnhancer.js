@@ -18,6 +18,9 @@
  */
 // TODO: requires redux-localstorage > 1.0 for typescript support
 import persistState from 'redux-localstorage';
+import { pickBy } from 'lodash';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { filterUnsavedQueryEditorList } from 'src/SqlLab/components/EditorAutoSync';
 import {
   emptyTablePersistData,
   emptyQueryResults,
@@ -38,6 +41,37 @@ const sqlLabPersistStateConfig = {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
+        if (path === 'sqlLab.unsavedQueryEditor') {
+          const {
+            queryEditors,
+            editorTabLastUpdatedAt,
+            unsavedQueryEditor,
+            tables,
+            queries,
+            tabHistory,
+          } = state.sqlLab;
+          const unsavedQueryEditors = filterUnsavedQueryEditorList(
+            queryEditors,
+            unsavedQueryEditor,
+            editorTabLastUpdatedAt,
+          );
+          const hasFinishedMigrationFromLocalStorage =
+            unsavedQueryEditors.every(({ inLocalStorage }) => !inLocalStorage);
+          if (unsavedQueryEditors.length > 0) {
+            subset.sqlLab = {
+              queryEditors: unsavedQueryEditors,
+              ...(!hasFinishedMigrationFromLocalStorage && {
+                tabHistory,
+                tables: tables.filter(table => table.inLocalStorage),
+                queries: pickBy(
+                  queries,
+                  query => query.inLocalStorage && !query.isDataPreview,
+                ),
+              }),
+            };
+          }
+          return;
+        }
         // this line is used to remove old data from browser localStorage.
         // we used to persist all redux state into localStorage, but
         // it caused configurations passed from server-side got override.
@@ -80,6 +114,8 @@ const sqlLabPersistStateConfig = {
 };
 
 export const persistSqlLabStateEnhancer = persistState(
-  sqlLabPersistStateConfig.paths,
+  isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    ? ['sqlLab.unsavedQueryEditor']
+    : sqlLabPersistStateConfig.paths,
   sqlLabPersistStateConfig.config,
 );
