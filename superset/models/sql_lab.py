@@ -487,11 +487,6 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> dict[str, Any]:
-        try:
-            extra_json = json.loads(self.extra_json)
-        except json.JSONDecodeError:
-            extra_json = None
-
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -507,7 +502,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
-            "extra_json": extra_json,
+            "extra_json": self.extra,
         }
 
 
