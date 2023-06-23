@@ -23,6 +23,7 @@ import {
   ContextMenuFilters,
   FilterState,
   HandlerFunction,
+  LegendState,
   PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
@@ -127,6 +128,7 @@ export interface BaseTransformedProps<F> {
     filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
+  onLegendStateChanged?: (state: LegendState) => void;
   filterState?: FilterState;
   refs: Refs;
   width: number;
