@@ -63,7 +63,7 @@ docker build --target lean \
   -t "${REPO_NAME}:${SHA}-py310" \
   -t "${REPO_NAME}:${REFSPEC}-py310" \
   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --build-arg PY_VER="3.10-slim"\
+  --build-arg PY_VER="3.10-slim-bookworm"\
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean310" \
