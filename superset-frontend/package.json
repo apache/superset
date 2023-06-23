@@ -350,6 +350,11 @@
     "node": "^16.9.1",
     "npm": "^7.5.4 || ^8.1.2"
   },
+  "overrides": {
+    "yosay": {
+      "ansi-regex": "^4.1.1"
+    }
+  },
   "readme": "ERROR: No README data found!",
   "_id": "superset@0.0.0-dev"
 }
