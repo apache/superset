@@ -54,7 +54,6 @@ import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
-  currentSeries,
   dedupSeries,
   extractDataTotalValues,
   extractSeries,
@@ -101,6 +100,7 @@ export default function transformProps(
     width,
     height,
     filterState,
+    legendState,
     formData,
     hooks,
     queriesData,
@@ -192,6 +192,7 @@ export default function transformProps(
       stack,
       percentageThreshold,
       xAxisCol: xAxisLabel,
+      legendState,
     },
   );
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
@@ -221,6 +222,7 @@ export default function transformProps(
     stack,
     onlyTotal,
     isHorizontal,
+    legendState,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -258,6 +260,7 @@ export default function transformProps(
         markerSize,
         areaOpacity: opacity,
         seriesType,
+        legendState,
         stack,
         formatter,
         showValue,
@@ -379,6 +382,7 @@ export default function transformProps(
     setDataMask = () => {},
     setControlValue = () => {},
     onContextMenu,
+    onLegendStateChanged,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -486,7 +490,7 @@ export default function transformProps(
             seriesName: key,
             formatter,
           });
-          if (currentSeries.name === key) {
+          if (!legendState || legendState[key]) {
             rows.push(`<span style="font-weight: 700">${content}</span>`);
           } else {
             rows.push(`<span style="opacity: 0.7">${content}</span>`);
@@ -506,6 +510,7 @@ export default function transformProps(
         showLegend,
         theme,
         zoomable,
+        legendState,
       ),
       data: legendData as string[],
     },
@@ -549,6 +554,7 @@ export default function transformProps(
     width,
     legendData,
     onContextMenu,
+    onLegendStateChanged,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,
