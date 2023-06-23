@@ -493,10 +493,9 @@ const SqlEditor = ({
     [setQueryEditorAndSaveSql],
   );
 
-  const onSqlChanged = sql => {
+  const onSqlChanged = useEffectEvent(sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
-    setQueryEditorAndSaveSqlWithDebounce(sql);
-  };
+  });
 
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.
@@ -723,7 +722,7 @@ const SqlEditor = ({
           )}
           <AceEditorWrapper
             autocomplete={autocompleteEnabled}
-            onBlur={setQueryEditorAndSaveSql}
+            onBlur={onSqlChanged}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
             height={`${aceEditorHeight}px`}

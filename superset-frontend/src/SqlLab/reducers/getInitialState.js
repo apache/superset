@@ -88,12 +88,8 @@ export default function getInitialState({
         dbId: activeTab.database_id,
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
-        validationResult: {
-          id: null,
-          errors: [],
-          completed: false,
-        },
         hideLeftBar: activeTab.hide_left_bar,
+        updatedAt: activeTab.extra_json?.updatedAt,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch
@@ -109,10 +105,12 @@ export default function getInitialState({
       [queryEditor.id]: queryEditor,
     };
   });
-
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
   let tables = {};
+  let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
+    editorTabLastUpdatedAt =
+      activeTab.extra_json?.updatedAt || editorTabLastUpdatedAt;
     activeTab.table_schemas
       .filter(tableSchema => tableSchema.description !== null)
       .forEach(tableSchema => {
@@ -156,37 +154,56 @@ export default function getInitialState({
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
       sqlLab.queryEditors.forEach(qe => {
+        const hasConflictFromBackend = Boolean(queryEditors[qe.id]);
+        const hasUnsavedUpdateSinceLastSave =
+          qe.updatedAt &&
+          (!queryEditors[qe.id]?.updatedAt ||
+            qe.updatedAt > queryEditors[qe.id].updatedAt);
+        const cachedQueryEditor =
+          !hasConflictFromBackend || hasUnsavedUpdateSinceLastSave ? qe : {};
         queryEditors = {
           ...queryEditors,
           [qe.id]: {
             ...queryEditors[qe.id],
-            ...qe,
-            name: qe.title || qe.name,
-            ...(unsavedQueryEditor.id === qe.id && unsavedQueryEditor),
-            inLocalStorage: true,
+            ...cachedQueryEditor,
+            name:
+              cachedQueryEditor.title ||
+              cachedQueryEditor.name ||
+              queryEditors[qe.id]?.name,
+            ...(cachedQueryEditor.id &&
+              unsavedQueryEditor.id === qe.id &&
+              unsavedQueryEditor),
+            inLocalStorage: !hasConflictFromBackend,
             loaded: true,
           },
         };
       });
       const expandedTables = new Set();
-      tables = sqlLab.tables.reduce((merged, table) => {
-        const expanded = !expandedTables.has(table.queryEditorId);
-        if (expanded) {
-          expandedTables.add(table.queryEditorId);
-        }
-        return {
-          ...merged,
-          [table.id]: {
-            ...tables[table.id],
-            ...table,
-            expanded,
-          },
-        };
-      }, tables);
-      Object.values(sqlLab.queries).forEach(query => {
-        queries[query.id] = { ...query, inLocalStorage: true };
-      });
-      tabHistory.push(...sqlLab.tabHistory);
+      if (sqlLab.tables) {
+        tables = sqlLab.tables.reduce((merged, table) => {
+          const expanded = !expandedTables.has(table.queryEditorId);
+          if (expanded) {
+            expandedTables.add(table.queryEditorId);
+          }
+          return {
+            ...merged,
+            [table.id]: {
+              ...tables[table.id],
+              ...table,
+              expanded,
+              inLocalStorage: true,
+            },
+          };
+        }, tables);
+      }
+      if (sqlLab.queries) {
+        Object.values(sqlLab.queries).forEach(query => {
+          queries[query.id] = { ...query, inLocalStorage: true };
+        });
+      }
+      if (sqlLab.tabHistory) {
+        tabHistory.push(...sqlLab.tabHistory);
+      }
     }
   }
 
@@ -201,6 +218,7 @@ export default function getInitialState({
       tabHistory: dedupeTabHistory(tabHistory),
       tables: Object.values(tables),
       queriesLastUpdate: Date.now(),
+      editorTabLastUpdatedAt,
       user,
       unsavedQueryEditor,
       queryCostEstimates: {},

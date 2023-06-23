@@ -44,6 +44,8 @@ export interface QueryEditor {
   selectedText?: string;
   queryLimit?: number;
   description?: string;
+  updatedAt?: number;
+  inLocalStorage?: boolean;
 }
 
 export type toastState = {
@@ -53,6 +55,8 @@ export type toastState = {
   duration: number;
   noDuplicate: boolean;
 };
+
+export type UnsavedQueryEditor = Pick<QueryEditor, 'id'> & Partial<QueryEditor>;
 
 export type SqlLabRootState = {
   sqlLab: {
@@ -65,10 +69,11 @@ export type SqlLabRootState = {
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Record<string, any>[];
+    editorTabLastUpdatedAt: number;
     queriesLastUpdate: number;
     user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
-    unsavedQueryEditor: Partial<QueryEditor>;
+    unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
   };
   localStorageUsageInKilobytes: number;

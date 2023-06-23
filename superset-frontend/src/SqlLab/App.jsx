@@ -20,6 +20,7 @@ import React from 'react';
 import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader/root';
+import { pickBy } from 'lodash';
 import { FeatureFlag, ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
 import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
@@ -41,6 +42,9 @@ import setupApp from '../setup/setupApp';
 import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
 import { SqlLabGlobalStyles } from './SqlLabGlobalStyles';
+import EditorAutoSync, {
+  filterUnsavedQueryEditorList,
+} from './components/EditorAutoSync';
 
 setupApp();
 setupExtensions();
@@ -56,6 +60,37 @@ const sqlLabPersistStateConfig = {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
+        if (path === 'sqlLab.unsavedQueryEditor') {
+          const {
+            queryEditors,
+            editorTabLastUpdatedAt,
+            unsavedQueryEditor,
+            tables,
+            queries,
+            tabHistory,
+          } = state.sqlLab;
+          const unsavedQueryEditors = filterUnsavedQueryEditorList(
+            queryEditors,
+            unsavedQueryEditor,
+            editorTabLastUpdatedAt,
+          );
+          const hasFinishedMigrationFromLocalStorage =
+            unsavedQueryEditors.every(({ inLocalStorage }) => !inLocalStorage);
+          if (unsavedQueryEditors.length > 0) {
+            subset.sqlLab = {
+              queryEditors: unsavedQueryEditors,
+              ...(!hasFinishedMigrationFromLocalStorage && {
+                tabHistory,
+                tables: tables.filter(table => table.inLocalStorage),
+                queries: pickBy(
+                  queries,
+                  query => query.inLocalStorage && !query.isDataPreview,
+                ),
+              }),
+            };
+          }
+          return;
+        }
         // this line is used to remove old data from browser localStorage.
         // we used to persist all redux state into localStorage, but
         // it caused configurations passed from server-side got override.
@@ -112,14 +147,14 @@ const sqlLabPersistStateConfig = {
 export const store = setupStore({
   initialState,
   rootReducers: reducers,
-  ...(!isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && {
-    enhancers: [
-      persistState(
-        sqlLabPersistStateConfig.paths,
-        sqlLabPersistStateConfig.config,
-      ),
-    ],
-  }),
+  enhancers: [
+    persistState(
+      isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+        ? ['sqlLab.unsavedQueryEditor']
+        : sqlLabPersistStateConfig.paths,
+      sqlLabPersistStateConfig.config,
+    ),
+  ],
 });
 
 // Rehydrate server side persisted table metadata
@@ -162,6 +197,9 @@ const Application = () => (
       <GlobalStyles />
       <SqlLabGlobalStyles />
       <App />
+      {isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && (
+        <EditorAutoSync />
+      )}
     </ThemeProvider>
   </Provider>
 );
