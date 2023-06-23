@@ -90,7 +90,7 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       },
       {
         accessor: 'user',
-        Header: t('User'),
+        Header: t('Updated By'),
         size: 'l',
       },
       {

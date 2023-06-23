@@ -53,6 +53,7 @@ const getJSONSchema = () => {
 const getUISchema = () => flashTTLConf?.UISCHEMA;
 
 interface FlashExtendTTLButtonProps {
+  updatedBy?: string;
   flash: FlashServiceObject;
   show: boolean;
   onHide: () => void;
@@ -107,6 +108,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
+  updatedBy,
   flash,
   onHide,
   show,
@@ -118,6 +120,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
 
   const [formData, setFormData] = useState<FlashExtendTtl>({
     ttl: '',
+    updatedBy: updatedBy || '',
   });
 
   useEffect(() => {

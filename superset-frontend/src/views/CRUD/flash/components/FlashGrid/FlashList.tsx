@@ -536,6 +536,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashOwnership && (
         <FlashOwnership
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashOwnership}
           onHide={() => setShowFlashOwnership(false)}
@@ -545,6 +546,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashTtl && (
         <FlashExtendTTL
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashTtl}
           onHide={() => setShowFlashTtl(false)}
@@ -554,6 +556,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashType && (
         <FlashType
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashType}
           onHide={() => setShowFlashType(false)}
@@ -563,6 +566,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashSchedule && (
         <FlashSchedule
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashSchedule}
           onHide={() => setShowFlashSchedule(false)}
@@ -572,6 +576,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
 
       {showFlashQuery && (
         <FlashQuery
+          updatedBy={user?.email}
           flash={currentFlash as FlashServiceObject}
           show={showFlashQuery}
           onHide={() => setShowFlashQuery(false)}

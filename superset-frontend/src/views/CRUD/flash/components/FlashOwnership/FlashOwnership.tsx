@@ -56,6 +56,7 @@ const getJSONSchema = () => {
 const getUISchema = () => flashOwnershipConf?.UISCHEMA;
 
 interface FlashOwnershipButtonProps {
+  updatedBy: string;
   flash: FlashServiceObject;
   show: boolean;
   onHide: () => void;
@@ -110,6 +111,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
+  updatedBy,
   flash,
   onHide,
   show,
@@ -123,6 +125,7 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
     teamSlackChannel: '',
     teamSlackHandle: '',
     owner: '',
+    updatedBy,
   });
 
   useEffect(() => {
