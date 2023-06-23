@@ -29,8 +29,6 @@ down_revision = "c2acd2cf3df2"
 import copy
 import json
 import logging
-import uuid
-from collections import defaultdict
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text

@@ -51,7 +51,6 @@ import {
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
-
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
   EchartsTimeseriesSeriesType,
@@ -144,6 +143,7 @@ export const getBaselineSeriesForStream = (
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
+  colorScaleKey: string,
   opts: {
     area?: boolean;
     filterState?: FilterState;
@@ -186,7 +186,6 @@ export function transformSeries(
     showValueIndexes = [],
     thresholdValues = [],
     richTooltip,
-    seriesKey,
     sliceId,
     isHorizontal = false,
     queryIndex = 0,
@@ -236,7 +235,7 @@ export function transformSeries(
   }
   // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(seriesKey || forecastSeries.name, sliceId),
+    color: colorScale(colorScaleKey, sliceId),
     opacity,
   };
   let emphasis = {};

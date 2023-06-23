@@ -27,7 +27,7 @@ import {
   RequestBase,
 } from '@superset-ui/core';
 
-export { JsonResponse, TextResponse } from '@superset-ui/core';
+export type { JsonResponse, TextResponse } from '@superset-ui/core';
 
 export const supersetClientQuery: BaseQueryFn<
   Pick<RequestBase, 'method' | 'body' | 'jsonPayload' | 'postPayload'> & {
@@ -65,7 +65,13 @@ export const supersetClientQuery: BaseQueryFn<
 
 export const api = createApi({
   reducerPath: 'queryApi',
-  tagTypes: ['Schemas', 'Tables'],
+  tagTypes: [
+    'Schemas',
+    'Tables',
+    'DatabaseFunctions',
+    'QueryValidations',
+    'TableMetadatas',
+  ],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,
 });

@@ -32,8 +32,11 @@ import {
 } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
-import { ChartConfiguration } from 'src/dashboard/reducers/types';
-import { DashboardLayout, Layout } from 'src/dashboard/types';
+import {
+  ChartConfiguration,
+  DashboardLayout,
+  Layout,
+} from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 export enum IndicatorStatus {
@@ -307,7 +310,7 @@ export const selectChartCrossFilters = (
       })
       .map(chartConfig => {
         const filterIndicator = getCrossFilterIndicator(
-          chartConfig.id,
+          Number(chartConfig.id),
           dataMask[chartConfig.id],
           dashboardLayout,
         );

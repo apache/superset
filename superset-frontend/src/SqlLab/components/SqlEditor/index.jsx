@@ -30,7 +30,14 @@ import { CSSTransition } from 'react-transition-group';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -59,7 +66,6 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
-  validateQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -71,7 +77,6 @@ import {
   INITIAL_NORTH_PERCENT,
   INITIAL_SOUTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
-  VALIDATION_DEBOUNCE_MS,
   WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
@@ -95,8 +100,6 @@ import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 
 const bootstrapData = getBootstrapData();
-const validatorMap =
-  bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const StyledToolbar = styled.div`
@@ -205,6 +208,8 @@ const propTypes = {
   scheduleQueryWarning: PropTypes.string,
 };
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const SqlEditor = ({
   tables,
   queryEditor,
@@ -252,6 +257,8 @@ const SqlEditor = ({
 
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
+
+  const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
@@ -426,37 +433,9 @@ const SqlEditor = ({
     [setQueryEditorAndSaveSql],
   );
 
-  const canValidateQuery = () => {
-    // Check whether or not we can validate the current query based on whether
-    // or not the backend has a validator configured for it.
-    if (database) {
-      return validatorMap.hasOwnProperty(database.backend);
-    }
-    return false;
-  };
-
-  const requestValidation = useCallback(
-    sql => {
-      if (database) {
-        dispatch(validateQuery(queryEditor, sql));
-      }
-    },
-    [database, dispatch, queryEditor],
-  );
-
-  const requestValidationWithDebounce = useMemo(
-    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [requestValidation],
-  );
-
   const onSqlChanged = sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
     setQueryEditorAndSaveSqlWithDebounce(sql);
-    // Request server-side validation of the query text
-    if (canValidateQuery()) {
-      // NB. requestValidation is debounced
-      requestValidationWithDebounce(sql);
-    }
   };
 
   // Return the heights for the ace editor and the south pane as an object
@@ -673,12 +652,20 @@ const SqlEditor = ({
         onDragEnd={onResizeEnd}
       >
         <div ref={northPaneRef} className="north-pane">
+          {SqlFormExtension && (
+            <SqlFormExtension
+              queryEditorId={queryEditor.id}
+              setQueryEditorAndSaveSqlWithDebounce={
+                setQueryEditorAndSaveSqlWithDebounce
+              }
+              startQuery={startQuery}
+            />
+          )}
           <AceEditorWrapper
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
-            database={database}
             extendedTables={tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}

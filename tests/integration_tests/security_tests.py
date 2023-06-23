@@ -29,7 +29,7 @@ import pytest
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.models.dashboard import Dashboard
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
@@ -45,7 +45,6 @@ from superset.utils.core import (
 )
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
-from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.public_role import (
@@ -1351,20 +1350,12 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", perm_set)
         self.assert_can_all("Chart", perm_set)
-        self.assertIn(("can_add_slices", "Superset"), perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_created_slices", "Superset"), perm_set)
         self.assertIn(("can_csv", "Superset"), perm_set)
         self.assertIn(("can_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore", "Superset"), perm_set)
         self.assertIn(("can_share_chart", "Superset"), perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), perm_set)
-        self.assertIn(("can_save_dash", "Superset"), perm_set)
-        self.assertIn(("can_slice", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
@@ -1387,9 +1378,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
-        if app.config["ENABLE_ACCESS_REQUEST"]:
-            self.assert_cannot_write("AccessRequestsModelView", perm_set)
-            self.assert_can_all("AccessRequestsModelView", perm_set)
         self.assert_cannot_write("Queries", perm_set)
         self.assert_cannot_write("RoleModelView", perm_set)
         self.assert_cannot_write("UserDBModelView", perm_set)
@@ -1399,12 +1387,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("Database", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
-
         self.assertIn(("all_database_access", "all_database_access"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_approve", "Superset"), perm_set)
-
         self.assert_can_menu("Security", perm_set)
         self.assert_can_menu("List Users", perm_set)
         self.assert_can_menu("List Roles", perm_set)
@@ -1431,24 +1414,11 @@ class TestRolePermission(SupersetTestCase):
                 )
             )
 
-        if app.config["ENABLE_ACCESS_REQUEST"]:
-            self.assertTrue(
-                security_manager._is_admin_only(
-                    security_manager.find_permission_view_menu(
-                        "can_list", "AccessRequestsModelView"
-                    )
-                )
-            )
         self.assertTrue(
             security_manager._is_admin_only(
                 security_manager.find_permission_view_menu(
                     "can_edit", "UserDBModelView"
                 )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_approve", "Superset")
             )
         )
 
@@ -1523,9 +1493,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
         self.assertIn(("can_read", "Database"), sql_lab_set)
         self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
-        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
         self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
 
         self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
@@ -1534,13 +1501,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("menu_access", "Query Search"), sql_lab_set)
 
         self.assert_cannot_alpha(sql_lab_set)
-
-    def test_granter_permissions(self):
-        granter_set = get_perm_tuples("granter")
-        self.assertIn(("can_override_role_permissions", "Superset"), granter_set)
-        self.assertIn(("can_approve", "Superset"), granter_set)
-
-        self.assert_cannot_alpha(granter_set)
 
     def test_gamma_permissions(self):
         gamma_perm_set = set()
@@ -1561,20 +1521,12 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)
         self.assert_cannot_write("RoleModelView", gamma_perm_set)
 
-        self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_csv", "Superset"), gamma_perm_set)
         self.assertIn(("can_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_chart", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
-        self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
     def test_views_are_secured(self):
@@ -1752,22 +1704,6 @@ class TestSecurityManager(SupersetTestCase):
         mock_g.user = security_manager.get_anonymous_user()
         roles = security_manager.get_user_roles()
         self.assertEqual([security_manager.get_public_role()], roles)
-
-
-class TestAccessRequestEndpoints(SupersetTestCase):
-    def test_access_request_disabled(self):
-        with patch.object(AccessRequestsModelView, "is_enabled", return_value=False):
-            self.login("admin")
-            uri = "/accessrequestsmodelview/list/"
-            rv = self.client.get(uri)
-            self.assertEqual(rv.status_code, 404)
-
-    def test_access_request_enabled(self):
-        with patch.object(AccessRequestsModelView, "is_enabled", return_value=True):
-            self.login("admin")
-            uri = "/accessrequestsmodelview/list/"
-            rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 400)
 
 
 class TestDatasources(SupersetTestCase):

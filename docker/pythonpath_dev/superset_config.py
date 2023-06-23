@@ -22,7 +22,6 @@
 #
 import logging
 import os
-from datetime import timedelta
 from typing import Optional
 
 from cachelib.file import FileSystemCache
@@ -42,7 +41,7 @@ def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
             error_msg = "The environment variable {} was missing, abort...".format(
                 var_name
             )
-            raise EnvironmentError(error_msg)
+            raise OSError(error_msg)
 
 
 DATABASE_DIALECT = get_env_variable("DATABASE_DIALECT")
@@ -53,7 +52,7 @@ DATABASE_PORT = get_env_variable("DATABASE_PORT")
 DATABASE_DB = get_env_variable("DATABASE_DB")
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
+SQLALCHEMY_DATABASE_URI = "{}://{}:{}@{}:{}/{}".format(
     DATABASE_DIALECT,
     DATABASE_USER,
     DATABASE_PASSWORD,
@@ -80,7 +79,7 @@ CACHE_CONFIG = {
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
 
-class CeleryConfig(object):
+class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     imports = ("superset.sql_lab",)
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"

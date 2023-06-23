@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from typing import Dict, Any
+from typing import Any
 
 import pytest
 
@@ -31,7 +31,7 @@ from tests.integration_tests.base_tests import (
 
 @pytest.fixture
 def invalidate(test_client, login_as_admin):
-    def _invalidate(params: Dict[str, Any]):
+    def _invalidate(params: dict[str, Any]):
         return post_assert_metric(
             test_client, "api/v1/cachekey/invalidate", params, "invalidate"
         )

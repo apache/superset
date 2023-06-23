@@ -48,7 +48,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         className="table-condensed"
         mutator={mutator}
         sortable
-        dataEndpoint={`/api/v1/log/recent_activity/${user?.userId}/?q=${params}`}
+        dataEndpoint={`/api/v1/log/recent_activity/?q=${params}`}
         noDataText={t('No Data')}
       />
     </div>

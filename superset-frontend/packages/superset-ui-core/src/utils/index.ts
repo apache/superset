@@ -31,3 +31,4 @@ export { getSelectedText } from './getSelectedText';
 export * from './featureFlags';
 export * from './random';
 export * from './typedMemo';
+export * from './html';

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from sqlalchemy.orm.session import Session
@@ -101,7 +101,7 @@ FROM my_catalog.my_schema.my_table
 
 def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
@@ -115,7 +115,7 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
 
 
 def test_get_datasource_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
@@ -127,7 +127,7 @@ def test_get_datasource_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_saved_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
     result = DatasourceDAO.get_datasource(
@@ -141,7 +141,7 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_table(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.tables.models import Table
 
     result = DatasourceDAO.get_datasource(
@@ -155,8 +155,8 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
@@ -170,8 +170,8 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
 
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
     assert isinstance(
@@ -201,8 +201,8 @@ def test_get_all_datasources(session_with_data: Session) -> None:
 
 
 def test_not_found_datasource(session_with_data: Session) -> None:
-    from superset.dao.exceptions import DatasourceNotFound
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
 
     with pytest.raises(DatasourceNotFound):
         DatasourceDAO.get_datasource(

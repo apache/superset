@@ -309,11 +309,14 @@ export const hydrateDashboard =
     });
 
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      metadata.chart_configuration = getCrossFiltersConfiguration(
-        dashboardLayout.present,
-        metadata.chart_configuration,
-        chartQueries,
-      );
+      const { chartConfiguration, globalChartConfiguration } =
+        getCrossFiltersConfiguration(
+          dashboardLayout.present,
+          metadata,
+          chartQueries,
+        );
+      metadata.chart_configuration = chartConfiguration;
+      metadata.global_chart_configuration = globalChartConfiguration;
     }
 
     const { roles } = user;
@@ -333,7 +336,7 @@ export const hydrateDashboard =
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: findPermission('can_write', 'Dashboard', roles),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',
@@ -350,7 +353,6 @@ export const hydrateDashboard =
             roles,
           ),
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
-          slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             flash_messages: common?.flash_messages,

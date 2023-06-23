@@ -209,14 +209,15 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, action);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
       const interceptedAction = {
-        type: actions.QUERY_EDITOR_SET_FUNCTION_NAMES,
+        type: actions.QUERY_EDITOR_PERSIST_HEIGHT,
         queryEditor: newState.queryEditors[0],
-        functionNames: ['func1', 'func2'],
+        northPercent: 46,
+        southPercent: 54,
       };
       newState = sqlLabReducer(newState, interceptedAction);
       expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
-      expect(newState.queryEditors[0].functionNames).toBe(
-        interceptedAction.functionNames,
+      expect(newState.queryEditors[0].northPercent).toBe(
+        interceptedAction.northPercent,
       );
     });
   });

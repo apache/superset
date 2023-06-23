@@ -19,7 +19,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -35,6 +35,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -55,12 +56,12 @@ from superset.databases.commands.test_connection import TestConnectionDatabaseCo
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.commands.validate_sql import ValidateSQLCommand
-from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
     database_tables_query_schema,
+    DatabaseConnectionSchema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
     DatabasePutSchema,
@@ -122,6 +123,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_sql",
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
+        "get_connection",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -144,12 +146,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "driver",
         "force_ctas_schema",
         "impersonate_user",
-        "masked_encrypted_extra",
-        "extra",
-        "parameters",
-        "parameters_schema",
-        "server_cert",
-        "sqlalchemy_uri",
         "is_managed_externally",
         "engine_information",
     ]
@@ -223,6 +219,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
         DatabaseRelatedObjectsResponse,
@@ -236,6 +233,50 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLRequest,
         ValidateSQLResponse,
     )
+
+    @expose("/<int:pk>/connection", methods=("GET",))
+    @protect()
+    @safe
+    def get_connection(self, pk: int) -> Response:
+        """Get database connection info.
+        ---
+        get:
+          summary: >-
+            Get a database connection info
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Database with connection info
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseConnectionSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        database_connection_schema = DatabaseConnectionSchema()
+        response = {
+            "id": pk,
+            "result": database_connection_schema.dump(database, many=False),
+        }
+        try:
+            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+                response["result"]["ssh_tunnel"] = ssh_tunnel.data
+            return self.response(200, **response)
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>", methods=("GET",))
     @protect()
@@ -1036,7 +1077,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"database_export_{timestamp}"
@@ -1060,7 +1100,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token:
+        if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1288,13 +1328,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
+        preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:
                 continue
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),

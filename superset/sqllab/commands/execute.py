@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -43,15 +43,15 @@ from superset.sqllab.execution_context_convertor import ExecutionContextConverto
 from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
-    from superset.databases.dao import DatabaseDAO
-    from superset.queries.dao import QueryDAO
+    from superset.daos.database import DatabaseDAO
+    from superset.daos.query import QueryDAO
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
 logger = logging.getLogger(__name__)
 
-CommandResult = Dict[str, Any]
+CommandResult = dict[str, Any]
 
 
 class ExecuteSqlCommand(BaseCommand):
@@ -63,7 +63,7 @@ class ExecuteSqlCommand(BaseCommand):
     _sql_json_executor: SqlJsonExecutor
     _execution_context_convertor: ExecutionContextConvertor
     _sqllab_ctas_no_limit: bool
-    _log_params: Optional[Dict[str, Any]] = None
+    _log_params: dict[str, Any] | None = None
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class ExecuteSqlCommand(BaseCommand):
         sql_json_executor: SqlJsonExecutor,
         execution_context_convertor: ExecutionContextConvertor,
         sqllab_ctas_no_limit_flag: bool,
-        log_params: Optional[Dict[str, Any]] = None,
+        log_params: dict[str, Any] | None = None,
     ) -> None:
         self._execution_context = execution_context
         self._query_dao = query_dao
@@ -122,7 +122,7 @@ class ExecuteSqlCommand(BaseCommand):
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
-    def _try_get_existing_query(self) -> Optional[Query]:
+    def _try_get_existing_query(self) -> Query | None:
         return self._query_dao.find_one_or_none(
             client_id=self._execution_context.client_id,
             user_id=self._execution_context.user_id,
@@ -130,7 +130,7 @@ class ExecuteSqlCommand(BaseCommand):
         )
 
     @classmethod
-    def is_query_handled(cls, query: Optional[Query]) -> bool:
+    def is_query_handled(cls, query: Query | None) -> bool:
         return query is not None and query.status in [
             QueryStatus.RUNNING,
             QueryStatus.PENDING,
@@ -166,7 +166,7 @@ class ExecuteSqlCommand(BaseCommand):
         return mydb
 
     @classmethod
-    def _validate_query_db(cls, database: Optional[Database]) -> None:
+    def _validate_query_db(cls, database: Database | None) -> None:
         if not database:
             raise SupersetGenericErrorException(
                 __(

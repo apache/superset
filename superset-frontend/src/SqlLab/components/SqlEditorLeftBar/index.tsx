@@ -29,7 +29,6 @@ import querystring from 'query-string';
 
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
@@ -142,7 +141,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -166,9 +164,9 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName =>
-      dispatch(addTable(queryEditor, database, tableName, schemaName)),
-    );
+    tablesToAdd.forEach(tableName => {
+      dispatch(addTable(queryEditor, tableName, schemaName));
+    });
 
     dispatch(removeTables(currentTables));
   };

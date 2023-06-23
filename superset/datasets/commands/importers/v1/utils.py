@@ -18,7 +18,7 @@ import gzip
 import json
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 from urllib import request
 
 import pandas as pd
@@ -62,15 +62,14 @@ def get_sqla_type(native_type: str) -> VisitableType:
     if native_type.upper() in type_map:
         return type_map[native_type.upper()]
 
-    match = VARCHAR.match(native_type)
-    if match:
+    if match := VARCHAR.match(native_type):
         size = int(match.group(1))
         return String(size)
 
     raise Exception(f"Unknown type: {native_type}")
 
 
-def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> Dict[str, VisitableType]:
+def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:
     return {
         column.column_name: get_sqla_type(column.type)
         for column in dataset.columns
@@ -102,7 +101,7 @@ def validate_data_uri(data_uri: str) -> None:
 
 def import_dataset(
     session: Session,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
     ignore_permissions: bool = False,

@@ -27,13 +27,13 @@ from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.chart import ChartDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +64,7 @@ class DeleteChartCommand(BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_chart_id(self._model_id)
-        if reports:
+        if reports := ReportScheduleDAO.find_by_chart_id(self._model_id):
             report_names = [report.name for report in reports]
             raise ChartDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))

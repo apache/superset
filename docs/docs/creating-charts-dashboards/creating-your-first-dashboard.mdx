@@ -31,28 +31,30 @@ to query and visualize data from it. If you're using Superset locally via
 skip this step because a Postgres database, named **examples**, is included and
 pre-configured in Superset for you.
 
-Under the **Data** menu, select the _Databases_ option:
+Under the **+** menu in the top right, select Data, and then the _Connect Database_ option:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_01_sources_database.png" )} />{" "} <br/><br/>
+<img src={useBaseUrl("/img/tutorial/tutorial_01_add_database_connection.png")} width="600" />{" "} <br/><br/>
 
-Next, click the green **+ Database** button in the top right corner:
+Then select your database type in the resulting modal:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_02_add_database.png" )} />{" "} <br/><br/>
+<img src={useBaseUrl("/img/tutorial/tutorial_02_select_database.png" )} width="600" />{" "} <br/><br/>
 
-You can configure a number of advanced options in this window, but for this walkthrough you only
-need to specify two things (the database name and SQLAlchemy URI):
+Once you've selected a database, you can configure a number of advanced options in this window,
+or for the purposes of this this walkthrough, you can click the link below all these fields:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_03_database_name.png" )} />
+<img src={useBaseUrl("/img/tutorial/tutorial_03a_database_connection_string_link.png" )} width="600" />{" "} <br/><br/>
 
-As noted in the text below
-the URI, you should refer to the SQLAlchemy documentation on
+Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
+
+
+<img src={useBaseUrl("/img/tutorial/tutorial_03b_connection_string_details.png" )} width="600" />{" "} <br/><br/>
+
+As noted in the text below the form, you should refer to the SQLAlchemy documentation on
 [creating new connection URIs](https://docs.sqlalchemy.org/en/12/core/engines.html#database-urls)
 for your target database.
 
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
-by clicking the **Add** button in the bottom right corner of the modal window:
-
-<img src={useBaseUrl("/img/tutorial/tutorial_04_add_button.png" )} />
+by clicking the **Connect** button in the bottom right corner of the modal window:
 
 Congratulations, you've just added a new data source in Superset!
 

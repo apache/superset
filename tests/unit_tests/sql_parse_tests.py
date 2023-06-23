@@ -16,8 +16,7 @@
 # under the License.
 # pylint: disable=invalid-name, redefined-outer-name, unused-argument, protected-access, too-many-lines
 
-import unittest
-from typing import Optional, Set
+from typing import Optional
 
 import pytest
 import sqlparse
@@ -40,7 +39,7 @@ from superset.sql_parse import (
 )
 
 
-def extract_tables(query: str) -> Set[Table]:
+def extract_tables(query: str) -> set[Table]:
     """
     Helper function to extract tables referenced in a query.
     """

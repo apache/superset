@@ -17,7 +17,7 @@
 import unittest.mock as mock
 from datetime import datetime
 from textwrap import dedent
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
 from sqlalchemy import column, table
@@ -50,8 +50,8 @@ from tests.unit_tests.fixtures.common import dttm
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -431,3 +431,17 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
             },
         )
     ]
+
+
+@pytest.mark.parametrize(
+    "name,expected_result",
+    [
+        ("col", "col"),
+        ("Col", "Col"),
+        ("COL", "COL"),
+    ],
+)
+def test_denormalize_name(name: str, expected_result: str):
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+
+    assert spec.denormalize_name(mssql.dialect(), name) == expected_result

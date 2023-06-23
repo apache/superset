@@ -15,26 +15,26 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.database import SSHTunnelDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelInvalidError,
     SSHTunnelRequiredFieldValidationError,
 )
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.extensions import db, event_logger
 
 logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
-    def __init__(self, database_id: int, data: Dict[str, Any]):
+    def __init__(self, database_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id
 
@@ -61,7 +61,7 @@ class CreateSSHTunnelCommand(BaseCommand):
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost
         # using the config.SSH_TUNNEL_MANAGER
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         database_id: Optional[int] = self._properties.get("database_id")
         server_address: Optional[str] = self._properties.get("server_address")
         server_port: Optional[int] = self._properties.get("server_port")
@@ -82,7 +82,7 @@ class CreateSSHTunnelCommand(BaseCommand):
             exceptions.append(SSHTunnelRequiredFieldValidationError("private_key"))
         if exceptions:
             exception = SSHTunnelInvalidError()
-            exception.add_list(exceptions)
+            exception.extend(exceptions)
             event_logger.log_with_context(
                 action="ssh_tunnel_creation_failed.{}.{}".format(
                     exception.__class__.__name__,

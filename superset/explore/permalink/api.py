@@ -32,7 +32,7 @@ from superset.datasets.commands.exceptions import (
 from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
-from superset.explore.permalink.schemas import ExplorePermalinkPostSchema
+from superset.explore.permalink.schemas import ExplorePermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -41,13 +41,13 @@ logger = logging.getLogger(__name__)
 
 
 class ExplorePermalinkRestApi(BaseSupersetApi):
-    add_model_schema = ExplorePermalinkPostSchema()
+    add_model_schema = ExplorePermalinkStateSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     allow_browser_login = True
     class_permission_name = "ExplorePermalinkRestApi"
     resource_name = "explore"
     openapi_spec_tag = "Explore Permanent Link"
-    openapi_spec_component_schemas = (ExplorePermalinkPostSchema,)
+    openapi_spec_component_schemas = (ExplorePermalinkStateSchema,)
 
     @expose("/permalink", methods=("POST",))
     @protect()

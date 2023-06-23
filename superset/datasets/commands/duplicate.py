@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from flask_babel import gettext as __
@@ -25,14 +25,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDuplicateFailedError,
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.extensions import db
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class DuplicateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, data: Dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         self._base_model: SqlaTable = SqlaTable()
         self._properties = data.copy()
 
@@ -105,7 +105,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         return table
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         base_model_id = self._properties["base_model_id"]
         duplicate_name = self._properties["table_name"]
 
@@ -128,6 +128,4 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(ex)
 
         if exceptions:
-            exception = DatasetInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise DatasetInvalidError(exceptions=exceptions)

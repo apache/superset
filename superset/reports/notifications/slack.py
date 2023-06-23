@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,8 +16,9 @@
 # under the License.
 import json
 import logging
+from collections.abc import Sequence
 from io import IOBase
-from typing import Sequence, Union
+from typing import Union
 
 import backoff
 from flask_babel import gettext as __

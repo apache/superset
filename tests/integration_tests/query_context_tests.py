@@ -16,7 +16,7 @@
 # under the License.
 import re
 import time
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
@@ -49,7 +49,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
-def get_sql_text(payload: Dict[str, Any]) -> str:
+def get_sql_text(payload: dict[str, Any]) -> str:
     payload["result_type"] = ChartDataResultType.QUERY.value
     query_context = ChartDataQueryContextSchema().load(payload)
     responses = query_context.get_payload()

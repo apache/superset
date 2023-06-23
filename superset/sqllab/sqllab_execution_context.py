@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from flask import g
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SqlResults = Dict[str, Any]
+SqlResults = dict[str, Any]
 
 
 @dataclass
@@ -45,7 +45,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     database_id: int
     schema: str
     sql: str
-    template_params: Dict[str, Any]
+    template_params: dict[str, Any]
     async_flag: bool
     limit: int
     status: str
@@ -53,14 +53,14 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     client_id_or_short_id: str
     sql_editor_id: str
     tab_name: str
-    user_id: Optional[int]
+    user_id: int | None
     expand_data: bool
-    create_table_as_select: Optional[CreateTableAsSelect]
-    database: Optional[Database]
+    create_table_as_select: CreateTableAsSelect | None
+    database: Database | None
     query: Query
-    _sql_result: Optional[SqlResults]
+    _sql_result: SqlResults | None
 
-    def __init__(self, query_params: Dict[str, Any]):
+    def __init__(self, query_params: dict[str, Any]):
         self.create_table_as_select = None
         self.database = None
         self._init_from_query_params(query_params)
@@ -70,7 +70,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def set_query(self, query: Query) -> None:
         self.query = query
 
-    def _init_from_query_params(self, query_params: Dict[str, Any]) -> None:
+    def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
@@ -90,7 +90,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def _get_template_params(query_params: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_template_params(query_params: dict[str, Any]) -> dict[str, Any]:
         try:
             template_params = json.loads(query_params.get("templateParams") or "{}")
         except json.JSONDecodeError:
@@ -102,7 +102,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         return template_params
 
     @staticmethod
-    def _get_limit_param(query_params: Dict[str, Any]) -> int:
+    def _get_limit_param(query_params: dict[str, Any]) -> int:
         limit = apply_max_row_limit(query_params.get("queryLimit") or 0)
         if limit < 0:
             logger.warning(
@@ -125,7 +125,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             schema_name = self._get_ctas_target_schema_name(database)
             self.create_table_as_select.target_schema_name = schema_name  # type: ignore
 
-    def _get_ctas_target_schema_name(self, database: Database) -> Optional[str]:
+    def _get_ctas_target_schema_name(self, database: Database) -> str | None:
         if database.force_ctas_schema:
             return database.force_ctas_schema
         return get_cta_schema_name(database, g.user, self.schema, self.sql)
@@ -134,10 +134,10 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         # TODO validate db.id is equal to self.database_id
         pass
 
-    def get_execution_result(self) -> Optional[SqlResults]:
+    def get_execution_result(self) -> SqlResults | None:
         return self._sql_result
 
-    def set_execution_result(self, sql_result: Optional[SqlResults]) -> None:
+    def set_execution_result(self, sql_result: SqlResults | None) -> None:
         self._sql_result = sql_result
 
     def create_query(self) -> Query:
@@ -178,15 +178,15 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         try:
             if hasattr(self, "query"):
                 if self.query.id:
-                    return "query '{}' - '{}'".format(self.query.id, self.query.sql)
+                    return f"query '{self.query.id}' - '{self.query.sql}'"
         except DetachedInstanceError:
             pass
-        return "query '{}'".format(self.sql)
+        return f"query '{self.sql}'"
 
 
 class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
     ctas_method: CtasMethod
-    target_schema_name: Optional[str]
+    target_schema_name: str | None
     target_table_name: str
 
     def __init__(
@@ -197,7 +197,7 @@ class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
         self.target_table_name = target_table_name
 
     @staticmethod
-    def create_from(query_params: Dict[str, Any]) -> CreateTableAsSelect:
+    def create_from(query_params: dict[str, Any]) -> CreateTableAsSelect:
         ctas_method = query_params.get("ctas_method", CtasMethod.TABLE)
         schema = cast(str, query_params.get("schema"))
         tmp_table_name = cast(str, query_params.get("tmp_table_name"))

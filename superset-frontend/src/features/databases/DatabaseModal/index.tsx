@@ -542,6 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     'database',
     t('database'),
     addDangerToast,
+    'connection',
   );
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
@@ -578,11 +579,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [extraExtensionComponentState, setExtraExtensionComponentState] =
+    useState<object>({});
 
   const SSHTunnelSwitchComponent =
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
   const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+
+  let dbConfigExtraExtension = extensionsRegistry.get(
+    'databaseconnection.extraOption',
+  );
+
+  if (dbConfigExtraExtension) {
+    // add method for db modal to store data
+    dbConfigExtraExtension = {
+      ...dbConfigExtraExtension,
+      onEdit: componentState => {
+        setExtraExtensionComponentState({
+          ...extraExtensionComponentState,
+          ...componentState,
+        });
+      },
+    };
+  }
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -715,6 +735,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
+    let dbConfigExtraExtensionOnSaveError;
+    dbConfigExtraExtension
+      ?.onSave(extraExtensionComponentState, db)
+      .then(({ error }: { error: any }) => {
+        if (error) {
+          dbConfigExtraExtensionOnSaveError = error;
+          addDangerToast(error);
+        }
+      });
+    if (dbConfigExtraExtensionOnSaveError) {
+      setLoading(false);
+      return;
+    }
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
@@ -803,6 +836,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (result) {
         if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -817,6 +862,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) onDatabaseAdd();
+        dbConfigExtraExtension
+          ?.onSave(extraExtensionComponentState, db)
+          .then(({ error }: { error: any }) => {
+            if (error) {
+              dbConfigExtraExtensionOnSaveError = error;
+              addDangerToast(error);
+            }
+          });
+        if (dbConfigExtraExtensionOnSaveError) {
+          setLoading(false);
+          return;
+        }
+
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save
@@ -1596,6 +1654,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!editNewDb) {
       return (
         <ExtraOptions
+          extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
           onInputChange={({ target }: { target: HTMLInputElement }) =>
             onChange(ActionType.inputChange, {
@@ -1807,6 +1866,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
+            extraExtension={dbConfigExtraExtension}
             db={db as DatabaseObject}
             onInputChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.inputChange, {

@@ -16,12 +16,14 @@
 # under the License.
 import json
 import re
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from marshmallow import fields, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.exceptions import SupersetException
+from superset.tags.models import TagTypes
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -112,6 +114,9 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
+    # global_chart_configuration keeps data about global cross-filter scoping
+    # for charts - can be overriden by chart_configuration for each chart
+    global_chart_configuration = fields.Dict()
     # filter_sets_configuration is for dashboard-native filters
     filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
@@ -139,9 +144,9 @@ class DashboardJSONMetadataSchema(Schema):
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Remove ``show_native_filters`` from the JSON metadata.
 
@@ -169,7 +174,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = EnumField(TagTypes, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
@@ -189,11 +194,10 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
     changed_by_name = fields.String()
-    changed_by_url = fields.String()
-    changed_by = fields.Nested(UserSchema)
+    changed_by = fields.Nested(UserSchema(exclude=(["username"])))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema))
+    owners = fields.List(fields.Nested(UserSchema(exclude=(["username"]))))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
@@ -249,7 +253,7 @@ class DashboardDatasetSchema(Schema):
 class BaseDashboardSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
-    def post_load(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")

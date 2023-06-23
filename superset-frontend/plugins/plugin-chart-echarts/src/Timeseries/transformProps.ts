@@ -17,10 +17,12 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
   CategoricalColorNamespace,
+  ensureIsArray,
   GenericDataType,
   getMetricLabel,
   getNumberFormatter,
@@ -36,6 +38,7 @@ import {
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
+  getOriginalSeries,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -50,14 +53,15 @@ import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
+  calculateLowerLogTick,
   currentSeries,
   dedupSeries,
+  extractDataTotalValues,
   extractSeries,
+  extractShowValueIndexes,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
-  extractDataTotalValues,
-  extractShowValueIndexes,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -196,20 +200,23 @@ export default function transformProps(
 
   const isMultiSeries = groupby.length || metrics.length > 1;
 
-  const [rawSeries, sortedTotalValues] = extractSeries(rebasedData, {
-    fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
-    xAxis: xAxisLabel,
-    extraMetricLabels,
-    stack,
-    totalStackedValues,
-    isHorizontal,
-    sortSeriesType,
-    sortSeriesAscending,
-    xAxisSortSeries: isMultiSeries ? xAxisSortSeries : undefined,
-    xAxisSortSeriesAscending: isMultiSeries
-      ? xAxisSortSeriesAscending
-      : undefined,
-  });
+  const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
+    rebasedData,
+    {
+      fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+      xAxis: xAxisLabel,
+      extraMetricLabels,
+      stack,
+      totalStackedValues,
+      isHorizontal,
+      sortSeriesType,
+      sortSeriesAscending,
+      xAxisSortSeries: isMultiSeries ? xAxisSortSeries : undefined,
+      xAxisSortSeriesAscending: isMultiSeries
+        ? xAxisSortSeriesAscending
+        : undefined,
+    },
+  );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
@@ -227,30 +234,43 @@ export default function transformProps(
     contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
   );
 
+  const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  const inverted = invert(verboseMap);
+
   rawSeries.forEach(entry => {
     const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
       ? { type: 'dashed' as ZRLineType }
       : {};
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area,
-      filterState,
-      seriesContexts,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      stack,
-      formatter,
-      showValue,
-      onlyTotal,
-      totalStackedValues: sortedTotalValues,
-      showValueIndexes,
-      thresholdValues,
-      richTooltip,
-      sliceId,
-      isHorizontal,
-      lineStyle,
-    });
+
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        filterState,
+        seriesContexts,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        stack,
+        formatter,
+        showValue,
+        onlyTotal,
+        totalStackedValues: sortedTotalValues,
+        showValueIndexes,
+        thresholdValues,
+        richTooltip,
+        sliceId,
+        isHorizontal,
+        lineStyle,
+      },
+    );
     if (transformedSeries) {
       if (stack === StackControlsValue.Stream) {
         // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0
@@ -342,6 +362,8 @@ export default function transformProps(
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
+  } else if (logAxis && min === undefined && minPositiveValue !== undefined) {
+    min = calculateLowerLogTick(minPositiveValue);
   }
 
   const tooltipFormatter =

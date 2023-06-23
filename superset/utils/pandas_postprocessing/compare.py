@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import Optional
 
 import pandas as pd
 from flask_babel import gettext as _
@@ -29,8 +29,8 @@ from superset.utils.pandas_postprocessing.utils import validate_column_args
 @validate_column_args("source_columns", "compare_columns")
 def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    source_columns: List[str],
-    compare_columns: List[str],
+    source_columns: list[str],
+    compare_columns: list[str],
     compare_type: PandasPostprocessingCompare,
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,

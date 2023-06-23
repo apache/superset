@@ -20,7 +20,6 @@
 import json
 import urllib.request
 from io import BytesIO
-from typing import Tuple
 from unittest import skipUnless
 from unittest.mock import ANY, call, MagicMock, patch
 
@@ -203,7 +202,7 @@ class TestThumbnails(SupersetTestCase):
     digest_return_value = "foo_bar"
     digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
 
-    def _get_id_and_thumbnail_url(self, url: str) -> Tuple[int, str]:
+    def _get_id_and_thumbnail_url(self, url: str) -> tuple[int, str]:
         rv = self.client.get(url)
         resp = json.loads(rv.data.decode("utf-8"))
         obj = resp["result"][0]
@@ -238,7 +237,12 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
         self.login(username="alpha")
-        with patch(
+        with patch.dict(
+            "superset.thumbnails.digest.current_app.config",
+            {
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+            },
+        ), patch(
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
@@ -305,7 +309,12 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async chart screenshot as selenium user
         """
         self.login(username="alpha")
-        with patch(
+        with patch.dict(
+            "superset.thumbnails.digest.current_app.config",
+            {
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+            },
+        ), patch(
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value

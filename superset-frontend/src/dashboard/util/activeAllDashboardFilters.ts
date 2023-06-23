@@ -21,8 +21,7 @@ import {
   PartialFilters,
   JsonObject,
 } from '@superset-ui/core';
-import { ActiveFilters } from '../types';
-import { ChartConfiguration } from '../reducers/types';
+import { ActiveFilters, ChartConfiguration } from '../types';
 
 export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,

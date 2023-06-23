@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
@@ -28,6 +28,7 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.tags.models import TagTypes
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -152,7 +153,7 @@ openapi_spec_methods_override = {
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = fields.String()
+    type = EnumField(TagTypes, by_value=True)
 
 
 class ChartEntityResponseSchema(Schema):
@@ -163,7 +164,7 @@ class ChartEntityResponseSchema(Schema):
     id = fields.Integer(metadata={"description": id_description})
     slice_name = fields.String(metadata={"description": slice_name_description})
     cache_timeout = fields.Integer(metadata={"description": cache_timeout_description})
-    changed_on = fields.String(metadata={"description": changed_on_description})
+    changed_on = fields.DateTime(metadata={"description": changed_on_description})
     description = fields.String(metadata={"description": description_description})
     description_markeddown = fields.String(
         metadata={"description": description_markeddown_description}
@@ -192,7 +193,7 @@ class ChartPostSchema(Schema):
     viz_type = fields.String(
         metadata={
             "description": viz_type_description,
-            "example": ["bar", "line_multi", "area", "table"],
+            "example": ["bar", "area", "table"],
         },
         validate=Length(0, 250),
     )
@@ -253,7 +254,7 @@ class ChartPutSchema(Schema):
     viz_type = fields.String(
         metadata={
             "description": viz_type_description,
-            "example": ["bar", "line_multi", "area", "table"],
+            "example": ["bar", "area", "table"],
         },
         allow_none=True,
         validate=Length(0, 250),
@@ -290,6 +291,7 @@ class ChartPutSchema(Schema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.Nested(TagSchema, many=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -979,14 +981,6 @@ class ChartDataExtrasSchema(Schema):
             "AND operator."
         },
     )
-    having_druid = fields.List(
-        fields.Nested(ChartDataFilterSchema),
-        metadata={
-            "description": "HAVING filters to be added to legacy Druid datasource "
-            "queries. This field is deprecated",
-            "deprecated": True,
-        },
-    )
     time_grain_sqla = fields.String(
         metadata={
             "description": "To what level of granularity should the temporal column be "
@@ -1157,10 +1151,7 @@ class ChartDataQueryObjectSchema(Schema):
     )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
-        metadata={
-            "description": "Name of temporal column used for time filtering. "
-            "For legacy Druid datasources this defines the time grain."
-        },
+        metadata={"description": "Name of temporal column used for time filtering. "},
         allow_none=True,
     )
     granularity_sqla = fields.String(
@@ -1339,26 +1330,6 @@ class ChartDataQueryObjectSchema(Schema):
         },
         allow_none=True,
     )
-    having_filters = fields.List(
-        fields.Nested(ChartDataFilterSchema),
-        metadata={
-            "description": "HAVING filters to be added to legacy Druid datasource "
-            "queries. This field is deprecated and should be passed to `extras` "
-            "as `having_druid`.",
-            "deprecated": True,
-        },
-        allow_none=True,
-    )
-    druid_time_origin = fields.String(
-        metadata={
-            "description": "Starting point for time grain counting on legacy Druid "
-            "datasources. Used to change e.g. Monday/Sunday first-day-of-week. "
-            "This field is deprecated and should be passed to `extras` "
-            "as `druid_time_origin`.",
-            "deprecated": True,
-        },
-        allow_none=True,
-    )
     url_params = fields.Dict(
         metadata={
             "description": "Optional query parameters passed to a dashboard or Explore "
@@ -1381,7 +1352,7 @@ class ChartDataQueryObjectSchema(Schema):
 
 
 class ChartDataQueryContextSchema(Schema):
-    query_context_factory: Optional[QueryContextFactory] = None
+    query_context_factory: QueryContextFactory | None = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
     custom_cache_timeout = fields.Integer(
@@ -1405,7 +1376,7 @@ class ChartDataQueryContextSchema(Schema):
 
     # pylint: disable=unused-argument
     @post_load
-    def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
+    def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
@@ -1586,7 +1557,45 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
+class ChartCacheWarmUpRequestSchema(Schema):
+    chart_id = fields.Integer(
+        required=True,
+        metadata={"description": "The ID of the chart to warm up cache for"},
+    )
+    dashboard_id = fields.Integer(
+        metadata={
+            "description": "The ID of the dashboard to get filters for when warming cache"
+        }
+    )
+    extra_filters = fields.String(
+        metadata={"description": "Extra filters to apply when warming up cache"}
+    )
+
+
+class ChartCacheWarmUpResponseSingleSchema(Schema):
+    chart_id = fields.Integer(
+        metadata={"description": "The ID of the chart the status belongs to"}
+    )
+    viz_error = fields.String(
+        metadata={"description": "Error that occurred when warming cache for chart"}
+    )
+    viz_status = fields.String(
+        metadata={"description": "Status of the underlying query for the viz"}
+    )
+
+
+class ChartCacheWarmUpResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartCacheWarmUpResponseSingleSchema),
+        metadata={
+            "description": "A list of each chart's warmup status and errors if any"
+        },
+    )
+
+
 CHART_SCHEMAS = (
+    ChartCacheWarmUpRequestSchema,
+    ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,

@@ -15,31 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.commands.exceptions import (
     DashboardBulkDeleteFailedError,
     DashboardBulkDeleteFailedReportsExistError,
     DashboardForbiddenError,
     DashboardNotFoundError,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
 
 class BulkDeleteDashboardCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[Dashboard]] = None
+        self._models: Optional[list[Dashboard]] = None
 
     def run(self) -> None:
         self.validate()
@@ -56,8 +56,7 @@ class BulkDeleteDashboardCommand(BaseCommand):
         if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_dashboard_ids(self._model_ids)
-        if reports:
+        if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise DashboardBulkDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))

@@ -23,7 +23,6 @@ from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
-from operator import itemgetter
 
 import prison
 import pytest
@@ -52,7 +51,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
@@ -1805,10 +1803,10 @@ class TestDatabaseApi(SupersetTestCase):
             schemas = [
                 s[0] for s in database.get_all_table_names_in_schema(schema_name)
             ]
-            self.assertEquals(response["count"], len(schemas))
+            self.assertEqual(response["count"], len(schemas))
             for option in response["result"]:
-                self.assertEquals(option["extra"], None)
-                self.assertEquals(option["type"], "table")
+                self.assertEqual(option["extra"], None)
+                self.assertEqual(option["type"], "table")
                 self.assertTrue(option["value"] in schemas)
 
     def test_database_tables_not_found(self):
@@ -3619,44 +3617,3 @@ class TestDatabaseApi(SupersetTestCase):
             return
         self.assertEqual(rv.status_code, 422)
         self.assertIn("Kaboom!", response["errors"][0]["message"])
-
-    @mock.patch(
-        "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
-    )
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_all_datasources")
-    def test_schemas_access_for_csv_upload_not_found_endpoint(
-        self,
-        mock_can_access_all_datasources,
-        mock_can_access_database,
-        mock_schemas_accessible,
-    ):
-        self.login(username="gamma")
-        self.create_fake_db()
-        mock_can_access_database.return_value = False
-        mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
-        rv = self.client.get(f"/api/v1/database/120ff/schemas_access_for_file_upload")
-        self.assertEqual(rv.status_code, 404)
-        self.delete_fake_db()
-
-    @mock.patch(
-        "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
-    )
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_database")
-    @mock.patch("superset.security.SupersetSecurityManager.can_access_all_datasources")
-    def test_schemas_access_for_csv_upload_endpoint(
-        self,
-        mock_can_access_all_datasources,
-        mock_can_access_database,
-        mock_schemas_accessible,
-    ):
-        self.login(username="admin")
-        dbobj = self.create_fake_db()
-        mock_can_access_all_datasources.return_value = False
-        mock_can_access_database.return_value = False
-        mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
-        data = self.get_json_resp(
-            url=f"/api/v1/database/{dbobj.id}/schemas_access_for_file_upload"
-        )
-        assert data == {"schemas": ["this_schema_is_allowed_too"]}
-        self.delete_fake_db()

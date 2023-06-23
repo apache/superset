@@ -21,7 +21,7 @@ import logging
 import uuid
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable
 
 import sqlalchemy as sqla
 from flask_appbuilder import Model
@@ -49,7 +49,7 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -67,9 +67,7 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(
-    _mapper: Mapper, connection: Connection, target: "Dashboard"
-) -> None:
+def copy_dashboard(_mapper: Mapper, connection: Connection, target: Dashboard) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
@@ -145,12 +143,13 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices: List[Slice] = relationship(
+    slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     tags = relationship(
         "Tag",
+        overlaps="objects,tag,tags,tags",
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
@@ -186,14 +185,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return f"/superset/dashboard/{self.slug or self.id}/"
 
     @staticmethod
-    def get_url(id_: int, slug: Optional[str] = None) -> str:
+    def get_url(id_: int, slug: str | None = None) -> str:
         # To be able to generate URL's without instanciating a Dashboard object
         return f"/superset/dashboard/{slug or id_}/"
 
     @property
-    def datasources(self) -> Set[BaseDatasource]:
+    def datasources(self) -> set[BaseDatasource]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        datasources_by_cls_model: Dict[Type["BaseDatasource"], Set[int]] = defaultdict(
+        datasources_by_cls_model: dict[type[BaseDatasource], set[int]] = defaultdict(
             set
         )
 
@@ -209,14 +208,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         }
 
     @property
-    def filter_sets(self) -> Dict[int, FilterSet]:
+    def filter_sets(self) -> dict[int, FilterSet]:
         return {fs.id: fs for fs in self._filter_sets}
 
     @property
-    def filter_sets_lst(self) -> Dict[int, FilterSet]:
+    def filter_sets_lst(self) -> dict[int, FilterSet]:
         if security_manager.is_admin():
             return self._filter_sets
-        filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
+        filter_sets_by_owner_type: dict[str, list[Any]] = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
             filter_sets_by_owner_type[fs.owner_type].append(fs)
         user_filter_sets = list(
@@ -231,7 +230,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         }
 
     @property
-    def charts(self) -> List[str]:
+    def charts(self) -> list[str]:
         return [slc.chart for slc in self.slices]
 
     @property
@@ -271,13 +270,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return str(self.changed_by)
 
     @property
-    def changed_by_url(self) -> str:
-        if not self.changed_by:
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
-
-    @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         positions = self.position_json
         if positions:
             positions = json.loads(positions)
@@ -301,16 +294,16 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
+    def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: Dict[
-            Tuple[Type["BaseDatasource"], int], Set[Slice]
+        slices_by_datasource: dict[
+            tuple[type[BaseDatasource], int], set[Slice]
         ] = defaultdict(set)
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
 
-        result: List[Dict[str, Any]] = []
+        result: list[dict[str, Any]] = []
 
         for (cls_model, datasource_id), slices in slices_by_datasource.items():
             datasource = (
@@ -332,7 +325,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         self.json_metadata = value
 
     @property
-    def position(self) -> Dict[str, Any]:
+    def position(self) -> dict[str, Any]:
         if self.position_json:
             return json.loads(self.position_json)
         return {}
@@ -376,7 +369,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: List[int]
+        cls, dashboard_ids: list[int]
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
@@ -409,7 +402,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 slices.append(copied_slc)
 
             json_metadata = json.loads(dashboard.json_metadata)
-            native_filter_configuration: List[Dict[str, Any]] = json_metadata.get(
+            native_filter_configuration: list[dict[str, Any]] = json_metadata.get(
                 "native_filter_configuration", []
             )
             for native_filter in native_filter_configuration:
@@ -445,12 +438,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         )
 
     @classmethod
-    def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
+    def get(cls, id_or_slug: str | int) -> Dashboard:
         qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 
-def is_uuid(value: Union[str, int]) -> bool:
+def is_uuid(value: str | int) -> bool:
     try:
         uuid.UUID(str(value))
         return True
@@ -458,7 +451,7 @@ def is_uuid(value: Union[str, int]) -> bool:
         return False
 
 
-def is_int(value: Union[str, int]) -> bool:
+def is_int(value: str | int) -> bool:
     try:
         int(value)
         return True
@@ -466,7 +459,7 @@ def is_int(value: Union[str, int]) -> bool:
         return False
 
 
-def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
+def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
     if is_int(id_or_slug):
         return Dashboard.id == int(id_or_slug)
     if is_uuid(id_or_slug):
@@ -486,7 +479,7 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     def clear_dashboard_cache(
         _mapper: Mapper,
         _connection: Connection,
-        obj: Union[Slice, BaseDatasource, Dashboard],
+        obj: Slice | BaseDatasource | Dashboard,
         check_modified: bool = True,
     ) -> None:
         if check_modified and not object_session(obj).is_modified(obj):

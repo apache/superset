@@ -27,7 +27,8 @@ revision = "f1410ed7ec95"
 down_revision = "d416d0d715cc"
 
 import json
-from typing import Any, Dict, Iterable, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
@@ -46,7 +47,7 @@ class Dashboard(Base):
     json_metadata = Column(Text)
 
 
-def upgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
+def upgrade_filters(native_filters: Iterable[dict[str, Any]]) -> int:
     """
     Move `defaultValue` into `defaultDataMask.filterState`
     """
@@ -61,7 +62,7 @@ def upgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
     return changed_filters
 
 
-def downgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
+def downgrade_filters(native_filters: Iterable[dict[str, Any]]) -> int:
     """
     Move `defaultDataMask.filterState` into `defaultValue`
     """
@@ -76,12 +77,11 @@ def downgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
     return changed_filters
 
 
-def upgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
+def upgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
     # upgrade native select filter metadata
-    native_filters = dashboard.get("native_filter_configuration")
-    if native_filters:
+    if native_filters := dashboard.get("native_filter_configuration"):
         changed_filters += upgrade_filters(native_filters)
 
     # upgrade filter sets
@@ -120,11 +120,10 @@ def upgrade():
     print(f"Upgraded {changed_filters} filters and {changed_filter_sets} filter sets.")
 
 
-def downgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
+def downgrade_dashboard(dashboard: dict[str, Any]) -> tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
-    native_filters = dashboard.get("native_filter_configuration")
-    if native_filters:
+    if native_filters := dashboard.get("native_filter_configuration"):
         changed_filters += downgrade_filters(native_filters)
 
     # upgrade filter sets

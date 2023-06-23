@@ -22,11 +22,11 @@ from dateutil import parser
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
+from superset.daos.report import ReportScheduleDAO
 from superset.extensions import celery_app
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
-from superset.reports.dao import ReportScheduleDAO
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
 from superset.utils.core import LoggerLevel

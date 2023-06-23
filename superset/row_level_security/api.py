@@ -24,14 +24,13 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import app
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     RolesNotFoundValidationError,
 )
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
 from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
 from superset.row_level_security.commands.create import CreateRLSRuleCommand
@@ -44,11 +43,13 @@ from superset.row_level_security.schemas import (
     RLSPutSchema,
     RLSShowSchema,
 )
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedRoles
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,10 @@ class RLSRestApi(BaseSupersetModelRestApi):
     edit_model_schema = RLSPutSchema()
 
     allowed_rel_fields = {"tables", "roles"}
-    base_related_field_filters = app.config["RLS_BASE_RELATED_FIELD_FILTERS"]
+    base_related_field_filters = {
+        "tables": [["id", DatasourceFilter, lambda: []]],
+        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+    }
 
     @expose("/", methods=("POST",))
     @protect()

@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
@@ -53,12 +53,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         cls,
         database: Database,
         table_name: str,
-        schema_name: Optional[str],
-    ) -> Dict[str, Any]:
+        schema_name: str | None,
+    ) -> dict[str, Any]:
         metadata = {}
 
-        indexes = database.get_indexes(table_name, schema_name)
-        if indexes:
+        if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -69,21 +68,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             metadata["partitions"] = {
                 "cols": sorted(
                     list(
-                        set(
+                        {
                             column_name
                             for index in indexes
                             if index.get("name") == "partition"
                             for column_name in index.get("column_names", [])
-                        )
+                        }
                     )
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=(
-                        f"{schema_name}.{table_name}"
-                        if schema_name and "." not in table_name
-                        else table_name
-                    ),
+                    table_name=table_name,
                     schema=schema_name,
                     indexes=indexes,
                     database=database,
@@ -100,9 +95,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def update_impersonation_config(
         cls,
-        connect_args: Dict[str, Any],
+        connect_args: dict[str, Any],
         uri: str,
-        username: Optional[str],
+        username: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -123,7 +118,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls, url: URL, impersonate_user: bool, username: str | None
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -136,11 +131,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return url
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 
     @classmethod
-    def get_tracking_url(cls, cursor: Cursor) -> Optional[str]:
+    def get_tracking_url(cls, cursor: Cursor) -> str | None:
         try:
             return cursor.info_uri
         except AttributeError:
@@ -154,8 +149,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
-        tracking_url = cls.get_tracking_url(cursor)
-        if tracking_url:
+        if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled
@@ -205,7 +199,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return True
 
     @staticmethod
-    def get_extra_params(database: Database) -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
@@ -213,9 +207,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
         """
-        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
-        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
-        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
 
         connect_args.setdefault("source", USER_AGENT)
 
@@ -228,7 +222,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
-        params: Dict[str, Any],
+        params: dict[str, Any],
     ) -> None:
         if not database.encrypted_extra:
             return
@@ -268,7 +262,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise ex
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 

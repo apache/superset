@@ -59,7 +59,7 @@ def upgrade():
                     {
                         "annotationType": "INTERVAL",
                         "style": "solid",
-                        "name": "Layer {}".format(layer),
+                        "name": f"Layer {layer}",
                         "show": True,
                         "overrides": {"since": None, "until": None},
                         "value": layer,

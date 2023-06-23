@@ -79,8 +79,7 @@ class Api(BaseSupersetView):
         params: slice_id: integer
         """
         form_data = {}
-        slice_id = request.args.get("slice_id")
-        if slice_id:
+        if slice_id := request.args.get("slice_id"):
             slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()

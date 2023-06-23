@@ -20,7 +20,7 @@ import re
 from datetime import datetime, timedelta
 from functools import lru_cache
 from time import struct_time
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
 import parsedatetime
@@ -75,7 +75,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
     return dttm
 
 
-def normalize_time_delta(human_readable: str) -> Dict[str, int]:
+def normalize_time_delta(human_readable: str) -> dict[str, int]:
     x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long,useless-suppression
     matched = re.match(x_unit, human_readable, re.IGNORECASE)
     if not matched:
@@ -149,7 +149,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+) -> tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -227,7 +227,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         ]
 
         since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
-        since_and_until: List[Optional[str]] = []
+        since_and_until: list[Optional[str]] = []
         for part in since_and_until_partition:
             if not part:
                 # if since or until is "", set as None

@@ -150,7 +150,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             groupby: column.groupby,
             is_active: column.is_active,
             is_dttm: column.is_dttm,
-            python_date_format: column.python_date_format,
+            python_date_format: column.python_date_format || null,
             uuid: column.uuid,
             extra: buildExtraJsonObject(column),
           }),

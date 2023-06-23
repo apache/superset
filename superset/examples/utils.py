@@ -17,7 +17,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from pkg_resources import resource_isdir, resource_listdir, resource_stream
@@ -42,13 +42,13 @@ def load_examples_from_configs(
     command.run()
 
 
-def load_contents(load_test_data: bool = False) -> Dict[str, Any]:
+def load_contents(load_test_data: bool = False) -> dict[str, Any]:
     """Traverse configs directory and load contents"""
     root = Path("examples/configs")
     resource_names = resource_listdir("superset", str(root))
     queue = [root / resource_name for resource_name in resource_names]
 
-    contents: Dict[Path, str] = {}
+    contents: dict[Path, str] = {}
     while queue:
         path_name = queue.pop()
         test_re = re.compile(r"\.test\.|metadata\.yaml$")
@@ -74,7 +74,7 @@ def load_configs_from_directory(
     """
     Load all the examples from a given directory.
     """
-    contents: Dict[str, str] = {}
+    contents: dict[str, str] = {}
     queue = [root]
     while queue:
         path_name = queue.pop()
