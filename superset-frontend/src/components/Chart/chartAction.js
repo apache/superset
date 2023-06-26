@@ -488,7 +488,9 @@ export function exploreJSON(
 
     // only retrieve annotations when calling the legacy API
     const [useLegacyApi] = getQuerySettings(formData);
-    const annotationLayers = useLegacyApi ? formData.annotation_layers : [];
+    const annotationLayers = useLegacyApi
+      ? formData.annotation_layers || []
+      : [];
     const isDashboardRequest = dashboardId > 0;
 
     return Promise.all([
