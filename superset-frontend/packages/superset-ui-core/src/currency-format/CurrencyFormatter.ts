@@ -58,7 +58,7 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   getNormalizedD3Format() {
-    return this.d3Format.replace('$', '').replace('%', '');
+    return this.d3Format.replace(/\$|%/g, '');
   }
 
   format(value: number) {
