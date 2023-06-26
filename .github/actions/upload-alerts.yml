@@ -1,0 +1,19 @@
+name: Upload Alerts
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: choice
+        description: Which environment to use
+        options:
+        - prod-rh
+        - dev-rh
+jobs:
+  upload-alerts:
+    name: "Uploading alerts to ${{inputs.profile}}"
+    uses: careem/shared-workflows/.github/workflows/devx-k8s-alerts.yml@master
+    secrets: inherit
+    with:
+      service-name: ${{ vars.SERVICE_NAME }}
+      profile: ${{inputs.profile}}

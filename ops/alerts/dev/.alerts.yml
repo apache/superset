@@ -1,0 +1,59 @@
+---
+groups:
+- name: careem-insights
+  rules:
+  - alert: "[careem-insights] Disk High"
+    expr: |
+      100 * (max(container_fs_usage_bytes{namespace="careem-insights",pod=~".*-primary-.*"}) by (pod,container)) / max(kube_pod_container_resource_limits{namespace="careem-insights", pod=~".*-primary-.*",resource="ephemeral_storage",job="kubernetes-service-endpoints-slow"}) by (pod,container) > 70
+    for: 2m
+    labels:
+      slack_channel: chat-bdp
+      incident: global
+      resolve: "true"
+      severity: critical
+      team: bdp-team
+    annotations:
+      dashboard: https://argus-monitoring.careem-engineering.com
+      summary: Disk Usage is {{ $value | printf "%.2f"}}% > 65%
+  - alert: "[careem-insights] CPU High"
+    expr: |
+      100 * sum by (pod,container) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_rate{namespace="careem-insights",pod=~".*-primary-.*"})
+      /
+      sum by (pod,container) (kube_pod_container_resource_limits_cpu_cores{namespace="careem-insights",pod=~".*-primary-.*",job="kubernetes-service-endpoints-slow"}) > 90
+    for: 2m
+    labels:
+      slack_channel: chat-bdp
+      incident: global
+      resolve: "true"
+      severity: critical
+      team: bdp-team
+    annotations:
+      dashboard: https://argus-monitoring.careem-engineering.com
+      summary: CPU usage is high {{ $value | printf "%.2f"}}% > 70%
+  - alert: "[careem-insights] Memory High"
+    expr: |
+      100 * max(container_memory_working_set_bytes{namespace="careem-insights",pod=~".*-primary-.*"}) by (pod,container)
+      /
+      max(kube_pod_container_resource_limits_memory_bytes{namespace="careem-insights",pod=~".*-primary-.*",job="kubernetes-service-endpoints-slow"}) by (pod,container) > 90
+    for: 2m
+    labels:
+      slack_channel: chat-bdp
+      incident: global
+      resolve: "true"
+      severity: critical
+      team: bdp-team
+    annotations:
+      dashboard: https://argus-monitoring.careem-engineering.com
+      summary: Memory usage critically high {{ $value | printf "%.2f"}}% > 70%
+  - alert: "[careem-insights] Latency p99 High"
+    expr: 'histogram_quantile(0.99,sum(rate(http_server_requests_seconds_bucket{service="careem-insights"}[1m])) by (le)) > 1'
+    for: 3m
+    labels:
+      slack_channel: chat-bdp
+      incident: global
+      resolve: "true"
+      severity: critical
+      team: bdp-team
+    annotations:
+      dashboard: https://argus-monitoring.careem-engineering.com
+      summary: p99 latency is {{ $value | printf "%.2f"}} > 1s

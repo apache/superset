@@ -1,0 +1,85 @@
+---
+groups:
+- name: careem-insights-recording-rules
+  rules:
+  - record: rr:http_server_requests_seconds_quantile:p99:5m
+    expr: |
+      histogram_quantile(0.99, sum by (le,name,uri,resultedProvider) (rate(http_server_requests_seconds_bucket{c_service="careem-insights", c_team="bdp-team"}[5m])))
+    labels:
+      team: bdp-team
+
+  - record: rr:http_server_requests_seconds_quantile:p95:5m
+    expr: |
+      histogram_quantile(0.95, sum by (le,name,uri,resultedProvider) (rate(http_server_requests_seconds_bucket{c_service="careem-insights", c_team="bdp-team"}[5m])))
+    labels:
+      team: bdp-team
+
+  - record: rr:http_server_requests_seconds_quantile:p50:5m
+    expr: |
+      histogram_quantile(0.50, sum by (le,name,uri,resultedProvider) (rate(http_server_requests_seconds_bucket{c_service="careem-insights", c_team="bdp-team"}[5m])))
+    labels:
+      team: bdp-team
+
+  - record: rr:http_server_requests_seconds_rate:5m
+    expr: |
+      sum by (name,uri,status,resultedProvider) (rate(http_server_requests_seconds_count{c_service="careem-insights, c_team="bdp-team"}[5m]))
+    labels:
+      team: bdp-team
+
+      #################################
+      #  Anomaly Detection Rules      #
+      #################################
+
+  - record: flash_api_web_throughput_rate5m
+    expr: 'sum(rate(http_server_requests_seconds_count{c_service="careem-insights"}[5m]))'
+    labels:
+      team: bdp-team
+  - record: flash_api_web_throughput_rate5m_offset
+    expr: 'sum(rate(http_server_requests_seconds_count{c_service="careem-insights"}[5m] offset 1w))'
+    labels:
+      team: bdp-team
+      offset: 1w
+  - record: flash_api_web_throughput_rate5m_offset
+    expr: 'sum(rate(http_server_requests_seconds_count{c_service="careem-insights}[5m] offset 2w))'
+    labels:
+      team: bdp-team
+      offset: 2w
+  - record: flash_api_web_throughput_rate5m_offset
+    expr: 'sum(rate(http_server_requests_seconds_count{c_service="careem-insights"}[5m] offset 3w))'
+    labels:
+      team: bdp-team
+      offset: 3w
+  - record: flash_api_web_throughput_rate5m_avg_over_time_1w
+    expr: 'avg_over_time(flash_api_web_throughput_rate5m[1w])'
+    labels:
+      team: bdp-team
+  - record: flash_api_web_throughput_rate5m_avg_over_time_1w_offset_1w
+    expr: 'avg_over_time(flash_api_web_throughput_rate5m[1w] offset 1w)'
+    labels:
+      team: bdp-team
+  - record: flash_api_web_throughput_prediction_5m
+    expr: 'flash_api_web_throughput_rate5m + flash_api_web_throughput_rate5m_avg_over_time_1w - flash_api_web_throughput_rate5m_avg_over_time_1w_offset_1w'
+    labels:
+      team: bdp-team
+      #extended version of the above query
+  - record: flash_api_web_throughput_pred_5m_median
+    expr: |
+      quantile(0.5,
+           label_replace(
+             avg_over_time(flash_api_web_throughput_rate5m[4h] offset 166h)
+             + flash_api_web_throughput_rate5m_avg_over_time_1w - flash_api_web_throughput_rate5m_avg_over_time_1w offset 1w
+             , "offset", "1w", "", "")
+           or
+           label_replace(
+             avg_over_time(flash_api_web_throughput_rate5m[4h] offset 334h)
+             + flash_api_web_throughput_rate5m_avg_over_time_1w - flash_api_web_throughput_rate5m_avg_over_time_1w offset 2w
+             , "offset", "2w", "", "")
+           or
+           label_replace(
+             avg_over_time(flash_api_web_throughput_rate5m[4h] offset 502h)
+             + flash_api_web_throughput_rate5m_avg_over_time_1w - flash_api_web_throughput_rate5m_avg_over_time_1w offset 3w
+             , "offset", "3w", "", "")
+         )
+         without (offset)
+    labels:
+      team: bdp-team
