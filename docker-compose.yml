@@ -44,7 +44,7 @@ services:
     container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5434:5433"
     volumes:
       - db_home:/var/lib/postgresql/data
 
