@@ -17,16 +17,12 @@
  * under the License.
  */
 
-import { t, ChartMetadata } from '@superset-ui/core';
-import thumbnail from './images/thumbnail.png';
+import { TS_REGEX } from './normalizeTimestamp';
 
-export const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
-
-export default function createMetadata(useLegacyApi = false) {
-  return new ChartMetadata({
-    description: '',
-    name: t('Line Chart'),
-    thumbnail,
-    useLegacyApi,
-  });
+export default function normalizeTimestamp(value: string): string {
+  const match = value.match(TS_REGEX);
+  if (match) {
+    return `${match[1]}T${match[2]}`;
+  }
+  return value;
 }

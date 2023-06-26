@@ -24,6 +24,7 @@ import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { denormalizeTimestamp } from '@superset-ui/core';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -61,7 +62,7 @@ const store = mockStore({
     queries: {
       LCly_kkIN: {
         cached: false,
-        changedOn: Date.now(),
+        changed_on: denormalizeTimestamp(new Date().toISOString()),
         db: 'main',
         dbId: 1,
         id: 'LCly_kkIN',
@@ -71,7 +72,7 @@ const store = mockStore({
       },
       lXJa7F9_r: {
         cached: false,
-        changedOn: 1559238500401,
+        changed_on: denormalizeTimestamp(new Date(1559238500401).toISOString()),
         db: 'main',
         dbId: 1,
         id: 'lXJa7F9_r',
@@ -80,7 +81,7 @@ const store = mockStore({
       },
       '2g2_iRFMl': {
         cached: false,
-        changedOn: 1559238506925,
+        changed_on: denormalizeTimestamp(new Date(1559238506925).toISOString()),
         db: 'main',
         dbId: 1,
         id: '2g2_iRFMl',
@@ -89,7 +90,7 @@ const store = mockStore({
       },
       erWdqEWPm: {
         cached: false,
-        changedOn: 1559238516395,
+        changed_on: denormalizeTimestamp(new Date(1559238516395).toISOString()),
         db: 'main',
         dbId: 1,
         id: 'erWdqEWPm',

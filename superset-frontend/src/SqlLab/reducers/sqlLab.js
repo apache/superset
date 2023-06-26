@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryState, t } from '@superset-ui/core';
+import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
@@ -729,8 +729,10 @@ export default function sqlLabReducer(state = {}, action) {
           (state.queries[id].state !== QueryState.STOPPED &&
             state.queries[id].state !== QueryState.FAILED)
         ) {
-          if (changedQuery.changedOn > queriesLastUpdate) {
-            queriesLastUpdate = changedQuery.changedOn;
+          const changedOn = normalizeTimestamp(changedQuery.changed_on);
+          const timestamp = Date.parse(changedOn);
+          if (timestamp > queriesLastUpdate) {
+            queriesLastUpdate = timestamp;
           }
           const prevState = state.queries[id]?.state;
           const currentState = changedQuery.state;
