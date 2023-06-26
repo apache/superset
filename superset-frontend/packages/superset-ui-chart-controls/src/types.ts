@@ -21,6 +21,7 @@ import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
+  Currency,
   DatasourceType,
   JsonObject,
   JsonValue,
@@ -31,7 +32,6 @@ import type {
   QueryResponse,
 } from '@superset-ui/core';
 import { sharedControls, sharedControlComponents } from './shared-controls';
-import { Currency } from '@superset-ui/core';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlFormItemSpec } from './components/ControlForm';
