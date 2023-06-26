@@ -21,6 +21,7 @@ import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
+import denormalizeTimestamp from './utils/denormalizeTimestamp';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -708,7 +709,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',
-  changed_on: new Date().toISOString(),
+  changed_on: denormalizeTimestamp(new Date().toISOString()),
   database_name: `db ${i}`,
   explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
