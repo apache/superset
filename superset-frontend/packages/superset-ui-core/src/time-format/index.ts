@@ -37,5 +37,6 @@ export { default as smartDateDetailedFormatter } from './formatters/smartDateDet
 export { default as smartDateVerboseFormatter } from './formatters/smartDateVerbose';
 
 export { default as normalizeTimestamp } from './utils/normalizeTimestamp';
+export { default as denormalizeTimestamp } from './utils/denormalizeTimestamp';
 
 export * from './types';
