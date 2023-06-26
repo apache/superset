@@ -176,15 +176,14 @@ export class EchartsChartPlugin<
   P extends ChartProps = ChartProps,
 > extends ChartPlugin<T, P> {
   constructor(props: any) {
-    const { metadata } = props;
-    const mergedProps = {
-      ...props,
+    const { metadata, ...restProps } = props;
+    super({
+      ...restProps,
       metadata: new ChartMetadata({
         parseMethod: 'json',
         ...metadata,
       }),
-    };
-    super(mergedProps);
+    });
   }
 }
 

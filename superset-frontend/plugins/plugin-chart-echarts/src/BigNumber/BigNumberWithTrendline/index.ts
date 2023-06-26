@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, Behavior } from '@superset-ui/core';
+import { t, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
@@ -28,7 +28,7 @@ import {
 } from '../types';
 import { EchartsChartPlugin } from '../../types';
 
-const metadata = new ChartMetadata({
+const metadata = {
   category: t('KPI'),
   description: t(
     'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
@@ -46,7 +46,7 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   behaviors: [Behavior.DRILL_TO_DETAIL],
-});
+};
 
 export default class BigNumberWithTrendlineChartPlugin extends EchartsChartPlugin<
   BigNumberWithTrendlineFormData,
