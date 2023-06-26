@@ -94,6 +94,7 @@ setup(
         "hashids>=1.3.1, <2",
         "holidays>=0.23, <0.24",
         "humanize",
+        "importlib_metadata",
         "isodate",
         "Mako>=1.2.2",
         "markdown>=3.0",
