@@ -68,7 +68,6 @@ class ValidateSQLCommand(BaseCommand):
                 errors = self._validator.validate(sql, schema, self._model)
             return [err.to_dict() for err in errors]
         except Exception as ex:
-            logger.exception(ex)
             superset_error = SupersetError(
                 message=__(
                     "%(validator)s was unable to check your query.\n"

@@ -1652,6 +1652,9 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    "trino": "PrestoDBSQLValidator",
+    "mysql": "PrestoDBSQLValidator",
+    "druid" : "PrestoDBSQLValidator"
 }
 
 # A list of preferred databases, in order. These databases will be
@@ -1663,6 +1666,8 @@ PREFERRED_DATABASES: List[str] = [
     "Presto",
     "MySQL",
     "SQLite",
+    "Trino",
+    "Druid"
     # etc.
 ]
 # When adding a new database we try to connect to it. Depending on which parameters are

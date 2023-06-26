@@ -37,12 +37,14 @@ export interface FlashObject {
 }
 
 export interface FlashUpdateOwnership {
+  updatedBy: string;
   owner: string;
   teamSlackChannel: string;
   teamSlackHandle: string;
 }
 
 export interface FlashUpdateType {
+  updatedBy: string;
   flashType: string;
   teamSlackChannel: string;
   teamSlackHandle: string;
@@ -52,11 +54,13 @@ export interface FlashUpdateType {
 }
 
 export interface FlashExtendTtl {
+  updatedBy?: string;
   ttl: string;
 }
 
 export interface FlashUpdateQuery {
   sqlQuery: string;
+  updatedBy: string;
 }
 
 export interface FlashValidateQuery {
@@ -64,6 +68,7 @@ export interface FlashValidateQuery {
 }
 
 export interface FlashUpdateSchedule {
+  updatedBy: string;
   scheduleType: string;
   scheduleStartTime: string;
 }

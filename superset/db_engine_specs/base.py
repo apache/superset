@@ -630,7 +630,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
         """
-
         :param cursor: Cursor instance
         :param limit: Maximum number of rows to be returned by the cursor
         :return: Result of query

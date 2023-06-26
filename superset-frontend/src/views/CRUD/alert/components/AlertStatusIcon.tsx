@@ -48,9 +48,11 @@ function getStatusColor(
 export default function AlertStatusIcon({
   state,
   isReportEnabled = false,
+  onClickEvent = () => {},
 }: {
   state: string;
   isReportEnabled: boolean;
+  onClickEvent?: any;
 }) {
   const theme = useTheme();
   const lastStateConfig = {
@@ -100,13 +102,16 @@ export default function AlertStatusIcon({
   const Icon = lastStateConfig.icon;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <Icon
-        iconColor={getStatusColor(
-          lastStateConfig.status,
-          isReportEnabled,
-          theme,
-        )}
-      />
+      <span role="button" tabIndex={0} onClick={onClickEvent || undefined}>
+        <Icon
+          iconSize="xxl"
+          iconColor={getStatusColor(
+            lastStateConfig.status,
+            isReportEnabled,
+            theme,
+          )}
+        />
+      </span>
     </Tooltip>
   );
 }

@@ -58,6 +58,7 @@ import {
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { PeriodType } from 'react-js-cron/dist/cjs/types';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { ERROR_MESSAGES } from './constants';
@@ -587,6 +588,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onSave = async () => {
+    if (currentAlert && currentAlert?.sql && !isReport) {
+      const isQueryInvalid = await validateSqlQuery(currentAlert?.sql);
+      if (isQueryInvalid) {
+        return;
+      }
+    }
     // Notification Settings
     setInvalidInputs({ invalid: false, emailError: '', voError: '' });
     const recipients: Recipient[] = [];
@@ -915,6 +922,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onSQLChange = (value: string) => {
     updateAlertState('sql', value || '');
   };
+
+  const validateSqlQuery = (sql: string) =>
+    SupersetClient.post({
+      endpoint: `/api/v1/database/${currentAlert?.database?.value}/validate_sql/`,
+      body: JSON.stringify({ sql }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(({ json }) => {
+        if (json && json.result && json.result.length > 0) {
+          addDangerToast(
+            t('Sql Query is not valid: %s', json?.result[0].message),
+          );
+          return true;
+        }
+
+        return false;
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(error => {
+          const apiError = error?.error
+            ? error?.error
+            : ERROR_MESSAGES.CONTACT_ADMINISTRATOR;
+          addDangerToast(t(apiError));
+        });
+        return true;
+      });
 
   const onOwnersChange = (value: Array<SelectValue>) => {
     updateAlertState('owners', value || []);
@@ -1321,6 +1354,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   initialValue={resource?.sql}
                   key={currentAlert?.id}
                 />
+                <div className="helper">Only select statements are allowed</div>
               </StyledInputContainer>
               <div className="inline-container wrap">
                 <StyledInputContainer>
