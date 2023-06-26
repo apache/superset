@@ -31,8 +31,8 @@ from alembic import op
 
 
 def upgrade():
-    op.add_column("metrics", sa.Column("currency", sa.String(), nullable=True))
-    op.add_column("sql_metrics", sa.Column("currency", sa.String(), nullable=True))
+    op.add_column("metrics", sa.Column("currency", sa.String(128), nullable=True))
+    op.add_column("sql_metrics", sa.Column("currency", sa.String(128), nullable=True))
 
 
 def downgrade():
