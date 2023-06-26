@@ -19,9 +19,13 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
+import {
+  DatasourceType,
+  denormalizeTimestamp,
+  QueryResponse,
+  QueryState,
+} from '@superset-ui/core';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
-import denormalizeTimestamp from './utils/denormalizeTimestamp';
 
 export const mockedActions = sinon.stub({ ...actions });
 

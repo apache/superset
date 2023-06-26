@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,6 +17,12 @@
  * under the License.
  */
 
-export default function denormalizeTimestamp(value: string): string {
-  return value.replace('Z', '');
+import { TS_REGEX } from './normalizeTimestamp';
+
+export default function normalizeTimestamp(value: string): string {
+  const match = value.match(TS_REGEX);
+  if (match) {
+    return `${match[1]}T${match[2]}`;
+  }
+  return value;
 }

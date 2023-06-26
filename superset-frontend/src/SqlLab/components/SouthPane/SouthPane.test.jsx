@@ -24,7 +24,7 @@ import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import denormalizeTimestamp from 'src/SqlLab/utils/denormalizeTimestamp';
+import { denormalizeTimestamp } from '@superset-ui/core';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
