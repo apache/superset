@@ -19,6 +19,7 @@
 import React, {
   MouseEvent,
   Key,
+  KeyboardEvent,
   ReactChild,
   useState,
   useCallback,
@@ -271,7 +272,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     domEvent,
   }: {
     key: Key;
-    domEvent: MouseEvent<HTMLElement>;
+    domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:

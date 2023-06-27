@@ -152,12 +152,7 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
   }
 `;
 
-export declare type MenuMode =
-  | 'vertical'
-  | 'vertical-left'
-  | 'vertical-right'
-  | 'horizontal'
-  | 'inline';
+export declare type MenuMode = 'vertical' | 'horizontal' | 'inline';
 
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,

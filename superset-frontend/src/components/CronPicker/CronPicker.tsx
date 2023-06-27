@@ -105,7 +105,7 @@ export const LOCALE: Locale = {
 
 export const CronPicker = styled((props: CronProps) => (
   <ConfigProvider
-    getPopupContainer={trigger => trigger.parentElement as HTMLElement}
+    getPopupContainer={trigger => trigger?.parentElement as HTMLElement}
   >
     <ReactCronPicker locale={LOCALE} {...props} />
   </ConfigProvider>

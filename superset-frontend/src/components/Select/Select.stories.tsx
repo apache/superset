@@ -192,6 +192,7 @@ export const InteractiveSelect = ({
       width: DEFAULT_WIDTH,
     }}
   >
+    {/* @ts-ignore */}
     <Select
       {...args}
       options={

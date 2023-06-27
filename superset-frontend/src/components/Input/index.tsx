@@ -17,7 +17,13 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd';
+import {
+  Input as AntdInput,
+  InputNumber as AntdInputNumber,
+  InputRef,
+} from 'antd';
+
+export { InputRef };
 
 export const Input = styled(AntdInput)`
   border: 1px solid ${({ theme }) => theme.colors.secondary.light3};

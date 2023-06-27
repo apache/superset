@@ -95,7 +95,7 @@ describe('ImportModelsModal', () => {
           fileList: [],
           file: {
             name: 'model_export.zip',
-            originFileObj: file,
+            originFileObj: file as any,
             uid: '-1',
             size: 0,
             type: 'zip',
@@ -116,7 +116,7 @@ describe('ImportModelsModal', () => {
           fileList: [],
           file: {
             name: 'model_export.zip',
-            originFileObj: file,
+            originFileObj: file as any,
             uid: '-1',
             size: 0,
             type: 'zip',

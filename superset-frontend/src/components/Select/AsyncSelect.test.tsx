@@ -314,10 +314,10 @@ test('ignores case when searching', async () => {
 test('same case should be ranked to the top', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [
-      { value: 'Cac' },
-      { value: 'abac' },
-      { value: 'acbc' },
-      { value: 'CAc' },
+      { value: 'Cac', label: 'Cac' },
+      { value: 'abac', label: 'abac' },
+      { value: 'acbc', label: 'acbc' },
+      { value: 'CAc', label: 'CAc' },
     ],
     totalCount: 4,
   }));

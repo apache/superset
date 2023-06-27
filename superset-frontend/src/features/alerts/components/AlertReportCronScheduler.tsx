@@ -19,7 +19,7 @@
 import React, { useState, useCallback, useRef, FocusEvent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, RadioChangeEvent } from 'src/components';
+import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
@@ -33,7 +33,7 @@ export interface AlertReportCronSchedulerProps {
 export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
-    const inputRef = useRef<AntdInput>(null);
+    const inputRef = useRef<any>(null);
     const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
       'picker',
     );

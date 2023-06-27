@@ -276,6 +276,7 @@ export const AsynchronousSelect = ({
       >
         <AsyncSelect
           {...rest}
+          // @ts-ignore
           ref={ref}
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}

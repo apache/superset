@@ -19,6 +19,7 @@
 import React, {
   forwardRef,
   ReactElement,
+  Ref,
   RefObject,
   UIEvent,
   useEffect,
@@ -29,7 +30,11 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import { ensureIsArray, t } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import {
+  RefSelectProps,
+  LabeledValue as AntdLabeledValue,
+  LabeledValue,
+} from 'antd/lib/select';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
@@ -50,7 +55,7 @@ import {
 } from './utils';
 import {
   AsyncSelectProps,
-  AsyncSelectRef,
+  RawValue,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
@@ -130,10 +135,18 @@ const AsyncSelect = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: AsyncSelectProps,
-    ref: RefObject<AsyncSelectRef>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
-    const [selectValue, setSelectValue] = useState(value);
+    const [selectValue, setSelectValue] = useState(
+      value as
+        | string
+        | number
+        | LabeledValue
+        | LabeledValue[]
+        | RawValue[]
+        | undefined,
+    );
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [error, setError] = useState('');
@@ -142,7 +155,9 @@ const AsyncSelect = forwardRef(
     const [totalCount, setTotalCount] = useState(0);
     const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
-    const selectValueRef = useRef(selectValue);
+    const selectValueRef = useRef<
+      string | number | LabeledValue | LabeledValue[] | RawValue[] | undefined
+    >(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
     const mappedMode = isSingleMode
       ? undefined
@@ -435,7 +450,7 @@ const AsyncSelect = forwardRef(
     }, [options]);
 
     useEffect(() => {
-      setSelectValue(value);
+      setSelectValue(value as LabeledValue);
     }, [value]);
 
     // Stop the invocation of the debounced function after unmounting
@@ -468,7 +483,8 @@ const AsyncSelect = forwardRef(
     useImperativeHandle(
       ref,
       () => ({
-        ...(ref.current as HTMLInputElement),
+        // @ts-ignore
+        ...ref?.current,
         clearCache,
       }),
       [ref],

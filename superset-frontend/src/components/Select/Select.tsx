@@ -24,6 +24,7 @@ import React, {
   useMemo,
   useState,
   useCallback,
+  Ref,
 } from 'react';
 import {
   ensureIsArray,
@@ -31,7 +32,10 @@ import {
   NumberFormats,
   t,
 } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import AntdSelect, {
+  RefSelectProps,
+  LabeledValue as AntdLabeledValue,
+} from 'antd/lib/select';
 import { isEqual } from 'lodash';
 import {
   getValue,
@@ -111,11 +115,18 @@ const Select = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
-    ref: RefObject<HTMLInputElement>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;
-    const [selectValue, setSelectValue] = useState(value);
+    const [selectValue, setSelectValue] = useState(
+      value as
+        | string
+        | number
+        | AntdLabeledValue
+        | AntdLabeledValue[]
+        | undefined,
+    );
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -221,7 +232,7 @@ const Select = forwardRef(
       if (isSingleMode) {
         setSelectValue(selectedItem);
       } else {
-        setSelectValue(previousState => {
+        setSelectValue((previousState: any) => {
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
@@ -235,7 +246,7 @@ const Select = forwardRef(
             return [
               SELECT_ALL_VALUE,
               ...selectAllEligible.map(opt => opt.value),
-            ] as AntdLabeledValue[];
+            ];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -265,7 +276,7 @@ const Select = forwardRef(
             labelInValue
               ? { label: option.label, value: option.value }
               : option.value,
-          ),
+          ) as AntdLabeledValue[],
       );
     };
 
@@ -363,7 +374,14 @@ const Select = forwardRef(
     }, [isLoading, loading]);
 
     useEffect(() => {
-      setSelectValue(value);
+      setSelectValue(
+        value as
+          | string
+          | number
+          | AntdLabeledValue
+          | AntdLabeledValue[]
+          | undefined,
+      );
     }, [value]);
 
     useEffect(() => {
@@ -392,7 +410,7 @@ const Select = forwardRef(
           labelInValue ? option : option.value,
         );
         optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
-        setSelectValue(optionsToSelect);
+        setSelectValue(optionsToSelect as AntdLabeledValue[]);
       }
     }, [selectValue, selectAllMode, labelInValue, selectAllEligible]);
 

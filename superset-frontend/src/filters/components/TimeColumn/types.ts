@@ -22,7 +22,8 @@ import {
   FilterState,
   QueryFormData,
 } from '@superset-ui/core';
-import { RefObject } from 'react';
+import { Ref, RefObject } from 'react';
+import { RefSelectProps } from 'antd/lib/select';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeColumnCustomizeProps {
@@ -39,7 +40,7 @@ export type PluginFilterTimeColumnProps = PluginFilterStylesProps & {
   data: DataRecord[];
   filterState: FilterState;
   formData: PluginFilterTimeColumnQueryFormData;
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: Ref<RefSelectProps>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeColumnCustomizeProps = {

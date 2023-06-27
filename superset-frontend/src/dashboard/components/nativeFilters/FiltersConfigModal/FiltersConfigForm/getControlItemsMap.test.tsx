@@ -29,6 +29,7 @@ jest.mock('./utils', () => ({
   setNativeFilterFieldValues: jest.fn(),
 }));
 
+// @ts-ignore
 const formMock: FormInstance = {
   __INTERNAL__: { itemRef: () => () => {} },
   scrollToField: () => {},

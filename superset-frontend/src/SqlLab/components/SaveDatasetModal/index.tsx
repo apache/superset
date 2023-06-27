@@ -49,7 +49,7 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { SelectValue } from 'antd/lib/select';
+import { DefaultOptionType, SelectValue } from 'antd/lib/select';
 import { isEmpty, isString } from 'lodash';
 
 interface QueryDatabase {
@@ -347,8 +347,12 @@ export const SaveDatasetModal = ({
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { value: string; datasetid: number },
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
+    option: DefaultOptionType,
+  ) =>
+    option?.value
+      ?.toString()
+      .toLowerCase()
+      .includes(inputValue.toLowerCase()) || false;
 
   return (
     <StyledModal

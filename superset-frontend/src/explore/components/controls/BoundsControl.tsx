@@ -71,11 +71,11 @@ export default function BoundsControl({
     setMinMax([parseNumber(min), parseNumber(max)]);
   }, [min, max]);
 
-  const onMinChange = (value: number | string | undefined) => {
+  const onMinChange = (value: number | string | null) => {
     update([parseNumber(value), minMax[1]]);
   };
 
-  const onMaxChange = (value: number | string | undefined) => {
+  const onMaxChange = (value: number | string | null) => {
     update([minMax[0], parseNumber(value)]);
   };
 

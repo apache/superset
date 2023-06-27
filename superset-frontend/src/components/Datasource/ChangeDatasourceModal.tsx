@@ -35,8 +35,7 @@ import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
-import { AntdInput } from 'src/components';
-import { Input } from 'src/components/Input';
+import { Input, InputRef } from 'src/components/Input';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
@@ -109,7 +108,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [sortBy, setSortBy] = useState<SortByType>(DATASET_SORT_BY);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
-  const searchRef = useRef<AntdInput>(null);
+  const searchRef = useRef<InputRef>(null);
 
   const {
     state: { loading, resourceCollection, resourceCount },

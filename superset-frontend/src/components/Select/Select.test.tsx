@@ -295,10 +295,10 @@ test('same case should be ranked to the top', async () => {
     <Select
       {...defaultProps}
       options={[
-        { value: 'Cac' },
-        { value: 'abac' },
-        { value: 'acbc' },
-        { value: 'CAc' },
+        { value: 'Cac', label: 'Cac' },
+        { value: 'abac', label: 'abac' },
+        { value: 'acbc', label: 'acbc' },
+        { value: 'CAc', label: 'CAc' },
       ]}
     />,
   );

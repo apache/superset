@@ -20,11 +20,6 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Select, { SelectProps } from 'antd/lib/select';
 
-export type {
-  OptionType as NativeSelectOptionType,
-  SelectProps as NativeSelectProps,
-} from 'antd/lib/select';
-
 const StyledNativeSelect = styled((props: SelectProps<any>) => (
   <Select getPopupContainer={(trigger: any) => trigger.parentNode} {...props} />
 ))`

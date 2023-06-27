@@ -33,7 +33,7 @@ import {
 } from 'react-select';
 import type { colors as reactSelectColors } from 'react-select/src/theme';
 import type { DeepNonNullable } from 'react-select/src/components';
-import { OptionType } from 'antd/lib/select';
+import OptionType from 'antd/lib/select';
 import { SupersetStyledSelectProps } from './DeprecatedSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
@@ -314,7 +314,7 @@ export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
   autoComplete?: string;
-  onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
+  onPaste?: SupersetStyledSelectProps<typeof OptionType>['onPaste'];
   inputStyle?: object;
 };
 
