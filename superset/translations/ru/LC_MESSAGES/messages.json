@@ -1937,7 +1937,7 @@
       "Customize": ["Настроить"],
       "rows retrieved": ["строк получено"],
       "Sorry, An error occurred": ["Извините, произошла ошибка"],
-      "No data": ["Метаданные"],
+      "No data": ["Данных нет"],
       "View samples": ["Посмотреть примеры"],
       "Search Metrics & Columns": ["Столбцы Временных Рядов"],
       "Showing %s of %s": [""],
@@ -2736,7 +2736,11 @@
       "Minimum": ["Минимум"],
       "Exact": ["Точное"],
       "Maximum": ["Максимум"],
-      "Values dependent on": ["Значения зависят от"]
+      "Values dependent on": ["Значения зависят от"],
+      "One_dashboard": ["дашборд"],
+      "Two_to_4_dashboards": ["дашборда"],
+      "Five_and_more_dashboards": ["дашбордов"],
+      "Added_to": ["Добавлен в"]
     }
   }
 }

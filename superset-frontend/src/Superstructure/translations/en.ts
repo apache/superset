@@ -1862,6 +1862,10 @@ const en = {
       'Limit selector values': [''],
       'These filters apply to the values available in the dropdowns': [''],
       'Time-series Table': [''],
+      One_dashboard: ['dashboard'],
+      Two_to_4_dashboards: ['dashboards'],
+      Five_and_more_dashboards: ['dashboards'],
+      Added_to: ['Added to'],
     },
   },
 };

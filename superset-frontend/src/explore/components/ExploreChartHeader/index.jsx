@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -36,6 +19,15 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import {
+  TitlePanelAdditionalItemsWrapper,
+  BaseTooltip,
+  DashboardsWrapper,
+  FundProjectIcon,
+  ChartUsageContainer,
+  StyledUl,
+  StyledLi,
+} from './styles';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -60,6 +52,63 @@ const saveButtonStyles = theme => css`
   }
 `;
 
+const textForms = [
+  t('One_dashboard'),
+  t('Two_to_4_dashboards'),
+  t('Five_and_more_dashboards'),
+];
+
+const declOfNum = (n, textForms) => {
+  const n2 = Math.abs(n) % 100;
+  const n1 = n % 10;
+  if (n2 > 10 && n2 < 20) {
+    return textForms[2];
+  }
+  if (n1 > 1 && n1 < 5) {
+    return textForms[1];
+  }
+  if (n1 === 1) {
+    return textForms[0];
+  }
+  return textForms[2];
+};
+const parseDashboardsData = dashboardsData => ({
+  text: `${t('Added_to')} ${dashboardsData.length} ${declOfNum(
+    dashboardsData.length,
+    textForms,
+  )}`,
+  tooltipText: (
+    <StyledUl>
+      {dashboardsData.map(dashboard => (
+        <StyledLi>
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={`${window.location.origin}/superset/dashboard/${dashboard.id}`}
+          >
+            {dashboard.dashboard_title}
+          </a>
+        </StyledLi>
+      ))}
+    </StyledUl>
+  ),
+});
+
+const ChartUsageWrapper = ({ dashboardsData }) => (
+  <ChartUsageContainer>
+    <BaseTooltip
+      placement="right"
+      id="tooltipTextDashboards"
+      title={dashboardsData.tooltipText}
+    >
+      <DashboardsWrapper>
+        <FundProjectIcon />
+        <span className="metadata-text">{dashboardsData.text}</span>
+      </DashboardsWrapper>
+    </BaseTooltip>
+  </ChartUsageContainer>
+);
+
 export const ExploreChartHeader = ({
   dashboardId,
   slice,
@@ -78,6 +127,7 @@ export const ExploreChartHeader = ({
 }) => {
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+  const [dashboardsData, setDashboardsData] = useState(null);
 
   const fetchChartDashboardData = async () => {
     await SupersetClient.get({
@@ -91,6 +141,8 @@ export const ExploreChartHeader = ({
             dashboardId &&
             dashboards.length &&
             dashboards.find(d => d.id === dashboardId);
+
+          if (dashboards && dashboards.length) setDashboardsData(dashboards);
 
           if (dashboard && dashboard.json_metadata) {
             // setting the chart to use the dashboard custom label colors if any
@@ -118,9 +170,25 @@ export const ExploreChartHeader = ({
       .catch(() => {});
   };
 
+  const fetchChartDashboardsData = async () => {
+    await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}`,
+    })
+      .then(res => {
+        const response = res?.json?.result;
+        if (response && response.dashboards && response.dashboards.length) {
+          const { dashboards } = response;
+          if (dashboards && dashboards.length) setDashboardsData(dashboards);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (dashboardId) {
       fetchChartDashboardData();
+    } else {
+      fetchChartDashboardsData();
     }
   }, []);
 
@@ -170,16 +238,23 @@ export const ExploreChartHeader = ({
           showTooltip: true,
         }}
         titlePanelAdditionalItems={
-          sliceFormData ? (
-            <AlteredSliceTag
-              className="altered"
-              origFormData={{
-                ...sliceFormData,
-                chartTitle: oldSliceName,
-              }}
-              currentFormData={{ ...formData, chartTitle: sliceName }}
-            />
-          ) : null
+          <TitlePanelAdditionalItemsWrapper>
+            {sliceFormData ? (
+              <AlteredSliceTag
+                className="altered"
+                origFormData={{
+                  ...sliceFormData,
+                  chartTitle: oldSliceName,
+                }}
+                currentFormData={{ ...formData, chartTitle: sliceName }}
+              />
+            ) : null}
+            {dashboardsData && dashboardsData.length && (
+              <ChartUsageWrapper
+                dashboardsData={parseDashboardsData(dashboardsData)}
+              />
+            )}
+          </TitlePanelAdditionalItemsWrapper>
         }
         rightPanelAdditionalItems={
           <Tooltip
