@@ -30,7 +30,6 @@ from superset.views.utils import get_dashboard_extra_filters, get_form_data, get
 
 
 class ChartWarmUpCacheCommand(BaseCommand):
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         chart_or_id: Union[int, Slice],
