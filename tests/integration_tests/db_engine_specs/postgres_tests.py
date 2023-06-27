@@ -501,7 +501,6 @@ def test_base_parameters_mixin():
             "database": {"type": "string", "description": "Database name"},
             "port": {
                 "type": "integer",
-                "format": "int32",
                 "minimum": 0,
                 "maximum": 65536,
                 "description": "Database port",
