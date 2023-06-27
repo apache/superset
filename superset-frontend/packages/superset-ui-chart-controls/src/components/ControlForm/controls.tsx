@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-import { Slider, InputNumber, Input } from 'antd';
+import { Slider, InputNumber } from 'antd';
 import Checkbox, { CheckboxProps } from 'antd/lib/checkbox';
+import Input, { InputProps, InputRef } from 'antd/lib/input/';
 import Select, { SelectOption } from '../Select';
 import RadioButtonControl, {
   RadioButtonOption,
@@ -27,7 +28,11 @@ import RadioButtonControl, {
 export const ControlFormItemComponents = {
   Slider,
   InputNumber,
-  Input,
+  // Directly export Input will result in "using name from external module" error
+  // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
+  Input: Input as React.ForwardRefExoticComponent<
+    InputProps & React.RefAttributes<InputRef>
+  >,
   Select,
   // Directly export Checkbox will result in "using name from external module" error
   // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
