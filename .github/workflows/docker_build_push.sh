@@ -96,6 +96,17 @@ DOCKER_BUILDKIT=1 docker build --target dev \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
 
+#
+# Build the dockerize image
+#
+DOCKER_BUILDKIT=1 docker build \
+  -t "${REPO_NAME}:dockerize" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  -f dockerize.Dockerfile \
+  .
+
 if [ -z "${DOCKERHUB_TOKEN}" ]; then
   # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
   echo "Skipping Docker push"

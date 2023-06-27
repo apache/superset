@@ -183,8 +183,8 @@ image:
 imagePullSecrets: []
 
 initImage:
-  repository: jwilder/dockerize
-  tag: latest
+  repository: apache/superset
+  tag: dockerize
   pullPolicy: IfNotPresent
 
 service:
