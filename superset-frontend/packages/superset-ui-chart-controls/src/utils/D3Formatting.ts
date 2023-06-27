@@ -6,9 +6,7 @@ import {
   getNumberFormatterRegistry,
   PREVIEW_VALUE,
   SUPPORTED_CURRENCIES_LOCALES_ARRAY,
-  SUPPORTED_LOCALES_ARRAY,
   D3_CURRENCIES_LOCALES,
-  D3_LOCALES,
 } from '@superset-ui/core';
 
 // D3 specific formatting config
@@ -19,18 +17,15 @@ export const D3_FORMAT_DOCS = t(
 const d3Currencies = (): [string, string][] =>
   SUPPORTED_CURRENCIES_LOCALES_ARRAY.map(localeName => {
     const { id, code } = D3_CURRENCIES_LOCALES[localeName];
-    const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
-    return [id, `${code} (${PREVIEW_VALUE} => ${preview})`];
-  });
+    let displayName = '';
 
-const d3Locales = (): [string, string][] =>
-  SUPPORTED_LOCALES_ARRAY.map(localeName => {
-    const { id, code } = D3_LOCALES[localeName];
-    const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
-    return [id, `${code} (${PREVIEW_VALUE} => ${preview})`];
-  });
+    // special format for formatting values with a russian locale, but without a russian currency
+    if (code === 'RUS') displayName = t('With space');
+    else displayName = code;
 
-console.log(d3Locales());
+    const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
+    return [id, `${displayName} (${PREVIEW_VALUE} => ${preview})`];
+  });
 
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
