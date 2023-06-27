@@ -23,7 +23,6 @@ from typing import Any, TYPE_CHECKING
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
-from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -153,7 +152,7 @@ openapi_spec_methods_override = {
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = EnumField(TagTypes, by_value=True)
+    type = fields.Enum(TagTypes, by_value=True)
 
 
 class ChartEntityResponseSchema(Schema):
@@ -1127,7 +1126,7 @@ class ChartDataQueryObjectSchema(Schema):
         unknown = EXCLUDE
 
     datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
-    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
+    result_type = fields.Enum(ChartDataResultType, by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -1369,8 +1368,8 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
-    result_type = EnumField(ChartDataResultType, by_value=True)
-    result_format = EnumField(ChartDataResultFormat, by_value=True)
+    result_type = fields.Enum(ChartDataResultType, by_value=True)
+    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 
     form_data = fields.Raw(allow_none=True, required=False)
 

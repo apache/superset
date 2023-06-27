@@ -25,7 +25,6 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
@@ -254,7 +253,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         values=fields.Raw(),
         metadata={"description": "DB-specific parameters for configuration"},
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         metadata={"description": configuration_method_description},
@@ -387,7 +386,7 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         required=True,
