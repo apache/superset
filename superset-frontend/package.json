@@ -240,7 +240,7 @@
     "@storybook/builder-webpack5": "^6.4.22",
     "@storybook/client-api": "^6.4.22",
     "@storybook/manager-webpack5": "^6.4.22",
-    "@storybook/react": "^7.0.7",
+    "@storybook/react": "^6.4.22",
     "@svgr/webpack": "^5.5.0",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.11.6",
