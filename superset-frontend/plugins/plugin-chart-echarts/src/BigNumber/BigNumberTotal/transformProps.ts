@@ -22,7 +22,6 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import {
-  getNumberFormatter,
   GenericDataType,
   getMetricLabel,
   extractTimegrain,
@@ -31,10 +30,7 @@ import {
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../../utils/buildCustomFormatters';
+import { getFormatter } from '../../utils/buildCustomFormatters';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
@@ -79,16 +75,12 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter =
-    getCustomFormatter(
-      buildCustomFormatters(
-        metric,
-        currencyFormats,
-        columnFormats,
-        yAxisFormat,
-      ),
-      metric,
-    ) ?? getNumberFormatter(yAxisFormat);
+  const numberFormatter = getFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+  );
 
   const headerFormatter =
     coltypes[0] === GenericDataType.TEMPORAL ||

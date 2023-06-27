@@ -34,7 +34,7 @@ import { isFeatureEnabled } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -66,7 +66,6 @@ interface DatasourceModalProps {
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
   show: boolean;
-  currencies: string[];
 }
 
 function buildExtraJsonObject(item: Record<string, unknown>) {
@@ -89,7 +88,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   onDatasourceSave,
   onHide,
   show,
-  currencies,
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState({
     ...datasource,
@@ -98,6 +96,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currency: JSON.parse(metric.currency || 'null'),
     })),
   });
+  const currencies = useSelector<
+    {
+      common: {
+        currencies: string[];
+      };
+    },
+    string[]
+  >(state => state.common?.currencies);
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -323,7 +329,4 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   );
 };
 
-const mapStateToProp = (state: { common: { currencies: string[] } }) => ({
-  currencies: state?.common?.currencies,
-});
-export default connect(mapStateToProp)(withToasts(DatasourceModal));
+export default withToasts(DatasourceModal);

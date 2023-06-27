@@ -24,11 +24,10 @@ import {
   getMetricLabel,
   t,
   smartDateVerboseFormatter,
-  NumberFormatter,
   TimeFormatter,
   getXAxisLabel,
   Metric,
-  CurrencyFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -40,18 +39,12 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../../utils/buildCustomFormatters';
+import { getFormatter } from '../../utils/buildCustomFormatters';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
   formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue:
-    | CurrencyFormatter
-    | NumberFormatter
-    | TimeFormatter = defaultNumberFormatter,
+  formatValue: ValueFormatter | TimeFormatter = defaultNumberFormatter,
 ) {
   return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
     return `
@@ -182,16 +175,12 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter =
-    getCustomFormatter(
-      buildCustomFormatters(
-        metric,
-        currencyFormats,
-        columnFormats,
-        yAxisFormat,
-      ),
-      metric,
-    ) ?? getNumberFormatter(yAxisFormat);
+  const numberFormatter = getFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+  );
 
   const headerFormatter =
     metricColtype === GenericDataType.TEMPORAL ||

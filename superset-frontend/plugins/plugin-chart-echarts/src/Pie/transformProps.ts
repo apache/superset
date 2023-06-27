@@ -18,14 +18,13 @@
  */
 import {
   CategoricalColorNamespace,
-  CurrencyFormatter,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  NumberFormatter,
   t,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -48,10 +47,7 @@ import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../utils/buildCustomFormatters';
+import { getFormatter } from '../utils/buildCustomFormatters';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -63,7 +59,7 @@ export function formatPieLabel({
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   labelType: EchartsPieLabelType;
-  numberFormatter: NumberFormatter | CurrencyFormatter;
+  numberFormatter: ValueFormatter;
   sanitizeName?: boolean;
 }): string {
   const { name: rawName = '', value, percent } = params;
@@ -210,16 +206,12 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter =
-    getCustomFormatter(
-      buildCustomFormatters(
-        metric,
-        currencyFormats,
-        columnFormats,
-        numberFormat,
-      ),
-      metric,
-    ) ?? getNumberFormatter(numberFormat);
+  const numberFormatter = getFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
 
   let totalValue = 0;
 

@@ -21,7 +21,6 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
-  getNumberFormatter,
   getMetricLabel,
   getColumnLabel,
 } from '@superset-ui/core';
@@ -47,10 +46,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../utils/buildCustomFormatters';
+import { getFormatter } from '../utils/buildCustomFormatters';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -140,16 +136,12 @@ export default function transformProps(
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const numberFormatter =
-    getCustomFormatter(
-      buildCustomFormatters(
-        metric,
-        currencyFormats,
-        columnFormats,
-        numberFormat,
-      ),
-      metric,
-    ) ?? getNumberFormatter(numberFormat);
+  const numberFormatter = getFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);

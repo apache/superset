@@ -43,6 +43,7 @@ describe('columnChoices()', () => {
         ],
         verbose_map: {},
         column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),

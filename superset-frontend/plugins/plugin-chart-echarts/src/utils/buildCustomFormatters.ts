@@ -5,8 +5,8 @@ import {
   getNumberFormatter,
   isDefined,
   isSavedMetric,
-  NumberFormatter,
   QueryFormMetric,
+  ValueFormatter,
 } from '@superset-ui/core';
 
 export const buildCustomFormatters = (
@@ -62,7 +62,7 @@ export const buildCustomFormatters = (
 };
 
 export const getCustomFormatter = (
-  customFormatters: Record<string, NumberFormatter | CurrencyFormatter>,
+  customFormatters: Record<string, ValueFormatter>,
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
   key?: string,
 ) => {
@@ -72,3 +72,25 @@ export const getCustomFormatter = (
   }
   return key ? customFormatters[key] : undefined;
 };
+
+export const getFormatter = (
+  metrics: QueryFormMetric | QueryFormMetric[] | undefined,
+  currencyFormats: Record<string, Currency>,
+  columnFormats: Record<string, string>,
+  d3Format: string | undefined,
+  labelMap: Record<string, string[]> = {},
+  seriesNames: string[] = [],
+  key?: string,
+) =>
+  getCustomFormatter(
+    buildCustomFormatters(
+      metrics,
+      currencyFormats,
+      columnFormats,
+      d3Format,
+      labelMap,
+      seriesNames,
+    ),
+    metrics,
+    key,
+  ) ?? getNumberFormatter(d3Format);

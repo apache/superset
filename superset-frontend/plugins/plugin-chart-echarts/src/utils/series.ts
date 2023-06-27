@@ -31,7 +31,7 @@ import {
   SupersetTheme,
   normalizeTimestamp,
   LegendState,
-  CurrencyFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
@@ -346,7 +346,7 @@ export function formatSeriesName(
     timeFormatter,
     coltype,
   }: {
-    numberFormatter?: NumberFormatter | CurrencyFormatter;
+    numberFormatter?: ValueFormatter;
     timeFormatter?: TimeFormatter;
     coltype?: GenericDataType;
   } = {},

@@ -21,7 +21,6 @@ import {
   AnnotationOpacity,
   AxisType,
   CategoricalColorScale,
-  CurrencyFormatter,
   EventAnnotationLayer,
   FilterState,
   FormulaAnnotationLayer,
@@ -29,13 +28,13 @@ import {
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
   LegendState,
-  NumberFormatter,
   smartDateDetailedFormatter,
   smartDateFormatter,
   SupersetTheme,
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
@@ -159,7 +158,7 @@ export function transformSeries(
     showValue?: boolean;
     onlyTotal?: boolean;
     legendState?: LegendState;
-    formatter?: NumberFormatter | CurrencyFormatter;
+    formatter?: ValueFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
     thresholdValues?: number[];
