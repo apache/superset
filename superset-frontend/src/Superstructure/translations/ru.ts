@@ -2829,6 +2829,7 @@ const ru = {
       Two_to_4_dashboards: ['дашборда'],
       Five_and_more_dashboards: ['дашбордов'],
       Added_to: ['Добавлен в'],
+      'With space': ['С пробелом'],
     },
   },
 };

@@ -9,6 +9,7 @@ interface ExtendedFormatLocaleDefinition extends FormatLocaleDefinition {
 type SUPPORTED_CURRENCIES_LOCALES =
   | 'DEFAULT_2f'
   | 'RUB_2f'
+  | 'RUS_2f'
   | 'EUR_2f'
   | 'PLN_2f'
   | 'KGS_2f'
@@ -25,11 +26,10 @@ type SUPPORTED_CURRENCIES_LOCALES =
   | 'BGN_2f'
   | 'AED_2f';
 
-type SUPPORTED_LOCALES = 'DEFAULT_d' | 'RUS_d';
-
 export const SUPPORTED_CURRENCIES_LOCALES_ARRAY = [
   'DEFAULT_2f',
   'RUB_2f',
+  'RUS_2f',
   'EUR_2f',
   'PLN_2f',
   'KGS_2f',
@@ -46,8 +46,6 @@ export const SUPPORTED_CURRENCIES_LOCALES_ARRAY = [
   'BGN_2f',
   'AED_2f',
 ];
-
-export const SUPPORTED_LOCALES_ARRAY = ['DEFAULT_d', 'RUS_d'];
 
 const UNICODE = {
   SPACE: '\u00a0',
@@ -97,6 +95,15 @@ export const D3_CURRENCIES_LOCALES: Record<
     grouping: [3],
     currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.RUB}${UNICODE.POINT}`],
     code: 'RUB',
+  },
+  // special format for formatting values with a russian locale, but without a russian currency
+  RUS_2f: {
+    id: `RUSSIAN_SPACES,.2f`,
+    decimal: UNICODE.COMMA,
+    thousands: UNICODE.SPACE,
+    grouping: [3],
+    currency: ['', ''],
+    code: 'RUS',
   },
   EUR_2f: {
     id: `${UNICODE.SYM.EUR},.2f`,
@@ -217,21 +224,5 @@ export const D3_CURRENCIES_LOCALES: Record<
     grouping: [3],
     currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.AED}`],
     code: 'AED',
-  },
-};
-
-export const D3_LOCALES: Record<SUPPORTED_LOCALES, any> = {
-  DEFAULT_d: {
-    ...DEFAULT_D3_FORMAT,
-    id: `${UNICODE.SYM.USD},.2f`,
-    code: 'DEFAULT_d',
-  },
-  RUS_d: {
-    id: `RUS,.2f`,
-    decimal: UNICODE.COMMA,
-    thousands: UNICODE.SPACE,
-    grouping: [3],
-    // currency: ['', `${UNICODE.SPACE}${UNICODE.SYM.RUB}${UNICODE.POINT}`],
-    code: 'RUS_d',
   },
 };
