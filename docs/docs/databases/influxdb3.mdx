@@ -1,0 +1,18 @@
+---
+title: InfluxDB 3.0
+hide_title: true
+sidebar_position: 25
+version: 1
+---
+
+## InfluxDB 3.0
+
+The [flightsql-dbapi](https://pypi.org/project/flightsql-dbapi/) provides a DB API 2 interface and SQLAlchemy Dialect for Flight SQL that interacts with [InfluxDB 3.0](https://www.influxdata.com/products/influxdb-overview/). The primary SQLAlchemy Dialect provided by flightsql-dbapi targets the DataFusion SQL execution engine.
+
+### DSN to connect InfluxDB 3.0 to Superset
+
+```
+datafusion+flightsql://host:443?token=<influxdb-token>&bucket-name=<bucket-name>
+```
+
+This [wiki](https://github.com/influxdata/flightsql-dbapi/wiki/InfluxDB-IOx) gives you more hints on how to use this package.
