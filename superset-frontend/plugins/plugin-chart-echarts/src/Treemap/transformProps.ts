@@ -48,7 +48,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
-import { getFormatter } from '../utils/buildCustomFormatters';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 export function formatLabel({
   params,
@@ -144,7 +144,7 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getFormatter(
+  const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,

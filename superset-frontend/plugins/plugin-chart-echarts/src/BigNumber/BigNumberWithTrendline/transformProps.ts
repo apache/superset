@@ -39,7 +39,7 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-import { getFormatter } from '../../utils/buildCustomFormatters';
+import { getValueFormatter } from '../../utils/valueFormatter';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
@@ -175,7 +175,7 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter = getFormatter(
+  const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,

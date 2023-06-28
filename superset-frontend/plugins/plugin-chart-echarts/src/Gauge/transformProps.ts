@@ -46,7 +46,7 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
-import { getFormatter } from '../utils/buildCustomFormatters';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -136,7 +136,7 @@ export default function transformProps(
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const numberFormatter = getFormatter(
+  const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,

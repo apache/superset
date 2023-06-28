@@ -64,23 +64,23 @@ it('CurrencyFormatter:hasValidCurrency', () => {
   const currencyFormatter = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
   });
-  expect(currencyFormatter.hasValidCurrency()).toBeTruthy();
+  expect(currencyFormatter.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
     // @ts-ignore
     currency: { symbol: 'USD' },
   });
-  expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBeTruthy();
+  expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutSymbol = new CurrencyFormatter({
     // @ts-ignore
     currency: { symbolPosition: 'prefix' },
   });
-  expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBeFalsy();
+  expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBe(false);
 
   // @ts-ignore
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
-  expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBeFalsy();
+  expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
 
 it('CurrencyFormatter:getNormalizedD3Format', () => {

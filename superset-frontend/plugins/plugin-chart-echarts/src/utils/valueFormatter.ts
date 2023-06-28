@@ -73,7 +73,7 @@ export const getCustomFormatter = (
   return key ? customFormatters[key] : undefined;
 };
 
-export const getFormatter = (
+export const getValueFormatter = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
   currencyFormats: Record<string, Currency>,
   columnFormats: Record<string, string>,

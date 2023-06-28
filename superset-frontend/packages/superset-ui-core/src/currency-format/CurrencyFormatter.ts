@@ -54,7 +54,7 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   hasValidCurrency() {
-    return this.currency?.symbol;
+    return Boolean(this.currency?.symbol);
   }
 
   getNormalizedD3Format() {

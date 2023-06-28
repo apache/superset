@@ -45,7 +45,7 @@ import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
-import { getFormatter } from '../utils/buildCustomFormatters';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -142,7 +142,7 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getFormatter(
+  const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,

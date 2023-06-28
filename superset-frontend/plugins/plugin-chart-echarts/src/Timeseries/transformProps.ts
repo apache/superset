@@ -95,7 +95,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import {
   buildCustomFormatters,
   getCustomFormatter,
-} from '../utils/buildCustomFormatters';
+} from '../utils/valueFormatter';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,

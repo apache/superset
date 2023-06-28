@@ -30,7 +30,7 @@ import {
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
-import { getFormatter } from '../../utils/buildCustomFormatters';
+import { getValueFormatter } from '../../utils/valueFormatter';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
@@ -75,7 +75,7 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter = getFormatter(
+  const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,
