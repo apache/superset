@@ -575,7 +575,6 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         dashboard.owners = []
         chart.owners = []
-        dataset.owners = []
         database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
