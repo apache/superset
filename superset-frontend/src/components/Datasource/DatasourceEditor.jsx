@@ -606,7 +606,7 @@ const CurrencyControl = ({ onChange, value: currency = {}, currencies }) => (
     <Select
       ariaLabel={t('Currency symbol')}
       options={currencies}
-      placeholder={t('Currency symbol')}
+      placeholder={t('Select or type currency symbol')}
       onChange={symbol => {
         onChange({ ...currency, symbol });
       }}
@@ -889,6 +889,20 @@ class DatasourceEditor extends React.PureComponent {
         t('Calculated column [%s] requires an expression', col.column_name),
       ),
     );
+
+    // validate currency code
+    try {
+      this.state.datasource.metrics?.forEach(
+        metric =>
+          metric.currency?.symbol &&
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: metric.currency.symbol,
+          }),
+      );
+    } catch {
+      errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
 
     this.setState({ errors }, callback);
   }
