@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   getChartMetadataRegistry,
   styled,
@@ -205,6 +188,21 @@ function ChartList(props: ChartListProps) {
     addSuccessToast(t('Chart imported'));
   };
 
+  const StyledUl = styled.ul`
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+    max-width: 320px;
+    flex-wrap: wrap;
+  `;
+
+  const StyledLi = styled.li`
+    padding: 0;
+    margin-bottom: 12px;
+    margin-right: 12px;
+  `;
+
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -305,6 +303,32 @@ function ChartList(props: ChartListProps) {
         Header: t('Visualization type'),
         accessor: 'viz_type',
         size: 'xxl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { dashboards },
+          },
+        }: any) => (
+          <StyledUl>
+            {dashboards.map(
+              (dashboard: { id: number | string; dashboard_title: string }) => (
+                <StyledLi>
+                  <a
+                    target="_blank"
+                    rel="noreferrer"
+                    href={`${window.location.origin}/superset/dashboard/${dashboard.id}`}
+                  >
+                    {dashboard.dashboard_title}
+                  </a>
+                </StyledLi>
+              ),
+            )}
+          </StyledUl>
+        ),
+        Header: t('Used in'),
+        accessor: 'used_in_dashboards',
+        disableSortBy: true,
       },
       {
         Cell: ({
