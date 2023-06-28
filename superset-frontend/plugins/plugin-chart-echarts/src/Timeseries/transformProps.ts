@@ -22,6 +22,7 @@ import {
   AnnotationLayer,
   AxisType,
   CategoricalColorNamespace,
+  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
   getMetricLabel,
@@ -112,9 +113,15 @@ const getYAxisFormatter = (
   }
   const metricsArray = ensureIsArray(metrics);
   if (
-    metricsArray.length === 1 &&
-    isSavedMetric(metricsArray[0]) &&
-    customFormatters[metricsArray[0]]
+    metricsArray.every(isSavedMetric) &&
+    metricsArray
+      .map(metric => customFormatters[metric])
+      .every(
+        (formatter, _, formatters) =>
+          formatter instanceof CurrencyFormatter &&
+          (formatter as CurrencyFormatter)?.currency?.symbol ===
+            (formatters[0] as CurrencyFormatter)?.currency?.symbol,
+      )
   ) {
     return customFormatters[metricsArray[0]];
   }
@@ -273,8 +280,6 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    labelMap,
-    Object.values(rawSeries).map(series => series.name as string),
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -305,8 +310,11 @@ export default function transformProps(
         stack,
         formatter: forcePercentFormatter
           ? percentFormatter
-          : getCustomFormatter(customFormatters, metrics, seriesName) ??
-            defaultFormatter,
+          : getCustomFormatter(
+              customFormatters,
+              metrics,
+              labelMap[seriesName]?.[0],
+            ) ?? defaultFormatter,
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -536,12 +544,16 @@ export default function transformProps(
           if (value.observation === 0 && stack) {
             return;
           }
+          // if there are no dimensions, key is a verbose name of a metric,
+          // otherwise it is a comma separated string where the first part is metric name
+          const formatterKey =
+            groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
             formatter: forcePercentFormatter
               ? percentFormatter
-              : getCustomFormatter(customFormatters, metrics, key) ??
+              : getCustomFormatter(customFormatters, metrics, formatterKey) ??
                 defaultFormatter,
           });
           if (!legendState || legendState[key]) {
