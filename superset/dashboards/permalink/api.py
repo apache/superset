@@ -71,7 +71,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/DashboardPermalinkPostSchema'
+                  $ref: '#/components/schemas/DashboardPermalinkStateSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
