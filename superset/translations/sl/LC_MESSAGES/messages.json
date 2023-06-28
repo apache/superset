@@ -4059,8 +4059,8 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "Število ur, negativno ali pozitivno, za zamik časovnega stolpca. Na ta način je mogoče UTC čas prestaviti na lokalni čas."
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
-        "Število prikazanih rezultatov je omejeno na %(rows)d na podlagi parametra DISPLAY_MAX_ROWS. V csv dodajte dodatne omejitve/filtre, da boste lahko videli več vrstic do meje %(limit)d ."
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+        "Število prikazanih rezultatov je omejeno na %(rows)d na podlagi parametra DISPLAY_MAX_ROW. V csv dodajte dodatne omejitve/filtre, da boste lahko videli več vrstic do meje %(limit)d ."
       ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
         "Število prikazanih rezultatov je omejeno na %(rows)d . V csv dodajte dodatne omejitve/filtre, da boste lahko videli več vrstic do meje %(limit)d ."
