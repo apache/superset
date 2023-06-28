@@ -94,14 +94,21 @@ const NEW_FEATURES_MAY_2023_RU = {
 
 const NEW_FEATURES_JUNE_2023_RU = {
   title: 'Обновления [Июнь 2023]',
-  date: '27.06.2023',
-  subTitle: RELEASE_IN_TESTING,
+  date: '28.06.2023',
+  subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы',
   releases: [
     {
-      date: `${TESTING_EMOJI} 27.06.2023`,
-      status: RELEASE_IN_TESTING,
+      date: `${DONE_EMOJI} 28.06.2023`,
+      status: RELEASE_IS_STABLE,
+      messages: [
+        `${EXTRA_EMOJI} На странице списка графиков добавили информационную подсказку, в каких дашбордах используется данный график`,
+      ],
+    },
+    {
+      date: `${DONE_EMOJI} 27.06.2023`,
+      status: RELEASE_IS_STABLE,
       messages: [
         `Добавили форматирование чисел через пробел`,
         `${EXTRA_EMOJI} На странице редактирования графика добавили информационную подсказку, в каких дашбордах используется данный график`,
@@ -158,7 +165,7 @@ const NEW_FEATURES_JUNE_2023_RU = {
     `${DONE_EMOJI} Переименовать "Аналитика (Бета)" в "Аналитика"`,
     `${DONE_EMOJI} Перевести на русский язык фильтрацию по датам`,
     `${DONE_EMOJI} Улучшить переводы на русский язык по всему Superset`,
-    `${IN_PROGRESS_EMOJI} Показать, в каких дашбордах используется определенный график`,
+    `${DONE_EMOJI} Показать, в каких дашбордах используется определенный график`,
     `${DONE_EMOJI} Улучшить уведомление пользователей о важных событиях в Superset Standalone и Superset dashboard plugin ${EXTRA_EMOJI}`,
   ],
 };
