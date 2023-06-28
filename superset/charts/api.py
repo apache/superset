@@ -169,6 +169,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "thumbnail_url",
         "url",
         "viz_type",
+        "dashboards.dashboard_title",
+        "dashboards.id",
+        "dashboards.json_metadata",
     ]
     list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     order_columns = [
