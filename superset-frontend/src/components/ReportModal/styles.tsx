@@ -90,6 +90,10 @@ export const TimezoneHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0 ${theme.gridUnit * 2}px;
 `;
 
+export const CustomWidthHeaderStyle = (theme: SupersetTheme) => css`
+  margin: ${theme.gridUnit * 3}px 0 ${theme.gridUnit * 2}px;
+`;
+
 export const SectionHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
 `;

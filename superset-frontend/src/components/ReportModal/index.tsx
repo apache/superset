@@ -41,10 +41,14 @@ import {
   NOTIFICATION_FORMATS,
 } from 'src/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
-import { TRANSLATIONS } from 'src/features/alerts/AlertReportModal';
+import {
+  TRANSLATIONS,
+  StyledInputContainer,
+} from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
+  CustomWidthHeaderStyle,
   StyledModal,
   StyledTopSection,
   StyledBottomSection,
@@ -260,8 +264,11 @@ function ReportModal({
     </>
   );
   const renderCustomWidthSection = (
-    <div>
-      <div className="control-label">
+    <StyledInputContainer>
+      <div
+        className="control-label"
+        css={(theme: SupersetTheme) => CustomWidthHeaderStyle(theme)}
+      >
         {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
       </div>
       <div className="input-container">
@@ -277,7 +284,7 @@ function ReportModal({
           }}
         />
       </div>
-    </div>
+    </StyledInputContainer>
   );
 
   return (
