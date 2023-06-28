@@ -28,7 +28,6 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -40,35 +39,10 @@ class BulkDeleteDatasetCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
-        if not self._models:
-            return None
+        assert self._models
+
         try:
             DatasetDAO.bulk_delete(self._models)
-            for model in self._models:
-                view_menu = (
-                    security_manager.find_view_menu(model.get_perm()) if model else None
-                )
-
-                if view_menu:
-                    permission_views = (
-                        db.session.query(security_manager.permissionview_model)
-                        .filter_by(view_menu=view_menu)
-                        .all()
-                    )
-
-                    for permission_view in permission_views:
-                        db.session.delete(permission_view)
-                    if view_menu:
-                        db.session.delete(view_menu)
-                else:
-                    if not view_menu:
-                        logger.error(
-                            "Could not find the data access permission for the dataset",
-                            exc_info=True,
-                        )
-            db.session.commit()
-
-            return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
             raise DatasetBulkDeleteFailedError() from ex
