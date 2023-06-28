@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import builtins
 import json
+import logging
 from collections.abc import Hashable
 from datetime import datetime
 from enum import Enum
+from json.decoder import JSONDecodeError
 from typing import Any, TYPE_CHECKING
 
 from flask_appbuilder.security.sqla.models import User
@@ -46,6 +48,8 @@ from superset.utils.core import GenericDataType, MediumText
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
+
+logger = logging.getLogger(__name__)
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -224,6 +228,10 @@ class BaseDatasource(
     def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
+    @property
+    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
+        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
+
     def add_missing_metrics(self, metrics: list[BaseMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
@@ -282,6 +290,7 @@ class BaseDatasource(
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
+            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
@@ -717,6 +726,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     metric_type = Column(String(32))
     description = Column(MediumText())
     d3format = Column(String(128))
+    currency = Column(String(128))
     warning_text = Column(Text)
 
     """
@@ -732,6 +742,16 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
     """
+
+    @property
+    def currency_json(self) -> dict[str, str | None] | None:
+        try:
+            return json.loads(self.currency or "{}") or None
+        except (TypeError, JSONDecodeError) as exc:
+            logger.error(
+                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
+            )
+            return None
 
     @property
     def perm(self) -> str | None:
@@ -751,5 +771,6 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
             "expression",
             "warning_text",
             "d3format",
+            "currency",
         )
         return {s: getattr(self, s) for s in attrs}

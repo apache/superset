@@ -148,6 +148,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "main_dttm_col": None,
             "metrics": [
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "COUNT(*)",
@@ -158,6 +159,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "SUM(value)",
@@ -381,6 +383,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert metric.expression == "count(1)"
         assert metric.description is None
         assert metric.d3format is None
+        assert metric.currency is None
         assert metric.extra == "{}"
         assert metric.warning_text is None
 

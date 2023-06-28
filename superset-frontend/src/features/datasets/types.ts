@@ -1,3 +1,5 @@
+import { Currency } from '@superset-ui/core';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -39,6 +41,7 @@ type MetricObject = {
   metric_name: string;
   metric_type: string;
   d3format?: string;
+  currency?: Currency;
   warning_text?: string;
 };
 

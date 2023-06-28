@@ -21,6 +21,7 @@ import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
+  CurrencyFormatter,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
@@ -144,6 +145,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     selectedFilters,
     verboseMap,
     columnFormats,
+    currencyFormats,
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
@@ -156,24 +158,39 @@ export default function PivotTableChart(props: PivotTableProps) {
     () => getNumberFormatter(valueFormat),
     [valueFormat],
   );
-  const columnFormatsArray = useMemo(
-    () => Object.entries(columnFormats),
-    [columnFormats],
+  const customFormatsArray = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...Object.keys(columnFormats || {}),
+          ...Object.keys(currencyFormats || {}),
+        ]),
+      ).map(metricName => [
+        metricName,
+        columnFormats[metricName] || valueFormat,
+        currencyFormats[metricName],
+      ]),
+    [columnFormats, currencyFormats, valueFormat],
   );
-  const hasCustomMetricFormatters = columnFormatsArray.length > 0;
+  const hasCustomMetricFormatters = customFormatsArray.length > 0;
   const metricFormatters = useMemo(
     () =>
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              columnFormatsArray.map(([metric, format]) => [
+              customFormatsArray.map(([metric, d3Format, currency]) => [
                 metric,
-                getNumberFormatter(format),
+                currency
+                  ? new CurrencyFormatter({
+                      currency,
+                      d3Format,
+                    })
+                  : getNumberFormatter(d3Format),
               ]),
             ),
           }
         : undefined,
-    [columnFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters],
   );
 
   const metricNames = useMemo(

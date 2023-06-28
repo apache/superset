@@ -116,6 +116,7 @@ metrics:
   expression: COUNT(*)
   description: null
   d3format: null
+  currency: null
   extra:
     warning_markdown: null
   warning_text: null

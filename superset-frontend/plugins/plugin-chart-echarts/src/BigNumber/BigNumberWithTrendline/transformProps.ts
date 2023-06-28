@@ -24,9 +24,10 @@ import {
   getMetricLabel,
   t,
   smartDateVerboseFormatter,
-  NumberFormatter,
   TimeFormatter,
   getXAxisLabel,
+  Metric,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -38,11 +39,12 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
+import { getValueFormatter } from '../../utils/valueFormatter';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
   formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue: NumberFormatter | TimeFormatter = defaultNumberFormatter,
+  formatValue: ValueFormatter | TimeFormatter = defaultNumberFormatter,
 ) {
   return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
     return `
@@ -73,6 +75,7 @@ export default function transformProps(
     theme,
     hooks,
     inContextMenu,
+    datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
     colorPicker,
@@ -159,7 +162,7 @@ export default function transformProps(
     className = 'negative';
   }
 
-  let metricEntry;
+  let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricEntry => metricEntry.metric_name === metric,
@@ -172,12 +175,19 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+  );
+
   const headerFormatter =
     metricColtype === GenericDataType.TEMPORAL ||
     metricColtype === GenericDataType.STRING ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
