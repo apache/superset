@@ -22,7 +22,7 @@ import {
   getMetricLabel,
   getNumberFormatter,
   NumberFormats,
-  NumberFormatter,
+  ValueFormatter,
   getColumnLabel,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
@@ -45,6 +45,7 @@ import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -56,7 +57,7 @@ export function formatFunnelLabel({
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   labelType: EchartsFunnelLabelTypeType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
   sanitizeName?: boolean;
 }): string {
   const { name: rawName = '', value, percent } = params;
@@ -94,6 +95,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    datasource,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -118,6 +120,7 @@ export default function transformProps(
     ...DEFAULT_FUNNEL_FORM_DATA,
     ...formData,
   };
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -139,7 +142,12 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({

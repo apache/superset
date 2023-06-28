@@ -22,10 +22,10 @@ import {
   ChartDataResponseResult,
   ContextMenuFilters,
   DataRecordValue,
-  NumberFormatter,
   QueryFormData,
   QueryFormMetric,
   TimeFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { BaseChartProps, Refs } from '../types';
@@ -73,7 +73,7 @@ export type BigNumberVizProps = {
   height: number;
   bigNumber?: DataRecordValue;
   bigNumberFallback?: TimeSeriesDatum;
-  headerFormatter: NumberFormatter | TimeFormatter;
+  headerFormatter: ValueFormatter | TimeFormatter;
   formatTime?: TimeFormatter;
   headerFontSize: number;
   kickerFontSize?: number;

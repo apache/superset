@@ -21,6 +21,7 @@ import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
+  Currency,
   DatasourceType,
   JsonObject,
   JsonValue,
@@ -68,6 +69,7 @@ export interface Dataset {
   columns: ColumnMeta[];
   metrics: Metric[];
   column_formats: Record<string, string>;
+  currency_formats: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']

@@ -44,6 +44,7 @@ describe('PivotTableChart buildQuery', () => {
     combineMetric: false,
     verboseMap: {},
     columnFormats: {},
+    currencyFormats: {},
     metricColorFormatters: [],
     dateFormatters: {},
     setDataMask: () => {},
