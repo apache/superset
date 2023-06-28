@@ -807,6 +807,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 34)
+        self.assertEqual(type(data["result"][0]["dashboards"]), list)
 
     def test_get_charts_changed_on(self):
         """
