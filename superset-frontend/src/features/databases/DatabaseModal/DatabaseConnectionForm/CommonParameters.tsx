@@ -256,29 +256,28 @@ export const SSHTunnelSwitch = ({
   isEditMode,
   changeMethods,
   db,
-}: FieldPropTypes) =>
-  true ? (
-    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <AntdSwitch
-        disabled={isEditMode && !isEmpty(db?.ssh_tunnel)}
-        checked={db?.parameters?.ssh}
-        onChange={changed => {
-          changeMethods.onParametersChange({
-            target: {
-              type: 'toggle',
-              name: 'ssh',
-              checked: true,
-              value: changed,
-            },
-          });
-        }}
-        data-test="ssh-tunnel-switch"
-      />
-      <span css={toggleStyle}>{t('SSH Tunnel')}</span>
-      <InfoTooltip
-        tooltip={t('SSH Tunnel configuration parameters')}
-        placement="right"
-        viewBox="0 -5 24 24"
-      />
-    </div>
-  ) : null;
+}: FieldPropTypes) => (
+  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+    <AntdSwitch
+      disabled={isEditMode && !isEmpty(db?.ssh_tunnel)}
+      checked={db?.parameters?.ssh}
+      onChange={changed => {
+        changeMethods.onParametersChange({
+          target: {
+            type: 'toggle',
+            name: 'ssh',
+            checked: true,
+            value: changed,
+          },
+        });
+      }}
+      data-test="ssh-tunnel-switch"
+    />
+    <span css={toggleStyle}>{t('SSH Tunnel')}</span>
+    <InfoTooltip
+      tooltip={t('SSH Tunnel configuration parameters')}
+      placement="right"
+      viewBox="0 -5 24 24"
+    />
+  </div>
+);
