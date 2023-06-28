@@ -32,9 +32,13 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isPhysicalColumn,
+  isSavedMetric,
   isTimeseriesAnnotationLayer,
+  NumberFormats,
+  QueryFormMetric,
   t,
   TimeseriesChartDataResponseResult,
+  ValueFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -96,6 +100,21 @@ import {
   buildCustomFormatters,
   getCustomFormatter,
 } from '../utils/valueFormatter';
+
+const getYAxisFormatter = (
+  metrics: QueryFormMetric[],
+  forcePercentFormatter: boolean,
+  customFormatters: Record<string, ValueFormatter>,
+  yAxisFormat: string = NumberFormats.SMART_NUMBER,
+) => {
+  if (forcePercentFormatter) {
+    return getNumberFormatter(',.0%');
+  }
+  if (isSavedMetric(metrics[0]) && customFormatters[metrics[0]]) {
+    return customFormatters[metrics[0]];
+  }
+  return getNumberFormatter(yAxisFormat);
+};
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -241,9 +260,9 @@ export default function transformProps(
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
 
-  const defaultFormatter = getNumberFormatter(
-    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
-  );
+  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const percentFormatter = getNumberFormatter(',.0%');
+  const defaultFormatter = getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
     currencyFormats,
@@ -279,9 +298,10 @@ export default function transformProps(
         seriesType,
         legendState,
         stack,
-        formatter:
-          getCustomFormatter(customFormatters, metrics, seriesName) ??
-          defaultFormatter,
+        formatter: forcePercentFormatter
+          ? percentFormatter
+          : getCustomFormatter(customFormatters, metrics, seriesName) ??
+            defaultFormatter,
         showValue,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -460,7 +480,12 @@ export default function transformProps(
     minorTick: { show: true },
     minorSplitLine: { show: minorSplitLine },
     axisLabel: {
-      formatter: getNumberFormatter(yAxisFormat),
+      formatter: getYAxisFormatter(
+        metrics,
+        forcePercentFormatter,
+        customFormatters,
+        yAxisFormat,
+      ),
     },
     scale: truncateYAxis,
     name: yAxisTitle,
@@ -509,9 +534,10 @@ export default function transformProps(
           const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
-            formatter:
-              getCustomFormatter(customFormatters, metrics, key) ??
-              defaultFormatter,
+            formatter: forcePercentFormatter
+              ? percentFormatter
+              : getCustomFormatter(customFormatters, metrics, key) ??
+                defaultFormatter,
           });
           if (!legendState || legendState[key]) {
             rows.push(`<span style="font-weight: 700">${content}</span>`);
