@@ -156,7 +156,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.tags.api import TagRestApi
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+        from superset.views.all_entities import TaggedObjectView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -367,19 +367,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("SQL Lab"),
         )
         appbuilder.add_view(
-            TaggedObjectsModelView,
-            "All Entities",
-            label=__("All Entities"),
-            icon="",
-            category_icon="",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
-        )
-        appbuilder.add_view(
             TagModelView,
             "Tags",
             label=__("Tags"),
             icon="",
             category_icon="",
+            category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)

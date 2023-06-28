@@ -28,7 +28,6 @@ from superset.models.slice import Slice
 
 
 class DatasetWarmUpCacheCommand(BaseCommand):
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         db_name: str,
