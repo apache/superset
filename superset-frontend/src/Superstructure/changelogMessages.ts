@@ -9,6 +9,16 @@ const IN_PROGRESS_EMOJI = '⏳';
 const NOT_DONE_EMOJI = '❌';
 const EXTRA_EMOJI = '🔥';
 
+console.groupCollapsed('Changelog messages');
+console.log('RELEASE_IS_STABLE', RELEASE_IS_STABLE);
+console.log('RELEASE_IN_TESTING', RELEASE_IN_TESTING);
+console.log('DONE_EMOJI', DONE_EMOJI);
+console.log('TESTING_EMOJI', TESTING_EMOJI);
+console.log('IN_PROGRESS_EMOJI', IN_PROGRESS_EMOJI);
+console.log('NOT_DONE_EMOJI', NOT_DONE_EMOJI);
+console.log('EXTRA_EMOJI', EXTRA_EMOJI);
+console.groupEnd();
+
 const UPGRADE_2_0_RU = {
   title: 'Успешный переход на версию Superset 2.0',
   date: '17.03.2023',
