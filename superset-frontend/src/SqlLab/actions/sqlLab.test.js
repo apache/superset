@@ -32,7 +32,6 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
-import { QueryState } from '@superset-ui/core';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
