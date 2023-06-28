@@ -299,7 +299,7 @@ const ResultSet = ({
 
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
+        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
         { rows: rowsCount, limit },

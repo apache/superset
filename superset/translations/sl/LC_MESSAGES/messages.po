@@ -15738,11 +15738,11 @@ msgstr ""
 #, python-format
 msgid ""
 "The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or "
+"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
 "download to csv to see more rows up to the %(limit)d limit."
 msgstr ""
 "Število prikazanih rezultatov je omejeno na %(rows)d na podlagi parametra"
-" DISPLAY_MAX_ROWS. V csv dodajte dodatne omejitve/filtre, da boste lahko "
+" DISPLAY_MAX_ROW. V csv dodajte dodatne omejitve/filtre, da boste lahko "
 "videli več vrstic do meje %(limit)d ."
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:307
