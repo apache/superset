@@ -110,8 +110,13 @@ const getYAxisFormatter = (
   if (forcePercentFormatter) {
     return getNumberFormatter(',.0%');
   }
-  if (isSavedMetric(metrics[0]) && customFormatters[metrics[0]]) {
-    return customFormatters[metrics[0]];
+  const metricsArray = ensureIsArray(metrics);
+  if (
+    metricsArray.length === 1 &&
+    isSavedMetric(metricsArray[0]) &&
+    customFormatters[metricsArray[0]]
+  ) {
+    return customFormatters[metricsArray[0]];
   }
   return getNumberFormatter(yAxisFormat);
 };
