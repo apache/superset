@@ -18,7 +18,6 @@ import logging
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
-from dateutil import parser
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
