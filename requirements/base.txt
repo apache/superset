@@ -135,7 +135,9 @@ humanize==3.11.0
 idna==3.2
     # via email-validator
 importlib-metadata==6.6.0
-    # via flask
+    # via
+    #   apache-superset
+    #   flask
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
