@@ -1867,6 +1867,7 @@ const en = {
       Five_and_more_dashboards: ['dashboards'],
       Added_to: ['Added to'],
       'With space': [''],
+      Used_in: ['Used in'],
     },
   },
 };

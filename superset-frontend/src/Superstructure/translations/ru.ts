@@ -2830,6 +2830,7 @@ const ru = {
       Five_and_more_dashboards: ['дашбордов'],
       Added_to: ['Добавлен в'],
       'With space': ['С пробелом'],
+      Used_in: ['Используется в'],
     },
   },
 };

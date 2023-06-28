@@ -326,7 +326,7 @@ function ChartList(props: ChartListProps) {
             )}
           </StyledUl>
         ),
-        Header: t('Used in'),
+        Header: t('Used_in'),
         accessor: 'used_in_dashboards',
         disableSortBy: true,
       },
