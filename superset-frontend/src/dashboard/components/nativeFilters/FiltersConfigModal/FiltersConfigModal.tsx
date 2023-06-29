@@ -618,7 +618,7 @@ function FiltersConfigModal({
           />
         </div>
       }
-      width="50%"
+      width="70%"
       {...(expanded && { width: '100%', height: '100%' })}
       expanded={expanded}
       destroyOnClose
