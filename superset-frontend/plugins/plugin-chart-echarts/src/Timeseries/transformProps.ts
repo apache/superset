@@ -40,6 +40,8 @@ import {
   t,
   TimeseriesChartDataResponseResult,
   ValueFormatter,
+  buildCustomFormatters,
+  getCustomFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -97,10 +99,6 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  buildCustomFormatters,
-  getCustomFormatter,
-} from '../utils/valueFormatter';
 
 const getYAxisFormatter = (
   metrics: QueryFormMetric[],
