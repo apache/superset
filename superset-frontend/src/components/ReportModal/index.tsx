@@ -33,6 +33,7 @@ import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import { Input } from 'src/components/Input';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
@@ -265,14 +266,11 @@ function ReportModal({
   );
   const renderCustomWidthSection = (
     <StyledInputContainer>
-      <div
-        className="control-label"
-        css={(theme: SupersetTheme) => CustomWidthHeaderStyle(theme)}
-      >
+      <div className="control-label" css={CustomWidthHeaderStyle}>
         {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
       </div>
       <div className="input-container">
-        <input
+        <Input
           type="number"
           name="custom_width"
           value={currentReport?.custom_width || ''}

@@ -35,6 +35,7 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
+import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
@@ -867,13 +868,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onInputChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    const { target } = event;
-    const value =
-      target.type === 'number'
-        ? parseInt(target.value, 10) || null
-        : target.value;
+    const {
+      target: { type, value, name },
+    } = event;
+    const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
-    updateAlertState(target.name, value);
+    updateAlertState(name, parsedValue);
   };
 
   const onTimeoutVerifyChange = (
@@ -1488,14 +1488,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             )}
             {isScreenshot && (
               <StyledInputContainer>
-                <div
-                  className="control-label"
-                  css={(theme: SupersetTheme) => CustomWidthHeaderStyle(theme)}
-                >
+                <div className="control-label" css={CustomWidthHeaderStyle}>
                   {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
                 </div>
                 <div className="input-container">
-                  <input
+                  <Input
                     type="number"
                     name="custom_width"
                     value={currentAlert?.custom_width || ''}
