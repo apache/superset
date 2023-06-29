@@ -94,6 +94,29 @@ export function CustomFrame(props: FrameComponentProps) {
     }
   }
 
+  // For superset dashboard plugin we need to retranslate the labels
+  const retranslateConstants = (opts: { value: string; label: string }[]) =>
+    process.env.type === undefined
+      ? opts
+      : opts.map(opt => ({
+          value: opt.value,
+          label: t(opt.label),
+        }));
+
+  const retranslateConstantsComposed = (
+    opts: { value: string; label: string }[],
+    splitWord: string,
+  ) =>
+    process.env.type === undefined
+      ? opts
+      : opts.map(opt => {
+          const mainString = `${opt.label.split(splitWord)[0].trim()} %s`;
+          return {
+            ...opt,
+            label: `${t(mainString)} ${t(splitWord)}`.split(' %s').join(''),
+          };
+        });
+
   // check if there is a locale defined for explore
   const localFromFlaskBabel = useSelector(
     (state: ExplorePageState) => state?.common?.locale,
@@ -118,7 +141,7 @@ export function CustomFrame(props: FrameComponentProps) {
           </div>
           <Select
             ariaLabel={t('START (INCLUSIVE)')}
-            options={SINCE_MODE_OPTIONS}
+            options={retranslateConstants(SINCE_MODE_OPTIONS)}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
           />
@@ -153,7 +176,10 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col span={13}>
                 <Select
                   ariaLabel={t('Relative period')}
-                  options={SINCE_GRAIN_OPTIONS}
+                  options={retranslateConstantsComposed(
+                    SINCE_GRAIN_OPTIONS,
+                    'Before',
+                  )}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
                 />
@@ -171,7 +197,7 @@ export function CustomFrame(props: FrameComponentProps) {
           </div>
           <Select
             ariaLabel={t('END (EXCLUSIVE)')}
-            options={UNTIL_MODE_OPTIONS}
+            options={retranslateConstants(UNTIL_MODE_OPTIONS)}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
           />
@@ -205,7 +231,10 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col span={13}>
                 <Select
                   ariaLabel={t('Relative period')}
-                  options={UNTIL_GRAIN_OPTIONS}
+                  options={retranslateConstantsComposed(
+                    UNTIL_GRAIN_OPTIONS,
+                    'After',
+                  )}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
                 />

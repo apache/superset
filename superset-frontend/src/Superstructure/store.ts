@@ -9,7 +9,6 @@ import rootReducer from './reducers/index';
 import { SupersetPluginTranslations } from './translations';
 
 function getPageLanguage(): string | null {
-  console.log('document', document);
   if (!document) {
     return null;
   }
@@ -21,7 +20,6 @@ function getPageLanguage(): string | null {
 }
 
 const getLocaleForSuperset = () => {
-  console.log('typeof window', typeof window);
   const dodoisLanguage = getPageLanguage();
   if (dodoisLanguage) {
     if (dodoisLanguage === 'ru-RU') return 'ru';

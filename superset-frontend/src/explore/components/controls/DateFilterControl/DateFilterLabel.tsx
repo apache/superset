@@ -288,13 +288,15 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   }
 
   const theme = useTheme();
-
   const overlayContent = (
     <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
       <StyledRangeType
         ariaLabel={t('RANGE TYPE')}
-        options={FRAME_OPTIONS}
+        options={FRAME_OPTIONS.map(opt => ({
+          value: opt.value,
+          label: t(opt.label),
+        }))}
         value={frame}
         onChange={onChangeFrame}
       />
@@ -374,7 +376,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       >
         <Tooltip placement="top" title={tooltipTitle}>
           <Label className="pointer" data-test="time-range-trigger">
-            {actualTimeRange}
+            {t(actualTimeRange)}
           </Label>
         </Tooltip>
       </StyledPopover>

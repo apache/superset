@@ -286,23 +286,6 @@ const ru = {
       'There are associated alerts or reports: %s,': [
         'Существуют оповещения или рассылки: %s,',
       ],
-      'Database does not exist': ['База данных не существует'],
-      'Dashboards do not exist': ['Дашборды отсутствуют'],
-      'Datasource type is required when datasource_id is given': [
-        'Тип источника данных обязателен, если задан ID',
-      ],
-      'Chart parameters are invalid.': ['Параметры графика недействительны.'],
-      'Chart could not be created.': ['График не может быть создан.'],
-      'Chart could not be updated.': ['График не может быть обновлён.'],
-      'Chart could not be deleted.': ['График не может быть удалён.'],
-      'There are associated alerts or reports': [
-        'Существуют привязанные оповещения или рассылки',
-      ],
-      'Changing this chart is forbidden': ['Изменение этого графика запрещено'],
-      'Charts could not be deleted.': ['Графики не могут быть удалены.'],
-      'Import chart failed for an unknown reason': [
-        'Импорт графика не удался по неизвестной причине',
-      ],
       'Owners are invalid': ['Владельцы недействительны'],
       'Dataset does not exist': ['Источник данных %(name)s уже существует'],
       '`operation` property of post processing object undefined': [
@@ -1690,6 +1673,8 @@ const ru = {
       'Edit dashboard properties': ['Редактировать свойства дашборда'],
       'Edit CSS': ['Редактировать CSS'],
       'Download as image': ['Сохранить как изображение'],
+      Download: ['Скачать'],
+      'Export to .CSV': ['Скачать .CSV файл'],
       'Toggle fullscreen': ['Полноэкранный режим'],
       'There is no chart definition associated with this component, could it have been deleted?':
         [''],
@@ -1972,7 +1957,6 @@ const ru = {
         [
           'Гранулярность для визуализации. С помощью этого применяются преобразования к столбцу с датой/временем и определяет новую гранулярность (минута, день, год, и т.п.). Доступные опции определены в исходном коде Superset для каждого типа движка БД.',
         ],
-      'Last week': ['Последние 7 дней'],
       'The time range for the visualization. All relative times, e.g. "Last month", "Last 7 days", "now", etc. are evaluated on the server using the server\'s local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine\'s local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.':
         [''],
       'Row limit': ['Лимит строк'],
@@ -2758,6 +2742,11 @@ const ru = {
       'last month': ['Последние 30 дней'],
       'last quarter': ['Последние 90 дней'],
       'last year': ['Последние 365 дней'],
+      'Last day': ['Последние сутки'],
+      'Last week': ['Последние 7 дней'],
+      'Last month': ['Последние 30 дней'],
+      'Last quarter': ['Последние 90 дней'],
+      'Last year': ['Последние 365 дней'],
       'previous calendar week': ['Предыдущая календарная неделя'],
       'previous calendar month': ['Предыдущий календарный месяц'],
       'previous calendar year': ['Предыдущий календарный год'],
@@ -2829,8 +2818,8 @@ const ru = {
       Two_to_4_dashboards: ['дашборда'],
       Five_and_more_dashboards: ['дашбордов'],
       Added_to: ['Добавлен в'],
-      'With space': ['С пробелом'],
       Used_in: ['Используется в'],
+      'With space': ['С пробелом'],
     },
   },
 };

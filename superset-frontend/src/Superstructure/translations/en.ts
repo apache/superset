@@ -1120,6 +1120,8 @@ const en = {
       'Edit dashboard properties': [''],
       'Edit CSS': [''],
       'Download as image': [''],
+      Download: [''],
+      'Export to .CSV': [''],
       'Toggle fullscreen': [''],
       'There is no chart definition associated with this component, could it have been deleted?':
         [''],
