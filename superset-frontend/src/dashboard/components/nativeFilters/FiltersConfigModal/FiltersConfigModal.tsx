@@ -32,13 +32,17 @@ import {
   styled,
   SLOW_DEBOUNCE,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { AntdForm } from 'src/components';
+import Icons from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
@@ -58,17 +62,25 @@ import {
 } from './utils';
 import DividerConfigForm from './DividerConfigForm';
 
-const StyledModalWrapper = styled(StyledModal)`
+const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
   min-width: 700px;
   .ant-modal-body {
     padding: 0px;
   }
+  ${({ expanded }) =>
+    expanded &&
+    css`
+      .ant-modal-content {
+        height: 100%;
+      }
+    `}
 `;
 
-export const StyledModalBody = styled.div`
+export const StyledModalBody = styled.div<{ expanded: boolean }>`
   display: flex;
-  height: 700px;
+  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
   flex-direction: row;
+  flex: 1;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;
     overflow: auto;
@@ -119,6 +131,7 @@ function FiltersConfigModal({
   onCancel,
 }: FiltersConfigModalProps) {
   const dispatch = useDispatch();
+  const theme = useTheme();
 
   const [form] = AntdForm.useForm<NativeFiltersForm>();
 
@@ -477,6 +490,14 @@ function FiltersConfigModal({
     [buildDependencyMap, canBeUsedAsDependency, orderedFilters],
   );
 
+  const [expanded, setExpanded] = useState(false);
+  const toggleExpand = useEffectEvent(() => {
+    setExpanded(!expanded);
+  });
+  const ToggleIcon = expanded
+    ? Icons.FullscreenExitOutlined
+    : Icons.FullscreenOutlined;
+
   const handleValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
@@ -580,8 +601,26 @@ function FiltersConfigModal({
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={t('Add and edit filters')}
+      title={
+        <div
+          css={css`
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-right: 50px;
+          `}
+        >
+          <div>{t('Add and edit filters')}</div>
+          <ToggleIcon
+            iconSize="l"
+            iconColor={theme.colors.grayscale.base}
+            onClick={toggleExpand}
+          />
+        </div>
+      }
       width="50%"
+      {...(expanded && { width: '100%', height: '100%' })}
+      expanded={expanded}
       destroyOnClose
       onCancel={handleCancel}
       onOk={handleSave}
@@ -599,7 +638,7 @@ function FiltersConfigModal({
       }
     >
       <ErrorBoundary>
-        <StyledModalBody>
+        <StyledModalBody expanded={expanded}>
           <StyledForm
             form={form}
             onValuesChange={handleValuesChange}
