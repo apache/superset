@@ -82,7 +82,7 @@ from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
-from superset.utils.screenshots import ChartScreenshot
+from superset.utils.screenshots import ChartScreenshot, DEFAULT_CHART_WINDOW_SIZE
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -573,7 +573,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         rison_dict = kwargs["rison"]
-        window_size = rison_dict.get("window_size") or (800, 600)
+        window_size = rison_dict.get("window_size") or DEFAULT_CHART_WINDOW_SIZE
 
         # Don't shrink the image if thumb_size is not specified
         thumb_size = rison_dict.get("thumb_size") or window_size
