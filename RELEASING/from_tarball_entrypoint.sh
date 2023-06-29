@@ -41,5 +41,5 @@ superset init
 # Loading examples
 superset load-examples --force
 
-FLASK_ENV=development FLASK_APP="superset.app:create_app()" \
+SUPERSET_ENV=development FLASK_APP="superset.app:create_app()" \
 flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
