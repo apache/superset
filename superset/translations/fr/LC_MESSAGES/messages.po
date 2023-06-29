@@ -21006,3 +21006,24 @@ msgstr "année"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts:521
 msgid "zoom area"
 msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:28
+#: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
+msgid "metric"
+msgstr "metrique"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "10 seconds"
+msgstr "10 secondes"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "6 hours"
+msgstr "6 heures"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "12 hours"
+msgstr "12 heures"
+
+#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
+msgid "24 hours"
+msgstr "24 heures"
