@@ -1507,16 +1507,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
               </StyledInputContainer>
             )}
-            <div className="inline-container">
-              <StyledCheckbox
-                data-test="bypass-cache"
-                className="checkbox"
-                checked={forceScreenshot}
-                onChange={onForceScreenshotChange}
-              >
-                {TRANSLATIONS.IGNORE_CACHE_TEXT}
-              </StyledCheckbox>
-            </div>
+            {(isReport || contentType === 'dashboard') && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
+                >
+                  {TRANSLATIONS.IGNORE_CACHE_TEXT}
+                </StyledCheckbox>
+              </div>
+            )}
             <StyledSectionTitle>
               <h4>{TRANSLATIONS.NOTIFICATION_METHOD_TEXT}</h4>
               <span className="required">*</span>
