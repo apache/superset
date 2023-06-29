@@ -20,7 +20,7 @@ import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, request
 from flask_caching import Cache
@@ -41,7 +41,7 @@ stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
-def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str:
+def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
     hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
     return f"{key_prefix}{hash_str}"
 
@@ -49,9 +49,9 @@ def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str
 def set_and_log_cache(
     cache_instance: Cache,
     cache_key: str,
-    cache_value: Dict[str, Any],
-    cache_timeout: Optional[int] = None,
-    datasource_uid: Optional[str] = None,
+    cache_value: dict[str, Any],
+    cache_timeout: int | None = None,
+    datasource_uid: str | None = None,
 ) -> None:
     if isinstance(cache_instance.cache, NullCache):
         return
@@ -91,12 +91,11 @@ logger = logging.getLogger(__name__)
 
 def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-argument
     args_hash = hash(frozenset(request.args.items()))
-    return "view/{}/{}".format(request.path, args_hash)
+    return f"view/{request.path}/{args_hash}"
 
 
 def memoized_func(
-    key: Optional[str] = None,
-    cache: Cache = cache_manager.cache,
+    key: str | None = None, cache: Cache = cache_manager.cache
 ) -> Callable[..., Any]:
     """
     Decorator with configurable key and cache backend.
@@ -143,7 +142,7 @@ def memoized_func(
             if not kwargs.get("force") and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
-            cache.set(cache_key, obj, timeout=kwargs.get("cache_timeout"))
+            cache.set(cache_key, obj, timeout=kwargs.get("cache_timeout", 0))
             return obj
 
         return wrapped_f
@@ -153,10 +152,10 @@ def memoized_func(
 
 def etag_cache(
     cache: Cache = cache_manager.cache,
-    get_last_modified: Optional[Callable[..., datetime]] = None,
-    max_age: Optional[Union[int, float]] = None,
-    raise_for_access: Optional[Callable[..., Any]] = None,
-    skip: Optional[Callable[..., bool]] = None,
+    get_last_modified: Callable[..., datetime] | None = None,
+    max_age: int | float | None = None,
+    raise_for_access: Callable[..., Any] | None = None,
+    skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.

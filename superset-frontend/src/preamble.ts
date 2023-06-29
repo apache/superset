@@ -57,7 +57,7 @@ setupColors(
 );
 
 // Setup number formatters
-setupFormatters();
+setupFormatters(bootstrapData.common.d3_format);
 
 setupDashboardComponents();
 

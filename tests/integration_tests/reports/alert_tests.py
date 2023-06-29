@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
 from contextlib import nullcontext
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import pandas as pd
 import pytest
@@ -56,15 +56,14 @@ from tests.integration_tests.test_app import app
     ],
 )
 def test_execute_query_as_report_executor(
-    owner_names: List[str],
+    owner_names: list[str],
     creator_name: Optional[str],
-    config: List[ExecutorType],
-    expected_result: Union[Tuple[ExecutorType, str], Exception],
+    config: list[ExecutorType],
+    expected_result: Union[tuple[ExecutorType, str], Exception],
     mocker: MockFixture,
     app_context: None,
     get_user,
 ) -> None:
-
     from superset.reports.commands.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
@@ -104,7 +103,6 @@ def test_execute_query_as_report_executor(
 def test_execute_query_succeeded_no_retry(
     mocker: MockFixture, app_context: None
 ) -> None:
-
     from superset.reports.commands.alert import AlertCommand
 
     execute_query_mock = mocker.patch(

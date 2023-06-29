@@ -21,14 +21,13 @@ import React, {
   ReactNode,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
@@ -36,10 +35,8 @@ import SliceHeaderControls, {
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
-import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -57,11 +54,12 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
 
 const annotationsLoading = t('Annotation layers are still loading.');
 const annotationsError = t('One ore more annotation layers failed loading.');
-const CrossFilterIcon = styled(Icons.CursorTarget)`
-  cursor: pointer;
-  color: ${({ theme }) => theme.colors.primary.base};
-  height: 22px;
-  width: 22px;
+const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
+  ${({ theme }) => `
+    cursor: default;
+    color: ${theme.colors.primary.base};
+    line-height: 1.8;
+  `}
 `;
 
 const ChartHeaderStyles = styled.div`
@@ -90,6 +88,8 @@ const ChartHeaderStyles = styled.div`
 
     & > .header-controls {
       display: flex;
+      align-items: center;
+      height: 24px;
 
       & > * {
         margin-left: ${theme.gridUnit * 2}px;
@@ -135,6 +135,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   logExploreChart = () => ({}),
   logEvent,
   exportCSV = () => ({}),
+  exportXLSX = () => ({}),
   editMode = false,
   annotationQuery = {},
   annotationError = {},
@@ -146,8 +147,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
-  sliceCanEdit = false,
   exportFullCSV,
+  exportFullXLSX,
   slice,
   componentId,
   dashboardId,
@@ -160,7 +161,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
-  const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
@@ -171,14 +171,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
-
-  const indicator = useMemo(
-    () => ({
-      value: crossFilterValue,
-      name: t('Emitted values'),
-    }),
-    [crossFilterValue],
   );
 
   const canExplore = !editMode && supersetCanExplore;
@@ -250,16 +242,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {crossFilterValue && (
               <Tooltip
                 placement="top"
-                title={
-                  <FilterIndicator
-                    indicator={indicator}
-                    text={t('Click to clear emitted filters')}
-                  />
-                }
+                title={t(
+                  'This chart applies cross-filters to charts whose datasets contain columns with the same name.',
+                )}
               >
-                <CrossFilterIcon
-                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
-                />
+                <CrossFilterIcon iconSize="m" />
               </Tooltip>
             )}
             {!uiConfig.hideChartControls && (
@@ -278,10 +265,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
+                exportXLSX={exportXLSX}
+                exportFullXLSX={exportFullXLSX}
                 supersetCanExplore={supersetCanExplore}
                 supersetCanShare={supersetCanShare}
                 supersetCanCSV={supersetCanCSV}
-                sliceCanEdit={sliceCanEdit}
                 componentId={componentId}
                 dashboardId={dashboardId}
                 addSuccessToast={addSuccessToast}

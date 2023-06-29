@@ -22,6 +22,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.tag import TagDAO
 from superset.extensions import event_logger
 from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
@@ -33,7 +34,6 @@ from superset.tags.commands.exceptions import (
     TagInvalidError,
     TagNotFoundError,
 )
-from superset.tags.dao import TagDAO
 from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -127,7 +127,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             f'{self.appbuilder.app.config["VERSION_SHA"]}'
         )
 
-    @expose("/<int:object_type>/<int:object_id>/", methods=["POST"])
+    @expose("/<int:object_type>/<int:object_id>/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -198,7 +198,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=["DELETE"])
+    @expose("/<int:object_type>/<int:object_id>/<tag>/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -266,7 +266,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -321,7 +321,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         except TagDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/get_objects/", methods=["GET"])
+    @expose("/get_objects/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics

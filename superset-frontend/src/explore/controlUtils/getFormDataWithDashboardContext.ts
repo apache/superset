@@ -18,41 +18,31 @@
  */
 import isEqual from 'lodash/isEqual';
 import {
-  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-  isDefined,
-  JsonObject,
-  ensureIsArray,
-  QueryObjectFilterClause,
-  SimpleAdhocFilter,
-  QueryFormData,
   AdhocFilter,
+  ensureIsArray,
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+  isDefined,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
+  JsonObject,
   NO_TIME_RANGE,
+  QueryFormData,
+  QueryObjectFilterClause,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 
-const simpleFilterToAdhoc = (
-  filterClause: QueryObjectFilterClause,
-  clause = 'where',
-) => {
-  const result = {
-    clause: clause.toUpperCase(),
-    expressionType: 'SIMPLE',
-    operator: filterClause.op,
-    subject: filterClause.col,
-    comparator: 'val' in filterClause ? filterClause.val : undefined,
-  } as SimpleAdhocFilter;
-  if (filterClause.isExtra) {
-    Object.assign(result, {
-      isExtra: true,
-      filterOptionName: `filter_${Math.random()
-        .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
-    });
-  }
-  return result;
-};
+const removeExtraFieldForNewCharts = (
+  filters: AdhocFilter[],
+  isNewChart: boolean,
+) =>
+  filters.map(filter => {
+    if (filter.isExtra) {
+      return { ...filter, isExtra: !isNewChart };
+    }
+    return filter;
+  });
 
 const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
@@ -124,7 +114,6 @@ const mergeNativeFiltersToFormData = (
 ) => {
   const nativeFiltersData: JsonObject = {};
   const extraFormData = dashboardFormData.extra_form_data || {};
-
   Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
     ([srcKey, targetKey]) => {
       const val = extraFormData[srcKey];
@@ -214,13 +203,16 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: applyTimeRangeFilters(
-          dashboardContextFormData,
-          removeAdhocFilterDuplicates([
-            ...ensureIsArray(exploreFormData[key]),
-            ...ensureIsArray(filterBoxData[key]),
-            ...ensureIsArray(nativeFiltersData[key]),
-          ]),
+        [key]: removeExtraFieldForNewCharts(
+          applyTimeRangeFilters(
+            dashboardContextFormData,
+            removeAdhocFilterDuplicates([
+              ...ensureIsArray(exploreFormData[key]),
+              ...ensureIsArray(filterBoxData[key]),
+              ...ensureIsArray(nativeFiltersData[key]),
+            ]),
+          ),
+          exploreFormData.slice_id === 0,
         ),
       }),
       {},

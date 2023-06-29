@@ -367,11 +367,11 @@ const config: ControlPanelConfig = {
             name: 'y_axis_bounds',
             config: {
               type: 'BoundsControl',
-              label: t('Y Axis Bounds'),
+              label: t('Primary y-axis Bounds'),
               renderTrigger: true,
               default: yAxisBounds,
               description: t(
-                'Bounds for the Y-axis. When left empty, the bounds are ' +
+                'Bounds for the primary Y-axis. When left empty, the bounds are ' +
                   'dynamically defined based on the min/max of the data. Note that ' +
                   "this feature will only expand the axis range. It won't " +
                   "narrow the data's extent.",
@@ -397,6 +397,23 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: logAxis,
               description: t('Logarithmic scale on primary y-axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_bounds_secondary',
+            config: {
+              type: 'BoundsControl',
+              label: t('Secondary y-axis Bounds'),
+              renderTrigger: true,
+              default: yAxisBounds,
+              description: t(
+                `Bounds for the secondary Y-axis. Only works when Independent Y-axis
+                bounds are enabled. When left empty, the bounds are dynamically defined
+                based on the min/max of the data. Note that this feature will only expand
+                the axis range. It won't narrow the data's extent.`,
+              ),
             },
           },
         ],

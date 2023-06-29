@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -31,7 +33,6 @@ from superset.databases.commands.exceptions import (
     DatabaseRequiredFieldValidationError,
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelCreateFailedError,
@@ -42,10 +43,11 @@ from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
+stats_logger = current_app.config["STATS_LOGGER"]
 
 
 class CreateDatabaseCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -91,14 +93,14 @@ class CreateDatabaseCommand(BaseCommand):
                     ).run()
                 except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                     event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
                     # So we can show the original message
                     raise ex
                 except Exception as ex:
                     event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
                     raise DatabaseCreateFailedError() from ex
@@ -111,6 +113,7 @@ class CreateDatabaseCommand(BaseCommand):
                 )
 
             db.session.commit()
+
         except DAOCreateFailedError as ex:
             db.session.rollback()
             event_logger.log_with_context(
@@ -118,10 +121,14 @@ class CreateDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseCreateFailedError() from ex
+
+        if ssh_tunnel:
+            stats_logger.incr("db_creation_success.ssh_tunnel")
+
         return database
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         database_name: Optional[str] = self._properties.get("database_name")
         if not sqlalchemy_uri:
@@ -134,7 +141,7 @@ class CreateDatabaseCommand(BaseCommand):
                 exceptions.append(DatabaseExistsValidationError())
         if exceptions:
             exception = DatabaseInvalidError()
-            exception.add_list(exceptions)
+            exception.extend(exceptions)
             event_logger.log_with_context(
                 action="db_connection_failed.{}.{}".format(
                     exception.__class__.__name__,

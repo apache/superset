@@ -17,21 +17,11 @@
 from __future__ import annotations
 
 import logging
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    TYPE_CHECKING,
-    TypeVar,
-)
+from collections.abc import Iterable, Iterator
+from functools import lru_cache
+from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
-import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
@@ -40,6 +30,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
@@ -47,9 +38,8 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
+from superset.sql_parse import ParsedQuery
 from superset.superset_typing import ResultSetColumnType
-from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -58,8 +48,8 @@ if TYPE_CHECKING:
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
-    schema_name: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+    schema_name: str | None = None,
+) -> list[ResultSetColumnType]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -77,6 +67,7 @@ def get_physical_table_metadata(
     for col in cols:
         try:
             if isinstance(col["type"], TypeEngine):
+                name = db_engine_spec.denormalize_name(db_dialect, col["column_name"])
                 db_type = db_engine_spec.column_datatype_to_string(
                     col["type"], db_dialect
                 )
@@ -85,6 +76,8 @@ def get_physical_table_metadata(
                 )
                 col.update(
                     {
+                        "name": name,
+                        "column_name": name,
                         "type": db_type,
                         "type_generic": type_spec.generic_type if type_spec else None,
                         "is_dttm": type_spec.is_dttm if type_spec else None,
@@ -103,7 +96,7 @@ def get_physical_table_metadata(
     return cols
 
 
-def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
+def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -150,7 +143,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
 def get_columns_description(
     database: Database,
     query: str,
-) -> List[ResultSetColumnType]:
+) -> list[ResultSetColumnType]:
     db_engine_spec = database.db_engine_spec
     try:
         with database.get_raw_connection() as conn:
@@ -165,48 +158,13 @@ def get_columns_description(
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 
 
-def validate_adhoc_subquery(
-    sql: str,
-    database_id: int,
-    default_schema: str,
-) -> str:
-    """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
-
-    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
-    predicates to it.
-
-    :param sql: adhoc sql expression
-    :raise SupersetSecurityException if sql contains sub-queries or
-    nested sub-queries with table
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset import is_feature_enabled
-
-    statements = []
-    for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                        message=_("Custom SQL fields cannot contain sub-queries."),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
-            statement = insert_rls(statement, database_id, default_schema)
-        statements.append(statement)
-
-    return ";\n".join(str(statement) for statement in statements)
-
-
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_dialect_name(drivername: str) -> str:
     return SqlaURL.create(drivername).get_dialect().name
 
 
-@memoized
-def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def get_identifier_quoter(drivername: str) -> dict[str, Callable[[str], str]]:
     return SqlaURL.create(drivername).get_dialect()().identifier_preparer.quote
 
 
@@ -216,9 +174,9 @@ logger = logging.getLogger(__name__)
 
 def find_cached_objects_in_session(
     session: Session,
-    cls: Type[DeclarativeModel],
-    ids: Optional[Iterable[int]] = None,
-    uuids: Optional[Iterable[UUID]] = None,
+    cls: type[DeclarativeModel],
+    ids: Iterable[int] | None = None,
+    uuids: Iterable[UUID] | None = None,
 ) -> Iterator[DeclarativeModel]:
     """Find known ORM instances in cached SQLA session states.
 

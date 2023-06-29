@@ -20,7 +20,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Optional, Union
 
 import simplejson as json
 import yaml
@@ -46,7 +46,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from pkg_resources import resource_filename
-from sqlalchemy import exc, or_
+from sqlalchemy import exc
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -58,6 +58,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
+    is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
@@ -78,7 +79,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.filters import get_dataset_access_filters
 
 from .utils import bootstrap_user_data
 
@@ -89,7 +90,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
-    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -116,6 +116,10 @@ FRONTEND_CONF_KEYS = (
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
     "WELCOME_PAGE_LAST_TAB",
     "VIZ_TYPE_DENYLIST",
+    "ALERT_REPORTS_DEFAULT_CRON_VALUE",
+    "ALERT_REPORTS_DEFAULT_RETENTION",
+    "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)
@@ -137,11 +141,11 @@ def get_error_msg() -> str:
 def json_error_response(
     msg: Optional[str] = None,
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     link: Optional[str] = None,
 ) -> FlaskResponse:
     if not payload:
-        payload = {"error": "{}".format(msg)}
+        payload = {"error": f"{msg}"}
     if link:
         payload["link"] = link
 
@@ -153,9 +157,9 @@ def json_error_response(
 
 
 def json_errors_response(
-    errors: List[SupersetError],
+    errors: list[SupersetError],
     status: int = 500,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
 ) -> FlaskResponse:
     if not payload:
         payload = {}
@@ -179,7 +183,7 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 def generate_download_headers(
     extension: str, filename: Optional[str] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
@@ -188,6 +192,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "3.0.0",
+    new_target: Optional[str] = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -196,13 +201,19 @@ def deprecated(
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
         def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
-            logger.warning(
+            messsage = (
                 "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s",
+                "This API endpoint is deprecated and will be removed in version %s"
+            )
+            logger_args = [
                 self.__class__.__name__,
                 f.__name__,
                 eol_version,
-            )
+            ]
+            if new_target:
+                messsage += " . Use the following API endpoint instead: %s"
+                logger_args.append(new_target)
+            logger.warning(messsage, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -322,7 +333,7 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data(user: User) -> Dict[str, Any]:
+def menu_data(user: User) -> dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
     languages = {}
@@ -373,20 +384,20 @@ def menu_data(user: User) -> Dict[str, Any]:
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
-            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            if is_feature_enabled("MENU_HIDE_USER_INFO")
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{user.username}",
+            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
+            else "/superset/profile/",
             "locale": session.get("locale", "en"),
         },
     }
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
+def cached_common_bootstrap_data(user: User) -> dict[str, Any]:
     """Common data always sent to the client
 
     The function is memoized as the return value only changes when user permissions
@@ -418,6 +429,8 @@ def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
+        "d3_format": conf.get("D3_FORMAT"),
+        "currencies": conf.get("CURRENCIES"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
@@ -428,7 +441,7 @@ def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     return bootstrap_data
 
 
-def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+def common_bootstrap_payload(user: User) -> dict[str, Any]:
     return {
         **(cached_common_bootstrap_data(user)),
         "flash_messages": get_flashed_messages(with_categories=True),
@@ -479,7 +492,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path, cache_timeout=0), ex.code
+        return send_file(path, max_age=0), ex.code
 
     return json_errors_response(
         errors=[
@@ -501,7 +514,7 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        return send_file(path, max_age=0), 500
 
     extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
     return json_errors_response(
@@ -523,7 +536,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
-        return send_file(path, cache_timeout=0), 500
+        return send_file(path, max_age=0), 500
 
     return json_errors_response(
         errors=[
@@ -537,7 +550,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 
 
 @superset_app.context_processor
-def get_common_bootstrap_data() -> Dict[str, Any]:
+def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
             {"common": common_bootstrap_payload(g.user)},
@@ -595,7 +608,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: Union[ImportExportMixin, List[ImportExportMixin]]
+        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
@@ -652,7 +665,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
     @action(
         "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False
     )
-    def muldelete(self: BaseView, items: List[Model]) -> FlaskResponse:
+    def muldelete(self: BaseView, items: list[Model]) -> FlaskResponse:
         if not items:
             abort(404)
         for item in items:
@@ -670,20 +683,11 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        datasource_perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        owner_ids_query = (
-            db.session.query(models.SqlaTable.id)
-            .join(models.SqlaTable.owners)
-            .filter(security_manager.user_model.id == get_user_id())
+        query = query.join(
+            models.Database,
+            models.Database.id == self.model.database_id,
         )
-        return query.filter(
-            or_(
-                self.model.perm.in_(datasource_perms),
-                self.model.schema_perm.in_(schema_perms),
-                models.SqlaTable.id.in_(owner_ids_query),
-            )
-        )
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class CsvResponse(Response):
@@ -707,7 +711,7 @@ class XlsxResponse(Response):
 
 
 def bind_field(
-    _: Any, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
+    _: Any, form: DynamicForm, unbound_field: UnboundField, options: dict[Any, Any]
 ) -> Field:
     """
     Customize how fields are bound by stripping all whitespace.
@@ -731,7 +735,7 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
+    response.headers.extend(
         {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
     )
 

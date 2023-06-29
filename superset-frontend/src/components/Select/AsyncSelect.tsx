@@ -482,6 +482,7 @@ const AsyncSelect = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
+          autoClearSearchValue={false}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}

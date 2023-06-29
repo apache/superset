@@ -47,6 +47,7 @@ import {
   selectAllOption,
   mapValues,
   mapOptions,
+  hasCustomLabels,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
@@ -83,6 +84,7 @@ const Select = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      allowSelectAll = true,
       ariaLabel,
       filterOption = true,
       header = null,
@@ -195,10 +197,17 @@ const Select = forwardRef(
     const selectAllEnabled = useMemo(
       () =>
         !isSingleMode &&
+        allowSelectAll &&
         selectOptions.length > 0 &&
         enabledOptions.length > 1 &&
         !inputValue,
-      [isSingleMode, selectOptions.length, enabledOptions.length, inputValue],
+      [
+        isSingleMode,
+        allowSelectAll,
+        selectOptions.length,
+        enabledOptions.length,
+        inputValue,
+      ],
     );
 
     const selectAllMode = useMemo(
@@ -360,9 +369,8 @@ const Select = forwardRef(
     useEffect(() => {
       // if all values are selected, add select all to value
       if (
-        !isSingleMode &&
-        ensureIsArray(value).length === selectAllEligible.length &&
-        selectOptions.length > 0
+        selectAllEnabled &&
+        ensureIsArray(value).length === selectAllEligible.length
       ) {
         setSelectValue(
           labelInValue
@@ -373,13 +381,7 @@ const Select = forwardRef(
               ] as AntdLabeledValue[]),
         );
       }
-    }, [
-      value,
-      isSingleMode,
-      labelInValue,
-      selectAllEligible.length,
-      selectOptions.length,
-    ]);
+    }, [labelInValue, selectAllEligible.length, selectAllEnabled, value]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(
@@ -439,6 +441,11 @@ const Select = forwardRef(
       onChange?.(newValues, newOptions);
     };
 
+    const shouldRenderChildrenOptions = useMemo(
+      () => selectAllEnabled || hasCustomLabels(options),
+      [selectAllEnabled, options],
+    );
+
     const customMaxTagPlaceholder = () => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = maxTagCount as number;
@@ -455,6 +462,7 @@ const Select = forwardRef(
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
+          autoClearSearchValue={false}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
@@ -491,6 +499,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
+          {...(!shouldRenderChildrenOptions && { options: fullSelectOptions })}
           oneLine={oneLine}
           tagRender={customTagRender}
           {...props}
@@ -506,7 +515,8 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {renderSelectOptions(fullSelectOptions)}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

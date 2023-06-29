@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 
 from marshmallow import fields, post_load, pre_load, Schema, validate
 from typing_extensions import TypedDict
@@ -70,13 +70,13 @@ class SamplesPayloadSchema(Schema):
     )
     extras = fields.Nested(
         ChartDataExtrasSchema,
-        description="Extra parameters to add to the query.",
+        metadata={"description": "Extra parameters to add to the query."},
         allow_none=True,
     )
 
     @pre_load
     # pylint: disable=no-self-use, unused-argument
-    def handle_none(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def handle_none(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data is None:
             return {}
         return data

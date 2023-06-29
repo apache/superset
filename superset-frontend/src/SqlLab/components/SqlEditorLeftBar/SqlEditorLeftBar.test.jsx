@@ -17,15 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import '@testing-library/jest-dom/extend-expect';
-import thunk from 'redux-thunk';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { table, initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { api } from 'src/hooks/apiResources/queryApi';
+import { setupStore } from 'src/views/store';
+import { reducers } from 'src/SqlLab/reducers';
 
 const mockedProps = {
   tables: [table],
@@ -37,11 +38,30 @@ const mockedProps = {
   },
   height: 0,
 };
-const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
+
+let store;
+let actions;
+
+const logAction = () => next => action => {
+  if (typeof action === 'function') {
+    return next(action);
+  }
+  actions.push(action);
+  return next(action);
+};
+
+const createStore = initState =>
+  setupStore({
+    disableDegugger: true,
+    initialState: initState,
+    rootReducers: reducers,
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware().concat(api.middleware, logAction),
+  });
 
 beforeEach(() => {
+  store = createStore(initialState);
+  actions = [];
   fetchMock.get('glob:*/api/v1/database/?*', { result: [] });
   fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
     count: 2,
@@ -60,6 +80,8 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.restore();
+  store.dispatch(api.util.resetApiState());
+  jest.clearAllMocks();
 });
 
 const renderAndWait = (props, store) =>
@@ -91,10 +113,10 @@ test('table should be visible when expanded is true', async () => {
   const { container } = await renderAndWait(mockedProps, store);
 
   const dbSelect = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   const dropdown = screen.getByText(/Table/i);
   const abUser = screen.queryAllByText(/ab_user/i);
@@ -112,21 +134,29 @@ test('table should be visible when expanded is true', async () => {
 });
 
 test('should toggle the table when the header is clicked', async () => {
-  const store = mockStore(initialState);
   await renderAndWait(mockedProps, store);
 
   const header = (await screen.findAllByText(/ab_user/))[1];
   expect(header).toBeInTheDocument();
+
   userEvent.click(header);
 
   await waitFor(() => {
-    expect(store.getActions()[store.getActions().length - 1].type).toEqual(
-      'COLLAPSE_TABLE',
-    );
+    expect(actions[actions.length - 1].type).toEqual('COLLAPSE_TABLE');
   });
 });
 
 test('When changing database the table list must be updated', async () => {
+  store = createStore({
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      unsavedQueryEditor: {
+        id: defaultQueryEditor.id,
+        schema: 'new_schema',
+      },
+    },
+  });
   const { rerender } = await renderAndWait(mockedProps, store);
 
   expect(screen.getAllByText(/main/i)[0]).toBeInTheDocument();
@@ -145,16 +175,7 @@ test('When changing database the table list must be updated', async () => {
     />,
     {
       useRedux: true,
-      store: mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            schema: 'new_schema',
-          },
-        },
-      }),
+      store,
     },
   );
   expect(await screen.findByText(/new_db/i)).toBeInTheDocument();
@@ -163,22 +184,19 @@ test('When changing database the table list must be updated', async () => {
 
 test('ignore schema api when current schema is deprecated', async () => {
   const invalidSchemaName = 'None';
-  const { rerender } = await renderAndWait(
-    mockedProps,
-    mockStore({
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          schema: invalidSchemaName,
-        },
+  store = createStore({
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      unsavedQueryEditor: {
+        id: defaultQueryEditor.id,
+        schema: invalidSchemaName,
       },
-    }),
-  );
+    },
+  });
+  const { rerender } = await renderAndWait(mockedProps, store);
 
   expect(await screen.findByText(/Database/i)).toBeInTheDocument();
-  expect(screen.queryByText(/None/i)).toBeInTheDocument();
   expect(fetchMock.calls()).not.toContainEqual(
     expect.arrayContaining([
       expect.stringContaining(

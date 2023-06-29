@@ -61,6 +61,7 @@ export type ExploreQuery = QueryResponse & {
 };
 
 export interface ISimpleColumn {
+  column_name?: string | null;
   name?: string | null;
   type?: string | null;
   is_dttm?: boolean | null;
@@ -174,6 +175,7 @@ export const SaveDatasetModal = ({
   const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
     SelectValue | undefined
   >(undefined);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const user = useSelector<SqlLabExploreRootState, User>(user =>
     getInitialState(user),
@@ -197,14 +199,16 @@ export const SaveDatasetModal = ({
       setShouldOverwriteDataset(true);
       return;
     }
+    setLoading(true);
+
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
         datasetToOverwrite?.datasetid,
         datasource?.sql,
         datasource?.columns?.map(
-          (d: { name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.name,
+          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.column_name,
             type: d.type,
             is_dttm: d.is_dttm,
           }),
@@ -216,10 +220,11 @@ export const SaveDatasetModal = ({
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
-          all_columns: datasource?.columns?.map(column => column.name),
+          all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
     ]);
+    setLoading(false);
 
     const url = mountExploreUrl(null, {
       [URL_PARAMS.formDataKey.name]: key,
@@ -269,6 +274,7 @@ export const SaveDatasetModal = ({
   );
 
   const handleSaveInDataset = () => {
+    setLoading(true);
     const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
@@ -288,24 +294,23 @@ export const SaveDatasetModal = ({
 
     dispatch(
       createDatasource({
-        schema: datasource.schema,
         sql: datasource.sql,
         dbId: datasource.dbId || datasource?.database?.id,
         templateParams,
         datasourceName: datasetName,
-        columns: selectedColumns,
       }),
     )
-      .then((data: { table_id: number }) =>
-        postFormData(data.table_id, 'table', {
+      .then((data: { id: number }) =>
+        postFormData(data.id, 'table', {
           ...formDataWithDefaults,
-          datasource: `${data.table_id}__table`,
+          datasource: `${data.id}__table`,
           ...(defaultVizType === 'table' && {
-            all_columns: selectedColumns.map(column => column.name),
+            all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),
       )
       .then((key: string) => {
+        setLoading(false);
         const url = mountExploreUrl(null, {
           [URL_PARAMS.formDataKey.name]: key,
         });
@@ -314,6 +319,7 @@ export const SaveDatasetModal = ({
         onHide();
       })
       .catch(() => {
+        setLoading(false);
         addDangerToast(t('An error occurred saving dataset'));
       });
   };
@@ -356,6 +362,7 @@ export const SaveDatasetModal = ({
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
               onClick={handleSaveInDataset}
+              loading={loading}
             >
               {buttonTextOnSave}
             </Button>
@@ -370,6 +377,7 @@ export const SaveDatasetModal = ({
                 buttonStyle="primary"
                 onClick={handleOverwriteDataset}
                 disabled={disableSaveAndExploreBtn}
+                loading={loading}
               >
                 {buttonTextOnOverwrite}
               </Button>

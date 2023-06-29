@@ -32,7 +32,7 @@ class AsyncEventsRestApi(BaseSupersetApi):
     resource_name = "async_event"
     allow_browser_login = True
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @event_logger.log_this
     @protect()
     @safe

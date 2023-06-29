@@ -104,6 +104,10 @@
         {{ lib.render_field(form.overwrite_duplicate, begin_sep_label, end_sep_label, begin_sep_field,
         end_sep_field) }}
       </tr>
+      <tr>
+        {{ lib.render_field(form.dtype, begin_sep_label, end_sep_label, begin_sep_field,
+        end_sep_field) }}
+      </tr>
     {% endcall %}
     {% call csv_macros.render_collapsable_form_group("accordion3", "Rows") %}
       <tr>

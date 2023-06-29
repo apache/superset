@@ -61,6 +61,23 @@ class DatasetExistsValidationError(ValidationError):
         )
 
 
+class DatasetEndpointUnsafeValidationError(ValidationError):
+    """
+    Marshmallow validation error for unsafe dataset default endpoint
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [
+                _(
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                )
+            ],
+            field_name="default_endpoint",
+        )
+
+
 class DatasetColumnNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when dataset column for update does not exist
@@ -195,3 +212,8 @@ class DatasetDuplicateFailedError(CreateFailedError):
 
 class DatasetForbiddenDataURI(ImportFailedError):
     message = _("Data URI is not allowed.")
+
+
+class WarmUpCacheTableNotFoundError(CommandException):
+    status = 404
+    message = _("The provided table was not found in the provided database")

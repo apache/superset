@@ -143,6 +143,8 @@ export function toggleActive(report, isActive) {
   };
 }
 
+export const DELETE_REPORT = 'DELETE_REPORT';
+
 export function deleteActiveReport(report) {
   return function deleteActiveReportThunk(dispatch) {
     return SupersetClient.delete({
@@ -152,7 +154,7 @@ export function deleteActiveReport(report) {
         dispatch(addDangerToast(t('Your report could not be deleted')));
       })
       .finally(() => {
-        dispatch(structureFetchAction);
+        dispatch({ type: DELETE_REPORT, report });
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
       });
   };

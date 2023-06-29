@@ -45,7 +45,7 @@ class DatasetColumnsRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Datasets"
 
-    @expose("/<int:pk>/column/<int:column_id>", methods=["DELETE"])
+    @expose("/<int:pk>/column/<int:column_id>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

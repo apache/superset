@@ -46,9 +46,10 @@ import { EmptyStateSmall } from 'src/components/EmptyState';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
-  UNRESIZABLE_POPOVER_WIDTH,
+  POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import useResizeButton from './useResizeButton';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -116,6 +117,11 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+
+  const [resizeButton, width, height] = useResizeButton(
+    POPOVER_INITIAL_WIDTH,
+    POPOVER_INITIAL_HEIGHT,
+  );
 
   const sqlEditorRef = useRef(null);
 
@@ -258,8 +264,8 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${POPOVER_INITIAL_HEIGHT}px;
-          width: ${UNRESIZABLE_POPOVER_WIDTH}px;
+          height: ${height}px;
+          width: ${width}px;
         `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
@@ -393,7 +399,7 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
@@ -417,6 +423,7 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
+        {resizeButton}
       </div>
     </Form>
   );

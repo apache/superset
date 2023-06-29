@@ -1,41 +1,42 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+{{/*
+
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "superset.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "superset.name" . }}
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- if .Values.supersetNode.deploymentLabels }}
-    {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
-{{- end }}
-{{- if .Values.supersetNode.deploymentAnnotations }}
-  annotations:
-    {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
-{{- end }}
-  namespace: {{ .Release.Namespace }}
+    {{- if .Values.supersetNode.deploymentLabels }}
+      {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+    {{- end }}
+  {{- if .Values.supersetNode.deploymentAnnotations }}
+  annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.supersetNode.replicaCount }}
   {{- if .Values.supersetNode.strategy }}
-  strategy:
-    {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
+  strategy: {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
   {{- end }}
   selector:
     matchLabels:
@@ -58,27 +59,26 @@ spec:
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{- end }}
-      {{- if .Values.supersetNode.podAnnotations }}
-        {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
-      {{- end }}
+        {{- if .Values.supersetNode.podAnnotations }}
+          {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
+        {{- end }}
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
-      {{- if .Values.supersetNode.podLabels }}
-        {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
-      {{- end }}
+        {{- if .Values.supersetNode.podLabels }}
+          {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
+        {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
-      {{- if .Values.supersetNode.podSecurityContext }}
-        {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
-      {{- end }}
+        {{- if .Values.supersetNode.podSecurityContext }}
+          {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
+        {{- end }}
       {{- if .Values.supersetNode.initContainers }}
-      initContainers:
-      {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      initContainers: {{- tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
@@ -103,7 +103,7 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
             {{- if .Values.extraEnvRaw }}
-            {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+              {{- toYaml .Values.extraEnvRaw | nindent 12 }}
             {{- end }}
           envFrom:
             - secretRef:
@@ -116,67 +116,63 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
-          {{- if .Values.extraConfigs }}
+            {{- if .Values.extraConfigs }}
             - name: superset-extra-config
               mountPath: {{ .Values.extraConfigMountPath | quote }}
               readOnly: true
-          {{- end }}
-          {{- with .Values.extraVolumeMounts }}
-          {{- tpl (toYaml .) $ | nindent 12 -}}
-          {{- end }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+              {{- tpl (toYaml .) $ | nindent 12 -}}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           {{- if .Values.supersetNode.startupProbe }}
-          startupProbe:
-            {{- .Values.supersetNode.startupProbe | toYaml | nindent 12 }}
+          startupProbe: {{- .Values.supersetNode.startupProbe | toYaml | nindent 12 }}
           {{- end }}
           {{- if .Values.supersetNode.readinessProbe }}
-          readinessProbe:
-            {{- .Values.supersetNode.readinessProbe | toYaml | nindent 12 }}
+          readinessProbe: {{- .Values.supersetNode.readinessProbe | toYaml | nindent 12 }}
           {{- end }}
           {{- if .Values.supersetNode.livenessProbe }}
-          livenessProbe:
-            {{- .Values.supersetNode.livenessProbe | toYaml | nindent 12 }}
+          livenessProbe: {{- .Values.supersetNode.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
           resources:
-          {{- if .Values.supersetNode.resources }}
-            {{- toYaml .Values.supersetNode.resources | nindent 12 }}
-          {{- else }}
-            {{- toYaml .Values.resources | nindent 12 }}
-          {{- end }}
+            {{- if .Values.supersetNode.resources }}
+              {{- toYaml .Values.supersetNode.resources | nindent 12 }}
+            {{- else }}
+              {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
+        {{- if .Values.supersetNode.extraContainers }}
+          {{- toYaml .Values.supersetNode.extraContainers | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if or .Values.affinity .Values.supersetNode.affinity }}
       affinity:
         {{- with .Values.affinity }}
-        {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- with .Values.supersetNode.affinity }}
-        {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetNode.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- with .Values.topologySpreadConstraints }}
-        {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- with .Values.supersetNode.topologySpreadConstraints }}
-        {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
+      tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-
       volumes:
         - name: superset-config
           secret:
@@ -187,5 +183,5 @@ spec:
             name: {{ template "superset.fullname" . }}-extra-config
         {{- end }}
         {{- with .Values.extraVolumes }}
-        {{- tpl (toYaml .) $ | nindent 8 -}}
+          {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}

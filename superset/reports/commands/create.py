@@ -16,14 +16,15 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import CreateMixin
-from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -34,7 +35,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleRequiredTypeValidationError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import (
     ReportCreationMethod,
     ReportSchedule,
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> ReportSchedule:
@@ -59,8 +59,8 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         return report_schedule
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         name = self._properties.get("name", "")
         report_type = self._properties.get("type")
         creation_method = self._properties.get("creation_method")
@@ -117,11 +117,9 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = ReportScheduleInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise ReportScheduleInvalidError(exceptions=exceptions)
 
-    def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
+    def _validate_report_extra(self, exceptions: list[ValidationError]) -> None:
         extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 

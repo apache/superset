@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
@@ -36,11 +36,11 @@ if TYPE_CHECKING:
     from superset.models.filter_set import FilterSet
 
 
-def assert_filterset_was_not_deleted(filter_set_dict: Dict[str, Any]) -> None:
+def assert_filterset_was_not_deleted(filter_set_dict: dict[str, Any]) -> None:
     assert get_filter_set_by_name(filter_set_dict["name"]) is not None
 
 
-def assert_filterset_deleted(filter_set_dict: Dict[str, Any]) -> None:
+def assert_filterset_deleted(filter_set_dict: dict[str, Any]) -> None:
     assert get_filter_set_by_name(filter_set_dict["name"]) is None
 
 
@@ -48,7 +48,7 @@ class TestDeleteFilterSet:
     def test_with_dashboard_exists_filterset_not_exists__200(
         self,
         dashboard_id: int,
-        filtersets: Dict[str, List[FilterSet]],
+        filtersets: dict[str, list[FilterSet]],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -62,7 +62,7 @@ class TestDeleteFilterSet:
     def test_with_dashboard_not_exists_filterset_not_exists__404(
         self,
         not_exists_dashboard_id: int,
-        filtersets: Dict[str, List[FilterSet]],
+        filtersets: dict[str, list[FilterSet]],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -78,7 +78,7 @@ class TestDeleteFilterSet:
     def test_with_dashboard_not_exists_filterset_exists__404(
         self,
         not_exists_dashboard_id: int,
-        dashboard_based_filter_set_dict: Dict[str, Any],
+        dashboard_based_filter_set_dict: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -94,9 +94,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_admin_and_owner_type_is_user__200(
         self,
-        test_users: Dict[str, int],
-        user_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        user_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -110,9 +110,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_admin_and_owner_type_is_dashboard__200(
         self,
-        test_users: Dict[str, int],
-        dashboard_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        dashboard_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -126,9 +126,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_dashboard_owner_and_owner_is_other_user_403(
         self,
-        test_users: Dict[str, int],
-        user_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        user_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -143,9 +143,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_dashboard_owner_and_owner_type_is_dashboard__200(
         self,
-        test_users: Dict[str, int],
-        dashboard_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        dashboard_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -160,9 +160,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_filterset_owner__200(
         self,
-        test_users: Dict[str, int],
-        user_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        user_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -177,9 +177,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_regular_user_and_owner_type_is_user__403(
         self,
-        test_users: Dict[str, int],
-        user_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        user_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange
@@ -194,9 +194,9 @@ class TestDeleteFilterSet:
 
     def test_when_caller_is_regular_user_and_owner_type_is_dashboard__403(
         self,
-        test_users: Dict[str, int],
-        dashboard_based_filter_set_dict: Dict[str, Any],
-        valid_filter_set_data_for_update: Dict[str, Any],
+        test_users: dict[str, int],
+        dashboard_based_filter_set_dict: dict[str, Any],
+        valid_filter_set_data_for_update: dict[str, Any],
         client: FlaskClient[Any],
     ):
         # arrange

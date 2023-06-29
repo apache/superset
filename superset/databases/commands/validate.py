@@ -16,18 +16,18 @@
 # under the License.
 import json
 from contextlib import closing
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
     InvalidParametersError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -38,7 +38,7 @@ BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
-    def __init__(self, properties: Dict[str, Any]):
+    def __init__(self, properties: dict[str, Any]):
         self._properties = properties.copy()
         self._model: Optional[Database] = None
 
@@ -128,6 +128,5 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        database_id = self._properties.get("id")
-        if database_id is not None:
+        if (database_id := self._properties.get("id")) is not None:
             self._model = DatabaseDAO.find_by_id(database_id)

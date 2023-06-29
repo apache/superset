@@ -34,8 +34,10 @@ import {
   onlyTotalControl,
   showValueControl,
   richTooltipSection,
+  seriesOrderSection,
+  percentageThresholdControl,
 } from '../../controls';
-import { AreaChartExtraControlsOptions } from '../../constants';
+import { AreaChartStackControlOptions } from '../../constants';
 
 const {
   logAxis,
@@ -53,7 +55,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.genericTime,
-    sections.echartsTimeSeriesQuery,
+    sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -62,6 +64,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         [
           {
@@ -107,13 +110,14 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Stacked Style'),
               renderTrigger: true,
-              choices: AreaChartExtraControlsOptions,
+              choices: AreaChartStackControlOptions,
               default: null,
               description: t('Stack series on top of each other'),
             },
           },
         ],
         [onlyTotalControl],
+        [percentageThresholdControl],
         [
           {
             name: 'show_extra_controls',

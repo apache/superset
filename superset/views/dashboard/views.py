@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import builtins
 import json
 import re
-from typing import Callable, List, Union
+from typing import Callable, Union
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -64,12 +65,13 @@ class DashboardModelView(
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(  # pylint: disable=no-self-use
-        self, items: Union["DashboardModelView", List["DashboardModelView"]]
+        self,
+        items: Union["DashboardModelView", builtins.list["DashboardModelView"]],
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
-        ids = "".join("&id={}".format(d.id) for d in items)
-        return redirect("/dashboard/export_dashboards_form?{}".format(ids[1:]))
+        ids = "".join(f"&id={d.id}" for d in items)
+        return redirect(f"/dashboard/export_dashboards_form?{ids[1:]}")
 
     @event_logger.log_this
     @has_access
@@ -114,17 +116,9 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Creates a new, blank dashboard and redirects to it in edit mode"""
-        metadata = {}
-        if is_feature_enabled("ENABLE_FILTER_BOX_MIGRATION"):
-            metadata = {
-                "native_filter_configuration": [],
-                "show_native_filters": True,
-            }
-
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
             owners=[g.user],
-            json_metadata=json.dumps(metadata, sort_keys=True),
         )
         db.session.add(new_dashboard)
         db.session.commit()

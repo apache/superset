@@ -15,23 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import copy
-import json
 from operator import and_
-import time
 from unittest.mock import patch
 import pytest
-from superset.dao.exceptions import DAOCreateFailedError, DAOException
+from superset.daos.exceptions import DAOCreateFailedError, DAOException
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.dao import TagDAO
+from superset.daos.tag import TagDAO
 from superset.tags.exceptions import InvalidTagNameError
 from superset.tags.models import ObjectTypes, Tag, TaggedObject
 from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
 from superset import db, security_manager
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -88,7 +85,6 @@ class TestTagsDAO(SupersetTestCase):
                     )
                 )
             yield tags
-            db.session.commit()
 
     @pytest.fixture()
     def create_tagged_objects(self):
@@ -121,8 +117,8 @@ class TestTagsDAO(SupersetTestCase):
                         tag_id=tag.id,
                     )
                 )
+
             yield tagged_objects
-            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
@@ -297,3 +293,5 @@ class TestTagsDAO(SupersetTestCase):
     def test_validate_tag_name(self):
         assert TagDAO.validate_tag_name("example_tag_name") is True
         assert TagDAO.validate_tag_name("invalid:tag_name") is False
+        db.session.query(TaggedObject).delete()
+        db.session.query(Tag).delete()

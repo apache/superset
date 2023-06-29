@@ -15,27 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule
 
 logger = logging.getLogger(__name__)
 
 
 class BulkDeleteReportScheduleCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: Optional[List[ReportSchedule]] = None
+        self._models: Optional[list[ReportSchedule]] = None
 
     def run(self) -> None:
         self.validate()

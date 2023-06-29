@@ -21,7 +21,6 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
-  getNumberFormatter,
   getMetricLabel,
   getColumnLabel,
 } from '@superset-ui/core';
@@ -46,6 +45,8 @@ import {
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getColtypesMapping } from '../utils/series';
+import { getValueFormatter } from '../utils/valueFormatter';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -100,10 +101,15 @@ export default function transformProps(
     filterState,
     theme,
     emitCrossFilters,
+    datasource,
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+  } = datasource;
   const {
     groupby,
     metric,
@@ -129,7 +135,13 @@ export default function transformProps(
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+  );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -146,7 +158,7 @@ export default function transformProps(
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(column => `${column}: ${data_point[column]}`)
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
       columnsLabelMap.set(
         name,
@@ -340,5 +352,6 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

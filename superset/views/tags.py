@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 
@@ -72,7 +71,7 @@ class TagView(BaseSupersetView):
             raise NotFound()
 
     @has_access_api
-    @expose("/tags/", methods=["GET"])
+    @expose("/tags/", methods=("GET",))
     def tags(self) -> FlaskResponse:  # pylint: disable=no-self-use
         query = db.session.query(Tag).all()
         results = [

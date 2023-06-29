@@ -17,7 +17,7 @@
 import logging
 import sqlite3
 from contextlib import closing
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import current_app as app
 from flask_babel import gettext as _
@@ -27,16 +27,15 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelingNotEnabledError,
 )
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -64,7 +63,7 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
@@ -200,7 +199,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
-
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
@@ -229,6 +227,5 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise DatabaseTestConnectionUnexpectedError(errors) from ex
 
     def validate(self) -> None:
-        database_name = self._properties.get("database_name")
-        if database_name is not None:
+        if (database_name := self._properties.get("database_name")) is not None:
             self._model = DatabaseDAO.get_database_by_name(database_name)

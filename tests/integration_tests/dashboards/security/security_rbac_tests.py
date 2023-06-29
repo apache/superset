@@ -91,13 +91,11 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
+        assert response.status_code == 302
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 403)
-
-        # assert
-        self.assert403(response)
+        assert rv.status_code == 403
 
     def test_get_dashboard_view__user_with_dashboard_permission_can_not_access_draft(
         self,
@@ -114,10 +112,56 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert403(response)
+        assert response.status_code == 302
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_dashboard_view__user_no_access_regular_rbac(self):
+        if backend() == "hive":
+            return
+
+        slice = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        dashboard = create_dashboard_to_db(published=True, slices=[slice])
+        self.login("gamma")
+
+        # assert redirect on regular rbac access denied
+        response = self.get_dashboard_view_response(dashboard)
+        assert response.status_code == 302
+
+        request_payload = get_query_context("birth_names")
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 403
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_dashboard_view__user_access_regular_rbac(self):
+        if backend() == "hive":
+            return
+
+        slice = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        dashboard = create_dashboard_to_db(published=True, slices=[slice])
+        self.login("gamma_sqllab")
+
+        response = self.get_dashboard_view_response(dashboard)
+
+        assert response.status_code == 200
+
+        request_payload = get_query_context("birth_names")
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        assert rv.status_code == 200
+        db.session.delete(dashboard)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
@@ -155,13 +199,14 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_can_not_access_without_permission(self):
         dashboard_to_access = create_dashboard_to_db(published=True)
+        grant_access_to_dashboard(dashboard_to_access, "Alpha")
         self.logout()
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert403(response)
+        assert response.status_code == 302
 
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(
@@ -175,7 +220,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert403(response)
+        assert response.status_code == 302
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")
@@ -350,3 +395,40 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, "Public")
+
+    def test_get_draft_dashboard_without_roles_by_uuid(self):
+        """
+        Dashboard API: Test get draft dashboard without roles by uuid
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        assert not dashboard.published
+        assert dashboard.roles == []
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_cannot_get_draft_dashboard_with_roles_by_uuid(self):
+        """
+        Dashboard API: Test get dashboard by uuid
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], roles=[admin_role.id]
+        )
+        assert not dashboard.published
+        assert dashboard.roles == [admin_role]
+
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 403
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()

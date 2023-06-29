@@ -127,6 +127,11 @@ const type = (text: string) => {
   return userEvent.type(select, text, { delay: 10 });
 };
 
+const clearTypedText = () => {
+  const select = getSelect();
+  userEvent.clear(select);
+};
+
 const open = () => waitFor(() => userEvent.click(getSelect()));
 
 test('displays a header', async () => {
@@ -801,6 +806,7 @@ test('"Select All" is checked when unchecking a newly added option and all the o
   expect(await findSelectOption(selectAllOptionLabel(10))).toBeInTheDocument();
   // add a new option
   await type(`${NEW_OPTION}{enter}`);
+  clearTypedText();
   expect(await findSelectOption(selectAllOptionLabel(11))).toBeInTheDocument();
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
   // select all should be selected
@@ -830,6 +836,7 @@ test('does not render "Select All" when there are 0 or 1 options', async () => {
   );
   expect(screen.queryByText(selectAllOptionLabel(1))).not.toBeInTheDocument();
   await type(`${NEW_OPTION}{enter}`);
+  clearTypedText();
   expect(screen.queryByText(selectAllOptionLabel(2))).toBeInTheDocument();
 });
 

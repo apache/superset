@@ -18,13 +18,14 @@
  */
 import {
   ensureIsArray,
+  FeatureFlag,
   makeApi,
   SupersetClient,
   logging,
 } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import { isFeatureEnabled } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,

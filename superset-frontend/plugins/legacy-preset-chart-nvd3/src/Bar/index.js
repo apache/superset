@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Time_Series_Bar_Chart.jpg';
@@ -32,6 +32,7 @@ const metadata = new ChartMetadata({
     'Visualize how a metric changes over time using bars. Add a group by column to visualize group level metrics and how they change over time.',
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
+  label: ChartLabel.DEPRECATED,
   name: t('Time-series Bar Chart (legacy)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
@@ -44,11 +45,16 @@ const metadata = new ChartMetadata({
     t('Proportional'),
     t('Advanced-Analytics'),
     t('nvd3'),
+    t('Legacy'),
+    t('Deprecated'),
   ],
   thumbnail,
   useLegacyApi: true,
 });
 
+/**
+ * @deprecated in version 3.0.
+ */
 export default class BarChartPlugin extends ChartPlugin {
   constructor() {
     super({

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
+import { useComponentDidMount } from '@superset-ui/core';
 
 type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
 export type FlashMessage = [FlashMessageType, string];

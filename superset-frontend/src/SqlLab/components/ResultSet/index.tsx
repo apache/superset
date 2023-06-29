@@ -28,8 +28,8 @@ import {
   styled,
   t,
   useTheme,
+  usePrevious,
 } from '@superset-ui/core';
-import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   ISaveableDatasource,
@@ -42,9 +42,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable, {
-  MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable';
+import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
@@ -207,7 +205,7 @@ const ResultSet = ({
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
         ...{
-          all_columns: results.columns.map(column => column.name),
+          all_columns: results.columns.map(column => column.column_name),
         },
       });
       const url = mountExploreUrl(null, {
@@ -282,12 +280,7 @@ const ResultSet = ({
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
-              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
-              placeholder={
-                columns.length > MAX_COLUMNS_FOR_TABLE
-                  ? t('Too many columns to filter')
-                  : t('Filter results')
-              }
+              placeholder={t('Filter results')}
             />
           )}
         </ResultSetControls>
@@ -306,7 +299,7 @@ const ResultSet = ({
 
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
+        'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
         { rows: rowsCount, limit },
@@ -486,7 +479,7 @@ const ResultSet = ({
     // We need to calculate the height of this.renderRowsReturned()
     // if we want results panel to be proper height because the
     // FilterTable component needs an explicit height to render
-    // react-virtualized Table component
+    // the Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
       : height - rowMessageHeight;
@@ -498,7 +491,7 @@ const ResultSet = ({
     }
     if (data && data.length > 0) {
       const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.name)
+        ? results.expanded_columns.map(col => col.column_name)
         : [];
       return (
         <>
@@ -507,7 +500,7 @@ const ResultSet = ({
           {sql}
           <FilterableTable
             data={data}
-            orderedColumnKeys={results.columns.map(col => col.name)}
+            orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}

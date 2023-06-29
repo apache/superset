@@ -18,7 +18,13 @@
  */
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
+import { omit } from 'lodash';
+import {
+  SET_REPORT,
+  ADD_REPORT,
+  EDIT_REPORT,
+  DELETE_REPORT,
+} from '../actions/reports';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
@@ -75,6 +81,17 @@ export default function reportsReducer(state = {}, action) {
         [report.creation_method]: {
           ...state[report.creation_method],
           [reportTypeId]: report,
+        },
+      };
+    },
+
+    [DELETE_REPORT]() {
+      const { report } = action;
+      const reportTypeId = report.dashboard || report.chart;
+      return {
+        ...state,
+        [report.creation_method]: {
+          ...omit(state[report.creation_method], reportTypeId),
         },
       };
     },

@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,too-many-lines
 """A collection of ORM sqlalchemy models for Superset"""
+import builtins
 import enum
 import json
 import logging
@@ -24,11 +25,13 @@ from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
+from functools import lru_cache
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
+import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -46,15 +49,16 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import ArgumentError, NoSuchModuleError
+from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import expression, Select
+from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK
+from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -65,9 +69,9 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
-from superset.utils.memoized import memoized
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -78,6 +82,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.sql_lab import Query
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
@@ -192,7 +197,7 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
-    def function_names(self) -> List[str]:
+    def function_names(self) -> list[str]:
         try:
             return self.db_engine_spec.get_function_names(self)
         except Exception as ex:  # pylint: disable=broad-except
@@ -232,7 +237,7 @@ class Database(
         return True
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.database_name,
@@ -269,15 +274,14 @@ class Database(
         return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
 
     @property
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self) -> dict[str, Any]:
         # Database parameters are a dictionary of values that are used to make up
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = self.masked_encrypted_extra
         encrypted_config = {}
-        if masked_encrypted_extra is not None:
+        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
             try:
                 encrypted_config = json.loads(masked_encrypted_extra)
             except (TypeError, json.JSONDecodeError):
@@ -295,7 +299,7 @@ class Database(
         return parameters
 
     @property
-    def parameters_schema(self) -> Dict[str, Any]:
+    def parameters_schema(self) -> dict[str, Any]:
         try:
             parameters_schema = self.db_engine_spec.parameters_json_schema()  # type: ignore
         except Exception:  # pylint: disable=broad-except
@@ -303,7 +307,7 @@ class Database(
         return parameters_schema
 
     @property
-    def metadata_cache_timeout(self) -> Dict[str, Any]:
+    def metadata_cache_timeout(self) -> dict[str, Any]:
         return self.get_extra().get("metadata_cache_timeout", {})
 
     @property
@@ -323,15 +327,15 @@ class Database(
         return self.metadata_cache_timeout.get("table_cache_timeout")
 
     @property
-    def default_schemas(self) -> List[str]:
+    def default_schemas(self) -> list[str]:
         return self.get_extra().get("default_schemas", [])
 
     @property
-    def connect_args(self) -> Dict[str, Any]:
+    def connect_args(self) -> dict[str, Any]:
         return self.get_extra().get("engine_params", {}).get("connect_args", {})
 
     @property
-    def engine_information(self) -> Dict[str, Any]:
+    def engine_information(self) -> dict[str, Any]:
         try:
             engine_information = self.db_engine_spec.get_public_information()
         except Exception:  # pylint: disable=broad-except
@@ -384,7 +388,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
+        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
 
@@ -402,7 +406,13 @@ class Database(
             )
 
         with engine_context as server_context:
-            if ssh_tunnel:
+            if ssh_tunnel and server_context:
+                logger.info(
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s ssh_timeout at %s",
+                    sshtunnel.TUNNEL_TIMEOUT,
+                    sshtunnel.SSH_TIMEOUT,
+                    server_context.local_bind_address,
+                )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri, server_context
                 )
@@ -420,30 +430,58 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         sqlalchemy_uri: Optional[str] = None,
     ) -> Engine:
-        extra = self.get_extra()
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
         )
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        self.db_engine_spec.validate_database_uri(sqlalchemy_url)
+
+        extra = self.get_extra()
+        params = extra.get("engine_params", {})
+        if nullpool:
+            params["poolclass"] = NullPool
+        connect_args = params.get("connect_args", {})
+
+        # The ``adjust_database_uri`` method was renamed to ``adjust_engine_params`` and
+        # had its signature changed in order to support more DB engine specs. Since DB
+        # engine specs can be released as 3rd party modules we want to make sure the old
+        # method is still supported so we don't introduce a breaking change.
+        if hasattr(self.db_engine_spec, "adjust_database_uri"):
+            sqlalchemy_url = self.db_engine_spec.adjust_database_uri(
+                sqlalchemy_url,
+                schema,
+            )
+            logger.warning(
+                "DB engine spec %s implements the method `adjust_database_uri`, which is "
+                "deprecated and will be removed in version 3.0. Please update it to "
+                "implement `adjust_engine_params` instead.",
+                self.db_engine_spec,
+            )
+
+        sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
+            uri=sqlalchemy_url,
+            connect_args=connect_args,
+            catalog=None,
+            schema=schema,
+        )
+
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
         sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
-            sqlalchemy_url, self.impersonate_user, effective_username
+            sqlalchemy_url,
+            self.impersonate_user,
+            effective_username,
         )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        params = extra.get("engine_params", {})
-        if nullpool:
-            params["poolclass"] = NullPool
-
-        connect_args = params.get("connect_args", {})
         if self.impersonate_user:
             self.db_engine_spec.update_impersonation_config(
-                connect_args, str(sqlalchemy_url), effective_username
+                connect_args,
+                str(sqlalchemy_url),
+                effective_username,
             )
 
         if connect_args:
@@ -461,7 +499,11 @@ class Database(
                     source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
-                sqlalchemy_url, params, effective_username, security_manager, source
+                sqlalchemy_url,
+                params,
+                effective_username,
+                security_manager,
+                source,
             )
         try:
             return create_engine(sqlalchemy_url, **params)
@@ -481,12 +523,28 @@ class Database(
             with closing(engine.raw_connection()) as conn:
                 yield conn
 
+    def get_default_schema_for_query(self, query: "Query") -> Optional[str]:
+        """
+        Return the default schema for a given query.
+
+        This is used to determine if the user has access to a query that reads from table
+        names without a specific schema, eg:
+
+            SELECT * FROM `foo`
+
+        The schema of the `foo` table depends on the DB engine spec. Some DB engine specs
+        can change the default schema on a per-query basis; in other DB engine specs the
+        default schema is defined in the SQLAlchemy URI; and in others the default schema
+        might be determined by the database itself (like `public` for Postgres).
+        """
+        return self.db_engine_spec.get_default_schema_for_query(self, query)
+
     @property
     def quote_identifier(self) -> Callable[[str], str]:
         """Add quotes to potential identifiter expressions if needed"""
         return self.get_dialect().identifier_preparer.quote
 
-    def get_reserved_words(self) -> Set[str]:
+    def get_reserved_words(self) -> set[str]:
         return self.get_dialect().preparer.reserved_words
 
     def get_df(  # pylint: disable=too-many-locals
@@ -497,7 +555,6 @@ class Database(
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         engine = self._get_sqla_engine(schema)
-        username = utils.get_username()
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
@@ -514,7 +571,6 @@ class Database(
                     engine.url,
                     sql,
                     schema,
-                    get_username(),
                     __name__,
                     security_manager,
                 )
@@ -525,7 +581,6 @@ class Database(
                 if mutate_after_split:
                     sql_ = sql_query_mutator(
                         sql_,
-                        user_name=username,
                         security_manager=security_manager,
                         database=None,
                     )
@@ -536,7 +591,6 @@ class Database(
             if mutate_after_split:
                 last_sql = sql_query_mutator(
                     sqls[-1],
-                    user_name=username,
                     security_manager=security_manager,
                     database=None,
                 )
@@ -579,7 +633,7 @@ class Database(
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = False,
-        cols: Optional[List[Dict[str, Any]]] = None,
+        cols: Optional[list[ResultSetColumnType]] = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
         eng = self._get_sqla_engine(schema=schema, source=utils.QuerySource.SQL_LAB)
@@ -620,7 +674,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> Set[Tuple[str, str]]:
+    ) -> set[tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -656,7 +710,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> Set[Tuple[str, str]]:
+    ) -> set[tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -700,7 +754,7 @@ class Database(
         cache_timeout: Optional[int] = None,
         force: bool = False,
         ssh_tunnel: Optional["SSHTunnel"] = None,
-    ) -> List[str]:
+    ) -> list[str]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -718,13 +772,15 @@ class Database(
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
-    def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
+    def db_engine_spec(self) -> builtins.type[db_engine_specs.BaseEngineSpec]:
         url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
-    def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
+    @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+    def get_db_engine_spec(
+        cls, url: URL
+    ) -> builtins.type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
             driver = url.get_driver_name()
@@ -734,7 +790,7 @@ class Database(
 
         return db_engine_specs.get_engine_spec(backend, driver)
 
-    def grains(self) -> Tuple[TimeGrain, ...]:
+    def grains(self) -> tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.
 
         The idea here is to make it easy for users to change the time grain
@@ -745,10 +801,10 @@ class Database(
         """
         return self.db_engine_spec.get_time_grains()
 
-    def get_extra(self) -> Dict[str, Any]:
+    def get_extra(self) -> dict[str, Any]:
         return self.db_engine_spec.get_extra_params(self)
 
-    def get_encrypted_extra(self) -> Dict[str, Any]:
+    def get_encrypted_extra(self) -> dict[str, Any]:
         encrypted_extra = {}
         if self.encrypted_extra:
             try:
@@ -759,7 +815,7 @@ class Database(
         return encrypted_extra
 
     # pylint: disable=invalid-name
-    def update_params_from_encrypted_extra(self, params: Dict[str, Any]) -> None:
+    def update_params_from_encrypted_extra(self, params: dict[str, Any]) -> None:
         self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
@@ -782,7 +838,7 @@ class Database(
 
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[ResultSetColumnType]:
         with self.get_inspector_with_context() as inspector:
             return self.db_engine_spec.get_columns(inspector, table_name, schema)
 
@@ -790,20 +846,19 @@ class Database(
         self,
         table_name: str,
         schema: Optional[str] = None,
-    ) -> List[MetricType]:
+    ) -> list[MetricType]:
         with self.get_inspector_with_context() as inspector:
             return self.db_engine_spec.get_metrics(self, inspector, table_name, schema)
 
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         with self.get_inspector_with_context() as inspector:
-            indexes = inspector.get_indexes(table_name, schema)
-            return self.db_engine_spec.normalize_indexes(indexes)
+            return self.db_engine_spec.get_indexes(self, inspector, table_name, schema)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with self.get_inspector_with_context() as inspector:
             pk_constraint = inspector.get_pk_constraint(table_name, schema) or {}
 
@@ -817,13 +872,13 @@ class Database(
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         with self.get_inspector_with_context() as inspector:
             return inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
-    ) -> List[str]:
+    ) -> list[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_file_upload", [])
 
         if isinstance(allowed_databases, str):
@@ -840,7 +895,7 @@ class Database(
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
-        except (ArgumentError, ValueError):
+        except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
@@ -883,7 +938,7 @@ class Database(
         view_name: str,
         schema: Optional[str] = None,
     ) -> bool:
-        view_names: List[str] = []
+        view_names: list[str] = []
         try:
             view_names = dialect.get_view_names(connection=conn, schema=schema)
         except Exception:  # pylint: disable=broad-except
@@ -897,10 +952,25 @@ class Database(
     def has_view_by_name(self, view_name: str, schema: Optional[str] = None) -> bool:
         return self.has_view(view_name=view_name, schema=schema)
 
-    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()
+
+    def make_sqla_column_compatible(
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
+        """
+        label_expected = label or sqla_col.name
+        # add quotes to tables
+        if self.db_engine_spec.allows_alias_in_select:
+            label = self.db_engine_spec.make_label_compatible(label_expected)
+            sqla_col = sqla_col.label(label)
+        sqla_col.key = label_expected
+        return sqla_col
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

@@ -25,6 +25,21 @@ sql_lab_get_results_schema = {
 }
 
 
+class EstimateQueryCostSchema(Schema):
+    database_id = fields.Integer(
+        required=True, metadata={"description": "The database id"}
+    )
+    sql = fields.String(
+        required=True, metadata={"description": "The SQL query to estimate"}
+    )
+    template_params = fields.Dict(
+        keys=fields.String(), metadata={"description": "The SQL query template params"}
+    )
+    schema = fields.String(
+        allow_none=True, metadata={"description": "The database schema"}
+    )
+
+
 class ExecutePayloadSchema(Schema):
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)
@@ -43,8 +58,7 @@ class ExecutePayloadSchema(Schema):
 
 
 class QueryResultSchema(Schema):
-    changedOn = fields.DateTime()
-    changed_on = fields.String()
+    changed_on = fields.DateTime()
     dbId = fields.Integer()
     db = fields.String()  # pylint: disable=invalid-name
     endDttm = fields.Float()

@@ -50,6 +50,9 @@ module.exports = {
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
+  transformIgnorePatterns: [
+    'node_modules/(?!d3-(interpolate|color)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp)',
+  ],
   globals: {
     __DEV__: true,
     caches: true,

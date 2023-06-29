@@ -93,8 +93,8 @@ export SUPERSET_TESTENV=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
-superset load-examples --load-test-data
 superset init
+superset load-examples --load-test-data
 superset run --port 8081
 ```
 
@@ -111,10 +111,10 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
 # run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
 npm run cypress-debug

@@ -33,11 +33,11 @@ import pkgutil
 from collections import defaultdict
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any, Optional
 
 import sqlalchemy.databases
 import sqlalchemy.dialects
-from pkg_resources import iter_entry_points
+from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.url import URL
 
@@ -58,11 +58,11 @@ def is_engine_spec(obj: Any) -> bool:
     )
 
 
-def load_engine_specs() -> List[Type[BaseEngineSpec]]:
+def load_engine_specs() -> list[type[BaseEngineSpec]]:
     """
     Load all engine specs, native and 3rd party.
     """
-    engine_specs: List[Type[BaseEngineSpec]] = []
+    engine_specs: list[type[BaseEngineSpec]] = []
 
     # load standard engines
     db_engine_spec_dir = str(Path(__file__).parent)
@@ -74,7 +74,7 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
             if is_engine_spec(getattr(module, attr))
         )
     # load additional engines from external modules
-    for ep in iter_entry_points("superset.db_engine_specs"):
+    for ep in entry_points(group="superset.db_engine_specs"):
         try:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
@@ -85,7 +85,7 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
     return engine_specs
 
 
-def get_engine_spec(backend: str, driver: Optional[str] = None) -> Type[BaseEngineSpec]:
+def get_engine_spec(backend: str, driver: Optional[str] = None) -> type[BaseEngineSpec]:
     """
     Return the DB engine spec associated with a given SQLAlchemy URL.
 
@@ -120,11 +120,11 @@ backend_replacements = {
 }
 
 
-def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
+def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
     """
     Return available engine specs and installed drivers for them.
     """
-    drivers: Dict[str, Set[str]] = defaultdict(set)
+    drivers: dict[str, set[str]] = defaultdict(set)
 
     # native SQLAlchemy dialects
     for attr in sqlalchemy.databases.__all__:
@@ -150,7 +150,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                 drivers[attr].add(attribute.dialect.driver)
 
     # installed 3rd-party dialects
-    for ep in iter_entry_points("sqlalchemy.dialects"):
+    for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except

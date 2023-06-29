@@ -18,9 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FeatureFlag,
   hasGenericChartAxes,
-  isFeatureEnabled,
   logging,
   Metric,
   QueryFormData,
@@ -43,10 +41,7 @@ import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
@@ -58,6 +53,7 @@ import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+import { CLAUSES, EXPRESSION_TYPES } from '../FilterControl/types';
 
 const { warning } = Modal;
 
@@ -374,7 +370,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     const config: Partial<AdhocFilter> = {
       subject: (droppedItem as ColumnMeta)?.column_name,
     };
-    if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
+    if (config.subject) {
       config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
       config.operatorId = Operators.IN;
     }
@@ -399,10 +395,6 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     [controlName, togglePopover],
   );
 
-  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-    ? t('Drop columns/metrics here or click')
-    : t('Drop columns or metrics here');
-
   return (
     <>
       <DndSelectLabel
@@ -410,12 +402,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={ghostButtonText}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? handleClickGhostButton
-            : undefined
-        }
+        ghostButtonText={t('Drop columns/metrics here or click')}
+        onClickGhostButton={handleClickGhostButton}
         {...props}
       />
       <AdhocFilterPopoverTrigger

@@ -35,9 +35,9 @@ from superset.datasets.commands.exceptions import (
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceType, override_user
 
-dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
-query_find_by_id = "superset.queries.dao.QueryDAO.find_by_id"
-chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
+dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
+query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
+chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
 is_owner = "superset.security.SupersetSecurityManager.is_owner"
 can_access_datasource = (
@@ -274,15 +274,18 @@ def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    mocker.patch(
+        query_find_by_id,
+        return_value=Query(database=database, sql="select * from foo"),
+    )
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_owner, return_value=False)
+    mocker.patch(can_access, return_value=False)
+
     with raises(SupersetSecurityException):
-        mocker.patch(
-            query_find_by_id,
-            return_value=Query(database=Database(), sql="select * from foo"),
-        )
-        mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
-        mocker.patch(is_admin, return_value=False)
-        mocker.patch(is_owner, return_value=False)
-        mocker.patch(can_access, return_value=False)
         check_datasource_access(
             datasource_id=1,
             datasource_type=DatasourceType.QUERY,

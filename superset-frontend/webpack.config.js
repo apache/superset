@@ -116,6 +116,8 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env.REDUX_DEFAULT_MIDDLEWARE':
+      process.env.REDUX_DEFAULT_MIDDLEWARE,
   }),
 
   new CopyPlugin({
@@ -250,7 +252,6 @@ const config = {
               'react-hot-loader',
               'react-select',
               'react-sortable-hoc',
-              'react-virtualized',
               'react-table',
               'react-ace',
               '@hot-loader.*',

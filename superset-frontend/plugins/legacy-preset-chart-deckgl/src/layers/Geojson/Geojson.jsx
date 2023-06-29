@@ -123,14 +123,15 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
 
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}`,
-    filled: fd.filled,
     data: features,
-    stroked: fd.stroked,
     extruded: fd.extruded,
-    pointRadiusScale: fd.point_radius_scale,
+    filled: fd.filled,
+    stroked: fd.stroked,
     getFillColor,
-    getLineWidth: fd.line_width || 1,
     getLineColor,
+    getLineWidth: fd.line_width || 1,
+    pointRadiusScale: fd.point_radius_scale,
+    lineWidthUnits: fd.line_width_unit,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }

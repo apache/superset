@@ -16,15 +16,16 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.base import UpdateMixin
-from superset.dao.exceptions import DAOUpdateFailedError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAOUpdateFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
@@ -35,14 +36,13 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
@@ -57,8 +57,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         return report_schedule
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        exceptions: list[ValidationError] = []
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         report_type = self._properties.get("type", ReportScheduleType.ALERT)
 
         name = self._properties.get("name", "")
@@ -124,6 +124,4 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            exception = ReportScheduleInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise ReportScheduleInvalidError(exceptions=exceptions)

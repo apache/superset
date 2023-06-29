@@ -27,14 +27,13 @@ for these chart types.
 """
 
 from io import StringIO
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 import pandas as pd
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
-    DTTM_ALIAS,
     extract_dataframe_dtypes,
     get_column_names,
     get_metric_names,
@@ -42,16 +41,17 @@ from superset.utils.core import (
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
+    from superset.models.sql_lab import Query
 
 
-def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
+def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
     Sort columns when combining metrics.
 
     MultiIndex labels have the metric name as the last element in the
     tuple. We want to sort these according to the list of passed metrics.
     """
-    parts: List[Any] = list(label)
+    parts: list[Any] = list(label)
     metric = parts[-1]
     parts[-1] = metrics.index(metric)
     return tuple(parts)
@@ -59,9 +59,9 @@ def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...
 
 def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches
     df: pd.DataFrame,
-    rows: List[str],
-    columns: List[str],
-    metrics: List[str],
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
     aggfunc: str = "Sum",
     transpose_pivot: bool = False,
     combine_metrics: bool = False,
@@ -193,7 +193,7 @@ def list_unique_values(series: pd.Series) -> str:
     """
     List unique values in a series.
     """
-    return ", ".join(set(str(v) for v in pd.Series.unique(series)))
+    return ", ".join({str(v) for v in pd.Series.unique(series)})
 
 
 pivot_v2_aggfunc_map = {
@@ -222,15 +222,13 @@ pivot_v2_aggfunc_map = {
 
 def pivot_table_v2(
     df: pd.DataFrame,
-    form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
-    if form_data.get("granularity_sqla") == "all" and DTTM_ALIAS in df:
-        del df[DTTM_ALIAS]
 
     return pivot_df(
         df,
@@ -246,46 +244,12 @@ def pivot_table_v2(
     )
 
 
-def pivot_table(
-    df: pd.DataFrame,
-    form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
-) -> pd.DataFrame:
-    """
-    Pivot table (v1).
-    """
-    verbose_map = datasource.data["verbose_map"] if datasource else None
-    if form_data.get("granularity") == "all" and DTTM_ALIAS in df:
-        del df[DTTM_ALIAS]
-
-    # v1 func names => v2 func names
-    func_map = {
-        "sum": "Sum",
-        "mean": "Average",
-        "min": "Minimum",
-        "max": "Maximum",
-        "std": "Sample Standard Deviation",
-        "var": "Sample Variance",
-    }
-
-    return pivot_df(
-        df,
-        rows=get_column_names(form_data.get("groupby"), verbose_map),
-        columns=get_column_names(form_data.get("columns"), verbose_map),
-        metrics=get_metric_names(form_data["metrics"], verbose_map),
-        aggfunc=func_map.get(form_data.get("pandas_aggfunc", "sum"), "Sum"),
-        transpose_pivot=bool(form_data.get("transpose_pivot")),
-        combine_metrics=bool(form_data.get("combine_metric")),
-        show_rows_total=bool(form_data.get("pivot_margins")),
-        show_columns_total=bool(form_data.get("pivot_margins")),
-        apply_metrics_on_rows=False,
-    )
-
-
 def table(
     df: pd.DataFrame,
-    form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,  # pylint: disable=unused-argument
+    form_data: dict[str, Any],
+    datasource: Optional[  # pylint: disable=unused-argument
+        Union["BaseDatasource", "Query"]
+    ] = None,
 ) -> pd.DataFrame:
     """
     Table.
@@ -305,17 +269,16 @@ def table(
 
 
 post_processors = {
-    "pivot_table": pivot_table,
     "pivot_table_v2": pivot_table_v2,
     "table": table,
 }
 
 
 def apply_post_process(
-    result: Dict[Any, Any],
-    form_data: Optional[Dict[str, Any]] = None,
-    datasource: Optional["BaseDatasource"] = None,
-) -> Dict[Any, Any]:
+    result: dict[Any, Any],
+    form_data: Optional[dict[str, Any]] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+) -> dict[Any, Any]:
     form_data = form_data or {}
 
     viz_type = form_data.get("viz_type")
@@ -328,14 +291,19 @@ def apply_post_process(
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
             raise Exception(f"Result format {query['result_format']} not supported")
 
-        if not query["data"]:
+        data = query["data"]
+
+        if isinstance(data, str):
+            data = data.strip()
+
+        if not data:
             # do not try to process empty data
             continue
 
         if query["result_format"] == ChartDataResultFormat.JSON:
-            df = pd.DataFrame.from_dict(query["data"])
+            df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(query["data"]))
+            df = pd.read_csv(StringIO(data))
 
         # convert all columns to verbose (label) name
         if datasource:

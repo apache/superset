@@ -17,7 +17,7 @@
 # pylint: disable=invalid-name, no-self-use, too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import gettext as __, ngettext
 from jinja2 import TemplateError
@@ -48,8 +48,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
     def __init__(
         self, sql_template_factory: Callable[..., BaseTemplateProcessor]
     ) -> None:
-
-        self._sql_template_processor_factory = sql_template_factory  # type: ignore
+        self._sql_template_processor_factory = sql_template_factory
 
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
         query_model = execution_context.query
@@ -76,9 +75,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
             # pylint: disable=protected-access
             syntax_tree = sql_template_processor._env.parse(rendered_query)
-            undefined_parameters = find_undeclared_variables(  # type: ignore
-                syntax_tree
-            )
+            undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
                     execution_context, undefined_parameters
@@ -127,16 +124,16 @@ class SqlQueryRenderImpl(SqlQueryRender):
 
 
 class SqlQueryRenderException(SqlLabException):
-    _extra: Optional[Dict[str, Any]]
+    _extra: dict[str, Any] | None
 
     def __init__(
         self,
         sql_json_execution_context: SqlJsonExecutionContext,
         error_type: SupersetErrorType,
-        reason_message: Optional[str] = None,
-        exception: Optional[Exception] = None,
-        suggestion_help_msg: Optional[str] = None,
-        extra: Optional[Dict[str, Any]] = None,
+        reason_message: str | None = None,
+        exception: Exception | None = None,
+        suggestion_help_msg: str | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             sql_json_execution_context,
@@ -148,10 +145,10 @@ class SqlQueryRenderException(SqlLabException):
         self._extra = extra
 
     @property
-    def extra(self) -> Optional[Dict[str, Any]]:
+    def extra(self) -> dict[str, Any] | None:
         return self._extra
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = super().to_dict()
         if self._extra:
             rv["extra"] = self._extra

@@ -18,10 +18,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import simplejson
-from flask import current_app, make_response, request, Response
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -41,9 +41,10 @@ from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
-from superset.dao.exceptions import DatasourceNotFound
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
+from superset.models.sql_lab import Query
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -58,7 +59,7 @@ logger = logging.getLogger(__name__)
 class ChartDataRestApi(ChartRestApi):
     include_route_methods = {"get_data", "data", "data_from_cache"}
 
-    @expose("/<int:pk>/data/", methods=["GET"])
+    @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -170,7 +171,7 @@ class ChartDataRestApi(ChartRestApi):
             command=command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data", methods=["POST"])
+    @expose("/data", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -256,7 +257,7 @@ class ChartDataRestApi(ChartRestApi):
             command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data/<cache_key>", methods=["GET"])
+    @expose("/data/<cache_key>", methods=("GET",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -298,6 +299,9 @@ class ChartDataRestApi(ChartRestApi):
         """
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
+            # Set form_data in Flask Global as it is used as a fallback
+            # for async queries with jinja context
+            setattr(g, "form_data", cached_data)
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
@@ -311,7 +315,7 @@ class ChartDataRestApi(ChartRestApi):
         return self._get_data_response(command, True)
 
     def _run_async(
-        self, form_data: Dict[str, Any], command: ChartDataCommand
+        self, form_data: dict[str, Any], command: ChartDataCommand
     ) -> Response:
         """
         Execute command as an async query.
@@ -340,9 +344,9 @@ class ChartDataRestApi(ChartRestApi):
 
     def _send_chart_response(
         self,
-        result: Dict[Any, Any],
-        form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        result: dict[Any, Any],
+        form_data: dict[str, Any] | None = None,
+        datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -404,8 +408,8 @@ class ChartDataRestApi(ChartRestApi):
         self,
         command: ChartDataCommand,
         force_cached: bool = False,
-        form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        form_data: dict[str, Any] | None = None,
+        datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -417,12 +421,12 @@ class ChartDataRestApi(ChartRestApi):
         return self._send_chart_response(result, form_data, datasource)
 
     # pylint: disable=invalid-name, no-self-use
-    def _load_query_context_form_from_cache(self, cache_key: str) -> Dict[str, Any]:
+    def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
     # pylint: disable=no-self-use
     def _create_query_context_from_form(
-        self, form_data: Dict[str, Any]
+        self, form_data: dict[str, Any]
     ) -> QueryContext:
         try:
             return ChartDataQueryContextSchema().load(form_data)

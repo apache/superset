@@ -19,11 +19,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   css,
-  styled,
-  t,
   DatasourceType,
+  FeatureFlag,
   Metric,
   QueryFormData,
+  styled,
+  t,
 } from '@superset-ui/core';
 
 import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
@@ -36,7 +37,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';

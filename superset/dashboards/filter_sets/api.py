@@ -30,8 +30,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset.commands.exceptions import ObjectNotFoundError
+from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filter_sets.commands.create import CreateFilterSetCommand
 from superset.dashboards.filter_sets.commands.delete import DeleteFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
@@ -126,7 +126,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         # pylint: disable=bad-super-call
         super(BaseSupersetModelRestApi, self)._init_properties()
 
-    @expose("/<int:dashboard_id>/filtersets", methods=["GET"])
+    @expose("/<int:dashboard_id>/filtersets", methods=("GET",))
     @protect()
     @safe
     @permission_name("get")
@@ -189,7 +189,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         )
         return self.get_list_headless(**kwargs)
 
-    @expose("/<int:dashboard_id>/filtersets", methods=["POST"])
+    @expose("/<int:dashboard_id>/filtersets", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -256,7 +256,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["PUT"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -328,7 +328,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             logger.error(err)
             return self.response(err.status)
 
-    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["DELETE"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

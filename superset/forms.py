@@ -16,7 +16,7 @@
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
 import json
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from wtforms import Field
@@ -24,12 +24,12 @@ from wtforms import Field
 
 class JsonListField(Field):
     widget = BS3TextFieldWidget()
-    data: List[str] = []
+    data: list[str] = []
 
     def _value(self) -> str:
         return json.dumps(self.data)
 
-    def process_formdata(self, valuelist: List[str]) -> None:
+    def process_formdata(self, valuelist: list[str]) -> None:
         if valuelist and valuelist[0]:
             self.data = json.loads(valuelist[0])
         else:
@@ -38,7 +38,7 @@ class JsonListField(Field):
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
-    data: List[str] = []
+    data: list[str] = []
 
     def _value(self) -> str:
         if self.data:
@@ -46,14 +46,14 @@ class CommaSeparatedListField(Field):
 
         return ""
 
-    def process_formdata(self, valuelist: List[str]) -> None:
+    def process_formdata(self, valuelist: list[str]) -> None:
         if valuelist:
             self.data = [x.strip() for x in valuelist[0].split(",")]
         else:
             self.data = []
 
 
-def filter_not_empty_values(values: Optional[List[Any]]) -> Optional[List[Any]]:
+def filter_not_empty_values(values: Optional[list[Any]]) -> Optional[list[Any]]:
     """Returns a list of non empty values or None"""
     if not values:
         return None

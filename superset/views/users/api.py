@@ -32,7 +32,7 @@ class CurrentUserRestApi(BaseSupersetApi):
     openapi_spec_tag = "Current User"
     openapi_spec_component_schemas = (UserResponseSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @safe
     def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request
@@ -62,7 +62,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
         return self.response(200, result=user_response_schema.dump(g.user))
 
-    @expose("/roles/", methods=["GET"])
+    @expose("/roles/", methods=("GET",))
     @safe
     def get_my_roles(self) -> Response:
         """Get the user roles corresponding to the agent making the request

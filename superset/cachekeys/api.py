@@ -44,7 +44,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_component_schemas = (CacheInvalidationRequestSchema,)
 
-    @expose("/invalidate", methods=["POST"])
+    @expose("/invalidate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics

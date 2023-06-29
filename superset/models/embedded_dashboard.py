@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import uuid
-from typing import List
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, Text
@@ -49,7 +48,7 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
     )
 
     @property
-    def allowed_domains(self) -> List[str]:
+    def allowed_domains(self) -> list[str]:
         """
         A list of domains which are allowed to embed the dashboard.
         An empty list means any domain can embed.

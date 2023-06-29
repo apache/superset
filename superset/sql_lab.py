@@ -20,11 +20,10 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Optional, Union
 
 import backoff
 import msgpack
-import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -51,9 +50,9 @@ from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.celery import session_scope
 from superset.utils.core import (
-    get_username,
     json_iso_dttm_ser,
     override_user,
     QuerySource,
@@ -89,13 +88,12 @@ def handle_query_error(
     ex: Exception,
     query: Query,
     session: Session,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Local method handling error while processing the SQL"""
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
-    troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
@@ -119,12 +117,12 @@ def handle_query_error(
 
     session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link:
+    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
 
-def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
+def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
@@ -170,8 +168,8 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     username: Optional[str] = None,
     start_time: Optional[float] = None,
     expand_data: bool = False,
-    log_params: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]] = None,
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
         with override_user(security_manager.find_user(username)):
@@ -198,7 +196,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     query: Query,
     session: Session,
     cursor: Any,
-    log_params: Optional[Dict[str, Any]],
+    log_params: Optional[dict[str, Any]],
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
@@ -256,7 +254,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )
@@ -267,7 +264,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 query.database.sqlalchemy_uri,
                 query.executed_sql,
                 query.schema,
-                get_username(),
                 __name__,
                 security_manager,
                 log_params,
@@ -336,7 +332,7 @@ def apply_limit_if_exists(
 
 
 def _serialize_payload(
-    payload: Dict[Any, Any], use_msgpack: Optional[bool] = False
+    payload: dict[Any, Any], use_msgpack: Optional[bool] = False
 ) -> Union[bytes, str]:
     logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
@@ -350,21 +346,16 @@ def _serialize_and_expand_data(
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
-) -> Tuple[Union[bytes, str], List[Any], List[Any], List[Any]]:
+) -> tuple[Union[bytes, str], list[Any], list[Any], list[Any]]:
     selected_columns = result_set.columns
-    all_columns: List[Any]
-    expanded_columns: List[Any]
+    all_columns: list[Any]
+    expanded_columns: list[Any]
 
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            data = (
-                pa.default_serialization_context()
-                .serialize(result_set.pa_table)
-                .to_buffer()
-                .to_pybytes()
-            )
+            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
@@ -383,7 +374,8 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
+def execute_sql_statements(
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
     return_results: bool,
@@ -391,15 +383,15 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     session: Session,
     start_time: Optional[float],
     expand_data: bool,
-    log_params: Optional[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]],
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     query = get_query(query_id, session)
-    payload: Dict[str, Any] = dict(query_id=query_id)
+    payload: dict[str, Any] = dict(query_id=query_id)
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -521,7 +513,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 )
                 return payload
         # Commit the connection so CTA queries will create the table.
-        conn.commit()
+        if apply_ctas:
+            conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size

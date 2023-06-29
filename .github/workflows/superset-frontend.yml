@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           submodules: recursive
@@ -29,7 +29,7 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh frontend
       - name: Setup Node.js
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       - name: Install dependencies
@@ -41,7 +41,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run lint
+          npm run lint -- --quiet
           npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outcome == 'failure'
@@ -60,7 +60,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run test -- --coverage
+          npm run test -- --coverage --silent
       # todo: remove this step when fix generator as a project in root jest.config.js
       - name: generator-superset unit tests
         if: steps.check.outcome == 'failure'

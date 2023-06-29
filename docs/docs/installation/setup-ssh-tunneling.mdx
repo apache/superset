@@ -1,7 +1,7 @@
 ---
 title: Setup SSH Tunneling
 hide_title: true
-sidebar_position: 13
+sidebar_position: 12
 version: 1
 ---
 
@@ -9,7 +9,7 @@ version: 1
 
 1. Turn on feature flag
     - Change [`SSH_TUNNELING`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L489) to `True`
-    - If you want to add more security when establishing the tunnel we allow users to overwrite the `SSHTunnelManager` class (here)[https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L507]
+    - If you want to add more security when establishing the tunnel we allow users to overwrite the `SSHTunnelManager` class [here](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L507)
     - You can also set the [`SSH_TUNNEL_LOCAL_BIND_ADDRESS`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L508) this the host address where the tunnel will be accessible on your VPC
 
 2. Create database w/ ssh tunnel enabled

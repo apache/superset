@@ -17,7 +17,11 @@
  * under the License.
  */
 import {
-  getNumberFormatter,
+  ColorFormatters,
+  getColorFormatters,
+  Metric,
+} from '@superset-ui/chart-controls';
+import {
   GenericDataType,
   getMetricLabel,
   extractTimegrain,
@@ -26,12 +30,20 @@ import {
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
+import { getValueFormatter } from '../../utils/valueFormatter';
 
 export default function transformProps(
   chartProps: BigNumberTotalChartProps,
 ): BigNumberVizProps {
-  const { width, height, queriesData, formData, rawFormData, hooks } =
-    chartProps;
+  const {
+    width,
+    height,
+    queriesData,
+    formData,
+    rawFormData,
+    hooks,
+    datasource: { currencyFormats = {}, columnFormats = {} },
+  } = chartProps;
   const {
     headerFontSize,
     metric = 'value',
@@ -40,6 +52,7 @@ export default function transformProps(
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
+    conditionalFormatting,
   } = formData;
   const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
@@ -49,7 +62,7 @@ export default function transformProps(
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
-  let metricEntry;
+  let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricItem => metricItem.metric_name === metric,
@@ -62,14 +75,27 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+  );
+
   const headerFormatter =
     coltypes[0] === GenericDataType.TEMPORAL ||
     coltypes[0] === GenericDataType.STRING ||
     forceTimestampFormatting
       ? formatTime
-      : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
+      : numberFormatter;
 
   const { onContextMenu } = hooks;
+
+  const defaultColorFormatters = [] as ColorFormatters;
+
+  const colorThresholdFormatters =
+    getColorFormatters(conditionalFormatting, data, false) ??
+    defaultColorFormatters;
 
   return {
     width,
@@ -81,5 +107,6 @@ export default function transformProps(
     subheader: formattedSubheader,
     onContextMenu,
     refs,
+    colorThresholdFormatters,
   };
 }

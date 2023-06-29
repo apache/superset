@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, smartDateFormatter, NumberFormats } from '@superset-ui/core';
+import {
+  t,
+  smartDateFormatter,
+  NumberFormats,
+  getNumberFormatter,
+} from '@superset-ui/core';
 
 // D3 specific formatting config
 export const D3_FORMAT_DOCS = t(
@@ -30,22 +35,26 @@ export const D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT = t(
   'Only applies when "Label Type" is not set to a percentage.',
 );
 
+const d3Formatted: [string, string][] = [
+  ',d',
+  '.1s',
+  '.3s',
+  ',.1%',
+  '.2%',
+  '.3%',
+  '.4r',
+  ',.1f',
+  ',.2f',
+  ',.3f',
+  '+,',
+  '$,.2f',
+].map(fmt => [fmt, `${fmt} (${getNumberFormatter(fmt).preview()})`]);
+
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
-  [',d', ',d (12345.432 => 12,345)'],
-  ['.1s', '.1s (12345.432 => 10k)'],
-  ['.3s', '.3s (12345.432 => 12.3k)'],
-  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
-  ['.2%', '.2% (12345.432 => 1234543.20%)'],
-  ['.3%', '.3% (12345.432 => 1234543.200%)'],
-  ['.4r', '.4r (12345.432 => 12350)'],
-  [',.1f', ',.1f (12345.432 => 12,345.4)'],
-  [',.2f', ',.2f (12345.432 => 12,345.43)'],
-  [',.3f', ',.3f (12345.432 => 12,345.432)'],
-  ['+,', '+, (12345.432 => +12,345.432)'],
-  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ...d3Formatted,
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
 ];

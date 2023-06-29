@@ -156,6 +156,11 @@ export interface BaseSelectProps extends AntdExposedProps {
 
 export interface SelectProps extends BaseSelectProps {
   /**
+   * It enables the user to select all options.
+   * True by default.
+   * */
+  allowSelectAll?: boolean;
+  /**
    * It defines the options of the Select.
    * The options can be static, an array of options.
    */

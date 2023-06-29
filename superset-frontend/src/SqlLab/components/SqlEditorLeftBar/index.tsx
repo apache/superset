@@ -29,14 +29,11 @@ import querystring from 'query-string';
 
 import {
   queryEditorSetDb,
-  queryEditorSetFunctionNames,
   addTable,
   removeTables,
   collapseTable,
   expandTable,
   queryEditorSetSchema,
-  queryEditorSetTableOptions,
-  queryEditorSetSchemaOptions,
   setDatabases,
   addDangerToast,
   resetState,
@@ -144,7 +141,6 @@ const SqlEditorLeftBar = ({
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
-    dispatch(queryEditorSetFunctionNames(queryEditor, dbId));
   };
 
   const selectedTableNames = useMemo(
@@ -168,9 +164,9 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName =>
-      dispatch(addTable(queryEditor, database, tableName, schemaName)),
-    );
+    tablesToAdd.forEach(tableName => {
+      dispatch(addTable(queryEditor, tableName, schemaName));
+    });
 
     dispatch(removeTables(currentTables));
   };
@@ -219,24 +215,6 @@ const SqlEditorLeftBar = ({
     [dispatch, queryEditor],
   );
 
-  const handleTablesLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetTableOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleSchemasLoad = useCallback(
-    (options: Array<any>) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetSchemaOptions(queryEditor, options));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
   const handleDbList = useCallback(
     (result: DatabaseObject) => {
       dispatch(setDatabases(result));
@@ -265,9 +243,7 @@ const SqlEditorLeftBar = ({
         handleError={handleError}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
-        onTablesLoad={handleTablesLoad}
         schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode

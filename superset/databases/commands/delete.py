@@ -21,16 +21,16 @@ from flask_appbuilder.models.sqla import Model
 from flask_babel import lazy_gettext as _
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.database import DatabaseDAO
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.report import ReportScheduleDAO
 from superset.databases.commands.exceptions import (
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
     DatabaseDeleteFailedReportsExistError,
     DatabaseNotFoundError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.models.core import Database
-from superset.reports.dao import ReportScheduleDAO
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,8 @@ class DeleteDatabaseCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             database = DatabaseDAO.delete(self._model)
         except DAODeleteFailedError as ex:
@@ -55,9 +57,8 @@ class DeleteDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
         # Check there are no associated ReportSchedules
-        reports = ReportScheduleDAO.find_by_database_id(self._model_id)
 
-        if reports:
+        if reports := ReportScheduleDAO.find_by_database_id(self._model_id):
             report_names = [report.name for report in reports]
             raise DatabaseDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))

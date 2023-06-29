@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
+import pick from 'lodash/pick';
+import {
+  BYTES_PER_CHAR,
+  KB_STORAGE,
+  LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  LOCALSTORAGE_MAX_QUERY_RESULTS_KB,
+} from '../constants';
 
 const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'remoteId',
@@ -36,13 +42,36 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'hideLeftBar',
 ]);
 
+function shouldEmptyQueryResults(query) {
+  const { startDttm, results } = query;
+  return (
+    Date.now() - startDttm > LOCALSTORAGE_MAX_QUERY_AGE_MS ||
+    ((JSON.stringify(results)?.length || 0) * BYTES_PER_CHAR) / KB_STORAGE >
+      LOCALSTORAGE_MAX_QUERY_RESULTS_KB
+  );
+}
+
+export function emptyTablePersistData(tables) {
+  return tables
+    .map(table =>
+      pick(table, [
+        'id',
+        'name',
+        'dbId',
+        'schema',
+        'dataPreviewQueryId',
+        'queryEditorId',
+      ]),
+    )
+    .filter(({ queryEditorId }) => Boolean(queryEditorId));
+}
+
 export function emptyQueryResults(queries) {
   return Object.keys(queries).reduce((accu, key) => {
-    const { startDttm, results } = queries[key];
+    const { results } = queries[key];
     const query = {
       ...queries[key],
-      results:
-        Date.now() - startDttm > LOCALSTORAGE_MAX_QUERY_AGE_MS ? {} : results,
+      results: shouldEmptyQueryResults(queries[key]) ? {} : results,
     };
 
     const updatedQueries = {

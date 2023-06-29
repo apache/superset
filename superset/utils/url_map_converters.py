@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, List
+from typing import Any
 
 from werkzeug.routing import BaseConverter, Map
 
@@ -22,8 +22,8 @@ from superset.tags.models import ObjectTypes
 
 
 class RegexConverter(BaseConverter):
-    def __init__(self, url_map: Map, *items: List[str]) -> None:
-        super().__init__(url_map)  # type: ignore
+    def __init__(self, url_map: Map, *items: list[str]) -> None:
+        super().__init__(url_map)
         self.regex = items[0]
 
 

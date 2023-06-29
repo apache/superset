@@ -112,7 +112,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Annotation Layers"
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/<int:pk>", methods=["DELETE"])
+    @expose("/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -166,7 +166,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -231,7 +231,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>", methods=["PUT"])
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -303,7 +303,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics

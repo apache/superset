@@ -34,7 +34,12 @@ import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
-import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
+import {
+  addTag,
+  deleteTaggedObjects,
+  fetchTags,
+  OBJECT_TYPES,
+} from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {
@@ -399,7 +404,7 @@ function PropertiesModal({
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
+                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </StyledHelpBlock>
             </FormItem>

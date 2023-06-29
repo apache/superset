@@ -14,20 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from superset import app, db
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
+from superset.daos.datasource import DatasourceDAO
 from superset.datasets.commands.exceptions import DatasetSamplesFailedError
-from superset.datasource.dao import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 
-def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> Dict[str, int]:
+def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, int]:
     samples_row_limit = app.config.get("SAMPLES_ROW_LIMIT", 1000)
     limit = samples_row_limit
     offset = 0
@@ -50,7 +50,7 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
     page: int = 1,
     per_page: int = 1000,
     payload: Optional[SamplesPayloadSchema] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = DatasourceDAO.get_datasource(
         session=db.session,
         datasource_type=datasource_type,

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
@@ -45,12 +45,12 @@ query_timeout = current_app.config[
 ]  # TODO: new config key
 
 
-def set_form_data(form_data: Dict[str, Any]) -> None:
+def set_form_data(form_data: dict[str, Any]) -> None:
     # pylint: disable=assigning-non-slot
     g.form_data = form_data
 
 
-def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
+def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
     try:
         return ChartDataQueryContextSchema().load(form_data)
     except KeyError as ex:
@@ -61,8 +61,8 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
-    job_metadata: Dict[str, Any],
-    form_data: Dict[str, Any],
+    job_metadata: dict[str, Any],
+    form_data: dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.charts.data.commands.get_data_command import ChartDataCommand
@@ -90,7 +90,11 @@ def load_chart_data_into_cache(
             raise ex
         except Exception as ex:
             # TODO: QueryContext should support SIP-40 style errors
-            error = ex.message if hasattr(ex, "message") else str(ex)  # type: ignore # pylint: disable=no-member
+            error = str(
+                ex.message  # pylint: disable=no-member
+                if hasattr(ex, "message")
+                else ex
+            )
             errors = [{"message": error}]
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -100,9 +104,9 @@ def load_chart_data_into_cache(
 
 @celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
 def load_explore_json_into_cache(  # pylint: disable=too-many-locals
-    job_metadata: Dict[str, Any],
-    form_data: Dict[str, Any],
-    response_type: Optional[str] = None,
+    job_metadata: dict[str, Any],
+    form_data: dict[str, Any],
+    response_type: str | None = None,
     force: bool = False,
 ) -> None:
     cache_key_prefix = "ejr-"  # ejr: explore_json request
@@ -157,7 +161,11 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             if isinstance(ex, SupersetVizException):
                 errors = ex.errors  # pylint: disable=no-member
             else:
-                error = ex.message if hasattr(ex, "message") else str(ex)  # type: ignore # pylint: disable=no-member
+                error = (
+                    ex.message  # pylint: disable=no-member
+                    if hasattr(ex, "message")
+                    else str(ex)
+                )
                 errors = [error]
 
             async_query_manager.update_job(

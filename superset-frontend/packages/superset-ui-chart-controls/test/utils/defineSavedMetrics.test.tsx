@@ -39,7 +39,8 @@ describe('defineSavedMetrics', () => {
       time_grain_sqla: 'P1D',
       columns: [],
       verbose_map: {},
-      column_format: {},
+      column_formats: {},
+      currency_formats: {},
       datasource_name: 'my_datasource',
       description: 'this is my datasource',
     };

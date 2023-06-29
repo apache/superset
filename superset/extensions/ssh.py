@@ -16,12 +16,13 @@
 # under the License.
 
 import importlib
+import logging
 from io import StringIO
 from typing import TYPE_CHECKING
 
+import sshtunnel
 from flask import Flask
 from paramiko import RSAKey
-from sshtunnel import open_tunnel, SSHTunnelForwarder
 
 from superset.databases.utils import make_url_safe
 
@@ -33,9 +34,11 @@ class SSHManager:
     def __init__(self, app: Flask) -> None:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
+        sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
+        sshtunnel.SSH_TIMEOUT = app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"]
 
     def build_sqla_url(  # pylint: disable=no-self-use
-        self, sqlalchemy_url: str, server: SSHTunnelForwarder
+        self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
     ) -> str:
         # override any ssh tunnel configuration object
         url = make_url_safe(sqlalchemy_url)
@@ -48,25 +51,26 @@ class SSHManager:
         self,
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
-    ) -> SSHTunnelForwarder:
+    ) -> sshtunnel.SSHTunnelForwarder:
         url = make_url_safe(sqlalchemy_database_uri)
         params = {
-            "ssh_address_or_host": ssh_tunnel.server_address,
-            "ssh_port": ssh_tunnel.server_port,
+            "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
-            "remote_bind_address": (url.host, url.port),  # bind_port, bind_host
+            "remote_bind_address": (url.host, url.port),
             "local_bind_address": (self.local_bind_address,),
+            "debug_level": logging.getLogger("flask_appbuilder").level,
         }
 
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
             private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(private_key_file)
+            private_key = RSAKey.from_private_key(
+                private_key_file, ssh_tunnel.private_key_password
+            )
             params["ssh_pkey"] = private_key
-            params["ssh_private_key_password"] = ssh_tunnel.private_key_password
 
-        return open_tunnel(**params)
+        return sshtunnel.open_tunnel(**params)
 
 
 class SSHManagerFactory:

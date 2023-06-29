@@ -38,14 +38,15 @@ const Styles = styled.div<<%= packageLabel %>StylesProps>`
     /* You can use your props to control CSS! */
     margin-top: 0;
     margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-    font-size: ${({ theme, headerFontSize }) => theme.typography.sizes[headerFontSize]}px;
-    font-weight: ${({ theme, boldText }) => theme.typography.weights[boldText ? 'bold' : 'normal']};
+    font-size: ${({ theme, headerFontSize }) =>
+      theme.typography.sizes[headerFontSize]}px;
+    font-weight: ${({ theme, boldText }) =>
+      theme.typography.weights[boldText ? 'bold' : 'normal']};
   }
 
   pre {
-    height: ${({ theme, headerFontSize, height }) => (
-      height - theme.gridUnit * 12 - theme.typography.sizes[headerFontSize]
-    )}px;
+    height: ${({ theme, headerFontSize, height }) =>
+      height - theme.gridUnit * 12 - theme.typography.sizes[headerFontSize]}px;
   }
 `;
 

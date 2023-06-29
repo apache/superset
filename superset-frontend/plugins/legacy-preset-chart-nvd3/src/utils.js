@@ -203,7 +203,7 @@ export function generateAreaChartTooltipContent(
         series.key === 'TOTAL' ? '' : '&#9724;'
       }</td>` +
       `<td>${key}</td>` +
-      `<td>${valueFormatter(series.value)}</td>` +
+      `<td>${valueFormatter(series?.point?.y)}</td>` +
       `<td>${((100 * series.value) / total).toFixed(2)}%</td>` +
       '</tr>';
   });

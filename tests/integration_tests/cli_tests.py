@@ -502,7 +502,6 @@ def test_failing_import_datasets_versioned_export(
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch("superset.tasks.thumbnails.cache_dashboard_thumbnail")
 def test_compute_thumbnails(thumbnail_mock, app_context, fs):
-
     thumbnail_mock.return_value = None
     runner = app.test_cli_runner()
     dashboard = db.session.query(Dashboard).filter_by(slug="births").first()

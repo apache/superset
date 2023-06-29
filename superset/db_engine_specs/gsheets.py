@@ -16,7 +16,8 @@
 # under the License.
 import json
 import re
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from re import Pattern
+from typing import Any, Optional, TYPE_CHECKING
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -47,19 +48,21 @@ class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
     service_account_info = EncryptedString(
         required=False,
-        description="Contents of GSheets JSON credentials.",
-        field_name="service_account_info",
+        metadata={
+            "description": "Contents of GSheets JSON credentials.",
+            "field_name": "service_account_info",
+        },
     )
 
 
 class GSheetsParametersType(TypedDict):
     service_account_info: str
-    catalog: Optional[Dict[str, str]]
+    catalog: Optional[dict[str, str]]
 
 
 class GSheetsPropertiesType(TypedDict):
     parameters: GSheetsParametersType
-    catalog: Dict[str, str]
+    catalog: dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -75,7 +78,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
             __(
                 'Please check your query for syntax errors near "%(server_error)s". '
@@ -108,7 +111,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         database: "Database",
         table_name: str,
         schema_name: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with database.get_raw_connection(schema=schema_name) as conn:
             cursor = conn.cursor()
             cursor.execute(f'SELECT GET_METADATA("{table_name}")')
@@ -125,7 +128,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls,
         _: GSheetsParametersType,
         encrypted_extra: Optional[  # pylint: disable=unused-argument
-            Dict[str, Any]
+            dict[str, Any]
         ] = None,
     ) -> str:
         return "gsheets://"
@@ -134,7 +137,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def get_parameters_from_uri(
         cls,
         uri: str,  # pylint: disable=unused-argument
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[dict[str, Any]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
@@ -212,8 +215,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def validate_parameters(
         cls,
         properties: GSheetsPropertiesType,
-    ) -> List[SupersetError]:
-        errors: List[SupersetError] = []
+    ) -> list[SupersetError]:
+        errors: list[SupersetError] = []
 
         # backwards compatible just incase people are send data
         # via parameters for validation
@@ -257,7 +260,6 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         idx = 0
 
         for name, url in table_catalog.items():
-
             if not name:
                 errors.append(
                     SupersetError(

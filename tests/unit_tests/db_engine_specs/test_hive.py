@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy.engine.url import make_url
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
@@ -42,3 +43,17 @@ def test_convert_dttm(
     from superset.db_engine_specs.hive import HiveEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert (
+        HiveEngineSpec.get_schema_from_engine_params(
+            make_url("hive://localhost:10000/default"), {}
+        )
+        == "default"
+    )

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -25,15 +25,15 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerInvalidError,
     AnnotationLayerNameUniquenessValidationError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAOCreateFailedError
 
 logger = logging.getLogger(__name__)
 
 
 class CreateAnnotationLayerCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -46,7 +46,7 @@ class CreateAnnotationLayerCommand(BaseCommand):
         return annotation_layer
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
 
         name = self._properties.get("name", "")
 
@@ -54,6 +54,4 @@ class CreateAnnotationLayerCommand(BaseCommand):
             exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:
-            exception = AnnotationLayerInvalidError()
-            exception.add_list(exceptions)
-            raise exception
+            raise AnnotationLayerInvalidError(exceptions=exceptions)
