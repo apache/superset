@@ -17,7 +17,7 @@
 """add on delete cascade for tables references
 
 Revision ID: 6fbe660cac39
-Revises: 83e1abbe777f
+Revises: 90139bf715e4
 Create Date: 2023-06-22 13:39:47.989373
 
 """
@@ -25,7 +25,7 @@ from __future__ import annotations
 
 # revision identifiers, used by Alembic.
 revision = "6fbe660cac39"
-down_revision = "83e1abbe777f"
+down_revision = "90139bf715e4"
 
 import sqlalchemy as sa
 from alembic import op
