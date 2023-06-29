@@ -647,6 +647,7 @@ export default function sqlLabReducer(state = {}, action) {
         Object.entries(queries).filter(([, query]) => {
           if (
             ['running', 'pending'].includes(query.state) &&
+            Date.now() - query.startDttm > action.interval &&
             query.progress === 0
           ) {
             return false;

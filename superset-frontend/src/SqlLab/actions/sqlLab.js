@@ -201,8 +201,8 @@ export function estimateQueryCost(queryEditor) {
   };
 }
 
-export function clearInactiveQueries() {
-  return { type: CLEAR_INACTIVE_QUERIES };
+export function clearInactiveQueries(interval) {
+  return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
 export function startQuery(query) {
