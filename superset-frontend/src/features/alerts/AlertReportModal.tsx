@@ -35,6 +35,7 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
+import { Input } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
@@ -46,6 +47,7 @@ import Owner from 'src/types/Owner';
 import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
+import { CustomWidthHeaderStyle } from 'src/components/ReportModal/styles';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
@@ -370,7 +372,7 @@ interface NotificationMethodAddProps {
   onClick: () => void;
 }
 
-const TRANSLATIONS = {
+export const TRANSLATIONS = {
   ADD_NOTIFICATION_METHOD_TEXT: t('Add notification method'),
   ADD_DELIVERY_METHOD_TEXT: t('Add delivery method'),
   SAVE_TEXT: t('Save'),
@@ -406,7 +408,9 @@ const TRANSLATIONS = {
   SEND_AS_PNG_TEXT: t('Send as PNG'),
   SEND_AS_CSV_TEXT: t('Send as CSV'),
   SEND_AS_TEXT: t('Send as text'),
-  IGNORE_CACHE_TEXT: t('Ignore cache when generating screenshot'),
+  IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
+  CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
+  CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
   NOTIFICATION_METHOD_TEXT: t('Notification method'),
 };
 
@@ -465,6 +469,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_FORMAT,
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
+
+  const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
+  useEffect(() => {
+    setIsScreenshot(
+      contentType === 'dashboard' ||
+        (contentType === 'chart' && reportFormat === 'PNG'),
+    );
+  }, [contentType, reportFormat]);
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -853,12 +865,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }).then(response => setChartVizType(response.json.result.viz_type));
 
   // Handle input/textarea updates
-  const onTextChange = (
+  const onInputChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    const { target } = event;
+    const {
+      target: { type, value, name },
+    } = event;
+    const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
-    updateAlertState(target.name, target.value);
+    updateAlertState(name, parsedValue);
   };
 
   const onTimeoutVerifyChange = (
@@ -1180,7 +1195,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     ? TRANSLATIONS.REPORT_NAME_TEXT
                     : TRANSLATIONS.ALERT_NAME_TEXT
                 }
-                onChange={onTextChange}
+                onChange={onInputChange}
                 css={inputSpacer}
               />
             </div>
@@ -1216,7 +1231,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 name="description"
                 value={currentAlert ? currentAlert.description || '' : ''}
                 placeholder={TRANSLATIONS.DESCRIPTION_TEXT}
-                onChange={onTextChange}
+                onChange={onInputChange}
                 css={inputSpacer}
               />
             </div>
@@ -1470,6 +1485,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </StyledRadioGroup>
                 </div>
               </>
+            )}
+            {isScreenshot && (
+              <StyledInputContainer>
+                <div className="control-label" css={CustomWidthHeaderStyle}>
+                  {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
+                </div>
+                <div className="input-container">
+                  <Input
+                    type="number"
+                    name="custom_width"
+                    value={currentAlert?.custom_width || ''}
+                    placeholder={
+                      TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
+                    }
+                    onChange={onInputChange}
+                  />
+                </div>
+              </StyledInputContainer>
             )}
             {(isReport || contentType === 'dashboard') && (
               <div className="inline-container">

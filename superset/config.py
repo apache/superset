@@ -1273,6 +1273,9 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+# Custom width for screenshots
+ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
+ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
