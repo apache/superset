@@ -21,6 +21,7 @@ function getPageLanguage(): string | null {
 
 const getLocaleForSuperset = () => {
   const dodoisLanguage = getPageLanguage();
+  console.log('dodoisLanguage', dodoisLanguage);
   if (dodoisLanguage) {
     if (dodoisLanguage === 'ru-RU') return 'ru';
     return 'en';
