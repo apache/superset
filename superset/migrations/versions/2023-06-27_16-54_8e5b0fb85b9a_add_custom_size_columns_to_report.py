@@ -17,7 +17,7 @@
 """Add custom size columns to report schedule
 
 Revision ID: 8e5b0fb85b9a
-Revises: 83e1abbe777f
+Revises: 6fbe660cac39
 Create Date: 2023-06-27 16:54:57.161475
 
 """
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "8e5b0fb85b9a"
-down_revision = "83e1abbe777f"
+down_revision = "6fbe660cac39"
 
 
 def upgrade():
