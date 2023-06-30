@@ -54,6 +54,6 @@ case "${1}" in
     /usr/bin/run-server.sh
     ;;
   *)
-    echo "Unknown Operation!!! ${1}"
+    echo "Unknown Operation!!!"
     ;;
 esac
