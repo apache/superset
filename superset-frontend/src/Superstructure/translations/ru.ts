@@ -2760,7 +2760,7 @@ const ru = {
       'Enter fullscreen': ['Полноэкранный режим'],
       Last: ['Последнее'],
       Previous: ['Предыдущий'],
-      Custom: ['Пользовательский'],
+      Custom: ['Выбрать точную дату'],
       'Add/Edit Filters': ['Создать/Изменить фильтры'],
       'Add filters and dividers': ['Добавить фильтр/разделитель'],
       Settings: ['Настройки'],

@@ -1870,6 +1870,7 @@ const en = {
       Added_to: ['Added to'],
       'With space': [''],
       Used_in: ['Used in'],
+      Custom: ['Exact date'],
     },
   },
 };
