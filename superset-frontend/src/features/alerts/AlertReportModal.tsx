@@ -253,6 +253,15 @@ export const StyledInputContainer = styled.div`
   flex: 1;
   margin-top: 0;
 
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
   .helper {
     display: block;
     color: ${({ theme }) => theme.colors.grayscale.base};
@@ -332,8 +341,7 @@ const StyledRadioGroup = styled(Radio.Group)`
 `;
 
 const StyledCheckbox = styled(AntdCheckbox)`
-  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 // Notification Method components
