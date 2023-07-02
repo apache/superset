@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fs from 'fs';
+
 type ConfigType = {
   port: number;
   logLevel: string;
@@ -76,51 +78,56 @@ function configFromFile(): Partial<ConfigType> {
   const isTest = process.env.NODE_ENV === 'test';
   const configFile = isTest ? '../config.test.json' : '../config.json';
   try {
-    return require(configFile);
+    const configData = fs.readFileSync(configFile, 'utf8');
+    const config = JSON.parse(configData);
+    return config;
   } catch (err) {
-    console.warn('config.json file not found');
+    console.warn('Error loading config file:', err);
     return {};
   }
 }
 
 const isPresent = (s: string) => /\S+/.test(s);
-const toNumber = Number;
+const toNumber = (s: string) => {
+  const num = Number(s);
+  return Number.isNaN(num) ? 0 : num;
+};
 const toBoolean = (s: string) => s.toLowerCase() === 'true';
 const toStringArray = (s: string) => s.split(',');
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
-  const envVarConfigSetter: { [envVar: string]: (val: string) => void } = {
-    PORT: val => (config.port = toNumber(val)),
-    LOG_LEVEL: val => (config.logLevel = val),
-    LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
-    LOG_FILENAME: val => (config.logFilename = val),
-    REDIS_STREAM_PREFIX: val => (config.redisStreamPrefix = val),
-    REDIS_STREAM_READ_COUNT: val =>
-      (config.redisStreamReadCount = toNumber(val)),
-    REDIS_STREAM_READ_BLOCK_MS: val =>
-      (config.redisStreamReadBlockMs = toNumber(val)),
-    JWT_SECRET: val => (config.jwtSecret = val),
-    JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
-    SOCKET_RESPONSE_TIMEOUT_MS: val =>
-      (config.socketResponseTimeoutMs = toNumber(val)),
-    PING_SOCKETS_INTERVAL_MS: val =>
-      (config.pingSocketsIntervalMs = toNumber(val)),
-    GC_CHANNELS_INTERVAL_MS: val =>
-      (config.gcChannelsIntervalMs = toNumber(val)),
-    REDIS_HOST: val => (config.redis.host = val),
-    REDIS_PORT: val => (config.redis.port = toNumber(val)),
-    REDIS_PASSWORD: val => (config.redis.password = val),
-    REDIS_DB: val => (config.redis.db = toNumber(val)),
-    REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
-    STATSD_HOST: val => (config.statsd.host = val),
-    STATSD_PORT: val => (config.statsd.port = toNumber(val)),
-    STATSD_GLOBAL_TAGS: val => (config.statsd.globalTags = toStringArray(val)),
+  const envVarConfigMapping: { [envVar: string]: keyof ConfigType } = {
+    PORT: 'port',
+    LOG_LEVEL: 'logLevel',
+    LOG_TO_FILE: 'logToFile',
+    LOG_FILENAME: 'logFilename',
+    REDIS_STREAM_PREFIX: 'redisStreamPrefix',
+    REDIS_STREAM_READ_COUNT: 'redisStreamReadCount',
+    REDIS_STREAM_READ_BLOCK_MS: 'redisStreamReadBlockMs',
+    JWT_SECRET: 'jwtSecret',
+    JWT_COOKIE_NAME: 'jwtCookieName',
+    SOCKET_RESPONSE_TIMEOUT_MS: 'socketResponseTimeoutMs',
+    PING_SOCKETS_INTERVAL_MS: 'pingSocketsIntervalMs',
+    GC_CHANNELS_INTERVAL_MS: 'gcChannelsIntervalMs',
+    REDIS_HOST: 'redis.host',
+    REDIS_PORT: 'redis.port',
+    REDIS_PASSWORD: 'redis.password',
+    REDIS_DB: 'redis.db',
+    REDIS_SSL: 'redis.ssl',
+    STATSD_HOST: 'statsd.host',
+    STATSD_PORT: 'statsd.port',
+    STATSD_GLOBAL_TAGS: 'statsd.globalTags',
   };
 
-  Object.entries(envVarConfigSetter).forEach(([envVar, set]) => {
+  Object.entries(envVarConfigMapping).forEach(([envVar, configKey]) => {
     const envValue = process.env[envVar];
     if (envValue && isPresent(envValue)) {
-      set(envValue);
+      const keys = configKey.split('.');
+      if (keys.length === 1) {
+        config[keys[0]] = envValue;
+      } else if (keys.length === 2) {
+        config[keys[0]][keys[1]] = envValue;
+      }
     }
   });
 
