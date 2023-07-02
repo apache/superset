@@ -2632,7 +2632,7 @@ class DeckContour(BaseDeckGLViz):
     verbose_name = _("Deck.gl - Contour")
     spatial_control_keys = ["spatial"]
 
-    def get_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
         return {
             "position": data.get("spatial"),
             "weight": (data.get(self.metric_label) if self.metric_label else None) or 1,
