@@ -17,7 +17,7 @@
 import json
 import logging
 import uuid
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Literal, Optional
 
 import jwt
 import redis
@@ -38,7 +38,7 @@ class AsyncQueryJobException(Exception):
 
 def build_job_metadata(
     channel_id: str, job_id: str, user_id: Optional[int], **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "channel_id": channel_id,
         "job_id": job_id,
@@ -49,7 +49,7 @@ def build_job_metadata(
     }
 
 
-def parse_event(event_data: Tuple[str, Dict[str, Any]]) -> Dict[str, Any]:
+def parse_event(event_data: tuple[str, dict[str, Any]]) -> dict[str, Any]:
     event_id = event_data[0]
     event_payload = event_data[1]["data"]
     return {"id": event_id, **json.loads(event_payload)}
@@ -149,7 +149,7 @@ class AsyncQueryManager:
 
             return response
 
-    def parse_jwt_from_request(self, req: Request) -> Dict[str, Any]:
+    def parse_jwt_from_request(self, req: Request) -> dict[str, Any]:
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
@@ -160,7 +160,7 @@ class AsyncQueryManager:
             logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
 
-    def init_job(self, channel_id: str, user_id: Optional[int]) -> Dict[str, Any]:
+    def init_job(self, channel_id: str, user_id: Optional[int]) -> dict[str, Any]:
         job_id = str(uuid.uuid4())
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING
@@ -168,14 +168,14 @@ class AsyncQueryManager:
 
     def read_events(
         self, channel: str, last_id: Optional[str]
-    ) -> List[Optional[Dict[str, Any]]]:
+    ) -> list[Optional[dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
         results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
-        self, job_metadata: Dict[str, Any], status: str, **kwargs: Any
+        self, job_metadata: dict[str, Any], status: str, **kwargs: Any
     ) -> None:
         if "channel_id" not in job_metadata:
             raise AsyncQueryJobException("No channel ID specified")

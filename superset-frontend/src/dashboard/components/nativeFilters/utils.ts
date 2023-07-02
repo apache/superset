@@ -33,6 +33,14 @@ import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import getBootstrapData from '../../../utils/getBootstrapData';
+
+const getDefaultRowLimit = (): number => {
+  const bootstrapData = getBootstrapData();
+  const nativeFilterDefaultRowLimit =
+    bootstrapData?.common?.conf?.NATIVE_FILTER_DEFAULT_ROW_LIMIT;
+  return nativeFilterDefaultRowLimit || 1000;
+};
 
 export const getFormData = ({
   datasetId,
@@ -75,7 +83,7 @@ export const getFormData = ({
     extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
-    row_limit: 1000,
+    row_limit: getDefaultRowLimit(),
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
@@ -154,7 +162,12 @@ const findTabsWithChartsInScopeHelper = (
   componentId: string,
   tabIds: string[],
   tabsToHighlight: Set<string>,
+  visited: Set<string>,
 ) => {
+  if (visited.has(componentId)) {
+    return;
+  }
+  visited.add(componentId);
   if (
     dashboardLayout?.[componentId]?.type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
@@ -175,6 +188,7 @@ const findTabsWithChartsInScopeHelper = (
       childId,
       isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
       tabsToHighlight,
+      visited,
     ),
   );
 };
@@ -187,6 +201,7 @@ export const findTabsWithChartsInScope = (
   const rootChildId = dashboardRoot.children[0];
   const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
   const tabsInScope = new Set<string>();
+  const visited = new Set<string>();
   if (hasTopLevelTabs) {
     dashboardLayout[rootChildId]?.children?.forEach(tabId =>
       findTabsWithChartsInScopeHelper(
@@ -195,6 +210,7 @@ export const findTabsWithChartsInScope = (
         tabId,
         [tabId],
         tabsInScope,
+        visited,
       ),
     );
   } else {
@@ -207,6 +223,7 @@ export const findTabsWithChartsInScope = (
           element.id,
           [element.id],
           tabsInScope,
+          visited,
         ),
       );
   }

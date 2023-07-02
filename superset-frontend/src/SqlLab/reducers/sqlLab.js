@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryState, t } from '@superset-ui/core';
+import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../utils/dates';
@@ -235,85 +235,6 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         tables: state.tables.filter(table => !tableIds.includes(table.id)),
       };
-    },
-    [actions.START_QUERY_VALIDATION]() {
-      return {
-        ...state,
-        ...alterUnsavedQueryEditorState(
-          state,
-          {
-            validationResult: {
-              id: action.query.id,
-              errors: [],
-              completed: false,
-            },
-          },
-          action.query.sqlEditorId,
-        ),
-      };
-    },
-    [actions.QUERY_VALIDATION_RETURNED]() {
-      // If the server is very slow about answering us, we might get validation
-      // responses back out of order. This check confirms the response we're
-      // handling corresponds to the most recently dispatched request.
-      //
-      // We don't care about any but the most recent because validations are
-      // only valid for the SQL text they correspond to -- once the SQL has
-      // changed, the old validation doesn't tell us anything useful anymore.
-      const qe = {
-        ...getFromArr(state.queryEditors, action.query.sqlEditorId),
-        ...(state.unsavedQueryEditor.id === action.query.sqlEditorId &&
-          state.unsavedQueryEditor),
-      };
-      if (qe.validationResult.id !== action.query.id) {
-        return state;
-      }
-      // Otherwise, persist the results on the queryEditor state
-      return {
-        ...state,
-        ...alterUnsavedQueryEditorState(
-          state,
-          {
-            validationResult: {
-              id: action.query.id,
-              errors: action.results,
-              completed: true,
-            },
-          },
-          action.query.sqlEditorId,
-        ),
-      };
-    },
-    [actions.QUERY_VALIDATION_FAILED]() {
-      // If the server is very slow about answering us, we might get validation
-      // responses back out of order. This check confirms the response we're
-      // handling corresponds to the most recently dispatched request.
-      //
-      // We don't care about any but the most recent because validations are
-      // only valid for the SQL text they correspond to -- once the SQL has
-      // changed, the old validation doesn't tell us anything useful anymore.
-      const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-      if (qe.validationResult.id !== action.query.id) {
-        return state;
-      }
-      // Otherwise, persist the results on the queryEditor state
-      let newState = { ...state };
-      const sqlEditor = { id: action.query.sqlEditorId };
-      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
-        validationResult: {
-          id: action.query.id,
-          errors: [
-            {
-              line_number: 1,
-              start_column: 1,
-              end_column: 1,
-              message: `The server failed to validate your query.\n${action.message}`,
-            },
-          ],
-          completed: true,
-        },
-      });
-      return newState;
     },
     [actions.COST_ESTIMATE_STARTED]() {
       return {
@@ -693,8 +614,10 @@ export default function sqlLabReducer(state = {}, action) {
           (state.queries[id].state !== QueryState.STOPPED &&
             state.queries[id].state !== QueryState.FAILED)
         ) {
-          if (changedQuery.changedOn > queriesLastUpdate) {
-            queriesLastUpdate = changedQuery.changedOn;
+          const changedOn = normalizeTimestamp(changedQuery.changed_on);
+          const timestamp = Date.parse(changedOn);
+          if (timestamp > queriesLastUpdate) {
+            queriesLastUpdate = timestamp;
           }
           const prevState = state.queries[id]?.state;
           const currentState = changedQuery.state;
@@ -724,6 +647,7 @@ export default function sqlLabReducer(state = {}, action) {
         Object.entries(queries).filter(([, query]) => {
           if (
             ['running', 'pending'].includes(query.state) &&
+            Date.now() - query.startDttm > action.interval &&
             query.progress === 0
           ) {
             return false;

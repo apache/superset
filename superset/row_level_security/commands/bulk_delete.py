@@ -16,24 +16,23 @@
 # under the License.
 
 import logging
-from typing import List
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.security import RLSDAO
 from superset.reports.models import ReportSchedule
 from superset.row_level_security.commands.exceptions import (
     RLSRuleNotFoundError,
     RuleBulkDeleteFailedError,
 )
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 
 
 class BulkDeleteRLSRuleCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: list[int]):
         self._model_ids = model_ids
-        self._models: List[ReportSchedule] = []
+        self._models: list[ReportSchedule] = []
 
     def run(self) -> None:
         self.validate()

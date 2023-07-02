@@ -79,7 +79,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rawFormData,
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
-    datasource: { verboseMap = {}, columnFormats = {} },
+    datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
     emitCrossFilters,
   } = chartProps;
   const { data, colnames, coltypes } = queriesData[0];
@@ -162,6 +162,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     selectedFilters,
     verboseMap,
     columnFormats,
+    currencyFormats,
     metricsLayout,
     metricColorFormatters,
     dateFormatters,

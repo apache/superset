@@ -99,12 +99,10 @@
     "@superset-ui/legacy-plugin-chart-paired-t-test": "file:./plugins/legacy-plugin-chart-paired-t-test",
     "@superset-ui/legacy-plugin-chart-parallel-coordinates": "file:./plugins/legacy-plugin-chart-parallel-coordinates",
     "@superset-ui/legacy-plugin-chart-partition": "file:./plugins/legacy-plugin-chart-partition",
-    "@superset-ui/legacy-plugin-chart-pivot-table": "file:./plugins/legacy-plugin-chart-pivot-table",
     "@superset-ui/legacy-plugin-chart-rose": "file:./plugins/legacy-plugin-chart-rose",
     "@superset-ui/legacy-plugin-chart-sankey": "file:./plugins/legacy-plugin-chart-sankey",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "file:./plugins/legacy-plugin-chart-sankey-loop",
     "@superset-ui/legacy-plugin-chart-sunburst": "file:./plugins/legacy-plugin-chart-sunburst",
-    "@superset-ui/legacy-plugin-chart-treemap": "file:./plugins/legacy-plugin-chart-treemap",
     "@superset-ui/legacy-plugin-chart-world-map": "file:./plugins/legacy-plugin-chart-world-map",
     "@superset-ui/legacy-preset-chart-deckgl": "file:./plugins/legacy-preset-chart-deckgl",
     "@superset-ui/legacy-preset-chart-nvd3": "file:./plugins/legacy-preset-chart-nvd3",
@@ -113,7 +111,6 @@
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
-    "@superset-ui/preset-chart-xy": "file:./plugins/preset-chart-xy",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@types/d3-format": "^3.0.1",
     "@visx/axis": "^3.0.1",
@@ -136,7 +133,7 @@
     "classnames": "^2.2.5",
     "core-js": "^3.6.5",
     "d3-array": "^1.2.4",
-    "d3-color": "^1.2.0",
+    "d3-color": "^3.1.0",
     "d3-scale": "^2.1.2",
     "dom-to-image-more": "^2.10.1",
     "emotion-rgba": "0.0.9",
@@ -352,6 +349,12 @@
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4 || ^8.1.2"
+  },
+  "overrides": {
+    "d3-color": "^3.1.0",
+    "yosay": {
+      "ansi-regex": "^4.1.1"
+    }
   },
   "readme": "ERROR: No README data found!",
   "_id": "superset@0.0.0-dev"

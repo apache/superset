@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
+from superset.daos.dashboard import FilterSetDAO
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     DashboardIdInconsistencyError,
@@ -32,7 +33,6 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_ID_FIELD,
     OWNER_TYPE_FIELD,
 )
-from superset.dashboards.filter_sets.dao import FilterSetDAO
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 class CreateFilterSetCommand(BaseFilterSetCommand):
     # pylint: disable=C0103
-    def __init__(self, dashboard_id: int, data: Dict[str, Any]):
+    def __init__(self, dashboard_id: int, data: dict[str, Any]):
         super().__init__(dashboard_id)
         self._properties = data.copy()
 

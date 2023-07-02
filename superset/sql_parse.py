@@ -16,9 +16,10 @@
 # under the License.
 import logging
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, cast, Iterator, List, Optional, Set, Tuple
+from typing import Any, cast, Optional
 from urllib import parse
 
 import sqlparse
@@ -97,7 +98,7 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
 
 
 def extract_top_from_query(
-    statement: TokenList, top_keywords: Set[str]
+    statement: TokenList, top_keywords: set[str]
 ) -> Optional[int]:
     """
     Extract top clause value from SQL statement.
@@ -122,7 +123,7 @@ def extract_top_from_query(
     return top
 
 
-def get_cte_remainder_query(sql: str) -> Tuple[Optional[str], str]:
+def get_cte_remainder_query(sql: str) -> tuple[Optional[str], str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 
@@ -192,8 +193,8 @@ class ParsedQuery:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
-        self._tables: Set[Table] = set()
-        self._alias_names: Set[str] = set()
+        self._tables: set[Table] = set()
+        self._alias_names: set[str] = set()
         self._limit: Optional[int] = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
@@ -202,7 +203,7 @@ class ParsedQuery:
             self._limit = _extract_limit_from_query(statement)
 
     @property
-    def tables(self) -> Set[Table]:
+    def tables(self) -> set[Table]:
         if not self._tables:
             for statement in self._parsed:
                 self._extract_from_token(statement)
@@ -282,7 +283,7 @@ class ParsedQuery:
     def strip_comments(self) -> str:
         return sqlparse.format(self.stripped(), strip_comments=True)
 
-    def get_statements(self) -> List[str]:
+    def get_statements(self) -> list[str]:
         """Returns a list of SQL statements as strings, stripped"""
         statements = []
         for statement in self._parsed:
@@ -737,7 +738,7 @@ RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
 
 def extract_table_references(
     sql_text: str, sqla_dialect: str, show_warning: bool = True
-) -> Set["Table"]:
+) -> set["Table"]:
     """
     Return all the dependencies from a SQL sql_text.
     """

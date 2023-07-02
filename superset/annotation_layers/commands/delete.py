@@ -24,9 +24,9 @@ from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerDeleteIntegrityError,
     AnnotationLayerNotFoundError,
 )
-from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.daos.annotation import AnnotationLayerDAO
+from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.annotations import AnnotationLayer
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,8 @@ class DeleteAnnotationLayerCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             annotation_layer = AnnotationLayerDAO.delete(self._model)
         except DAODeleteFailedError as ex:

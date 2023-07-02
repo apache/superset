@@ -74,7 +74,7 @@ the repo directly from the main `apache/superset` repo to a new directory `super
 
 ```bash
 cd <MY PROJECTS PATH>
-git clone git@github.com:apache/superset.git superset-release
+git clone https://github.com/apache/superset.git superset-release
 cd superset-release
 ```
 
@@ -102,7 +102,7 @@ the same terminal session won't be used for crafting the release candidate and t
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
-necessary environment variables. Change your current directory to `superset/RELEASING`
+necessary environment variables. Change your current directory to `RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (MacOS/ZSH):

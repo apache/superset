@@ -51,7 +51,6 @@ import {
 import { parseYAxisBound } from '../utils/controls';
 import {
   getOverMaxHiddenFormatter,
-  currentSeries,
   dedupSeries,
   extractSeries,
   getAxisType,
@@ -481,11 +480,7 @@ export default function transformProps(
             seriesName: key,
             formatter: primarySeries.has(key) ? formatter : formatterSecondary,
           });
-          if (currentSeries.name === key) {
-            rows.push(`<span style="font-weight: 700">${content}</span>`);
-          } else {
-            rows.push(`<span style="opacity: 0.7">${content}</span>`);
-          }
+          rows.push(`<span style="opacity: 0.7">${content}</span>`);
         });
         return rows.join('<br />');
       },

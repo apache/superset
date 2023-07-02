@@ -16,12 +16,13 @@
 # under the License.
 import logging
 import re
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from flask import current_app
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     NoValidatorConfigFoundError,
@@ -30,7 +31,6 @@ from superset.databases.commands.exceptions import (
     ValidatorSQLError,
     ValidatorSQLUnexpectedError,
 )
-from superset.databases.dao import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
@@ -41,13 +41,13 @@ logger = logging.getLogger(__name__)
 
 
 class ValidateSQLCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[Database] = None
-        self._validator: Optional[Type[BaseSQLValidator]] = None
+        self._validator: Optional[type[BaseSQLValidator]] = None
 
-    def run(self) -> List[Dict[str, Any]]:
+    def run(self) -> list[dict[str, Any]]:
         """
         Validates a SQL statement
 
@@ -97,9 +97,7 @@ class ValidateSQLCommand(BaseCommand):
         if not validators_by_engine or spec.engine not in validators_by_engine:
             raise NoValidatorConfigFoundError(
                 SupersetError(
-                    message=__(
-                        "no SQL validator is configured for {}".format(spec.engine)
-                    ),
+                    message=__(f"no SQL validator is configured for {spec.engine}"),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
                 ),

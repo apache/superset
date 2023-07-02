@@ -41,6 +41,7 @@ import {
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { useSchemas, useTables } from 'src/hooks/apiResources';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
+import { useAnnotations } from './useAnnotations';
 
 type HotKey = {
   key: string;
@@ -54,7 +55,6 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
-  database: any;
   extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
   hotkeys: HotKey[];
@@ -85,7 +85,6 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
-  database,
   extendedTables = [],
   height,
   hotkeys,
@@ -96,8 +95,8 @@ const AceEditorWrapper = ({
     'id',
     'dbId',
     'sql',
-    'validationResult',
     'schema',
+    'templateParams',
   ]);
   const { data: schemaOptions } = useSchemas({
     ...(autocomplete && { dbId: queryEditor.dbId }),
@@ -257,9 +256,7 @@ const AceEditorWrapper = ({
     const completer = {
       insertMatch: (editor: Editor, data: any) => {
         if (data.meta === 'table') {
-          dispatch(
-            addTable(queryEditor, database, data.value, queryEditor.schema),
-          );
+          dispatch(addTable(queryEditor, data.value, queryEditor.schema));
         }
 
         let { caption } = data;
@@ -286,21 +283,12 @@ const AceEditorWrapper = ({
 
     setWords(words);
   }
-
-  const getAceAnnotations = () => {
-    const { validationResult } = queryEditor;
-    const resultIsReady = validationResult?.completed;
-    if (resultIsReady && validationResult?.errors?.length) {
-      const errors = validationResult.errors.map((err: any) => ({
-        type: 'error',
-        row: err.line_number - 1,
-        column: err.start_column - 1,
-        text: err.message,
-      }));
-      return errors;
-    }
-    return [];
-  };
+  const { data: annotations } = useAnnotations({
+    dbId: queryEditor.dbId,
+    schema: queryEditor.schema,
+    sql: currentSql,
+    templateParams: queryEditor.templateParams,
+  });
 
   return (
     <StyledAceEditor
@@ -313,7 +301,7 @@ const AceEditorWrapper = ({
       editorProps={{ $blockScrolling: true }}
       enableLiveAutocompletion={autocomplete}
       value={sql}
-      annotations={getAceAnnotations()}
+      annotations={annotations}
     />
   );
 };

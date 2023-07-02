@@ -16,7 +16,6 @@
 # under the License.
 
 from random import randint
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -32,7 +31,7 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-def owners(get_user) -> List[User]:
+def owners(get_user) -> list[User]:
     return [get_user("admin")]
 
 
@@ -172,7 +171,7 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
         init_mock.return_value = None
         command_mock.side_effect = ReportScheduleUnexpectedError("Unexpected error")
         with freeze_time("2020-01-01T09:00:00Z"):
-            execute(report_schedule.id, "2020-01-01T09:00:00Z")
+            execute(report_schedule.id)
             update_state_mock.assert_called_with(state="FAILURE")
 
         db.session.delete(report_schedule)
@@ -200,7 +199,7 @@ def test_execute_task_with_command_exception(
         init_mock.return_value = None
         command_mock.side_effect = CommandException("Unexpected error")
         with freeze_time("2020-01-01T09:00:00Z"):
-            execute(report_schedule.id, "2020-01-01T09:00:00Z")
+            execute(report_schedule.id)
             update_state_mock.assert_called_with(state="FAILURE")
             logger_mock.exception.assert_called_with(
                 "A downstream exception occurred while generating a report: None. Unexpected error",

@@ -18,7 +18,7 @@
 import logging
 import time
 from contextlib import closing
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from superset import app, security_manager
 from superset.models.core import Database
@@ -109,7 +109,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 raise PrestoSQLValidationError(
                     "The pyhive presto client returned an unhandled " "database error."
                 ) from db_error
-            error_args: Dict[str, Any] = db_error.args[0]
+            error_args: dict[str, Any] = db_error.args[0]
 
             # Confirm the two fields we need to be able to present an annotation
             # are present in the error response -- a message, and a location.
@@ -148,7 +148,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
     @classmethod
     def validate(
         cls, sql: str, schema: Optional[str], database: Database
-    ) -> List[SQLValidationAnnotation]:
+    ) -> list[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a
         prepended explain.
@@ -167,7 +167,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         ) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
-            annotations: List[SQLValidationAnnotation] = []
+            annotations: list[SQLValidationAnnotation] = []
             with closing(engine.raw_connection()) as conn:
                 cursor = conn.cursor()
                 for statement in parsed_query.get_statements():

@@ -23,7 +23,7 @@ import pytest
 
 from flask_wtf.csrf import generate_csrf
 from superset import db
-from superset.embedded.dao import EmbeddedDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -89,7 +89,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_authorized(self):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        self.embedded = EmbeddedDAO.upsert(self.dash, [])
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.login(username="admin")
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}

@@ -19,13 +19,12 @@
 
 import inspect
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
@@ -254,7 +253,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         values=fields.Raw(),
         metadata={"description": "DB-specific parameters for configuration"},
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         metadata={"description": configuration_method_description},
@@ -263,8 +262,8 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
     @pre_load
     def build_sqlalchemy_uri(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Build SQLAlchemy URI from separate parameters.
 
@@ -325,9 +324,9 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
 def rename_encrypted_extra(
     self: Schema,
-    data: Dict[str, Any],
+    data: dict[str, Any],
     **kwargs: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Rename ``encrypted_extra`` to ``masked_encrypted_extra``.
 
@@ -387,7 +386,7 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         required=True,
@@ -707,8 +706,8 @@ class DatabaseFunctionNamesResponse(Schema):
 class ImportV1DatabaseExtraSchema(Schema):
     @pre_load
     def fix_schemas_allowed_for_csv_upload(  # pylint: disable=invalid-name
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Fixes for ``schemas_allowed_for_csv_upload``.
         """
@@ -744,8 +743,8 @@ class ImportV1DatabaseExtraSchema(Schema):
 class ImportV1DatabaseSchema(Schema):
     @pre_load
     def fix_allow_csv_upload(
-        self, data: Dict[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Fix for ``allow_csv_upload`` .
         """
@@ -775,7 +774,7 @@ class ImportV1DatabaseSchema(Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
     @validates_schema
-    def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
+    def validate_password(self, data: dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
         uuid = data["uuid"]
         existing = db.session.query(Database).filter_by(uuid=uuid).first()
@@ -789,7 +788,7 @@ class ImportV1DatabaseSchema(Schema):
 
     @validates_schema
     def validate_ssh_tunnel_credentials(
-        self, data: Dict[str, Any], **kwargs: Any
+        self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """If ssh_tunnel has a masked credentials, credentials are required"""
         uuid = data["uuid"]
@@ -829,7 +828,7 @@ class ImportV1DatabaseSchema(Schema):
                 # or there're times where it's masked.
                 # If both are masked, we need to return a list of errors
                 # so the UI ask for both fields at the same time if needed
-                exception_messages: List[str] = []
+                exception_messages: list[str] = []
                 if private_key is None or private_key == PASSWORD_MASK:
                     # If we get here we need to ask for the private key
                     exception_messages.append(
@@ -864,7 +863,7 @@ class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 
-def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
+def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
         if self.openapi_version.major > 2:

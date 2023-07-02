@@ -17,21 +17,21 @@
 
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.daos.exceptions import DAOCreateFailedError
+from superset.daos.security import RLSDAO
 from superset.extensions import db
-from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
 
 
 class CreateRLSRuleCommand(BaseCommand):
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
         self._roles = self._properties.get("roles", [])

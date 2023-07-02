@@ -16,7 +16,7 @@
 # under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 import celery
 from cachelib.base import BaseCache
@@ -58,7 +58,7 @@ class ResultsBackendManager:
 class UIManifestProcessor:
     def __init__(self, app_dir: str) -> None:
         self.app: Optional[Flask] = None
-        self.manifest: Dict[str, Dict[str, List[str]]] = {}
+        self.manifest: dict[str, dict[str, list[str]]] = {}
         self.manifest_file = f"{app_dir}/static/assets/manifest.json"
 
     def init_app(self, app: Flask) -> None:
@@ -70,10 +70,10 @@ class UIManifestProcessor:
     def register_processor(self, app: Flask) -> None:
         app.template_context_processors[None].append(self.get_manifest)
 
-    def get_manifest(self) -> Dict[str, Callable[[str], List[str]]]:
+    def get_manifest(self) -> dict[str, Callable[[str], list[str]]]:
         loaded_chunks = set()
 
-        def get_files(bundle: str, asset_type: str = "js") -> List[str]:
+        def get_files(bundle: str, asset_type: str = "js") -> list[str]:
             files = self.get_manifest_files(bundle, asset_type)
             filtered_files = [f for f in files if f not in loaded_chunks]
             for f in filtered_files:
@@ -88,7 +88,7 @@ class UIManifestProcessor:
 
     def parse_manifest_json(self) -> None:
         try:
-            with open(self.manifest_file, "r") as f:
+            with open(self.manifest_file) as f:
                 # the manifest includes non-entry files we only need entries in
                 # templates
                 full_manifest = json.load(f)
@@ -96,7 +96,7 @@ class UIManifestProcessor:
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_manifest_files(self, bundle: str, asset_type: str) -> List[str]:
+    def get_manifest_files(self, bundle: str, asset_type: str) -> list[str]:
         if self.app and self.app.debug:
             self.parse_manifest_json()
         return self.manifest.get(bundle, {}).get(asset_type, [])
@@ -117,7 +117,7 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
-_event_logger: Dict[str, Any] = {}
+_event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()

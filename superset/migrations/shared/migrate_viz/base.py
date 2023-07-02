@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict, Set
+from typing import Any
 
 from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import conf, db, is_feature_enabled
+from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
@@ -44,8 +45,8 @@ FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
 
 
 class MigrateViz:
-    remove_keys: Set[str] = set()
-    rename_keys: Dict[str, str] = {}
+    remove_keys: set[str] = set()
+    rename_keys: dict[str, str] = {}
     source_viz_type: str
     target_viz_type: str
     has_x_axis_control: bool = False
@@ -85,7 +86,7 @@ class MigrateViz:
     def _post_action(self) -> None:
         """Some actions after migrate"""
 
-    def _migrate_temporal_filter(self, rv_data: Dict[str, Any]) -> None:
+    def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
         time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
@@ -95,6 +96,7 @@ class MigrateViz:
 
         if self.has_x_axis_control:
             rv_data["x_axis"] = granularity_sqla
+            rv_data["time_grain_sqla"] = rv_data.get("time_grain_sqla") or TimeGrain.DAY
 
         temporal_filter = {
             "clause": "WHERE",

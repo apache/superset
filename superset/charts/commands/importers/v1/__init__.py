@@ -15,18 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
-from typing import Any, Dict, Set
+from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
 from superset.charts.commands.exceptions import ChartImportError
 from superset.charts.commands.importers.v1.utils import import_chart
-from superset.charts.dao import ChartDAO
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.chart import ChartDAO
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
@@ -40,7 +39,7 @@ class ImportChartsCommand(ImportModelsCommand):
     dao = ChartDAO
     model_name = "chart"
     prefix = "charts/"
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "datasets/": ImportV1DatasetSchema(),
         "databases/": ImportV1DatabaseSchema(),
@@ -49,29 +48,29 @@ class ImportChartsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: dict[str, Any], overwrite: bool = False
     ) -> None:
         # discover datasets associated with charts
-        dataset_uuids: Set[str] = set()
+        dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
-        database_uuids: Set[str] = set()
+        database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
                 database = import_database(session, config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
-        datasets: Dict[str, SqlaTable] = {}
+        datasets: dict[str, SqlaTable] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("datasets/")

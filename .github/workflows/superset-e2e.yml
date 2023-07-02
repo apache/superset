@@ -26,7 +26,7 @@ jobs:
         containers: [1, 2, 3]
         browser: ["chrome"]
     env:
-      FLASK_ENV: development
+      SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}

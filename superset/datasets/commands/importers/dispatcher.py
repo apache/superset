@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from marshmallow.exceptions import ValidationError
 
@@ -43,7 +43,7 @@ class ImportDatasetsCommand(BaseCommand):
     until it finds one that matches.
     """
 
-    def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
+    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.args = args
         self.kwargs = kwargs

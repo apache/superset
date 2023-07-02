@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from flask import request, Response
 from flask_appbuilder import expose
@@ -23,7 +23,6 @@ from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
-from marshmallow_enum import EnumField
 
 from superset.embedded_dashboard.commands.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -51,13 +50,13 @@ class UserSchema(PermissiveSchema):
 
 
 class ResourceSchema(PermissiveSchema):
-    type = EnumField(GuestTokenResourceType, by_value=True, required=True)
+    type = fields.Enum(GuestTokenResourceType, by_value=True, required=True)
     id = fields.String(required=True)
 
     @post_load
     def convert_enum_to_value(  # pylint: disable=no-self-use
-        self, data: Dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
+    ) -> dict[str, Any]:
         # we don't care about the enum, we want the value inside
         data["type"] = data["type"].value
         return data

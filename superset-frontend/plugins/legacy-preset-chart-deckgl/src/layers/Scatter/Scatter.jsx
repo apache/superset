@@ -83,8 +83,8 @@ export function getLayer(
     fp64: true,
     getFillColor: d => d.color,
     getRadius: d => d.radius,
-    radiusMinPixels: fd.min_radius || null,
-    radiusMaxPixels: fd.max_radius || null,
+    radiusMinPixels: Number(fd.min_radius) || null,
+    radiusMaxPixels: Number(fd.max_radius) || null,
     stroked: false,
     ...commonLayerProps(
       fd,

@@ -15,16 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Members per Channel
-viz_type: treemap
+viz_type: treemap_v2
 params:
   adhoc_filters: []
   color_scheme: supersetColors
   datasource: 57__table
   groupby:
-  - channel_name
+    - channel_name
   label_colors: {}
-  metrics:
-  - count
+  metric: count
   number_format: SMART_NUMBER
   queryFields:
     groupby: groupby
@@ -34,7 +33,7 @@ params:
   time_range: No filter
   treemap_ratio: 1.618033988749895
   url_params: {}
-  viz_type: treemap
+  viz_type: treemap_v2
 cache_timeout: null
 uuid: d44e416d-1647-44e4-b442-6da34b44adc4
 version: 1.0.0

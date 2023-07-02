@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
@@ -56,7 +56,7 @@ class ImportAssetsCommand(BaseCommand):
     and will overwrite everything.
     """
 
-    schemas: Dict[str, Schema] = {
+    schemas: dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -65,24 +65,24 @@ class ImportAssetsCommand(BaseCommand):
     }
 
     # pylint: disable=unused-argument
-    def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
+    def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
-        self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
-        self.ssh_tunnel_passwords: Dict[str, str] = (
+        self.passwords: dict[str, str] = kwargs.get("passwords") or {}
+        self.ssh_tunnel_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_passwords") or {}
         )
-        self.ssh_tunnel_private_keys: Dict[str, str] = (
+        self.ssh_tunnel_private_keys: dict[str, str] = (
             kwargs.get("ssh_tunnel_private_keys") or {}
         )
-        self.ssh_tunnel_priv_key_passwords: Dict[str, str] = (
+        self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
-        self._configs: Dict[str, Any] = {}
+        self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(session: Session, configs: dict[str, Any]) -> None:
         # import databases first
-        database_ids: Dict[str, int] = {}
+        database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(session, config, overwrite=True)
@@ -95,7 +95,7 @@ class ImportAssetsCommand(BaseCommand):
                 import_saved_query(session, config, overwrite=True)
 
         # import datasets
-        dataset_info: Dict[str, Dict[str, Any]] = {}
+        dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
@@ -107,7 +107,7 @@ class ImportAssetsCommand(BaseCommand):
                 }
 
         # import charts
-        chart_ids: Dict[str, int] = {}
+        chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 config.update(dataset_info[config["dataset_uuid"]])
@@ -121,7 +121,7 @@ class ImportAssetsCommand(BaseCommand):
                 dashboard = import_dashboard(session, config, overwrite=True)
 
                 # set ref in the dashboard_slices table
-                dashboard_chart_ids: List[Dict[str, int]] = []
+                dashboard_chart_ids: list[dict[str, int]] = []
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break
@@ -151,11 +151,11 @@ class ImportAssetsCommand(BaseCommand):
             raise ImportFailedError() from ex
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
+        exceptions: list[ValidationError] = []
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
+            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
