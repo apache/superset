@@ -69,6 +69,7 @@ export type DatabaseObject = {
     warehouse?: string;
     role?: string;
     account?: string;
+    ssh?: boolean;
   };
 
   // Performance
