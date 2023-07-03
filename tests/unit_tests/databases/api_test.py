@@ -23,6 +23,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
@@ -495,3 +496,88 @@ def test_delete_ssh_tunnel_not_found(
 
         response_tunnel = DatabaseDAO.get_ssh_tunnel(2)
         assert response_tunnel is None
+
+
+def test_apply_dynamic_database_filter(
+    mocker: MockFixture,
+    app: Any,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that we canfilter the list of databases
+    """
+    with app.app_context():
+        from superset.daos.database import DatabaseDAO
+        from superset.databases.api import DatabaseRestApi
+        from superset.databases.ssh_tunnel.models import SSHTunnel
+        from superset.models.core import Database
+
+        DatabaseRestApi.datamodel.session = session
+
+        # create table for databases
+        Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+        # Create our First Database
+        database = Database(
+            database_name="first-database",
+            sqlalchemy_uri="gsheets://",
+            encrypted_extra=json.dumps(
+                {
+                    "metadata_params": {},
+                    "engine_params": {},
+                    "metadata_cache_timeout": {},
+                    "schemas_allowed_for_file_upload": [],
+                }
+            ),
+        )
+        session.add(database)
+        session.commit()
+
+        # Create our Second Database
+        database = Database(
+            database_name="second-database",
+            sqlalchemy_uri="gsheets://",
+            encrypted_extra=json.dumps(
+                {
+                    "metadata_params": {},
+                    "engine_params": {},
+                    "metadata_cache_timeout": {},
+                    "schemas_allowed_for_file_upload": [],
+                }
+            ),
+        )
+        session.add(database)
+        session.commit()
+
+        # mock the lookup so that we don't need to include the driver
+        mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
+        mocker.patch("superset.utils.log.DBEventLogger.log")
+        mocker.patch(
+            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            return_value=False,
+        )
+
+        # Get our recently created Databases
+        response_databases = DatabaseDAO.find_all()
+        assert response_databases
+        expected_db_names = ["first-database", "second-database"]
+        actual_db_names = [db.database_name for db in response_databases]
+        assert actual_db_names == expected_db_names
+
+        def _base_filter(query):
+            from superset.models.core import Database
+
+            return query.filter(Database.database_name.startswith("second"))
+
+        original_config = current_app.config.copy()
+        original_config["EXTRA_DYNAMIC_DATABASE_FILTER"] = _base_filter
+
+        mocker.patch("superset.views.filters.current_app.config", new=original_config)
+        # Get filtered list
+        response_databases = DatabaseDAO.find_all()
+        assert response_databases
+        expected_db_names = ["second-database"]
+        actual_db_names = [db.database_name for db in response_databases]
+        assert actual_db_names == expected_db_names
