@@ -87,14 +87,6 @@ function configFromFile(): Partial<ConfigType> {
   }
 }
 
-const isPresent = (s: string) => /\S+/.test(s);
-const toNumber = (s: string) => {
-  const num = Number(s);
-  return Number.isNaN(num) ? 0 : num;
-};
-const toBoolean = (s: string) => s.toLowerCase() === 'true';
-const toStringArray = (s: string) => s.split(',');
-
 function applyEnvOverrides(config: ConfigType): ConfigType {
   const envVarConfigMapping: { [envVar: string]: keyof ConfigType } = {
     PORT: 'port',
@@ -121,7 +113,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
 
   Object.entries(envVarConfigMapping).forEach(([envVar, configKey]) => {
     const envValue = process.env[envVar];
-    if (envValue && isPresent(envValue)) {
+    if (envValue && /\S+/.test(envValue)) {
       const keys = configKey.split('.');
       if (keys.length === 1) {
         config[keys[0]] = envValue;
