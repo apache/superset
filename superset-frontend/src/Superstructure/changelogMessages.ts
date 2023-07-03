@@ -104,16 +104,24 @@ const NEW_FEATURES_MAY_2023_RU = {
 
 const NEW_FEATURES_JUNE_2023_RU = {
   title: 'Обновления [Июнь 2023]',
-  date: '29.06.2023',
+  date: '30.06.2023',
   subTitle: RELEASE_IS_STABLE,
   extra: IF_QUESTIONS_RU,
   listTitle: 'Новая функциональность / исправлены проблемы',
   releases: [
     {
-      date: `${TESTING_EMOJI} 29.06.2023`,
-      status: RELEASE_IN_TESTING,
+      date: `${DONE_EMOJI} 30.06.2023`,
+      status: RELEASE_IS_STABLE,
       messages: [
-        'Доделали переводы на русский язык в плагине во Вкладке Аналитика в DODOIS',
+        `${EXTRA_EMOJI} Добавили 2 вида форматирования: "С пробелом" и "С пробелом округл."`,
+        'Обновили недостающие переводы в разных частях системы',
+      ],
+    },
+    {
+      date: `${DONE_EMOJI} 29.06.2023`,
+      status: RELEASE_IS_STABLE,
+      messages: [
+        '80% Доделали переводы на русский язык в плагине во Вкладке Аналитика в DODOIS',
         'Исправили переводы на русский язык в Standalone на меню в графике',
       ],
     },
@@ -176,7 +184,8 @@ const NEW_FEATURES_JUNE_2023_RU = {
   messagesExtra: [
     `${DONE_EMOJI} Добавить все необходимые валюты в форматирование`,
     `${DONE_EMOJI} Улучшить и локализовать форматирование чисел`,
-    `${DONE_EMOJI} Форматирование чисел через пробел`,
+    `${DONE_EMOJI} Форматирование чисел через пробел без округления`,
+    `${DONE_EMOJI} Форматирование чисел через пробел с округлением ${EXTRA_EMOJI}`,
     `${DONE_EMOJI} Использовать локализацию из DODOIS во вкладке Аналитика ${EXTRA_EMOJI}`,
     `${NOT_DONE_EMOJI} Доработать Pivot Table v2: возможность сортировки столбцов`,
     `${DONE_EMOJI} Упростить выбор дат в фильтрах`,
