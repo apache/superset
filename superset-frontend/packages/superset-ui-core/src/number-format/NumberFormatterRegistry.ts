@@ -1,5 +1,5 @@
 // DODO was here
-import { formatLocale } from 'd3-format';
+import { formatLocale, precisionFixed, format } from 'd3-format';
 import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
 import {
   D3_CURRENCIES_LOCALES,
@@ -36,9 +36,15 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
         new NumberFormatter({
           id: D3_CURRENCIES_LOCALES[localeName].id,
           formatFunc: v => {
+            let value = v;
+            // we need a rounded value for locale Russia
+            if (localeName === 'RUS_2f_ROUNDED') {
+              const preFormatFunction = format(`.${precisionFixed(1)}f`);
+              // @ts-ignore
+              value = preFormatFunction(v);
+            }
             const locale = formatLocale(D3_CURRENCIES_LOCALES[localeName]);
-
-            return locale.format('$,')(v);
+            return locale.format('$,')(value);
           },
         }),
       );

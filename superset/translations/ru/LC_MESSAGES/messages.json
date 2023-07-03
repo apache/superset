@@ -2748,7 +2748,8 @@
       "Five_and_more_dashboards": ["дашбордов"],
       "Added_to": ["Добавлен в"],
       "Used_in": ["Используется в"],
-      "With space": ["С пробелом"]
+      "With space": ["С пробелом"],
+      "With space rounded": ["С пробелом округл."]
     }
   }
 }

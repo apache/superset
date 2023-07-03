@@ -20,7 +20,9 @@ const d3Currencies = (): [string, string][] =>
     let displayName = '';
 
     // special format for formatting values with a russian locale, but without a russian currency
-    if (code === 'RUS') displayName = t('With space');
+    if (localeName === 'RUS_2f') displayName = t('With space');
+    else if (localeName === 'RUS_2f_ROUNDED')
+      displayName = t('With space rounded');
     else displayName = code;
 
     const preview = getNumberFormatterRegistry().format(id, PREVIEW_VALUE);
@@ -31,7 +33,6 @@ const d3Currencies = (): [string, string][] =>
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
-  // ...d3Locales(),
   [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
   ['.3s', '.3s (12345.432 => 12.3k)'],

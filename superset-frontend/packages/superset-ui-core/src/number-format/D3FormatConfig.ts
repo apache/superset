@@ -10,6 +10,7 @@ type SUPPORTED_CURRENCIES_LOCALES =
   | 'DEFAULT_2f'
   | 'RUB_2f'
   | 'RUS_2f'
+  | 'RUS_2f_ROUNDED'
   | 'EUR_2f'
   | 'PLN_2f'
   | 'KGS_2f'
@@ -30,6 +31,7 @@ export const SUPPORTED_CURRENCIES_LOCALES_ARRAY = [
   'DEFAULT_2f',
   'RUB_2f',
   'RUS_2f',
+  'RUS_2f_ROUNDED',
   'EUR_2f',
   'PLN_2f',
   'KGS_2f',
@@ -104,6 +106,14 @@ export const D3_CURRENCIES_LOCALES: Record<
     grouping: [3],
     currency: ['', ''],
     code: 'RUS',
+  },
+  RUS_2f_ROUNDED: {
+    id: `RUSSIAN_SPACES_ROUNDED,.2f`,
+    decimal: UNICODE.COMMA,
+    thousands: UNICODE.SPACE,
+    grouping: [3],
+    currency: ['', ''],
+    code: 'RUS_ROUNDED',
   },
   EUR_2f: {
     id: `${UNICODE.SYM.EUR},.2f`,
