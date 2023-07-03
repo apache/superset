@@ -1891,6 +1891,10 @@ class BasicParametersSchema(Schema):
         required=False,
         metadata={"description": __("Use an encrypted connection to the database")},
     )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
+    )
 
 
 class BasicParametersType(TypedDict, total=False):
