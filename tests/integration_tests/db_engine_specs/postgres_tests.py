@@ -512,6 +512,10 @@ def test_base_parameters_mixin():
                 "description": "Additional parameters",
                 "additionalProperties": {},
             },
+            "ssh": {
+                "description": "Use an ssh tunnel connection to the database",
+                "type": "boolean",
+            },
         },
         "required": ["database", "host", "port", "username"],
     }
