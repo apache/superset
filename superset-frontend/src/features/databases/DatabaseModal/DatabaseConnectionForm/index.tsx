@@ -31,6 +31,7 @@ import {
   portField,
   queryField,
   usernameField,
+  SSHTunnelSwitch,
 } from './CommonParameters';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
@@ -55,6 +56,7 @@ export const FormFieldOrder = [
   'account',
   'warehouse',
   'role',
+  'ssh',
 ];
 
 export interface FieldPropTypes {
@@ -102,6 +104,7 @@ const FORM_FIELD_MAP = {
   warehouse: validatedInputField,
   role: validatedInputField,
   account: validatedInputField,
+  ssh: SSHTunnelSwitch,
 };
 
 interface DatabaseConnectionFormProps {
