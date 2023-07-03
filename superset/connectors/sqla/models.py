@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
-from flask import current_app, escape, Markup
+from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
@@ -58,6 +58,7 @@ from sqlalchemy.orm import (
     backref,
     Mapped,
     Query,
+    reconstructor,
     relationship,
     RelationshipProperty,
     Session,
@@ -104,7 +105,13 @@ from superset.models.helpers import (
     validate_adhoc_subquery,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType, MediumText
 
@@ -189,7 +196,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="columns",
@@ -217,6 +224,30 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
+
+    def __init__(self, **kwargs: Any) -> None:
+        """
+        Construct a TableColumn object.
+
+        Historically a TableColumn object (from an ORM perspective) was tighly bound to
+        a SqlaTable object, however with the introduction of the Query datasource this
+        is no longer true, i.e., the SqlaTable relationship is optional.
+
+        Now the TableColumn is either directly associated with the Database object (
+        which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
+        the ORM) depending on the context.
+        """
+
+        self._database: Database | None = kwargs.pop("database", None)
+        super().__init__(**kwargs)
+
+    @reconstructor
+    def init_on_load(self) -> None:
+        """
+        Construct a TableColumn object when invoked via the SQLAlchemy ORM.
+        """
+
+        self._database = None
 
     @property
     def is_boolean(self) -> bool:
@@ -252,50 +283,32 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.type_generic == GenericDataType.TEMPORAL
 
     @property
+    def database(self) -> Database:
+        return self.table.database if self.table else self._database
+
+    @property
     def db_engine_spec(self) -> type[BaseEngineSpec]:
-        return self.table.db_engine_spec
+        return self.database.db_engine_spec
 
     @property
     def db_extra(self) -> dict[str, Any]:
-        return self.table.database.get_extra()
+        return self.database.get_extra()
 
     @property
     def type_generic(self) -> utils.GenericDataType | None:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
 
-        bool_types = ("BOOL",)
-        num_types = (
-            "DOUBLE",
-            "FLOAT",
-            "INT",
-            "BIGINT",
-            "NUMBER",
-            "LONG",
-            "REAL",
-            "NUMERIC",
-            "DECIMAL",
-            "MONEY",
+        return (
+            column_spec.generic_type  # pylint: disable=used-before-assignment
+            if (
+                column_spec := self.db_engine_spec.get_column_spec(
+                    self.type,
+                    db_extra=self.db_extra,
+                )
+            )
+            else None
         )
-        date_types = ("DATE", "TIME")
-        str_types = ("VARCHAR", "STRING", "CHAR")
-
-        if self.table is None:
-            # Query.TableColumns don't have a reference to a table.db_engine_spec
-            # reference so this logic will manage rendering types
-            if self.type and any(map(lambda t: t in self.type.upper(), str_types)):
-                return GenericDataType.STRING
-            if self.type and any(map(lambda t: t in self.type.upper(), bool_types)):
-                return GenericDataType.BOOLEAN
-            if self.type and any(map(lambda t: t in self.type.upper(), num_types)):
-                return GenericDataType.NUMERIC
-            if self.type and any(map(lambda t: t in self.type.upper(), date_types)):
-                return GenericDataType.TEMPORAL
-
-        column_spec = self.db_engine_spec.get_column_spec(
-            self.type, db_extra=self.db_extra
-        )
-        return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(
         self,
@@ -312,7 +325,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        col = self.table.make_sqla_column_compatible(col, label)
+        col = self.database.make_sqla_column_compatible(col, label)
         return col
 
     @property
@@ -343,7 +356,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
-            return self.table.make_sqla_column_compatible(sqla_col, label)
+            return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
@@ -351,7 +364,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         else:
             col = column(self.column_name, type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
-        return self.table.make_sqla_column_compatible(time_expr, label)
+        return self.database.make_sqla_column_compatible(time_expr, label)
 
     @property
     def data(self) -> dict[str, Any]:
@@ -387,7 +400,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
-    table_id = Column(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="metrics",
@@ -403,6 +416,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         "expression",
         "description",
         "d3format",
+        "currency",
         "extra",
         "warning_text",
     ]
@@ -423,7 +437,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
             expression = template_processor.process_template(expression)
 
         sqla_col: ColumnClause = literal_column(expression)
-        return self.table.make_sqla_column_compatible(sqla_col, label)
+        return self.table.database.make_sqla_column_compatible(sqla_col, label)
 
     @property
     def perm(self) -> str | None:
@@ -456,8 +470,8 @@ sqlatable_user = Table(
     "sqlatable_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
 )
 
 
@@ -494,11 +508,13 @@ class SqlaTable(
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     metrics: Mapped[list[SqlMetric]] = relationship(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     metric_class = SqlMetric
     column_class = TableColumn
@@ -591,15 +607,6 @@ class SqlaTable(
         if not self.changed_by:
             return ""
         return str(self.changed_by)
-
-    @property
-    def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def connection(self) -> str:
@@ -702,10 +709,10 @@ class SqlaTable(
     def sql_url(self) -> str:
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
-    def external_metadata(self) -> list[dict[str, str]]:
+    def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
         if self.sql:
-            return get_virtual_table_metadata(dataset=self)  # type: ignore
+            return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
             table_name=self.table_name,
@@ -997,7 +1004,7 @@ class SqlaTable(
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     sql = self.database.compile_sqla_query(qry)
                     col_desc = get_columns_description(self.database, sql)
-                    is_dttm = col_desc[0]["is_dttm"]
+                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1008,23 +1015,6 @@ class SqlaTable(
                 time_grain=time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)
-
-    def make_sqla_column_compatible(
-        self, sqla_col: ColumnElement, label: str | None = None
-    ) -> ColumnElement:
-        """Takes a sqlalchemy column object and adds label info if supported by engine.
-        :param sqla_col: sqlalchemy column instance
-        :param label: alias/label that column is expected to have
-        :return: either a sql alchemy column or label instance if supported by engine
-        """
-        label_expected = label or sqla_col.name
-        db_engine_spec = self.db_engine_spec
-        # add quotes to tables
-        if db_engine_spec.allows_alias_in_select:
-            label = db_engine_spec.make_label_compatible(label_expected)
-            sqla_col = sqla_col.label(label)
-        sqla_col.key = label_expected
-        return sqla_col
 
     def make_orderby_compatible(
         self, select_exprs: list[ColumnElement], orderby_exprs: list[ColumnElement]
@@ -1279,18 +1269,18 @@ class SqlaTable(
             removed=[
                 col
                 for col in old_columns_by_name
-                if col not in {col["name"] for col in new_columns}
+                if col not in {col["column_name"] for col in new_columns}
             ]
         )
 
         # clear old columns before adding modified columns back
         columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.pop(col["name"], None)
+            old_column = old_columns_by_name.pop(col["column_name"], None)
             if not old_column:
-                results.added.append(col["name"])
+                results.added.append(col["column_name"])
                 new_column = TableColumn(
-                    column_name=col["name"],
+                    column_name=col["column_name"],
                     type=col["type"],
                     table=self,
                 )
@@ -1299,14 +1289,14 @@ class SqlaTable(
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
-                    results.modified.append(col["name"])
+                    results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
-                any_date_col = col["name"]
+                any_date_col = col["column_name"]
 
         # add back calculated (virtual) columns
         columns.extend([col for col in old_columns if col.expression])
@@ -1458,8 +1448,8 @@ class SqlaTable(
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.dataset import DatasetDAO
         from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
-        from superset.datasets.dao import DatasetDAO
 
         # Check whether the relevant attributes have changed.
         state = db.inspect(target)  # pylint: disable=no-member
@@ -1630,6 +1620,9 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     tables = relationship(
-        SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
+        SqlaTable,
+        overlaps="table",
+        secondary=RLSFilterTables,
+        backref="row_level_security_filters",
     )
     clause = Column(Text, nullable=False)

@@ -29,6 +29,7 @@ import platform
 import re
 import signal
 import smtplib
+import sqlite3
 import ssl
 import tempfile
 import threading
@@ -36,7 +37,7 @@ import traceback
 import uuid
 import zlib
 from collections.abc import Iterable, Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from email.mime.application import MIMEApplication
@@ -59,9 +60,9 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, flash, g, Markup, render_template, request
+from flask import current_app, flash, g, Markup, request
 from flask_appbuilder import SQLA
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
@@ -101,11 +102,6 @@ from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
-
-try:
-    from pydruid.utils.having import Having
-except ImportError:
-    pass
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseColumn, BaseDatasource
@@ -213,7 +209,6 @@ class QueryObjectFilterClause(TypedDict, total=False):
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
-    GRANULARITY = "__granularity"
     TIME_COL = "__time_col"
     TIME_GRAIN = "__time_grain"
     TIME_ORIGIN = "__time_origin"
@@ -242,7 +237,6 @@ class FilterOperator(str, Enum):
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"
     NOT_IN = "NOT IN"
-    REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
@@ -259,7 +253,6 @@ class FilterStringOperators(str, Enum):
     NOT_IN = ("NOT_IN",)
     ILIKE = ("ILIKE",)
     LIKE = ("LIKE",)
-    REGEX = ("REGEX",)
     IS_NOT_NULL = ("IS_NOT_NULL",)
     IS_NULL = ("IS_NULL",)
     LATEST_PARTITION = ("LATEST_PARTITION",)
@@ -358,25 +351,6 @@ class ColumnSpec(NamedTuple):
     generic_type: GenericDataType
     is_dttm: bool
     python_date_format: str | None = None
-
-
-try:
-    # Having might not have been imported.
-    class DimSelector(Having):
-        def __init__(self, **args: Any) -> None:
-            # Just a hack to prevent any exceptions
-            Having.__init__(self, type="equalTo", aggregation=None, value=None)
-
-            self.having = {
-                "having": {
-                    "type": "dimSelector",
-                    "dimension": args["dimension"],
-                    "value": args["value"],
-                }
-            }
-
-except NameError:
-    pass
 
 
 def flasher(msg: str, severity: str = "message") -> None:
@@ -876,31 +850,23 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # restore 'close with result'
             connection.should_close_with_result = save_should_close_with_result
 
+    if some_engine.dialect.name == "sqlite":
 
-def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
-    granter: User,
-    user: User,
-    role: Role,
-    datasource: BaseDatasource,
-    tpl_name: str,
-    config: dict[str, Any],
-) -> None:
-    msg = render_template(
-        tpl_name, granter=granter, user=user, role=role, datasource=datasource
-    )
-    logger.info(msg)
-    subject = __(
-        "[Superset] Access to the datasource %(name)s was granted",
-        name=datasource.full_name,
-    )
-    send_email_smtp(
-        user.email,
-        subject,
-        msg,
-        config,
-        bcc=granter.email,
-        dryrun=not config["EMAIL_NOTIFICATIONS"],
-    )
+        @event.listens_for(some_engine, "connect")
+        def set_sqlite_pragma(  # pylint: disable=unused-argument
+            connection: sqlite3.Connection,
+            *args: Any,
+        ) -> None:
+            r"""
+            Enable foreign key support for SQLite.
+
+            :param connection: The SQLite connection
+            :param \*args: Additional positional arguments
+            :see: https://docs.sqlalchemy.org/en/latest/dialects/sqlite.html
+            """
+
+            with closing(connection.cursor()) as cursor:
+                cursor.execute("PRAGMA foreign_keys=ON")
 
 
 def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many-locals
@@ -1144,11 +1110,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
                     for fltr in append_filters
                     if fltr
                 )
-    if (
-        form_data.get("time_range")
-        and not form_data.get("granularity")
-        and not form_data.get("granularity_sqla")
-    ):
+    if form_data.get("time_range") and not form_data.get("granularity_sqla"):
         for adhoc_filter in form_data.get("adhoc_filters", []):
             if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
                 adhoc_filter["comparator"] = form_data["time_range"]
@@ -1172,7 +1134,6 @@ def merge_extra_filters(form_data: dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__granularity": "granularity",
         }
 
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1394,21 +1355,22 @@ def ensure_path_exists(path: str) -> None:
 def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
     form_data: FormData,
 ) -> None:
-    mapping = {"having": "having_filters", "where": "filters"}
-
     if not form_data.get("adhoc_filters"):
         adhoc_filters: list[AdhocFilterClause] = []
         form_data["adhoc_filters"] = adhoc_filters
 
-        for clause, filters in mapping.items():
+        for clause in ("having", "where"):
             if clause in form_data and form_data[clause] != "":
                 adhoc_filters.append(form_data_to_adhoc(form_data, clause))
 
-            if filters in form_data:
-                for filt in filter(lambda x: x is not None, form_data[filters]):
-                    adhoc_filters.append(simple_filter_to_adhoc(filt, clause))
+        if "filters" in form_data:
+            adhoc_filters.extend(
+                simple_filter_to_adhoc(fltr, "where")
+                for fltr in form_data["filters"]
+                if fltr is not None
+            )
 
-    for key in ("filters", "having", "having_filters", "where"):
+    for key in ("filters", "having", "where"):
         if key in form_data:
             del form_data[key]
 
@@ -1417,15 +1379,13 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
 ) -> None:
     """
-    Mutates form data to restructure the adhoc filters in the form of the four base
-    filters, `where`, `having`, `filters`, and `having_filters` which represent
-    free form where sql, free form having sql, structured where clauses and structured
-    having clauses.
+    Mutates form data to restructure the adhoc filters in the form of the three base
+    filters, `where`, `having`, and `filters` which represent free form where sql,
+    free form having sql, and structured where clauses.
     """
     adhoc_filters = form_data.get("adhoc_filters")
     if isinstance(adhoc_filters, list):
         simple_where_filters = []
-        simple_having_filters = []
         sql_where_filters = []
         sql_having_filters = []
         for adhoc_filter in adhoc_filters:
@@ -1434,14 +1394,6 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
             if expression_type == "SIMPLE":
                 if clause == "WHERE":
                     simple_where_filters.append(
-                        {
-                            "col": adhoc_filter.get("subject"),
-                            "op": adhoc_filter.get("operator"),
-                            "val": adhoc_filter.get("comparator"),
-                        }
-                    )
-                elif clause == "HAVING":
-                    simple_having_filters.append(
                         {
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
@@ -1457,7 +1409,6 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     sql_having_filters.append(sql_expression)
         form_data["where"] = " AND ".join([f"({sql})" for sql in sql_where_filters])
         form_data["having"] = " AND ".join([f"({sql})" for sql in sql_having_filters])
-        form_data["having_filters"] = simple_having_filters
         form_data["filters"] = simple_where_filters
 
 

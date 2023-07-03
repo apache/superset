@@ -7,7 +7,7 @@
 #
 build==0.10.0
     # via pip-tools
-cachetools==5.3.0
+cachetools==5.3.1
     # via tox
 cfgv==3.3.1
     # via pre-commit
@@ -21,7 +21,7 @@ colorama==0.4.6
     # via tox
 distlib==0.3.6
     # via virtualenv
-filelock==3.12.0
+filelock==3.12.2
     # via
     #   tox
     #   virtualenv
@@ -38,15 +38,15 @@ pip-compile-multi==2.6.3
     # via -r integration.in
 pip-tools==6.13.0
     # via pip-compile-multi
-platformdirs==3.5.1
+platformdirs==3.5.3
     # via
     #   tox
     #   virtualenv
 pluggy==1.0.0
     # via tox
-pre-commit==3.3.2
+pre-commit==3.3.3
     # via -r integration.in
-pyproject-api==1.5.1
+pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
     # via build
@@ -54,9 +54,9 @@ pyyaml==5.4.1
     # via pre-commit
 toposort==1.10
     # via pip-compile-multi
-tox==4.6.0
+tox==4.6.3
     # via -r integration.in
-virtualenv==20.23.0
+virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox

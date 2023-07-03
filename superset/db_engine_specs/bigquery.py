@@ -35,7 +35,7 @@ from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
 from superset import sql_parse
-from superset.constants import PASSWORD_MASK
+from superset.constants import PASSWORD_MASK, TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
@@ -43,6 +43,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 
@@ -147,31 +148,31 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.SECOND: "CAST(TIMESTAMP_SECONDS("
         "UNIX_SECONDS(CAST({col} AS TIMESTAMP))"
         ") AS {type})",
-        "PT1M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.MINUTE: "CAST(TIMESTAMP_SECONDS("
         "60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60)"
         ") AS {type})",
-        "PT5M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.FIVE_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
         ") AS {type})",
-        "PT10M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.TEN_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "10*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 10*60)"
         ") AS {type})",
-        "PT15M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.FIFTEEN_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
         ") AS {type})",
-        "PT30M": "CAST(TIMESTAMP_SECONDS("
+        TimeGrain.THIRTY_MINUTES: "CAST(TIMESTAMP_SECONDS("
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
-        "PT1H": "{func}({col}, HOUR)",
-        "P1D": "{func}({col}, DAY)",
-        "P1W": "{func}({col}, WEEK)",
-        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
-        "P1M": "{func}({col}, MONTH)",
-        "P3M": "{func}({col}, QUARTER)",
-        "P1Y": "{func}({col}, YEAR)",
+        TimeGrain.HOUR: "{func}({col}, HOUR)",
+        TimeGrain.DAY: "{func}({col}, DAY)",
+        TimeGrain.WEEK: "{func}({col}, WEEK)",
+        TimeGrain.WEEK_STARTING_MONDAY: "{func}({col}, ISOWEEK)",
+        TimeGrain.MONTH: "{func}({col}, MONTH)",
+        TimeGrain.QUARTER: "{func}({col}, QUARTER)",
+        TimeGrain.YEAR: "{func}({col}, YEAR)",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
@@ -637,7 +638,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: Optional[list[dict[str, Any]]] = None,
+        cols: Optional[list[ResultSetColumnType]] = None,
     ) -> str:
         """
         Remove array structures from `SELECT *`.
@@ -678,13 +679,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # For arrays of structs, remove the child columns, otherwise the query
             # will fail.
             array_prefixes = {
-                col["name"] for col in cols if isinstance(col["type"], sqltypes.ARRAY)
+                col["column_name"]
+                for col in cols
+                if isinstance(col["type"], sqltypes.ARRAY)
             }
             cols = [
                 col
                 for col in cols
-                if "." not in col["name"]
-                or col["name"].split(".")[0] not in array_prefixes
+                if "." not in col["column_name"]
+                or col["column_name"].split(".")[0] not in array_prefixes
             ]
 
         return super().select_star(
@@ -700,7 +703,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[Any]:
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
         """
         Label columns using their fully qualified name.
 
@@ -725,7 +728,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         the columns using their fully qualified name, so we end up with "author",
         "author__name" and "author__email", respectively.
         """
-        return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]
+        return [
+            column(c["column_name"]).label(c["column_name"].replace(".", "__"))
+            for c in cols
+        ]
 
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:

@@ -58,6 +58,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
+    is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
@@ -89,7 +90,6 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
-    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -119,6 +119,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)
@@ -332,6 +333,30 @@ class BaseSupersetView(BaseView):
         )
 
 
+def get_environment_tag() -> dict[str, Any]:
+    # Whether flask is in debug mode (--debug)
+    debug = appbuilder.app.config["DEBUG"]
+
+    # Getting the configuration option for ENVIRONMENT_TAG_CONFIG
+    env_tag_config = appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]
+
+    # These are the predefined templates define in the config
+    env_tag_templates = env_tag_config.get("values")
+
+    # This is the environment variable name from which to select the template
+    # default is SUPERSET_ENV (from FLASK_ENV in previous versions)
+    env_envvar = env_tag_config.get("variable")
+
+    # this is the actual name we want to use
+    env_name = os.environ.get(env_envvar)
+
+    if not env_name or env_name not in env_tag_templates.keys():
+        env_name = "debug" if debug else None
+
+    env_tag = env_tag_templates.get(env_name)
+    return env_tag or {}
+
+
 def menu_data(user: User) -> dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
@@ -345,17 +370,6 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
-    try:
-        environment_tag = (
-            appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
-                os.environ.get(
-                    appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"]
-                )
-            ]
-            or {}
-        )
-    except KeyError:
-        environment_tag = {}
 
     return {
         "menu": menu,
@@ -366,7 +380,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
-        "environment_tag": environment_tag,
+        "environment_tag": get_environment_tag(),
         "navbar_right": {
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
@@ -383,13 +397,13 @@ def menu_data(user: User) -> dict[str, Any]:
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
-            if appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            if is_feature_enabled("MENU_HIDE_USER_INFO")
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{user.username}",
+            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
+            else "/superset/profile/",
             "locale": session.get("locale", "en"),
         },
     }
@@ -429,6 +443,7 @@ def cached_common_bootstrap_data(user: User) -> dict[str, Any]:
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "d3_format": conf.get("D3_FORMAT"),
+        "currencies": conf.get("CURRENCIES"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],

@@ -78,7 +78,6 @@ const propTypes = {
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanShare: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
-  sliceCanEdit: PropTypes.bool.isRequired,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
@@ -141,6 +140,7 @@ class Chart extends React.Component {
     this.exportCSV = this.exportCSV.bind(this);
     this.exportFullCSV = this.exportFullCSV.bind(this);
     this.exportXLSX = this.exportXLSX.bind(this);
+    this.exportFullXLSX = this.exportFullXLSX.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -338,6 +338,10 @@ class Chart extends React.Component {
     this.exportTable('xlsx', false);
   }
 
+  exportFullXLSX() {
+    this.exportTable('xlsx', true);
+  }
+
   exportTable(format, isFullCSV) {
     const logAction =
       format === 'csv'
@@ -391,7 +395,6 @@ class Chart extends React.Component {
       supersetCanExplore,
       supersetCanShare,
       supersetCanCSV,
-      sliceCanEdit,
       addSuccessToast,
       addDangerToast,
       ownState,
@@ -453,12 +456,12 @@ class Chart extends React.Component {
           exportCSV={this.exportCSV}
           exportXLSX={this.exportXLSX}
           exportFullCSV={this.exportFullCSV}
+          exportFullXLSX={this.exportFullXLSX}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
           supersetCanShare={supersetCanShare}
           supersetCanCSV={supersetCanCSV}
-          sliceCanEdit={sliceCanEdit}
           componentId={componentId}
           dashboardId={dashboardId}
           filters={filters}

@@ -26,10 +26,12 @@ import { initFeatureFlags, isFeatureEnabled } from 'src/featureFlags';
 import { setupStore } from 'src/views/store';
 import setupExtensions from 'src/setup/setupExtensions';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { api } from 'src/hooks/apiResources/queryApi';
 import getInitialState from './reducers/getInitialState';
 import { reducers } from './reducers/index';
 import App from './components/App';
 import {
+  emptyTablePersistData,
   emptyQueryResults,
   clearQueryEditors,
 } from './utils/reduxStateToLocalStorageHelper';
@@ -62,6 +64,7 @@ const sqlLabPersistStateConfig = {
         if (path === 'sqlLab') {
           subset[path] = {
             ...state[path],
+            tables: emptyTablePersistData(state[path].tables),
             queries: emptyQueryResults(state[path].queries),
             queryEditors: clearQueryEditors(state[path].queryEditors),
             unsavedQueryEditor: clearQueryEditors([
@@ -118,6 +121,28 @@ export const store = setupStore({
     ],
   }),
 });
+
+// Rehydrate server side persisted table metadata
+initialState.sqlLab.tables.forEach(
+  ({ name: table, schema, dbId, persistData }) => {
+    if (dbId && schema && table && persistData?.columns) {
+      store.dispatch(
+        api.util.upsertQueryData(
+          'tableMetadata',
+          { dbId, schema, table },
+          persistData,
+        ),
+      );
+      store.dispatch(
+        api.util.upsertQueryData(
+          'tableExtendedMetadata',
+          { dbId, schema, table },
+          {},
+        ),
+      );
+    }
+  },
+);
 
 // Highlight the navbar menu
 const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
     from superset.connectors.base.models import BaseDatasource
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
 
 
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods

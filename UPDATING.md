@@ -24,15 +24,43 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [24488](https://github.com/apache/superset/pull/24488): Augments the foreign key constraints for the `sql_metrics`, `sqlatable_user`, and `table_columns` tables which reference the `tables` table to include an explicit CASCADE ON DELETE to ensure the relevant records are deleted when a dataset is deleted. Scheduled downtime may be advised.
+- [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
 - [24185](https://github.com/apache/superset/pull/24185): `/api/v1/database/test_connection` and `api/v1/database/validate_parameters` permissions changed from `can_read` to `can_write`. Only Admin user's have access.
-- [24256](https://github.com/apache/superset/pull/24256): `Flask-Login` session validation is now set to `strong` by default. Previous setting was `basic`.
 - [24232](https://github.com/apache/superset/pull/24232): Enables ENABLE_TEMPLATE_REMOVE_FILTERS, DRILL_TO_DETAIL, DASHBOARD_CROSS_FILTERS by default, marks VERSIONED_EXPORT and ENABLE_TEMPLATE_REMOVE_FILTERS as deprecated.
 - [23652](https://github.com/apache/superset/pull/23652): Enables GENERIC_CHART_AXES feature flag by default.
 - [23226](https://github.com/apache/superset/pull/23226): Migrated endpoint `/estimate_query_cost/<int:database_id>` to `/api/v1/sqllab/estimate/`. Corresponding permissions are can estimate query cost on SQLLab. Make sure you add/replace the necessary permissions on any custom roles you may have.
 - [23890](https://github.com/apache/superset/pull/23890): Removes Python 3.8 support.
+- [24404](https://github.com/apache/superset/pull/24404): FLASK_ENV is getting
+  deprecated, we recommend using SUPERSET_ENV and reviewing your
+  config for ENVIRONMENT_TAG_CONFIG, which enables adding a tag in the navbar to
+  make it more clear which envrionment your are in.
+  `SUPERSET_ENV=production` and `SUPERSET_ENV=development` are the two
+  supported switches based on the default config.
 
 ### Breaking Changes
 
+- [24262](https://github.com/apache/superset/pull/24262): Enabled `TALISMAN_ENABLED` flag by default and provided stricter default Content Security Policy
+- [24415](https://github.com/apache/superset/pull/24415): Removed the obsolete Druid NoSQL REGEX operator.
+- [24423](https://github.com/apache/superset/pull/24423): Removed deprecated APIs `/superset/slice_json/...`, `/superset/annotation_json/...`
+- [24400](https://github.com/apache/superset/pull/24400): Removed deprecated APIs `/superset/recent_activity/...`, `/superset/fave_dashboards_by_username/...`, `/superset/fave_dashboards/...`, `/superset/created_dashboards/...`, `/superset/user_slices/`, `/superset/created_slices/...`, `/superset/fave_slices/...`, `/superset/favstar/...`,
+- [24401](https://github.com/apache/superset/pull/24401): Removes the deprecated `metrics` column (which was blossomed in [20732](https://github.com/apache/superset/pull/20732)) from the `/api/v1/dataset/` API.
+- [24375](https://github.com/apache/superset/pull/24375): Removed deprecated API `/superset/get_or_create_table/...`, `/superset/sqllab_viz`
+- [24360](https://github.com/apache/superset/pull/24360): Removed deprecated APIs `/superset/stop_query/...`, `/superset/queries/...`, `/superset/search_queries`
+- [24353](https://github.com/apache/superset/pull/24353): Removed deprecated APIs `/copy_dash/int:dashboard_id/`, `/save_dash/int:dashboard_id/`, `/add_slices/int:dashboard_id/`.
+- [24198](https://github.com/apache/superset/pull/24198) The FAB views `User Registrations` and `User's Statistics` have been changed to Admin only. To re-enable them for non-admin users, please add the following perms to your custom role: `menu access on User's Statistics` and `menu access on User Registrations`.
+- [24354](https://github.com/apache/superset/pull/24354): Removed deprecated APIs `/superset/testconn`, `/superset/validate_sql_json/`, `/superset/schemas_access_for_file_upload`, `/superset/extra_table_metadata`
+- [24381](https://github.com/apache/superset/pull/24381): Removed deprecated API `/superset/available_domains/`
+- [24359](https://github.com/apache/superset/pull/24359): Removed deprecated APIs `/superset/estimate_query_cost/..`, `/superset/results/..`, `/superset/sql_json/..`, `/superset/csv/..`
+- [24345](https://github.com/apache/superset/pull/24345) Converts `ENABLE_BROAD_ACTIVITY_ACCESS` and `MENU_HIDE_USER_INFO` into feature flags and changes the value of `ENABLE_BROAD_ACTIVITY_ACCESS` to `False` as it's more secure.
+- [24342](https://github.com/apache/superset/pull/24342): Removed deprecated API `/superset/tables/<int:db_id>/<schema>/...`
+- [24335](https://github.com/apache/superset/pull/24335): Removed deprecated API `/superset/filter/<datasource_type>/<int:datasource_id>/<column>/`
+- [24333](https://github.com/apache/superset/pull/24333): Removed deprecated API `/superset/datasources`
+- [24266](https://github.com/apache/superset/pull/24266) Remove the `ENABLE_ACCESS_REQUEST` config parameter and the associated request/approval workflows.
+- [24330](https://github.com/apache/superset/pull/24330) Removes `getUiOverrideRegistry` from `ExtensionsRegistry`.
+- [23933](https://github.com/apache/superset/pull/23933) Removes the deprecated Multiple Line Charts.
+- [23741](https://github.com/apache/superset/pull/23741) Migrates the TreeMap chart and removes the legacy Treemap code.
+- [23712](https://github.com/apache/superset/pull/23712) Migrates the Pivot Table v1 chart to v2 and removes v1 code.
 - [24029](https://github.com/apache/superset/pull/24029) Removes the `user` and `username` arguments for the `QUERY_LOGGER` and `SQL_QUERY_MUTATOR` methods respectively. If the username for the current user is required, the `superset.utils.core.get_username` method should be used.
 - [24128](https://github.com/apache/superset/pull/24128) The `RLS_BASE_RELATED_FIELD_FILTERS` config parameter has been removed. Now the Tables dropdown will feature the same tables that the user is able to see elsewhere in the application using the standard `DatasourceFilter`, and the Roles dropdown will be filtered using the filter defined in `EXTRA_RELATED_QUERY_FILTERS["role"]`.
 - [23785](https://github.com/apache/superset/pull/23785) Deprecated the following feature flags: `CLIENT_CACHE`, `DASHBOARD_CACHE`, `DASHBOARD_FILTERS_EXPERIMENTAL`, `DASHBOARD_NATIVE_FILTERS`, `DASHBOARD_NATIVE_FILTERS_SET`, `DISABLE_DATASET_SOURCE_EDIT`, `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`, `REMOVE_SLICE_LEVEL_LABEL_COLORS`. It also removed `DASHBOARD_EDIT_CHART_IN_NEW_TAB` as the feature is supported without the need for a feature flag.

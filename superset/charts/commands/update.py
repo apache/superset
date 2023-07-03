@@ -31,11 +31,11 @@ from superset.charts.commands.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import get_datasource_by_id
-from superset.dao.exceptions import DAOUpdateFailedError
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 
@@ -56,6 +56,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        assert self._model
+
         try:
             if self._properties.get("query_context_generation") is None:
                 self._properties["last_saved_at"] = datetime.now()

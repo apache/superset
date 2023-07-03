@@ -19,7 +19,6 @@
 import json
 from io import BytesIO
 from time import sleep
-from typing import Optional
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
@@ -39,6 +38,7 @@ from superset.models.slice import Slice
 from superset.utils.core import backend, override_user
 from superset.views.base import generate_download_headers
 
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -75,48 +75,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',
         "published": False,
     }
-
-    def insert_dashboard(
-        self,
-        dashboard_title: str,
-        slug: Optional[str],
-        owners: list[int],
-        roles: list[int] = [],
-        created_by=None,
-        slices: Optional[list[Slice]] = None,
-        position_json: str = "",
-        css: str = "",
-        json_metadata: str = "",
-        published: bool = False,
-        certified_by: Optional[str] = None,
-        certification_details: Optional[str] = None,
-    ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
-        slices = slices or []
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        for role in roles:
-            role_obj = db.session.query(security_manager.role_model).get(role)
-            obj_roles.append(role_obj)
-        dashboard = Dashboard(
-            dashboard_title=dashboard_title,
-            slug=slug,
-            owners=obj_owners,
-            roles=obj_roles,
-            position_json=position_json,
-            css=css,
-            json_metadata=json_metadata,
-            slices=slices,
-            published=published,
-            created_by=created_by,
-            certified_by=certified_by,
-            certification_details=certification_details,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        return dashboard
 
     @pytest.fixture()
     def create_dashboards(self):
@@ -410,7 +368,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "certification_details": None,
                 "changed_by": None,
                 "changed_by_name": "",
-                "changed_by_url": "",
                 "charts": [],
                 "created_by": {
                     "id": 1,
@@ -502,43 +459,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
-
-    def test_get_draft_dashboard_without_roles_by_uuid(self):
-        """
-        Dashboard API: Test get draft dashboard without roles by uuid
-        """
-        admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
-        assert not dashboard.published
-        assert dashboard.roles == []
-
-        self.login(username="gamma")
-        uri = f"api/v1/dashboard/{dashboard.uuid}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
-
-    def test_cannot_get_draft_dashboard_with_roles_by_uuid(self):
-        """
-        Dashboard API: Test get dashboard by uuid
-        """
-        admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], roles=[admin_role.id]
-        )
-        assert not dashboard.published
-        assert dashboard.roles == [admin_role]
-
-        self.login(username="gamma")
-        uri = f"api/v1/dashboard/{dashboard.uuid}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 403
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -1402,56 +1322,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.owners, [admin])
         self.assertEqual(model.roles, [admin_role])
 
-        db.session.delete(model)
-        db.session.commit()
-
-    def test_dashboard_activity_access_disabled(self):
-        """
-        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = False
-        """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
-        admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"dashboard_title": "title2"}
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Dashboard).get(dashboard_id)
-
-        self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
-        db.session.delete(model)
-        db.session.commit()
-
-    def test_dashboard_activity_access_enabled(self):
-        """
-        Dashboard API: Test ENABLE_BROAD_ACTIVITY_ACCESS = True
-        """
-        access_flag = app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
-        admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"dashboard_title": "title2"}
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Dashboard).get(dashboard_id)
-
-        self.assertEqual(model.dashboard_title, "title2")
-        self.assertEqual(model.changed_by_url, "/superset/profile/admin")
-
-        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = access_flag
         db.session.delete(model)
         db.session.commit()
 

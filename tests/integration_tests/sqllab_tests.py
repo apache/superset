@@ -17,13 +17,11 @@
 # isort:skip_file
 """Unit tests for Sql Lab"""
 import json
-from datetime import datetime, timedelta
-from math import ceil, floor
+from datetime import datetime
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
-from random import random
 from unittest import mock
 import prison
 
@@ -327,132 +325,6 @@ class TestSqlLab(SupersetTestCase):
             engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
         db.session.commit()
 
-    def test_queries_endpoint(self):
-        self.run_some_queries()
-
-        # Not logged in, should error out
-        resp = self.client.get("/superset/queries/0")
-        # Redirects to the login page
-        self.assertEqual(401, resp.status_code)
-
-        # Admin sees queries
-        self.login("admin")
-        data = self.get_json_resp("/superset/queries/0")
-        self.assertEqual(2, len(data))
-        data = self.get_json_resp("/superset/queries/0.0")
-        self.assertEqual(2, len(data))
-
-        # Run 2 more queries
-        self.run_sql("SELECT * FROM birth_names LIMIT 1", client_id="client_id_4")
-        self.run_sql("SELECT * FROM birth_names LIMIT 2", client_id="client_id_5")
-        self.login("admin")
-        data = self.get_json_resp("/superset/queries/0")
-        self.assertEqual(4, len(data))
-
-        now = datetime.now() + timedelta(days=1)
-        query = (
-            db.session.query(Query)
-            .filter_by(sql="SELECT * FROM birth_names LIMIT 1")
-            .first()
-        )
-        query.changed_on = now
-        db.session.commit()
-
-        data = self.get_json_resp(
-            f"/superset/queries/{float(datetime_to_epoch(now)) - 1000}"
-        )
-        self.assertEqual(1, len(data))
-
-        self.logout()
-        resp = self.client.get("/superset/queries/0")
-        # Redirects to the login page
-        self.assertEqual(401, resp.status_code)
-
-    def test_search_query_on_db_id(self):
-        self.run_some_queries()
-        self.login("admin")
-        examples_dbid = get_example_database().id
-
-        # Test search queries on database Id
-        data = self.get_json_resp(
-            f"/superset/search_queries?database_id={examples_dbid}"
-        )
-        self.assertEqual(3, len(data))
-        db_ids = [k["dbId"] for k in data]
-        self.assertEqual([examples_dbid for i in range(3)], db_ids)
-
-        resp = self.get_resp("/superset/search_queries?database_id=-1")
-        data = json.loads(resp)
-        self.assertEqual(0, len(data))
-
-    def test_search_query_on_user(self):
-        self.run_some_queries()
-        self.login("admin")
-
-        # Test search queries on user Id
-        user_id = security_manager.find_user("admin").id
-        data = self.get_json_resp(f"/superset/search_queries?user_id={user_id}")
-        self.assertEqual(2, len(data))
-        user_ids = {k["userId"] for k in data}
-        self.assertEqual({user_id}, user_ids)
-
-        user_id = security_manager.find_user("gamma_sqllab").id
-        resp = self.get_resp(f"/superset/search_queries?user_id={user_id}")
-        data = json.loads(resp)
-        self.assertEqual(1, len(data))
-        self.assertEqual(data[0]["userId"], user_id)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_search_query_on_status(self):
-        self.run_some_queries()
-        self.login("admin")
-        # Test search queries on status
-        resp = self.get_resp("/superset/search_queries?status=success")
-        data = json.loads(resp)
-        self.assertEqual(2, len(data))
-        states = [k["state"] for k in data]
-        self.assertEqual(["success", "success"], states)
-
-        resp = self.get_resp("/superset/search_queries?status=failed")
-        data = json.loads(resp)
-        self.assertEqual(1, len(data))
-        self.assertEqual(data[0]["state"], "failed")
-
-    def test_search_query_on_text(self):
-        self.run_some_queries()
-        self.login("admin")
-        url = "/superset/search_queries?search_text=birth"
-        data = self.get_json_resp(url)
-        self.assertEqual(2, len(data))
-        self.assertIn("birth", data[0]["sql"])
-
-    def test_search_query_filter_by_time(self):
-        self.run_some_queries()
-        self.login("admin")
-        from_time = floor(
-            (db.session.query(Query).filter_by(sql=QUERY_1).one()).start_time
-        )
-        to_time = ceil(
-            (db.session.query(Query).filter_by(sql=QUERY_2).one()).start_time
-        )
-        url = f"/superset/search_queries?from={from_time}&to={to_time}"
-        assert len(self.client.get(url).json) == 2
-
-    def test_search_query_only_owned(self) -> None:
-        """
-        Test a search query with a user that does not have can_access_all_queries.
-        """
-        # Test search_queries for Alpha user
-        self.run_some_queries()
-        self.login("gamma_sqllab")
-
-        user_id = security_manager.find_user("gamma_sqllab").id
-        data = self.get_json_resp("/superset/search_queries")
-
-        self.assertEqual(1, len(data))
-        user_ids = {k["userId"] for k in data}
-        self.assertEqual({user_id}, user_ids)
-
     def test_alias_duplicate(self):
         self.run_sql(
             "SELECT name as col, gender as col FROM birth_names LIMIT 10",
@@ -484,102 +356,6 @@ class TestSqlLab(SupersetTestCase):
 
         self.assertEqual(len(data), results.size)
         self.assertEqual(len(cols), len(results.columns))
-
-    def test_sqllab_viz(self):
-        self.login("admin")
-        examples_dbid = get_example_database().id
-        payload = {
-            "chartType": "dist_bar",
-            "datasourceName": f"test_viz_flow_table_{random()}",
-            "schema": "superset",
-            "columns": [
-                {
-                    "is_dttm": False,
-                    "type": "STRING",
-                    "column_name": f"viz_type_{random()}",
-                },
-                {
-                    "is_dttm": False,
-                    "type": "OBJECT",
-                    "column_name": f"ccount_{random()}",
-                },
-            ],
-            "sql": """\
-                SELECT *
-                FROM birth_names
-                LIMIT 10""",
-            "dbId": examples_dbid,
-        }
-        data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/sqllab_viz/", data=data)
-        self.assertIn("table_id", resp)
-
-        # ensure owner is set correctly
-        table_id = resp["table_id"]
-        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
-        view_menu = security_manager.find_view_menu(table.get_perm())
-        assert view_menu is not None
-
-        # Cleanup
-        db.session.delete(table)
-        db.session.commit()
-
-    def test_sqllab_viz_bad_payload(self):
-        self.login("admin")
-        payload = {
-            "chartType": "dist_bar",
-            "schema": "superset",
-            "columns": [
-                {
-                    "is_dttm": False,
-                    "type": "STRING",
-                    "column_name": f"viz_type_{random()}",
-                },
-                {
-                    "is_dttm": False,
-                    "type": "OBJECT",
-                    "column_name": f"ccount_{random()}",
-                },
-            ],
-            "sql": """\
-                SELECT *
-                FROM birth_names
-                LIMIT 10""",
-        }
-        data = {"data": json.dumps(payload)}
-        url = "/superset/sqllab_viz/"
-        response = self.client.post(url, data=data, follow_redirects=True)
-        assert response.status_code == 400
-
-    def test_sqllab_table_viz(self):
-        self.login("admin")
-        examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_sqllab_table_viz")
-            engine.execute("CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col")
-
-        examples_dbid = examples_db.id
-
-        payload = {
-            "datasourceName": "test_sqllab_table_viz",
-            "columns": [],
-            "dbId": examples_dbid,
-        }
-
-        data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/get_or_create_table/", data=data)
-        self.assertIn("table_id", resp)
-
-        # ensure owner is set correctly
-        table_id = resp["table_id"]
-        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
-        db.session.delete(table)
-
-        with get_example_database().get_sqla_engine_with_context() as engine:
-            engine.execute("DROP TABLE test_sqllab_table_viz")
-        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_limit(self):

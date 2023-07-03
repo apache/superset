@@ -25,6 +25,7 @@ from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import conf, db, is_feature_enabled
+from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
@@ -95,6 +96,7 @@ class MigrateViz:
 
         if self.has_x_axis_control:
             rv_data["x_axis"] = granularity_sqla
+            rv_data["time_grain_sqla"] = rv_data.get("time_grain_sqla") or TimeGrain.DAY
 
         temporal_filter = {
             "clause": "WHERE",

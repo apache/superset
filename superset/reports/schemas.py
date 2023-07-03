@@ -17,10 +17,10 @@
 from typing import Any, Union
 
 from croniter import croniter
+from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import fields, Schema, validate, validates_schema
+from marshmallow import fields, Schema, validate, validates, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
-from marshmallow_enum import EnumField
 from pytz import all_timezones
 
 from superset.reports.models import (
@@ -168,7 +168,7 @@ class ReportSchedulePostSchema(Schema):
         }
     )
     chart = fields.Integer(required=False, allow_none=True)
-    creation_method = EnumField(
+    creation_method = fields.Enum(
         ReportCreationMethod,
         by_value=True,
         required=False,
@@ -209,10 +209,34 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+    custom_width = fields.Integer(
+        metadata={
+            "description": _("Custom width of the screenshot in pixels"),
+            "example": 1000,
+        },
+        allow_none=True,
+        required=False,
+        default=None,
+    )
+
+    @validates("custom_width")
+    def validate_custom_width(self, value: int) -> None:  # pylint: disable=no-self-use
+        min_width = current_app.config["ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH"]
+        max_width = current_app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        if not min_width <= value <= max_width:
+            raise ValidationError(
+                _(
+                    "Screenshot width must be between %(min)spx and %(max)spx",
+                    min=min_width,
+                    max=max_width,
+                )
+            )
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
-        self, data: dict[str, Any], **kwargs: Any
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
     ) -> None:
         if data["type"] == ReportScheduleType.REPORT:
             if "database" in data:
@@ -265,7 +289,7 @@ class ReportSchedulePutSchema(Schema):
         allow_none=True,
     )
     chart = fields.Integer(required=False, allow_none=True)
-    creation_method = EnumField(
+    creation_method = fields.Enum(
         ReportCreationMethod,
         by_value=True,
         allow_none=True,
@@ -308,3 +332,26 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
+
+    custom_width = fields.Integer(
+        metadata={
+            "description": _("Custom width of the screenshot in pixels"),
+            "example": 1000,
+        },
+        allow_none=True,
+        required=False,
+        default=None,
+    )
+
+    @validates("custom_width")
+    def validate_custom_width(self, value: int) -> None:  # pylint: disable=no-self-use
+        min_width = current_app.config["ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH"]
+        max_width = current_app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        if not min_width <= value <= max_width:
+            raise ValidationError(
+                _(
+                    "Screenshot width must be between %(min)spx and %(max)spx",
+                    min=min_width,
+                    max=max_width,
+                )
+            )

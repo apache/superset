@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -28,7 +29,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
-from superset.constants import USER_AGENT
+from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.db_engine_specs.hive import HiveEngineSpec
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
+#
 class DatabricksParametersSchema(Schema):
     """
     This is the list of fields that are expected
@@ -93,20 +95,20 @@ class DatabricksPropertiesType(TypedDict):
     extra: str
 
 
-time_grain_expressions = {
+time_grain_expressions: dict[str | None, str] = {
     None: "{col}",
-    "PT1S": "date_trunc('second', {col})",
-    "PT1M": "date_trunc('minute', {col})",
-    "PT1H": "date_trunc('hour', {col})",
-    "P1D": "date_trunc('day', {col})",
-    "P1W": "date_trunc('week', {col})",
-    "P1M": "date_trunc('month', {col})",
-    "P3M": "date_trunc('quarter', {col})",
-    "P1Y": "date_trunc('year', {col})",
-    "P1W/1970-01-03T00:00:00Z": (
+    TimeGrain.SECOND: "date_trunc('second', {col})",
+    TimeGrain.MINUTE: "date_trunc('minute', {col})",
+    TimeGrain.HOUR: "date_trunc('hour', {col})",
+    TimeGrain.DAY: "date_trunc('day', {col})",
+    TimeGrain.WEEK: "date_trunc('week', {col})",
+    TimeGrain.MONTH: "date_trunc('month', {col})",
+    TimeGrain.QUARTER: "date_trunc('quarter', {col})",
+    TimeGrain.YEAR: "date_trunc('year', {col})",
+    TimeGrain.WEEK_ENDING_SATURDAY: (
         "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
     ),
-    "1969-12-28T00:00:00Z/P1W": (
+    TimeGrain.WEEK_STARTING_SUNDAY: (
         "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
     ),
 }
@@ -135,8 +137,8 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
@@ -160,7 +162,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     encryption_parameters = {"ssl": "1"}
 
     @staticmethod
-    def get_extra_params(database: "Database") -> dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         Trim whitespace from connect_args to avoid databricks driver errors
@@ -181,9 +183,9 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     @classmethod
     def get_table_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
-        schema: Optional[str],
+        schema: str | None,
     ) -> set[str]:
         return super().get_table_names(
             database, inspector, schema
@@ -213,7 +215,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
 
     @classmethod
     def extract_errors(
-        cls, ex: Exception, context: Optional[dict[str, Any]] = None
+        cls, ex: Exception, context: dict[str, Any] | None = None
     ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 

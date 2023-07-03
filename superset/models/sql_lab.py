@@ -135,7 +135,6 @@ class Query(
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
             "db": self.database.database_name if self.database else None,
@@ -192,18 +191,17 @@ class Query(
             TableColumn,
         )
 
-        columns = []
-        for col in self.extra.get("columns", []):
-            columns.append(
-                TableColumn(
-                    column_name=col["name"],
-                    type=col["type"],
-                    is_dttm=col["is_dttm"],
-                    groupby=True,
-                    filterable=True,
-                )
+        return [
+            TableColumn(
+                column_name=col["column_name"],
+                database=self.database,
+                is_dttm=col["is_dttm"],
+                filterable=True,
+                groupby=True,
+                type=col["type"],
             )
-        return columns
+            for col in self.extra.get("columns", [])
+        ]
 
     @property
     def db_extra(self) -> Optional[dict[str, Any]]:
@@ -385,6 +383,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="tags",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'query')",
@@ -503,6 +502,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
+            "extra_json": self.extra,
         }
 
 

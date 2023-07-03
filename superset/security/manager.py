@@ -143,7 +143,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
-    READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -164,12 +164,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
-        "AccessRequestsModelView",
         "Action Log",
         "Log",
         "List Users",
         "List Roles",
-        "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
         "Row Level Security",
@@ -177,6 +175,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "RowLevelSecurityFiltersModelView",
         "Security",
         "SQL Lab",
+        "User Registrations",
+        "User's Statistics",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
@@ -196,9 +196,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_sync_druid_source",
-        "can_override_role_permissions",
-        "can_approve",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
@@ -240,14 +237,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_execute_sql_query", "SQLLab"),
         ("can_estimate_query_cost", "SQL Lab"),
         ("can_export_csv", "SQLLab"),
-        ("can_sql_json", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab_history", "Superset"),
-        ("can_sqllab_viz", "Superset"),
-        ("can_sqllab_table_viz", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_sqllab", "Superset"),
-        ("can_stop_query", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
-        ("can_search_queries", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_activate", "TabStateView"),
         ("can_get", "TabStateView"),
         ("can_delete_query", "TabStateView"),
@@ -353,32 +345,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_all_datasources(self) -> bool:
         """
-        Return True if the user can fully access all the Superset datasources, False
-        otherwise.
+        Return True if the user can access all the datasources, False otherwise.
 
-        :returns: Whether the user can fully access all Superset datasources
+        :returns: Whether the user can access all the datasources
         """
 
         return self.can_access("all_datasource_access", "all_datasource_access")
 
     def can_access_all_databases(self) -> bool:
         """
-        Return True if the user can fully access all the Superset databases, False
-        otherwise.
+        Return True if the user can access all the databases, False otherwise.
 
-        :returns: Whether the user can fully access all Superset databases
+        :returns: Whether the user can access all the databases
         """
 
         return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: "Database") -> bool:
         """
-        Return True if the user can fully access the Superset database, False otherwise.
+        Return True if the user can access the specified database, False otherwise.
 
-        Note for Druid the database is akin to the Druid cluster.
-
-        :param database: The Superset database
-        :returns: Whether the user can fully access the Superset database
+        :param database: The database
+        :returns: Whether the user can access the database
         """
 
         return (
@@ -389,14 +377,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_schema(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can fully access the schema associated with the Superset
+        Return True if the user can access the schema associated with specified
         datasource, False otherwise.
 
-        Note for Druid datasources the database and schema are akin to the Druid cluster
-        and datasource name prefix respectively, i.e., [schema.]datasource.
-
-        :param datasource: The Superset datasource
-        :returns: Whether the user can fully access the datasource's schema
+        :param datasource: The datasource
+        :returns: Whether the user can access the datasource's schema
         """
 
         return (
@@ -407,16 +392,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can fully access of the Superset datasource, False
-        otherwise.
+        Return True if the user can access the specified datasource, False otherwise.
 
-        :param datasource: The Superset datasource
-        :returns: Whether the user can fully access the Superset datasource
+        :param datasource: The datasource
+        :returns: Whether the user can access the datasource
         """
 
         try:
             self.raise_for_access(datasource=datasource)
         except SupersetSecurityException:
+            return False
+
+        return True
+
+    def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
+        """
+        Return True if the user can access the specified dashboard, False otherwise.
+
+        :param dashboard: The dashboard
+        :returns: Whether the user can access the dashboard
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+
+        try:
+            self.raise_for_dashboard_access(dashboard)
+        except DashboardAccessDeniedError:
             return False
 
         return True
@@ -708,6 +710,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_share_dashboard", "Superset")
         self.add_permission_view_menu("can_share_chart", "Superset")
 
@@ -774,7 +777,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Admin", self._is_admin_pvm)
         self.set_role("Alpha", self._is_alpha_pvm)
         self.set_role("Gamma", self._is_gamma_pvm)
-        self.set_role("granter", self._is_granter_pvm)
         self.set_role("sql_lab", self._is_sql_lab_pvm)
 
         # Configure public role
@@ -987,19 +989,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
-
-    def _is_granter_pvm(  # pylint: disable=no-self-use
-        self, pvm: PermissionView
-    ) -> bool:
-        """
-        Return True if the user can grant the FAB permission/view, False
-        otherwise.
-
-        :param pvm: The FAB permission/view
-        :returns: Whether the user can grant the FAB permission/view
-        """
-
-        return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
     def database_after_insert(
         self,
@@ -2002,55 +1991,45 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         guest_rls = self.get_guest_rls_filters_str(datasource)
         return guest_rls + rls_str
 
-    @staticmethod
-    def raise_for_user_activity_access(user_id: int) -> None:
-        if not get_user_id() or (
-            not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-            and user_id != get_user_id()
-        ):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.USER_ACTIVITY_SECURITY_ACCESS_ERROR,
-                    message="Access to user's activity data is restricted",
-                    level=ErrorLevel.ERROR,
-                )
-            )
-
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
-        This does not check for the required role/permission pairs,
-        it only concerns itself with entity relationships.
+
+        This does not check for the required role/permission pairs, it only concerns
+        itself with entity relationships.
 
         :param dashboard: Dashboard the user wants access to
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
+
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 
-        def has_rbac_access() -> bool:
-            if not is_feature_enabled("DASHBOARD_RBAC") or not dashboard.roles:
-                return True
-
-            return any(
-                dashboard_role.id
-                in [user_role.id for user_role in self.get_user_roles()]
-                for dashboard_role in dashboard.roles
-            )
-
         if self.is_guest_user() and dashboard.embedded:
-            can_access = self.has_guest_access(dashboard)
+            if self.has_guest_access(dashboard):
+                return
         else:
-            can_access = (
-                self.is_admin()
-                or self.is_owner(dashboard)
-                or (dashboard.published and has_rbac_access())
-                or (not dashboard.published and not dashboard.roles)
-            )
+            if self.is_admin() or self.is_owner(dashboard):
+                return
 
-        if not can_access:
-            raise DashboardAccessDeniedError()
+            # RBAC and legacy (datasource inferred) access controls.
+            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+                if dashboard.published and {role.id for role in dashboard.roles} & {
+                    role.id for role in self.get_user_roles()
+                }:
+                    return
+            elif (
+                not dashboard.published
+                or not dashboard.datasources
+                or any(
+                    self.can_access_datasource(datasource)
+                    for datasource in dashboard.datasources
+                )
+            ):
+                return
+
+        raise DashboardAccessDeniedError()
 
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
@@ -2092,7 +2071,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.embedded.dao import EmbeddedDAO
+        from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.embedded_dashboard.commands.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
@@ -2103,7 +2082,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # TODO (embedded): remove this check once uuids are rolled out
                 dashboard = Dashboard.get(str(resource["id"]))
                 if not dashboard:
-                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
 

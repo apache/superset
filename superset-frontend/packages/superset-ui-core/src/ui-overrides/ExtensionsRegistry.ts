@@ -29,7 +29,3 @@ class ExtensionsRegistry extends TypedRegistry<Extensions> {
 }
 
 export const getExtensionsRegistry = makeSingleton(ExtensionsRegistry, {});
-
-// Exporting this under the old name for backwards compatibility.
-// After downstream folks have migrated to `getExtensionsRegistry`, we should remove this.
-export const getUiOverrideRegistry = getExtensionsRegistry;

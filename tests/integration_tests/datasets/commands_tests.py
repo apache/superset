@@ -31,13 +31,20 @@ from superset.datasets.commands.create import CreateDatasetCommand
 from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     DatasetNotFoundError,
+    WarmUpCacheTableNotFoundError,
 )
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
+from superset.datasets.commands.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.models.core import Database
+from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
@@ -141,6 +148,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "main_dttm_col": None,
             "metrics": [
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "COUNT(*)",
@@ -151,6 +159,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
                 {
+                    "currency": None,
                     "d3format": None,
                     "description": None,
                     "expression": "SUM(value)",
@@ -374,6 +383,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert metric.expression == "count(1)"
         assert metric.description is None
         assert metric.d3format is None
+        assert metric.currency is None
         assert metric.extra == "{}"
         assert metric.warning_text is None
 
@@ -390,7 +400,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert column.description is None
         assert column.python_date_format is None
 
-        dataset.owners = []
         dataset.database.owners = []
         db.session.delete(dataset)
         db.session.delete(dataset.database)
@@ -519,7 +528,6 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert len(database.tables) == 1
 
-        database.tables[0].owners = []
         database.owners = []
         db.session.delete(database.tables[0])
         db.session.delete(database)
@@ -575,3 +583,28 @@ class TestCreateDatasetCommand(SupersetTestCase):
         with examples_db.get_sqla_engine_with_context() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
+
+
+class TestDatasetWarmUpCacheCommand(SupersetTestCase):
+    def test_warm_up_cache_command_table_not_found(self):
+        with self.assertRaises(WarmUpCacheTableNotFoundError):
+            DatasetWarmUpCacheCommand("not", "here", None, None).run()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self):
+        birth_table = self.get_birth_names_dataset()
+        birth_charts = (
+            db.session.query(Slice)
+            .filter(
+                Slice.datasource_id == birth_table.id, Slice.datasource_type == "table"
+            )
+            .all()
+        )
+        results = DatasetWarmUpCacheCommand(
+            get_example_database().database_name, "birth_names", None, None
+        ).run()
+        self.assertEqual(len(results), len(birth_charts))
+        for chart_result in results:
+            assert "chart_id" in chart_result
+            assert "viz_error" in chart_result
+            assert "viz_status" in chart_result

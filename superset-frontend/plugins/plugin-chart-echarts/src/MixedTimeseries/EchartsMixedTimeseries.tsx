@@ -29,7 +29,7 @@ import {
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { currentSeries, formatSeriesName } from '../utils/series';
+import { formatSeriesName } from '../utils/series';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -122,12 +122,6 @@ export default function EchartsMixedTimeseries({
     click: props => {
       const { seriesName, seriesIndex } = props;
       handleChange(seriesName, seriesIndex);
-    },
-    mouseout: () => {
-      currentSeries.name = '';
-    },
-    mouseover: params => {
-      currentSeries.name = params.seriesName;
     },
     contextmenu: async eventParams => {
       if (onContextMenu) {

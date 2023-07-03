@@ -33,6 +33,12 @@ from superset.utils.webdriver import (
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
+DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
+DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
+DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
+DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
+
 try:
     from PIL import Image
 except ModuleNotFoundError:
@@ -47,8 +53,8 @@ class BaseScreenshot:
     driver_type = current_app.config["WEBDRIVER_TYPE"]
     thumbnail_type: str = ""
     element: str = ""
-    window_size: WindowSize = (800, 600)
-    thumb_size: WindowSize = (400, 300)
+    window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
+    thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
 
     def __init__(self, url: str, digest: str):
         self.digest: str = digest
@@ -216,8 +222,8 @@ class ChartScreenshot(BaseScreenshot):
             standalone=ChartStandaloneMode.HIDE_NAV.value,
         )
         super().__init__(url, digest)
-        self.window_size = window_size or (800, 600)
-        self.thumb_size = thumb_size or (800, 600)
+        self.window_size = window_size or DEFAULT_CHART_WINDOW_SIZE
+        self.thumb_size = thumb_size or DEFAULT_CHART_THUMBNAIL_SIZE
 
 
 class DashboardScreenshot(BaseScreenshot):
@@ -239,5 +245,5 @@ class DashboardScreenshot(BaseScreenshot):
         )
 
         super().__init__(url, digest)
-        self.window_size = window_size or (1600, 1200)
-        self.thumb_size = thumb_size or (800, 600)
+        self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
+        self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE

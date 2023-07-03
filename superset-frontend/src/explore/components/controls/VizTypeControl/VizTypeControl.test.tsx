@@ -39,7 +39,6 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
-import { LineChartPlugin } from '@superset-ui/preset-chart-xy';
 import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
@@ -50,7 +49,6 @@ class MainPreset extends Preset {
     super({
       name: 'Legacy charts',
       plugins: [
-        new LineChartPlugin().configure({ key: 'line' }),
         new TableChartPlugin().configure({ key: 'table' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsTimeseriesLineChartPlugin().configure({
@@ -121,7 +119,6 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    expect(screen.getByLabelText('line-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
@@ -154,9 +151,6 @@ describe('VizTypeControl', () => {
         'Time-series Area Chart',
       ),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('fast-viz-switcher')).queryByText('Line Chart'),
-    ).not.toBeInTheDocument();
   });
 
   it('Render viz tiles when non-featured chart is selected', async () => {
@@ -169,7 +163,9 @@ describe('VizTypeControl', () => {
 
     expect(screen.getByLabelText('monitor')).toBeVisible();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
+      within(screen.getByTestId('fast-viz-switcher')).getByText(
+        'Time-series Line Chart',
+      ),
     ).toBeVisible();
   });
 
@@ -196,7 +192,9 @@ describe('VizTypeControl', () => {
     await waitForRenderWrapper(props, state);
     expect(screen.getByLabelText('check-square')).toBeVisible();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
+      within(screen.getByTestId('fast-viz-switcher')).getByText(
+        'Time-series Line Chart',
+      ),
     ).toBeVisible();
   });
 
@@ -260,9 +258,6 @@ describe('VizTypeControl', () => {
     expect(
       within(visualizations).getByText('Time-series Bar Chart'),
     ).toBeVisible();
-    expect(
-      within(visualizations).queryByText('Line Chart'),
-    ).not.toBeInTheDocument();
     expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
     expect(
       within(visualizations).queryByText('Big Number'),

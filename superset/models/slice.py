@@ -22,7 +22,6 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -100,6 +99,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="objects,tag,tags",
         primaryjoin="and_(Slice.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'chart')",
@@ -107,6 +107,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     table = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
+        overlaps="table",
         primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
@@ -136,7 +137,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def cls_model(self) -> type[BaseDatasource]:
         # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
@@ -331,21 +332,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def slice_link(self) -> Markup:
         name = escape(self.chart)
         return Markup(f'<a href="{self.url}">{name}</a>')
-
-    @property
-    def created_by_url(self) -> str:
-        if not self.created_by:
-            return ""
-        return f"/superset/profile/{self.created_by.username}"
-
-    @property
-    def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def icons(self) -> str:

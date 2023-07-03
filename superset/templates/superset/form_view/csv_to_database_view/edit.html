@@ -18,6 +18,7 @@
 #}
 {% extends "appbuilder/base.html" %}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% import "superset/macros.html" as macros %}
 {% set begin_sep_label = '<td class="col-sm-2" style="border-left: 0; border-top: 0;">' %}
   {% set end_sep_label = '</td>' %}
 {% set begin_sep_field = '<td style="border-right: 0; border-top: 0;">' %}
@@ -132,7 +133,7 @@
 </div>
 {% endblock %}
 {% block add_tail_js %}
-<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}"></script>
+<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}" nonce="{{ macros.get_nonce() }}"></script>
 {% endblock %}
 {% block tail_js %}
   {{ super() }}

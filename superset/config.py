@@ -38,9 +38,9 @@ from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
-from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
+from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
 
@@ -146,6 +146,8 @@ DEFAULT_VIZ_TYPE = "table"
 ROW_LIMIT = 50000
 # default row limit when requesting samples from datasource in explore view
 SAMPLES_ROW_LIMIT = 1000
+# default row limit for native filters
+NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 # default time filter in explore
@@ -244,7 +246,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = os.environ.get("FLASK_ENV") == "development"
+DEBUG = os.environ.get("FLASK_DEBUG")
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -286,17 +288,6 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
 FAB_API_SWAGGER_UI = True
-
-# Druid query timezone
-# tz.tzutc() : Using utc timezone
-# tz.tzlocal() : Using local timezone
-# tz.gettz('Asia/Shanghai') : Using the time zone with specific name
-# [TimeZone List]
-# See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-# other tz can be overridden by providing a local_config
-DRUID_TZ = tz.tzutc()
-DRUID_ANALYSIS_TYPES = ["cardinality"]
-
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -382,6 +373,8 @@ class D3Format(TypedDict, total=False):
 
 
 D3_FORMAT: D3Format = {}
+
+CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 
 # ---------------------------------------------------
 # Feature flags
@@ -483,6 +476,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
     "AVOID_COLORS_COLLISION": True,
+    # Set to False to only allow viewing own recent activity
+    # or to disallow users from viewing other users profile page
+    # Do not show user info or profile in the menu
+    "MENU_HIDE_USER_INFO": False,
 }
 
 # ------------------------------
@@ -502,7 +499,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 # ----------------------------------------------------------------------
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
+#: Timeout (seconds) for tunnel connection (open_channel timeout)
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
+#: Timeout (seconds) for transport socket (``socket.settimeout``)
+SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -772,6 +773,17 @@ TIME_GRAIN_ADDONS: dict[str, str] = {}
 #     }
 # }
 TIME_GRAIN_ADDON_EXPRESSIONS: dict[str, dict[str, str]] = {}
+
+# Map of custom time grains and artificial join column producers used
+# when generating the join key between results and time shifts.
+# See supeset/common/query_context_processor.get_aggregated_join_column
+#
+# Example of a join column producer that aggregates by fiscal year
+# def join_producer(row: Series, column_index: int) -> str:
+#    return row[index].strftime("%F")
+#
+# TIME_GRAIN_JOIN_COLUMN_PRODUCERS = {"P1F": join_producer}
+TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -1071,10 +1083,6 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
 FLASK_APP_MUTATOR = None
 
-# Set this to false if you don't want users to be able to request/grant
-# datasource access requests from/to other users.
-ENABLE_ACCESS_REQUEST = False
-
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
 SMTP_HOST = "localhost"
@@ -1265,6 +1273,9 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+# Custom width for screenshots
+ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
+ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1357,12 +1368,42 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = False
+TALISMAN_ENABLED = True
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
-    "content_security_policy": None,
-    "force_https": True,
-    "force_https_permanent": False,
+    "content_security_policy": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+        ],
+        "object-src": "'none'",
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", "'strict-dynamic'"],
+    },
+    "content_security_policy_nonce_in": ["script-src"],
+    "force_https": False,
+}
+# React requires `eval` to work correctly in dev mode
+TALISMAN_DEV_CONFIG = {
+    "content_security_policy": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+        ],
+        "object-src": "'none'",
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    },
+    "content_security_policy_nonce_in": ["script-src"],
+    "force_https": False,
 }
 
 #
@@ -1374,8 +1415,6 @@ TALISMAN_CONFIG = {
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE: Literal["None", "Lax", "Strict"] | None = "Lax"
-# Accepts None, "basic" and "strong", more details on: https://flask-login.readthedocs.io/en/latest/#session-protection
-SESSION_PROTECTION = "strong"
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
@@ -1481,13 +1520,6 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 #
 DATASET_HEALTH_CHECK: Callable[[SqlaTable], str] | None = None
 
-# Do not show user info or profile in the menu
-MENU_HIDE_USER_INFO = False
-
-# Set to False to only allow viewing own recent activity
-# or to disallow users from viewing other users profile page
-ENABLE_BROAD_ACTIVITY_ACCESS = True
-
 # the advanced data type key should correspond to that set in the column metadata
 ADVANCED_DATA_TYPES: dict[str, AdvancedDataType] = {
     "internet_address": internet_address,
@@ -1508,8 +1540,12 @@ WELCOME_PAGE_LAST_TAB: (
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
-    "variable": "FLASK_ENV",
+    "variable": "SUPERSET_ENV",
     "values": {
+        "debug": {
+            "color": "error.base",
+            "text": "flask-debug",
+        },
         "development": {
             "color": "error.base",
             "text": "Development",

@@ -22,13 +22,13 @@ from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.query import SavedQueryDAO
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.queries.saved_queries.commands.importers.v1.utils import (
     import_saved_query,
 )
-from superset.queries.saved_queries.dao import SavedQueryDAO
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 
 

@@ -24,7 +24,7 @@ from collections.abc import Iterator
 import yaml
 
 from superset.databases.commands.exceptions import DatabaseNotFoundError
-from superset.databases.dao import DatabaseDAO
+from superset.daos.database import DatabaseDAO
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION

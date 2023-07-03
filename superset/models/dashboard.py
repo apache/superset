@@ -24,7 +24,6 @@ from functools import partial
 from typing import Any, Callable
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -50,7 +49,7 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -150,6 +149,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     tags = relationship(
         "Tag",
+        overlaps="objects,tag,tags,tags",
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
@@ -268,15 +268,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         if not self.changed_by:
             return ""
         return str(self.changed_by)
-
-    @property
-    def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def data(self) -> dict[str, Any]:
