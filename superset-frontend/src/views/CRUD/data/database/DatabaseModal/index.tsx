@@ -706,15 +706,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
 
-      // make sure that button spinner animates
-      setLoading(true);
-      const errors = await getValidation(dbToUpdate, true);
-      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+      // only do validation for non ssh tunnel connections
+      if (!dbToUpdate?.ssh_tunnel) {
+        // make sure that button spinner animates
+        setLoading(true);
+        const errors = await getValidation(dbToUpdate, true);
+        if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+          setLoading(false);
+          return;
+        }
+        // end spinner animation
         setLoading(false);
-        return;
       }
-      setLoading(false);
-      // end spinner animation
 
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
@@ -1431,18 +1434,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
       />
-      <SSHTunnelContainer>
-        <SSHTunnelSwitchComponent
-          isEditMode={isEditMode}
-          dbFetched={dbFetched}
-          disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-          useSSHTunneling={useSSHTunneling}
-          setUseSSHTunneling={setUseSSHTunneling}
-          setDB={setDB}
-          isSSHTunneling={isSSHTunneling}
-        />
-      </SSHTunnelContainer>
-      {useSSHTunneling && (
+      {db?.parameters?.ssh && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>

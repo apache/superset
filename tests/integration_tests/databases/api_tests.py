@@ -2437,6 +2437,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Additional parameters",
                                 "type": "object",
                             },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
+                            },
                             "username": {
                                 "description": "Username",
                                 "nullable": True,
@@ -2512,6 +2516,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Additional parameters",
                                 "type": "object",
                             },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
+                            },
                             "username": {
                                 "description": "Username",
                                 "nullable": True,
@@ -2586,6 +2594,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
