@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+
+# dodo was here
 import json
 import logging
 import re
@@ -94,26 +96,26 @@ class TimeGrain(NamedTuple):
 
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    # None: __("Original value"),
-    # "PT1S": __("Second"),
-    # "PT5S": __("5 second"),
-    # "PT30S": __("30 second"),
-    # "PT1M": __("Minute"),
-    # "PT5M": __("5 minute"),
-    # "PT10M": __("10 minute"),
-    # "PT15M": __("15 minute"),
-    # "PT30M": __("30 minute"),
+    None: __("Original value"),
+    "PT1S": __("Second"),
+    "PT5S": __("5 second"),
+    "PT30S": __("30 second"),
+    "PT1M": __("Minute"),
+    "PT5M": __("5 minute"),
+    "PT10M": __("10 minute"),
+    "PT15M": __("15 minute"),
+    "PT30M": __("30 minute"),
     "PT1H": __("Hour"),
-    # "PT6H": __("6 hour"),
+    "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
     "P3M": __("Quarter"),
     "P1Y": __("Year"),
-    # "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
-    # "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
-    # "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
-    # "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
 }
 
 
@@ -525,7 +527,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All time grain expressions supported by the engine
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
-        time_grain_expressions = cls._time_grain_expressions.copy()
+        time_grain_expressions = builtin_time_grains.copy()
         grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
