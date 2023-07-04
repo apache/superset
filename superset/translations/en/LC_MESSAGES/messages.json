@@ -2050,7 +2050,14 @@
       "With space": [""],
       "With space rounded": [""],
       "Used_in": ["Used in"],
-      "Custom": ["Exact date"]
+      "Custom": ["Exact date"],
+      "Week starting sunday": [""],
+      "Week starting monday": [""],
+      "Week ending saturday": [""],
+      "Week_ending sunday": [""],
+      "Week starting Sunday": [""],
+      "Week starting Monday": [""],
+      "Week ending Saturday": [""]
     }
   }
 }

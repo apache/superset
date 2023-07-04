@@ -62,6 +62,8 @@ export const getColorFunction = (
     colorScheme,
   }: ConditionalFormattingConfig,
   columnValues: number[],
+  // we either do a gradient or 1 color
+  // isFixedColor: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
@@ -176,10 +178,13 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
-    return addAlpha(
+    const gradientedColor = addAlpha(
       colorScheme,
       getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
     );
+
+    // return isFixedColor ? colorScheme : gradientedColor;
+    return gradientedColor;
   };
 };
 
@@ -187,6 +192,7 @@ export const getColorFormatters = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
+    // isFixedColor,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
@@ -204,6 +210,7 @@ export const getColorFormatters = memoizeOne(
             getColorFromValue: getColorFunction(
               config,
               data.map(row => row[config.column!] as number),
+              // isFixedColor,
             ),
           });
         }

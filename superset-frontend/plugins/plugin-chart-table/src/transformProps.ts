@@ -242,6 +242,9 @@ const transformProps = (
     showTotals && queryMode === QueryMode.aggregate
       ? totalQuery?.data[0]
       : undefined;
+
+  // const isFixedColor = false;
+
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, data) ?? defaultColorFormatters;
 
