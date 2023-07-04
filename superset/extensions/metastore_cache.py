@@ -23,17 +23,26 @@ from flask import Flask
 from flask_caching import BaseCache
 
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource, PickleKeyValueCodec
+from superset.key_value.types import (
+    KeyValueCodec,
+    KeyValueResource,
+    PickleKeyValueCodec,
+)
 from superset.key_value.utils import get_uuid_namespace
 
 RESOURCE = KeyValueResource.METASTORE_CACHE
-CODEC = PickleKeyValueCodec()
 
 
 class SupersetMetastoreCache(BaseCache):
-    def __init__(self, namespace: UUID, default_timeout: int = 300) -> None:
+    def __init__(
+        self,
+        namespace: UUID,
+        codec: KeyValueCodec,
+        default_timeout: int = 300,
+    ) -> None:
         super().__init__(default_timeout)
         self.namespace = namespace
+        self.codec = codec
 
     @classmethod
     def factory(
@@ -41,6 +50,7 @@ class SupersetMetastoreCache(BaseCache):
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
         kwargs["namespace"] = get_uuid_namespace(seed)
+        kwargs["codec"] = config.get("CODEC") or PickleKeyValueCodec()
         return cls(*args, **kwargs)
 
     def get_key(self, key: str) -> UUID:
@@ -69,7 +79,7 @@ class SupersetMetastoreCache(BaseCache):
             resource=RESOURCE,
             key=self.get_key(key),
             value=value,
-            codec=CODEC,
+            codec=self.codec,
             expires_on=self._get_expiry(timeout),
         ).run()
         return True
@@ -82,7 +92,7 @@ class SupersetMetastoreCache(BaseCache):
             CreateKeyValueCommand(
                 resource=RESOURCE,
                 value=value,
-                codec=CODEC,
+                codec=self.codec,
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
@@ -98,7 +108,7 @@ class SupersetMetastoreCache(BaseCache):
         return GetKeyValueCommand(
             resource=RESOURCE,
             key=self.get_key(key),
-            codec=CODEC,
+            codec=self.codec,
         ).run()
 
     def has(self, key: str) -> bool:
