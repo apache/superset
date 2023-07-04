@@ -21,6 +21,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from pyhive.exc import DatabaseError
+from trino.exceptions import TrinoUserError
+from MySQLdb._exceptions import DatabaseError as DbError,Error
 
 from superset import app
 from superset.sql_validators import SQLValidationAnnotation
@@ -30,6 +32,8 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
+from superset.sql_validators.trino_db import (TrinoSQLValidator,TrinoSQLValidationError)
+from superset.sql_validators.my_sql_db import MySqlDBSQLValidator, MySqlSQLValidationError
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -167,8 +171,6 @@ class TestBaseValidator(SupersetTestCase):
     def test_validator_excepts(self):
         with self.assertRaises(NotImplementedError):
             self.validator.validate(None, None, None)
-
-
 class TestPrestoValidator(SupersetTestCase):
     """Testing for the prestodb sql validator"""
 
@@ -250,8 +252,6 @@ class TestPrestoValidator(SupersetTestCase):
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])
-
-
 class TestPostgreSQLValidator(SupersetTestCase):
     def test_valid_syntax(self):
         if get_example_database().backend != "postgresql":
@@ -278,7 +278,168 @@ class TestPostgreSQLValidator(SupersetTestCase):
         assert annotation.start_column is None
         assert annotation.end_column is None
         assert annotation.message == 'ERROR: syntax error at or near """'
+class TestTrinoValidator(SupersetTestCase):
+    """Testing for the prestodb sql validator"""
 
+    def setUp(self):
+        self.validator = TrinoSQLValidator
+        self.database = MagicMock()
+        self.database_engine = self.database.get_sqla_engine.return_value
+        self.database_conn = self.database_engine.raw_connection.return_value
+        self.database_cursor = self.database_conn.cursor.return_value
+        self.database_cursor.poll.return_value = None
+
+    def tearDown(self):
+        self.logout()
+
+    TRINO_ERROR_TEMPLATE = {
+        "errorLocation": {"lineNumber": 10, "columnNumber": 20},
+        "message": "your query isn't how I like it",
+    }
+
+    @patch("superset.utils.core.g")
+    def test_validator_success(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        errors = self.validator.validate(sql, schema, self.database)
+
+        self.assertEqual([], errors)
+
+    @patch("superset.utils.core.g")
+    def test_validator_db_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = TrinoUserError("dummy db error")
+
+        with self.assertRaises(TrinoSQLValidationError):
+            self.validator.validate(sql, schema, self.database)
+
+    @patch("superset.utils.core.g")
+    def test_validator_unexpected_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = Exception("a mysterious failure")
+
+        with self.assertRaises(Exception):
+            self.validator.validate(sql, schema, self.database)
+
+    @patch("superset.utils.core.g")
+    def test_validator_query_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = TrinoUserError(self.TRINO_ERROR_TEMPLATE)
+
+        errors = self.validator.validate(sql, schema, self.database)
+
+        self.assertEqual(1, len(errors))
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
+    def test_validate_sql_endpoint(self):
+        self.login("admin")
+        # NB this is effectively an integration test -- when there's a default
+        #    validator for sqlite, this test will fail because the validator
+        #    will no longer error out.
+        resp = self.validate_sql(
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
+        )
+        self.assertIn("error", resp)
+        self.assertIn("no SQL validator is configured", resp["error"])
+class TestMySqlValidator(SupersetTestCase):
+    """Testing for the prestodb sql validator"""
+
+    def setUp(self):
+        self.validator = MySqlDBSQLValidator
+        self.database = MagicMock()
+        self.database_engine = self.database.get_sqla_engine.return_value
+        self.database_conn = self.database_engine.raw_connection.return_value
+        self.database_cursor = self.database_conn.cursor.return_value
+        self.database_cursor.poll.return_value = None
+
+    def tearDown(self):
+        self.logout()
+
+    MYSQL_ERROR_TEMPLATE = {
+        "errorLocation": {"lineNumber": 10, "columnNumber": 20},
+        "message": "your query isn't how I like it",
+    }
+
+    @patch("superset.utils.core.g")
+    def test_validator_success(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        errors = self.validator.validate(sql, schema, self.database)
+
+        self.assertEqual([], errors)
+
+    @patch("superset.utils.core.g")
+    def test_validator_db_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = DbError("dummy db error")
+
+        with self.assertRaises(MySqlSQLValidationError):
+            self.validator.validate(sql, schema, self.database)
+
+    @patch("superset.utils.core.g")
+    def test_validator_unexpected_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = Exception("a mysterious failure")
+
+        with self.assertRaises(Exception):
+            self.validator.validate(sql, schema, self.database)
+
+    @patch("superset.utils.core.g")
+    def test_validator_query_error(self, flask_g):
+        flask_g.user.username = "nobody"
+        sql = "SELECT 1 FROM default.notarealtable"
+        schema = "default"
+
+        fetch_fn = self.database.db_engine_spec.fetch_data
+        fetch_fn.side_effect = DbError(self.MYSQL_ERROR_TEMPLATE)
+
+        errors = self.validator.validate(sql, schema, self.database)
+
+        self.assertEqual(1, len(errors))
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
+    def test_validate_sql_endpoint(self):
+        self.login("admin")
+        # NB this is effectively an integration test -- when there's a default
+        #    validator for sqlite, this test will fail because the validator
+        #    will no longer error out.
+        resp = self.validate_sql(
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
+        )
+        self.assertIn("error", resp)
+        self.assertIn("no SQL validator is configured", resp["error"])
 
 if __name__ == "__main__":
     unittest.main()
