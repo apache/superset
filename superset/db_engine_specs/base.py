@@ -527,7 +527,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All time grain expressions supported by the engine
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
-        time_grain_expressions = builtin_time_grains.copy()
+        time_grain_expressions = cls._time_grain_expressions.copy()
         grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
