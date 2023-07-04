@@ -535,8 +535,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             try:
                 time_grain_expressions.pop(key)
             except Exception as e:
-                logger.warning("не получилось удалить из словаря временные интервалы"
-                               , time_grain_expressions)
+                logger.warning("не получилось удалить из словаря временной интервал",
+                               time_grain_expressions)
         return dict(
             sorted(
                 time_grain_expressions.items(),
