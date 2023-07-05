@@ -64,12 +64,15 @@ import DividerConfigForm from './DividerConfigForm';
 
 const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
   min-width: 700px;
+  width: ${({ expanded }) => (expanded ? '100% !important' : '70%')};
+
   .ant-modal-body {
     padding: 0px;
   }
   ${({ expanded }) =>
     expanded &&
     css`
+      height: 100%;
       .ant-modal-content {
         height: 100%;
       }
@@ -618,8 +621,6 @@ function FiltersConfigModal({
           />
         </div>
       }
-      width="70%"
-      {...(expanded && { width: '100%', height: '100%' })}
       expanded={expanded}
       destroyOnClose
       onCancel={handleCancel}
